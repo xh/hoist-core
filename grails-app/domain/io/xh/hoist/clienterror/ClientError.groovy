@@ -5,11 +5,11 @@
  * Copyright © 2018 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.clientexception
+package io.xh.hoist.clienterror
 
 import io.xh.hoist.json.JSONFormat
 
-class ClientException implements JSONFormat {
+class ClientError implements JSONFormat {
 
     String msg
     String error
@@ -22,7 +22,7 @@ class ClientException implements JSONFormat {
     Date dateCreated
 
     static mapping = {
-        table 'xh_client_exceptions'
+        table 'xh_client_error'
         cache true
         error type: 'text'
         msg type: 'text'

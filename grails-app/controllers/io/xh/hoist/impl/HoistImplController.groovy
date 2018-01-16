@@ -14,7 +14,7 @@ import groovy.transform.CompileStatic
 import io.xh.hoist.BaseController
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.dash.DashboardService
-import io.xh.hoist.clientexception.ClientExceptionService
+import io.xh.hoist.clienterror.ClientErrorService
 import io.xh.hoist.export.GridExportImplService
 import io.xh.hoist.feedback.FeedbackService
 import io.xh.hoist.json.JSON
@@ -30,7 +30,7 @@ class HoistImplController extends BaseController {
 
     TrackService trackService
     PrefService prefService
-    ClientExceptionService clientExceptionService
+    ClientErrorService clientErrorService
     ConfigService configService
     GridExportImplService gridExportImplService
     DashboardService dashboardService
@@ -159,10 +159,10 @@ class HoistImplController extends BaseController {
     }
 
     //------------------------
-    // Client Exceptions
+    // Client Errors
     //------------------------
-    def submitException(String msg, String error, String appVersion) {
-        clientExceptionService.submit(msg, error, appVersion)
+    def submitError(String msg, String error, String appVersion) {
+        clientErrorService.submit(msg, error, appVersion)
         renderJSON(success: true)
     }
 
