@@ -1,0 +1,49 @@
+/*
+ * This file belongs to Hoist, an application development toolkit
+ * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
+ *
+ * Copyright © 2018 Extremely Heavy Industries Inc.
+ */
+
+package io.xh.hoist.monitor
+
+import io.xh.hoist.BaseService
+import io.xh.hoist.util.Utils
+
+import static io.xh.hoist.monitor.MonitorStatus.WARN
+
+class MonitoringEmailService extends BaseService {
+
+    def emailService
+
+    void init() {
+        subscribeWithSession('xhMonitorStatusReport', this.&emailReport)
+        super.init()
+    }
+
+    
+    //------------------------
+    // Implementation
+    //------------------------
+    private void emailReport(MonitorStatusReport report) {
+        def to = emailService.parseMailConfig('xhMonitorEmailRecipients')
+        if (to) {
+            emailService.sendEmail(async: true, to: to, subject: report.title, html: formatHtml(report))
+        }
+    }
+
+    private String formatHtml(MonitorStatusReport report) {
+        def results = report.results,
+            appName = Utils.appDisplayName
+
+        results.sort{it.name}
+        results.sort{it.status}
+
+        if (report.status < WARN) return "There are no alerting monitors for $appName."
+
+        return results.findAll{it.status >= WARN}.collect {
+            "+ $it.name: $it.message. Minutes in [$it.status]: ${it.minsInStatus}"
+        }.join('<br>')
+    }
+    
+}

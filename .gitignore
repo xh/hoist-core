@@ -1,0 +1,14 @@
+# IDE Files
+.idea/*
+!/.idea/scopes/
+!/.idea/copyright/
+*.iml
+
+# Gradle / Build
+.gradle/
+build/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+Thumbs.db
