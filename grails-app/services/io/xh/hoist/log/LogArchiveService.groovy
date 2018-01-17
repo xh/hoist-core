@@ -18,26 +18,22 @@ import java.util.zip.ZipOutputStream
 import static io.xh.hoist.log.LogUtils.logRootPath
 import static io.xh.hoist.util.DateTimeUtils.DAYS
 import static java.io.File.separator
+import static grails.util.Environment.isDevelopmentMode
 
 class LogArchiveService extends BaseService {
 
     def configService
 
     void init() {
-        createTimer(
-                runFn: this.&archiveLogs,
-                interval: 1 * DAYS
-        )
+        createTimer(interval: 1 * DAYS)
         super.init()
     }
 
-    void archiveLogs(int daysThreshold = getConfig('archiveAfterDays')) {
+    void archiveLogs(int daysThreshold) {
         File logPath = getLogPath()
 
         List<File> oldLogs = getOldLogFiles(logPath, daysThreshold)
-        if (!oldLogs) return
-
-        withShortInfo("Archiving logs older than ${daysThreshold} days: ${oldLogs.size()}") {
+        withShortInfo("Archiving ${oldLogs.size()} log(s) older than ${daysThreshold} days.") {
             Map logsByCategory = mapLogsByCategory(oldLogs)
 
             logsByCategory.each {String category, List<File> logFiles ->
@@ -45,15 +41,14 @@ class LogArchiveService extends BaseService {
                 if (!archivePath.exists()) archivePath.mkdirs()
 
                 Map logsByMonth = mapLogsByMonth(logFiles)
-                logsByMonth.each { String month, files ->
+                logsByMonth.each {String month, files ->
                     ZipOutputStream zipStream = getZipStream(archivePath.absolutePath, month)
-                    files.each { File file ->
+                    files.each {File file ->
                         writeFileToZip(zipStream, file)
                         file.delete()
                     }
                     zipStream.close()
                 }
-
             }
         }
     }
@@ -62,9 +57,14 @@ class LogArchiveService extends BaseService {
     //------------------------
     // Implementation
     //------------------------
-    private Object getConfig(String name) {
-        def config = configService.getJSONObject('xhLogArchiveConfig')
-        return config[name]
+    private Map getConfig() {
+        return configService.getJSONObject('xhLogArchiveConfig')
+    }
+
+    private void onTimer() {
+        if (!isDevelopmentMode()) {
+            archiveLogs((int) config.archiveAfterDays)
+        }
     }
 
     private File getLogPath() {
@@ -72,7 +72,7 @@ class LogArchiveService extends BaseService {
     }
 
     private File getArchivePath(String logPath, String category) {
-        return new File(logPath + separator + getConfig('archiveFolder') + separator + category)
+        return new File(logPath + separator + config.archiveFolder + separator + category)
     }
 
     private Map mapLogsByCategory(List<File> files) {
@@ -163,5 +163,5 @@ class LogArchiveService extends BaseService {
             outStream.write(buffer, 0, len)
         }
     }
-    
+
 }
