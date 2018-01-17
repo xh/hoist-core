@@ -13,6 +13,7 @@ import io.xh.hoist.util.Utils
 class Dashboard implements JSONFormat {
 
     String appCode
+    String name
     String username
     String definition
     Date dateCreated
@@ -26,6 +27,7 @@ class Dashboard implements JSONFormat {
 
     static constraints = {
         appCode(maxSize: 50)
+        name(maxSize: 50)
         username(maxSize: 50)
         definition(validator: {Utils.isJSON(it) ?: 'default.invalid.json.message'})
     }
@@ -34,6 +36,7 @@ class Dashboard implements JSONFormat {
         return [
                 id: id,
                 appCode: appCode,
+                name: name,
                 username: username,
                 definition: definition,
                 dateCreated: dateCreated,
