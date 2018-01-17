@@ -5,17 +5,17 @@
  * Copyright © 2018 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.clientexception
+package io.xh.hoist.clienterror
 
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 
-class ClientExceptionEmailService extends BaseService {
+class ClientErrorEmailService extends BaseService {
 
     def emailService
 
     void init() {
-        subscribeWithSession('xhClientExceptionReceived', this.&emailClientException)
+        subscribeWithSession('xhClientErrorReceived', this.&emailClientException)
         super.init()
     }
 
@@ -23,7 +23,7 @@ class ClientExceptionEmailService extends BaseService {
     //-------------------------
     // Implementation
     //-------------------------
-    private void emailClientException(ClientException ce) {
+    private void emailClientException(ClientError ce) {
         def to = emailService.parseMailConfig('xhEmailSupport'),
             subject = "${Utils.appName.capitalize()} feedback"
         if (to) {
@@ -31,7 +31,7 @@ class ClientExceptionEmailService extends BaseService {
         }
     }
 
-    private String formatHtml(ClientException ce) {
+    private String formatHtml(ClientError ce) {
         def msgText = ce.msg,
             errorText = ce.error,
             metaText = [
