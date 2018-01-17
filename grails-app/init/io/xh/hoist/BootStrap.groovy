@@ -35,7 +35,7 @@ class BootStrap {
     }
 
     private void logStartupMsg() {
-        def hoist = Holders.currentPluginManager().getGrailsPlugin('hoist')
+        def hoist = Holders.currentPluginManager().getGrailsPlugin('hoist-core')
 
         log.info("""
 \n

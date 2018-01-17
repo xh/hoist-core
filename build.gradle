@@ -109,7 +109,7 @@ publishing {
                     }
                     delegate.issueManagement {
                         delegate.system "GitHub"
-                        delegate.url "https://github.com/exhi/hoist/issues"
+                        delegate.url "https://github.com/exhi/hoist-core/issues"
                     }
                     delegate.developers {
                         delegate.developer {
