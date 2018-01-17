@@ -8,11 +8,11 @@
 package io.xh.hoist.admin
 
 import io.xh.hoist.RestController
-import io.xh.hoist.clientexception.ClientException
+import io.xh.hoist.clienterror.ClientError
 import io.xh.hoist.security.Access
 
 @Access(['HOIST_ADMIN'])
-class ClientExceptionAdminController extends RestController {
-    static restTarget = ClientException
+class ClientErrorAdminController extends RestController {
+    static restTarget = ClientError
     static trackChanges = false
 }

@@ -5,7 +5,7 @@
  * Copyright © 2018 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.clientexception
+package io.xh.hoist.clienterror
 
 import grails.events.*
 import io.xh.hoist.BaseService
@@ -15,7 +15,7 @@ import org.grails.web.util.WebUtils
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
 
-class ClientExceptionService extends BaseService implements EventPublisher {
+class ClientErrorService extends BaseService implements EventPublisher {
 
     /**
      * Create a client exception entry. Username, browser info, environment info, and datetime will be set automatically.
@@ -26,10 +26,12 @@ class ClientExceptionService extends BaseService implements EventPublisher {
     void submit(String message, String error, String appVersion) {
         def request = WebUtils.retrieveGrailsWebRequest().currentRequest,
             userAgent = request?.getHeader('User-Agent'),
+            idSvc = identityService,
+            authUsername = idSvc.getAuthUser().username,
             values = [
                     msg: message,
                     error: error,
-                    username: username ?: 'ANON',
+                    username: authUsername,
                     userAgent: userAgent,
                     browser: getBrowser(userAgent),
                     device: getDevice(userAgent),
@@ -37,10 +39,10 @@ class ClientExceptionService extends BaseService implements EventPublisher {
                     appEnvironment: Utils.appEnvironment
             ]
 
-        ClientException.withNewSession {
-            def ce = new ClientException(values)
+        ClientError.withNewSession {
+            def ce = new ClientError(values)
             ce.save(flush: true)
-            notify('xhClientExceptionReceived', ce)
+            notify('xhClientErrorReceived', ce)
         }
     }
 
