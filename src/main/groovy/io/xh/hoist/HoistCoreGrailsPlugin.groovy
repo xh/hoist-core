@@ -14,21 +14,21 @@ import io.xh.hoist.util.Utils
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.core.Ordered
 
-class HoistGrailsPlugin extends Plugin {
+class HoistCoreGrailsPlugin extends Plugin {
 
-    def grailsVersion = '3.2.7 > *'
+    def grailsVersion = '3.3.1 > *'
     def pluginExcludes = []
 
-    def title = 'hoist'
+    def title = 'hoist-core'
     def author = 'Extremely Heavy Industries'
     def authorEmail = 'info@xh.io'
-    def description = 'Rapid Grails and Sencha Application Delivery System.'
+    def description = 'Rapid Web Application Delivery System.'
     def profiles = ['web']
 
     // URL to the plugin's documentation
-    def documentation = 'https://github.com/exhi/hoist/blob/master/README.md'
+    def documentation = 'https://github.com/exhi/hoist-core/blob/master/README.md'
     def organization = [name: 'Extremely Heavy Industries', url: 'http://xh.io']
-    def scm = [url: 'https://github.com/exhi/hoist']
+    def scm = [url: 'https://github.com/exhi/hoist-core']
     def observe = ["services"]
 
 
