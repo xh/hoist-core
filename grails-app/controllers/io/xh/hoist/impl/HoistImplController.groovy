@@ -126,7 +126,7 @@ class HoistImplController extends BaseController {
                 javaVersion:            System.getProperty('java.version')
         ]
 
-        getHoistGrailsPlugins().each{it ->
+        hoistGrailsPlugins.each {it ->
             ret[it.name + 'Version'] = it.version
         }
 
@@ -155,7 +155,7 @@ class HoistImplController extends BaseController {
 
     def deleteUserDashboard(String appCode) {
         dashboardService.deleteUserInstance(appCode)
-        renderJSON([success: true])
+        renderJSON(success: true)
     }
 
     //------------------------
@@ -195,7 +195,7 @@ class HoistImplController extends BaseController {
     // Implementation
     //------------------------
     private Collection<GrailsPlugin> getHoistGrailsPlugins() {
-        return Holders.currentPluginManager().getAllPlugins().findAll{it.name.startsWith('hoist')}
+        return Holders.currentPluginManager().allPlugins.findAll{it.name.startsWith('hoist')}
     }
 
 }
