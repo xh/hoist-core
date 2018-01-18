@@ -151,17 +151,20 @@ class HoistImplController extends BaseController {
     //------------------------
     // Dashboards
     //------------------------
-    def getUserDashboards(String appCode) {
+    def getDashboards(String appCode) {
         renderJSON(dashboardService.getAll(appCode))
+    }
+
+    def createDashboard(String appCode, String name, String definition) {
+        renderJSON(dashboardService.create(appCode, name, definition))
     }
 
     def saveDashboard(String appCode, int id, String name, String definition) {
         renderJSON(dashboardService.save(appCode, id, name, definition))
     }
 
-
-    def deleteUserDashboard(String appCode, int id) {
-        dashboardService.deleteUserDashboard(appCode, id)
+    def deleteDashboard(String appCode, int id) {
+        dashboardService.delete(appCode, id)
         renderJSON([success: true])
     }
 
