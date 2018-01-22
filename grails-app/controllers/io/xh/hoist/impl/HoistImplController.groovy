@@ -155,6 +155,10 @@ class HoistImplController extends BaseController {
         renderJSON(dashboardService.getAll(appCode))
     }
 
+    def getDashboardTemplate(String appCode) {
+        render(dashboardService.getTemplate(appCode))
+    }
+
     def createDashboard(String appCode, String name, String definition) {
         renderJSON(dashboardService.create(appCode, name, definition))
     }

@@ -23,6 +23,14 @@ class DashboardService extends BaseService {
         return dashboards
     }
 
+    String getTemplate(String appCode) {
+        Dashboard template = Dashboard.findByAppCodeAndUsername(appCode, 'TEMPLATE')
+
+        if (!template) throw new RuntimeException("Unable to find dashboard $appCode for $username (or TEMPLATE)")
+
+        return template.definition
+    }
+
     Dashboard create(String appCode, String name, String definition) {
         Dashboard dash = new Dashboard(
                 appCode: appCode,
@@ -61,10 +69,7 @@ class DashboardService extends BaseService {
     // Implementation
     //--------------------------------------
     private Dashboard createFromTemplate(String appCode) {
-        Dashboard template = Dashboard.findByAppCodeAndUsername(appCode, 'TEMPLATE');
-
-        if (!template) throw new RuntimeException("Unable to find dashboard $appCode for $username (or TEMPLATE)")
-
-        return create(appCode, 'My Dashboard', template.definition)
+        String definition = getTemplate(appCode)
+        create(appCode, 'My Dashboard', definition)
     }
 }
