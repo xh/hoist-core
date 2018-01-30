@@ -9,7 +9,7 @@ buildscript {
     }
 }
 
-version hasProperty('xhReleaseVersion') ? xhReleaseVersion : '1.0-SNAPSHOT'
+version hasProperty('xhReleaseVersion') ? xhReleaseVersion : '2.0-SNAPSHOT'
 group 'io.xh'
 
 apply plugin:'idea'
