@@ -25,4 +25,11 @@ class ClientErrorAdminController extends BaseController {
         renderJSON(results)
     }
 
+    //------------------------
+    // Implementation
+    //------------------------
+    private static Date parseDate(String dateStr) {
+        return dateStr ? Date.parse('yyyyMMdd', dateStr) : null
+    }
+
 }
