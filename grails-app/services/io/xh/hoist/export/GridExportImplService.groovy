@@ -201,11 +201,14 @@ class GridExportImplService extends BaseService {
     }
 
     private byte[] renderCSVFile(List rows) {
-        rows = rows.collectNested { it != null && it.data != null ? it.data : '' }
+        rows = rows.collectNested { it != null && it.data != null ? it.data.toList() : '' }
         File temp = File.createTempFile('temp', '.csv')
         temp.withWriter {out ->
-            rows.each {
-                out.writeLine(it.join(','))
+            rows.each { row ->
+                // Replace double quotes as a pair of double quotes ("") - this to allow
+                // proper parsing by Excel back into a single double quote
+                row = row.collect { it ? '"' + it.replace('"', '""') + '"' : '""' }
+                out.writeLine(row.join(','))
             }
         }
 
