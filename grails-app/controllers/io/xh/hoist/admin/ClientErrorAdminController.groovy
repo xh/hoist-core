@@ -21,7 +21,6 @@ class ClientErrorAdminController extends BaseController {
             if (startDate)          dateCreated >= startDate
             if (endDate)            dateCreated < endDate+1
             if (params.username)    username =~ "%$params.username%"
-            if (params.msg)         msg =~ "%$params.msg%"
             if (params.error)       error =~ "%$params.error%"
         }
 
