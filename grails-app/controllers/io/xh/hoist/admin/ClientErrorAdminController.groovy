@@ -20,6 +20,9 @@ class ClientErrorAdminController extends BaseController {
         def results = ClientError.findAll(max: 5000, sort: 'dateCreated', order: 'desc') {
             if (startDate)          dateCreated >= startDate
             if (endDate)            dateCreated < endDate+1
+            if (params.username)    username =~ "%$params.username%"
+            if (params.msg)         msg =~ "%$params.msg%"
+            if (params.error)       error =~ "%$params.error%"
         }
 
         renderJSON(results)
