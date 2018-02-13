@@ -7,12 +7,31 @@
 
 package io.xh.hoist.admin
 
-import io.xh.hoist.RestController
+import io.xh.hoist.BaseController
 import io.xh.hoist.clienterror.ClientError
 import io.xh.hoist.security.Access
 
 @Access(['HOIST_ADMIN'])
-class ClientErrorAdminController extends RestController {
-    static restTarget = ClientError
-    static trackChanges = false
+class ClientErrorAdminController extends BaseController {
+    def index() {
+        def startDate = parseDate(params.startDate),
+            endDate = parseDate(params.endDate)
+
+        def results = ClientError.findAll(max: 5000, sort: 'dateCreated', order: 'desc') {
+            if (startDate)          dateCreated >= startDate
+            if (endDate)            dateCreated < endDate+1
+            if (params.username)    username =~ "%$params.username%"
+            if (params.error)       error =~ "%$params.error%"
+        }
+
+        renderJSON(results)
+    }
+
+    //------------------------
+    // Implementation
+    //------------------------
+    private static Date parseDate(String dateStr) {
+        return dateStr ? Date.parse('yyyyMMdd', dateStr) : null
+    }
+
 }
