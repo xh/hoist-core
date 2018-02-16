@@ -27,6 +27,8 @@ class ConfigDiffService extends BaseService implements DataBinder {
 
             // apply remote values to existing config
             if (vals) {
+                // ensure we NEVER overwrite an existing pwd val
+                if(config.valueType == 'pwd') removeValueFields(vals)
                 bindData(config, vals)
                 config.save(flush:true)
                 log.info("Config '${config.name}' updated")
@@ -42,5 +44,11 @@ class ConfigDiffService extends BaseService implements DataBinder {
             }
         }
     }
-    
+
+    void removeValueFields(vals) {
+        vals.remove('prodValue')
+        vals.remove('betaValue')
+        vals.remove('prodValue')
+        vals.remove('devValue')
+    }
 }
