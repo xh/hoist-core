@@ -11,6 +11,8 @@ import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.util.Utils
 import org.jasypt.util.text.BasicTextEncryptor
 import org.jasypt.util.text.TextEncryptor
+import org.jasypt.salt.ZeroSaltGenerator
+import org.jasypt.encryption.pbe.StandardPBEStringEncryptor
 
 class AppConfig implements JSONFormat {
 
@@ -95,7 +97,11 @@ class AppConfig implements JSONFormat {
     }
 
     private String maskIfPwd(String value) {
-        return (valueType == 'pwd' && value != null) ? '******' : value
+        StandardPBEStringEncryptor stringEncryptor = new StandardPBEStringEncryptor();
+        ZeroSaltGenerator saltGenerator = new ZeroSaltGenerator()
+        stringEncryptor.setPassword('encryptForDiffer')
+        stringEncryptor.setSaltGenerator(saltGenerator)
+        return (valueType == 'pwd' && value != null) ? stringEncryptor.encrypt(value) : value
     }
 
     private static TextEncryptor createEncryptor() {
