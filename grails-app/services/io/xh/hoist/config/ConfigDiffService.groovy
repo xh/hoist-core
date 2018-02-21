@@ -42,5 +42,4 @@ class ConfigDiffService extends BaseService implements DataBinder {
             }
         }
     }
-    
 }
