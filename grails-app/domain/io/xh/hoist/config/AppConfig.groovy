@@ -96,6 +96,7 @@ class AppConfig implements JSONFormat {
         }
     }
 
+    // second layer of (irreversible) encryption for password values sent to client
     private String maskIfPwd(String value) {
         return (valueType == 'pwd' && value != null) ? digestEncryptor.encryptPassword(value) : value
     }
