@@ -87,6 +87,7 @@ class AppConfig implements JSONFormat {
     def beforeInsert() {encryptIfPwd(true)}
     def beforeUpdate() {encryptIfPwd(false)}
 
+    // first layer of encryption for password storage
     private encryptIfPwd(boolean isInsert) {
         if (valueType == 'pwd') {
             if (hasChanged('prodValue') || isInsert)    prodValue  = encryptor.encrypt(prodValue)
