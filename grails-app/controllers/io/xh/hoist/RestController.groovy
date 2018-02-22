@@ -22,8 +22,8 @@ abstract class RestController extends BaseController {
     static restTarget = null // Implementations set to value of GORM domain class they are editing.
 
     def create() {
-        def data = request.JSON.data
-        preprocessSubmit(data as JSONObject)
+        def data = params.data ? new JSONObject(params.data) : new JSONObject(request.JSON.data)
+        preprocessSubmit(data)
 
         def obj = restTargetVal.newInstance(data)
         try {
@@ -42,8 +42,8 @@ abstract class RestController extends BaseController {
     }
 
     def update() {
-        def data = request.JSON.data
-        preprocessSubmit(data as JSONObject)
+        def data = params.data ? new JSONObject(params.data) : new JSONObject(request.JSON.data)
+        preprocessSubmit(data)
 
         def obj = restTargetVal.get(data.id)
         try {
