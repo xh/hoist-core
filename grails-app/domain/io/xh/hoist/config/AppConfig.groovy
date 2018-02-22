@@ -9,12 +9,14 @@ package io.xh.hoist.config
 
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.util.Utils
+import org.jasypt.util.password.ConfigurablePasswordEncryptor
 import org.jasypt.util.text.BasicTextEncryptor
 import org.jasypt.util.text.TextEncryptor
 
 class AppConfig implements JSONFormat {
 
     static private final TextEncryptor encryptor = createEncryptor()
+    static private final ConfigurablePasswordEncryptor digestEncryptor = createDigestEncryptor()
 
     static List TYPES = ['string', 'int', 'long', 'double', 'bool', 'json', 'pwd']
 
@@ -95,13 +97,19 @@ class AppConfig implements JSONFormat {
     }
 
     private String maskIfPwd(String value) {
-        return (valueType == 'pwd' && value != null) ? '******' : value
+        return (valueType == 'pwd' && value != null) ? digestEncryptor.encryptPassword(value) : value
     }
 
     private static TextEncryptor createEncryptor() {
         def ret = new BasicTextEncryptor()
         ret.setPassword('dsd899s_*)jsk9dsl2fd223hpdj32))I@333')
         return ret
+    }
+
+    private static ConfigurablePasswordEncryptor createDigestEncryptor() {
+        def ret = new ConfigurablePasswordEncryptor()
+        ret.setPlainDigest(true)
+        ret
     }
 
     Map formatForJSON() {
