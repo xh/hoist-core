@@ -116,6 +116,50 @@ class ConfigService extends BaseService implements EventPublisher {
         ret
     }
 
+    /**
+     * Check a list of core configurations required for Hoist/application operation - ensuring that these configs are
+     * present and that their valueTypes and clientVisible flags are are as expected. Will create missing configs with
+     * supplied default values if not found. Called for xh.io configs by Hoist Core Bootstrap.
+     * @param reqConfigs - map of configName to map of [valueType, defaultValue, clientVisible, groupName]
+     */
+    void ensureRequiredConfigsCreated(Map<String, Map> reqConfigs) {
+        def currConfigs = AppConfig.list(),
+            created = 0
+
+        reqConfigs.each{confName, confDefaults ->
+            def currConfig = currConfigs.find{it.name == confName},
+                valType = confDefaults.valueType,
+                defaultVal = confDefaults.defaultValue,
+                clientVisible = confDefaults.clientVisible ?: false
+
+            if (!currConfig) {
+                if (valType == 'json') defaultVal = new JSON(defaultVal).toString()
+
+                new AppConfig(
+                    name: confName,
+                    valueType: valType,
+                    prodValue: defaultVal,
+                    groupName: confDefaults.groupName ?: 'xh.io',
+                    clientVisible: clientVisible,
+                    lastUpdatedBy: 'hoist-bootstrap'
+                ).save()
+
+                log.warn("Required config ${confName} missing and created with default value | verify default is appropriate for this application")
+                created++
+            } else {
+                if (currConfig.valueType != valType) {
+                    log.error("Unexpected value type for required config ${confName} | expected ${valType} got ${currConfig.valueType} | review and fix!")
+                }
+                if (currConfig.clientVisible != clientVisible) {
+                    log.error("Unexpected clientVisible for required config ${confName} | expected ${clientVisible} got ${currConfig.clientVisible} | review and fix!")
+                }
+            }
+        }
+
+        log.info("Validated presense of ${reqConfigs.size()} required configs | created ${created}")
+    }
+
+
     //-------------------
     //  Implementation
     //-------------------

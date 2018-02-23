@@ -15,6 +15,8 @@ class BootStrap {
     def init = {servletContext ->
         checkEnvironment()
         logStartupMsg()
+        ensureRequiredConfigsCreated()
+
         def services = Utils.xhServices.findAll {it.class.canonicalName.startsWith('io.xh.hoist')}
         BaseService.parallelInit(services)
     }
@@ -49,6 +51,71 @@ class BootStrap {
           Extremely Heavy Industries - http://xh.io
 \n
         """)
+    }
+
+    private void ensureRequiredConfigsCreated() {
+        Utils.configService.ensureRequiredConfigsCreated([
+                xhAboutMenuConfigs: [
+                        valueType: 'json',
+                        defaultValue: [],
+                        clientVisible: true
+                ],
+                xhAppVersionCheckEnabled: [
+                        valueType: 'bool',
+                        defaultValue: false
+                ],
+                xhAppVersionCheckSecs: [
+                        valueType: 'int',
+                        defaultValue: 30,
+                        clientVisible: true
+                ],
+                xhEmailDefaultDomain: [
+                        valueType: 'string',
+                        defaultValue: 'xh.io'
+                ],
+                xhEmailDefaultSender: [
+                        valueType: 'string',
+                        defaultValue: 'support@xh.io'
+                ],
+                xhEmailFilter: [
+                        valueType: 'string',
+                        defaultValue: 'none'
+                ],
+                xhEmailOverride: [
+                        valueType: 'string',
+                        defaultValue: 'none'
+                ],
+                xhEmailSupport: [
+                        valueType: 'string',
+                        defaultValue: 'support@xh.io'
+                ],
+                xhIdleTimeoutMins: [
+                        valueType: 'int',
+                        defaultValue: 180,
+                        clientVisible: true
+                ],
+                xhLogArchiveConfig: [
+                        valueType: 'json',
+                        defaultValue: [
+                                archiveAfterDays: 30,
+                                archiveDirectory: 'archive'
+                        ]
+                ],
+                xhMonitorConfig: [
+                        valueType: 'json',
+                        defaultValue: [
+                                monitorRefreshMins: 10,
+                                failNotifyThreshold: 2,
+                                warnNotifyThreshold: 5,
+                                monitorStartupDelayMins: 1,
+                                monitorRepeatNotifyMins: 60
+                        ]
+                ],
+                xhMonitorEmailRecipients: [
+                        valueType: 'string',
+                        defaultValue: 'support@xh.io'
+                ]
+        ])
     }
     
 }
