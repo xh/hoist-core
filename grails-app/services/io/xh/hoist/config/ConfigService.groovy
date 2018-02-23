@@ -156,7 +156,7 @@ class ConfigService extends BaseService implements EventPublisher {
             }
         }
 
-        log.info("Validated presense of ${reqConfigs.size()} required configs | created ${created}")
+        log.debug("Validated presense of ${reqConfigs.size()} required configs | created ${created}")
     }
 
 
