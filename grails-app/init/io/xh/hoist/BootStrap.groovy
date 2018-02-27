@@ -114,6 +114,11 @@ class BootStrap {
                 xhMonitorEmailRecipients: [
                         valueType: 'string',
                         defaultValue: 'support@xh.io'
+                ],
+                xhAppInstances: [
+                        valueType: 'json',
+                        defaultValue: [],
+                        clientVisible: true
                 ]
         ])
     }
