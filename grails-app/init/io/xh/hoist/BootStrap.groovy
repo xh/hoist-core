@@ -16,6 +16,7 @@ class BootStrap {
         checkEnvironment()
         logStartupMsg()
         ensureRequiredConfigsCreated()
+        ensureRequiredPrefsCreated()
 
         def services = Utils.xhServices.findAll {it.class.canonicalName.startsWith('io.xh.hoist')}
         BaseService.parallelInit(services)
@@ -119,6 +120,16 @@ class BootStrap {
                         valueType: 'json',
                         defaultValue: [],
                         clientVisible: true
+                ]
+        ])
+    }
+
+    private void ensureRequiredPrefsCreated() {
+        Utils.prefService.ensureRequiredPrefsCreated([
+                xhTheme: [
+                        type: 'string',
+                        defaultValue: 'dark',
+                        local: true
                 ]
         ])
     }
