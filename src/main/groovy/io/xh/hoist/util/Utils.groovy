@@ -12,6 +12,7 @@ import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.json.JSON
+import io.xh.hoist.pref.PrefService
 import io.xh.hoist.track.TrackLog
 import org.grails.web.converters.exceptions.ConverterException
 import org.grails.web.json.JSONArray
@@ -52,6 +53,10 @@ class Utils {
 
     static ConfigService getConfigService() {
         return (ConfigService) appContext.configService
+    }
+
+    static PrefService getPrefService() {
+        return (PrefService) appContext.prefService
     }
 
     static ApplicationContext getAppContext() {
