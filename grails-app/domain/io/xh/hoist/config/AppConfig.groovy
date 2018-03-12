@@ -87,7 +87,6 @@ class AppConfig implements JSONFormat {
     def beforeInsert() {encryptIfPwd(true)}
     def beforeUpdate() {encryptIfPwd(false)}
 
-    // first layer of encryption for password storage
     private encryptIfPwd(boolean isInsert) {
         if (valueType == 'pwd') {
             if (hasChanged('prodValue') || isInsert)    prodValue  = encryptor.encrypt(prodValue)
@@ -97,9 +96,16 @@ class AppConfig implements JSONFormat {
         }
     }
 
-    // second layer of (irreversible) encryption for password values sent to client
+    /**
+     * Hoist admin receives all AppConfigs. Those containing pwd values should be a digest for security.
+     * To allow these values to be correctly compared in the admin config differ, the stored password
+     * is decrypted before being converted into a digest.
+     *
+     * @param value
+     * @return pwd digest
+     */
     private String maskIfPwd(String value) {
-        return (valueType == 'pwd' && value != null) ? digestEncryptor.encryptPassword(value) : value
+        return (valueType == 'pwd' && value != null) ? digestEncryptor.encryptPassword(decryptPassword(value)) : value
     }
 
     private static TextEncryptor createEncryptor() {
