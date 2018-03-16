@@ -23,6 +23,7 @@ import io.xh.hoist.security.AccessAll
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.util.Utils
+import org.grails.web.json.JSONObject
 
 @AccessAll
 @CompileStatic
@@ -93,9 +94,14 @@ class HoistImplController extends BaseController {
     }
 
     def setPrefs(String updates) {
-        Map prefs = (Map) JSON.parse(updates)
-        prefs.each {key, value ->
-            prefService.setPreference(key.toString(), value.toString())
+        JSONObject prefs = (JSONObject) JSON.parse(updates)
+        prefs.each {k, value ->
+            String key = k.toString()
+            if (value instanceof JSONObject) {
+                prefService.setJSON(key, value)
+            } else {
+                prefService.setPreference(key, value.toString())
+            }
         }
         def ret = prefService.getLimitedClientConfig(prefs.keySet() as List)
         renderJSON(preferences: ret)

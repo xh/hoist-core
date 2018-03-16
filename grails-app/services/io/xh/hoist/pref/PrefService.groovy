@@ -107,6 +107,48 @@ class PrefService extends BaseService {
         }
     }
 
+    /**
+     * Check a list of core preferences required for Hoist/application operation - ensuring that these prefs are
+     * present and that their values and local flags are as expected. Will create missing prefs with
+     * supplied default values if not found. Called for xh.io prefs by Hoist Core Bootstrap.
+     * @param refPrefs - map of prefName to map of [type, defaultValue, local]
+     */
+    void ensureRequiredPrefsCreated(Map<String, Map> reqPrefs) {
+        def currPrefs = Preference.list(),
+            created = 0
+
+        reqPrefs.each{prefName, prefDefaults ->
+            def currPref = currPrefs.find{it.name == prefName},
+                valType = prefDefaults.type,
+                defaultVal = prefDefaults.defaultValue,
+                local = prefDefaults.local ?: false
+
+            if (!currPref) {
+                if (valType == 'json') defaultVal = new JSON(defaultVal).toString()
+
+                new Preference(
+                        name: prefName,
+                        type: valType,
+                        defaultValue: defaultVal,
+                        local: local,
+                        lastUpdatedBy: 'hoist-bootstrap'
+                ).save()
+
+                log.warn("Required preference ${prefName} missing and created with default value | verify default is appropriate for this application")
+                created++
+            } else {
+                if (currPref.type != valType) {
+                    log.error("Unexpected value type for required preference ${prefName} | expected ${valType} got ${currPref.type} | review and fix!")
+                }
+                if (currPref.local != local) {
+                    log.error("Unexpected local value for required preference ${prefName} | expected ${local} got ${currPref.local} | review and fix!")
+                }
+            }
+        }
+
+        log.debug("Validated presense of ${reqPrefs.size()} required configs | created ${created}")
+    }
+
 
     //-------------------------
     // Implementation
