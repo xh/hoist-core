@@ -96,8 +96,12 @@ class AppConfig implements JSONFormat {
         }
     }
 
+
+    // Hoist admin receives all AppConfigs. Those containing pwd values should be a digest for security.
+    // To allow these values to be correctly compared in the admin config differ, the stored password
+    // is decrypted before being converted into a digest.
     private String maskIfPwd(String value) {
-        return (valueType == 'pwd' && value != null) ? digestEncryptor.encryptPassword(value) : value
+        return (valueType == 'pwd' && value != null) ? digestEncryptor.encryptPassword(decryptPassword(value)) : value
     }
 
     private static TextEncryptor createEncryptor() {
