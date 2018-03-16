@@ -130,6 +130,11 @@ class BootStrap {
                         type: 'string',
                         defaultValue: 'dark',
                         local: true
+                ],
+                xhAdminActivityChartSize: [
+                        type: 'json',
+                        defaultValue: {},
+                        local: true
                 ]
         ])
     }
