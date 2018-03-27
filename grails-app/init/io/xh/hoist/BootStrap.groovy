@@ -61,6 +61,11 @@ class BootStrap {
                         defaultValue: [],
                         clientVisible: true
                 ],
+                xhAppInstances: [
+                        valueType: 'json',
+                        defaultValue: [],
+                        clientVisible: true
+                ],
                 xhAppVersionCheckEnabled: [
                         valueType: 'bool',
                         defaultValue: false
@@ -115,25 +120,24 @@ class BootStrap {
                 xhMonitorEmailRecipients: [
                         valueType: 'string',
                         defaultValue: 'support@xh.io'
-                ],
-                xhAppInstances: [
-                        valueType: 'json',
-                        defaultValue: [],
-                        clientVisible: true
                 ]
         ])
     }
 
     private void ensureRequiredPrefsCreated() {
         Utils.prefService.ensureRequiredPrefsCreated([
-                xhTheme: [
-                        type: 'string',
-                        defaultValue: 'dark',
-                        local: true
-                ],
                 xhAdminActivityChartSize: [
                         type: 'json',
                         defaultValue: {},
+                        local: true
+                ],
+                xhForceEnvironmentFooter: [
+                        type: 'bool',
+                        defaultValue: false
+                ],
+                xhTheme: [
+                        type: 'string',
+                        defaultValue: 'dark',
                         local: true
                 ]
         ])
