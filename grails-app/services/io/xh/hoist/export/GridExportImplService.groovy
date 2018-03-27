@@ -13,12 +13,12 @@ import io.xh.hoist.util.Utils
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.usermodel.Sheet
-import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.ss.usermodel.CellStyle
 import org.apache.poi.ss.util.AreaReference
 import org.apache.poi.ss.util.CellReference
 import org.apache.poi.xssf.usermodel.XSSFTable
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import org.apache.poi.xssf.streaming.SXSSFWorkbook
 import org.openxmlformats.schemas.spreadsheetml.x2006.main.*
 
 class GridExportImplService extends BaseService {
@@ -78,9 +78,17 @@ class GridExportImplService extends BaseService {
     private byte[] renderExcelFile(List rows, List meta, Boolean asTable) {
         def tableRows = rows.size()
         def tableColumns = rows[0]['data'].size()
-        Workbook wb = new XSSFWorkbook()
-        Sheet sheet = wb.createSheet('Export')
+        def useStreamingAPI = tableRows > 10000
+        def wb
 
+        if (useStreamingAPI) {
+            wb = new SXSSFWorkbook(100)
+            asTable = false
+        } else {
+            wb = new XSSFWorkbook()
+        }
+
+        Sheet sheet = wb.createSheet('Export')
         if (asTable) {
             // Create table
             XSSFTable xssfTable = sheet.createTable()
@@ -186,8 +194,10 @@ class GridExportImplService extends BaseService {
         }
 
         // Auto-width columns to fit content
-        for (def i = 0; i < rows.size(); i++) {
-            sheet.autoSizeColumn(i)
+        if (!useStreamingAPI) {
+            for (def i = 0; i < rows.size(); i++) {
+                sheet.autoSizeColumn(i)
+            }
         }
 
         // Freeze top row
@@ -197,6 +207,7 @@ class GridExportImplService extends BaseService {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
         wb.write(outputStream)
         outputStream.close()
+        if (useStreamingAPI) wb.dispose()
         return outputStream.toByteArray()
     }
 
