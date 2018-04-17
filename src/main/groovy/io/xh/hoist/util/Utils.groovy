@@ -25,7 +25,7 @@ class Utils {
     static Properties buildInfo = readBuildInfo()
 
     static AppEnvironment getAppEnvironment() {
-        def env = AppEnvironment.parse(System.properties['io.xh.hoist.environment'] as String)
+        def env = AppEnvironment.parse(System.getProperty('io.xh.hoist.environment'))
         return env ?: AppEnvironment.DEVELOPMENT
     }
 

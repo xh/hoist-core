@@ -29,12 +29,21 @@ class LogUtils {
 
     private static _logRootPath = null
 
+    /**
+     * Return the logging directory path - [tomcatHome]/logs/[app-name]-logs by default.
+     * Apps can specify a custom directory via a `-Dio.xh.hoist.log.path` Java opt.
+     */
     static String getLogRootPath() {
         if (!_logRootPath) {
-            def tomcatHomeDir = System.getProperty('catalina.base', ''),
-                logSubDir = tomcatHomeDir ? 'logs' : ''
+            def customPath = System.getProperty('io.xh.hoist.log.path')
+            if (customPath) {
+                _logRootPath = customPath
+            } else {
+                def tomcatHomeDir = System.getProperty('catalina.base', ''),
+                    logSubDir = tomcatHomeDir ? 'logs' : ''
 
-            _logRootPath = Paths.get(tomcatHomeDir, logSubDir, "${Utils.appName}-logs").toString()
+                _logRootPath = Paths.get(tomcatHomeDir, logSubDir, "${Utils.appName}-logs").toString()
+            }
         }
         return _logRootPath
     }
