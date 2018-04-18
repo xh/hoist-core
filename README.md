@@ -1,4 +1,4 @@
-![Hoist](https://xh.io/wp-content/uploads/2018/04/hoist-web-small.png)
+![Hoist](https://xh.io/wp-content/uploads/2018/04/hoist-web-350.png)
 
 # Welcome to Hoist
 
