@@ -4,7 +4,6 @@
  *
  * Copyright © 2018 Extremely Heavy Industries Inc.
  */
-
 package io.xh.hoist.security
 
 import groovy.transform.CompileStatic
@@ -30,7 +29,7 @@ abstract class BaseAuthenticationService {
 
     /**
      * Call once on every request to ensure request is authenticated before passing through to rest of the framework.
-     * Not typically overridden. See authenticate() for main entry point for implementing subclasses.
+     * Not typically overridden. See completeAuthentication() for main entry point for implementing subclasses.
      */
     boolean allowRequest(HttpServletRequest request, HttpServletResponse response) {
         if (identityService.getAuthUser(request) || isWhitelist(request)) {
@@ -69,7 +68,7 @@ abstract class BaseAuthenticationService {
      */
     abstract protected boolean completeAuthentication(HttpServletRequest request, HttpServletResponse response)
 
-    
+
     //--------------------
     // Implemented methods
     //--------------------
