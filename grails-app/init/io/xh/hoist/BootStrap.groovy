@@ -93,7 +93,7 @@ class BootStrap {
                 ],
                 xhEmailSupport: [
                         valueType: 'string',
-                        defaultValue: 'support@xh.io'
+                        defaultValue: 'none'
                 ],
                 xhIdleTimeoutMins: [
                         valueType: 'int',
@@ -119,7 +119,7 @@ class BootStrap {
                 ],
                 xhMonitorEmailRecipients: [
                         valueType: 'string',
-                        defaultValue: 'support@xh.io'
+                        defaultValue: 'none'
                 ]
         ])
     }
