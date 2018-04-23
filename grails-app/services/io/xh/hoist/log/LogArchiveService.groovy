@@ -4,7 +4,6 @@
  *
  * Copyright © 2018 Extremely Heavy Industries Inc.
  */
-
 package io.xh.hoist.log
 
 import groovy.io.FileType
@@ -20,6 +19,11 @@ import static io.xh.hoist.util.DateTimeUtils.DAYS
 import static java.io.File.separator
 import static grails.util.Environment.isDevelopmentMode
 
+/**
+ * Support for automatic cleanup of server log files. Files older than the day limit configured
+ * within the `xhLogArchiveConfig` AppConfig key will be moved into a configurable archive
+ * directory and compressed into archives for each category.
+ */
 class LogArchiveService extends BaseService {
 
     def configService
@@ -57,10 +61,6 @@ class LogArchiveService extends BaseService {
     //------------------------
     // Implementation
     //------------------------
-    private Map getConfig() {
-        return configService.getJSONObject('xhLogArchiveConfig')
-    }
-
     private void onTimer() {
         if (!isDevelopmentMode()) {
             archiveLogs((int) config.archiveAfterDays)
@@ -162,6 +162,10 @@ class LogArchiveService extends BaseService {
         while ((len = inStream.read(buffer)) > 0) {
             outStream.write(buffer, 0, len)
         }
+    }
+
+    private Map getConfig() {
+        return configService.getJSONObject('xhLogArchiveConfig')
     }
 
 }

@@ -4,7 +4,6 @@
  *
  * Copyright © 2018 Extremely Heavy Industries Inc.
  */
-
 package io.xh.hoist.email
 
 import io.xh.hoist.BaseService
@@ -112,17 +111,14 @@ class EmailService extends BaseService {
      * Read a set of email addresses from a config.
      * See parseAddresses()
      */
-
     List<String> parseMailConfig(String configName) {
         def addresses = configService.getStringList(configName)
         return parseAddresses(addresses.join(','))
     }
 
     /**
-     *  Parse a comma delimited list of email addresses into a list of
-     *  trimmed, properly formatted email addresses.
-     *
-     *  Contains special support for the string 'none'.
+     *  Parse a comma delimited list of email addresses into a list of trimmed,
+     *  properly formatted email addresses. Contains special support for the string 'none'.
      *
      * @param configName
      * @return list of email addresses.
@@ -130,6 +126,7 @@ class EmailService extends BaseService {
     List<String> parseAddresses(String s) {
         return s == 'none' ? null : formatAddresses(s)
     }
+
 
     //------------------------
     // Implementation
@@ -146,7 +143,7 @@ class EmailService extends BaseService {
     private List<String> formatAddresses(Object o){
         def domain = configService.getString('xhEmailDefaultDomain')
         if (o instanceof String) o = o.split(',')
-        return o.collect { email ->
+        return o.collect {String email ->
             email = email.trim()
             email.contains('@') ? email : (email + domain)
         }
