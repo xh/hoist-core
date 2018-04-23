@@ -134,7 +134,7 @@ class ConfigService extends BaseService implements EventPublisher {
                 note = confDefaults.note ?: ''
 
             if (!currConfig) {
-                if (valType == 'json') defaultVal = new JSON(defaultVal).toString()
+                if (valType == 'json') defaultVal = new JSON(defaultVal).toString(true)
 
                 new AppConfig(
                     name: confName,
