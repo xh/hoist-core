@@ -4,7 +4,6 @@
  *
  * Copyright © 2018 Extremely Heavy Industries Inc.
  */
-
 package io.xh.hoist.monitor
 
 import io.xh.hoist.BaseService
@@ -27,8 +26,13 @@ class MonitoringEmailService extends BaseService {
     //------------------------
     private void emailReport(MonitorStatusReport report) {
         def to = emailService.parseMailConfig('xhMonitorEmailRecipients')
-        if (to) {
-            emailService.sendEmail(async: true, to: to, subject: report.title, html: formatHtml(report))
+        if (to && to != 'none') {
+            emailService.sendEmail(
+                to: to,
+                subject: report.title,
+                html: formatHtml(report),
+                async: true
+            )
         }
     }
 
