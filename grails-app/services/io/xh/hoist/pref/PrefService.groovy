@@ -19,64 +19,64 @@ import org.grails.web.json.JSONElement
 @GrailsCompileStatic
 class PrefService extends BaseService {
 
-    String getString(String key, String username=username) {
+    String getString(String key, String username = username) {
         return (String) getUserPreference(key, 'string', username)
     }
 
-    Integer getInt(String key, String username=username) {
+    Integer getInt(String key, String username = username) {
         return (Integer) getUserPreference(key, 'int', username)
     }
 
-    Long getLong(String key, String username=username) {
+    Long getLong(String key, String username = username) {
         return (Long) getUserPreference(key, 'long', username)
     }
 
-    Double getDouble(String key, String username=username) {
+    Double getDouble(String key, String username = username) {
         return (Double) getUserPreference(key, 'double', username)
     }
 
-    Boolean getBool(String key, String username=username) {
+    Boolean getBool(String key, String username = username) {
         return (Boolean) getUserPreference(key, 'bool', username)
     }
 
-    JSONElement getJSON(String key, String username=username) {
+    JSONElement getJSON(String key, String username = username) {
         return (JSONElement) getUserPreference(key, 'json', username)
     }
 
-    void setString(String key, String value, String username=username) {
+    void setString(String key, String value, String username = username) {
         setUserPreference(key, value, 'string', username)
     }
 
-    void setInt(String key, Integer value, String username=username) {
+    void setInt(String key, Integer value, String username = username) {
         setUserPreference(key, value.toString(), 'int', username)
     }
 
-    void setLong(String key, Long value, String username=username) {
+    void setLong(String key, Long value, String username = username) {
         setUserPreference(key, value.toString(), 'long', username)
     }
 
-    void setDouble(String key, Double value, String username=username) {
+    void setDouble(String key, Double value, String username = username) {
         setUserPreference(key, value.toString(), 'double', username)
     }
 
-    void setBool(String key, Boolean value, String username=username) {
+    void setBool(String key, Boolean value, String username = username) {
         setUserPreference(key, value.toString(), 'bool', username)
     }
 
-    void setJSON(String key, Object value, String username=username) {
+    void setJSON(String key, Object value, String username = username) {
         setUserPreference(key, new JSON(value).toString(), 'json', username)
     }
 
-    void setPreference(String key, String value, String username=username) {
+    void setPreference(String key, String value, String username = username) {
         setUserPreference(key, value, null, username)
     }
 
-    void unsetPreference(String key, String username=username) {
+    void unsetPreference(String key, String username = username) {
         def defaultPref = Preference.findByName(key)
         UserPreference.findByPreferenceAndUsername(defaultPref, username)?.delete(flush: true)
     }
 
-    void clearPreferences(String username=username) {
+    void clearPreferences(String username = username) {
         UserPreference.findAllByUsername(username).each {
             UserPreference userPref = (UserPreference) it
             userPref.delete()
@@ -88,12 +88,12 @@ class PrefService extends BaseService {
             ret = [:]
 
         Preference.list().each {
-             def name = it.name
-             try {
-                 ret[name] = formatForClient(it, username)
-             } catch (Exception e){
-                 log.error("Exception while getting client preference: '$name'", e)
-             }
+            def name = it.name
+            try {
+                ret[name] = formatForClient(it, username)
+            } catch (Exception e) {
+                log.error("Exception while getting client preference: '$name'", e)
+            }
         }
 
         return ret
@@ -108,30 +108,36 @@ class PrefService extends BaseService {
     }
 
     /**
-     * Check a list of core preferences required for Hoist/application operation - ensuring that these prefs are
-     * present and that their values and local flags are as expected. Will create missing prefs with
-     * supplied default values if not found. Called for xh.io prefs by Hoist Core Bootstrap.
-     * @param refPrefs - map of prefName to map of [type, defaultValue, local]
+     * Check a list of core preferences required for Hoist/application operation - ensuring that
+     * these prefs are present and that their values and local flags are as expected. Will create
+     * missing prefs with supplied default values if not found.
+     *
+     * Called for xh.io prefs by Hoist Core Bootstrap.
+     *
+     * @param requiredPrefs - map of prefName to map of [type, defaultValue, local, note]
      */
-    void ensureRequiredPrefsCreated(Map<String, Map> reqPrefs) {
+    void ensureRequiredPrefsCreated(Map<String, Map> requiredPrefs) {
         def currPrefs = Preference.list(),
             created = 0
 
-        reqPrefs.each{prefName, prefDefaults ->
-            def currPref = currPrefs.find{it.name == prefName},
+        requiredPrefs.each {prefName, prefDefaults ->
+            def currPref = currPrefs.find {it.name == prefName},
                 valType = prefDefaults.type,
                 defaultVal = prefDefaults.defaultValue,
-                local = prefDefaults.local ?: false
+                local = prefDefaults.local ?: false,
+                // Mismatch on notes <> note vs. AppConfig - stuck with singular "note" for the API to this method
+                notes = prefDefaults.note ?: ''
 
             if (!currPref) {
-                if (valType == 'json') defaultVal = new JSON(defaultVal).toString()
+                if (valType == 'json') defaultVal = new JSON(defaultVal).toString(true)
 
                 new Preference(
-                        name: prefName,
-                        type: valType,
-                        defaultValue: defaultVal,
-                        local: local,
-                        lastUpdatedBy: 'hoist-bootstrap'
+                    name: prefName,
+                    type: valType,
+                    defaultValue: defaultVal,
+                    local: local,
+                    notes: notes,
+                    lastUpdatedBy: 'hoist-bootstrap'
                 ).save()
 
                 log.warn("Required preference ${prefName} missing and created with default value | verify default is appropriate for this application")
@@ -146,9 +152,8 @@ class PrefService extends BaseService {
             }
         }
 
-        log.debug("Validated presense of ${reqPrefs.size()} required configs | created ${created}")
+        log.debug("Validated presense of ${requiredPrefs.size()} required configs | created ${created}")
     }
-
 
     //-------------------------
     // Implementation
@@ -217,7 +222,7 @@ class PrefService extends BaseService {
     }
 
     private Object convertValue(String type, String value) {
-        switch (type)  {
+        switch (type) {
             case 'json':    return JSON.parse(value)
             case 'int':     return value.toInteger()
             case 'long':    return value.toLong()

@@ -130,10 +130,11 @@ class ConfigService extends BaseService implements EventPublisher {
             def currConfig = currConfigs.find{it.name == confName},
                 valType = confDefaults.valueType,
                 defaultVal = confDefaults.defaultValue,
-                clientVisible = confDefaults.clientVisible ?: false
+                clientVisible = confDefaults.clientVisible ?: false,
+                note = confDefaults.note ?: ''
 
             if (!currConfig) {
-                if (valType == 'json') defaultVal = new JSON(defaultVal).toString()
+                if (valType == 'json') defaultVal = new JSON(defaultVal).toString(true)
 
                 new AppConfig(
                     name: confName,
@@ -141,7 +142,8 @@ class ConfigService extends BaseService implements EventPublisher {
                     prodValue: defaultVal,
                     groupName: confDefaults.groupName ?: 'xh.io',
                     clientVisible: clientVisible,
-                    lastUpdatedBy: 'hoist-bootstrap'
+                    lastUpdatedBy: 'hoist-bootstrap',
+                    note: note
                 ).save()
 
                 log.warn("Required config ${confName} missing and created with default value | verify default is appropriate for this application")
@@ -235,5 +237,5 @@ class ConfigService extends BaseService implements EventPublisher {
             }
         }
     }
-    
+
 }
