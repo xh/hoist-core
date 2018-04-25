@@ -393,6 +393,9 @@ implementation of this monitoring API for both Hoist and non-Hoist based applica
 - [ ] Base/Super classes
 - [ ] Additional deployment info
 - [ ] Version checking
+- [ ] Proxy Service
+- [ ] Dashboards
+- [ ] Logging
 
 Contact: xh.io | info@xh.io
 Copyright © 2018 Extremely Heavy Industries Inc.
