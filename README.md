@@ -17,6 +17,7 @@
     - [Status Monitoring](#status-monitoring)
     - [Readme TODOs](#readme-todos)
 
+
 Hoist is a web application development toolkit developed by Extremely Heavy Industries.
 
 Hoist is designed as a "full stack" UI development framework, meaning that it has both server and
@@ -96,9 +97,9 @@ available for use. Roles played by the Hoist server commonly include:
 
 A Hoist app is structured primarily as a Grails 3.x application, with a file and directory layout
 that follows the Grails conventions. The Grails project offers extensive and well maintained
-[documentation](http://docs.grails.org/latest/) on the framework's features and configuration.
-This library - hoist-core - is packaged as a Grails plugin, and should be specified as such within
-the Grails app's build.gradle file, e.g.:
+[documentation](http://docs.grails.org/latest/) on the framework's features and configuration. This
+library - hoist-core - is packaged as a Grails plugin, and should be specified as such within the
+Grails app's build.gradle file, e.g.:
 
 ```
 dependencies {
@@ -158,13 +159,13 @@ Hoist framework or its usage, several key features are called out with additiona
 
 ### User Authentication / Authorization
 
-|             Class/File             |                   Note                   | Repo |                                       Link                                       |
-|------------------------------------|------------------------------------------|:----:|:--------------------------------------------------------------------------------:|
-| `BaseAuthenticationService.groovy` | Abstract service each app must implement | 🏗️  | [🔗](grails-app/services/io/xh/hoist/security/BaseAuthenticationService.groovy) |
-| `HoistUser.groovy`                 | Trait/interface for core user data       | 🏗️  |             [🔗](src/main/groovy/io/xh/hoist/user/HoistUser.groovy)             |
-| `IdentityService.groovy`           | Source for current user info on server   | 🏗️  |        [🔗](grails-app/services/io/xh/hoist/user/IdentityService.groovy)        |
-| `Access.groovy`                    | Annotation for endpoint security         | 🏗️  |            [🔗](src/main/groovy/io/xh/hoist/security/Access.groovy)             |
-| `IdentityService.js`               | Source for current user info on client   | ⚛️  |  [🔗](https://github.com/exhi/hoist-react/blob/master/svc/IdentityService.js)   |
+|             Class/File             |                   Note                   |                                       Link                                       |
+|------------------------------------|------------------------------------------|:--------------------------------------------------------------------------------:|
+| `BaseAuthenticationService.groovy` | Abstract service each app must implement | [🏗](grails-app/services/io/xh/hoist/security/BaseAuthenticationService.groovy) |
+| `HoistUser.groovy`                 | Trait/interface for core user data       |             [🏗](src/main/groovy/io/xh/hoist/user/HoistUser.groovy)             |
+| `IdentityService.groovy`           | Source for current user info on server   |        [🏗](grails-app/services/io/xh/hoist/user/IdentityService.groovy)        |
+| `Access.groovy`                    | Annotation for endpoint security         |            [🏗](src/main/groovy/io/xh/hoist/security/Access.groovy)             |
+| `IdentityService.js`               | Source for current user info on client   |  [⚛️](https://github.com/exhi/hoist-react/blob/master/svc/IdentityService.js)   |
 
 :couple: As organizations and applications will have a wide variety of requirements for
 authenticating and authorizing users, Hoist has a deliberately minimal interface in this regard. A
@@ -187,15 +188,15 @@ fetch core user info, making it easily available to the JS app via a correspondi
 
 #### Roles and Access
 
-:lock: A minimal structure is provided for application roles. The `HoistUser` trait defines an abstract
-`getRoles()` method that returns a `Set<String>` of role names. It is up to the application to
-determine how roles are resolved and what meaning they have in the context of the app, although
+:lock: A minimal structure is provided for application roles. The `HoistUser` trait defines an
+abstract `getRoles()` method that returns a `Set<String>` of role names. It is up to the application
+to determine how roles are resolved and what meaning they have in the context of the app, although
 Hoist does have an expectation that a `"HOIST_ADMIN"` role will be assigned to any administrators of
 the app. (This role is required to access the built-in Admin console and make calls to admin-only
 endpoints.)
 
-Server-side endpoints (Controllers) can be restricted to users with a given role or roles via
-the `@Access` annotation, e.g. a controller that should be accessible only to users with an "EDITOR"
+Server-side endpoints (Controllers) can be restricted to users with a given role or roles via the
+`@Access` annotation, e.g. a controller that should be accessible only to users with an "EDITOR"
 role could be decorated as such:
 
 ```
@@ -210,11 +211,11 @@ or the other of these annotations or an exception will be thrown.
 
 #### Impersonation
 
-:sunglasses: Administrators have access to an impersonation mode where they can "act as" another user in
-the context of the application. This process is managed by `IdentityService`, which exposes several
-public methods for entering and exiting impersonation mode. When active, `IdentityService.getUser()`
-will return the user being impersonated, while `IdentityService.getAuthUser()` will return the
-actual admin.
+:sunglasses: Administrators have access to an impersonation mode where they can "act as" another
+user in the context of the application. This process is managed by `IdentityService`, which exposes
+several public methods for entering and exiting impersonation mode. When active,
+`IdentityService.getUser()` will return the user being impersonated, while
+`IdentityService.getAuthUser()` will return the actual admin.
 
 The client toolkits provide built-in UIs for administrators to enter and exit impersonation mode.
 Services such as activity tracking are aware of impersonation and will log activity done while
@@ -223,11 +224,11 @@ impersonation is active with both the impersonated and real user.
 
 ### Configuration
 
-|       Class/File       |               Note               | Repo |                                    Link                                     |
-|------------------------|----------------------------------|:----:|-----------------------------------------------------------------------------|
-| `AppConfig.groovy`     | Domain object for config entries | 🏗  | [🔗](grails-app/domain/io/xh/hoist/config/AppConfig.groovy)                |
-| `ConfigService.groovy` | Source for configs on server     | 🏗️  | [🔗](grails-app/services/io/xh/hoist/config/ConfigService.groovy)          |
-| `ConfigService.js`     | Source for configs on client     | ⚛️  | [🔗](https://github.com/exhi/hoist-react/blob/master/svc/ConfigService.js) |
+|       Class/File       |               Note               |                                    Link                                     |
+|------------------------|----------------------------------|:---------------------------------------------------------------------------:|
+| `AppConfig.groovy`     | Domain object for config entries |        [🏗](grails-app/domain/io/xh/hoist/config/AppConfig.groovy)         |
+| `ConfigService.groovy` | Source for configs on server     |     [🏗](grails-app/services/io/xh/hoist/config/ConfigService.groovy)      |
+| `ConfigService.js`     | Source for configs on client     | [⚛️](https://github.com/exhi/hoist-react/blob/master/svc/ConfigService.js) |
 
 :wrench: The ability to store simple typed configuration values
 (`string|int|long|double|bool|json|pwd`) and manage / adjust them in a running application has
@@ -254,12 +255,12 @@ required configs. See `Bootstrap.groovy` in hoist-core for configs required at t
 
 ### Preferences
 
-|       Class/File        |                  Note                   | Repo |                                   Link                                    |
-|-------------------------|-----------------------------------------|:----:|---------------------------------------------------------------------------|
-| `Preference.groovy`     | Domain object for preference definition | 🏗  | [🔗](grails-app/domain/io/xh/hoist/pref/Preference.groovy)               |
-| `UserPreference.groovy` | Domain object for user-specific value   | 🏗  | [🔗](grails-app/domain/io/xh/hoist/pref/UserPreference.groovy)           |
-| `PrefService.groovy`    | Source for pref management on server    | 🏗️  | [🔗](grails-app/services/io/xh/hoist/pref/PrefService.groovy)            |
-| `PrefService.js`        | Source for pref management on client    | ⚛️  | [🔗](https://github.com/exhi/hoist-react/blob/master/svc/PrefService.js) |
+|       Class/File        |                  Note                   |                                   Link                                    |
+|-------------------------|-----------------------------------------|:-------------------------------------------------------------------------:|
+| `Preference.groovy`     | Domain object for preference definition |        [🏗](grails-app/domain/io/xh/hoist/pref/Preference.groovy)        |
+| `UserPreference.groovy` | Domain object for user-specific value   |      [🏗](grails-app/domain/io/xh/hoist/pref/UserPreference.groovy)      |
+| `PrefService.groovy`    | Source for pref management on server    |      [🏗](grails-app/services/io/xh/hoist/pref/PrefService.groovy)       |
+| `PrefService.js`        | Source for pref management on client    | [⚛️](https://github.com/exhi/hoist-react/blob/master/svc/PrefService.js) |
 
 :star: Preferences provide a lightweight way to persist user-specific options and settings. Similar
 to AppConfigs, preferences offer several predefined data types
@@ -288,14 +289,14 @@ Hoist level.
 
 ### Activity Tracking and Client Error Reporting
 
-|      Class/File       |              Note               | Repo |                                         Link                                         |
-|-----------------------|---------------------------------|:----:|--------------------------------------------------------------------------------------|
-| `TrackLog.groovy`     | Domain object for track entries | 🏗  | [🔗](grails-app/domain/io/xh/hoist/track/TrackLog.groovy)                           |
-| `ClientError.groovy`  | Domain object for error reports | 🏗  | [🔗](grails-app/domain/io/xh/hoist/clienterror/ClientError.groovy)                  |
-| `Feedback.groovy`     | Domain object for user feedback | 🏗  | [🔗](grails-app/domain/io/xh/hoist/feedback/Feedback.groovy)                        |
-| `TrackService.groovy` | Server-side API to log activity | 🏗️  | [🔗](grails-app/services/io/xh/hoist/track/TrackService.groovy)                     |
-| `TrackService.js`     | Client-side API to log activity | ⚛️  | [🔗](https://github.com/exhi/hoist-react/blob/master/svc/TrackService.js)           |
-| `ExceptionHandler.js` | Client-side API to track errors | ⚛️  | [🔗](https://github.com/exhi/hoist-react/blob/master/exception/ExceptionHandler.js) |
+|      Class/File       |              Note               |                                         Link                                         |
+|-----------------------|---------------------------------|:------------------------------------------------------------------------------------:|
+| `TrackLog.groovy`     | Domain object for track entries |              [🏗](grails-app/domain/io/xh/hoist/track/TrackLog.groovy)              |
+| `ClientError.groovy`  | Domain object for error reports |         [🏗](grails-app/domain/io/xh/hoist/clienterror/ClientError.groovy)          |
+| `Feedback.groovy`     | Domain object for user feedback |            [🏗](grails-app/domain/io/xh/hoist/feedback/Feedback.groovy)             |
+| `TrackService.groovy` | Server-side API to log activity |           [🏗](grails-app/services/io/xh/hoist/track/TrackService.groovy)           |
+| `TrackService.js`     | Client-side API to log activity |      [⚛️](https://github.com/exhi/hoist-react/blob/master/svc/TrackService.js)      |
+| `ExceptionHandler.js` | Client-side API to track errors | [⚛️](https://github.com/exhi/hoist-react/blob/master/exception/ExceptionHandler.js) |
 
 :eyes: Knowing which users are visiting an app and tracking specific actions of interest is another
 common need for apps. Hoist includes an API for easily tracking activity for the current user, and
@@ -330,9 +331,9 @@ similar event and is listened to by a built-in service that will email out repor
 
 ### Emailing
 
-|      Class/File       |               Note                | Repo |                               Link                               |
-|-----------------------|-----------------------------------|:----:|------------------------------------------------------------------|
-| `EmailService.groovy` | Managed service for sending email | 🏗️  | [🔗](grails-app/services/io/xh/hoist/email/EmailService.groovy) |
+|      Class/File       |               Note                |                               Link                               |
+|-----------------------|-----------------------------------|:----------------------------------------------------------------:|
+| `EmailService.groovy` | Managed service for sending email | [🏗](grails-app/services/io/xh/hoist/email/EmailService.groovy) |
 
 :email: Hoist core provides `EmailService` to send mail from the server. This relies on the
 [Grails mail plugin](http://plugins.grails.org/plugin/grails/mail) which must be configured with a
@@ -345,11 +346,11 @@ sent to which users is required.
 
 ### Status Monitoring
 
-|         Class/File         |                 Note                  | Repo |                                  Link                                   |
-|----------------------------|---------------------------------------|:----:|-------------------------------------------------------------------------|
-| `Monitor.groovy`           | Domain object for monitor definitions | 🏗  | [🔗](grails-app/domain/io/xh/hoist/monitor/Monitor.groovy)             |
-| `MonitorResult.groovy`     | In-memory object for monitor outcomes | 🏗  | [🔗](src/main/groovy/io/xh/hoist/monitor/MonitorResult.groovy)         |
-| `MonitoringService.groovy` | Service that coordinates monitor runs | 🏗  | [🔗](grails-app/services/io/xh/hoist/monitor/MonitoringService.groovy) |
+|         Class/File         |                 Note                  |                                  Link                                   |
+|----------------------------|---------------------------------------|:-----------------------------------------------------------------------:|
+| `Monitor.groovy`           | Domain object for monitor definitions |       [🏗](grails-app/domain/io/xh/hoist/monitor/Monitor.groovy)       |
+| `MonitorResult.groovy`     | In-memory object for monitor outcomes |     [🏗](src/main/groovy/io/xh/hoist/monitor/MonitorResult.groovy)     |
+| `MonitoringService.groovy` | Service that coordinates monitor runs | [🏗](grails-app/services/io/xh/hoist/monitor/MonitoringService.groovy) |
 
 :+1: :-1: Hoist provides an API and services for runtime monitoring of the application, with a
 deliberate focus on running application-specific checks that relate to the business logic and data
@@ -395,6 +396,6 @@ implementation of this monitoring API for both Hoist and non-Hoist based applica
 - [ ] Proxy Service
 - [ ] Dashboards
 - [ ] Logging
+- [ ] Development setup / build
 
-Contact: xh.io | info@xh.io
-Copyright © 2018 Extremely Heavy Industries Inc.
+Contact: xh.io | info@xh.io Copyright © 2018 Extremely Heavy Industries Inc.
