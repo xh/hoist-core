@@ -240,7 +240,7 @@ and organizing these entries.
 
 :see_no_evil: A special `pwd` type allows passwords and other sensitive info to be stored in an
 encrypted form for use on the server, avoiding the need to save these common types of configuration
-to the database in plaintext. Note howevever that any developer can deliberately print the output of
+to the database in plaintext. Note however that any developer can deliberately print the output of
 an encrypted config by logging the (unencrypted) output of `configService.getPwd()`.
 
 #### Required Configs
