@@ -1,4 +1,8 @@
-![Hoist](https://xh.io/wp-content/uploads/2018/04/hoist-web-350.png)
+<p align="center">
+    <img src="https://xh.io/wp-content/uploads/2018/04/hoist-web-350.png"><br>
+    by<br>
+    <img src="https://xh.io/wp-content/uploads/2015/01/web-logo-black-2x.png">
+</p>
 
 [TOC]: # "# Welcome to Hoist"
 
