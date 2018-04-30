@@ -4,11 +4,9 @@
  *
  * Copyright © 2018 Extremely Heavy Industries Inc.
  */
-
 package io.xh.hoist.feedback
 
 import io.xh.hoist.json.JSONFormat
-import io.xh.hoist.util.Utils
 
 class Feedback implements JSONFormat {
 
