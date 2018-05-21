@@ -29,7 +29,7 @@ class ClientErrorService extends BaseService implements EventPublisher {
             idSvc = identityService,
             authUsername = idSvc.getAuthUser().username,
             values = [
-                    msg: message,
+                    msg: message == 'null' ? null : message,
                     error: error,
                     username: authUsername,
                     userAgent: userAgent,
