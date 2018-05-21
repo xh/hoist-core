@@ -18,14 +18,8 @@ class LogLevelAdminController extends RestController {
     static restTarget = LogLevel
     def logLevelService
 
-    protected void preprocessSubmit(JSONObject submit) {
-        if (submit.level == 'None') {
-            submit.level = null
-        }
-    }
-
     def lookupData() {
-            def levels =  ['None'] + LogLevel.LEVELS
+            def levels = LogLevel.LEVELS
             renderJSON (levels: levels)
     }
 
