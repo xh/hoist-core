@@ -7,53 +7,59 @@
 
 package io.xh.hoist.log
 
-import grails.events.annotation.Subscriber
-import org.grails.datastore.mapping.engine.event.PostDeleteEvent
-import org.grails.datastore.mapping.engine.event.PostInsertEvent
-import org.grails.datastore.mapping.engine.event.PostUpdateEvent
 import io.xh.hoist.BaseService
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.Level
 import org.slf4j.LoggerFactory
 
+import static io.xh.hoist.util.DateTimeUtils.MINUTES
+
 class LogLevelService extends BaseService {
 
-    private static List<LogLevelAdjustment> adjustments = []
+    private List<LogLevelAdjustment> adjustments = []
 
     void init() {
-        def overrides = LogLevel.findAllByLevelIsNotNull()
-
-        // Remove obsolete log settings if any
-        adjustments.each {adj ->
-            def override = overrides.find {it.name == adj.logName}
-            if (!override) {
-                setLogLevel(adj.logName, adj.defaultLevel)
-            }
-        }
-
-        // Calculate new adjustments
-        def newAdjustments = overrides.collect {override ->
-             new LogLevelAdjustment(
-                    logName: override.name,
-                    defaultLevel: getDefaultLevel(override.name),
-                    adjustedLevel: override.level
-            )
-        }
-
-        // Overlay new log settings
-        newAdjustments.each {adj -> setLogLevel(adj.logName, adj.adjustedLevel)}
-
-        adjustments = newAdjustments
-
-        log.debug("LogLevel Adjustments applied: ${adjustments.size()}")
-
+        createTimer(interval: 30 * MINUTES, runImmediatelyAndBlock: true)
         super.init()
     }
 
-    void noteLogLevelsChanged() {
-        LogLevel.withNewSession {
-            init()
+    private void onTimer() {
+        calculateAdjustments()
+    }
+
+    // -------------------------------------------------------------------------------
+    // (Re)compute effective logging adjustment based on LogLevel domain objects.
+    // This is called on a timer, but any code that changes the raw LogLevel should call
+    // this to force a synchronous recalculation.  See e.g. LogLevelAdminController.
+    //--------------------------------------------------------------------------------
+    void calculateAdjustments() {
+        withDebug('Applying Log Level Adjustments') {
+            def overrides = LogLevel.findAllByLevelIsNotNull()
+
+            // Remove obsolete log settings if any
+            adjustments.each {adj ->
+                def override = overrides.find {it.name == adj.logName}
+                if (!override) {
+                    setLogLevel(adj.logName, adj.defaultLevel)
+                }
+            }
+
+            // Calculate new adjustments
+            def newAdjustments = overrides.collect {override ->
+                new LogLevelAdjustment(
+                        logName: override.name,
+                        defaultLevel: getDefaultLevel(override.name),
+                        adjustedLevel: override.level
+                )
+            }
+
+            // Overlay new log settings
+            newAdjustments.each {adj -> setLogLevel(adj.logName, adj.adjustedLevel)}
+
+            adjustments = newAdjustments
+
+            log.debug("Adjustments applied: ${adjustments.size()}")
         }
     }
 
@@ -72,7 +78,6 @@ class LogLevelService extends BaseService {
         return logger.effectiveLevel.toString().toLowerCase().capitalize()
     }
 
-    
     //------------------------
     // Implementation
     //------------------------
@@ -93,20 +98,8 @@ class LogLevelService extends BaseService {
         String adjustedLevel
     }
 
-    @Subscriber
-    void afterDelete(PostDeleteEvent event) {
-        if (!(event.entityObject instanceof LogLevel)) return
-        noteLogLevelsChanged()
+    void clearCaches() {
+        calculateAdjustments()
+        super.clearCaches()
     }
-    @Subscriber
-    void afterUpdate(PostUpdateEvent event) {
-        if (!(event.entityObject instanceof LogLevel)) return
-        noteLogLevelsChanged()
-    }
-    @Subscriber
-    void afterInsert(PostInsertEvent event) {
-        if (!(event.entityObject instanceof LogLevel)) return
-        noteLogLevelsChanged()
-    }
-    
 }
