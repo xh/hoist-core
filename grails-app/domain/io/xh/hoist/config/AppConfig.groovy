@@ -37,7 +37,7 @@ class AppConfig implements JSONFormat {
 
     static constraints = {
         name(unique: true, nullable: false, blank: false, maxSize: 50)
-        value(nullable: true, blank: false, validator: AppConfig.isValid)
+        value(nullable: false, blank: false, validator: AppConfig.isValid)
         valueType(inList: AppConfig.TYPES, validator: AppConfig.isTypeValid)
         note(nullable: true, maxSize: 1200)
         lastUpdatedBy(nullable: true, maxSize: 50)
