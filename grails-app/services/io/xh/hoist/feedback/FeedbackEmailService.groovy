@@ -34,7 +34,6 @@ class FeedbackEmailService extends BaseService {
 
     private String formatHtml(Feedback fb) {
         def msgText = fb.msg,
-            stackText = fb.stack,
             metaText = [
                     "User: ${fb.username}",
                     "App: ${Utils.appName}",
@@ -45,9 +44,7 @@ class FeedbackEmailService extends BaseService {
                     "Submitted: ${fb.dateCreated.format('dd-MMM-yyyy HH:mm:ss')}"
             ].join('<br/>')
 
-        return [msgText, stackText, metaText]
-                .findAll {it}
-                .join('<br/><br/>')
+        return [msgText, metaText].findAll{it}.join('<br/><br/>')
     }
     
 }
