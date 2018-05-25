@@ -20,6 +20,7 @@ import java.nio.file.Paths
 import static ch.qos.logback.classic.Level.ERROR
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.WARN
+import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 
 class LogUtils {
 
@@ -30,12 +31,14 @@ class LogUtils {
     private static _logRootPath = null
 
     /**
-     * Return the logging directory path - [tomcatHome]/logs/[app-name]-logs by default.
-     * Apps can specify a custom directory via a `-Dio.xh.hoist.log.path` Java opt.
+     * Return the logging directory path - [tomcatHome]/logs/[appName]-logs by default.
+     * Apps can specify a custom directory via a `-Dio.xh.hoist.log.path` JavaOpt or a
+     * `logPath` instance config entry.
      */
     static String getLogRootPath() {
         if (!_logRootPath) {
-            def customPath = System.getProperty('io.xh.hoist.log.path')
+            def customPath = System.getProperty('io.xh.hoist.log.path') ?: getInstanceConfig('logPath')
+
             if (customPath) {
                 _logRootPath = customPath
             } else {
