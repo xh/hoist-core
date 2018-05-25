@@ -16,6 +16,7 @@ import org.grails.web.json.JSONObject
 class LogLevelAdminController extends RestController {
 
     static restTarget = LogLevel
+    def logLevelService
 
     protected void preprocessSubmit(JSONObject submit) {
         if (submit.level == 'None') {
@@ -27,4 +28,20 @@ class LogLevelAdminController extends RestController {
             def levels =  ['None'] + LogLevel.LEVELS
             renderJSON (levels: levels)
     }
+
+    protected void doCreate(Object obj, Object data) {
+        super.doCreate(obj, data)
+        logLevelService.calculateAdjustments()
+    }
+
+    protected void doUpdate(Object obj, Object data) {
+        super.doUpdate(obj, data)
+        logLevelService.calculateAdjustments()
+    }
+
+    protected void doDelete(Object obj) {
+        super.doDelete(obj)
+        logLevelService.calculateAdjustments()
+    }
+
 }
