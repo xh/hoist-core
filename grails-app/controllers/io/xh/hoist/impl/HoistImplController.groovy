@@ -26,7 +26,6 @@ import io.xh.hoist.util.Utils
 import org.grails.web.json.JSONObject
 
 @AccessAll
-@CompileStatic
 class HoistImplController extends BaseController {
 
     TrackService trackService
@@ -126,7 +125,6 @@ class HoistImplController extends BaseController {
     def environment() {
         def ret = [
                 appEnvironment:         Utils.appEnvironment,
-                supportedEnvironments:  Utils.supportedEnvironments,
                 appVersion:             Utils.appVersion,
                 grailsVersion:          GrailsUtil.grailsVersion,
                 javaVersion:            System.getProperty('java.version')

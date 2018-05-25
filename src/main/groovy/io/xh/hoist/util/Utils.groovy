@@ -28,12 +28,6 @@ class Utils {
         return InstanceConfigUtils.appEnvironment
     }
 
-    static Set getSupportedEnvironments() {
-        def ret = Holders.grailsApplication.config.hoist.supportedEnvironments as Set
-            ret.add('Production')
-        return ret
-    }
-
     static String getAppDisplayName() {
         return Holders.grailsApplication.config.hoist.appDisplayName ?: appName
     }
