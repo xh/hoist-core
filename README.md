@@ -431,6 +431,7 @@ implementation of this monitoring API for both Hoist and non-Hoist based applica
 :construction: The sections below are planned near-term additions to this readme, covering
 additional features and services provided by the framework.
 
+- [ ] Instance configuration
 - [ ] Environments (Grails vs. Hoist)
 - [ ] Base/Super classes
 - [ ] Development setup / build
