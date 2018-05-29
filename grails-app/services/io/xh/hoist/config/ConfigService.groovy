@@ -11,7 +11,6 @@ import grails.compiler.GrailsCompileStatic
 import grails.events.annotation.Subscriber
 import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
-import io.xh.hoist.util.Utils
 import io.xh.hoist.json.JSON
 import org.grails.datastore.mapping.engine.event.PreUpdateEvent
 import org.grails.web.json.JSONArray
@@ -19,20 +18,10 @@ import org.grails.web.json.JSONElement
 import org.grails.web.json.JSONObject
 import grails.events.*
 
-import static io.xh.hoist.AppEnvironment.BETA
-import static io.xh.hoist.AppEnvironment.DEVELOPMENT
-import static io.xh.hoist.AppEnvironment.PRODUCTION
-import static io.xh.hoist.AppEnvironment.STAGING
-
 
 /**
- * Service to return soft-configured variables based on the current environment.
- *
- * Values for config keys can be entered and adjusted for all supported environments -
- * Production, Beta, Staging, Development.  A production value is always required.
- * Other values are optional - if not specified, they will fall back to production.
- *
- * Fires a xhConfigChanged event when a config value is updated for the current environment.
+ * Service to return soft-configured variables.
+ * Fires a xhConfigChanged event when a config value is updated.
  */
 @GrailsCompileStatic
 class ConfigService extends BaseService implements EventPublisher {
@@ -139,7 +128,7 @@ class ConfigService extends BaseService implements EventPublisher {
                 new AppConfig(
                     name: confName,
                     valueType: valType,
-                    prodValue: defaultVal,
+                    value: defaultVal,
                     groupName: confDefaults.groupName ?: 'xh.io',
                     clientVisible: clientVisible,
                     lastUpdatedBy: 'hoist-bootstrap',

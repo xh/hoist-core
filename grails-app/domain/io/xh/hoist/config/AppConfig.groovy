@@ -45,7 +45,6 @@ class AppConfig implements JSONFormat {
     }
 
     static isValid = { String val, AppConfig obj ->
-        if (val == null) return true
 
         if (obj.valueType == 'bool' && !(val.equals('true') || val.equals('false')))
             return 'default.invalid.boolean.message'
@@ -76,8 +75,8 @@ class AppConfig implements JSONFormat {
     def beforeUpdate() {encryptIfPwd(false)}
 
     private encryptIfPwd(boolean isInsert) {
-        if (valueType == 'pwd') {
-            if (hasChanged('value') || isInsert)     value   = encryptor.encrypt(value)
+        if (valueType == 'pwd' && (hasChanged('value') || isInsert)) {
+            value = encryptor.encrypt(value)
         }
     }
 
