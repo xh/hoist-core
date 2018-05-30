@@ -45,7 +45,7 @@ class LogUtils {
                 def tomcatHomeDir = System.getProperty('catalina.base', ''),
                     logSubDir = tomcatHomeDir ? 'logs' : ''
 
-                _logRootPath = Paths.get(tomcatHomeDir, logSubDir, "${Utils.appName}-logs").toString()
+                _logRootPath = Paths.get(tomcatHomeDir, logSubDir, "${Utils.appCode}-logs").toString()
             }
         }
         return _logRootPath
@@ -84,7 +84,7 @@ class LogUtils {
     static void initConfig(Script script) {
         withDelegate(script) {
 
-            def appLogName = Utils.appName
+            def appLogName = Utils.appCode
 
             //----------------------------------
             // Appenders

@@ -53,7 +53,7 @@ class InstanceConfigUtils {
 
         // Attempt to load external config file - but do not require one.
         try {
-            def configFilename = System.getProperty('io.xh.hoist.instanceConfigFile') ?: "/etc/hoist/conf/${Utils.appName}.yml",
+            def configFilename = System.getProperty('io.xh.hoist.instanceConfigFile') ?: "/etc/hoist/conf/${Utils.appCode}.yml",
                 configFile = new File(configFilename)
 
             if (configFile.exists()) {
