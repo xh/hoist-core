@@ -25,7 +25,7 @@ class ClientErrorEmailService extends BaseService {
     //-------------------------
     private void emailClientException(ClientError ce) {
         def to = emailService.parseMailConfig('xhEmailSupport'),
-            subject = "${Utils.appName.capitalize()} feedback"
+            subject = "${Utils.appName} feedback"
         if (to) {
             emailService.sendEmail(async: true, to: to, subject: subject, html: formatHtml(ce))
         }
@@ -36,7 +36,7 @@ class ClientErrorEmailService extends BaseService {
             errorText = ce.error,
             metaText = [
                     "User: ${ce.username}",
-                    "App: ${Utils.appName}",
+                    "App: ${Utils.appName} (${Utils.appCode})",
                     "Version: ${ce.appVersion}",
                     "Environment: ${ce.appEnvironment}",
                     "Browser: ${ce.browser}",

@@ -20,11 +20,10 @@ class MonitorStatusReport {
     }
 
     String getTitle() {
-        def appName = Utils.appDisplayName,
-            failsCount = results.count{it.status == FAIL},
+        def failsCount = results.count{it.status == FAIL},
             warnsCount = results.count{it.status == WARN},
             okCount = results.count{it.status == OK},
-            title = "${appName}: ",
+            title = "${Utils.appName}: ",
             msgParts = []
 
         if (!warnsCount && !failsCount) msgParts.push('All clear')

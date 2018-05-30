@@ -37,13 +37,12 @@ class MonitoringEmailService extends BaseService {
     }
 
     private String formatHtml(MonitorStatusReport report) {
-        def results = report.results,
-            appName = Utils.appDisplayName
+        def results = report.results
 
         results.sort{it.name}
         results.sort{it.status}
 
-        if (report.status < WARN) return "There are no alerting monitors for $appName."
+        if (report.status < WARN) return "There are no alerting monitors for ${Utils.appName}."
 
         return results.findAll{it.status >= WARN}.collect {
             "+ $it.name: $it.message. Minutes in [$it.status]: ${it.minsInStatus}"

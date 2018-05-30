@@ -125,9 +125,11 @@ class HoistImplController extends BaseController {
     //------------------------
     def environment() {
         def ret = [
+                appCode:                Utils.appCode,
+                appName:                Utils.appName,
+                appVersion:             Utils.appVersion,
                 appEnvironment:         Utils.appEnvironment,
                 supportedEnvironments:  Utils.supportedEnvironments,
-                appVersion:             Utils.appVersion,
                 grailsVersion:          GrailsUtil.grailsVersion,
                 javaVersion:            System.getProperty('java.version')
         ]
