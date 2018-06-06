@@ -21,10 +21,7 @@ class AppConfig implements JSONFormat {
     static List TYPES = ['string', 'int', 'long', 'double', 'bool', 'json', 'pwd']
 
     String name
-    String prodValue
-    String betaValue
-    String stageValue
-    String devValue
+    String value
     String valueType = 'string'
     String note
     boolean clientVisible = false
@@ -35,18 +32,12 @@ class AppConfig implements JSONFormat {
     static mapping = {
         table 'xh_config'
         cache true
-        prodValue type: 'text'
-        betaValue type: 'text'
-        stageValue type: 'text'
-        devValue type: 'text'
+        value type: 'text'
     }
 
     static constraints = {
         name(unique: true, nullable: false, blank: false, maxSize: 50)
-        prodValue(nullable: false, blank: false, validator: AppConfig.isValid)
-        betaValue(nullable: true, blank: false, validator: AppConfig.isValid)
-        stageValue(nullable: true, blank: false, validator: AppConfig.isValid)
-        devValue(nullable: true, blank: false, validator: AppConfig.isValid)
+        value(nullable: false, blank: false, validator: AppConfig.isValid)
         valueType(inList: AppConfig.TYPES, validator: AppConfig.isTypeValid)
         note(nullable: true, maxSize: 1200)
         lastUpdatedBy(nullable: true, maxSize: 50)
@@ -54,7 +45,6 @@ class AppConfig implements JSONFormat {
     }
 
     static isValid = { String val, AppConfig obj ->
-        if (val == null) return true
 
         if (obj.valueType == 'bool' && !(val.equals('true') || val.equals('false')))
             return 'default.invalid.boolean.message'
@@ -77,10 +67,7 @@ class AppConfig implements JSONFormat {
 
     static isTypeValid = { String val, AppConfig obj ->
         return (
-            AppConfig.isValid(obj.prodValue, obj).is(true) &&
-            AppConfig.isValid(obj.betaValue, obj).is(true) &&
-            AppConfig.isValid(obj.stageValue, obj).is(true) &&
-            AppConfig.isValid(obj.devValue, obj).is(true)
+            AppConfig.isValid(obj.value, obj).is(true)
         )
     }
 
@@ -88,11 +75,8 @@ class AppConfig implements JSONFormat {
     def beforeUpdate() {encryptIfPwd(false)}
 
     private encryptIfPwd(boolean isInsert) {
-        if (valueType == 'pwd') {
-            if (hasChanged('prodValue') || isInsert)    prodValue  = encryptor.encrypt(prodValue)
-            if (hasChanged('betaValue') || isInsert)    betaValue  = encryptor.encrypt(betaValue)
-            if (hasChanged('stageValue') || isInsert)   stageValue = encryptor.encrypt(stageValue)
-            if (hasChanged('devValue') || isInsert)     devValue   = encryptor.encrypt(devValue)
+        if (valueType == 'pwd' && (hasChanged('value') || isInsert)) {
+            value = encryptor.encrypt(value)
         }
     }
 
@@ -122,10 +106,7 @@ class AppConfig implements JSONFormat {
                 name: name,
                 groupName: groupName,
                 valueType: valueType,
-                prodValue: maskIfPwd(prodValue),
-                betaValue: maskIfPwd(betaValue),
-                stageValue: maskIfPwd(stageValue),
-                devValue: maskIfPwd(devValue),
+                value: maskIfPwd(value),
                 clientVisible: clientVisible,
                 note: note,
                 lastUpdatedBy: lastUpdatedBy,

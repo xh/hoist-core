@@ -17,6 +17,15 @@ import grails.util.Environment
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
 
+/**
+ * Service for tracking user activity within the application. This service provides a server-side
+ * API for adding track log entries, while the client-side toolkits provide corresponding APIs
+ * in Javascript. Track log entries are stored within the xh_track_log database table and are
+ * viewable via the Hoist Admin Console 's Client Activity > Activity grid.
+ *
+ * The choice of which activities to track is up to application developers. Typical use-cases
+ * involve logging queries and tracking if / how often a given feature is actually used.
+ */
 @CompileStatic
 class TrackService extends BaseService implements EventPublisher {
 
@@ -30,7 +39,7 @@ class TrackService extends BaseService implements EventPublisher {
 
     /**
      * Create a new track log entry. Username, browser info, and datetime will be set automatically.
-     * @param params [String category, String msg, Map data]
+     * @param params [String category, String msg, Map data, Integer elapsed, String severity]
      */
     void track(Map params) {
         try {
