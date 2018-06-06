@@ -141,7 +141,7 @@ class BootStrap {
             ],
             xhTheme: [
                 type: 'string',
-                defaultValue: 'dark',
+                defaultValue: 'light',
                 local: true,
                 note: 'Visual theme for the client application - "light" or "dark".'
             ]
