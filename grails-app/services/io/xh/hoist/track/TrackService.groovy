@@ -17,6 +17,11 @@ import grails.util.Environment
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
 
+/**
+ * Primary service for tracking any activity that an application's admins want to track.
+ * Activities are entered into the db's TrackLog table.
+ * These are presented to admins in the Admin App's Client Activity > Activity grid.
+ */
 @CompileStatic
 class TrackService extends BaseService implements EventPublisher {
 
@@ -30,7 +35,7 @@ class TrackService extends BaseService implements EventPublisher {
 
     /**
      * Create a new track log entry. Username, browser info, and datetime will be set automatically.
-     * @param params [String category, String msg, Map data]
+     * @param params [String category, String msg, Map data, Integer elapsed, String severity]
      */
     void track(Map params) {
         try {

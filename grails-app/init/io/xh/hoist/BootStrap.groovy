@@ -12,7 +12,6 @@ import io.xh.hoist.util.Utils
 class BootStrap {
 
     def init = {servletContext ->
-        checkEnvironment()
         logStartupMsg()
         ensureRequiredConfigsCreated()
         ensureRequiredPrefsCreated()
@@ -27,15 +26,6 @@ class BootStrap {
     //------------------------
     // Implementation
     //------------------------
-    private void checkEnvironment() {
-        def supportedEnvironments = Utils.supportedEnvironments,
-            appEnvironment = Utils.appEnvironment.toString()
-
-        if (!supportedEnvironments.contains(appEnvironment)) {
-            throw new RuntimeException("Environment not supported for this application: ${appEnvironment}")
-        }
-    }
-
     private void logStartupMsg() {
         def hoist = Holders.currentPluginManager().getGrailsPlugin('hoist-core')
 

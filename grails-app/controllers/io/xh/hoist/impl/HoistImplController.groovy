@@ -128,8 +128,7 @@ class HoistImplController extends BaseController {
                 appCode:                Utils.appCode,
                 appName:                Utils.appName,
                 appVersion:             Utils.appVersion,
-                appEnvironment:         Utils.appEnvironment,
-                supportedEnvironments:  Utils.supportedEnvironments,
+                appEnvironment:         Utils.appEnvironment.toString(),
                 grailsVersion:          GrailsUtil.grailsVersion,
                 javaVersion:            System.getProperty('java.version')
         ]

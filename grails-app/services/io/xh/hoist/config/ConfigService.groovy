@@ -11,7 +11,6 @@ import grails.compiler.GrailsCompileStatic
 import grails.events.annotation.Subscriber
 import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
-import io.xh.hoist.util.Utils
 import io.xh.hoist.json.JSON
 import org.grails.datastore.mapping.engine.event.PreUpdateEvent
 import org.grails.web.json.JSONArray
@@ -19,20 +18,10 @@ import org.grails.web.json.JSONElement
 import org.grails.web.json.JSONObject
 import grails.events.*
 
-import static io.xh.hoist.AppEnvironment.BETA
-import static io.xh.hoist.AppEnvironment.DEVELOPMENT
-import static io.xh.hoist.AppEnvironment.PRODUCTION
-import static io.xh.hoist.AppEnvironment.STAGING
-
 
 /**
- * Service to return soft-configured variables based on the current environment.
- *
- * Values for config keys can be entered and adjusted for all supported environments -
- * Production, Beta, Staging, Development.  A production value is always required.
- * Other values are optional - if not specified, they will fall back to production.
- *
- * Fires a xhConfigChanged event when a config value is updated for the current environment.
+ * Service to return soft-configured variables.
+ * Fires a xhConfigChanged event when a config value is updated.
  */
 @GrailsCompileStatic
 class ConfigService extends BaseService implements EventPublisher {
@@ -80,7 +69,7 @@ class ConfigService extends BaseService implements EventPublisher {
             AppConfig config = (AppConfig) it
             def name = config.name
             try {
-                def configVal = getInternal(config, null),
+                def configVal = getInternal(config),
                     isPwd = config.valueType == 'pwd'
                 ret[name] = isPwd ? '***********' : configVal
             } catch (Exception e) {
@@ -139,7 +128,7 @@ class ConfigService extends BaseService implements EventPublisher {
                 new AppConfig(
                     name: confName,
                     valueType: valType,
-                    prodValue: defaultVal,
+                    value: defaultVal,
                     groupName: confDefaults.groupName ?: 'xh.io',
                     clientVisible: clientVisible,
                     lastUpdatedBy: 'hoist-bootstrap',
@@ -175,23 +164,12 @@ class ConfigService extends BaseService implements EventPublisher {
         if (valueType != c.valueType) {
             throw new RuntimeException('Unexpected type for key: ' + name)
         }
-        return getInternal(c, notFoundValue)
+        return getInternal(c)
     }
 
 
-    private Object getInternal(AppConfig config, Object notFoundValue) {
-        def val = null
-
-        switch (Utils.getAppEnvironment()) {
-            case DEVELOPMENT:   val = config.devValue; break
-            case STAGING:       val = config.stageValue; break
-            case BETA:          val = config.betaValue; break
-            case PRODUCTION:    val = config.prodValue; break
-        }
-
-        String ret = (val != null ? val : config.prodValue)
-
-        if (ret == null) return notFoundValue
+    private Object getInternal(AppConfig config) {
+        String ret = config.value
 
         switch(config.valueType) {
             case 'json':    return JSON.parse(ret)
@@ -216,20 +194,10 @@ class ConfigService extends BaseService implements EventPublisher {
         if (!(event.entityObject instanceof AppConfig)) return
 
         def obj = (AppConfig) event.entityObject,
-            devChanged = obj.hasChanged('devValue'),
-            stageChanged = obj.hasChanged('stageValue'),
-            betaChanged = obj.hasChanged('betaValue'),
-            prodChanged = obj.hasChanged('prodValue'),
-            env = Utils.getAppEnvironment(),
-            newVal = getInternal(obj, null),
-            materialChanges = (
-                    (env == PRODUCTION && prodChanged) ||
-                    (env == BETA && (betaChanged || (obj.betaValue == null && prodChanged))) ||
-                    (env == STAGING && (stageChanged || (obj.stageValue == null && prodChanged))) ||
-                    (env == DEVELOPMENT && (devChanged || (obj.devValue == null && prodChanged)))
-            )
+            changed = obj.hasChanged('value'),
+            newVal = getInternal(obj)
 
-        if (materialChanges) {
+        if (changed) {
             // notify is called in a new thread and with a delay to make sure the newVal has had the time to propagate
             asyncTask {
                 Thread.sleep(500)
