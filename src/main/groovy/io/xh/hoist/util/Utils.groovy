@@ -52,12 +52,6 @@ class Utils {
         return InstanceConfigUtils.appEnvironment
     }
 
-    static Set getSupportedEnvironments() {
-        def ret = Holders.grailsApplication.config.hoist.supportedEnvironments as Set
-            ret.add('Production')
-        return ret
-    }
-
     static Boolean getIsProduction() {
         return appEnvironment == AppEnvironment.PRODUCTION
     }
