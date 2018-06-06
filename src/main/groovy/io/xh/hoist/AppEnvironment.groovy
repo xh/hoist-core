@@ -12,8 +12,10 @@ import io.xh.hoist.json.JSONFormat
 
 /**
  * Enum describing available application deployment environments.
- * Note this is distinct from the built-in Grails notion of Environments as there may be multiple  non-production 
- * app instances (e.g., Development, Beta) that all run in Grails "production" mode on their respective servers.
+ *
+ * Note this is distinct from the built-in Grails notion of Environments as there may be multiple
+ * non-production app instances (e.g., Development, Beta) that all run in Grails "production" mode
+ * on their respective servers.
  */
 @CompileStatic
 enum AppEnvironment implements JSONFormat {

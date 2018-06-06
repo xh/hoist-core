@@ -24,20 +24,32 @@ class Utils {
 
     static Properties buildInfo = readBuildInfo()
 
-    static AppEnvironment getAppEnvironment() {
-        return InstanceConfigUtils.appEnvironment
+    /**
+     * Internal short name of the application - lowercase, no spaces.
+     */
+    static String getAppCode() {
+        return buildInfo.getProperty('info.xh.appCode')
     }
 
-    static String getAppDisplayName() {
-        return Holders.grailsApplication.config.hoist.appDisplayName ?: appName
-    }
-
+    /**
+     * User-facing display name of the application - proper case, can include spaces.
+     */
     static String getAppName() {
-        return buildInfo.getProperty('info.app.name')
+        return buildInfo.getProperty('info.xh.appName')
     }
 
+    /**
+     * Current version, either SemVer x.y.z format or x.y-SNAPSHOT.
+     */
     static String getAppVersion() {
         return buildInfo.getProperty('info.app.version')
+    }
+
+    /**
+     * Hoist AppEnvironment of the current deployment, distinct from Grails environment.
+     */
+    static AppEnvironment getAppEnvironment() {
+        return InstanceConfigUtils.appEnvironment
     }
 
     static Boolean getIsProduction() {
@@ -100,6 +112,7 @@ class Utils {
     // We *should* be able to draw this build info from grails.util.Metadata object.
     // But that object began returning nulls with grails 3.3.0.
     // For now, we just pulls values directly from the gradle artifact used by that file.
+    // Note that our standard build.gradle injects appCode/appName
     // See http://grailsblog.objectcomputing.com/posts/2017/04/02/add-build-info-to-your-project.html
     private static Properties readBuildInfo() {
         def ret = new Properties(),

@@ -25,7 +25,7 @@ class FeedbackEmailService extends BaseService {
     //------------------------
     private void emailFeedback(Feedback fb) {
         def to = emailService.parseMailConfig('xhEmailSupport'),
-            subject = "${Utils.appName.capitalize()} feedback"
+            subject = "${Utils.appName} feedback"
         
         if (to) {
             emailService.sendEmail(async: true, to: to, subject: subject, html: formatHtml(fb))
@@ -36,7 +36,7 @@ class FeedbackEmailService extends BaseService {
         def msgText = fb.msg,
             metaText = [
                     "User: ${fb.username}",
-                    "App: ${Utils.appName}",
+                    "App: ${Utils.appName} (${Utils.appCode})",
                     "Version: ${fb.appVersion}",
                     "Environment: ${fb.appEnvironment}",
                     "Browser: ${fb.browser}",
