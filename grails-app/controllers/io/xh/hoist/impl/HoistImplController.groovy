@@ -168,8 +168,8 @@ class HoistImplController extends BaseController {
     //------------------------
     // Client Errors
     //------------------------
-    def submitError(String msg, String error, String appVersion) {
-        clientErrorService.submit(msg, error, appVersion)
+    def submitError(String msg, String error, String appVersion, boolean userAlerted) {
+        clientErrorService.submit(msg, error, appVersion, userAlerted)
         renderJSON(success: true)
     }
 

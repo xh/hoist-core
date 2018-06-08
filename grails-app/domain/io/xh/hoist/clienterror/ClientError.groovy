@@ -19,6 +19,7 @@ class ClientError implements JSONFormat {
     String device
     String appVersion
     String appEnvironment
+    boolean userAlerted = false
     Date dateCreated
 
     static mapping = {
@@ -50,6 +51,7 @@ class ClientError implements JSONFormat {
                 device: device,
                 appVersion: appVersion,
                 appEnvironment: appEnvironment,
+                userAlerted: userAlerted,
                 dateCreated: dateCreated
         ]
     }
