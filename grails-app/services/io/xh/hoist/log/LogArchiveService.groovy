@@ -77,7 +77,7 @@ class LogArchiveService extends BaseService {
 
     private Map mapLogsByCategory(List<File> files) {
         files.groupBy {
-            def category = it.name =~ /(\w*)./
+            def category = it.name =~ /((?:\w|-|_|\+)+)/
             category.find()
             return category.group(1)
         }
@@ -96,7 +96,7 @@ class LogArchiveService extends BaseService {
 
         def files = []
         logPath.eachFile(FileType.FILES) {
-            def matcher = it.name =~ /\w*\.(\d{4}(?:-\d{2}){2})\.log$/
+            def matcher = it.name =~ /(?:\w|-|_|\+)+\.(\d{4}(?:-\d{2}){2})\.log$/
             if (matcher.find() && isOlderThanThreshold(matcher.group(1), daysThreshold)) {
                 files.add(it)
             }
