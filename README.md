@@ -256,7 +256,7 @@ impersonation is active with both the impersonated and real user.
 :wrench: The ability to store simple typed configuration values
 (`string|int|long|double|bool|json|pwd`) and manage / adjust them in a running application has
 proven to be an extremely useful core feature. `AppConfig` entries are stored in the UI server's
-database, referenced via a simple string name, and can hold different values per environment.
+database and referenced via a simple string name.
 
 Configs can also be made available to client applications (or not) via a dedicated flag, where they
 can be referenced by JS code. The built-in Admin console provides a full UI for reviewing, updating,
