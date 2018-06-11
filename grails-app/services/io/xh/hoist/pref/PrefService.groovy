@@ -135,6 +135,7 @@ class PrefService extends BaseService {
                     name: prefName,
                     type: valType,
                     defaultValue: defaultVal,
+                    groupName: prefDefaults.groupName ?: 'Default',
                     local: local,
                     notes: notes,
                     lastUpdatedBy: 'hoist-bootstrap'
