@@ -21,6 +21,7 @@ class Preference implements JSONFormat {
     Boolean local
     String lastUpdatedBy
     Date lastUpdated
+    String groupName = 'Default'
 
     static hasMany = [userPreferences: UserPreference]
 
@@ -37,6 +38,7 @@ class Preference implements JSONFormat {
         defaultValue(validator: {String val, Preference obj -> obj.isValidForType(val) })
         notes(nullable: true, maxSize: 1200)
         lastUpdatedBy(nullable: true, maxSize: 50)
+        groupName(nullable: false, blank: false)
     }
 
     Object isValidForType(String val) {
@@ -63,6 +65,7 @@ class Preference implements JSONFormat {
         return [
                 id: id,
                 name: name,
+                groupName: groupName,
                 type: type,
                 defaultValue: defaultValue,
                 notes: notes,

@@ -19,7 +19,10 @@ class PreferenceAdminController extends RestController {
     static trackChanges = true
 
     def lookupData() {
-        renderJSON (types: Preference.TYPES)
+        renderJSON (
+                types: Preference.TYPES,
+                groupNames: Preference.list().collect{it.groupName}.unique().sort()
+        )
     }
 
     protected void preprocessSubmit(JSONObject submit) {

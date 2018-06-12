@@ -34,6 +34,7 @@ class UserPreference implements JSONFormat {
         return [
                 id: id,
                 name: preference.name,
+                groupName: preference.groupName,
                 type: preference.type,
                 username: username,
                 userValue: userValue,

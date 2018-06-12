@@ -129,7 +129,7 @@ class ConfigService extends BaseService implements EventPublisher {
                     name: confName,
                     valueType: valType,
                     value: defaultVal,
-                    groupName: confDefaults.groupName ?: 'xh.io',
+                    groupName: confDefaults.groupName ?: 'Default',
                     clientVisible: clientVisible,
                     lastUpdatedBy: 'hoist-bootstrap',
                     note: note
