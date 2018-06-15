@@ -17,8 +17,7 @@ class UrlMappings {
         "/"(controller: "default")
         "/$controller/$action?/$id?(.$format)?"{}
 
-        "404"(view:'/notFound')
-
+        "404" (controller: "Error404")
         
         //------------------------
         // Rest Support

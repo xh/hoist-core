@@ -20,6 +20,7 @@ import javax.servlet.http.HttpServletResponse
 
 import static org.apache.http.HttpStatus.SC_FORBIDDEN
 import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
+import static org.apache.http.HttpStatus.SC_NOT_FOUND
 
 @CompileStatic
 @Slf4j
@@ -69,6 +70,7 @@ class ExceptionRenderer {
 
     protected int getHttpStatus(Throwable t) {
         if (t instanceof NotAuthorizedException) return SC_FORBIDDEN
+        if (t instanceof NotFoundException) return SC_NOT_FOUND
         return SC_INTERNAL_SERVER_ERROR
     }
 
