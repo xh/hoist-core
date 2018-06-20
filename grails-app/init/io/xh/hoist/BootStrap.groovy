@@ -74,7 +74,7 @@ class BootStrap {
             ],
             xhEmailDefaultDomain: [
                 valueType: 'string',
-                defaultValue: 'xh.io',
+                defaultValue: '@xh.io',
                 groupName: 'xh.io',
                 note: 'Default domain name appended by Hoist EmailServices when unqualified usernames are passed to the service as email recipients/senders.'
             ],
