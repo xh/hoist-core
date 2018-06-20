@@ -11,7 +11,8 @@ import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.security.BaseAuthenticationService
 import io.xh.hoist.track.TrackService
-import org.grails.web.util.WebUtils
+import org.grails.web.servlet.mvc.GrailsWebRequest
+import org.springframework.web.context.request.RequestContextHolder
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpSession
@@ -37,6 +38,8 @@ class IdentityService extends BaseService {
     /**
      * Return the current active user. Note that this is the 'apparent' user, used for most application level purposes.
      * In particular, in the case of impersonation this may be different from the authenticated user.
+     *
+     * If called outside the context of a request, this getter will return null.
      */
     HoistUser getUser() {
         getApparentUser()
@@ -44,6 +47,8 @@ class IdentityService extends BaseService {
 
     /**
      *  The 'apparent' user, used for most application level purposes.
+     *
+     *  If called outside the context of a request, this getter will return null.
      */
     HoistUser getApparentUser(HttpServletRequest request = getRequest()) {
         def session = getSessionIfExists(request)
@@ -52,6 +57,8 @@ class IdentityService extends BaseService {
 
     /**
      *  The 'authorized' user as verified by AuthenticationService.
+     *
+     *  If called outside the context of a request, this getter will return null.
      */
     HoistUser getAuthUser(HttpServletRequest request = getRequest()) {
         def session = getSessionIfExists(request)
@@ -82,6 +89,10 @@ class IdentityService extends BaseService {
             targetUser = userService.find(username),
             authUser = getAuthUser(request)
 
+        if (!request) {
+            throw new RuntimeException('Cannot impersonate when outside the context of a request.')
+        }
+        
         if (!authUser.roles.contains('HOIST_ADMIN')) {
             throw new RuntimeException("User '${authUser.username}' does not have permissions to impersonate")
         }
@@ -147,16 +158,16 @@ class IdentityService extends BaseService {
         session[APPARENT_USER_KEY] = session[AUTH_USER_KEY] = user
     }
 
-
     //----------------------
     // Implementation
     //----------------------
     private HttpServletRequest getRequest() {
-        def req = WebUtils.retrieveGrailsWebRequest()
-        if (!req) {
-            throw new RuntimeException('Attempting to get user information outside of valid request')
-        }
-        return req.getRequest()
+        def attr = RequestContextHolder.requestAttributes
+
+        // If we are not in the context of a request (e.g. service timer) this will return null.
+        return (attr && attr instanceof GrailsWebRequest) ?
+                ((GrailsWebRequest)attr).request:
+                null
     }
 
     private void trackImpersonate(String msg) {
@@ -164,7 +175,7 @@ class IdentityService extends BaseService {
     }
 
     private HttpSession getSessionIfExists(HttpServletRequest request = getRequest()) {
-        return request.getSession(false)  // Do *not* create session for simple, early checks (avoid DOS attack)
+        return request?.getSession(false)  // Do *not* create session for simple, early checks (avoid DOS attack)
     }
 
 }
