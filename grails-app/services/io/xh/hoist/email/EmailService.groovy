@@ -145,6 +145,7 @@ class EmailService extends BaseService {
         if (o instanceof String) o = o.split(',')
         return o.collect {String email ->
             email = email.trim()
+            domain = domain.contains('@') ? domain : '@' + domain
             email.contains('@') ? email : (email + domain)
         }
     }
