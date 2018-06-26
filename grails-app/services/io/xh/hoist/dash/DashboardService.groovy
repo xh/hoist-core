@@ -13,44 +13,63 @@ import io.xh.hoist.BaseService
 @GrailsCompileStatic
 class DashboardService extends BaseService {
 
-    Dashboard get(String appCode) {
-        // Lookup users copy, OR template
-        // Currently we return the template but we could eagerly save user copy
-        Dashboard dash = Dashboard.findByAppCodeAndUsername(appCode, username) ?:
-                         Dashboard.findByAppCodeAndUsername(appCode, 'TEMPLATE')
+    List getAll(String appCode) {
+        List<Dashboard> dashboards = Dashboard.findAllByAppCodeAndUsername(appCode, username)
 
-        if (!dash) throw new RuntimeException("Unable to find dashboard $appCode for $username (or TEMPLATE)")
+        if (!dashboards.size()) {
+            dashboards.push(createFromTemplate(appCode))
+        }
+
+        return dashboards
+    }
+
+    String getTemplate(String appCode) {
+        Dashboard template = Dashboard.findByAppCodeAndUsername(appCode, 'TEMPLATE')
+
+        if (!template) throw new RuntimeException("Unable to find dashboard $appCode for $username (or TEMPLATE)")
+
+        return template.definition
+    }
+
+    Dashboard create(String appCode, String name, String definition) {
+        Dashboard dash = new Dashboard(
+                appCode: appCode,
+                name: name,
+                username: username,
+                definition: definition,
+                dateCreated: new Date()
+        )
+
+        dash.save(flush: true)
 
         return dash
     }
 
-    Dashboard save(String appCode, String definition) {
-        def username = username,
-            dash = get(appCode)
-        if (dash.username != username) {
-            dash = cloneDashboard(dash)
-            dash.username = username
-        }
+    Dashboard get(String appCode, int id) {
+        Dashboard.findByAppCodeAndUsernameAndId(appCode, username, id)
+    }
+
+    Dashboard save(String appCode, int id, String name, String definition) {
+        Dashboard dash = get(appCode, id)
+
+        dash.name = name
         dash.definition = definition
         dash.save()
+
         return dash
     }
 
-    void deleteUserInstance(String appCode) {
-        Dashboard userDash = Dashboard.findByAppCodeAndUsername(appCode, username)
+    void delete(String appCode, int id) {
+        Dashboard userDash = Dashboard.findByAppCodeAndUsernameAndId(appCode, username, id)
         userDash?.delete(flush: true)
     }
 
 
-    //------------------------
+    //--------------------------------------
     // Implementation
-    //------------------------
-    private static Dashboard cloneDashboard(Dashboard d) {
-        return new Dashboard(
-                appCode: d.appCode,
-                username: d.username,
-                definition: d.definition
-        )
+    //--------------------------------------
+    private Dashboard createFromTemplate(String appCode) {
+        String definition = getTemplate(appCode)
+        create(appCode, 'My Dashboard', definition)
     }
-    
 }

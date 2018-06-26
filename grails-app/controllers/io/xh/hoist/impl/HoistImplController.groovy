@@ -152,17 +152,25 @@ class HoistImplController extends BaseController {
     //------------------------
     // Dashboards
     //------------------------
-    def getDashboard(String appCode) {
-        renderJSON(dashboardService.get(appCode))
+    def getDashboards(String appCode) {
+        renderJSON(dashboardService.getAll(appCode))
     }
 
-    def saveDashboard(String appCode, String definition) {
-        renderJSON(dashboardService.save(appCode, definition))
+    def getDashboardTemplate(String appCode) {
+        render(dashboardService.getTemplate(appCode))
     }
 
-    def deleteUserDashboard(String appCode) {
-        dashboardService.deleteUserInstance(appCode)
-        renderJSON(success: true)
+    def createDashboard(String appCode, String name, String definition) {
+        renderJSON(dashboardService.create(appCode, name, definition))
+    }
+
+    def saveDashboard(String appCode, int id, String name, String definition) {
+        renderJSON(dashboardService.save(appCode, id, name, definition))
+    }
+
+    def deleteDashboard(String appCode, int id) {
+        dashboardService.delete(appCode, id)
+        renderJSON([success: true])
     }
 
     //------------------------
@@ -204,5 +212,4 @@ class HoistImplController extends BaseController {
     private Collection<GrailsPlugin> getHoistGrailsPlugins() {
         return Holders.currentPluginManager().allPlugins.findAll{it.name.startsWith('hoist')}
     }
-
 }
