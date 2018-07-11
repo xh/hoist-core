@@ -65,10 +65,13 @@ class HoistImplController extends BaseController {
         renderJSON(success: true)
     }
 
+
     //------------------------
     // Tracking
     //------------------------
     def track() {
+        ensureClientUsernameMatchesSession()
+
         trackService.track(
                 category: params.category,
                 msg: params.msg,
@@ -76,8 +79,10 @@ class HoistImplController extends BaseController {
                 elapsed: params.elapsed,
                 severity: params.severity
         )
+
         renderJSON(success: true)
     }
+
 
     //------------------------
     // Config
@@ -86,14 +91,18 @@ class HoistImplController extends BaseController {
         renderJSON(configService.clientConfig)
     }
 
+
     //------------------------
     // Preferences
     //------------------------
     def getPrefs() {
+        ensureClientUsernameMatchesSession()
         renderJSON(prefService.clientConfig)
     }
 
     def setPrefs(String updates) {
+        ensureClientUsernameMatchesSession()
+
         JSONObject prefs = (JSONObject) JSON.parse(updates)
         prefs.each {k, value ->
             String key = k.toString()
@@ -103,14 +112,18 @@ class HoistImplController extends BaseController {
                 prefService.setPreference(key, value.toString())
             }
         }
+
         def ret = prefService.getLimitedClientConfig(prefs.keySet() as List)
+
         renderJSON(preferences: ret)
     }
 
     def clearPrefs() {
+        ensureClientUsernameMatchesSession()
         prefService.clearPreferences()
         renderJSON(success: true)
     }
+
 
     //------------------------
     // Export
@@ -119,6 +132,7 @@ class HoistImplController extends BaseController {
         def ret = gridExportImplService.getBytesForRender(filename, filetype, rows, meta)
         render(ret)
     }
+
 
     //------------------------
     // Environment
@@ -142,7 +156,6 @@ class HoistImplController extends BaseController {
 
     def version() {
         def shouldUpdate = configService.getBool('xhAppVersionCheckEnabled')
-
         renderJSON (
                 appVersion: Utils.appVersion,
                 shouldUpdate: shouldUpdate
@@ -153,14 +166,17 @@ class HoistImplController extends BaseController {
     // Dashboards
     //------------------------
     def getDashboard(String appCode) {
+        ensureClientUsernameMatchesSession()
         renderJSON(dashboardService.get(appCode))
     }
 
     def saveDashboard(String appCode, String definition) {
+        ensureClientUsernameMatchesSession()
         renderJSON(dashboardService.save(appCode, definition))
     }
 
     def deleteUserDashboard(String appCode) {
+        ensureClientUsernameMatchesSession()
         dashboardService.deleteUserInstance(appCode)
         renderJSON(success: true)
     }
@@ -169,6 +185,7 @@ class HoistImplController extends BaseController {
     // Client Errors
     //------------------------
     def submitError(String msg, String error, String appVersion, boolean userAlerted) {
+        ensureClientUsernameMatchesSession()
         clientErrorService.submit(msg, error, appVersion, userAlerted)
         renderJSON(success: true)
     }
@@ -177,6 +194,7 @@ class HoistImplController extends BaseController {
     // Feedback
     //------------------------
     def submitFeedback(String msg, String appVersion) {
+        ensureClientUsernameMatchesSession()
         feedbackService.submit(msg, appVersion)
         renderJSON(success: true)
     }
@@ -203,6 +221,26 @@ class HoistImplController extends BaseController {
     //------------------------
     private Collection<GrailsPlugin> getHoistGrailsPlugins() {
         return Holders.currentPluginManager().allPlugins.findAll{it.name.startsWith('hoist')}
+    }
+
+    /**
+     * Check to validate that the client's expectation of the current user matches the active user
+     * actually present within the session. Should be called prior to any operations in this
+     * controller that rely on or return / modify data specific to a particular user.
+     *
+     * Note this is *not* a security check - access control and validation of user operations are
+     * the responsibilities of the auth framework and relevant services. This is intended to avoid
+     * edge-case bugs where the server-side login has changed but the app within a client browser
+     * is not yet aware - e.g. calls made on page unload during the start of an impersonation session.
+     */
+    private void ensureClientUsernameMatchesSession() {
+        def clientUsername = params.clientUsername
+
+        if (!clientUsername) {
+            throw new RuntimeException("This endpoint requires a clientUsername param to confirm the intended user.")
+        } else if (clientUsername != username) {
+            throw new RuntimeException("The reported clientUsername param does not match current session user.")
+        }
     }
 
 }
