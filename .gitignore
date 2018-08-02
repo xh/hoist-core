@@ -7,6 +7,7 @@
 # Gradle / Build
 .gradle/
 build/
+out/
 
 # OS generated files
 .DS_Store
