@@ -1,6 +1,7 @@
 # Welcome to Hoist
 
-Hoist is a web application development toolkit developed by Extremely Heavy Industries.
+Hoist is a web application development toolkit developed by
+[Extremely Heavy Industries](https://xh.io/).
 
 Hoist is designed as a "full stack" UI development framework, meaning that it has both server and
 client components that work together to provide an integrated set of tools and utilities for quickly
