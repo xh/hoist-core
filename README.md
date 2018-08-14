@@ -1,29 +1,7 @@
-<p align="center">
-    <img src="https://xh.io/wp-content/uploads/2018/04/hoist-web-350.png"><br>
-    by<br>
-    <img src="https://xh.io/wp-content/uploads/2015/01/web-logo-black-2x.png">
-</p>
-
-[TOC]: # "# Welcome to Hoist"
-
 # Welcome to Hoist
-- [About this Doc](#about-this-doc)
-- [Core Features - Overview](#core-features---overview)
-- [Role of the Server](#role-of-the-server)
-- [Application Structure and Deployment](#application-structure-and-deployment)
-- [Custom plugins for enterprise deployments](#custom-plugins-for-enterprise-deployments)
-- [Hoist usage, licensing, and support](#hoist-usage-licensing-and-support)
-- [Core Features - Additional Details](#core-features---additional-details)
-    - [User Authentication / Authorization](#user-authentication--authorization)
-    - [Configuration](#configuration)
-    - [Preferences](#preferences)
-    - [Activity Tracking and Client Error Reporting](#activity-tracking-and-client-error-reporting)
-    - [Emailing](#emailing)
-    - [Status Monitoring](#status-monitoring)
-    - [Readme TODOs](#readme-todos)
 
-
-Hoist is a web application development toolkit developed by Extremely Heavy Industries.
+Hoist is a web application development toolkit developed by
+[Extremely Heavy Industries](https://xh.io/).
 
 Hoist is designed as a "full stack" UI development framework, meaning that it has both server and
 client components that work together to provide an integrated set of tools and utilities for quickly
