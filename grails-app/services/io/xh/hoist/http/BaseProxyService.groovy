@@ -16,6 +16,7 @@ import org.apache.http.client.methods.CloseableHttpResponse
 import org.apache.http.client.methods.HttpDelete
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase
 import org.apache.http.client.methods.HttpGet
+import org.apache.http.client.methods.HttpPatch
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.client.methods.HttpPut
 import org.apache.http.client.methods.HttpRequestBase
@@ -55,6 +56,10 @@ abstract class BaseProxyService extends BaseService {
                 break
             case 'GET':
                 method = new HttpGet(fullPath)
+                break
+            case 'PATCH':
+                method = new HttpPatch(fullPath)
+                installParamsOnEntity(request, (HttpPatch) method)
                 break
             case 'POST':
                 method = new HttpPost(fullPath)
