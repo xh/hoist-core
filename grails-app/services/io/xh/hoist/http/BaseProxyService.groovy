@@ -13,8 +13,11 @@ import org.apache.catalina.connector.ClientAbortException
 import org.apache.http.HttpResponse
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.http.client.methods.CloseableHttpResponse
+import org.apache.http.client.methods.HttpDelete
+import org.apache.http.client.methods.HttpEntityEnclosingRequestBase
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.client.methods.HttpPost
+import org.apache.http.client.methods.HttpPut
 import org.apache.http.client.methods.HttpRequestBase
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.client.CloseableHttpClient
@@ -47,12 +50,19 @@ abstract class BaseProxyService extends BaseService {
 
         HttpRequestBase method = null
         switch (request.getMethod()) {
+            case 'DELETE':
+                method = new HttpDelete(fullPath)
+                break
             case 'GET':
                 method = new HttpGet(fullPath)
                 break
             case 'POST':
                 method = new HttpPost(fullPath)
-                installUrlEncodedParams(request, (HttpPost) method)
+                installParamsOnEntity(request, (HttpPost) method)
+                break
+            case 'PUT':
+                method = new HttpPut(fullPath)
+                installParamsOnEntity(request, (HttpPut) method)
                 break
             default:
                 throw new RuntimeException('Unsupported HTTP method')
@@ -95,15 +105,15 @@ abstract class BaseProxyService extends BaseService {
         }
     }
 
-    protected installUrlEncodedParams(HttpServletRequest request, HttpPost post) {
+    protected installParamsOnEntity(HttpServletRequest request, HttpEntityEnclosingRequestBase method) {
         if (request.getHeader('Content-Type').toLowerCase().contains('x-www-form-urlencoded')) {
             def formParams = request.parameterMap.collectMany {key, value ->
                 value.collect {new BasicNameValuePair(key, (String) it)}
             }
-            post.setEntity(new UrlEncodedFormEntity(formParams))
+            method.setEntity(new UrlEncodedFormEntity(formParams))
         } else {
             def body = request.reader.text
-            post.setEntity(new StringEntity(body))
+            method.setEntity(new StringEntity(body))
         }
     }
 
