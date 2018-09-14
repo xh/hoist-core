@@ -16,8 +16,8 @@ class UserAdminController extends BaseController {
 
     BaseUserService userService
 
-    def index() {
-        renderJSON(userService.list(false))
+    def index(boolean activeOnly) {
+        renderJSON(userService.list(activeOnly))
     }
-    
+
 }
