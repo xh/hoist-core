@@ -186,6 +186,18 @@ class GridExportImplService extends BaseService {
                 group.end = i
                 completedGroups << pendingGroups.pop()
             }
+//            CellStyle rowStyle = wb.createCellStyle()
+//            rowStyle.setWrapText(true)
+//            short rowHeight = (short)-1
+//            log.info(Short.toString(rowHeight))
+//            if (meta.wrapText[0]) {
+//                log.info("A")
+//                row.setRowStyle(rowStyle)
+//            }
+//            if (!meta.wrapText[0]) {
+//                log.info("B")
+//                row.setHeight((short) 0x100)
+//            }
         }
 
         if (asTable && completedGroups.size()) {
