@@ -127,6 +127,7 @@ class GridExportImplService extends BaseService {
         // Create map of cell styles by format
         def styles = meta.collect{it.format}.unique().collectEntries {f ->
             CellStyle style = wb.createCellStyle()
+            if (meta.wrapText[0]) style.setWrapText(true)
             style.setDataFormat(wb.createDataFormat().getFormat(f))
             [(f): style]
         }
@@ -165,6 +166,7 @@ class GridExportImplService extends BaseService {
                         cell.setCellStyle(styles[metadata.format])
                     }
                 }
+
             }
 
             // 2) Create groups for Excel tree affordance
