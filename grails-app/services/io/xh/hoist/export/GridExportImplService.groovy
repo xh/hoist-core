@@ -208,9 +208,9 @@ class GridExportImplService extends BaseService {
 
         // Auto-width columns to fit content
         if (!useStreamingAPI) {
-            int colWidth = 22000
             for (int i = 0; i < rows.size(); i++) {
                 if (longTextIndices.contains(i)) {
+                    int colWidth = meta.get(i).width * 256
                     sheet.setColumnWidth(i, colWidth)
                 } else {
                     sheet.autoSizeColumn(i)
