@@ -127,9 +127,18 @@ class GridExportImplService extends BaseService {
         // Create map of cell styles by format
         def styles = meta.collect{it.format}.unique().collectEntries {f ->
             CellStyle style = wb.createCellStyle()
-            if (meta.wrapText[0]) style.setWrapText(true)
+            if (f == 'Text') style.setWrapText(true)
             style.setDataFormat(wb.createDataFormat().getFormat(f))
             [(f): style]
+        }
+
+        def longTextIndices = []
+        meta.eachWithIndex{col, i -> if (col.type == 'longText') {
+            longTextIndices.add(i)
+        }}
+        CellStyle wrapStyle = wb.createCellStyle()
+        if (longTextIndices.size() > 0) {
+            wrapStyle.setWrapText(true)
         }
 
         def pendingGroups = [],
@@ -144,6 +153,10 @@ class GridExportImplService extends BaseService {
                 def value = data?.toString()
                 Map metadata = meta[colIndex]
                 Cell cell = row.createCell(colIndex)
+
+                if (metadata.format) {
+                    cell.setCellStyle(styles[metadata.format])
+                }
 
                 if (i == 0 || !value) {
                     // Column headers and empty values ignore metadata
@@ -162,9 +175,7 @@ class GridExportImplService extends BaseService {
                     cell.setCellValue(value)
 
                     // Set cell data format
-                    if (metadata.format) {
-                        cell.setCellStyle(styles[metadata.format])
-                    }
+
                 }
 
             }
@@ -186,18 +197,6 @@ class GridExportImplService extends BaseService {
                 group.end = i
                 completedGroups << pendingGroups.pop()
             }
-//            CellStyle rowStyle = wb.createCellStyle()
-//            rowStyle.setWrapText(true)
-//            short rowHeight = (short)-1
-//            log.info(Short.toString(rowHeight))
-//            if (meta.wrapText[0]) {
-//                log.info("A")
-//                row.setRowStyle(rowStyle)
-//            }
-//            if (!meta.wrapText[0]) {
-//                log.info("B")
-//                row.setHeight((short) 0x100)
-//            }
         }
 
         if (asTable && completedGroups.size()) {
@@ -209,8 +208,13 @@ class GridExportImplService extends BaseService {
 
         // Auto-width columns to fit content
         if (!useStreamingAPI) {
-            for (def i = 0; i < rows.size(); i++) {
-                sheet.autoSizeColumn(i)
+            int colWidth = 22000
+            for (int i = 0; i < rows.size(); i++) {
+                if (longTextIndices.contains(i)) {
+                    sheet.setColumnWidth(i, colWidth)
+                } else {
+                    sheet.autoSizeColumn(i)
+                }
             }
         }
 
