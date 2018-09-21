@@ -100,7 +100,7 @@ class TrackService extends BaseService implements EventPublisher {
         // Execute asynchronously after we get info from request, don't block application thread.
         asyncTask {
             def tl = new TrackLog(values)
-            if (Environment.isDevelopmentMode()) tl.save()
+            if (!Environment.isDevelopmentMode()) tl.save()
 
             def name = tl.username
             if (tl.impersonating) name += " (as ${tl.impersonating})"
