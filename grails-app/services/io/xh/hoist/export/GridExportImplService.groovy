@@ -14,6 +14,7 @@ import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.ss.usermodel.CellStyle
+import org.apache.poi.ss.usermodel.VerticalAlignment
 import org.apache.poi.ss.util.AreaReference
 import org.apache.poi.ss.util.CellReference
 import org.apache.poi.xssf.usermodel.XSSFTable
@@ -128,18 +129,15 @@ class GridExportImplService extends BaseService {
         def styles = meta.collect{it.format}.unique().collectEntries {f ->
             CellStyle style = wb.createCellStyle()
             if (f == 'Text') style.setWrapText(true)
+            style.setVerticalAlignment(VerticalAlignment.CENTER)
             style.setDataFormat(wb.createDataFormat().getFormat(f))
             [(f): style]
         }
 
-        def longTextIndices = []
-        meta.eachWithIndex{col, i -> if (col.type == 'longText') {
-            longTextIndices.add(i)
+        def definedWidthColumns = []
+        meta.eachWithIndex{col, i -> if (col.width) {
+            definedWidthColumns.add(i)
         }}
-        CellStyle wrapStyle = wb.createCellStyle()
-        if (longTextIndices.size() > 0) {
-            wrapStyle.setWrapText(true)
-        }
 
         def pendingGroups = [],
             completedGroups = []
@@ -154,6 +152,7 @@ class GridExportImplService extends BaseService {
                 Map metadata = meta[colIndex]
                 Cell cell = row.createCell(colIndex)
 
+                // Set cell data format
                 if (metadata.format) {
                     cell.setCellStyle(styles[metadata.format])
                 }
@@ -173,8 +172,6 @@ class GridExportImplService extends BaseService {
                         value = value.toDouble()
                     }
                     cell.setCellValue(value)
-
-                    // Set cell data format
 
                 }
 
@@ -209,7 +206,7 @@ class GridExportImplService extends BaseService {
         // Auto-width columns to fit content
         if (!useStreamingAPI) {
             for (int i = 0; i < tableColumns; i++) {
-                if (longTextIndices.contains(i)) {
+                if (definedWidthColumns.contains(i)) {
                     int colWidth = meta.get(i).width * 256
                     sheet.setColumnWidth(i, colWidth)
                 } else {
