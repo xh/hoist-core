@@ -14,6 +14,7 @@ import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.ss.usermodel.CellStyle
+import org.apache.poi.ss.usermodel.VerticalAlignment
 import org.apache.poi.ss.util.AreaReference
 import org.apache.poi.ss.util.CellReference
 import org.apache.poi.xssf.usermodel.XSSFTable
@@ -127,9 +128,16 @@ class GridExportImplService extends BaseService {
         // Create map of cell styles by format
         def styles = meta.collect{it.format}.unique().collectEntries {f ->
             CellStyle style = wb.createCellStyle()
+            if (f == 'Text') style.setWrapText(true)
+            style.setVerticalAlignment(VerticalAlignment.CENTER)
             style.setDataFormat(wb.createDataFormat().getFormat(f))
             [(f): style]
         }
+
+        def definedWidthColumns = []
+        meta.eachWithIndex{col, i -> if (col.width) {
+            definedWidthColumns.add(i)
+        }}
 
         def pendingGroups = [],
             completedGroups = []
@@ -143,6 +151,11 @@ class GridExportImplService extends BaseService {
                 def value = data?.toString()
                 Map metadata = meta[colIndex]
                 Cell cell = row.createCell(colIndex)
+
+                // Set cell data format
+                if (metadata.format) {
+                    cell.setCellStyle(styles[metadata.format])
+                }
 
                 if (i == 0 || !value) {
                     // Column headers and empty values ignore metadata
@@ -160,11 +173,8 @@ class GridExportImplService extends BaseService {
                     }
                     cell.setCellValue(value)
 
-                    // Set cell data format
-                    if (metadata.format) {
-                        cell.setCellStyle(styles[metadata.format])
-                    }
                 }
+
             }
 
             // 2) Create groups for Excel tree affordance
@@ -195,8 +205,13 @@ class GridExportImplService extends BaseService {
 
         // Auto-width columns to fit content
         if (!useStreamingAPI) {
-            for (def i = 0; i < rows.size(); i++) {
-                sheet.autoSizeColumn(i)
+            for (int i = 0; i < tableColumns; i++) {
+                if (definedWidthColumns.contains(i)) {
+                    int colWidth = meta.get(i).width * 256
+                    sheet.setColumnWidth(i, colWidth)
+                } else {
+                    sheet.autoSizeColumn(i)
+                }
             }
         }
 
