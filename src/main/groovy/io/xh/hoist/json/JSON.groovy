@@ -9,13 +9,14 @@ package io.xh.hoist.json
 
 import org.grails.web.converters.exceptions.ConverterException
 import org.grails.web.json.JSONException
-import org.grails.web.json.JSONWriter
 
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import groovy.transform.CompileStatic
 import groovy.transform.CompileDynamic
+
+import static org.grails.web.json.JSONWriter.Mode.*
 
 /**
  * Overridden version of grails JSON converter.
@@ -32,12 +33,12 @@ class JSON extends grails.converters.JSON {
     }
 
     void value(Object o) throws ConverterException {
-        // 0) Special handling for top-level primitives
+        // Special handling for top-level primitives.
         if (writeTopLevelPrimitive(o)) {
            return
         }
 
-        // 1) Recursive super implementation with enhancements for certain types
+        // Recursive super implementation with enhancements for certain types.
         try {
             switch (o) {
                 case null:
@@ -68,14 +69,17 @@ class JSON extends grails.converters.JSON {
 
     @CompileDynamic
     private boolean writeTopLevelPrimitive(Object o) {
-        if (writer.mode == JSONWriter.Mode.INIT) {
+        if (writer.mode == INIT) {
             def writer = writer.writer
+
             if (o instanceof String) {
+                // Quote bare strings.
                 writer.write('"')
                 writer.write(o.toString())
                 writer.write('"')
                 return true
-            } else if (o == null || o instanceof Boolean || o instanceof Number) {
+            } else if (o == null || o instanceof Boolean || o instanceof Number || o instanceof JSONCached) {
+                // But don't quote other primitives, or a cached JSON string.
                 writer.write(o.toString())
                 return true
             }
@@ -85,6 +89,10 @@ class JSON extends grails.converters.JSON {
     
     @CompileDynamic
     void writeCached(JSONCached o) {
+        // Handle cached JSON at top-level.
+        if (writeTopLevelPrimitive(o)) return
+
+        // Or append cached JSON string to in-progress write.
         writer.append(o.cached)
     }
     
