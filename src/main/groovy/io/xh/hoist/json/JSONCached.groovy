@@ -18,5 +18,7 @@ class JSONCached {
     JSONCached(Object o) {
         cached = new JSON(o).toString()
     }
+
+    String toString() {cached}
     
 }
