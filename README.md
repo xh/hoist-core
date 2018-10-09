@@ -15,7 +15,7 @@ via the mature [Grails framework](https://grails.org/) - and JavaScript - via
 This repository is *hoist-core*, which is the server-side implementation of Hoist. It is designed to
 be used with [hoist-react](https://github.com/exhi/hoist-react), our latest front-end toolkit.
 Hoist's original front-end implementation - [hoist-sencha](https://github.com/exhi/hoist-sencha) -
-is based on Sencha's ExtJS framework, but is being deprecated in favor of hoist-react. See those
+is based on Sencha's ExtJS framework, but is being deprecated in favor of Hoist React. See those
 repositories for detailed information on Hoist's client-side features and conventions.
 
 ## About this Doc
@@ -119,15 +119,16 @@ All client-side code is commonly maintained within the same repository, but with
 folder tree. For hoist-react applications, JS apps are built independently by Webpack and deployed
 via nginx. We recommend and provide standardized Docker containers to ship both sides of the
 application and tie them together in an integrated whole, with very minimal infrastructure
-requirements or dependencies. See the [hoist-dev-utils](https://github.com/exhi/hoist-dev-utils)
-repository for related utilities, base Docker images, and additional details.
+requirements or dependencies. See the [Hoist React readme](https://github.com/exhi/hoist-react) for
+a detailed outline on the build and deploy process for React-based applications, including
+information on building the Grails server-side components outlined here.
 
 (Note that for legacy [hoist-sencha](https://github.com/exhi/hoist-sencha) applications, the client
 assets _are_ built along with the server and included in the resulting WAR as a single deployment.)
 
 ## Custom plugins for enterprise deployments
 
-While hoist-core and its associated client-side libraries provide a good deal of functionality on
+While Hoist Core and its associated client-side libraries provide a good deal of functionality on
 their own, we realize that enterprise clients will have configurations, authentication requirements,
 dependencies, data source definitions, and other reusable code constructs that are unique to their
 environment.
@@ -167,7 +168,7 @@ Hoist framework or its usage, several key features are called out with additiona
 | `IdentityService.js`               | Hoist-React source of current user info  |                [⚛️](https://github.com/exhi/hoist-react/blob/master/svc/IdentityService.js)                 |
 | `IdentityService.js`               | Hoist-Sencha source of current user info | [🍵️](https://github.com/exhi/hoist-sencha/blob/master/grails-app/assets/src/xh/all/svc/IdentityService.js) |
 
-:couple: As organizations and applications will have a wide variety of requirements for
+👫 As organizations and applications will have a wide variety of requirements for
 authenticating and authorizing users, Hoist has a deliberately minimal interface in this regard. A
 primary requirement for applications is that they implement a Grails Service named
 `AuthenticationService` that extends Hoist's `BaseAuthenticationService` and implement its
@@ -188,7 +189,7 @@ fetch core user info, making it easily available to the JS app via a correspondi
 
 #### Roles and Access
 
-:lock: A minimal structure is provided for application roles. The `HoistUser` trait defines an
+🔒 A minimal structure is provided for application roles. The `HoistUser` trait defines an
 abstract `getRoles()` method that returns a `Set<String>` of role names. It is up to the application
 to determine how roles are resolved and what meaning they have in the context of the app, although
 Hoist does have an expectation that a `"HOIST_ADMIN"` role will be assigned to any administrators of
@@ -211,7 +212,7 @@ or the other of these annotations or an exception will be thrown.
 
 #### Impersonation
 
-:sunglasses: Administrators have access to an impersonation mode where they can "act as" another
+😎 Administrators have access to an impersonation mode where they can "act as" another
 user in the context of the application. This process is managed by `IdentityService`, which exposes
 several public methods for entering and exiting impersonation mode. When active,
 `IdentityService.getUser()` will return the user being impersonated, while
@@ -231,7 +232,7 @@ impersonation is active with both the impersonated and real user.
 | `ConfigService.js`     | Hoist-React source for configs   |                [⚛️](https://github.com/exhi/hoist-react/blob/master/svc/ConfigService.js)                 |
 | `ConfigService.js`     | Hoist-Sencha source for configs  | [🍵️](https://github.com/exhi/hoist-sencha/blob/master/grails-app/assets/src/xh/all/svc/ConfigService.js) |
 
-:wrench: The ability to store simple typed configuration values
+🔧 The ability to store simple typed configuration values
 (`string|int|long|double|bool|json|pwd`) and manage / adjust them in a running application has
 proven to be an extremely useful core feature. `AppConfig` entries are stored in the UI server's
 database and referenced via a simple string name.
@@ -240,7 +241,7 @@ Configs can also be made available to client applications (or not) via a dedicat
 can be referenced by JS code. The built-in Admin console provides a full UI for reviewing, updating,
 and organizing these entries.
 
-:see_no_evil: A special `pwd` type allows passwords and other sensitive info to be stored in an
+🙈 A special `pwd` type allows passwords and other sensitive info to be stored in an
 encrypted form for use on the server, avoiding the need to save these common types of configuration
 to the database in plaintext. Note however that any developer can deliberately print the output of
 an encrypted config by logging the (unencrypted) output of `configService.getPwd()`.
@@ -264,7 +265,7 @@ required configs. See `Bootstrap.groovy` in hoist-core for configs required at t
 | `PrefService.js`        | Hoist-React pref management             |                [⚛️](https://github.com/exhi/hoist-react/blob/master/svc/PrefService.js)                 |
 | `PrefService.js`        | Hoist-Sencha pref management            | [🍵](https://github.com/exhi/hoist-sencha/blob/master/grails-app/assets/src/xh/all/svc/PrefService.js) |
 
-:star: Preferences provide a lightweight way to persist user-specific options and settings. Similar
+⭐ Preferences provide a lightweight way to persist user-specific options and settings. Similar
 to AppConfigs, preferences offer several predefined data types
 (`string|int|long|double|boolean|json`) and are referenced by a string `name` property. Preferences
 are assigned a default value that is returned if a user does not yet have a specific value set. When
@@ -302,7 +303,7 @@ Hoist level.
 | `ExceptionHandler.js`        | Hoist-React API to track errors  |                 [⚛️](https://github.com/exhi/hoist-react/blob/master/exception/ExceptionHandler.js)                  |
 | `ExceptionHandlerService.js` | Hoist-Sencha API to track errors | [🍵️](https://github.com/exhi/hoist-sencha/blob/develop/grails-app/assets/src/xh/all/svc/ExceptionHandlerService.js) |
 
-:eyes: Knowing which users are visiting an app and tracking specific actions of interest is another
+👀 Knowing which users are visiting an app and tracking specific actions of interest is another
 common need for apps. Hoist includes an API for easily tracking activity for the current user, and
 the Admin console provides a UI for searching and reviewing activity. Hoist services track some
 activities automatically (e.g. impersonation), but it is primarily up to app developers to determine
@@ -319,7 +320,7 @@ built-in timing of the call and saves as 'TrackLog.elapsed'.
 
 #### Client Errors
 
-:boom: The `ClientError` object provides a special variation on tracking to handle exception reports
+💥 The `ClientError` object provides a special variation on tracking to handle exception reports
 posted by the client applications. See `ExceptionHandler.js` for the hoist-react entry point to this
 service. Note that the `ClientErrorService` on the server fires an `xhClientErrorReceived` event,
 which is listened to be the related `ClientErrorEmailService` to automatically send error reports to
@@ -328,7 +329,7 @@ e.g. send other notifications via instant message, or raise an issue in a ticket
 
 #### Feedback
 
-:speech_balloon: A simple model is also included for collecting and storing feedback (in the form of
+💬 A simple model is also included for collecting and storing feedback (in the form of
 simple messages) submitted by end-users directly from the application. A `FeedbackService` fires a
 similar event and is listened to by a built-in service that will email out report notifications.
 
@@ -339,7 +340,7 @@ similar event and is listened to by a built-in service that will email out repor
 |-----------------------|-----------------------------------|:----------------------------------------------------------------:|
 | `EmailService.groovy` | Managed service for sending email | [🏗](grails-app/services/io/xh/hoist/email/EmailService.groovy) |
 
-:mailbox: Hoist core provides `EmailService` to send mail from the server. This relies on the
+📫 Hoist core provides `EmailService` to send mail from the server. This relies on the
 [Grails mail plugin](http://plugins.grails.org/plugin/grails/mail) which must be configured with a
 suitable SMTP server within an app's `application.groovy` configuration file.
 
@@ -356,7 +357,7 @@ sent to which users is required.
 | `MonitorResult.groovy`     | In-memory object for monitor outcomes |     [🏗](src/main/groovy/io/xh/hoist/monitor/MonitorResult.groovy)     |
 | `MonitoringService.groovy` | Service that coordinates monitor runs | [🏗](grails-app/services/io/xh/hoist/monitor/MonitoringService.groovy) |
 
-:+1: :-1: Hoist provides an API and services for runtime monitoring of the application, with a
+👍👎 Hoist provides an API and services for runtime monitoring of the application, with a
 deliberate focus on running application-specific checks that relate to the business logic and data
 sources specific to the app (as opposed to e.g. system or OS level monitoring of metrics like CPU or
 memory usage).
@@ -401,24 +402,26 @@ including support for debouncing alerts. `MonitoringService` fires a server-side
 `xhMonitorStatusReport` event that can be picked up by other custom services for additional
 notifications.
 
-:crystal_ball: Note an ExHI project is underway to provide a more general and cross-application
+🔮 Note an ExHI project is underway to provide a more general and cross-application
 implementation of this monitoring API for both Hoist and non-Hoist based applications.
 
 ### Readme TODOs
 
-:construction: The sections below are planned near-term additions to this readme, covering
+🚧 The sections below are planned near-term additions to this readme, covering
 additional features and services provided by the framework.
 
 - [ ] Instance configuration
 - [ ] Environments (Grails vs. Hoist)
 - [ ] Base/Super classes
-- [ ] Development setup / build
+- [ ] Development setup
 - [ ] Additional deployment info
 - [ ] Proxy Service
 - [ ] Dashboards
 - [ ] Logging levels and management
 
-:mailbox: :phone: :earth_americas: info@xh.io | https://xh.io/contact
-Copyright © 2018 Extremely Heavy Industries Inc.
+🙏 Thanks for your patience, and for reading this far!
 
-:pray: Thanks for reading this far!
+------------------------------------------
+📫☎️🌎 info@xh.io | https://xh.io/contact
+
+Copyright © 2018 Extremely Heavy Industries Inc.
