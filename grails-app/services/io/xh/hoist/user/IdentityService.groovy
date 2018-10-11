@@ -18,17 +18,25 @@ import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpSession
 
 /**
- * Primary service for retrieving the logged-in HoistUser (aka the application user), with support for impersonation.
- * This service powers the getUser() and getUsername() methods in Hoist's BaseService and BaseController classes.
+ * Primary service for retrieving the logged-in HoistUser (aka the application user), with support
+ * for impersonation. This service powers the getUser() and getUsername() methods in Hoist's
+ * BaseService and BaseController classes.
+ *
+ * The implementation of this service uses the session to hold the authenticated username (and
+ * potentially a distinct "apparent" username when impersonation is active). It depends on the app's
+ * AuthenticationService to initialize the authenticated user via noteUserAuthenticated(), and
+ * likewise delegates to the app's UserService to resolve usernames to actual HoistUser objects.
+ *
+ * This service is *not* intended for override or customization at the application level.
  */
 @CompileStatic
 class IdentityService extends BaseService {
 
-    static public String AUTH_USER_KEY = 'xhAuthUser'
-    static public String APPARENT_USER_KEY = 'xhApparentUser'
+    static private String AUTH_USER_KEY = 'xhAuthUser'
+    static private String APPARENT_USER_KEY = 'xhApparentUser'
     
-    BaseUserService userService
     BaseAuthenticationService authenticationService
+    BaseUserService userService
     TrackService trackService
 
 
@@ -36,8 +44,9 @@ class IdentityService extends BaseService {
     // Entry points for applications
     //-----------------------------------
     /**
-     * Return the current active user. Note that this is the 'apparent' user, used for most application level purposes.
-     * In particular, in the case of impersonation this may be different from the authenticated user.
+     * Return the current active user. Note that this is the 'apparent' user, used for most
+     * application level purposes. In the case of an active impersonation session this will be
+     * different from the authenticated user.
      *
      * If called outside the context of a request, this getter will return null.
      */
@@ -51,8 +60,7 @@ class IdentityService extends BaseService {
      *  If called outside the context of a request, this getter will return null.
      */
     HoistUser getApparentUser(HttpServletRequest request = getRequest()) {
-        def session = getSessionIfExists(request)
-        return session ? (HoistUser) session[APPARENT_USER_KEY] : null
+        return findHoistUserViaSessionKey(request, APPARENT_USER_KEY)
     }
 
     /**
@@ -61,8 +69,7 @@ class IdentityService extends BaseService {
      *  If called outside the context of a request, this getter will return null.
      */
     HoistUser getAuthUser(HttpServletRequest request = getRequest()) {
-        def session = getSessionIfExists(request)
-        return session ? (HoistUser) session[AUTH_USER_KEY] : null
+        return findHoistUserViaSessionKey(request, AUTH_USER_KEY)
     }
 
     /**
@@ -101,7 +108,7 @@ class IdentityService extends BaseService {
         }
 
         trackImpersonate("User '${authUser.username}' is now impersonating user '${targetUser.username}'")
-        request.session[APPARENT_USER_KEY] = targetUser
+        request.session[APPARENT_USER_KEY] = targetUser.username
         return targetUser
     }
 
@@ -120,30 +127,47 @@ class IdentityService extends BaseService {
     }
 
     /**
-     * Return minimal user information required by a client-side web app for identity management.
+     * Return minimal identify information for confirmed authenticated users.
+     * Used by client-side web app for identity management.
      */
     Map getClientConfig() {
         def request = getRequest(),
             apparentUser = getApparentUser(request),
             authUser = getAuthUser(request)
 
-        return authUser != apparentUser ?   // Don't duplicate serialization
-                [apparentUser: apparentUser, authUser: authUser] :
-                [user: authUser]
+        return (authUser != apparentUser) ?
+            [
+                apparentUser: apparentUser,
+                apparentUserRoles: apparentUser.roles,
+                authUser: authUser,
+                authUserRoles: authUser.roles,
+            ] :
+            [
+                user: authUser,
+                roles: authUser.roles
+            ]
+    }
+
+    /**
+     * Process an interactive username + password based login.
+     * Note SSO-based implementations of authenticationService will always return false.
+     */
+    boolean login(String username, String password) {
+        return authenticationService.login(request, username, password)
     }
 
     /**
      * Remove any login information for this user.
-     *
-     * Some SSO-based implementations of authenticationService may be unable to do this.
-     * In this case an exception may be thrown.
+     * Note SSO-based implementations of authenticationService will always return false.
      */
-    void logout() {
-        authenticationService.logout()
-        def session = getSessionIfExists()
-        if (session) {
-            session[APPARENT_USER_KEY] = session[AUTH_USER_KEY] = null
+    boolean logout() {
+        if (authenticationService.logout()) {
+            def session = getSessionIfExists()
+            if (session) session[APPARENT_USER_KEY] = session[AUTH_USER_KEY] = null
+            return true
         }
+
+        return false
     }
 
 
@@ -151,11 +175,11 @@ class IdentityService extends BaseService {
     // Entry Point for AuthenticationService
     //----------------------------------------
     /**
-     * Called by BaseAuthentication Service when User has first been reliably established for this session.
+     * Called by authenticationService when HoistUser has first been established for this session.
      */
     void noteUserAuthenticated(HttpServletRequest request, HoistUser user) {
         def session = request.session
-        session[APPARENT_USER_KEY] = session[AUTH_USER_KEY] = user
+        session[APPARENT_USER_KEY] = session[AUTH_USER_KEY] = user.username
     }
 
     //----------------------
@@ -172,6 +196,12 @@ class IdentityService extends BaseService {
 
     private void trackImpersonate(String msg) {
         trackService.track(category: 'Impersonate', message: msg, severity: 'WARN')
+    }
+
+    private HoistUser findHoistUserViaSessionKey(HttpServletRequest request, String key) {
+        HttpSession session = getSessionIfExists(request)
+        String username = session ? session[key] : null
+        return username ? userService.find(username) : null
     }
 
     private HttpSession getSessionIfExists(HttpServletRequest request = getRequest()) {
