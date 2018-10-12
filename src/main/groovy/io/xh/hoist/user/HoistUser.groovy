@@ -63,13 +63,13 @@ trait HoistUser implements JSONFormat {
         gateUsers.contains('*') || gateUsers.contains(username)
     }
 
+    String toString() {username}
+
     boolean equals(Object other) {
-        return other && other instanceof HoistUser && other.username == username
+        other instanceof HoistUser && Objects.equals(other.username, username)
     }
 
-    int hashCode() {
-        return username.hashCode()
-    }
+    int hashCode() {Objects.hashCode(username)}
 
     Map formatForJSON() {
         return [
