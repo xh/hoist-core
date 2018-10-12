@@ -127,7 +127,7 @@ class IdentityService extends BaseService {
      * Return a list of users available for impersonation.
      */
     List<HoistUser> getImpersonationTargets() {
-        getAuthUser().isHoistAdmin ? userService.list(true) : []
+        getAuthUser().isHoistAdmin ? userService.list(true) : new ArrayList<HoistUser>()
     }
 
     /**
