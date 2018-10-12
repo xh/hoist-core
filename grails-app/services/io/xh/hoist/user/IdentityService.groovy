@@ -32,8 +32,8 @@ import javax.servlet.http.HttpSession
 @CompileStatic
 class IdentityService extends BaseService {
 
-    static private String AUTH_USER_KEY = 'xhAuthUser'
-    static private String APPARENT_USER_KEY = 'xhApparentUser'
+    static public String AUTH_USER_KEY = 'xhAuthUser'
+    static public String APPARENT_USER_KEY = 'xhApparentUser'
     
     BaseAuthenticationService authenticationService
     BaseUserService userService
