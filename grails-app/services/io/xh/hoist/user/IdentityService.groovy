@@ -97,7 +97,7 @@ class IdentityService extends BaseService {
             throw new RuntimeException('Cannot impersonate when outside the context of a request')
         }
         
-        if (!authUser.roles.contains('HOIST_ADMIN')) {
+        if (!authUser.isHoistAdmin) {
             throw new RuntimeException("User '${authUser.username}' does not have permissions to impersonate")
         }
         if (!targetUser?.active) {
@@ -121,6 +121,13 @@ class IdentityService extends BaseService {
             request.session[APPARENT_USER_KEY] = authUser
             trackImpersonate("User '${authUser.username}' has stopped impersonating user '${apparentUser.username}'")
         }
+    }
+
+    /**
+     * Return a list of users available for impersonation.
+     */
+    List<HoistUser> getImpersonationTargets() {
+        getAuthUser().isHoistAdmin ? userService.list(true) : []
     }
 
     /**
