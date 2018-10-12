@@ -40,9 +40,6 @@ class IdentityService extends BaseService {
     TrackService trackService
 
 
-    //-----------------------------------
-    // Entry points for applications
-    //-----------------------------------
     /**
      * Return the current active user. Note that this is the 'apparent' user, used for most
      * application level purposes. In the case of an active impersonation session this will be
@@ -170,11 +167,8 @@ class IdentityService extends BaseService {
         return false
     }
 
-
-    //----------------------------------------
-    // Entry Point for AuthenticationService
-    //----------------------------------------
     /**
+     * Entry Point for AuthenticationService
      * Called by authenticationService when HoistUser has first been established for this session.
      */
     void noteUserAuthenticated(HttpServletRequest request, HoistUser user) {

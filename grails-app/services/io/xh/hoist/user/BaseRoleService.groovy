@@ -27,27 +27,47 @@ import static java.util.Collections.emptyMap
  * Hoist has a requirement for only one special role - "HOIST_ADMIN" - which grants access to the
  * built-in admin functions and enables user impersonation via IdentityService.
  *
- * Note that the HoistUser getRoles() and hasRole() methods can serve as the primary application
- * entry-point for verifying roles on a given user, reducing or eliminating any need to call this
- * service directly.
+ * Note that the HoistUser `getRoles()` and `hasRole()` methods serve as the primary application
+ * entry-point for verifying roles on a given user, reducing or eliminating any need to call an
+ * implementation of this service directly.
  */
 @CompileStatic
 abstract class BaseRoleService extends BaseService {
 
     /**
      * Map of roles to assigned users.
-     * Applications should take care to provide an efficient / fast implementation.
+     *
+     * Applications should take care to provide an efficient / fast implementation as this can be
+     * queried multiple times when processing a request, and is deliberately not cached on the
+     * HoistUser object.
      */
     Map<String, Set<String>> getAllRoleAssignments() {
         return emptyMap()
     }
 
+    /**
+     * Return all roles assigned to a given user(name).
+     *
+     * Applications may wish to provide their own more efficient implementation as required,
+     * e.g. by pre-indexing role assignments by username vs. constructing dynamically.
+     *
+     * Note that this default implementation does not validate that the username provided is in
+     * fact an active and enabled application user as per UserService. Apps may wish to do so -
+     * the Hoist framework does not depend on it.
+     */
     Set<String> getRolesForUser(String username) {
         return allRoleAssignments
             .findAll{role, users -> users.contains(username)}
             .keySet()
     }
 
+    /**
+     * Return all users with a given role, as a simple list of usernames.
+     *
+     * Note that this default implementation does not validate that the usernames returned are in
+     * fact active and enabled application users as per UserService. Apps may wish to do so -
+     * the Hoist framework does not depend on it.
+     */
     Set<String> getUsersForRole(String role) {
         return allRoleAssignments[role] ?: new HashSet<String>()  // TODO - how to use emptySet here?
     }

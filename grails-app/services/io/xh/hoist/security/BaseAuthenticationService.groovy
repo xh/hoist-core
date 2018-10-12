@@ -119,6 +119,10 @@ abstract class BaseAuthenticationService {
         whitelistFileExtensions.any{uri.endsWith(it)}
     }
 
+    /**
+     * Full URIs that should not require authentication. These are Hoist endpoints called prior to
+     * or in the process of auth, or from which we wish to always return data.
+     */
     protected List<String> whitelistURIs = [
         '/xh/authStatus',
         '/xh/login',
@@ -126,11 +130,21 @@ abstract class BaseAuthenticationService {
         '/xh/version'
     ]
 
+    /**
+     * Extensions of file-based assets that do not require authentication and can be skipped for
+     * efficiency. Note that for Hoist React applications, the Grails server typically neither
+     * serves nor secures static assets, minimizing the impact of this list / need for tuning.
+      */
     protected List<String> whitelistFileExtensions = [
         '.css',
+        '.js',
+        '.gif',
         '.ico',
+        '.jpeg',
         '.jpg',
         '.png',
+        '.svg',
+        '.ttf',
         '.woff',
         '.woff2'
     ]
