@@ -14,22 +14,71 @@ import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
 /**
- * Applications must define a concrete implementation of this service with the name 'AuthenticationService'
+ * Abstract base service for processing and confirming user authentications and evaluating incoming
+ * requests to determine if authentication is either complete or not required.
+ *
+ * Apps must define a concrete implementation of this service with the name 'AuthenticationService'.
  */
 @CompileStatic
 abstract class BaseAuthenticationService {
 
     IdentityService identityService
 
+    //-----------------------------------
+    // Core template methods for override
+    //-----------------------------------
     /**
-     * Remove any cached login information for this user, requiring explicit re-login.
-     * Some SSO-based implementations may be unable to do this, in which case an exception should be thrown.
+     * Perform authentication on this request.
+     *
+     * This method is called when a user starts a new session with the server.
+     * Implementations should call setUser() to indicate recognition of an authenticated user.
+     *
+     * Returns boolean, indicating whether the authentication is complete.
+     *
+     * If true and a user has been set the request will continue with the authorized user.
+     * If true and *no* user has been set the framework will throw a 401 Exception.
+     *
+     * If false returned no further action will be taken on the response.
+     * This layer will be assumed to be in the middle of a redirect or protocol based negotiation.
      */
-    void logout() {}
+    abstract protected boolean completeAuthentication(HttpServletRequest request, HttpServletResponse response)
+
 
     /**
-     * Call once on every request to ensure request is authenticated before passing through to rest of the framework.
-     * Not typically overridden. See completeAuthentication() for main entry point for implementing subclasses.
+     * Process an interactive username + password based login. App implementations supporting
+     * interactive login should return true if the user can be resolved and is authenticated.
+     *
+     * SSO-based implementations should leave this default implementation in place to indicate that
+     * interactive login is not supported.
+     */
+    boolean login(HttpServletRequest request, String username, String password) {
+        return false
+    }
+
+
+    /**
+     * Take any app-specific actions to remove cached login information for this user and
+     * require an explicit re-login. App implementations supporting interactive logout should return
+     * true if logout was either successfully completed or required no further action.
+     *
+     * Note that this method is called by IdentityService, which will clear the authenticated user
+     * from the session provided this method confirms logout from the application perspective.
+     *
+     * SSO-based implementations should leave this default implementation in place to indicate that
+     * interactive logout is not supported.
+     */
+    boolean logout() {
+        return false
+    }
+
+
+    //--------------------
+    // Implemented methods
+    //--------------------
+    /**
+     * Called once on every request to ensure request is authenticated before passing through to
+     * rest of the framework. Not typically overridden - see completeAuthentication() as main entry
+     * point for subclass implementation.
      */
     boolean allowRequest(HttpServletRequest request, HttpServletResponse response) {
         if (identityService.getAuthUser(request) || isWhitelist(request)) {
@@ -48,44 +97,56 @@ abstract class BaseAuthenticationService {
         return true
     }
 
-
-    //-----------------------------------
-    // Core template methods for override
-    //-----------------------------------
     /**
-     * Perform authentication on this request.
-     *
-     * This method is called when a user starts a new session with the server.
-     * Implementations should call setUser() to indicate recognition of an authenticated user.
-     *
-     * Returns boolean, indicating whether the authentication is complete.
-     *
-     * If true returned and a user has been set via setUser() the request will continue with the authorized user.
-     * If true and *no* user has been set the framework will throw a 401 Exception.
-     *
-     * If false returned no further action will be taken on the response.
-     * This layer will be assumed to be in the middle of a redirect or protocol based negotiation.
-     */
-    abstract protected boolean completeAuthentication(HttpServletRequest request, HttpServletResponse response)
-
-
-    //--------------------
-    // Implemented methods
-    //--------------------
-    /**
-     * Enumerate requests that do not require an authenticated user.
-     * Should be implemented in AuthenticationService and called with super to add app specific whitelisted requests
-     */
-    protected boolean isWhitelist(HttpServletRequest request) {
-        return request.requestURI == '/hoistImpl/version'
-    }
-
-    /**
-     * Set the authenticated user.
-     * Should be called by implementations of completeAuthentication() when user has been reliably determined.
+     * Set the authenticated user, to be called by implementations of completeAuthentication()
+     * when user has been reliably determined.
      */
     protected void setUser(HttpServletRequest request, HoistUser user) {
         identityService.noteUserAuthenticated(request, user)
     }
+
+    /**
+     * Identify requests that do not require an authenticated user. App AuthenticationServices can
+     * whitelist additional requests, but should call this superclass implementation to ensure
+     * required auth URIs are included.
+     */
+    protected boolean isWhitelist(HttpServletRequest request) {
+        def uri = request.requestURI
+        return whitelistURIs.contains(uri) || isWhitelistFile(uri)
+    }
+
+    protected boolean isWhitelistFile(String uri) {
+        whitelistFileExtensions.any{uri.endsWith(it)}
+    }
+
+    /**
+     * Full URIs that should not require authentication. These are Hoist endpoints called prior to
+     * or in the process of auth, or from which we wish to always return data.
+     */
+    protected List<String> whitelistURIs = [
+        '/xh/authStatus',
+        '/xh/login',
+        '/xh/logout',
+        '/xh/version'
+    ]
+
+    /**
+     * Extensions of file-based assets that do not require authentication and can be skipped for
+     * efficiency. Note that for Hoist React applications, the Grails server typically neither
+     * serves nor secures static assets, minimizing the impact of this list / need for tuning.
+      */
+    protected List<String> whitelistFileExtensions = [
+        '.css',
+        '.js',
+        '.gif',
+        '.ico',
+        '.jpeg',
+        '.jpg',
+        '.png',
+        '.svg',
+        '.ttf',
+        '.woff',
+        '.woff2'
+    ]
 
 }

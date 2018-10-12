@@ -14,6 +14,8 @@ import io.xh.hoist.config.ConfigService
 import io.xh.hoist.json.JSON
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.track.TrackLog
+import io.xh.hoist.user.BaseRoleService
+import io.xh.hoist.user.BaseUserService
 import org.grails.web.converters.exceptions.ConverterException
 import org.grails.web.json.JSONArray
 import org.grails.web.json.JSONObject
@@ -62,6 +64,14 @@ class Utils {
 
     static PrefService getPrefService() {
         return (PrefService) appContext.prefService
+    }
+
+    static BaseUserService getUserService() {
+        return (BaseUserService) appContext.userService
+    }
+
+    static BaseRoleService getRoleService() {
+        return (BaseRoleService) appContext.roleService
     }
 
     static ApplicationContext getAppContext() {

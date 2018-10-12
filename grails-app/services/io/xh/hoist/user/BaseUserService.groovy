@@ -11,10 +11,16 @@ import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 
 /**
- * Applications must define a concrete implementation of this service with the name 'UserService'
+ * Abstract base service for maintaining a list of users for this application and (optionally) for
+ * the organization as a whole.
+ *
+ * Applications must define a concrete implementation of this service with the name 'UserService'.
+ *
+ * Note that calls to find() in particular are required to be inexpensive / fast to return, as
+ * they can be made multiple times with each request to resolve the authenticated user.
  */
 @CompileStatic
 abstract class BaseUserService extends BaseService {
-    abstract List<HoistUser> list(boolean activeOnly)
     abstract HoistUser find(String username)
+    abstract List<HoistUser> list(boolean activeOnly)
 }

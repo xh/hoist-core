@@ -46,7 +46,7 @@ class AccessInterceptor {
         Access access = clazz.getAnnotation(Access)
         if (access) {
             HoistUser user = identityService.getUser()
-            if (user.roles.containsAll(access.value())) {
+            if (user.hasAllRoles(access.value())) {
                 return true
             }
         }
