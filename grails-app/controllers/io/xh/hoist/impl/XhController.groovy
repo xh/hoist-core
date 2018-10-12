@@ -20,6 +20,7 @@ import io.xh.hoist.feedback.FeedbackService
 import io.xh.hoist.json.JSON
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.security.AccessAll
+import io.xh.hoist.security.BaseAuthenticationService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.util.Utils
@@ -27,20 +28,25 @@ import org.grails.web.json.JSONObject
 
 @AccessAll
 @CompileStatic
-class HoistImplController extends BaseController {
+class XhController extends BaseController {
 
-    TrackService trackService
-    PrefService prefService
+    BaseUserService userService
     ClientErrorService clientErrorService
     ConfigService configService
-    GridExportImplService gridExportImplService
     DashboardService dashboardService
     FeedbackService feedbackService
-    BaseUserService userService
+    GridExportImplService gridExportImplService
+    PrefService prefService
+    TrackService trackService
 
     //------------------------
     // Identity
     //------------------------
+    def authStatus() {
+        def user = identityService.getAuthUser(request)
+        renderJSON(authenticated: user != null)
+    }
+
     def getIdentity() {
         renderJSON(identityService.clientConfig)
     }
@@ -60,9 +66,18 @@ class HoistImplController extends BaseController {
         renderJSON(success: true)
     }
 
+
+    //------------------------
+    // Interactive auth
+    //------------------------
+    def login(String username, String password) {
+        def success = identityService.login(username, password)
+        renderJSON(success: success)
+    }
+
     def logout() {
-        identityService.logout()
-        renderJSON(success: true)
+        def success = identityService.logout()
+        renderJSON(success: success)
     }
 
 
