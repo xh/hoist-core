@@ -32,8 +32,8 @@ import javax.servlet.http.HttpSession
 @CompileStatic
 class IdentityService extends BaseService {
 
-    static private String AUTH_USER_KEY = 'xhAuthUser'
-    static private String APPARENT_USER_KEY = 'xhApparentUser'
+    static public String AUTH_USER_KEY = 'xhAuthUser'
+    static public String APPARENT_USER_KEY = 'xhApparentUser'
     
     BaseAuthenticationService authenticationService
     BaseUserService userService
@@ -94,14 +94,14 @@ class IdentityService extends BaseService {
             authUser = getAuthUser(request)
 
         if (!request) {
-            throw new RuntimeException('Cannot impersonate when outside the context of a request.')
+            throw new RuntimeException('Cannot impersonate when outside the context of a request')
         }
         
-        if (!authUser.roles.contains('HOIST_ADMIN')) {
+        if (!authUser.isHoistAdmin) {
             throw new RuntimeException("User '${authUser.username}' does not have permissions to impersonate")
         }
         if (!targetUser?.active) {
-            throw new RuntimeException("Cannot impersonate '$username'.  No active user found")
+            throw new RuntimeException("Cannot impersonate '$username' - no active user found")
         }
 
         trackImpersonate("User '${authUser.username}' is now impersonating user '${targetUser.username}'")
@@ -121,6 +121,13 @@ class IdentityService extends BaseService {
             request.session[APPARENT_USER_KEY] = authUser
             trackImpersonate("User '${authUser.username}' has stopped impersonating user '${apparentUser.username}'")
         }
+    }
+
+    /**
+     * Return a list of users available for impersonation.
+     */
+    List<HoistUser> getImpersonationTargets() {
+        getAuthUser().isHoistAdmin ? userService.list(true) : new ArrayList<HoistUser>()
     }
 
     /**

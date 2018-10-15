@@ -112,7 +112,7 @@ abstract class BaseAuthenticationService {
      */
     protected boolean isWhitelist(HttpServletRequest request) {
         def uri = request.requestURI
-        return whitelistURIs.contains(uri) || isWhitelistFile(uri)
+        return whitelistURIs.any{uri.endsWith(it)} || isWhitelistFile(uri)
     }
 
     protected boolean isWhitelistFile(String uri) {
@@ -120,13 +120,17 @@ abstract class BaseAuthenticationService {
     }
 
     /**
-     * Full URIs that should not require authentication. These are Hoist endpoints called prior to
-     * or in the process of auth, or from which we wish to always return data.
+     * Full URIs that should not require authentication. These are Hoist endpoints called in the
+     * process of auth, or from which we wish to always return data.
+     *
+     * Note that this deliberately does *not* contain the authStatus check URI. We do not whitelist
+     * that URI as otherwise SSO-based apps will not have a first shot at installing a user on the
+     * session within their completeAuthentication() implementations.
      */
     protected List<String> whitelistURIs = [
-        '/xh/authStatus',
         '/xh/login',
         '/xh/logout',
+        '/xh/environment',
         '/xh/version'
     ]
 

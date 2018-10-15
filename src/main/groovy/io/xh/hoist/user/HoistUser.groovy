@@ -22,6 +22,8 @@ trait HoistUser implements JSONFormat {
         return username && username == username.toLowerCase() && !username.contains(' ')
     }
 
+    static String HOIST_ADMIN_ROLE = 'HOIST_ADMIN'
+
     abstract boolean isActive()
     abstract String getEmail()
 
@@ -52,6 +54,10 @@ trait HoistUser implements JSONFormat {
 
     boolean hasAllRoles(String[] requiredRoles) {
         return roles.containsAll(requiredRoles)
+    }
+
+    boolean getIsHoistAdmin() {
+        return hasRole(HOIST_ADMIN_ROLE)
     }
 
     /**
