@@ -39,27 +39,30 @@ class LogViewerAdminController extends BaseController {
      */
     def getFile(String filename, Integer startLine, Integer maxLines, String pattern) {
         def file = new File(LogUtils.logRootPath, filename),
-            content = file.readLines(),
-            size = content.size(),
-            tail = !startLine || startLine<0,
-            startIdx = tail ? size-1 : startLine-1 ,
-            lastIdx = tail ? 0: size-1,
-            idxIncrementer = tail ? -1 : 1,
-            idxComparator = tail ? {return it >= lastIdx} : {return it <= lastIdx},
-            lineCount = 0,
             ret = []
 
-        maxLines = maxLines ?: 10000
+        try {
+            def content = file.readLines(),
+                size = content.size(),
+                tail = !startLine || startLine<0,
+                startIdx = tail ? size-1 : startLine-1 ,
+                lastIdx = tail ? 0: size-1,
+                idxIncrementer = tail ? -1 : 1,
+                idxComparator = tail ? {return it >= lastIdx} : {return it <= lastIdx},
+                lineCount = 0
 
-        for (def i = startIdx; idxComparator(i) && lineCount < maxLines; i+=idxIncrementer) {
-            def line = content[i]
-            if (!pattern || line.toLowerCase() =~ pattern.toLowerCase()) {
-                lineCount++
-                ret << [i + 1, line]
+            maxLines = maxLines ?: 10000
+
+            for (def i = startIdx; idxComparator(i) && lineCount < maxLines; i+=idxIncrementer) {
+                def line = content[i]
+                if (!pattern || line.toLowerCase() =~ pattern.toLowerCase()) {
+                    lineCount++
+                    ret << [i + 1, line]
+                }
             }
-        }
+        } catch (Exception ignored) {}
 
-        renderJSON(success:true, filename:filename, content:ret)
+        renderJSON(success: file.exists(), filename: filename, content: ret)
     }
 
 
