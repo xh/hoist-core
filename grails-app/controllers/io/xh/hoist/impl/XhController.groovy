@@ -141,8 +141,9 @@ class XhController extends BaseController {
     //------------------------
     // Export
     //------------------------
-    def export(String filename, String filetype, String rows, String meta) {
-        def ret = gridExportImplService.getBytesForRender(filename, filetype, rows, meta)
+    def export() {
+        def params = request.getPart('params').inputStream.text,
+            ret = gridExportImplService.getBytesForRender(JSON.parse(params) as Map)
         render(ret)
     }
 
