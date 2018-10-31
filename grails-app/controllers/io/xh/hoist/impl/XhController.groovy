@@ -141,6 +141,8 @@ class XhController extends BaseController {
     //------------------------
     // Export
     //------------------------
+    // The 'params' is a JSON encoded string, uploaded using multipart/form-data to be treated as a file. We must read
+    // its content from the inputStream, and then parse the JSON to get usable params for GridExportImplService.
     def export() {
         def params = request.getPart('params').inputStream.text,
             ret = gridExportImplService.getBytesForRender(JSON.parse(params) as Map)
