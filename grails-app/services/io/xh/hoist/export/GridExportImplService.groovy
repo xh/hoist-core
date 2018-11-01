@@ -8,7 +8,6 @@
 package io.xh.hoist.export
 
 import io.xh.hoist.BaseService
-import io.xh.hoist.json.JSON
 import io.xh.hoist.util.Utils
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.Cell
@@ -27,11 +26,11 @@ class GridExportImplService extends BaseService {
     /**
      * Return map suitable for rendering file with grails controller render() method
      */
-    Map getBytesForRender(String filename, String filetype, String rows, String meta) {
+    Map getBytesForRender(Map params) {
         return [
-            file:           getFileData(filetype, JSON.parse(rows) as List, JSON.parse(meta) as List),
-            contentType:    getContentType(filetype),
-            fileName:       getFileName(filename, filetype)
+            file:           getFileData(params.type, params.rows, params.meta),
+            contentType:    getContentType(params.type),
+            fileName:       getFileName(params.filename, params.type)
         ]
     }
 
@@ -39,8 +38,8 @@ class GridExportImplService extends BaseService {
     //------------------------
     // Implementation
     //------------------------
-    private byte[] getFileData(String filetype, List rows, List meta) {
-        switch(filetype) {
+    private byte[] getFileData(String type, List rows, List meta) {
+        switch(type) {
             case 'excel':
                 return renderExcelFile(rows, meta, false)
             case 'excelTable':
@@ -48,30 +47,32 @@ class GridExportImplService extends BaseService {
             case 'csv':
                 return renderCSVFile(rows)
             default:
-                throw new RuntimeException('File type not supported: ' + filetype)
+                throw new RuntimeException('Export type not supported: ' + type)
         }
     }
 
-    private String getContentType(String filetype) {
-        switch(filetype) {
+    private String getContentType(String type) {
+        switch(type) {
             case ['excel', 'excelTable']:
                 return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             case 'csv':
                 return 'text/csv'
             default:
-                throw new RuntimeException('File type not supported: ' + filetype)
+                throw new RuntimeException('Export type not supported: ' + type)
         }
     }
 
-    private String getFileName(String filename, String filetype) {
+    private String getFileName(String filename, String type) {
         def extension
-        switch(filetype) {
+        switch(type) {
             case ['excel', 'excelTable']:
-                extension = '.xlsx'; break;
+                extension = '.xlsx'
+                break
             case 'csv':
-                extension = '.csv'; break;
+                extension = '.csv'
+                break
             default:
-                throw new RuntimeException('File type not supported: ' + filetype)
+                throw new RuntimeException('Export type not supported: ' + type)
         }
         return filename.endsWith(extension) ? filename : "${filename}${extension}"
     }
@@ -190,7 +191,7 @@ class GridExportImplService extends BaseService {
             while (pendingGroups) {
                 // Close any completed groups
                 def group = pendingGroups.last()
-                if (group.depth <= nextDepth) break;
+                if (group.depth <= nextDepth) break
                 group.end = i
                 completedGroups << pendingGroups.pop()
             }
