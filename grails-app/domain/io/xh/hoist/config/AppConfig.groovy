@@ -30,10 +30,6 @@ class AppConfig implements JSONFormat {
     Date lastUpdated
     String groupName = 'Default'
 
-    boolean getIsPassword() {
-        return valueType == 'pwd';
-    }
-
     static mapping = {
         table 'xh_config'
         cache true
@@ -95,7 +91,7 @@ class AppConfig implements JSONFormat {
     def beforeUpdate() {encryptIfPwd(false)}
 
     private encryptIfPwd(boolean isInsert) {
-        if (isPassword && (hasChanged('value') || isInsert)) {
+        if (valueType == 'pwd' && (hasChanged('value') || isInsert)) {
             value = encryptor.encrypt(value)
         }
     }
@@ -112,12 +108,12 @@ class AppConfig implements JSONFormat {
         ret
     }
 
-    String digestPassword(value) {
+    private static String digestPassword(value) {
         // Format that will allow these values to be correctly compared in the admin config differ,
         digestEncryptor.encryptPassword(decryptPassword(value))
     }
 
-    String decryptPassword(value) {
+    private static String decryptPassword(value) {
         encryptor.decrypt(value)
     }
 
