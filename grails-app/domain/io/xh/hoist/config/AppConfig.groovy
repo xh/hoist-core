@@ -7,6 +7,7 @@
 
 package io.xh.hoist.config
 
+import io.xh.hoist.json.JSON
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.util.Utils
 import org.jasypt.util.password.ConfigurablePasswordEncryptor
@@ -60,11 +61,26 @@ class AppConfig implements JSONFormat {
 
         return true
     }
-
-    static String decryptPassword(String val) {
-        return encryptor.decrypt(val)
+    
+    Object externalValue(Map opts = [:]) {
+        if (value == null) return null
+        switch ( valueType ) {
+            case 'json':    return opts.jsonAsObject ? JSON.parse(value) : value
+            case 'int':     return value.toInteger()
+            case 'long':    return value.toLong()
+            case 'double':  return value.toDouble()
+            case 'bool':    return value.toBoolean()
+            case 'pwd' :
+                if (opts.obscurePassword)       return '*********';
+                if (opts.digestPassword)        return digestPassword(value);
+                if (opts.decryptPassword)       return decryptPassword(value);
+            default:        return value
+        }
     }
 
+    //--------------------------------------
+    // Implementation
+    //--------------------------------------
     static isTypeValid = { String val, AppConfig obj ->
         return (
             AppConfig.isValid(obj.value, obj).is(true)
@@ -80,14 +96,6 @@ class AppConfig implements JSONFormat {
         }
     }
 
-
-    // Hoist admin receives all AppConfigs. Those containing pwd values should be a digest for security.
-    // To allow these values to be correctly compared in the admin config differ, the stored password
-    // is decrypted before being converted into a digest.
-    private String maskIfPwd(String value) {
-        return (valueType == 'pwd' && value != null) ? digestEncryptor.encryptPassword(decryptPassword(value)) : value
-    }
-
     private static TextEncryptor createEncryptor() {
         def ret = new BasicTextEncryptor()
         ret.setPassword('dsd899s_*)jsk9dsl2fd223hpdj32))I@333')
@@ -100,18 +108,26 @@ class AppConfig implements JSONFormat {
         ret
     }
 
-    Map formatForJSON() {
-        return [
-                id: id,
-                name: name,
-                groupName: groupName,
-                valueType: valueType,
-                value: maskIfPwd(value),
-                clientVisible: clientVisible,
-                note: note,
-                lastUpdatedBy: lastUpdatedBy,
-                lastUpdated: lastUpdated
-        ]
+    private static String digestPassword(value) {
+        // Format that will allow these values to be correctly compared in the admin config differ,
+        digestEncryptor.encryptPassword(decryptPassword(value))
     }
 
+    private static String decryptPassword(value) {
+        encryptor.decrypt(value)
+    }
+
+    Map formatForJSON() {
+        return [
+                id           : id,
+                name         : name,
+                groupName    : groupName,
+                valueType    : valueType,
+                value        : externalValue(digestPassword: true),
+                clientVisible: clientVisible,
+                note         : note,
+                lastUpdatedBy: lastUpdatedBy,
+                lastUpdated  : lastUpdated
+        ]
+    }
 }
