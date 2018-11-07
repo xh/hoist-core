@@ -69,9 +69,7 @@ class ConfigService extends BaseService implements EventPublisher {
             AppConfig config = (AppConfig) it
             def name = config.name
             try {
-                def configVal = getInternal(config),
-                    isPwd = config.valueType == 'pwd'
-                ret[name] = isPwd ? '***********' : configVal
+                ret[name] = config.externalValue(obscurePassword: true, jsonAsObject: true);
             } catch (Exception e) {
                 log.error("Exception while getting client config: '$name'", e)
             }
@@ -164,23 +162,7 @@ class ConfigService extends BaseService implements EventPublisher {
         if (valueType != c.valueType) {
             throw new RuntimeException('Unexpected type for key: ' + name)
         }
-        return getInternal(c)
-    }
-
-
-    private Object getInternal(AppConfig config) {
-        String ret = config.value
-
-        switch(config.valueType) {
-            case 'json':    return JSON.parse(ret)
-            case 'int':     return ret.toInteger()
-            case 'long':    return ret.toLong()
-            case 'double':  return ret.toDouble()
-            case 'bool':    return ret.toBoolean()
-            case 'pwd':     return AppConfig.decryptPassword(ret)
-            case 'string' : return ret
-            default:        return ret
-        }
+        return c.externalValue(decryptPassword: true, jsonAsObject: true)
     }
 
     //------------------------------------------------------------------------------
@@ -195,7 +177,7 @@ class ConfigService extends BaseService implements EventPublisher {
 
         def obj = (AppConfig) event.entityObject,
             changed = obj.hasChanged('value'),
-            newVal = getInternal(obj)
+            newVal = obj.externalValue()
 
         if (changed) {
             // notify is called in a new thread and with a delay to make sure the newVal has had the time to propagate

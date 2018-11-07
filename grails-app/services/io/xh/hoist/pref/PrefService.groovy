@@ -169,10 +169,9 @@ class PrefService extends BaseService {
             throw new RuntimeException("Preference ${defaultPref.name} marked as local - user value cannot be read on server.")
         }
 
-        def userPref = UserPreference.findByPreferenceAndUsername(defaultPref, username, [cache: true]),
-            value = userPref ? userPref.userValue : defaultPref.defaultValue
+        def userPref = UserPreference.findByPreferenceAndUsername(defaultPref, username, [cache: true])
 
-        return convertValue(defaultPref.type, value)
+        return userPref ? userPref.externalUserValue(jsonAsObject: true) : defaultPref.externalDefaultValue(jsonAsObject: true)
     }
 
     private void setUserPreference(String key, String value, String type, String username) {
@@ -212,25 +211,13 @@ class PrefService extends BaseService {
         if (defaultPref.local) {
             // Local prefs serialized with default value only - client checks for local user value
             ret.value = null
-            ret.defaultValue = convertValue(defaultPref.type, defaultPref.defaultValue)
+            ret.defaultValue = defaultPref.externalDefaultValue(jsonAsObject: true)
         } else {
             // Server-side prefs serialized with merged user/default value
             ret.value = getUserPreference(defaultPref, username)
-            ret.defaultValue = defaultPref.defaultValue
+            ret.defaultValue = defaultPref.externalDefaultValue(jsonAsObject: true)
         }
 
         return ret
     }
-
-    private Object convertValue(String type, String value) {
-        switch (type) {
-            case 'json':    return JSON.parse(value)
-            case 'int':     return value.toInteger()
-            case 'long':    return value.toLong()
-            case 'double':  return value.toDouble()
-            case 'bool':    return value.toBoolean()
-            default:        return value
-        }
-    }
-
 }

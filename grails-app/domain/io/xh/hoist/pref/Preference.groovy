@@ -7,6 +7,7 @@
 
 package io.xh.hoist.pref
 
+import io.xh.hoist.json.JSON
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.util.Utils
 
@@ -61,18 +62,29 @@ class Preference implements JSONFormat {
         return true
     }
 
+    Object externalDefaultValue(Map opts = [:]) {
+        def val = defaultValue
+        switch (type) {
+            case 'json':    return opts.jsonAsObject ? JSON.parse(val) : val;
+            case 'int':     return val.toInteger()
+            case 'long':    return val.toLong()
+            case 'double':  return val.toDouble()
+            case 'bool':    return val.toBoolean()
+            default:        return val
+        }
+    }
+
     Map formatForJSON() {
         return [
                 id: id,
                 name: name,
                 groupName: groupName,
                 type: type,
-                defaultValue: defaultValue,
+                defaultValue: externalDefaultValue(),
                 notes: notes,
                 local: local,
                 lastUpdatedBy: lastUpdatedBy,
                 lastUpdated: lastUpdated
         ]
     }
-
 }
