@@ -30,7 +30,7 @@
 ### 🐞 Bug Fixes
 
 * An admin client that happens to be polling for a non-existent log file (e.g. one that has just
-  been archived) will no longer spam the logs with stracktraces.
+  been archived) will no longer spam the logs with stracktraces.it
 
 [Commit Log](https://github.com/exhi/hoist-core/compare/v5.0.4...v5.1.0)
 
@@ -264,8 +264,7 @@ UPDATE xh_config SET value = prod_value
 #### Step 3
 
 Update app code in environment to use hoist-core v3.0.0 and hoist-react v5.X.X or hoist-sencha
-v2.0.0. If your app is in a customer/client's environment, you will not be updating hoist-core, but
-rather [customer]HoistVersion to version 5.0.0.
+v2.0.0.
 
 Remove
 
