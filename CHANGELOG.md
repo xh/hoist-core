@@ -1,3 +1,13 @@
+## v5.3.1 - 2018-12-17
+
+### 📚 Libraries
+
+* Grails `3.3.8 -> 3.3.9`
+* GORM `6.1.10 -> 6.1.11`
+* Apache HttpClient `4.5.3 -> 4.5.6`
+
+[Commit Log](https://github.com/exhi/hoist-core/compare/v5.3.0...v5.3.1)
+
 ## v5.3.0 - 2018-11-14
 
 ### ⚙️ Technical
