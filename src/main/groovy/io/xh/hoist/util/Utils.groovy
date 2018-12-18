@@ -78,6 +78,10 @@ class Utils {
         return Holders.applicationContext
     }
 
+    static Map<String, String >  getDataSource() {
+        return Holders.grailsApplication.config.dataSource
+    }
+
     /**
      * Run a closure with a new hibernate session.  Useful for asynchronous routines that will not have grails
      * installed hibernate session on the thread.

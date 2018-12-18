@@ -167,6 +167,14 @@ class XhController extends BaseController {
             ret[it.name + 'Version'] = it.version
         }
 
+        def user = identityService.getAuthUser(request)
+        if (user && user.isHoistAdmin) {
+            def dataSource = Utils.dataSource
+            ret['databaseConnectionString'] = dataSource.url
+            ret['databaseUser'] = dataSource.username
+            ret['databaseCreateMode'] = dataSource.dbCreate
+        }
+
         renderJSON(ret)
     }
 
