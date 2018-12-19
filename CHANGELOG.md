@@ -1,3 +1,14 @@
+## 5.4.0 - 2018-12-18
+
+### ⚙️ Technical
+
+* Environment information now includes details on the primary database connection, including the
+  JDBC connection string, user, and dbCreate setting. Note this additional info is only returned
+  when the requesting user is a Hoist Admin (and is intended for display in the admin JS client).
+* Additional `AppEnvironment` enums added for UAT and BCP.
+
+[Commit Log](https://github.com/exhi/hoist-core/compare/v5.3.1...v5.4.0)
+
 ## v5.3.1 - 2018-12-17
 
 ### 📚 Libraries

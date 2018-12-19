@@ -78,13 +78,17 @@ class Utils {
         return Holders.applicationContext
     }
 
-    static Map<String, String >  getDataSource() {
-        return Holders.grailsApplication.config.dataSource
+    /**
+     * Return the app's primary dataSource configuration. This is the connection to the app's
+     * database housing Hoist-related tables as well as any app-specific domain objects.
+     */
+    static Map<String, String> getDataSource() {
+        return (Map<String, String>) Holders.grailsApplication.config.dataSource
     }
 
     /**
-     * Run a closure with a new hibernate session.  Useful for asynchronous routines that will not have grails
-     * installed hibernate session on the thread.
+     * Run a closure with a new hibernate session.  Useful for asynchronous routines that will not
+     * have a Grails-installed Hibernate session on the thread.
      */
     static withNewSession(Closure c) {
         TrackLog.withNewSession(c) // Yes, a bizarre dependency on an arbitrary domain object
