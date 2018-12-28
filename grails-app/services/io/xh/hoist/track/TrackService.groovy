@@ -45,7 +45,7 @@ class TrackService extends BaseService implements EventPublisher {
         try {
             createTrackLog(params)
         } catch (Exception e) {
-            log.error("Exception writing track log", e)
+            log.error("Exception writing track log: ${e.message}")
         }
     }
 
@@ -98,9 +98,17 @@ class TrackService extends BaseService implements EventPublisher {
             ]
 
         // Execute asynchronously after we get info from request, don't block application thread.
+        // Save with additional try/catch to alert on persistence failures within this async block.
         asyncTask {
             def tl = new TrackLog(values)
-            if (!Environment.isDevelopmentMode()) tl.save()
+
+            if (!Environment.isDevelopmentMode()) {
+                try {
+                    tl.save()
+                } catch (Exception e) {
+                    log.error("Exception writing track log: ${e.message}")
+                }
+            }
 
             def name = tl.username
             if (tl.impersonating) name += " (as ${tl.impersonating})"
