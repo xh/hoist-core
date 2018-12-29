@@ -196,7 +196,7 @@ class IdentityService extends BaseService {
     }
 
     private void trackImpersonate(String msg) {
-        trackService.track(category: 'Impersonate', message: msg, severity: 'WARN')
+        trackService.track(category: 'Impersonate', msg: msg, severity: 'WARN')
     }
 
     private HoistUser findHoistUserViaSessionKey(HttpServletRequest request, String key) {
