@@ -45,7 +45,7 @@ class TrackService extends BaseService implements EventPublisher {
         try {
             createTrackLog(params)
         } catch (Exception e) {
-            log.error("Exception writing track log: ${e.message}")
+            logErrorCompact('Exception writing track log', e)
         }
     }
 
@@ -87,7 +87,7 @@ class TrackService extends BaseService implements EventPublisher {
             values = [
                 username: authUsername,
                 category: params.category ?: 'Default',
-                msg: params.msg,
+                XXmsg: params.msg,
                 userAgent: userAgent,
                 browser: getBrowser(userAgent),
                 device: getDevice(userAgent),
@@ -106,7 +106,7 @@ class TrackService extends BaseService implements EventPublisher {
                 try {
                     tl.save()
                 } catch (Exception e) {
-                    log.error("Exception writing track log: ${e.message}")
+                    logErrorCompact('Exception writing track log', e)
                 }
             }
 
