@@ -87,7 +87,7 @@ class TrackService extends BaseService implements EventPublisher {
             values = [
                 username: authUsername,
                 category: params.category ?: 'Default',
-                XXmsg: params.msg,
+                msg: params.msg,
                 userAgent: userAgent,
                 browser: getBrowser(userAgent),
                 device: getDevice(userAgent),
