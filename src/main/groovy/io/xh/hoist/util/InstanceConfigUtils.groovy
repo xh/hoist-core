@@ -65,15 +65,21 @@ class InstanceConfigUtils {
     private static Map<String, String> readInstanceConfig() {
         def ret = [:]
 
-        // Attempt to load external config file - but do not require one.
+        // Attempt to load external config file - but do not strictly require one. Warnings about
+        // missing/unreadable configs are output via println as the logging system itself relies on
+        // this class to determine its root path.
+        def configFilename = System.getProperty('io.xh.hoist.instanceConfigFile') ?: "/etc/hoist/conf/${Utils.appCode}.yml"
         try {
-            def configFilename = System.getProperty('io.xh.hoist.instanceConfigFile') ?: "/etc/hoist/conf/${Utils.appCode}.yml",
-                configFile = new File(configFilename)
+            def configFile = new File(configFilename)
 
             if (configFile.exists()) {
                 ret = configFile.isDirectory() ? loadFromConfigDir(configFile) : loadFromYaml(configFile)
+            } else {
+                println "WARNING - InstanceConfig file not found | looked for $configFilename"
             }
-        } catch (ignored) {}
+        } catch (Throwable t) {
+            println "ERROR - InstanceConfig file could not be parsed | $configFilename | $t.message"
+        }
 
         // Populate environment, popping it off the map if provided via config. Priority as documented above.
         def optEnvString = System.getProperty('io.xh.hoist.environment'),
