@@ -1,3 +1,12 @@
+## 5.4.1 - 2018-12-31
+
+### 🐞 Bug Fixes
+
+* Track log entries are now written correctly when an admin starts/stops impersonation.
+* InstanceConfigUtils will warn via stdout if a config file is not found or cannot be parsed.
+
+[Commit Log](https://github.com/exhi/hoist-core/compare/v5.4.0...v5.4.1)
+
 ## 5.4.0 - 2018-12-18
 
 ### ⚙️ Technical
