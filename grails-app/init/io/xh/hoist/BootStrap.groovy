@@ -113,10 +113,10 @@ class BootStrap {
                 valueType: 'json',
                 defaultValue: [
                     archiveAfterDays: 30,
-                    archiveDirectory: 'archive'
+                    archiveFolder: 'archive'
                 ],
                 groupName: 'xh.io',
-                note: 'Configures automatic cleanup and archiving of log files. Files older than "archiveAfterDays" will be moved into zipped bundles within the specified "archiveDirectory".'
+                note: 'Configures automatic cleanup and archiving of log files. Files older than "archiveAfterDays" will be moved into zipped bundles within the specified "archiveFolder".'
             ],
             xhMonitorConfig: [
                 valueType: 'json',
