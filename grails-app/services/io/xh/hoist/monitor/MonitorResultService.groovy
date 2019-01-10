@@ -104,6 +104,7 @@ class MonitorResultService extends BaseService implements AsyncSupport {
         if (metric == null) {
             result.status = FAIL
             result.message =  'Monitor failed to compute metric'
+            return
         }
 
         def isCeil = (type == 'Ceil'),
