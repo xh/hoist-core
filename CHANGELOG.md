@@ -1,3 +1,18 @@
+## 5.4.2 - 2019-01-14
+
+### ⚙️ Technical
+
+* Activity tracking logs are now written to the database by default, even in local development mode.
+  An optional `disableTrackLog` instance config value is now available to prevent them from being
+  persisted (in any environment).
+
+### 🐞 Bug Fixes
+
+* Corrected auto-defaulted required config for the log file archive directory path.
+* Avoid any attempt to evaluate thresholds for Status Monitor results that do not produce a metric.
+
+[Commit Log](https://github.com/exhi/hoist-core/compare/v5.4.1...v5.4.2)
+
 ## 5.4.1 - 2018-12-31
 
 ### 🐞 Bug Fixes
