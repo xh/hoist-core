@@ -27,6 +27,7 @@ class LogUtils {
     static String DEFAULT_FULL_LAYOUT =      '%d{yyyy-MM-dd HH:mm:ss} | %c{0} [%p] | %m%n'
     static String DEFAULT_MONTHLY_LAYOUT =   '%d{MM-dd HH:mm:ss} | %c{0} [%p] | %m%n'
     static String DEFAULT_DAILY_LAYOUT =     '%d{HH:mm:ss} | %c{0} [%p] | %m%n'
+    static String DEFAULT_MONITOR_LAYOUT =   '%d{HH:mm:ss} | %m%n'
 
     private static _logRootPath = null
 
@@ -81,10 +82,26 @@ class LogUtils {
         }
     }
 
+    static monitorLog(Map config) {
+        def name = config.name ?: '',
+            subdir = config.subdir ?: '',
+            fileName = Paths.get(logRootPath, subdir, name).toString(),
+            logPattern = config.pattern ?: DEFAULT_MONITOR_LAYOUT
+
+        withDelegate(config.script) {
+            appender(name, RollingFileAppender) {
+                file = fileName + '.log'
+                encoder(PatternLayoutEncoder)           {pattern = logPattern}
+                rollingPolicy(TimeBasedRollingPolicy)   {fileNamePattern = fileName + ".%d{yyyy-MM-dd}.log"}
+            }
+        }
+    }
+
     static void initConfig(Script script) {
         withDelegate(script) {
 
-            def appLogName = Utils.appCode
+            def appLogName = Utils.appCode,
+                    monitorLogName = "${appLogName}-monitor"
 
             //----------------------------------
             // Appenders
@@ -94,6 +111,7 @@ class LogUtils {
             }
 
             dailyLog(name: appLogName, script: script)
+            monitorLog(name: monitorLogName, script: script)
 
             //----------------------------------
             // Loggers
@@ -102,6 +120,9 @@ class LogUtils {
 
             // Raise Hoist to info
             logger('io.xh', INFO)
+
+            // Logger for MonitoringService only, do not duplicate in main log file
+            logger('io.xh.hoist.monitor.MonitoringService', INFO, [monitorLogName], additivity = false)
 
             // Quiet noisy loggers
             logger('org.hibernate',                 ERROR)
