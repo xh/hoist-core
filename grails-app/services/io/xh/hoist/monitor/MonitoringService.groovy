@@ -86,8 +86,8 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
 
             markLastStatus(newResults, _results)
             _results = newResults
+            if (monitorConfig.writeToMonitorLog) logResults()
             evaluateProblems()
-            logResults()
         }
     }
 
@@ -158,17 +158,17 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
     }
 
     private void logResults() {
-        results.each{
-            def result = it.value,
-                code = result.code,
-                status = result.status.toString(),
-                metric = result.metric ?: null
+        results.each{code, result ->
+            def status = result.status,
+                metric = result.metric
+
             log.info("monitorCode=${code} | status=${status} | metric=${metric}")
         }
 
         def failsCount = results.count{it.value.status == FAIL},
             warnsCount = results.count{it.value.status == WARN},
             okCount = results.count{it.value.status == OK}
+
         log.info("fails=${failsCount} | warns=${warnsCount} | okays=${okCount}")
     }
 
