@@ -125,7 +125,8 @@ class BootStrap {
                     failNotifyThreshold: 2,
                     warnNotifyThreshold: 5,
                     monitorStartupDelayMins: 1,
-                    monitorRepeatNotifyMins: 60
+                    monitorRepeatNotifyMins: 60,
+                    writeToMonitorLog: true
                 ],
                 groupName: 'xh.io',
                 note: 'Configures server-side status monitoring and notifications. Note failNotifyThreshold and warnNotifyThreshold are the number of refresh cycles a monitor will need to be in said status to trigger "alertMode".'
