@@ -112,7 +112,7 @@ class LogUtils {
         withDelegate(script) {
 
             def appLogName = Utils.appCode,
-                    monitorLogName = "${appLogName}-monitor"
+                monitorLogName = "${appLogName}-monitor"
 
             //----------------------------------
             // Appenders
@@ -123,7 +123,7 @@ class LogUtils {
 
             dailyLog(name: appLogName, script: script)
             monitorLog(name: monitorLogName, script: script)
-            monitorConsole(name: "monitor-console", script: script)
+            monitorConsole(name: 'monitor-console', script: script)
 
             //----------------------------------
             // Loggers

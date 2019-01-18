@@ -158,16 +158,16 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
     }
 
     private void logResults() {
-        results.each{code, result ->
+        results.each {code, result ->
             def status = result.status,
                 metric = result.metric
 
             log.info("monitorCode=${code} | status=${status} | metric=${metric}")
         }
 
-        def failsCount = results.count{it.value.status == FAIL},
-            warnsCount = results.count{it.value.status == WARN},
-            okCount = results.count{it.value.status == OK}
+        def failsCount = results.count {it.value.status == FAIL},
+            warnsCount = results.count {it.value.status == WARN},
+            okCount = results.count {it.value.status == OK}
 
         log.info("fails=${failsCount} | warns=${warnsCount} | okays=${okCount}")
     }
