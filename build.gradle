@@ -2,7 +2,7 @@ buildscript {
     repositories {
         mavenLocal()
         jcenter()
-        maven { url "https://repo.grails.org/grails/core" }
+        maven {url 'https://repo.grails.org/grails/core'}
     }
     dependencies {
         classpath "org.grails:grails-gradle-plugin:$grailsVersion"
@@ -19,7 +19,7 @@ apply plugin:'org.grails.grails-gsp'
 repositories {
     mavenLocal()
     jcenter()
-    maven { url 'https://repo.grails.org/grails/core' }
+    maven {url 'https://repo.grails.org/grails/core'}
 }
 
 configurations.all {
@@ -138,14 +138,11 @@ publishing {
 
             repositories {
                 maven {
-                    if (version.endsWith('-SNAPSHOT')) {
-                        url "https://repo.xh.io/content/repositories/snapshots/"
-                    } else {
-                        url "https://repo.xh.io/content/repositories/releases/"
-                    }
+                    def repoEndpoint = version.endsWith('-SNAPSHOT') ? 'snapshots' : 'releases'
+                    url "https://repo.xh.io/content/repositories/$repoEndpoint/"
                     credentials {
-                        username xhRepoDeployUser
-                        password xhRepoDeployPassword
+                        username project.findProperty('xhRepoDeployUser')
+                        password project.findProperty('xhRepoDeployPassword')
                     }
                 }
             }
