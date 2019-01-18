@@ -97,6 +97,17 @@ class LogUtils {
         }
     }
 
+    static monitorConsole(Map config) {
+        def name = config.name ?: '',
+            logPattern = config.pattern ?: DEFAULT_MONITOR_LAYOUT
+
+        withDelegate(config.script) {
+            appender(name, ConsoleAppender) {
+                encoder(PatternLayoutEncoder)           {pattern = logPattern}
+            }
+        }
+    }
+
     static void initConfig(Script script) {
         withDelegate(script) {
 
@@ -112,6 +123,7 @@ class LogUtils {
 
             dailyLog(name: appLogName, script: script)
             monitorLog(name: monitorLogName, script: script)
+            monitorConsole(name: "monitor-console", script: script)
 
             //----------------------------------
             // Loggers
@@ -121,8 +133,8 @@ class LogUtils {
             // Raise Hoist to info
             logger('io.xh', INFO)
 
-            // Logger for MonitoringService only, do not duplicate in main log file
-            logger('io.xh.hoist.monitor.MonitoringService', INFO, [monitorLogName], additivity = false)
+            // Logger for MonitoringService only. Do not duplicate in main log file, but write to stdout
+            logger('io.xh.hoist.monitor.MonitoringService', INFO, [monitorLogName, "monitor-console"], additivity = false)
 
             // Quiet noisy loggers
             logger('org.hibernate',                 ERROR)
