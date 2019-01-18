@@ -42,14 +42,11 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
     private Long _lastNotified
 
     void init() {
-//        def monitorInterval = isDevelopmentMode() ? -1 : {monitorConfig.monitorRefreshMins}
-        def monitorInterval = 0.5
-
+        def monitorInterval = isDevelopmentMode() ? -1 : {monitorConfig.monitorRefreshMins}
         _monitorTimer = createTimer(
                 interval: monitorInterval,
                 intervalUnits: MINUTES,
-//                delay: {monitorConfig.monitorStartupDelayMins},
-                delay: 0,
+                delay: {monitorConfig.monitorStartupDelayMins},
                 delayUnits: MINUTES,
                 runFn: this.&onMonitorTimer
         )
