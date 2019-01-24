@@ -1,3 +1,10 @@
+## 5.5.0 - 2019-01-24
+
+### ⚙️ Technical
+
+* Monitors will now log all activity to a daily dedicated log of the form '[appName]-monitor.log'.
+  This behavior can be controlled with the option 'writeToMonitorLog' in the 'xhMonitorConfig' block. 
+
 ## 5.4.2 - 2019-01-14
 
 ### ⚙️ Technical
