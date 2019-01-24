@@ -86,7 +86,7 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
 
             markLastStatus(newResults, _results)
             _results = newResults
-            if (monitorConfig.writeToMonitorLog) logResults()
+            if (monitorConfig.writeToMonitorLog !== false) logResults()
             evaluateProblems()
         }
     }
