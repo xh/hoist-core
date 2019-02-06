@@ -15,6 +15,8 @@ import io.xh.hoist.security.Access
 @Access(['HOIST_ADMIN'])
 class LogViewerAdminController extends BaseController {
 
+    def logArchiveService
+
     def listFiles() {
         def baseDir = new File(LogUtils.logRootPath),
             basePath = baseDir.toPath(),
@@ -70,8 +72,8 @@ class LogViewerAdminController extends BaseController {
 
 
     /**
-     * deleteFiles - deletes files (one or more) from the log dir
-     * @param filenames - (required) name of files to delete from log dir
+     * Deletes one or more files from the log directory.
+     * @param filenames - (required)
      */
     def deleteFiles() {
         def filenames = params.list('filenames')
@@ -86,6 +88,15 @@ class LogViewerAdminController extends BaseController {
         }
 
         renderJSON(success:true)
+    }
+
+    /**
+     * Run log archiving process immediately.
+     * @param daysThreshold - (optional) min age in days of files to archive - null to use configured default.
+     */
+    def archiveLogs(Integer daysThreshold) {
+        def ret = logArchiveService.archiveLogs(daysThreshold)
+        renderJSON([archived: ret])
     }
 
 }
