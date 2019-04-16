@@ -19,3 +19,12 @@ class NotAuthorizedException extends RuntimeException {
         super(s)
     }
 }
+
+/**
+ * Exception for use when the user initiating a client request does not match the session user.
+ */
+class SessionMismatchException extends RuntimeException {
+    SessionMismatchException(String s = 'Client username does not match current session user.') {
+        super(s)
+    }
+}
