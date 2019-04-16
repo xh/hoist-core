@@ -15,6 +15,7 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.dash.DashboardService
 import io.xh.hoist.clienterror.ClientErrorService
+import io.xh.hoist.exception.SessionMismatchException
 import io.xh.hoist.export.GridExportImplService
 import io.xh.hoist.feedback.FeedbackService
 import io.xh.hoist.json.JSON
@@ -263,7 +264,7 @@ class XhController extends BaseController {
         if (!clientUsername) {
             throw new RuntimeException("This endpoint requires a clientUsername param to confirm the intended user.")
         } else if (clientUsername != username) {
-            throw new RuntimeException("The reported clientUsername param does not match current session user.")
+            throw new SessionMismatchException("The reported clientUsername param does not match current session user.")
         }
     }
 
