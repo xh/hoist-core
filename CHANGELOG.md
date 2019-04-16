@@ -1,3 +1,16 @@
+## 5.5.3 - 2019-04-16
+
+### ⚙️ Technical
+
+* Throw new `SessionMismatchException` when client provides a `clientUsername` to /xh endpoints that
+  does not match the current session user. (The dedicated exception class is new, not the behavior.)
+
+## 5.5.2 - 2019-03-06
+
+### ⚙️ Technical
+
+* Admin endpoint to run log archiving routine on demand.
+
 ## 5.5.1 - 2019-01-30
 
 ### 🐞 Bug Fixes
