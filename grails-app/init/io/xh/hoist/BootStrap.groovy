@@ -41,6 +41,9 @@ class BootStrap {
           Extremely Heavy Industries - http://xh.io
 \n
         """)
+        
+        log.info("${Runtime.runtime.availableProcessors().toString()} available processors")
+        log.info("${Runtime.runtime.maxMemory().toString()} total available memory")
     }
 
     private void ensureRequiredConfigsCreated() {
