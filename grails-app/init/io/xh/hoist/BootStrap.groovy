@@ -75,6 +75,13 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Frequency with which the version of the app should be checked. Value of -1 disables version checking.'
             ],
+            xhAutoRefreshIntervals: [
+                valueType: 'json',
+                defaultValue: [app: -1],
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'Map of clientAppCodes to intervals (in seconds) on which the client-side AutoRefreshService should fire. Note the xhAutoRefreshEnabled preference must also be true for the client service to activate.'
+            ],
             xhEmailDefaultDomain: [
                 valueType: 'string',
                 defaultValue: 'xh.io',
@@ -151,6 +158,12 @@ class BootStrap {
                 local: true,
                 groupName: 'xh.io',
                 note: 'Admin console Client Activity chart panel sizing info.'
+            ],
+            xhAutoRefreshEnabled: [
+                type: 'bool',
+                defaultValue: true,
+                groupName: 'xh.io',
+                note: 'True to enable the client AutoRefreshService, which will trigger a refresh of client app data if/as specified by the xhAutoRefreshIntervals config. Note if disabled at the app level via config, this pref will have no effect.'
             ],
             xhForceEnvironmentFooter: [
                 type: 'bool',
