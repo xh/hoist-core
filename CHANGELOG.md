@@ -1,3 +1,10 @@
+## 6.0-SNAPSHOT - Under Development
+
+### ⚙️ Technical
+
+* New default config + preference definitions added in Bootstrap to support client-side
+  AutoRefreshService.
+
 ## 5.5.3 - 2019-04-16
 
 ### ⚙️ Technical
