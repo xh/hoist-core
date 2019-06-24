@@ -1,9 +1,10 @@
-## 6.0-SNAPSHOT - Under Development
+## 5.5.4 - 2019-06-24
 
 ### ⚙️ Technical
 
 * New default config + preference definitions added in Bootstrap to support client-side
   AutoRefreshService.
+* Memory/processors available to JVM logged at startup. 
 
 ## 5.5.3 - 2019-04-16
 
