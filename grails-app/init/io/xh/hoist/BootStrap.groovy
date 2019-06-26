@@ -9,6 +9,8 @@ package io.xh.hoist
 import grails.util.Holders
 import io.xh.hoist.util.Utils
 
+import static java.lang.Runtime.runtime
+
 class BootStrap {
 
     def init = {servletContext ->
@@ -39,11 +41,10 @@ class BootStrap {
 \n
           Hoist v${hoist.version} - ${Utils.getAppEnvironment()}
           Extremely Heavy Industries - http://xh.io
+            + ${runtime.availableProcessors()} available processors
+            + ${String.format('%,d', (runtime.maxMemory() / 1000000).toLong())}mb available memory
 \n
         """)
-        
-        log.info("${Runtime.runtime.availableProcessors().toString()} available processors")
-        log.info("${Runtime.runtime.maxMemory().toString()} total available memory")
     }
 
     private void ensureRequiredConfigsCreated() {
