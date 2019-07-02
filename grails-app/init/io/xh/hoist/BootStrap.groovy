@@ -185,6 +185,12 @@ class BootStrap {
                 local: true,
                 groupName: 'xh.io',
                 note: 'Set to true prevent IdleService from suspending the application due to inactivity.'
+            ],
+            xhShowVersionBar: [
+                type: 'string',
+                defaultValue: 'auto',
+                groupName: 'xh.io',
+                note: "Display VersionBar in the bottom?  String options are: 'auto', 'always', and 'never'"
             ]
         ])
     }
