@@ -1,3 +1,11 @@
+## 5.5.5 - 2019-07-06
+
+### ⚙️ Technical
+
+* New default pref `xhShowVersionBar`, remove deco'd pref `xhForceEnvironmentFooter`.
+
+[Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.4...v5.5.5)
+
 ## 5.5.4 - 2019-06-24
 
 ### ⚙️ Technical
@@ -6,6 +14,8 @@
   AutoRefreshService.
 * Memory/processors available to JVM logged at startup. 
 
+[Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.3...v5.5.4)
+
 ## 5.5.3 - 2019-04-16
 
 ### ⚙️ Technical
@@ -13,11 +23,15 @@
 * Throw new `SessionMismatchException` when client provides a `clientUsername` to /xh endpoints that
   does not match the current session user. (The dedicated exception class is new, not the behavior.)
 
+[Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.2...v5.5.3)
+
 ## 5.5.2 - 2019-03-06
 
 ### ⚙️ Technical
 
 * Admin endpoint to run log archiving routine on demand.
+
+[Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.1...v5.5.2)
 
 ## 5.5.1 - 2019-01-30
 
@@ -26,12 +40,16 @@
 * Further work to ensure admin log viewer endpoint is completely wrapped in try/catch to avoid
   throwing repeated stack traces if supplied incorrect parameters.
 
+[Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.0...v5.5.1)
+
 ## 5.5.0 - 2019-01-24
 
 ### ⚙️ Technical
 
 * Monitors will now log all activity to a daily dedicated log of the form `[appName]-monitor.log`.
   This behavior can be controlled with the option `writeToMonitorLog` in the `xhMonitorConfig` block. 
+
+[Commit Log](https://github.com/exhi/hoist-core/compare/v5.4.2...v5.5.0)
 
 ## 5.4.2 - 2019-01-14
 
