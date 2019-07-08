@@ -166,19 +166,6 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'True to enable the client AutoRefreshService, which will trigger a refresh of client app data if/as specified by the xhAutoRefreshIntervals config. Note if disabled at the app level via config, this pref will have no effect.'
             ],
-            xhForceEnvironmentFooter: [
-                type: 'bool',
-                defaultValue: false,
-                groupName: 'xh.io',
-                note: 'Display the environment footer with app version info while in Production mode. (By default the footer is shown only in non-production environments to minimize technical "noise" in the UI for end-users.)'
-            ],
-            xhTheme: [
-                type: 'string',
-                defaultValue: 'light',
-                local: true,
-                groupName: 'xh.io',
-                note: 'Visual theme for the client application - "light" or "dark".'
-            ],
             xhIdleDetectionDisabled: [
                 type: 'bool',
                 defaultValue: false,
@@ -190,7 +177,14 @@ class BootStrap {
                 type: 'string',
                 defaultValue: 'auto',
                 groupName: 'xh.io',
-                note: "Display VersionBar in the bottom?  String options are: 'auto', 'always', and 'never'"
+                note: "Control display of Hoist footer with app version info. Options are 'auto' (show in non-prod env, or always for admins), 'always', and 'never'."
+            ],
+            xhTheme: [
+                type: 'string',
+                defaultValue: 'light',
+                local: true,
+                groupName: 'xh.io',
+                note: 'Visual theme for the client application - "light" or "dark".'
             ]
         ])
     }
