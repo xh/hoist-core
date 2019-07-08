@@ -1,3 +1,17 @@
+
+## 6.0-SNAPSHOT
+
+### ⚙️ Technical
+
+* The Jackson library is now used for JSON Serialization.  This provides a faster, more standardized approach
+to JSONSerialization.  Groovy Traits are also no longer used for Hoist's Cached JSON support, improving the
+ability to use this feature with Java. 
+
+### Breaking Changes
+* The `cacheJSON()` method on JSONFormat is no longer available for specifying cached JSON serialization.
+Extend the `JSONFormatCached` class instead. 
+
+
 ## 5.5.4 - 2019-06-24
 
 ### ⚙️ Technical

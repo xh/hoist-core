@@ -10,11 +10,11 @@ package io.xh.hoist.track
 import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
-import io.xh.hoist.json.JSON
 import org.grails.web.util.WebUtils
 
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
+import static io.xh.hoist.json.JSONSerializer.serialize
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 
 /**
@@ -94,7 +94,7 @@ class TrackService extends BaseService implements EventPublisher {
                 userAgent: userAgent,
                 browser: getBrowser(userAgent),
                 device: getDevice(userAgent),
-                data: params.data ? new JSON(params.data).toString() : null,
+                data: params.data ? serialize(params.data) : null,
                 elapsed: params.elapsed,
                 severity: params.severity ?: 'OK',
                 impersonating: idSvc.isImpersonating() ? username : null
