@@ -11,12 +11,13 @@ import grails.compiler.GrailsCompileStatic
 import grails.events.annotation.Subscriber
 import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
-import io.xh.hoist.json.JSON
 import org.grails.datastore.mapping.engine.event.PreUpdateEvent
 import org.grails.web.json.JSONArray
 import org.grails.web.json.JSONElement
 import org.grails.web.json.JSONObject
 import grails.events.*
+
+import static io.xh.hoist.json.JSONSerializer.serializePretty
 
 
 /**
@@ -121,7 +122,8 @@ class ConfigService extends BaseService implements EventPublisher {
                 note = confDefaults.note ?: ''
 
             if (!currConfig) {
-                if (valType == 'json') defaultVal = new JSON(defaultVal).toString(true)
+
+                if (valType == 'json') defaultVal = serializePretty(defaultVal)
 
                 new AppConfig(
                     name: confName,

@@ -1,3 +1,20 @@
+## 6.0-SNAPSHOT - under development
+
+### ⚙️ Technical
+
+* The [Jackson library](https://github.com/FasterXML/jackson) is now used for JSON Serialization.
+  This provides a faster, more standardized approach to rendering JSON. Groovy Traits are also no
+  longer used for Hoist's Cached JSON support, improving the ability to use this feature with Java.
+* Added `/ping` endpoint for trivial server up / connectivity checks.
+
+### 💥 Breaking Changes
+
+* The `cacheJSON()` method on JSONFormat is no longer available for specifying cached JSON
+  serialization. Extend the `JSONFormatCached` class instead.
+
+
+[Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.5...develop)
+
 ## 5.5.5 - 2019-07-06
 
 ### New Features
@@ -19,7 +36,7 @@ that is a part of normal operations and should not necessarily be logged on the 
 
 * New default config + preference definitions added in Bootstrap to support client-side
   AutoRefreshService.
-* Memory/processors available to JVM logged at startup. 
+* Memory/processors available to JVM logged at startup.
 
 [Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.3...v5.5.4)
 
@@ -54,7 +71,8 @@ that is a part of normal operations and should not necessarily be logged on the 
 ### ⚙️ Technical
 
 * Monitors will now log all activity to a daily dedicated log of the form `[appName]-monitor.log`.
-  This behavior can be controlled with the option `writeToMonitorLog` in the `xhMonitorConfig` block. 
+  This behavior can be controlled with the option `writeToMonitorLog` in the `xhMonitorConfig`
+  block.
 
 [Commit Log](https://github.com/exhi/hoist-core/compare/v5.4.2...v5.5.0)
 
