@@ -10,7 +10,7 @@ package io.xh.hoist
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.xh.hoist.exception.ExceptionRenderer
-import io.xh.hoist.exception.NotAuthorizedException
+import io.xh.hoist.exception.ExpectedException
 import io.xh.hoist.json.JSON
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser
@@ -41,8 +41,8 @@ abstract class BaseController implements LogSupport {
     // Implementation
     //-------------------
     void handleException(Exception ex){
-        if (!ex instanceof NotAuthorizedException) {
-            log.warn(ex.message, ex)  // Problematic requests may or may not be 'errors' or log-worthy
+        if (!ex instanceof ExpectedException) {
+            log.info(ex.message, ex)
         }
         exceptionRenderer.render(ex, request, response)
     }

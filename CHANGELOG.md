@@ -1,5 +1,12 @@
 ## 5.5.5 - 2019-07-06
 
+### New Features
+* The `ExpectedException` interface has been added. Implement this interface to mark any exception
+that is a part of normal operations and should not necessarily be logged on the server as an error. 
+
+* The `DataNotAvailableException` has been added.  This class implements `ExpectedException`.
+     
+
 ### ⚙️ Technical
 
 * New default pref `xhShowVersionBar`, remove deco'd pref `xhForceEnvironmentFooter`.

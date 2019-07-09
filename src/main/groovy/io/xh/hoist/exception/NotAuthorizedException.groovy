@@ -14,17 +14,8 @@ package io.xh.hoist.exception
  * This exception, or subclasses of it, may be thrown directly by applications as well.
  * Instances of this exception will be associated with HttpStatus 404 ('Unauthorized') when sent to client.
  */
-class NotAuthorizedException extends RuntimeException {
+class NotAuthorizedException extends RuntimeException implements ExpectedException {
     NotAuthorizedException(String s = 'Not Authorized') {
-        super(s)
-    }
-}
-
-/**
- * Exception for use when the user initiating a client request does not match the session user.
- */
-class SessionMismatchException extends RuntimeException {
-    SessionMismatchException(String s = 'Client username does not match current session user.') {
         super(s)
     }
 }
