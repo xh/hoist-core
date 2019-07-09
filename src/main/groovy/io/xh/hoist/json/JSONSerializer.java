@@ -24,14 +24,14 @@ import static java.util.Arrays.asList;
 /**
  * Hoist wrapper around the Jackson library for Json Serialization.
  *
- * This class provides a Hoist-customized instance of the standard
- * Jackson serialization library.  Application that need to perform Json
- * serialization directly should use it to ensure that classes such as
- * Date, JSONFormat, and JSONFormatCached are serialized appropriately,
- * according to Hoist conventions.
+ * This class provides a Hoist-customized instance of the standard Jackson serialization library.
+ * Application that need to perform JSON serialization directly should use it to ensure that classes
+ * such as Date, JSONFormat, and JSONFormatCached are serialized appropriately, according to Hoist
+ * conventions.
  *
- * Applications should not typically need to use this object directly, but should
- * rather rely on the renderJSON() in BaseController, which will use this method.
+ * Applications should not typically need to use this object directly, but should rather rely on the
+ * renderJSON() in BaseController, which will use this method, in combination with the JSONFormat
+ * interface on app-specific domain objects and POJOs.
  */
 public class JSONSerializer {
 
@@ -65,11 +65,10 @@ public class JSONSerializer {
 
 
     /**
-     * Register a custom module for the Jackson serializer used by this
-     * class.
+     * Register a custom module for the Jackson serializer used by this class.
      *
-     * Applications should use this method to add custom serializers
-     * or otherwise customize the default Json Serialization.
+     * Applications should use this method to add custom serializers or otherwise customize
+     * the default JSON serialization.
      */
     public static void registerModules(Module  ...modules) {
         registeredModules.addAll(asList(modules));
