@@ -128,6 +128,7 @@ abstract class BaseAuthenticationService {
      * session within their completeAuthentication() implementations.
      */
     protected List<String> whitelistURIs = [
+        '/ping',
         '/xh/login',
         '/xh/logout',
         '/xh/environment',
