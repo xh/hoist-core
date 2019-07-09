@@ -1,3 +1,11 @@
+## 6.0-SNAPSHOT - under development
+
+### ⚙️ Technical
+
+* Added `/ping` endpoint for trivial server up / connectivity checks.
+
+[Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.5...develop)
+
 ## 5.5.5 - 2019-07-06
 
 ### ⚙️ Technical
