@@ -9,8 +9,10 @@ package io.xh.hoist.pref
 
 import grails.compiler.GrailsCompileStatic
 import io.xh.hoist.BaseService
-import io.xh.hoist.json.JSON
 import org.grails.web.json.JSONElement
+
+import static io.xh.hoist.json.JSONSerializer.serialize
+import static io.xh.hoist.json.JSONSerializer.serializePretty
 
 /**
  * Manage a given user's preferences, with typed getters & setters.
@@ -64,7 +66,7 @@ class PrefService extends BaseService {
     }
 
     void setJSON(String key, Object value, String username = username) {
-        setUserPreference(key, new JSON(value).toString(), 'json', username)
+        setUserPreference(key, serialize(value), 'json', username)
     }
 
     void setPreference(String key, String value, String username = username) {
@@ -129,7 +131,7 @@ class PrefService extends BaseService {
                 notes = prefDefaults.note ?: ''
 
             if (!currPref) {
-                if (valType == 'json') defaultVal = new JSON(defaultVal).toString(true)
+                if (valType == 'json') defaultVal = serializePretty(defaultVal)
 
                 new Preference(
                     name: prefName,

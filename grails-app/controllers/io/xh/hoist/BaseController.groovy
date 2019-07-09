@@ -11,7 +11,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.xh.hoist.exception.ExceptionRenderer
 import io.xh.hoist.exception.NotAuthorizedException
-import io.xh.hoist.json.JSON
+import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
@@ -25,7 +25,7 @@ abstract class BaseController implements LogSupport {
 
     protected void renderJSON(Object o){
         response.setContentType('application/json')
-        render (new JSON(o))
+        render (JSONSerializer.serialize(o))
     }
 
     protected HoistUser getUser() {
