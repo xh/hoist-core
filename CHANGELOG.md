@@ -1,10 +1,11 @@
 ## 6.0-SNAPSHOT - under development
 
-### New Features
-* The `RoutineException` interface has been added. Implement this interface to mark any exception
-that is a part of normal operations and should not necessarily be logged on the server as an error. 
+### 🎁 New Features
 
-* The `DataNotAvailableException` has been added.  This class implements `RoutineException`.
+* A `RoutineException` interface has been added. Implement this interface to mark any exception that
+  is a part of normal operations and should not necessarily be logged on the server as an error.
+* The `DataNotAvailableException` has been added. This class implements `RoutineException` and is
+  intended to be thrown
 
 ### ⚙️ Technical
 
@@ -21,7 +22,7 @@ that is a part of normal operations and should not necessarily be logged on the 
 [Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.5...develop)
 
 ## 5.5.5 - 2019-07-06
-     
+
 ### ⚙️ Technical
 
 * New default pref `xhShowVersionBar`, remove deco'd pref `xhForceEnvironmentFooter`.
@@ -279,8 +280,8 @@ ALTER TABLE xh_preference ALTER COLUMN group_name varchar(255) NOT NULL
 
 
 * ClientError tracking gets a `userAlerted` flag to record whether or not the user was shown a
-  pop-up dialog (vs. an error being reported quietly in the background).<br><br> ⚠️ **Note** schema
-  update required:
+  pop-up dialog (vs. an error being reported quietly in the background).<br><br> ⚠️ **Note**
+  schema update required:
 
 ```sql
 -- SQL Server
