@@ -1,4 +1,8 @@
-## 6.0-SNAPSHOT - under development
+## 7.0-SNAPSHOT - under development
+
+* TBD
+
+## 6.0.0 - 2019-07-10
 
 ### 🎁 New Features
 
@@ -7,9 +11,6 @@
 * The `DataNotAvailableException` has been added. This class implements `RoutineException` and is
   intended to be thrown when requested data is not currently available due to normal, expected
   business conditions (e.g. the business day has just rolled and new data is not yet ready).
-
-### ⚙️ Technical
-
 * The [Jackson library](https://github.com/FasterXML/jackson) is now used for JSON Serialization.
   This provides a faster, more standardized approach to rendering JSON. Groovy Traits are also no
   longer used for Hoist's Cached JSON support, improving the ability to use this feature with Java.
