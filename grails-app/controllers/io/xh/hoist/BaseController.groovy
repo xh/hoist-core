@@ -41,7 +41,7 @@ abstract class BaseController implements LogSupport {
     //-------------------
     void handleException(Exception ex) {
         if (!(ex instanceof RoutineException)) {
-            logErrorCompact(ex.message, ex)
+            logErrorCompact(ex.message ?: 'Exception',  ex)
         }
         exceptionRenderer.render(ex, request, response)
     }
