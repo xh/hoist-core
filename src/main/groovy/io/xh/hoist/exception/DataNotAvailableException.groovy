@@ -10,7 +10,7 @@ package io.xh.hoist.exception
 /**
  * Exception for use when the data requested by the client is not current available.
  */
-class DataNotAvailableException extends RuntimeException implements ExpectedException {
+class DataNotAvailableException extends RuntimeException implements RoutineException {
     DataNotAvailableException(String s = 'Data Not Available') {
         super(s)
     }

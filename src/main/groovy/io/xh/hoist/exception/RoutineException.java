@@ -10,4 +10,4 @@ package io.xh.hoist.exception;
  * Hoist will log exceptions of this type minimally -- they primarily exists
  * to efficiently provide out-of-band responses from the server to the client.
  */
-public interface ExpectedException {}
+public interface RoutineException {}

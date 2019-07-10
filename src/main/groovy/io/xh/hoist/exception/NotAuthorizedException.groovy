@@ -14,7 +14,7 @@ package io.xh.hoist.exception
  * This exception, or subclasses of it, may be thrown directly by applications as well.
  * Instances of this exception will be associated with HttpStatus 404 ('Unauthorized') when sent to client.
  */
-class NotAuthorizedException extends RuntimeException implements ExpectedException {
+class NotAuthorizedException extends RuntimeException implements RoutineException {
     NotAuthorizedException(String s = 'Not Authorized') {
         super(s)
     }

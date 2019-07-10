@@ -11,7 +11,7 @@ package io.xh.hoist.exception
 /**
  * Exception for use when the user initiating a client request does not match the session user.
  */
-class SessionMismatchException extends RuntimeException {
+class SessionMismatchException extends RuntimeException implements RoutineException {
     SessionMismatchException(String s = 'Client username does not match current session user.') {
         super(s)
     }

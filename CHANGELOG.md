@@ -1,10 +1,10 @@
 ## 6.0-SNAPSHOT - under development
 
 ### New Features
-* The `ExpectedException` interface has been added. Implement this interface to mark any exception
+* The `RoutineException` interface has been added. Implement this interface to mark any exception
 that is a part of normal operations and should not necessarily be logged on the server as an error. 
 
-* The `DataNotAvailableException` has been added.  This class implements `ExpectedException`.
+* The `DataNotAvailableException` has been added.  This class implements `RoutineException`.
 
 ### ⚙️ Technical
 

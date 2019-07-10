@@ -10,7 +10,7 @@ package io.xh.hoist
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.xh.hoist.exception.ExceptionRenderer
-import io.xh.hoist.exception.ExpectedException
+import io.xh.hoist.exception.RoutineException
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser
@@ -36,15 +36,13 @@ abstract class BaseController implements LogSupport {
         return getUser()?.username
     }
     
-    
     //-------------------
     // Implementation
     //-------------------
-    void handleException(Exception ex){
-        if (!ex instanceof ExpectedException) {
-            log.info(ex.message, ex)
+    void handleException(Exception ex) {
+        if (!(ex instanceof RoutineException)) {
+            logErrorCompact(ex.message, ex)
         }
         exceptionRenderer.render(ex, request, response)
     }
-    
 }
