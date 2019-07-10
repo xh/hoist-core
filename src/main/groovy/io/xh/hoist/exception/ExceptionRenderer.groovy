@@ -82,7 +82,8 @@ class ExceptionRenderer {
                 [
                         name   : t.class.simpleName,
                         message: t.message,
-                        cause  : t.cause?.message
+                        cause  : t.cause?.message,
+                        isRoutine: t instanceof RoutineException
                 ].findAll {it.value}
         return JSONSerializer.serialize(ret);
     }
