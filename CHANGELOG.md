@@ -1,5 +1,12 @@
 ## 6.0-SNAPSHOT - under development
 
+### 🎁 New Features
+
+* A `RoutineException` interface has been added. Implement this interface to mark any exception that
+  is a part of normal operations and should not necessarily be logged on the server as an error.
+* The `DataNotAvailableException` has been added. This class implements `RoutineException` and is
+  intended to be thrown
+
 ### ⚙️ Technical
 
 * The [Jackson library](https://github.com/FasterXML/jackson) is now used for JSON Serialization.
@@ -11,7 +18,6 @@
 
 * The `cacheJSON()` method on JSONFormat is no longer available for specifying cached JSON
   serialization. Extend the `JSONFormatCached` class instead.
-
 
 [Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.5...develop)
 
@@ -274,8 +280,8 @@ ALTER TABLE xh_preference ALTER COLUMN group_name varchar(255) NOT NULL
 
 
 * ClientError tracking gets a `userAlerted` flag to record whether or not the user was shown a
-  pop-up dialog (vs. an error being reported quietly in the background).<br><br> ⚠️ **Note** schema
-  update required:
+  pop-up dialog (vs. an error being reported quietly in the background).<br><br> ⚠️ **Note**
+  schema update required:
 
 ```sql
 -- SQL Server
