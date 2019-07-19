@@ -2,6 +2,14 @@
 
 * TBD
 
+## 6.0.1 - 2019-07-19
+
+### 🐞 Bug Fixes
+
+* Ensure JSON is rendered with `charset=UTF-8` vs. an unexpected ISO fallback we started getting
+  once we stopped using the built-in Grails JSON converter in favor of rendering the String output
+  from Jackson . Fixes issue with unicode characters getting munged in JSON responses.
+
 ## 6.0.0 - 2019-07-10
 
 ### 🎁 New Features
