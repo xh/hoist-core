@@ -24,7 +24,7 @@ abstract class BaseController implements LogSupport {
     ExceptionRenderer exceptionRenderer
 
     protected void renderJSON(Object o){
-        response.setContentType('application/json')
+        response.setContentType('application/json; charset=UTF-8')
         render (JSONSerializer.serialize(o))
     }
 
