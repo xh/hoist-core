@@ -163,17 +163,21 @@ class GridExportImplService extends BaseService {
                     cell.setCellValue(value)
                 } else {
                     // Set cell value from type
-                    if (metadata.type == 'date') {
-                        value = Date.parse('yyyy-MM-dd', value)
-                    } else if (metadata.type == 'datetime') {
-                        value = Date.parse('yyyy-MM-dd HH:mm:ss', value)
-                    } else if (metadata.type == 'int' || (!metadata.type && value.isInteger())) {
-                        value = value.toInteger()
-                    } else if (metadata.type == 'double' || (!metadata.type && value.isDouble())) {
-                        value = value.toDouble()
+                    try {
+                        if (metadata.type == 'date') {
+                            value = Date.parse('yyyy-MM-dd', value)
+                        } else if (metadata.type == 'datetime') {
+                            value = Date.parse('yyyy-MM-dd HH:mm:ss', value)
+                        } else if (metadata.type == 'int' || (!metadata.type && value.isInteger())) {
+                            value = value.toInteger()
+                        } else if (metadata.type == 'double' || (!metadata.type && value.isDouble())) {
+                            value = value.toDouble()
+                        }
+                    } catch (Exception ex) {
+                        log.warn('Error parsing ' + metadata.type + ' formatted value "' + value + '": ' + ex)
                     }
-                    cell.setCellValue(value)
 
+                    cell.setCellValue(value)
                 }
 
             }
