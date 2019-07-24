@@ -1,6 +1,12 @@
-## 7.0-SNAPSHOT - under development
+## 6.0.2 - 2019-07-24
 
-* TBD
+### 🐞 Bug Fixes
+
+* Grid exports will no longer fail if any values fail to parse as per the specified data type.
+  Previously a single unexpected value could spoil the export - now they will be passed through
+  as-is to the generated worksheet.
+
+[Commit Log](https://github.com/exhi/hoist-core/compare/v6.0.1...v6.0.2)
 
 ## 6.0.1 - 2019-07-19
 
@@ -9,6 +15,8 @@
 * Ensure JSON is rendered with `charset=UTF-8` vs. an unexpected ISO fallback we started getting
   once we stopped using the built-in Grails JSON converter in favor of rendering the String output
   from Jackson . Fixes issue with unicode characters getting munged in JSON responses.
+
+[Commit Log](https://github.com/exhi/hoist-core/compare/v6.0.0...v6.0.1)
 
 ## 6.0.0 - 2019-07-10
 
@@ -29,7 +37,7 @@
 * The `cacheJSON()` method on JSONFormat is no longer available for specifying cached JSON
   serialization. Extend the `JSONFormatCached` class instead.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.5...develop)
+[Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.5...v6.0.0)
 
 ## 5.5.5 - 2019-07-06
 
