@@ -141,7 +141,8 @@ class GridExportImplService extends BaseService {
         }}
 
         def pendingGroups = [],
-            completedGroups = []
+            completedGroups = [],
+            valueParseFailures = 0
 
         // Add rows
         rows.eachWithIndex { rowMap, i ->
@@ -153,8 +154,8 @@ class GridExportImplService extends BaseService {
                 Map metadata = meta[colIndex]
                 Cell cell = row.createCell(colIndex)
 
-                // Set cell data format
-                if (metadata.format) {
+                // Set cell data format (skipping column headers)
+                if (i > 0 && metadata.format) {
                     cell.setCellStyle(styles[metadata.format])
                 }
 
@@ -174,7 +175,8 @@ class GridExportImplService extends BaseService {
                             value = value.toDouble()
                         }
                     } catch (Exception ex) {
-                        log.warn('Error parsing ' + metadata.type + ' formatted value "' + value + '": ' + ex)
+                        log.trace("Error parsing value ${value} for declared type ${metadata.dataType}", ex)
+                        valueParseFailures++
                     }
 
                     cell.setCellValue(value)
@@ -199,6 +201,10 @@ class GridExportImplService extends BaseService {
                 group.end = i
                 completedGroups << pendingGroups.pop()
             }
+        }
+
+        if (valueParseFailures) {
+            log.warn("Errors encountered during parsing for grid export - failed to parse ${valueParseFailures} cell values.")
         }
 
         if (asTable && completedGroups.size()) {
