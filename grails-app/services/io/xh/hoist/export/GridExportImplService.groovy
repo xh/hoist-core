@@ -175,7 +175,7 @@ class GridExportImplService extends BaseService {
                             value = value.toDouble()
                         }
                     } catch (Exception ex) {
-                        log.trace("Error parsing value ${value} for declared type ${metadata.dataType}", ex)
+                        log.trace("Error parsing value ${value} for declared type ${metadata.type} | ${ex.message}")
                         valueParseFailures++
                     }
 
