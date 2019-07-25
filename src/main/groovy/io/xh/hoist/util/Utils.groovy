@@ -16,6 +16,7 @@ import io.xh.hoist.pref.PrefService
 import io.xh.hoist.track.TrackLog
 import io.xh.hoist.user.BaseRoleService
 import io.xh.hoist.user.BaseUserService
+import io.xh.hoist.websocket.WebSocketService
 import org.grails.web.converters.exceptions.ConverterException
 import org.grails.web.json.JSONArray
 import org.grails.web.json.JSONObject
@@ -72,6 +73,10 @@ class Utils {
 
     static BaseRoleService getRoleService() {
         return (BaseRoleService) appContext.roleService
+    }
+
+    static WebSocketService getWebSocketService() {
+        return (WebSocketService) appContext.webSocketService
     }
 
     static ApplicationContext getAppContext() {
