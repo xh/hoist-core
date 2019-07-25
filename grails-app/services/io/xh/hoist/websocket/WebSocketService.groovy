@@ -1,3 +1,10 @@
+/*
+ * This file belongs to Hoist, an application development toolkit
+ * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
+ *
+ * Copyright © 2019 Extremely Heavy Industries Inc.
+ */
+
 package io.xh.hoist.websocket
 
 import grails.async.Promises
@@ -21,12 +28,20 @@ class WebSocketService extends BaseService {
     private static String HEARTBEAT_TOPIC = 'xhHeartbeat'
     private Map<WebSocketSession, HoistWebSocketChannel> _channels = new ConcurrentHashMap<>()
 
-    Collection<String> getChannelKeys() {
-        _channels.collect {it.value.key}
+    Collection<HoistWebSocketChannel> getAllChannels() {
+        _channels.values()
+    }
+
+    Collection<String> getAllChannelKeys() {
+        allChannels.collect {it.key}
     }
 
     void pushToAllChannels(String topic, Object data) {
-        pushToChannels(channelKeys, topic, data)
+        pushToChannels(allChannelKeys, topic, data)
+    }
+
+    void pushToChannel(String channelKey, String topic, Object data) {
+        pushToChannels([channelKey], topic, data)
     }
 
     void pushToChannels(Collection<String> channelKeys, String topic, Object data) {
@@ -50,7 +65,7 @@ class WebSocketService extends BaseService {
     void registerSession(WebSocketSession session) {
         def channel = _channels[session] = new HoistWebSocketChannel(session)
         log.debug("Registered session | ${channel.key}")
-        sendMessage(channel, 'registrationSuccess', [channelKey: channel.key])
+        sendMessage(channel, 'xhRegistrationSuccess', [channelKey: channel.key])
     }
 
     void unregisterSession(WebSocketSession session, CloseStatus closeStatus) {
@@ -61,7 +76,7 @@ class WebSocketService extends BaseService {
     }
 
     void onMessage(WebSocketSession session, TextMessage message) {
-        def channel = getChannel(session)
+        def channel = getChannelForSession(session)
         if (!channel) return
 
         log.debug("Message received | ${channel.key} | ${message.payload}")
@@ -88,19 +103,19 @@ class WebSocketService extends BaseService {
         return (JSONObject) JSON.parse(message.payload)
     }
 
-    private HoistWebSocketChannel getChannel(WebSocketSession session) {
+    private HoistWebSocketChannel getChannelForSession(WebSocketSession session) {
         return _channels[session]
     }
 
     private Collection<HoistWebSocketChannel> getChannelsForKeys(Collection<String> channelKeys) {
-        _channels.values().findAll{channelKeys.contains(it.key)}
+        allChannels.findAll{channelKeys.contains(it.key)}
     }
 
     void clearCaches() {
-        this._channels.values().each{channel ->
+        _channels.values().each{channel ->
             channel.close(CloseStatus.SERVICE_RESTARTED)
         }
-        this._channels.clear()
+        _channels.clear()
 
         super.clearCaches()
     }
