@@ -8,6 +8,7 @@
 package io.xh.hoist.websocket
 
 import grails.async.Promises
+import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.json.JSON
@@ -21,23 +22,20 @@ import org.springframework.web.socket.WebSocketSession
 import java.util.concurrent.ConcurrentHashMap
 
 @CompileStatic
-class WebSocketService extends BaseService {
+class WebSocketService extends BaseService implements EventPublisher {
 
     IdentityService identityService
 
-    private static String HEARTBEAT_TOPIC = 'xhHeartbeat'
+    static String HEARTBEAT_TOPIC = 'xhHeartbeat'
+    static String REG_SUCCESS_TOPIC = 'xhRegistrationSuccess'
+    static String CHANNEL_OPENED_EVENT = 'xhWebSocketOpened'
+    static String CHANNEL_CLOSED_EVENT = 'xhWebSocketClosed'
+    static String MSG_RECEIVED_EVENT = 'xhRegistrationSuccess'
+
     private Map<WebSocketSession, HoistWebSocketChannel> _channels = new ConcurrentHashMap<>()
 
     Collection<HoistWebSocketChannel> getAllChannels() {
         _channels.values()
-    }
-
-    Collection<String> getAllChannelKeys() {
-        allChannels.collect {it.key}
-    }
-
-    void pushToAllChannels(String topic, Object data) {
-        pushToChannels(allChannelKeys, topic, data)
     }
 
     void pushToChannel(String channelKey, String topic, Object data) {
@@ -64,26 +62,31 @@ class WebSocketService extends BaseService {
     //------------------------
     void registerSession(WebSocketSession session) {
         def channel = _channels[session] = new HoistWebSocketChannel(session)
+        sendMessage(channel, REG_SUCCESS_TOPIC, [channelKey: channel.key])
+        notify(CHANNEL_OPENED_EVENT, channel)
         log.debug("Registered session | ${channel.key}")
-        sendMessage(channel, 'xhRegistrationSuccess', [channelKey: channel.key])
     }
 
     void unregisterSession(WebSocketSession session, CloseStatus closeStatus) {
         def channel = _channels.remove(session)
         if (channel) {
+            notify(CHANNEL_CLOSED_EVENT, channel)
             log.debug("Closed session | ${channel.key} | ${closeStatus.toString()}")
         }
     }
 
     void onMessage(WebSocketSession session, TextMessage message) {
-        def channel = getChannelForSession(session)
+        def channel = _channels[session]
         if (!channel) return
 
+        channel.noteMessageReceived()
         log.debug("Message received | ${channel.key} | ${message.payload}")
         def msgJSON = deserialize(message)
 
         if (msgJSON.topic == HEARTBEAT_TOPIC) {
             sendMessage(channel, HEARTBEAT_TOPIC, 'pong')
+        } else {
+            notify(MSG_RECEIVED_EVENT, [channel: channel, message: msgJSON])
         }
     }
 
@@ -103,10 +106,6 @@ class WebSocketService extends BaseService {
         return (JSONObject) JSON.parse(message.payload)
     }
 
-    private HoistWebSocketChannel getChannelForSession(WebSocketSession session) {
-        return _channels[session]
-    }
-
     private Collection<HoistWebSocketChannel> getChannelsForKeys(Collection<String> channelKeys) {
         allChannels.findAll{channelKeys.contains(it.key)}
     }
@@ -119,5 +118,4 @@ class WebSocketService extends BaseService {
 
         super.clearCaches()
     }
-
 }

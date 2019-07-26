@@ -21,10 +21,6 @@ class WebSocketAdminController extends BaseController {
 
     def pushToChannel(String channelKey, String topic, String message) {
         webSocketService.pushToChannel(channelKey, topic, message)
+        renderJSON(success: true)
     }
-
-    def pushToAllChannels(String topic, String message) {
-        webSocketService.pushToAllChannels(topic, message)
-    }
-
 }
