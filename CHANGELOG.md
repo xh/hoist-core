@@ -1,3 +1,16 @@
+## 6.1.0 - TBD
+
+### 🎁 New Features
+
+* **WebSocket support** has been added in the form of `WebSocketService`. The new service maintains
+  and provides send/receive functionality to connected Hoist client apps, each associated with a
+  unique channel identifier.
+  * This service and its related endpoints integrate with client-side websocket support and admin
+    tools added to Hoist React v26.
+  * As per the included class-level documentation, applications must update their Application.groovy
+    file to expose an endpoint for connections and wire up a `HoistWebSocketHandler` to relay
+    connection events to the new service.
+
 ## 6.0.2 - 2019-07-24
 
 ### 🐞 Bug Fixes
