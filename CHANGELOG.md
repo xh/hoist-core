@@ -11,6 +11,11 @@
     file to expose an endpoint for connections and wire up a `HoistWebSocketHandler` to relay
     connection events to the new service.
 
+### 🐞 Bug Fixes
+
+* Dedicated Jackson JSON serializer added for Groovy `GString` objects - outputs `toString()` as
+  expected vs. obscure/unwanted object representation (#87).
+
 ## 6.0.2 - 2019-07-24
 
 ### 🐞 Bug Fixes

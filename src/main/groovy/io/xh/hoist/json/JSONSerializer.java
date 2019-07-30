@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import groovy.lang.GString;
 import io.xh.hoist.json.serializer.*;
 
 import java.time.Instant;
@@ -43,6 +44,7 @@ public class JSONSerializer {
         module.addSerializer(LocalDate.class, new LocalDateSerializer())
                 .addSerializer(Date.class, new DateSerializer())
                 .addSerializer(Instant.class, new InstantSerializer())
+                .addSerializer(GString.class, new GStringSerializer())
                 .addSerializer(JSONFormatCached.class, new JSONFormatCachedSerializer())
                 .addSerializer(JSONFormat.class, new JSONFormatSerializer());
         
