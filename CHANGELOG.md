@@ -5,6 +5,10 @@
 * **WebSocket support** has been added in the form of `WebSocketService`. The new service maintains
   and provides send/receive functionality to connected Hoist client apps, each associated with a
   unique channel identifier.
+  * ⚠ **Note** this change requires that applications specify a new dependency in their
+    `build.gradle` file on `compile "org.springframework:spring-websocket"`. If missing, apps will
+    throw an exception on startup related to a failure instantiating `WebSocketService`. Apps should
+    *not* need to make any changes to their own code / services aside from this new dep.
   * This service and its related endpoints integrate with client-side websocket support and admin
     tools added to Hoist React v26.
   * As per the included class-level documentation, applications must update their Application.groovy
