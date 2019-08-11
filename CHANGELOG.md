@@ -1,3 +1,10 @@
+
+## 7.0-SNAPSHOT
+
+### 🎁 New Features
+The `Timer` class has been enhanced to support intervals as low as 500ms.  Previously, `Timer` had
+ a minimum interval of 2 seconds.
+
 ## 6.1.0 - 2019-07-31
 
 ### 🎁 New Features
