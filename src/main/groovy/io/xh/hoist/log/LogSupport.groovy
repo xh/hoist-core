@@ -71,11 +71,11 @@ trait LogSupport {
         if (log.debugEnabled) {
             log.error(message, t)
         } else {
-            log.error("$message | ${getThrowableSummary(t)}")
+            log.error("$message | ${getThrowableSummary(t)}  [log on debug for more...]")
         }
     }
 
-    
+
     //------------------------
     // Implementation
     //------------------------
