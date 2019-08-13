@@ -1,9 +1,12 @@
 
-## 7.0-SNAPSHOT
+## 6.2.0 - 2019-08-13
 
 ### 🎁 New Features
-The `Timer` class has been enhanced to support intervals as low as 500ms.  Previously, `Timer` had
- a minimum interval of 2 seconds.
+
+* The `Timer` class has been enhanced to support intervals as low as 500ms. Previously, `Timer` had
+  a minimum interval of 2 seconds.
+
+[Commit Log](https://github.com/exhi/hoist-core/compare/v6.1.0...v6.2.0)
 
 ## 6.1.0 - 2019-07-31
 
@@ -26,6 +29,8 @@ The `Timer` class has been enhanced to support intervals as low as 500ms.  Previ
 
 * Dedicated Jackson JSON serializer added for Groovy `GString` objects - outputs `toString()` as
   expected vs. obscure/unwanted object representation (#87).
+
+[Commit Log](https://github.com/exhi/hoist-core/compare/v6.0.2...v6.1.0)
 
 ## 6.0.2 - 2019-07-24
 
