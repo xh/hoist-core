@@ -1,3 +1,11 @@
+# Changelog
+
+## 7.0-SNAPSHOT - unreleased
+
+### ⚙️ Technical
+
+* `JSONClient` can be constructed without providing a configured `ClosableHttpClient`. A default
+  client will be created and used.
 
 ## 6.2.0 - 2019-08-13
 
