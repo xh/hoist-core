@@ -126,21 +126,13 @@ class GridExportImplService extends BaseService {
             }
         }
 
-        // Create map of cell styles by format
-        def styles = meta.collect{it.format}.unique().collectEntries {f ->
-            CellStyle style = wb.createCellStyle()
-            if (f == 'Text') style.setWrapText(true)
-            style.setVerticalAlignment(VerticalAlignment.CENTER)
-            style.setDataFormat(wb.createDataFormat().getFormat(f))
-            [(f): style]
-        }
-
         def definedWidthColumns = []
         meta.eachWithIndex{col, i -> if (col.width) {
             definedWidthColumns.add(i)
         }}
 
-        def pendingGroups = [],
+        def styles = [:],
+            pendingGroups = [],
             completedGroups = [],
             valueParseFailures = 0
 
@@ -150,13 +142,25 @@ class GridExportImplService extends BaseService {
             Row row = sheet.createRow(i)
             List cells = Utils.stripJsonNulls(rowMap.data as List)
             cells.eachWithIndex { data, colIndex ->
-                def value = data?.toString()
                 Map metadata = meta[colIndex]
                 Cell cell = row.createCell(colIndex)
 
+                // Collect cell value and cell format
+                def value, format
+                if (data instanceof CharSequence) {
+                    value = data
+                    format = metadata.format
+                } else {
+                    value = data?.value
+                    format = data?.format
+                }
+                value = value?.toString()
+                format = format?.toString()
+
                 // Set cell data format (skipping column headers)
-                if (i > 0 && metadata.format) {
-                    cell.setCellStyle(styles[metadata.format])
+                if (i > 0 && format) {
+                    if (!styles[format]) styles[format] = registerCellStyleForFormat(wb, format)
+                    cell.setCellStyle(styles[format])
                 }
 
                 if (i == 0 || !value) {
@@ -235,6 +239,14 @@ class GridExportImplService extends BaseService {
         outputStream.close()
         if (useStreamingAPI) wb.dispose()
         return outputStream.toByteArray()
+    }
+
+    private CellStyle registerCellStyleForFormat(wb, format) {
+        CellStyle style = wb.createCellStyle()
+        if (format == 'Text') style.setWrapText(true)
+        style.setVerticalAlignment(VerticalAlignment.CENTER)
+        style.setDataFormat(wb.createDataFormat().getFormat(format))
+        return style
     }
 
     private byte[] renderCSVFile(List rows) {
