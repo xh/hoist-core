@@ -6,6 +6,11 @@
 
 * `JSONClient` can be constructed without providing a configured `ClosableHttpClient`. A default
   client will be created and used.
+* When pointed to a directory, `InstanceConfigUtils` will first check to see if it contains a file
+  named `[appCode].yml` and, if so, will load configs from that single file and return. Otherwise,
+  individual files within that directory will be loaded as key/value pairs, as they were previously.
+  This allows a single `-Dio.xh.hoist.instanceConfigFile` value to be baked into a container build
+  and resolve to either single-file or directory-mode configs based on the deployment environment.
 
 ## 6.2.0 - 2019-08-13
 
