@@ -1,6 +1,11 @@
 # Changelog
 
-## 7.0-SNAPSHOT - unreleased
+## 6.3.0 - 2019-09-04
+
+### 🎁 New Features
+
+* Grid exports to Excel now support setting an export format on a per-cell basis. Requires an
+  updated Hoist React build for client-side support, but is backwards compatible with existing API.
 
 ### ⚙️ Technical
 
@@ -11,6 +16,8 @@
   individual files within that directory will be loaded as key/value pairs, as they were previously.
   This allows a single `-Dio.xh.hoist.instanceConfigFile` value to be baked into a container build
   and resolve to either single-file or directory-mode configs based on the deployment environment.
+
+[Commit Log](https://github.com/exhi/hoist-core/compare/v6.2.0...v6.3.0)
 
 ## 6.2.0 - 2019-08-13
 
