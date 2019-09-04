@@ -147,15 +147,14 @@ class GridExportImplService extends BaseService {
 
                 // Collect cell value and cell format
                 def value, format
-                if (data instanceof CharSequence) {
-                    value = data
-                    format = metadata.format
-                } else {
+                if (data instanceof Map) {
                     value = data?.value
                     format = data?.format
+                } else {
+                    value = data
+                    format = metadata.format
                 }
                 value = value?.toString()
-                format = format?.toString()
 
                 // Set cell data format (skipping column headers)
                 if (i > 0 && format) {
