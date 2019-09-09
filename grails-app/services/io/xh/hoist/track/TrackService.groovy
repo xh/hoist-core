@@ -96,7 +96,7 @@ class TrackService extends BaseService implements EventPublisher {
                 device: getDevice(userAgent),
                 data: params.data ? serialize(params.data) : null,
                 elapsed: params.elapsed,
-                severity: params.severity ?: 'OK',
+                severity: params.severity ?: 'INFO',
                 impersonating: idSvc.isImpersonating() ? username : null
             ]
 
