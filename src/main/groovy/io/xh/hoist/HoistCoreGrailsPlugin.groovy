@@ -26,9 +26,9 @@ class HoistCoreGrailsPlugin extends Plugin {
     def profiles = ['web']
 
     // URL to the plugin's documentation
-    def documentation = 'https://github.com/exhi/hoist-core/blob/master/README.md'
+    def documentation = 'https://github.com/xh/hoist-core/blob/master/README.md'
     def organization = [name: 'Extremely Heavy Industries', url: 'http://xh.io']
-    def scm = [url: 'https://github.com/exhi/hoist-core']
+    def scm = [url: 'https://github.com/xh/hoist-core']
     def observe = ["services"]
 
 
