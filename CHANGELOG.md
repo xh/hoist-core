@@ -17,7 +17,7 @@
   This allows a single `-Dio.xh.hoist.instanceConfigFile` value to be baked into a container build
   and resolve to either single-file or directory-mode configs based on the deployment environment.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v6.2.0...v6.3.0)
+[Commit Log](https://github.com/xh/hoist-core/comp†are/v6.2.0...v6.3.0)
 
 ## 6.2.0 - 2019-08-13
 
@@ -26,7 +26,7 @@
 * The `Timer` class has been enhanced to support intervals as low as 500ms. Previously, `Timer` had
   a minimum interval of 2 seconds.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v6.1.0...v6.2.0)
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.1.0...v6.2.0)
 
 ## 6.1.0 - 2019-07-31
 
@@ -50,7 +50,7 @@
 * Dedicated Jackson JSON serializer added for Groovy `GString` objects - outputs `toString()` as
   expected vs. obscure/unwanted object representation (#87).
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v6.0.2...v6.1.0)
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.0.2...v6.1.0)
 
 ## 6.0.2 - 2019-07-24
 
@@ -60,7 +60,7 @@
   Previously a single unexpected value could spoil the export - now they will be passed through
   as-is to the generated worksheet.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v6.0.1...v6.0.2)
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.0.1...v6.0.2)
 
 ## 6.0.1 - 2019-07-19
 
@@ -70,7 +70,7 @@
   once we stopped using the built-in Grails JSON converter in favor of rendering the String output
   from Jackson . Fixes issue with unicode characters getting munged in JSON responses.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v6.0.0...v6.0.1)
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.0.0...v6.0.1)
 
 ## 6.0.0 - 2019-07-10
 
@@ -91,7 +91,7 @@
 * The `cacheJSON()` method on JSONFormat is no longer available for specifying cached JSON
   serialization. Extend the `JSONFormatCached` class instead.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.5...v6.0.0)
+[Commit Log](https://github.com/xh/hoist-core/compare/v5.5.5...v6.0.0)
 
 ## 5.5.5 - 2019-07-06
 
@@ -99,7 +99,7 @@
 
 * New default pref `xhShowVersionBar`, remove deco'd pref `xhForceEnvironmentFooter`.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.4...v5.5.5)
+[Commit Log](https://github.com/xh/hoist-core/compare/v5.5.4...v5.5.5)
 
 ## 5.5.4 - 2019-06-24
 
@@ -109,7 +109,7 @@
   AutoRefreshService.
 * Memory/processors available to JVM logged at startup.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.3...v5.5.4)
+[Commit Log](https://github.com/xh/hoist-core/compare/v5.5.3...v5.5.4)
 
 ## 5.5.3 - 2019-04-16
 
@@ -118,7 +118,7 @@
 * Throw new `SessionMismatchException` when client provides a `clientUsername` to /xh endpoints that
   does not match the current session user. (The dedicated exception class is new, not the behavior.)
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.2...v5.5.3)
+[Commit Log](https://github.com/xh/hoist-core/compare/v5.5.2...v5.5.3)
 
 ## 5.5.2 - 2019-03-06
 
@@ -126,7 +126,7 @@
 
 * Admin endpoint to run log archiving routine on demand.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.1...v5.5.2)
+[Commit Log](https://github.com/xh/hoist-core/compare/v5.5.1...v5.5.2)
 
 ## 5.5.1 - 2019-01-30
 
@@ -135,7 +135,7 @@
 * Further work to ensure admin log viewer endpoint is completely wrapped in try/catch to avoid
   throwing repeated stack traces if supplied incorrect parameters.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v5.5.0...v5.5.1)
+[Commit Log](https://github.com/xh/hoist-core/compare/v5.5.0...v5.5.1)
 
 ## 5.5.0 - 2019-01-24
 
@@ -145,7 +145,7 @@
   This behavior can be controlled with the option `writeToMonitorLog` in the `xhMonitorConfig`
   block.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v5.4.2...v5.5.0)
+[Commit Log](https://github.com/xh/hoist-core/compare/v5.4.2...v5.5.0)
 
 ## 5.4.2 - 2019-01-14
 
@@ -160,7 +160,7 @@
 * Corrected auto-defaulted required config for the log file archive directory path.
 * Avoid any attempt to evaluate thresholds for Status Monitor results that do not produce a metric.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v5.4.1...v5.4.2)
+[Commit Log](https://github.com/xh/hoist-core/compare/v5.4.1...v5.4.2)
 
 ## 5.4.1 - 2018-12-31
 
@@ -169,7 +169,7 @@
 * Track log entries are now written correctly when an admin starts/stops impersonation.
 * InstanceConfigUtils will warn via stdout if a config file is not found or cannot be parsed.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v5.4.0...v5.4.1)
+[Commit Log](https://github.com/xh/hoist-core/compare/v5.4.0...v5.4.1)
 
 ## 5.4.0 - 2018-12-18
 
@@ -180,7 +180,7 @@
   when the requesting user is a Hoist Admin (and is intended for display in the admin JS client).
 * Additional `AppEnvironment` enums added for UAT and BCP.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v5.3.1...v5.4.0)
+[Commit Log](https://github.com/xh/hoist-core/compare/v5.3.1...v5.4.0)
 
 ## v5.3.1 - 2018-12-17
 
@@ -190,7 +190,7 @@
 * GORM `6.1.10 -> 6.1.11`
 * Apache HttpClient `4.5.3 -> 4.5.6`
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v5.3.0...v5.3.1)
+[Commit Log](https://github.com/xh/hoist-core/compare/v5.3.0...v5.3.1)
 
 ## v5.3.0 - 2018-11-14
 
@@ -201,7 +201,7 @@
   allows for more direct binding with admin editor form controls of the appropriate type, and
   generally centralizes their serialization in a more consistent way.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v5.2.0...v5.3.0)
+[Commit Log](https://github.com/xh/hoist-core/compare/v5.2.0...v5.3.0)
 
 ## v5.2.0
 
@@ -210,7 +210,7 @@
 * Processing of uploaded grid data for Excel export modified to handle even larger export sets. ⚠️
   Note requires client-side toolkit updates (>= v16 for Hoist React).
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v5.1.0...v5.2.0)
+[Commit Log](https://github.com/xh/hoist-core/compare/v5.1.0...v5.2.0)
 
 ## v5.1.0
 
@@ -226,7 +226,7 @@
 * An admin client that happens to be polling for a non-existent log file (e.g. one that has just
   been archived) will no longer spam the logs with stracktraces.it
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/v5.0.4...v5.1.0)
+[Commit Log](https://github.com/xh/hoist-core/compare/v5.0.4...v5.1.0)
 
 ## v5.0.4
 
@@ -239,7 +239,7 @@
 and will result in existing overrides having a null level (which is supported and means "no
 override").
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/release-5.0.3...v5.0.4)
+[Commit Log](https://github.com/xh/hoist-core/compare/release-5.0.3...v5.0.4)
 
 ## v5.0.3
 
@@ -260,7 +260,7 @@ enterprise plugin and not require individual app changes.)
   login/logout and confirm auth / roles have changed, but again are handled by Hoist client plugin
   updates and do not require application-level changes.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/release-4.3.0...release-5.0.3)
+[Commit Log](https://github.com/xh/hoist-core/compare/release-4.3.0...release-5.0.3)
 
 ## v4.3.0
 
@@ -273,14 +273,14 @@ enterprise plugin and not require individual app changes.)
 * Objects extending `JSONFormat` with `cacheJSON` enabled can be rendered at the top-level of a
   return.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/release-4.2.1...release-4.3.0)
+[Commit Log](https://github.com/xh/hoist-core/compare/release-4.2.1...release-4.3.0)
 
 ## v4.2.1
 
 * Added support for `activeOnly` argument to `UserAdminController` - required for
   exhi/hoist-react#567
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/release-4.2.0...release-4.2.1)
+[Commit Log](https://github.com/xh/hoist-core/compare/release-4.2.0...release-4.2.1)
 
 ## v4.2.0
 
@@ -288,7 +288,7 @@ enterprise plugin and not require individual app changes.)
 
 * Added support for PUT, PATCH, DELETE to BaseProxyService.
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/release-4.1.0...release-4.2.0)
+[Commit Log](https://github.com/xh/hoist-core/compare/release-4.1.0...release-4.2.0)
 
 ## v4.1.0
 
@@ -296,7 +296,7 @@ enterprise plugin and not require individual app changes.)
 
 * Grails `3.3.5 -> 3.3.8`
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/release-4.0.0...release-4.1.0)
+[Commit Log](https://github.com/xh/hoist-core/compare/release-4.0.0...release-4.1.0)
 
 ## v4.0.0
 
@@ -307,7 +307,7 @@ enterprise plugin and not require individual app changes.)
   impersonation and preference, dashboard changes flushing changes on unload to the wrong
   server-side user. (#46)
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/release-3.1.2...release-4.0.0)
+[Commit Log](https://github.com/xh/hoist-core/compare/release-3.1.2...release-4.0.0)
 
 ## v3.1.2
 
@@ -317,7 +317,7 @@ enterprise plugin and not require individual app changes.)
   will prepend this automatically.
   * ⚠️ Note app-level configs with a leading `@` in place will need to be adjusted. (#43)
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/release-3.1.1...release-3.1.2)
+[Commit Log](https://github.com/xh/hoist-core/compare/release-3.1.1...release-3.1.2)
 
 ## v3.1.1
 
@@ -327,7 +327,7 @@ enterprise plugin and not require individual app changes.)
   null. Important when e.g. looking for a username within service calls that might be triggered by a
   controller-based web request or a timer-based thread. 4130a9add8dd8ba22376ea69cfa3a3d095bdf6b0
 
-[Commit Log](https://github.com/exhi/hoist-core/compare/release-3.1.0...release-3.1.1)
+[Commit Log](https://github.com/xh/hoist-core/compare/release-3.1.0...release-3.1.1)
 
 ## v3.1.0
 
@@ -514,7 +514,7 @@ ALTER TABLE xh_config
   appCode from the Gradle project name.
 * To take this update, applications must ensure their `build.gradle` file populates these variables
   within a grails.build.info file created by Grails itself during the build. See e.g.
-  [this commit to the Toolbox app](https://github.com/exhi/toolbox/commit/073376eefba37ea0ffec073478bb628be447c77b)
+  [this commit to the Toolbox app](https://github.com/xh/toolbox/commit/073376eefba37ea0ffec073478bb628be447c77b)
   for an example of this change.
 * Apps should audit their use of `Utils.appName` on the server-side and update to `Utils.appCode` if
   they need to continue accessing the shortname variant.
@@ -536,7 +536,7 @@ ALTER TABLE xh_config
 ### 🎁 New Features
 
 This release adds support for
-[InstanceConfigUtils](https://github.com/exhi/hoist-core/blob/1fa43564fb77e11a04dd075d969b300f38252579/src/main/groovy/io/xh/hoist/util/InstanceConfigUtils.groovy),
+[InstanceConfigUtils](https://github.com/xh/hoist-core/blob/1fa43564fb77e11a04dd075d969b300f38252579/src/main/groovy/io/xh/hoist/util/InstanceConfigUtils.groovy),
 a utility for loading configuration properties from an external YAML file once on startup and
 exposing them to the application as a map.
 * These are intended to be minimal, low-level configs that apply to a particular deployed instance
