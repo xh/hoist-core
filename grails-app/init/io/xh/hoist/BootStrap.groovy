@@ -110,6 +110,7 @@ class BootStrap {
             xhEmailSupport: [
                 valueType: 'string',
                 defaultValue: 'none',
+                clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Email address to which support and feedback submissions should be sent.'
             ],
