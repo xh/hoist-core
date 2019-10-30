@@ -23,6 +23,7 @@ import io.xh.hoist.pref.PrefService
 import io.xh.hoist.security.AccessAll
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.util.Utils
+import org.grails.web.json.JSONElement
 import org.grails.web.json.JSONObject
 
 @AccessAll
@@ -120,7 +121,7 @@ class XhController extends BaseController {
         JSONObject prefs = (JSONObject) JSON.parse(updates)
         prefs.each {k, value ->
             String key = k.toString()
-            if (value instanceof JSONObject) {
+            if (value instanceof JSONElement) {
                 prefService.setJSON(key, value)
             } else {
                 prefService.setPreference(key, value.toString())
