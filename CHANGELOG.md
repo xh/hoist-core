@@ -1,5 +1,15 @@
 # Changelog
 
+## 6.3.1 - 2019-11-12
+
+### 🐞 Bug Fixes
+
+* JSON preferences accept any valid `JSONElement` for their value, not just a `JSONObject`.
+* Default `TrackLog.severity` to `INFO` vs. non-standard `OK`.
+* Bootstrapped `xhEmailSupport` config now properly `clientVisible`.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.3.0...v6.3.1)
+
 ## 6.3.0 - 2019-09-04
 
 ### 🎁 New Features
@@ -17,7 +27,7 @@
   This allows a single `-Dio.xh.hoist.instanceConfigFile` value to be baked into a container build
   and resolve to either single-file or directory-mode configs based on the deployment environment.
 
-[Commit Log](https://github.com/xh/hoist-core/comp†are/v6.2.0...v6.3.0)
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.2.0...v6.3.0)
 
 ## 6.2.0 - 2019-08-13
 
