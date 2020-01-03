@@ -19,6 +19,9 @@ class DateTimeUtils {
     static final Long HOURS = 60 * 60 * 1000
     static final Long ONE_DAY = 24 * 60 * 60 * 1000
     static final Long DAYS = 24 * 60 * 60 * 1000
+    
+    static final String YEAR_OF_WEEK = 'YYYY'
+    static final String CALENDAR_YEAR = 'yyyy'
 
     static boolean intervalElapsed(Long interval, Object lastRun) {
         if (!lastRun) return true
