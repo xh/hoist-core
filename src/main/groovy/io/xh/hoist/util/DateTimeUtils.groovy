@@ -22,6 +22,11 @@ class DateTimeUtils {
     
     static final String YEAR_OF_WEEK = 'YYYY'
     static final String CALENDAR_YEAR = 'yyyy'
+    
+    static final String DATE_FMT = "${CALENDAR_YEAR}-MM-DD",
+    static final String DATETIME_FMT = "${CALENDAR_YEAR}-MM-DD h:mma",
+    static final String TIME_FMT = 'h:mma',
+    static final String MONTH_DAY_FMT = 'MMM D';
 
     static boolean intervalElapsed(Long interval, Object lastRun) {
         if (!lastRun) return true
