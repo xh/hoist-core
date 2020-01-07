@@ -9,6 +9,7 @@ package io.xh.hoist.config
 
 import grails.compiler.GrailsCompileStatic
 import grails.events.annotation.Subscriber
+import grails.gorm.transactions.Transactional
 import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
 import org.grails.datastore.mapping.engine.event.PreUpdateEvent
@@ -63,6 +64,7 @@ class ConfigService extends BaseService implements EventPublisher {
         return (String) getInternalByName(name, 'pwd', notFoundValue)
     }
 
+    @Transactional
     Map getClientConfig() {
         def ret = [:]
 
@@ -70,7 +72,7 @@ class ConfigService extends BaseService implements EventPublisher {
             AppConfig config = (AppConfig) it
             def name = config.name
             try {
-                ret[name] = config.externalValue(obscurePassword: true, jsonAsObject: true);
+                ret[name] = config.externalValue(obscurePassword: true, jsonAsObject: true)
             } catch (Exception e) {
                 log.error("Exception while getting client config: '$name'", e)
             }
@@ -110,6 +112,7 @@ class ConfigService extends BaseService implements EventPublisher {
      * supplied default values if not found. Called for xh.io configs by Hoist Core Bootstrap.
      * @param reqConfigs - map of configName to map of [valueType, defaultValue, clientVisible, groupName]
      */
+    @Transactional
     void ensureRequiredConfigsCreated(Map<String, Map> reqConfigs) {
         def currConfigs = AppConfig.list(),
             created = 0
@@ -154,6 +157,7 @@ class ConfigService extends BaseService implements EventPublisher {
     //-------------------
     //  Implementation
     //-------------------
+    @Transactional
     private Object getInternalByName(String name, String valueType, Object notFoundValue) {
         AppConfig c = AppConfig.findByName(name, [cache: true])
 

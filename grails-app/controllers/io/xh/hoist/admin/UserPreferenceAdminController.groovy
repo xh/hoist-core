@@ -7,6 +7,7 @@
 
 package io.xh.hoist.admin
 
+import grails.gorm.transactions.Transactional
 import io.xh.hoist.pref.Preference
 import io.xh.hoist.pref.UserPreference
 import io.xh.hoist.RestController
@@ -19,12 +20,14 @@ class UserPreferenceAdminController extends RestController {
     static restTarget = UserPreference
     static trackChanges = true
 
+    @Transactional
     def lookupData() {
         renderJSON (
                 names: Preference.list().collect{it.name}.sort()
         )
     }
 
+    @Transactional
     protected void preprocessSubmit(JSONObject submit) {
         if (submit.name) {
             submit.preference = Preference.findByName(submit.name)
@@ -33,6 +36,7 @@ class UserPreferenceAdminController extends RestController {
         submit.lastUpdatedBy = username
     }
 
+    @Transactional
     protected List doList(Map query) {
         return UserPreference.findAll {
             if (query.name)  preference == Preference.findByName(query.name)

@@ -9,7 +9,10 @@ package io.xh.hoist.admin
 
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
-import net.sf.ehcache.CacheManager
+
+import javax.cache.CacheManager
+import javax.cache.Caching
+import javax.cache.spi.CachingProvider
 
 @Access(['HOIST_ADMIN'])
 class EhCacheAdminController extends BaseController {
@@ -23,10 +26,10 @@ class EhCacheAdminController extends BaseController {
                 def cache = manager.getCache(it)
                 return [
                         name: cache.name,
-                        entries: cache.size,
-                        heapSize: (cache.calculateInMemorySize() / 1000000).toDouble().round(1) + 'MB',
-                        evictionPolicy: cache.memoryStoreEvictionPolicy.name,
-                        status: cache.status.toString()
+//                        entries: cache.size,
+//                        heapSize: (cache.calculateInMemorySize() / 1000000).toDouble().round(1) + 'MB',
+//                        evictionPolicy: cache.memoryStoreEvictionPolicy.name,
+                        status: cache.isClosed() ? 'Closed' : 'Active'
                 ]
             }    
         }
@@ -51,11 +54,12 @@ class EhCacheAdminController extends BaseController {
     // Implementation
     //------------------------
     private CacheManager getCacheManager() {
-        CacheManager.ALL_CACHE_MANAGERS.first()
+        CachingProvider provider = Caching.getCachingProvider()
+        return provider.getCacheManager()
     }
 
     private void clearCache(String name) {
-        cacheManager.clearAllStartingWith(name)
+        cacheManager.getCache(name)?.clear()
         log.info('Cleared hibernate cache: ' + name)
     }
     

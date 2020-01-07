@@ -96,7 +96,7 @@ class Utils {
      * have a Grails-installed Hibernate session on the thread.
      */
     static withNewSession(Closure c) {
-        TrackLog.withNewSession(c) // Yes, a bizarre dependency on an arbitrary domain object
+        TrackLog.withNewSession { TrackLog.withTransaction(c) } // Yes, a bizarre dependency on an arbitrary domain object
     }
 
 

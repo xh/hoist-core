@@ -7,6 +7,7 @@
 
 package io.xh.hoist.admin
 
+import grails.gorm.transactions.Transactional
 import io.xh.hoist.config.AppConfig
 import io.xh.hoist.RestController
 import io.xh.hoist.security.Access
@@ -18,6 +19,7 @@ class ConfigAdminController extends RestController {
     static restTarget = AppConfig
     static trackChanges = true
 
+    @Transactional
     def lookupData() {
         renderJSON(
                 valueTypes: AppConfig.TYPES,

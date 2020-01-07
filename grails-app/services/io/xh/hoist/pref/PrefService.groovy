@@ -8,6 +8,7 @@
 package io.xh.hoist.pref
 
 import grails.compiler.GrailsCompileStatic
+import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
 import org.grails.web.json.JSONElement
 
@@ -73,11 +74,13 @@ class PrefService extends BaseService {
         setUserPreference(key, value, null, username)
     }
 
+    @Transactional
     void unsetPreference(String key, String username = username) {
         def defaultPref = Preference.findByName(key)
         UserPreference.findByPreferenceAndUsername(defaultPref, username)?.delete(flush: true)
     }
 
+    @Transactional
     void clearPreferences(String username = username) {
         UserPreference.findAllByUsername(username).each {
             UserPreference userPref = (UserPreference) it
@@ -85,6 +88,7 @@ class PrefService extends BaseService {
         }
     }
 
+    @Transactional
     Map getClientConfig() {
         def username = username,
             ret = [:]
@@ -101,6 +105,7 @@ class PrefService extends BaseService {
         return ret
     }
 
+    @Transactional
     Map getLimitedClientConfig(List keys) {
         def username = username
         Preference.findAllByNameInList(keys).collectEntries {
@@ -118,6 +123,7 @@ class PrefService extends BaseService {
      *
      * @param requiredPrefs - map of prefName to map of [type, defaultValue, local, note]
      */
+    @Transactional
     void ensureRequiredPrefsCreated(Map<String, Map> requiredPrefs) {
         def currPrefs = Preference.list(),
             created = 0
@@ -166,6 +172,7 @@ class PrefService extends BaseService {
         return getUserPreference(defaultPref, username)
     }
 
+    @Transactional
     private Object getUserPreference(Preference defaultPref, String username) {
         if (defaultPref.local) {
             throw new RuntimeException("Preference ${defaultPref.name} marked as local - user value cannot be read on server.")
@@ -176,6 +183,7 @@ class PrefService extends BaseService {
         return userPref ? userPref.externalUserValue(jsonAsObject: true) : defaultPref.externalDefaultValue(jsonAsObject: true)
     }
 
+    @Transactional
     private void setUserPreference(String key, String value, String type, String username) {
         def defaultPref = getDefaultPreference(key, type)
 
@@ -194,6 +202,7 @@ class PrefService extends BaseService {
         userPref.save()
     }
 
+    @Transactional
     private Preference getDefaultPreference(String key, String type) {
         def p = Preference.findByName(key, [cache: true])
 

@@ -7,6 +7,7 @@
 
 package io.xh.hoist.monitor
 
+import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 import io.xh.hoist.async.AsyncSupport
@@ -25,6 +26,7 @@ class MonitorResultService extends BaseService implements AsyncSupport {
 
     private static Long MAX_RUNTIME_SECS = 15
 
+    @Transactional
     MonitorResult runMonitor(String code) {
         def monitor = Monitor.findByCode(code)
         if (!monitor) throw new RuntimeException("No Monitor is defined with code: $code")

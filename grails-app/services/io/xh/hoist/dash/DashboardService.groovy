@@ -8,11 +8,13 @@
 package io.xh.hoist.dash
 
 import grails.compiler.GrailsCompileStatic
+import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
 
 @GrailsCompileStatic
 class DashboardService extends BaseService {
 
+    @Transactional
     Dashboard get(String appCode) {
         // Lookup users copy, OR template
         // Currently we return the template but we could eagerly save user copy
@@ -24,6 +26,7 @@ class DashboardService extends BaseService {
         return dash
     }
 
+    @Transactional
     Dashboard save(String appCode, String definition) {
         def username = username,
             dash = get(appCode)
@@ -36,6 +39,7 @@ class DashboardService extends BaseService {
         return dash
     }
 
+    @Transactional
     void deleteUserInstance(String appCode) {
         Dashboard userDash = Dashboard.findByAppCodeAndUsername(appCode, username)
         userDash?.delete(flush: true)

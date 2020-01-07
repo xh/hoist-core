@@ -7,11 +7,13 @@
 
 package io.xh.hoist.config
 
+import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
 import grails.web.databinding.DataBinder
 
 class ConfigDiffService extends BaseService implements DataBinder {
 
+    @Transactional
     void applyRemoteValues(List records) {
         records.each {rec ->
             def config = AppConfig.findByName(rec.name),

@@ -6,6 +6,7 @@
  */
 package io.xh.hoist
 
+import grails.gorm.transactions.Transactional
 import groovy.transform.CompileStatic
 import io.xh.hoist.security.AccessAll
 import io.xh.hoist.util.Utils
@@ -19,6 +20,7 @@ import io.xh.hoist.util.Utils
 @CompileStatic
 class PingController extends BaseController {
 
+    @Transactional
     def index() {
         renderJSON([
             appCode: Utils.appCode,
