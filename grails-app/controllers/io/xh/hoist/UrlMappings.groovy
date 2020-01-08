@@ -14,11 +14,10 @@ class UrlMappings {
         //------------------------
         // Default Grails Conventions
         //------------------------
-        "/"(controller: "default")
+        "/"(controller: 'default')
         "/$controller/$action?/$id?(.$format)?"{}
 
-        "404"(view:'/notFound')
-
+        "404" (controller: 'xh', action: 'notFound')
         
         //------------------------
         // Rest Support
@@ -27,7 +26,7 @@ class UrlMappings {
         "/rest/$controller/bulkDelete"{action='bulkDelete'}
         "/rest/$controller/bulkUpdate"{action='bulkUpdate'}
         "/rest/$controller/$id?"{
-            action = [POST:'create', GET:'read', PUT:'update', DELETE:'delete']
+            action = [POST: 'create', GET: 'read', PUT: 'update', DELETE: 'delete']
         }
 
         

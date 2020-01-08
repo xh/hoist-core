@@ -15,6 +15,7 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.dash.DashboardService
 import io.xh.hoist.clienterror.ClientErrorService
+import io.xh.hoist.exception.NotFoundException
 import io.xh.hoist.exception.SessionMismatchException
 import io.xh.hoist.export.GridExportImplService
 import io.xh.hoist.feedback.FeedbackService
@@ -241,7 +242,13 @@ class XhController extends BaseController {
         renderJSON([offset: tz.getOffset(System.currentTimeMillis())])
     }
 
-
+    //-----------------------
+    // Misc
+    //-----------------------
+    def notFound() {
+        throw new NotFoundException()
+    }
+    
     //------------------------
     // Implementation
     //------------------------
