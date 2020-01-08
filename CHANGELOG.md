@@ -1,5 +1,10 @@
 # Changelog
 
+### 7.0-SNAPSHOT
+
+### ⚙️ Technical
+* All exceptions are now rendered as JSON.
+
 ## 6.3.1 - 2019-11-12
 
 ### 🐞 Bug Fixes
