@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2018 Extremely Heavy Industries Inc.
+ * Copyright © 2019 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.util
@@ -24,8 +24,7 @@ import static io.xh.hoist.util.Utils.withNewSession
 
 class Timer implements AsyncSupport {
 
-    private static Long CORE_INTERVAL = ONE_SECOND
-    private static Long CONFIG_INTERVAL = 15 * SECONDS
+     private static Long CONFIG_INTERVAL = 15 * SECONDS
 
     // Note that 'delay', 'interval', and 'timeout' can be specified as a long, a closure, or a config name to be
     // looked up in config service.   The last two options offer the possibility of 'hot' changes to the timers config.
@@ -50,6 +49,7 @@ class Timer implements AsyncSupport {
     private Long intervalMs
     private Long delayMs
     private Long timeoutMs
+    private Long coreIntervalMs
 
     private Date lastRun = null
     private boolean isRunning = false
@@ -85,20 +85,19 @@ class Timer implements AsyncSupport {
         intervalMs = calcIntervalMs()
         delayMs = calcDelayMs()
         timeoutMs = calcTimeoutMs()
+        coreIntervalMs = calcCoreIntervalMs()
 
-        if (intervalMs > 0 && intervalMs < CORE_INTERVAL * 2) {
-            throw new RuntimeException('Object not appropriate for very short intervals.  Use a java.util.Timer instead.')
+        if (intervalMs > 0 && intervalMs < 500) {
+            throw new RuntimeException('Object not appropriate for intervals less than 500ms.  Use a java.util.Timer instead.')
         }
 
         if (runImmediatelyAndBlock) {
             doRun()
         }
 
-        // Main Timer
+        // Core Timer
         coreTimer = new java.util.Timer()
-        coreTimer.schedule(
-                (this.&onCoreTimer as TimerTask), delayMs, CORE_INTERVAL
-        )
+        coreTimer.schedule((this.&onCoreTimer as TimerTask), delayMs, coreIntervalMs)
 
         // Aux Timer for reloading dynamic intervals
         if (interval instanceof Closure || timeout instanceof Closure) {
@@ -108,6 +107,7 @@ class Timer implements AsyncSupport {
             )
         }
     }
+
     /**
      * Force a new execution as soon as possible.
      *
@@ -128,20 +128,10 @@ class Timer implements AsyncSupport {
         if (configTimer) configTimer.cancel()
     }
 
-    
+
     //------------------------
     // Implementation
     //------------------------
-    private void onCoreTimer() {
-        if (!isRunning) {
-            if ((intervalMs > 0 && intervalElapsed(intervalMs, lastRun)) || forceRun) {
-                boolean wasForced = forceRun
-                doRun()
-                if (wasForced) forceRun = false
-            }
-        }
-    }
-
     private void doRun() {
         isRunning = true
         Throwable throwable = null
@@ -173,9 +163,12 @@ class Timer implements AsyncSupport {
         }
     }
 
-    //-------------------------------
+    //----------------------------------------------------------
     // Config, interval Management
-    //------------------------------
+    //
+    // We read the config info infrequently on its own timer.
+    // We want to be dynamic without adding too much load.
+    //-----------------------------------------------------------
     private Long calcIntervalMs() {
         switch (interval) {
             case null:      return null
@@ -206,6 +199,8 @@ class Timer implements AsyncSupport {
                 intervalMs = calcIntervalMs()
                 timeoutMs = calcTimeoutMs()
             }
+            adjustCoreTimerIfNeeded()
+
         } catch (Throwable t) {
             owner.logErrorCompact("Timer [$name] failed to reload config", t)
         }
@@ -218,4 +213,35 @@ class Timer implements AsyncSupport {
         return obj
     }
 
+    //-------------------------------------------------------------------------------------------
+    // Core Timer Management
+    //
+    // The lightweight timer spinning relatively fast to pickup both timeouts and forced runs.
+    //
+    // The vast majority of Timers have relatively long intervals -- just spin the core interval
+    // frequently enough to pickup forceRun reasonably fast. Tighten down for the rare fast timer.
+    //-------------------------------------------------------------------------------------------
+    private void onCoreTimer() {
+        if (!isRunning) {
+            if ((intervalMs > 0 && intervalElapsed(intervalMs, lastRun)) || forceRun) {
+                boolean wasForced = forceRun
+                doRun()
+                if (wasForced) forceRun = false
+            }
+        }
+    }
+
+    private Long calcCoreIntervalMs() {
+        return (intervalMs > 2 * SECONDS) ? 1 * SECONDS : 250;
+    }
+
+    private void adjustCoreTimerIfNeeded() {
+        long newCoreIntervalMs = calcCoreIntervalMs()
+        if (newCoreIntervalMs != coreIntervalMs) {
+            coreTimer.cancel()
+            coreTimer = new java.util.Timer()
+            coreTimer.schedule((this.&onCoreTimer as TimerTask), 0, newCoreIntervalMs)
+            coreIntervalMs = newCoreIntervalMs
+        }
+    }
 }

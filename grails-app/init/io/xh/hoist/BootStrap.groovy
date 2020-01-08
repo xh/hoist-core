@@ -2,12 +2,14 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2018 Extremely Heavy Industries Inc.
+ * Copyright © 2019 Extremely Heavy Industries Inc.
  */
 package io.xh.hoist
 
 import grails.util.Holders
 import io.xh.hoist.util.Utils
+
+import static java.lang.Runtime.runtime
 
 class BootStrap {
 
@@ -39,6 +41,8 @@ class BootStrap {
 \n
           Hoist v${hoist.version} - ${Utils.getAppEnvironment()}
           Extremely Heavy Industries - http://xh.io
+            + ${runtime.availableProcessors()} available processors
+            + ${String.format('%,d', (runtime.maxMemory() / 1000000).toLong())}mb available memory
 \n
         """)
     }
@@ -72,6 +76,13 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Frequency with which the version of the app should be checked. Value of -1 disables version checking.'
             ],
+            xhAutoRefreshIntervals: [
+                valueType: 'json',
+                defaultValue: [app: -1],
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'Map of clientAppCodes to intervals (in seconds) on which the client-side AutoRefreshService should fire. Note the xhAutoRefreshEnabled preference must also be true for the client service to activate.'
+            ],
             xhEmailDefaultDomain: [
                 valueType: 'string',
                 defaultValue: 'xh.io',
@@ -99,6 +110,7 @@ class BootStrap {
             xhEmailSupport: [
                 valueType: 'string',
                 defaultValue: 'none',
+                clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Email address to which support and feedback submissions should be sent.'
             ],
@@ -113,10 +125,10 @@ class BootStrap {
                 valueType: 'json',
                 defaultValue: [
                     archiveAfterDays: 30,
-                    archiveDirectory: 'archive'
+                    archiveFolder: 'archive'
                 ],
                 groupName: 'xh.io',
-                note: 'Configures automatic cleanup and archiving of log files. Files older than "archiveAfterDays" will be moved into zipped bundles within the specified "archiveDirectory".'
+                note: 'Configures automatic cleanup and archiving of log files. Files older than "archiveAfterDays" will be moved into zipped bundles within the specified "archiveFolder".'
             ],
             xhMonitorConfig: [
                 valueType: 'json',
@@ -125,7 +137,8 @@ class BootStrap {
                     failNotifyThreshold: 2,
                     warnNotifyThreshold: 5,
                     monitorStartupDelayMins: 1,
-                    monitorRepeatNotifyMins: 60
+                    monitorRepeatNotifyMins: 60,
+                    writeToMonitorLog: true
                 ],
                 groupName: 'xh.io',
                 note: 'Configures server-side status monitoring and notifications. Note failNotifyThreshold and warnNotifyThreshold are the number of refresh cycles a monitor will need to be in said status to trigger "alertMode".'
@@ -148,11 +161,24 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Admin console Client Activity chart panel sizing info.'
             ],
-            xhForceEnvironmentFooter: [
+            xhAutoRefreshEnabled: [
+                type: 'bool',
+                defaultValue: true,
+                groupName: 'xh.io',
+                note: 'True to enable the client AutoRefreshService, which will trigger a refresh of client app data if/as specified by the xhAutoRefreshIntervals config. Note if disabled at the app level via config, this pref will have no effect.'
+            ],
+            xhIdleDetectionDisabled: [
                 type: 'bool',
                 defaultValue: false,
+                local: true,
                 groupName: 'xh.io',
-                note: 'Display the environment footer with app version info while in Production mode. (By default the footer is shown only in non-production environments to minimize technical "noise" in the UI for end-users.)'
+                note: 'Set to true prevent IdleService from suspending the application due to inactivity.'
+            ],
+            xhShowVersionBar: [
+                type: 'string',
+                defaultValue: 'auto',
+                groupName: 'xh.io',
+                note: "Control display of Hoist footer with app version info. Options are 'auto' (show in non-prod env, or always for admins), 'always', and 'never'."
             ],
             xhTheme: [
                 type: 'string',

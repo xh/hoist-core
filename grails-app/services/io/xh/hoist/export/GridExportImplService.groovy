@@ -2,18 +2,18 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2018 Extremely Heavy Industries Inc.
+ * Copyright © 2019 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.export
 
 import io.xh.hoist.BaseService
-import io.xh.hoist.json.JSON
 import io.xh.hoist.util.Utils
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.ss.usermodel.CellStyle
+import org.apache.poi.ss.usermodel.VerticalAlignment
 import org.apache.poi.ss.util.AreaReference
 import org.apache.poi.ss.util.CellReference
 import org.apache.poi.xssf.usermodel.XSSFTable
@@ -26,11 +26,11 @@ class GridExportImplService extends BaseService {
     /**
      * Return map suitable for rendering file with grails controller render() method
      */
-    Map getBytesForRender(String filename, String filetype, String rows, String meta) {
+    Map getBytesForRender(Map params) {
         return [
-            file:           getFileData(filetype, JSON.parse(rows) as List, JSON.parse(meta) as List),
-            contentType:    getContentType(filetype),
-            fileName:       getFileName(filename, filetype)
+            file:           getFileData(params.type, params.rows, params.meta),
+            contentType:    getContentType(params.type),
+            fileName:       getFileName(params.filename, params.type)
         ]
     }
 
@@ -38,8 +38,8 @@ class GridExportImplService extends BaseService {
     //------------------------
     // Implementation
     //------------------------
-    private byte[] getFileData(String filetype, List rows, List meta) {
-        switch(filetype) {
+    private byte[] getFileData(String type, List rows, List meta) {
+        switch(type) {
             case 'excel':
                 return renderExcelFile(rows, meta, false)
             case 'excelTable':
@@ -47,30 +47,32 @@ class GridExportImplService extends BaseService {
             case 'csv':
                 return renderCSVFile(rows)
             default:
-                throw new RuntimeException('File type not supported: ' + filetype)
+                throw new RuntimeException('Export type not supported: ' + type)
         }
     }
 
-    private String getContentType(String filetype) {
-        switch(filetype) {
+    private String getContentType(String type) {
+        switch(type) {
             case ['excel', 'excelTable']:
                 return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             case 'csv':
                 return 'text/csv'
             default:
-                throw new RuntimeException('File type not supported: ' + filetype)
+                throw new RuntimeException('Export type not supported: ' + type)
         }
     }
 
-    private String getFileName(String filename, String filetype) {
+    private String getFileName(String filename, String type) {
         def extension
-        switch(filetype) {
+        switch(type) {
             case ['excel', 'excelTable']:
-                extension = '.xlsx'; break;
+                extension = '.xlsx'
+                break
             case 'csv':
-                extension = '.csv'; break;
+                extension = '.csv'
+                break
             default:
-                throw new RuntimeException('File type not supported: ' + filetype)
+                throw new RuntimeException('Export type not supported: ' + type)
         }
         return filename.endsWith(extension) ? filename : "${filename}${extension}"
     }
@@ -124,15 +126,15 @@ class GridExportImplService extends BaseService {
             }
         }
 
-        // Create map of cell styles by format
-        def styles = meta.collect{it.format}.unique().collectEntries {f ->
-            CellStyle style = wb.createCellStyle()
-            style.setDataFormat(wb.createDataFormat().getFormat(f))
-            [(f): style]
-        }
+        def definedWidthColumns = []
+        meta.eachWithIndex{col, i -> if (col.width) {
+            definedWidthColumns.add(i)
+        }}
 
-        def pendingGroups = [],
-            completedGroups = []
+        def styles = [:],
+            pendingGroups = [],
+            completedGroups = [],
+            valueParseFailures = 0
 
         // Add rows
         rows.eachWithIndex { rowMap, i ->
@@ -140,31 +142,49 @@ class GridExportImplService extends BaseService {
             Row row = sheet.createRow(i)
             List cells = Utils.stripJsonNulls(rowMap.data as List)
             cells.eachWithIndex { data, colIndex ->
-                def value = data?.toString()
                 Map metadata = meta[colIndex]
                 Cell cell = row.createCell(colIndex)
+
+                // Collect cell value and cell format
+                def value, format
+                if (data instanceof Map) {
+                    value = data?.value
+                    format = data?.format
+                } else {
+                    value = data
+                    format = metadata.format
+                }
+                value = value?.toString()
+
+                // Set cell data format (skipping column headers)
+                if (i > 0 && format) {
+                    if (!styles[format]) styles[format] = registerCellStyleForFormat(wb, format)
+                    cell.setCellStyle(styles[format])
+                }
 
                 if (i == 0 || !value) {
                     // Column headers and empty values ignore metadata
                     cell.setCellValue(value)
                 } else {
                     // Set cell value from type
-                    if (metadata.type == 'date') {
-                        value = Date.parse('yyyy-MM-dd', value)
-                    } else if (metadata.type == 'datetime') {
-                        value = Date.parse('yyyy-MM-dd HH:mm:ss', value)
-                    } else if (metadata.type == 'int' || (!metadata.type && value.isInteger())) {
-                        value = value.toInteger()
-                    } else if (metadata.type == 'double' || (!metadata.type && value.isDouble())) {
-                        value = value.toDouble()
+                    try {
+                        if (metadata.type == 'date') {
+                            value = Date.parse('yyyy-MM-dd', value)
+                        } else if (metadata.type == 'datetime') {
+                            value = Date.parse('yyyy-MM-dd HH:mm:ss', value)
+                        } else if (metadata.type == 'int' || (!metadata.type && value.isInteger())) {
+                            value = value.toInteger()
+                        } else if (metadata.type == 'double' || (!metadata.type && value.isDouble())) {
+                            value = value.toDouble()
+                        }
+                    } catch (Exception ex) {
+                        log.trace("Error parsing value ${value} for declared type ${metadata.type} | ${ex.message}")
+                        valueParseFailures++
                     }
-                    cell.setCellValue(value)
 
-                    // Set cell data format
-                    if (metadata.format) {
-                        cell.setCellStyle(styles[metadata.format])
-                    }
+                    cell.setCellValue(value)
                 }
+
             }
 
             // 2) Create groups for Excel tree affordance
@@ -180,10 +200,14 @@ class GridExportImplService extends BaseService {
             while (pendingGroups) {
                 // Close any completed groups
                 def group = pendingGroups.last()
-                if (group.depth <= nextDepth) break;
+                if (group.depth <= nextDepth) break
                 group.end = i
                 completedGroups << pendingGroups.pop()
             }
+        }
+
+        if (valueParseFailures) {
+            log.warn("Errors encountered during parsing for grid export - failed to parse ${valueParseFailures} cell values.")
         }
 
         if (asTable && completedGroups.size()) {
@@ -195,8 +219,13 @@ class GridExportImplService extends BaseService {
 
         // Auto-width columns to fit content
         if (!useStreamingAPI) {
-            for (def i = 0; i < rows.size(); i++) {
-                sheet.autoSizeColumn(i)
+            for (int i = 0; i < tableColumns; i++) {
+                if (definedWidthColumns.contains(i)) {
+                    int colWidth = meta.get(i).width * 256
+                    sheet.setColumnWidth(i, colWidth)
+                } else {
+                    sheet.autoSizeColumn(i)
+                }
             }
         }
 
@@ -209,6 +238,14 @@ class GridExportImplService extends BaseService {
         outputStream.close()
         if (useStreamingAPI) wb.dispose()
         return outputStream.toByteArray()
+    }
+
+    private CellStyle registerCellStyleForFormat(wb, format) {
+        CellStyle style = wb.createCellStyle()
+        if (format == 'Text') style.setWrapText(true)
+        style.setVerticalAlignment(VerticalAlignment.CENTER)
+        style.setDataFormat(wb.createDataFormat().getFormat(format))
+        return style
     }
 
     private byte[] renderCSVFile(List rows) {

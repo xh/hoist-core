@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2018 Extremely Heavy Industries Inc.
+ * Copyright © 2019 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist
@@ -25,7 +25,7 @@ import static io.xh.hoist.util.Utils.withNewSession
 
 /**
  * Standard superclass for all Hoist and Application-level services.
- * Provides template methods for service lifecycle and state management plus support for user look-ups.
+ * Provides template methods for service lifecycle / state management plus support for user lookups.
  */
 @Slf4j
 abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, EventBusAware {
@@ -38,8 +38,8 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
 
     /**
      * Initialize a collection of BaseServices in parallel.
-     * Hoist uses this method to initialize its own core services, and Applications may make one more more calls
-     * to initialize their services in an order that suits their needs.
+     * Hoist uses this method to initialize its own core services, and Applications may make one
+     * more more calls to initialize their services in an order that suits their needs.
      *
      * @param services - BaseServices to initialize
      * @param timeout - maximum time to wait for each service to init.
@@ -64,10 +64,8 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
     
 
     /**
-     * Create a Timer associated with this service.
-     *
-     * This method will create a new managed Timer bound to this service.
-     * @param args, arguments appropriate for ServiceUpdater
+     * Create a new managed Timer bound to this service.
+     * @param args - arguments appropriate for a Hoist Timer.
      */
     @CompileDynamic
     protected Timer createTimer(Map args) {
@@ -87,8 +85,8 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
      * This is important because the core grails EventBus.subscribe() will silently swallow
      * exceptions, and stop processing subsequent handlers.
      *
-     * This subscription also avoids firing handlers on destroyed services.  This is important in a hot-reloading
-     * scenario where multiple instances of singleton services may be created.
+     * This subscription also avoids firing handlers on destroyed services. This is important in a
+     * hot-reloading scenario where multiple instances of singleton services may be created.
      */
     protected void subscribe(String eventName, Closure c) {
         eventBus.subscribe(eventName) {Object... args ->
@@ -103,8 +101,7 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
     }
 
     /**
-     * Managed Subscription to a Grails Event with a provided hibernate session.
-     *
+     * Setup a managed Subscription to a Grails event with an auto-wired Hibernate session.
      * See subscribe() for more information.
      */
     protected void subscribeWithSession(String eventName, Closure c) {

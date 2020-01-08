@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2018 Extremely Heavy Industries Inc.
+ * Copyright © 2019 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.util
@@ -14,6 +14,9 @@ import io.xh.hoist.config.ConfigService
 import io.xh.hoist.json.JSON
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.track.TrackLog
+import io.xh.hoist.user.BaseRoleService
+import io.xh.hoist.user.BaseUserService
+import io.xh.hoist.websocket.WebSocketService
 import org.grails.web.converters.exceptions.ConverterException
 import org.grails.web.json.JSONArray
 import org.grails.web.json.JSONObject
@@ -64,13 +67,33 @@ class Utils {
         return (PrefService) appContext.prefService
     }
 
+    static BaseUserService getUserService() {
+        return (BaseUserService) appContext.userService
+    }
+
+    static BaseRoleService getRoleService() {
+        return (BaseRoleService) appContext.roleService
+    }
+
+    static WebSocketService getWebSocketService() {
+        return (WebSocketService) appContext.webSocketService
+    }
+
     static ApplicationContext getAppContext() {
         return Holders.applicationContext
     }
 
     /**
-     * Run a closure with a new hibernate session.  Useful for asynchronous routines that will not have grails
-     * installed hibernate session on the thread.
+     * Return the app's primary dataSource configuration. This is the connection to the app's
+     * database housing Hoist-related tables as well as any app-specific domain objects.
+     */
+    static Map<String, String> getDataSource() {
+        return (Map<String, String>) Holders.grailsApplication.config.dataSource
+    }
+
+    /**
+     * Run a closure with a new hibernate session.  Useful for asynchronous routines that will not
+     * have a Grails-installed Hibernate session on the thread.
      */
     static withNewSession(Closure c) {
         TrackLog.withNewSession(c) // Yes, a bizarre dependency on an arbitrary domain object

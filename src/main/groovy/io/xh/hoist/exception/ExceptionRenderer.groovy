@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2018 Extremely Heavy Industries Inc.
+ * Copyright © 2019 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.exception
@@ -11,8 +11,8 @@ import grails.gsp.PageRenderer
 import grails.util.GrailsUtil
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import io.xh.hoist.json.JSON
 import io.xh.hoist.json.JSONFormat
+import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.util.Utils
 
 import javax.servlet.http.HttpServletRequest
@@ -84,9 +84,10 @@ class ExceptionRenderer {
                 [
                         name   : t.class.simpleName,
                         message: t.message,
-                        cause  : t.cause?.message
+                        cause  : t.cause?.message,
+                        isRoutine: t instanceof RoutineException
                 ].findAll {it.value}
-        return (new JSON(ret)).toString()
+        return JSONSerializer.serialize(ret);
     }
     
 }

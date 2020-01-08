@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2018 Extremely Heavy Industries Inc.
+ * Copyright © 2019 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.log
@@ -21,6 +21,7 @@ class LogLevel implements JSONFormat {
 
     static mapping = {
         table 'xh_log_level'
+        level column: 'log_level'
         cache true
     }
 
@@ -28,11 +29,6 @@ class LogLevel implements JSONFormat {
         name(unique: true, nullable: false, blank: false)
         level(nullable: true, maxSize: 20, inList: LogLevel.LEVELS)
     }
-
-    static transients = [
-            'defaultLevel',
-            'effectiveLevel'
-    ]
 
     Map formatForJSON() {
         return [

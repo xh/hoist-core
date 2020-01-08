@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2018 Extremely Heavy Industries Inc.
+ * Copyright © 2019 Extremely Heavy Industries Inc.
  */
 package io.xh.hoist.log
 
@@ -17,7 +17,6 @@ import java.util.zip.ZipOutputStream
 import static io.xh.hoist.log.LogUtils.logRootPath
 import static io.xh.hoist.util.DateTimeUtils.DAYS
 import static java.io.File.separator
-import static grails.util.Environment.isDevelopmentMode
 
 /**
  * Support for automatic cleanup of server log files. Files older than the day limit configured
@@ -33,8 +32,16 @@ class LogArchiveService extends BaseService {
         super.init()
     }
 
-    void archiveLogs(int daysThreshold) {
+    List<String> archiveLogs(Integer daysThreshold) {
+        if (!config.archiveFolder) {
+            log.warn("Log archiving disabled due to incomplete / disabled xhLogArchiveConfig entry")
+            return []
+        }
+
         File logPath = getLogPath()
+        List archivedFilenames = []
+
+        daysThreshold = daysThreshold ?: config.archiveAfterDays
 
         List<File> oldLogs = getOldLogFiles(logPath, daysThreshold)
         withShortInfo("Archiving ${oldLogs.size()} log(s) older than ${daysThreshold} days.") {
@@ -50,11 +57,14 @@ class LogArchiveService extends BaseService {
                     files.each {File file ->
                         writeFileToZip(zipStream, file)
                         file.delete()
+                        archivedFilenames << file.name
                     }
                     zipStream.close()
                 }
             }
         }
+
+        return archivedFilenames
     }
 
 
@@ -62,9 +72,7 @@ class LogArchiveService extends BaseService {
     // Implementation
     //------------------------
     private void onTimer() {
-        if (!isDevelopmentMode()) {
-            archiveLogs((int) config.archiveAfterDays)
-        }
+        archiveLogs((Integer) config.archiveAfterDays)
     }
 
     private File getLogPath() {

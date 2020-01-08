@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2018 Extremely Heavy Industries Inc.
+ * Copyright © 2019 Extremely Heavy Industries Inc.
  */
 package io.xh.hoist.email
 
@@ -145,6 +145,7 @@ class EmailService extends BaseService {
         if (o instanceof String) o = o.split(',')
         return o.collect {String email ->
             email = email.trim()
+            domain = domain.contains('@') ? domain : '@' + domain
             email.contains('@') ? email : (email + domain)
         }
     }

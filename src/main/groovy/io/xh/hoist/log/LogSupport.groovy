@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2018 Extremely Heavy Industries Inc.
+ * Copyright © 2019 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.log
@@ -71,11 +71,11 @@ trait LogSupport {
         if (log.debugEnabled) {
             log.error(message, t)
         } else {
-            log.error("$message | ${getThrowableSummary(t)}")
+            log.error("$message | ${getThrowableSummary(t)}  [log on debug for more...]")
         }
     }
 
-    
+
     //------------------------
     // Implementation
     //------------------------

@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2018 Extremely Heavy Industries Inc.
+ * Copyright © 2019 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.monitor
@@ -86,6 +86,7 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
 
             markLastStatus(newResults, _results)
             _results = newResults
+            if (monitorConfig.writeToMonitorLog != false) logResults()
             evaluateProblems()
         }
     }
@@ -154,6 +155,21 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
     private MonitorStatusReport generateStatusReport() {
         def results = results.values().toList()
         new MonitorStatusReport(results: results)
+    }
+
+    private void logResults() {
+        results.each {code, result ->
+            def status = result.status,
+                metric = result.metric
+
+            log.info("monitorCode=${code} | status=${status} | metric=${metric}")
+        }
+
+        def failsCount = results.count {it.value.status == FAIL},
+            warnsCount = results.count {it.value.status == WARN},
+            okCount = results.count {it.value.status == OK}
+
+        log.info("fails=${failsCount} | warns=${warnsCount} | okays=${okCount}")
     }
 
     private void onNotifyTimer() {

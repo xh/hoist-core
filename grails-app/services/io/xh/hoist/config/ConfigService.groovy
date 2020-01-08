@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2018 Extremely Heavy Industries Inc.
+ * Copyright © 2019 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.config
@@ -11,12 +11,13 @@ import grails.compiler.GrailsCompileStatic
 import grails.events.annotation.Subscriber
 import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
-import io.xh.hoist.json.JSON
 import org.grails.datastore.mapping.engine.event.PreUpdateEvent
 import org.grails.web.json.JSONArray
 import org.grails.web.json.JSONElement
 import org.grails.web.json.JSONObject
 import grails.events.*
+
+import static io.xh.hoist.json.JSONSerializer.serializePretty
 
 
 /**
@@ -69,9 +70,7 @@ class ConfigService extends BaseService implements EventPublisher {
             AppConfig config = (AppConfig) it
             def name = config.name
             try {
-                def configVal = getInternal(config),
-                    isPwd = config.valueType == 'pwd'
-                ret[name] = isPwd ? '***********' : configVal
+                ret[name] = config.externalValue(obscurePassword: true, jsonAsObject: true);
             } catch (Exception e) {
                 log.error("Exception while getting client config: '$name'", e)
             }
@@ -123,7 +122,8 @@ class ConfigService extends BaseService implements EventPublisher {
                 note = confDefaults.note ?: ''
 
             if (!currConfig) {
-                if (valType == 'json') defaultVal = new JSON(defaultVal).toString(true)
+
+                if (valType == 'json') defaultVal = serializePretty(defaultVal)
 
                 new AppConfig(
                     name: confName,
@@ -164,23 +164,7 @@ class ConfigService extends BaseService implements EventPublisher {
         if (valueType != c.valueType) {
             throw new RuntimeException('Unexpected type for key: ' + name)
         }
-        return getInternal(c)
-    }
-
-
-    private Object getInternal(AppConfig config) {
-        String ret = config.value
-
-        switch(config.valueType) {
-            case 'json':    return JSON.parse(ret)
-            case 'int':     return ret.toInteger()
-            case 'long':    return ret.toLong()
-            case 'double':  return ret.toDouble()
-            case 'bool':    return ret.toBoolean()
-            case 'pwd':     return AppConfig.decryptPassword(ret)
-            case 'string' : return ret
-            default:        return ret
-        }
+        return c.externalValue(decryptPassword: true, jsonAsObject: true)
     }
 
     //------------------------------------------------------------------------------
@@ -195,7 +179,7 @@ class ConfigService extends BaseService implements EventPublisher {
 
         def obj = (AppConfig) event.entityObject,
             changed = obj.hasChanged('value'),
-            newVal = getInternal(obj)
+            newVal = obj.externalValue()
 
         if (changed) {
             // notify is called in a new thread and with a delay to make sure the newVal has had the time to propagate

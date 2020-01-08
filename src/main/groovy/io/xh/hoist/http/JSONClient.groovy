@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2018 Extremely Heavy Industries Inc.
+ * Copyright © 2019 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.http
@@ -13,6 +13,7 @@ import io.xh.hoist.json.JSON
 import org.apache.http.client.methods.CloseableHttpResponse
 import org.apache.http.client.methods.HttpRequestBase
 import org.apache.http.impl.client.CloseableHttpClient
+import org.apache.http.impl.client.HttpClients
 import org.apache.http.protocol.BasicHttpContext
 import org.grails.web.json.JSONArray
 import org.grails.web.json.JSONObject
@@ -20,14 +21,26 @@ import org.grails.web.json.JSONObject
 import static org.apache.http.HttpStatus.SC_NO_CONTENT
 import static org.apache.http.HttpStatus.SC_OK
 
+/**
+ * A thin wrapper around an Apache HttpClient to execute HTTP requests and return pre-parsed
+ * JSONObjects and JSONArrays. (Can also return responses as text or an int HTTP status code.)
+ *
+ * This wrapper also provides additional customizations around exceptions. If a response returns
+ * with an HTTP status code indicating an error (i.e. *not* 200-204), the execute method will throw.
+ * This class attempt to decode JSON serialized Hoist or java.lang exceptions from a remote host
+ * and rethrow the actual exception class if possible, otherwise falling back to a RuntimeException.
+ */
 @Slf4j
 @CompileStatic
 class JSONClient {
 
-    private final CloseableHttpClient client
+    private final CloseableHttpClient _client
 
-    JSONClient(CloseableHttpClient client) {
-        this.client = client
+    /**
+     * @param client - a preconfigured HttpClient instance, or omit for a default client.
+     */
+    JSONClient(CloseableHttpClient client = HttpClients.createDefault()) {
+        this._client = client
     }
 
     //--------------------------------------------------
@@ -49,7 +62,7 @@ class JSONClient {
             response = execute(method)
             def statusCode = response.statusLine.statusCode
             if (statusCode == SC_NO_CONTENT) return null
-            return response.entity.content.getText()
+            return response.entity.content.getText('UTF-8')
         } finally {
             if (response) response.close()
         }
@@ -76,7 +89,7 @@ class JSONClient {
         boolean success
 
         try {
-            ret = executeRaw(client, method)
+            ret = executeRaw(_client, method)
             Integer statusCode = ret.statusLine.statusCode
             success = (statusCode >= SC_OK  && statusCode <= SC_NO_CONTENT)
             statusText = statusCode.toString()
@@ -133,5 +146,5 @@ class JSONClient {
 
         return null
     }
-    
+
 }
