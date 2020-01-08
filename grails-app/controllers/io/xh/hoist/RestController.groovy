@@ -15,8 +15,7 @@ import org.grails.web.json.JSONObject
 @Slf4j
 abstract class RestController extends BaseController {
 
-    def trackService,
-        messageSource
+    def trackService
 
     static trackChanges = false
     static restTarget = null // Implementations set to value of GORM domain class they are editing.
@@ -30,8 +29,8 @@ abstract class RestController extends BaseController {
             doCreate(obj, data)
             noteChange(obj, 'CREATE')
             renderJSON(success:true, data:obj)
-        } catch (ValidationException ignored) {
-            throw new RuntimeException(errorsString(obj))
+        } catch (ValidationException ex) {
+            throw ex
         }
     }
 
@@ -50,9 +49,9 @@ abstract class RestController extends BaseController {
             doUpdate(obj, data)
             noteChange(obj, 'UPDATE')
             renderJSON(success:true, data:obj)
-        } catch (ValidationException ignored) {
+        } catch (ValidationException ex) {
             obj.discard()
-            throw new RuntimeException(errorsString(obj))
+            throw ex
         }
     }
 
@@ -149,16 +148,6 @@ abstract class RestController extends BaseController {
                 category: 'Audit',
                 data: [ id: obj.id ]
         )
-    }
-
-    protected String errorsString(gormObject) {
-        return 'Could not save: ' + allErrors(gormObject).join(', ')
-    }
-
-    protected List allErrors(gormObject) {
-        return gormObject.errors.allErrors.collect{error ->
-            messageSource.getMessage(error, Locale.US)
-        }
     }
 
     private static String getChangeVerb(String changeType) {

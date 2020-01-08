@@ -14,9 +14,12 @@ import groovy.util.logging.Slf4j
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.util.Utils
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.context.MessageSource
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
+import grails.validation.ValidationException
 
 import static org.apache.http.HttpStatus.SC_FORBIDDEN
 import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
@@ -26,6 +29,8 @@ import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
 class ExceptionRenderer {
 
     public template = null
+    @Autowired
+    MessageSource messageSource
 
     /**
      * Main entry point.  Render an exception to the response.
@@ -33,6 +38,15 @@ class ExceptionRenderer {
     void render(Throwable t, HttpServletRequest request, HttpServletResponse response) {
         GrailsUtil.deepSanitize(t)
         response.setStatus(getHttpStatus(t))
+
+        if(t instanceof ValidationException) {
+            def errorMessage = t.errors.allErrors.collect{error ->
+                messageSource.getMessage(error, Locale.US)
+            }.join(',')
+
+            t = new Throwable(errorMessage)
+        }
+
         switch (getResponseFormat(request)) {
             case 'HTML':
                 renderAsHTML(t, request, response)
