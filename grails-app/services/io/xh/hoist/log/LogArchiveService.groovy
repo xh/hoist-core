@@ -33,6 +33,10 @@ class LogArchiveService extends BaseService {
     }
 
     List<String> archiveLogs(Integer daysThreshold) {
+        if (!config.archiveFolder) {
+            log.info("Log archiving disabled due to incomplete / disabled xhLogArchiveConfig entry")
+        }
+
         File logPath = getLogPath()
         List archivedFilenames = []
 
