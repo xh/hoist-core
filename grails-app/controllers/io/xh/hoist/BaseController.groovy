@@ -49,7 +49,7 @@ abstract class BaseController implements LogSupport {
         if(ex instanceof ValidationException) {
             def errorMessage = ex.errors.allErrors.collect{error ->
                 messageSource.getMessage(error, Locale.US)
-            }.join(',')
+            }.join(' | ')
 
             ex = new GORMValidationException(errorMessage)
         }
