@@ -7,11 +7,17 @@
 
 package io.xh.hoist.exception
 
+import io.xh.hoist.util.Utils
+
 /**
  * Exception for use when user input fails GORM validation
  */
 class ValidationException extends RuntimeException implements RoutineException {
-    ValidationException(String s) {
-        super(s)
+    ValidationException(grails.validation.ValidationException ex) {
+        super(
+            ex.errors.allErrors.collect{error ->
+                Utils.appContext.messageSource.getMessage(error, Locale.US)
+            }.join(' | ')
+        )
     }
 }

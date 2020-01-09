@@ -17,7 +17,6 @@ import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
-import org.springframework.context.MessageSource
 
 @Slf4j
 @CompileStatic
@@ -25,7 +24,6 @@ abstract class BaseController implements LogSupport {
 
     IdentityService identityService
     ExceptionRenderer exceptionRenderer
-    MessageSource messageSource
 
     protected void renderJSON(Object o){
         response.setContentType('application/json; charset=UTF-8')
@@ -46,13 +44,8 @@ abstract class BaseController implements LogSupport {
     void handleException(Exception ex) {
         def message = ex.message ?: 'Exception'
 
-        // Convert a Grails ValidationException to a Hoist ValidationException
         if(ex instanceof grails.validation.ValidationException) {
-            def errorMessage = ex.errors.allErrors.collect{error ->
-                messageSource.getMessage(error, Locale.US)
-            }.join(' | ')
-
-            ex = new ValidationException(errorMessage)
+            ex = new ValidationException(ex)
         }
 
         if (ex instanceof RoutineException) {
