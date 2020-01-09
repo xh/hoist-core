@@ -40,7 +40,7 @@ class BootStrap {
   \\/_/\\/_/   \\/_____/   \\/_/   \\/_____/     \\/_/
 \n
           Hoist v${hoist.version} - ${Utils.getAppEnvironment()}
-          Extremely Heavy Industries - http://xh.io
+          Extremely Heavy - http://xh.io
             + ${runtime.availableProcessors()} available processors
             + ${String.format('%,d', (runtime.maxMemory() / 1000000).toLong())}mb available memory
 \n

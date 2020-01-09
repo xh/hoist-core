@@ -1,7 +1,6 @@
 # Welcome to Hoist
 
-Hoist is a web application development toolkit developed by
-[Extremely Heavy Industries](https://xh.io/).
+Hoist is a web application development toolkit developed by [Extremely Heavy](https://xh.io/).
 
 Hoist is designed as a "full stack" UI development framework, meaning that it has both server and
 client components that work together to provide an integrated set of tools and utilities for quickly
@@ -109,7 +108,7 @@ dependencies {
 
 This will add server-side support for Hoist's core back-end services, including a set of endpoints
 expected by the client-side toolkit implementations. Versioned and snapshot builds of Hoist are
-pushed to ExHI's maven repository, which must also be configured within build.gradle.
+pushed to XH's maven repository, which must also be configured within build.gradle.
 
 Grails applications are built via [Gradle](https://gradle.org/), a highly flexible and popular build
 tool. The result is a single WAR file which can be deployed via
@@ -140,10 +139,10 @@ applications.
 ## Hoist usage, licensing, and support
 
 While we maintain open access to the Hoist codebase via these public repositories, Hoist is intended
-for use by clients of Extremely Heavy Industries who are working with us to develop custom
-applications for their enterprise.
+for use by clients of Extremely Heavy who are working with us to develop custom applications for 
+their enterprise.
 
-Extremely Heavy Industries reserves all rights to the code and intellectual property contained
+Extremely Heavy reserves all rights to the code and intellectual property contained
 within, does not offer public support or a license at this time, makes no warranties or guarantees
 as to the functionality, correctness, or fitness of this software, and shall not be held liable for
 its use outside the scope of a structured consulting engagement.
@@ -402,7 +401,7 @@ including support for debouncing alerts. `MonitoringService` fires a server-side
 `xhMonitorStatusReport` event that can be picked up by other custom services for additional
 notifications.
 
-🔮 Note an ExHI project is underway to provide a more general and cross-application
+🔮 Note an XH project is underway to provide a more general and cross-application
 implementation of this monitoring API for both Hoist and non-Hoist based applications.
 
 ### Readme TODOs

@@ -114,7 +114,7 @@ publishing {
                     }
                     delegate.developers {
                         delegate.developer {
-                            delegate.id 'exhi'
+                            delegate.id 'xh'
                             delegate.name 'Extremely Heavy Industries'
                             delegate.email 'info@xh.io'
                         }
