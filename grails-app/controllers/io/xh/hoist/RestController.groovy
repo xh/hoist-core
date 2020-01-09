@@ -25,13 +25,9 @@ abstract class RestController extends BaseController {
         preprocessSubmit(data as JSONObject)
 
         def obj = restTargetVal.newInstance(data)
-        try {
-            doCreate(obj, data)
-            noteChange(obj, 'CREATE')
-            renderJSON(success:true, data:obj)
-        } catch (ValidationException ex) {
-            throw ex
-        }
+        doCreate(obj, data)
+        noteChange(obj, 'CREATE')
+        renderJSON(success:true, data:obj)
     }
 
     def read() {
