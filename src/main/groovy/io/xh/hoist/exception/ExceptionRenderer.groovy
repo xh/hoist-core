@@ -44,6 +44,7 @@ class ExceptionRenderer {
 
     protected int getHttpStatus(Throwable t) {
         if (t instanceof NotAuthorizedException) return SC_FORBIDDEN
+        if (t instanceof NotFoundException) return SC_NOT_FOUND
         return SC_INTERNAL_SERVER_ERROR
     }
 
