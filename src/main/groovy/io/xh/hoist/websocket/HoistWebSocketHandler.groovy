@@ -16,7 +16,7 @@ import static io.xh.hoist.util.Utils.getWebSocketService
 
 /**
  * Helper class to relay events from the Spring websocket infrastructure to the Hoist
- * WebSocketService. Must be wired by the main Application.groovy class - see ExHI-provided
+ * WebSocketService. Must be wired by the main Application.groovy class - see XH-provided
  * template apps for examples.
  */
 @CompileStatic
