@@ -7,11 +7,11 @@
 
 package io.xh.hoist
 
-import grails.validation.ValidationException
+
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.xh.hoist.exception.ExceptionRenderer
-import io.xh.hoist.exception.GORMValidationException
+import io.xh.hoist.exception.ValidationException
 import io.xh.hoist.exception.RoutineException
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
@@ -46,12 +46,13 @@ abstract class BaseController implements LogSupport {
     void handleException(Exception ex) {
         def message = ex.message ?: 'Exception'
 
-        if(ex instanceof ValidationException) {
+        // Convert a Grails ValidationException to a Hoist ValidationException
+        if(ex instanceof grails.validation.ValidationException) {
             def errorMessage = ex.errors.allErrors.collect{error ->
                 messageSource.getMessage(error, Locale.US)
             }.join(' | ')
 
-            ex = new GORMValidationException(errorMessage)
+            ex = new ValidationException(errorMessage)
         }
 
         if (ex instanceof RoutineException) {

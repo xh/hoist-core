@@ -10,8 +10,8 @@ package io.xh.hoist.exception
 /**
  * Exception for use when user input fails GORM validation
  */
-class GORMValidationException extends RuntimeException implements RoutineException {
-    GORMValidationException(String s) {
+class ValidationException extends RuntimeException implements RoutineException {
+    ValidationException(String s) {
         super(s)
     }
 }
