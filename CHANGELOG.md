@@ -568,3 +568,10 @@ exposing them to the application as a map.
 * Make LogLevel adjustments synchronous, so they reflect immediately in Admin console UI.
   dc387e885bea14b0443d5e984ccd74238fa6e7b7
 
+------------------------------------------
+
+Copyright © 2020 Extremely Heavy Industries Inc. - all rights reserved
+
+ ------------------------------------------
+
+📫☎️🌎 info@xh.io | https://xh.io/contact
