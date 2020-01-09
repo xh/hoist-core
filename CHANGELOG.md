@@ -1,13 +1,13 @@
 # Changelog
 
-### 7.0-SNAPSHOT
+## 7.0.0 Snapshot
 
 ### ⚙️ Technical
-* All exceptions are now rendered as JSON.
-* Any `ValidationException` from GORM encountered in any controller action will now be treated as 
-routine and will not be logged.  The messages for these exceptions sent to the client have also
-been cleaned up and made more suitable for end-users.
-
+* Exceptions in GORM validation will now be treated as routine and will not be logged.
+  ([#95](https://github.com/xh/hoist-core/issues/95))
+* GORM validation exceptions are now handled by `BaseController` rather than `RestController`, 
+  so all endpoints will be handled consistently.
+  ([#68](https://github.com/xh/hoist-core/issues/68))
 
 ## 6.3.1 - 2019-11-12
 
