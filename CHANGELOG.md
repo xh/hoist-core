@@ -1,14 +1,14 @@
 # Changelog
 
-## 7.0.0 Snapshot
+## 7.0-SNAPSHOT - under development
 
 ### ⚙️ Technical
-* All exceptions are now rendered as JSON.  HTML excception rendering is no longer supported.
+
+* All exceptions are now rendered as JSON. HTML exception rendering is no longer supported.
 * Exceptions in GORM validation will now be treated as routine and will not be logged.
   ([#95](https://github.com/xh/hoist-core/issues/95))
-* GORM validation exceptions are now handled by `BaseController` rather than `RestController`, 
-  so all endpoints will be handled consistently.
-  ([#68](https://github.com/xh/hoist-core/issues/68))
+* GORM validation exceptions are now handled by `BaseController` rather than `RestController`, so
+  all endpoints will be handled consistently. ([#68](https://github.com/xh/hoist-core/issues/68))
 
 ## 6.3.1 - 2019-11-12
 
