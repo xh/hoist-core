@@ -228,15 +228,15 @@ class XhController extends BaseController {
 
     //------------------------
     // Timezone
-    //
-    // Returns the timezone offset for a given timezone id. While abbreviations (e.g. 'GMT', 'PST', 'UTC+04') are supported,
-    // fully qualified timezone ids (e.g. 'Europe/London', 'America/New_York') are preferred, as these account for daylight savings.
-    // Note we explicitly check against the available ids - this is because TimeZone.getTimeZone() defaults to GMT if not recognized.
+    // Returns the timezone offset for a given timezone ID.
+    // While abbrevs (e.g. 'GMT', 'PST', 'UTC+04') are supported, fully qualified IDs (e.g.
+    // 'Europe/London', 'America/New_York') are preferred, as these account for daylight savings.
     //------------------------
     def getTimeZoneOffset(String timeZoneId) {
+        // Validate ID, as getTimeZone() defaults to GMT if not recognized.
         def availableIds = TimeZone.getAvailableIDs()
         if (!availableIds.contains(timeZoneId)) {
-            throw new RuntimeException('Timezone ID ' + timeZoneId + ' not recognized')
+            throw new NotFoundException("TimeZone ID ${timeZoneId} not recognized")
         }
         def tz = TimeZone.getTimeZone(timeZoneId)
         renderJSON([offset: tz.getOffset(System.currentTimeMillis())])
