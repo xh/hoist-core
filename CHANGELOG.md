@@ -2,6 +2,10 @@
 
 ## 7.0-SNAPSHOT - under development
 
+### 🎁 New Features
+
+* Added a new `xhEnableImpersonation` config for enabling or disabling impersonation app-wide.
+
 ### ⚙️ Technical
 
 * All exceptions are now rendered as JSON. HTML exception rendering is no longer supported.
