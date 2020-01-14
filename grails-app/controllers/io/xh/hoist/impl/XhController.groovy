@@ -71,10 +71,6 @@ class XhController extends BaseController {
         renderJSON(targets.collect{[username: it.username]})
     }
 
-    def impersonationEnabled() {
-        renderJSON(enabled: configService.getBool('xhEnableImpersonation'))
-    }
-
     def impersonate(String username) {
         identityService.impersonate(username)
         renderJSON(success: true)
