@@ -148,6 +148,13 @@ class BootStrap {
                 defaultValue: 'none',
                 groupName: 'xh.io',
                 note: 'Email address to which status monitor alerts should be sent. Value "none" disables emailed alerts.'
+            ],
+            xhEnableImpersonation: [
+                valueType: 'bool',
+                defaultValue: false,
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'True to enable hoist admins to impersonate other users.'
             ]
         ])
     }
