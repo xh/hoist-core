@@ -114,6 +114,13 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Email address to which support and feedback submissions should be sent.'
             ],
+            xhEnableImpersonation: [
+                valueType: 'bool',
+                defaultValue: false,
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'True to allow Hoist Admins to impersonate other users.'
+            ],
             xhIdleTimeoutMins: [
                 valueType: 'int',
                 defaultValue: -1,
@@ -148,13 +155,6 @@ class BootStrap {
                 defaultValue: 'none',
                 groupName: 'xh.io',
                 note: 'Email address to which status monitor alerts should be sent. Value "none" disables emailed alerts.'
-            ],
-            xhEnableImpersonation: [
-                valueType: 'bool',
-                defaultValue: false,
-                clientVisible: true,
-                groupName: 'xh.io',
-                note: 'True to enable hoist admins to impersonate other users.'
             ]
         ])
     }
