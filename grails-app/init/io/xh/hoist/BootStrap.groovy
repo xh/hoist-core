@@ -151,10 +151,10 @@ class BootStrap {
             ],
             xhEnableImpersonation: [
                 valueType: 'bool',
-                defaultValue: true,
+                defaultValue: false,
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'False to disable impersonation app-wide'
+                note: 'True to enable hoist admins to impersonate other users.'
             ]
         ])
     }
