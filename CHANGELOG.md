@@ -4,7 +4,11 @@
 
 ### 🎁 New Features
 
-* Added a new `xhEnableImpersonation` config for enabling or disabling impersonation app-wide.
+* Added a new `xhEnableImpersonation` config for enabling or disabling impersonation app-wide. Note
+  that this config will be defaulted to false if not yet defined - set to true after upgrade to
+  continue supporting impersonation for your application.
+* The `xhMonitorConfig` config supports a new property `monitorTimeoutSecs` to control the max
+  runtime for any individual monitor check.
 
 ### ⚙️ Technical
 
@@ -15,6 +19,8 @@
   all endpoints will be handled consistently. ([#68](https://github.com/xh/hoist-core/issues/68))
 * Any `appBuild` tag is now included in the output of `xh/version`, allowing for client-side version
   checking to take the particular build into account when running on a SNAPSHOT.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.3.1...develop)
 
 ## 6.3.1 - 2019-11-12
 
