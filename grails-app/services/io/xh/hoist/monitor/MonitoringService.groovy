@@ -27,8 +27,8 @@ import static java.lang.System.currentTimeMillis
  * on a configurable timer, analyzes the results, and publishes Grails events on status conditions
  * of interest to the application.
  *
- * In local development mode, auto-run/refresh of Monitors is disabled by default, but monitors
- * can still be run on demand via forceRun(). Notification are never sent during local development.
+ * In local development mode, auto-run/refresh of Monitors is disabled, but monitors can still be
+ * run on demand via forceRun(). Notification are never sent during local development.
  *
  * If enabled via config, this service will also write monitor run results to a dedicated log file.
  */
@@ -76,8 +76,10 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
     //------------------------
     private void runAllMonitors() {
         withDebug('Running monitors') {
+            def timeout = getTimeoutSeconds()
+
             def tasks = Monitor.list().collect { m ->
-                asyncTask { monitorResultService.runMonitor(m) }
+                asyncTask { monitorResultService.runMonitor(m, timeout) }
             }
 
             Map newResults = Promises
@@ -191,7 +193,7 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
     }
 
     private int getMonitorInterval() {
-        return disabledDueToLocalDevMode ? -1 : (monitorConfig.monitorRefreshMins * MINUTES)
+        return isDevelopmentMode() ? -1 : (monitorConfig.monitorRefreshMins * MINUTES)
     }
 
     private int getNotifyInterval() {
@@ -202,8 +204,9 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
         return monitorConfig.monitorStartupDelayMins * MINUTES
     }
 
-    private boolean getDisabledDueToLocalDevMode() {
-        return isDevelopmentMode() && !monitorConfig.runInLocalDevMode
+    // Default supplied here as support for this sub-config was added late in the game.
+    private long getTimeoutSeconds() {
+        return monitorConfig.monitorTimeoutSecs ?: 15
     }
 
     private JSONObject getMonitorConfig() {

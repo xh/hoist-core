@@ -19,20 +19,20 @@ import static java.util.concurrent.TimeUnit.SECONDS
 
 /**
  * Runs individual status monitor checks as directed by MonitorService and as configured by
- * data-driven status monitor definitions. Monitor runs are limited to a configurable timeout.
- * Timeouts and any other exceptions will be caught and returned as failures.
+ * data-driven status monitor definitions. Timeouts and any other exceptions will be caught and
+ * returned cleanly as failures.
  */
 class MonitorResultService extends BaseService implements AsyncSupport {
 
     def configService
 
-    MonitorResult runMonitor(String code) {
+    MonitorResult runMonitor(String code, long timeoutSeconds) {
         def monitor = Monitor.findByCode(code)
         if (!monitor) throw new RuntimeException("Monitor '$code' not found.")
-        return runMonitor(monitor)
+        return runMonitor(monitor, timeoutSeconds)
     }
 
-    MonitorResult runMonitor(Monitor monitor) {
+    MonitorResult runMonitor(Monitor monitor, long timeoutSeconds) {
         if (!monitor.active) {
             return inactiveMonitorResult(monitor)
         }
@@ -40,8 +40,7 @@ class MonitorResultService extends BaseService implements AsyncSupport {
         def defSvc = Utils.appContext.monitorDefinitionService,
             code = monitor.code,
             result = new MonitorResult(monitor: monitor),
-            startTime = new Date(),
-            timeout = getTimeoutSecs()
+            startTime = new Date()
 
         try {
             if (!defSvc?.metaClass?.respondsTo(defSvc, code)) {
@@ -51,7 +50,7 @@ class MonitorResultService extends BaseService implements AsyncSupport {
             // Run the check...
             asyncTask {
                 defSvc."$code"(result)
-            }.get(timeout, SECONDS)
+            }.get(timeoutSeconds, SECONDS)
 
             // Default status to OK if it has not already been set within the check.
             if (result.status == UNKNOWN) {
@@ -124,12 +123,6 @@ class MonitorResultService extends BaseService implements AsyncSupport {
             result.status = WARN
             result.message = "Metric value is $verb warn limit of $warn $units"
         }
-    }
-
-    // Default value of 15s provided here as configurable timeouts were added late in the game.
-    private long getTimeoutSecs() {
-        def conf = configService.getJSONObject('xhMonitorConfig')
-        return conf.monitorTimeoutSecs ?: 15
     }
 
 }

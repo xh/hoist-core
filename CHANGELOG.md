@@ -7,9 +7,8 @@
 * Added a new `xhEnableImpersonation` config for enabling or disabling impersonation app-wide. Note
   that this config will be defaulted to false if not yet defined - set to true after upgrade to
   continue supporting impersonation for your application.
-* The `xhMonitorConfig` config supports two additional properties - `monitorTimeoutSecs` to control
-  the max runtime for any individual monitor check and `runInLocalDevMode` to enable scheduled
-  monitor runs during local development.
+* The `xhMonitorConfig` config supports a new property `monitorTimeoutSecs` to control the max
+  runtime for any individual monitor check.
 
 ### ⚙️ Technical
 
