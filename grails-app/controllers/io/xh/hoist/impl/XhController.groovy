@@ -161,6 +161,7 @@ class XhController extends BaseController {
                 appCode:                Utils.appCode,
                 appName:                Utils.appName,
                 appVersion:             Utils.appVersion,
+                appBuild:               Utils.appBuild,
                 appEnvironment:         Utils.appEnvironment.toString(),
                 grailsVersion:          GrailsUtil.grailsVersion,
                 javaVersion:            System.getProperty('java.version')
@@ -173,9 +174,9 @@ class XhController extends BaseController {
         def user = identityService.getAuthUser(request)
         if (user && user.isHoistAdmin) {
             def dataSource = Utils.dataSource
-            ret['databaseConnectionString'] = dataSource.url
-            ret['databaseUser'] = dataSource.username
-            ret['databaseCreateMode'] = dataSource.dbCreate
+            ret.databaseConnectionString = dataSource.url
+            ret.databaseUser = dataSource.username
+            ret.databaseCreateMode = dataSource.dbCreate
         }
 
         renderJSON(ret)
@@ -185,6 +186,7 @@ class XhController extends BaseController {
         def shouldUpdate = configService.getBool('xhAppVersionCheckEnabled')
         renderJSON (
                 appVersion: Utils.appVersion,
+                appBuild: Utils.appBuild,
                 shouldUpdate: shouldUpdate
         )
     }
