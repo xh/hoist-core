@@ -49,6 +49,13 @@ class Utils {
     }
 
     /**
+     * Optional git commit hash or other identifier set at build time.
+     */
+    static String getAppBuild() {
+        return buildInfo.getProperty('info.xh.appBuild')
+    }
+
+    /**
      * Hoist AppEnvironment of the current deployment, distinct from Grails environment.
      */
     static AppEnvironment getAppEnvironment() {
