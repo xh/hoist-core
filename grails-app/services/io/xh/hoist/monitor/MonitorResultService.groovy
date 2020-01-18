@@ -13,21 +13,22 @@ import io.xh.hoist.async.AsyncSupport
 
 import java.util.concurrent.TimeoutException
 
-import static io.xh.hoist.monitor.MonitorStatus.FAIL
-import static io.xh.hoist.monitor.MonitorStatus.INACTIVE
-import static io.xh.hoist.monitor.MonitorStatus.OK
-import static io.xh.hoist.monitor.MonitorStatus.UNKNOWN
-import static io.xh.hoist.monitor.MonitorStatus.WARN
-
+import static io.xh.hoist.monitor.MonitorStatus.*
 import static java.util.concurrent.TimeUnit.SECONDS
 
+
+/**
+ * Runs individual status monitor checks as directed by MonitorService and as configured by
+ * data-driven status monitor definitions. Monitor runs are limited to a configurable timeout.
+ * Timeouts and any other exceptions will be caught and returned as failures.
+ */
 class MonitorResultService extends BaseService implements AsyncSupport {
 
-    private static Long MAX_RUNTIME_SECS = 15
+    def configService
 
     MonitorResult runMonitor(String code) {
         def monitor = Monitor.findByCode(code)
-        if (!monitor) throw new RuntimeException("No Monitor is defined with code: $code")
+        if (!monitor) throw new RuntimeException("Monitor '$code' not found.")
         return runMonitor(monitor)
     }
 
@@ -39,17 +40,18 @@ class MonitorResultService extends BaseService implements AsyncSupport {
         def defSvc = Utils.appContext.monitorDefinitionService,
             code = monitor.code,
             result = new MonitorResult(monitor: monitor),
-            startTime = new Date()
+            startTime = new Date(),
+            timeout = getTimeoutSecs()
 
         try {
             if (!defSvc?.metaClass?.respondsTo(defSvc, code)) {
-                throw new RuntimeException("Unable to find definition for monitor '$code' in this application.")
+                throw new RuntimeException("Monitor '$code' not implemented by this application's MonitorDefinitionService.")
             }
 
             // Run the check...
             asyncTask {
                 defSvc."$code"(result)
-            }.get(MAX_RUNTIME_SECS, SECONDS)
+            }.get(timeout, SECONDS)
 
             // Default status to OK if it has not already been set within the check.
             if (result.status == UNKNOWN) {
@@ -60,7 +62,7 @@ class MonitorResultService extends BaseService implements AsyncSupport {
             evaluateThresholds(monitor, result)
         } catch (Exception e) {
             result.message = e instanceof TimeoutException ?
-                                "Monitor runtime exceeded max of $MAX_RUNTIME_SECS seconds." :
+                                "Monitor run timed out after $timeout seconds." :
                                 e.message ?: e.class.name
             result.status = FAIL
             result.exception = e
@@ -123,5 +125,11 @@ class MonitorResultService extends BaseService implements AsyncSupport {
             result.message = "Metric value is $verb warn limit of $warn $units"
         }
     }
-    
+
+    // Default value of 15s provided here as configurable timeouts were added late in the game.
+    private long getTimeoutSecs() {
+        def conf = configService.getJSONObject('xhMonitorConfig')
+        return conf.monitorTimeoutSecs ?: 15
+    }
+
 }

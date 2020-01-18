@@ -23,11 +23,14 @@ import static grails.util.Environment.isDevelopmentMode
 import static java.lang.System.currentTimeMillis
 
 /**
- * Service for application monitoring, governs generation of monitor results and status reports, analysis of these results,
- * and the emission of grails events to notify status conditions that may be of interest to the application.
+ * Coordinates application status monitoring. Requests monitor results and generates status reports
+ * on a configurable timer, analyzes the results, and publishes Grails events on status conditions
+ * of interest to the application.
  *
- * Monitor refresh timer and notification timer are disabled for local development.
- * If alertMode changes via forceRun in local development mode, notification will not be sent.
+ * In local development mode, auto-run/refresh of Monitors is disabled by default, but monitors
+ * can still be run on demand via forceRun(). Notification are never sent during local development.
+ *
+ * If enabled via config, this service will also write monitor run results to a dedicated log file.
  */
 class MonitoringService extends BaseService implements AsyncSupport, EventPublisher {
 
@@ -42,20 +45,17 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
     private Long _lastNotified
 
     void init() {
-        def monitorInterval = isDevelopmentMode() ? -1 : {monitorConfig.monitorRefreshMins}
         _monitorTimer = createTimer(
                 interval: monitorInterval,
-                intervalUnits: MINUTES,
-                delay: {monitorConfig.monitorStartupDelayMins},
-                delayUnits: MINUTES,
+                delay: startupDelay,
                 runFn: this.&onMonitorTimer
         )
 
-        def notifyInterval = isDevelopmentMode() ? -1 : 15
         _notifyTimer = createTimer (
-                interval: notifyInterval * SECONDS,
+                interval: notifyInterval,
                 runFn: this.&onNotifyTimer
         )
+
         super.init()
     }
 
@@ -136,7 +136,7 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
     }
 
     private void notifyAlertModeChange() {
-        if(!isDevelopmentMode()) {
+        if (!isDevelopmentMode()) {
             notify('xhMonitorStatusReport', generateStatusReport())
             _lastNotified = currentTimeMillis()
         }
@@ -147,6 +147,7 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
 
         def failThreshold = monitorConfig.failNotifyThreshold,
             warnThreshold = monitorConfig.warnNotifyThreshold
+
         return _problems.values().any {
             it.cyclesAsFail >= failThreshold || it.cyclesAsWarn >= warnThreshold
         }
@@ -187,6 +188,22 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
 
     private void onMonitorTimer() {
         runAllMonitors()
+    }
+
+    private int getMonitorInterval() {
+        return disabledDueToLocalDevMode ? -1 : (monitorConfig.monitorRefreshMins * MINUTES)
+    }
+
+    private int getNotifyInterval() {
+        return isDevelopmentMode() ? -1 : (15 * SECONDS)
+    }
+
+    private int getStartupDelay() {
+        return monitorConfig.monitorStartupDelayMins * MINUTES
+    }
+
+    private boolean getDisabledDueToLocalDevMode() {
+        return isDevelopmentMode() && !monitorConfig.runInLocalDevMode
     }
 
     private JSONObject getMonitorConfig() {

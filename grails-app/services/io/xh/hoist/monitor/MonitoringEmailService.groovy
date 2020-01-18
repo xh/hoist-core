@@ -11,6 +11,10 @@ import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.monitor.MonitorStatus.WARN
 
+/**
+ * Listens for status monitor change events from MonitoringService and emails status updates to
+ * a configurable list of recipients.
+ */
 class MonitoringEmailService extends BaseService {
 
     def emailService
@@ -26,7 +30,7 @@ class MonitoringEmailService extends BaseService {
     //------------------------
     private void emailReport(MonitorStatusReport report) {
         def to = emailService.parseMailConfig('xhMonitorEmailRecipients')
-        if (to && to != 'none') {
+        if (to) {
             emailService.sendEmail(
                 to: to,
                 subject: report.title,

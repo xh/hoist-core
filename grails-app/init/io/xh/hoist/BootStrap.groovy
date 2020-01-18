@@ -145,6 +145,8 @@ class BootStrap {
                     warnNotifyThreshold: 5,
                     monitorStartupDelayMins: 1,
                     monitorRepeatNotifyMins: 60,
+                    monitorTimeoutSecs: 15,
+                    runInLocalDevMode: false,
                     writeToMonitorLog: true
                 ],
                 groupName: 'xh.io',

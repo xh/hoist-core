@@ -4,7 +4,12 @@
 
 ### 🎁 New Features
 
-* Added a new `xhEnableImpersonation` config for enabling or disabling impersonation app-wide.
+* Added a new `xhEnableImpersonation` config for enabling or disabling impersonation app-wide. Note
+  that this config will be defaulted to false if not yet defined - set to true after upgrade to
+  continue supporting impersonation for your application.
+* The `xhMonitorConfig` config supports two additional properties - `monitorTimeoutSecs` to control
+  the max runtime for any individual monitor check and `runInLocalDevMode` to enable scheduled
+  monitor runs during local development.
 
 ### ⚙️ Technical
 
@@ -13,6 +18,8 @@
   ([#95](https://github.com/xh/hoist-core/issues/95))
 * GORM validation exceptions are now handled by `BaseController` rather than `RestController`, so
   all endpoints will be handled consistently. ([#68](https://github.com/xh/hoist-core/issues/68))
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.3.1...develop)
 
 ## 6.3.1 - 2019-11-12
 
