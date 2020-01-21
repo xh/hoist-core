@@ -2,6 +2,12 @@
 
 ## 7.0-SNAPSHOT - under development
 
+* TBD!
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.0...develop)
+
+## 6.4.0 - 2020-01-21
+
 ### 🎁 New Features
 
 * Added a new `xhEnableImpersonation` config for enabling or disabling impersonation app-wide. Note
@@ -9,6 +15,8 @@
   continue supporting impersonation for your application.
 * The `xhMonitorConfig` config supports a new property `monitorTimeoutSecs` to control the max
   runtime for any individual monitor check.
+* Any `appBuild` tag is now included in the output of `xh/version`, allowing for client-side version
+  checking to take the particular build into account when running on a SNAPSHOT.
 
 ### ⚙️ Technical
 
@@ -17,10 +25,8 @@
   ([#95](https://github.com/xh/hoist-core/issues/95))
 * GORM validation exceptions are now handled by `BaseController` rather than `RestController`, so
   all endpoints will be handled consistently. ([#68](https://github.com/xh/hoist-core/issues/68))
-* Any `appBuild` tag is now included in the output of `xh/version`, allowing for client-side version
-  checking to take the particular build into account when running on a SNAPSHOT.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v6.3.1...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.3.1...v6.4.0)
 
 ## 6.3.1 - 2019-11-12
 
