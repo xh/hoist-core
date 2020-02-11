@@ -7,6 +7,7 @@
 
 package io.xh.hoist.exception
 
+import groovy.transform.CompileStatic
 import io.xh.hoist.util.Utils
 
 /**
@@ -17,7 +18,7 @@ class ValidationException extends RuntimeException implements RoutineException {
         super(parseMessage(ex), ex)
     }
 
-    private String parseMessage(grails.validation.ValidationException ex) {
+    private static String parseMessage(grails.validation.ValidationException ex) {
         def msgSrc = Utils.appContext.messageSource
         return ex.errors.allErrors
                 .collect {msgSrc.getMessage(it, Locale.US)}
