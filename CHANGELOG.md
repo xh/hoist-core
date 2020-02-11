@@ -2,7 +2,9 @@
 
 ## 7.0-SNAPSHOT - under development
 
-* TBD!
+### 🐞 Bug Fixes
+
+* Fixed an issue where GORM validation exceptions would trigger MethodNotFoundException
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v6.4.0...develop)
 
