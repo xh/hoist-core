@@ -2,6 +2,11 @@
 
 ## 7.0-SNAPSHOT - under development
 
+### 🎁 New Features
+
+* Configs formatted as JSON will now be converted to a canonical form before storing in the database, ensuring 
+  consistent formatting and strict adherence to the JSON spec.
+
 ### 🐞 Bug Fixes
 
 * Fixed an issue where GORM validation exceptions would trigger MethodNotFoundException
