@@ -7,7 +7,6 @@
 
 package io.xh.hoist.admin
 
-import groovy.util.logging.Slf4j
 import io.xh.hoist.config.AppConfig
 import io.xh.hoist.RestController
 import io.xh.hoist.security.Access
@@ -15,7 +14,6 @@ import org.grails.web.json.JSONObject
 import io.xh.hoist.json.JSON
 
 @Access(['HOIST_ADMIN'])
-@Slf4j
 class ConfigAdminController extends RestController {
 
     static restTarget = AppConfig
