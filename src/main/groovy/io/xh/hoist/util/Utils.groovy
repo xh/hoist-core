@@ -8,6 +8,8 @@
 package io.xh.hoist.util
 
 import grails.util.Holders
+import groovy.json.JsonSlurper
+import groovy.util.logging.Slf4j
 import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
@@ -23,9 +25,11 @@ import org.grails.web.json.JSONObject
 import org.springframework.context.ApplicationContext
 
 
+@Slf4j
 class Utils {
 
     static Properties buildInfo = readBuildInfo()
+    static JsonSlurper validator = new JsonSlurper();
 
     /**
      * Internal short name of the application - lowercase, no spaces.
@@ -106,12 +110,11 @@ class Utils {
         TrackLog.withNewSession(c) // Yes, a bizarre dependency on an arbitrary domain object
     }
 
-
     static boolean isJSON(String val) {
         try {
-            if (val != null) JSON.parse(val)
+            if (val != null) validator.parse(new StringReader(val))
             return true
-        } catch (ConverterException ignored) {
+        } catch (Exception ignored) {
             return false
         }
     }

@@ -2,6 +2,10 @@
 
 ## 7.0-SNAPSHOT - under development
 
+### ⚙️ Technical
+
+* `JsonSlurper` is now used for JSON validation, which should be stricter than using `JSON.parse`
+
 ### 🐞 Bug Fixes
 
 * Fixed an issue where GORM validation exceptions would trigger MethodNotFoundException
