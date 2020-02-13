@@ -112,7 +112,7 @@ class Utils {
 
     static boolean isJSON(String val) {
         try {
-            if (val != null) validator.parse(new StringReader(val))
+            if (val != null) validator.parseText(val)
             return true
         } catch (Exception ignored) {
             return false
