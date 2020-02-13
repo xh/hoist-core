@@ -8,6 +8,7 @@
 package io.xh.hoist.util
 
 import grails.util.Holders
+import groovy.json.JsonParserType
 import groovy.json.JsonSlurper
 import groovy.util.logging.Slf4j
 import io.xh.hoist.AppEnvironment
@@ -29,7 +30,7 @@ import org.springframework.context.ApplicationContext
 class Utils {
 
     static Properties buildInfo = readBuildInfo()
-    static JsonSlurper validator = new JsonSlurper();
+    static JsonSlurper validator = new JsonSlurper().setType(JsonParserType.INDEX_OVERLAY)
 
     /**
      * Internal short name of the application - lowercase, no spaces.
