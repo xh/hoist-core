@@ -10,23 +10,18 @@ package io.xh.hoist.util
 import grails.util.Holders
 import groovy.json.JsonParserType
 import groovy.json.JsonSlurper
-import groovy.util.logging.Slf4j
 import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.json.JSON
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.track.TrackLog
 import io.xh.hoist.user.BaseRoleService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.websocket.WebSocketService
-import org.grails.web.converters.exceptions.ConverterException
 import org.grails.web.json.JSONArray
 import org.grails.web.json.JSONObject
 import org.springframework.context.ApplicationContext
 
-
-@Slf4j
 class Utils {
 
     static Properties buildInfo = readBuildInfo()
