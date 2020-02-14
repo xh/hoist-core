@@ -27,8 +27,8 @@
   ([#95](https://github.com/xh/hoist-core/issues/95))
 * GORM validation exceptions are now handled by `BaseController` rather than `RestController`, so
   all endpoints will be handled consistently. ([#68](https://github.com/xh/hoist-core/issues/68))
-* Switch to using [nanoJson](https://github.com/mmastrac/nanojson) for JSON validation, which ensures stricter adherence
-  to the JSON spec.
+* Switch to using [nanoJson](https://github.com/mmastrac/nanojson) for JSON validation, which 
+  ensures stricter adherence to the JSON spec.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v6.3.1...v6.4.0)
 
