@@ -7,6 +7,8 @@
 
 package io.xh.hoist.util
 
+import com.grack.nanojson.JsonParser
+import com.grack.nanojson.JsonParserException
 import grails.util.Holders
 import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
@@ -109,9 +111,9 @@ class Utils {
 
     static boolean isJSON(String val) {
         try {
-            if (val != null) JSON.parse(val)
+            if (val != null) JsonParser.any().from(val)
             return true
-        } catch (ConverterException ignored) {
+        } catch (JsonParserException ignored) {
             return false
         }
     }
