@@ -6,6 +6,11 @@
 
 * Fixed an issue where GORM validation exceptions would trigger MethodNotFoundException
 
+### ⚙️ Technical
+
+* Switch to using [nanoJson](https://github.com/mmastrac/nanojson) for JSON validation, which
+  ensures stricter adherence to the JSON spec.
+
 [Commit Log](https://github.com/xh/hoist-core/compare/v6.4.0...develop)
 
 ## 6.4.0 - 2020-01-21
@@ -27,8 +32,6 @@
   ([#95](https://github.com/xh/hoist-core/issues/95))
 * GORM validation exceptions are now handled by `BaseController` rather than `RestController`, so
   all endpoints will be handled consistently. ([#68](https://github.com/xh/hoist-core/issues/68))
-* Switch to using [nanoJson](https://github.com/mmastrac/nanojson) for JSON validation, which 
-  ensures stricter adherence to the JSON spec.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v6.3.1...v6.4.0)
 
@@ -599,6 +602,6 @@ exposing them to the application as a map.
 
 Copyright © 2020 Extremely Heavy Industries Inc. - all rights reserved
 
- ------------------------------------------
+------------------------------------------
 
 📫☎️🌎 info@xh.io | https://xh.io/contact
