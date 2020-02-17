@@ -13,9 +13,8 @@ via the mature [Grails framework](https://grails.org/) - and JavaScript - via
 
 This repository is *hoist-core*, which is the server-side implementation of Hoist. It is designed to
 be used with [hoist-react](https://github.com/xh/hoist-react), our latest front-end toolkit.
-Hoist's original front-end implementation - [hoist-sencha](https://github.com/xh/hoist-sencha) -
-is based on Sencha's ExtJS framework, but is being deprecated in favor of Hoist React. See those
-repositories for detailed information on Hoist's client-side features and conventions.
+Hoist's original front-end implementation. See that repository for detailed information on Hoist's
+client-side features and conventions.
 
 ## About this Doc
 
@@ -26,8 +25,7 @@ as clear, readable, and well-commented as possible, and we are working to ensure
 of in-code documentation - especially at the class level and for essential public methods.
 
 When calling out particular source code files in the tables below, the following icons are used as
-the links to the containing repository: 🏗 for this repo, ⚛ for hoist-react, and 🍵 for
-hoist-sencha (sencha is a kind of green tea).
+the links to the containing repository: 🏗 for this repo and ⚛ for hoist-react.
 
 This document does _not_ provide an overview or introduction to Grails, Java, or other core
 technologies in general, and assumes a general familiarity with many concepts related to enterprise
@@ -122,9 +120,6 @@ requirements or dependencies. See the [Hoist React readme](https://github.com/xh
 a detailed outline on the build and deploy process for React-based applications, including
 information on building the Grails server-side components outlined here.
 
-(Note that for legacy [hoist-sencha](https://github.com/xh/hoist-sencha) applications, the client
-assets _are_ built along with the server and included in the resulting WAR as a single deployment.)
-
 ## Custom plugins for enterprise deployments
 
 While Hoist Core and its associated client-side libraries provide a good deal of functionality on
@@ -165,7 +160,6 @@ Hoist framework or its usage, several key features are called out with additiona
 | `IdentityService.groovy`           | Server-side source of current user info  |                     [🏗](grails-app/services/io/xh/hoist/user/IdentityService.groovy)                      |
 | `Access.groovy`                    | Annotation for endpoint security         |                          [🏗](src/main/groovy/io/xh/hoist/security/Access.groovy)                          |
 | `IdentityService.js`               | Hoist-React source of current user info  |                [⚛️](https://github.com/xh/hoist-react/blob/master/svc/IdentityService.js)                 |
-| `IdentityService.js`               | Hoist-Sencha source of current user info | [🍵️](https://github.com/xh/hoist-sencha/blob/master/grails-app/assets/src/xh/all/svc/IdentityService.js) |
 
 👫 As organizations and applications will have a wide variety of requirements for
 authenticating and authorizing users, Hoist has a deliberately minimal interface in this regard. A
@@ -229,7 +223,6 @@ impersonation is active with both the impersonated and real user.
 | `AppConfig.groovy`     | Domain object for config entries |                       [🏗](grails-app/domain/io/xh/hoist/config/AppConfig.groovy)                        |
 | `ConfigService.groovy` | Server-side source for configs   |                    [🏗](grails-app/services/io/xh/hoist/config/ConfigService.groovy)                     |
 | `ConfigService.js`     | Hoist-React source for configs   |                [⚛️](https://github.com/xh/hoist-react/blob/master/svc/ConfigService.js)                 |
-| `ConfigService.js`     | Hoist-Sencha source for configs  | [🍵️](https://github.com/xh/hoist-sencha/blob/master/grails-app/assets/src/xh/all/svc/ConfigService.js) |
 
 🔧 The ability to store simple typed configuration values
 (`string|int|long|double|bool|json|pwd`) and manage / adjust them in a running application has
@@ -262,7 +255,6 @@ required configs. See `Bootstrap.groovy` in hoist-core for configs required at t
 | `UserPreference.groovy` | Domain object for user-specific value   |                     [🏗](grails-app/domain/io/xh/hoist/pref/UserPreference.groovy)                     |
 | `PrefService.groovy`    | Server-side pref management             |                     [🏗](grails-app/services/io/xh/hoist/pref/PrefService.groovy)                      |
 | `PrefService.js`        | Hoist-React pref management             |                [⚛️](https://github.com/xh/hoist-react/blob/master/svc/PrefService.js)                 |
-| `PrefService.js`        | Hoist-Sencha pref management            | [🍵](https://github.com/xh/hoist-sencha/blob/master/grails-app/assets/src/xh/all/svc/PrefService.js) |
 
 ⭐ Preferences provide a lightweight way to persist user-specific options and settings. Similar
 to AppConfigs, preferences offer several predefined data types
@@ -298,9 +290,7 @@ Hoist level.
 | `Feedback.groovy`            | Domain object for user feedback  |                            [🏗](grails-app/domain/io/xh/hoist/feedback/Feedback.groovy)                             |
 | `TrackService.groovy`        | Server-side API to log activity  |                           [🏗](grails-app/services/io/xh/hoist/track/TrackService.groovy)                           |
 | `TrackService.js`            | Hoist-React API to log activity  |                      [⚛️](https://github.com/xh/hoist-react/blob/master/svc/TrackService.js)                       |
-| `TrackService.js`            | Hoist-Sencha API to log activity |      [🍵️](https://github.com/xh/hoist-sencha/blob/develop/grails-app/assets/src/xh/all/svc/TrackService.js)       |
 | `ExceptionHandler.js`        | Hoist-React API to track errors  |                 [⚛️](https://github.com/xh/hoist-react/blob/master/exception/ExceptionHandler.js)                  |
-| `ExceptionHandlerService.js` | Hoist-Sencha API to track errors | [🍵️](https://github.com/xh/hoist-sencha/blob/develop/grails-app/assets/src/xh/all/svc/ExceptionHandlerService.js) |
 
 👀 Knowing which users are visiting an app and tracking specific actions of interest is another
 common need for apps. Hoist includes an API for easily tracking activity for the current user, and
@@ -415,7 +405,6 @@ additional features and services provided by the framework.
 - [ ] Development setup
 - [ ] Additional deployment info
 - [ ] Proxy Service
-- [ ] Dashboards
 - [ ] Logging levels and management
 
 🙏 Thanks for your patience, and for reading this far!
