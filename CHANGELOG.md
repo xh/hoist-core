@@ -2,6 +2,11 @@
 
 ## 7.0-SNAPSHOT - under development
 
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.1...develop)
+
+
+## 6.4.1 - 2020-02-29
+
 ### 🐞 Bug Fixes
 
 * Fixed an issue where GORM validation exceptions would trigger MethodNotFoundException
@@ -11,7 +16,7 @@
 * Switch to using [nanoJson](https://github.com/mmastrac/nanojson) for JSON validation, which
   ensures stricter adherence to the JSON spec.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.0...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.0...v6.4.1)
 
 ## 6.4.0 - 2020-01-21
 
