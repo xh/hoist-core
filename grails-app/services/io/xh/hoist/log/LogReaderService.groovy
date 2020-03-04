@@ -41,12 +41,9 @@ class LogReaderService extends BaseService {
             }
 
             for (def line = reader.readLine();
-                 line != null && ret.size() < maxLines;
+                 line != null && ret.size() < maxLines && numSearched < maxSearch;
                  line = reader.readLine()) {
                 numSearched++
-                if(numSearched > maxSearch) {
-                    ret << [lineNumber, 'Search aborted due to ']
-                }
                 if (!pattern || line.toLowerCase() =~ pattern.toLowerCase()) {
                     ret << [lineNumber, line]
                     lineNumber += lineIncrement
