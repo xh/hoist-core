@@ -8,7 +8,7 @@ and memory resources.
 [#115](https://github.com/xh/hoist-core/issues/115)
 
 ### ⚙️ Technical
-*  Add ability to configure WebSocketService resource limits using soft configuaration.
+*  Add ability to configure WebSocketService resource limits using soft configuration.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v6.4.1...v6.4.2)
 
