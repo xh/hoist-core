@@ -1,8 +1,10 @@
 package io.xh.hoist.log
 
+import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import org.apache.commons.io.input.ReversedLinesFileReader
 
+@CompileStatic
 class LogReaderService extends BaseService {
 
     /**
@@ -14,6 +16,29 @@ class LogReaderService extends BaseService {
      * @return - List of elements of the form [linenumber, text] for the requested lines
      */
     List readFile(String filename, Integer startLine, Integer maxLines = 10000, String pattern) {
+        return (List) withDebug('Reading log file ' + filename) {
+            doRead(filename, startLine, maxLines, pattern)
+        }
+    }
+
+    long getFileLength(File file) {
+        BufferedReader reader
+        try {
+            reader = new BufferedReader(new FileReader(file))
+            long ret = 0;
+            while (reader.readLine() != null) {
+                ret++;
+            }
+            return ret
+        } finally {
+            if (reader) reader.close()
+        }
+    }
+
+    //------------------------
+    // Implementation
+    //------------------------
+    private List doRead(String filename, Integer startLine, Integer maxLines = 10000, String pattern) {
         def tail = !startLine || startLine <= 0,
             ret = new ArrayList(maxLines),
             file = new File(LogUtils.logRootPath, filename)
@@ -22,7 +47,6 @@ class LogReaderService extends BaseService {
 
         Closeable closeable
         try {
-
             if (tail) {
                 ReversedLinesFileReader reader = closeable = new ReversedLinesFileReader(file)
 
@@ -56,20 +80,6 @@ class LogReaderService extends BaseService {
 
         } finally {
             if (closeable) closeable.close()
-        }
-    }
-
-    long getFileLength(File file) {
-        BufferedReader reader
-        try {
-            reader = new BufferedReader(new FileReader(file))
-            long ret = 0;
-            while (reader.readLine() != null) {
-                ret++;
-            }
-            return ret
-        } finally {
-            if (reader) reader.close()
         }
     }
 }
