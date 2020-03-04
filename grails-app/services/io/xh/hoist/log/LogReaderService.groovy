@@ -1,52 +1,51 @@
 package io.xh.hoist.log
 
 import io.xh.hoist.BaseService
+import io.xh.hoist.cache.Cache
 import org.apache.commons.io.input.ReversedLinesFileReader
 
 class LogReaderService extends BaseService {
 
-    def records = [:]
+    Cache<String, LengthRecord> fileLengths = new Cache(svc: this)
 
     /**
      * Fetch the (selected) contents of a log file for viewing in the admin console.
-     * @param file - (required) File to be read
+     * @param filename - (required) Filename to be read
      * @param startLine - (optional) line number of file to start at; if null or zero or negative, will return tail of file
      * @param maxLines - (optional) number of lines to return
      * @param pattern - (optional) only lines matching pattern will be returned
      * @return - Multi-dimensional array of [linenumber, text] for the requested lines
      */
-    synchronized readFile(File file, Integer startLine, Integer maxLines, String pattern, Integer maxSearch = 1000000) {
+    synchronized readFile(String filename, Integer startLine, Integer maxLines, String pattern) {
         def tail = !startLine || startLine < 0,
             ret = [],
             lineNumber,
-            lineIncrement,
             reader,
-            numSearched = 0
+            file = new File(LogUtils.logRootPath, filename)
 
-        if(!file.exists()) {
-            records.remove(file.getAbsolutePath())
+
+        if (!file.exists()) {
             throw new FileNotFoundException()
         }
 
-        try {
+            try {
             if (tail) {
-                lineNumber = getLength(file)
+                lineNumber = getFileLength(file)
                 reader = new ReversedLinesFileReader(file)
-                lineIncrement = -1
             } else {
                 lineNumber = startLine
                 reader = new BufferedReader(new FileReader(file))
                 (1..<lineNumber).each { reader.readLine() }
-                lineIncrement = 1
             }
+                if (pattern  && )
 
-            for (def line = reader.readLine();
-                 line != null && ret.size() < maxLines && numSearched < maxSearch;
+
+                    for (def line = reader.readLine();
+                 line != null && ret.size() < maxLines;
                  line = reader.readLine()) {
-                numSearched++
                 if (!pattern || line.toLowerCase() =~ pattern.toLowerCase()) {
                     ret << [lineNumber, line]
-                    lineNumber += lineIncrement
+                    lineNumber += tail ? -1 : 1
                 }
             }
 
@@ -58,7 +57,7 @@ class LogReaderService extends BaseService {
         }
     }
 
-    long getLength(File file) {
+    long getFileLength(File file) {
         def path = file.getAbsolutePath()
         if(!records.containsKey(path)) {
             records[path] = new LengthRecord(file)
