@@ -2,8 +2,13 @@
 
 ## 7.0-SNAPSHOT - under development
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.1...develop)
+### ⚙️ Bug Fixes
 
+*  Fixed issue where attempting to read very large log files would overconsume server processor
+and memory resources. 
+[#115](https://github.com/xh/hoist-core/issues/115)
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.1...develop)
 
 ## 6.4.1 - 2020-02-29
 
