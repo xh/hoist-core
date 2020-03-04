@@ -3,7 +3,9 @@ package io.xh.hoist.log
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.exception.RoutineException
 import org.apache.commons.io.input.ReversedLinesFileReader
+import static java.lang.System.currentTimeMillis
 
 @CompileStatic
 class LogReaderService extends BaseService {
@@ -34,17 +36,16 @@ class LogReaderService extends BaseService {
 
         if (!file.exists()) throw new FileNotFoundException()
 
-        long startTime = System.currentTimeMillis()
-        long maxRunTime = configService.getLong('xhLogSearchTimeoutMs', 5000)
+        long maxEndTime = currentTimeMillis() + configService.getLong('xhLogSearchTimeoutMs', 5000)
 
         Closeable closeable
         try {
             if (tail) {
                 ReversedLinesFileReader reader = closeable = new ReversedLinesFileReader(file)
 
-                long lineNumber = getFileLength(file, startTime, maxRunTime)
+                long lineNumber = getFileLength(file, maxEndTime)
                 for (String line = reader.readLine(); line != null && ret.size() < maxLines; line = reader.readLine()) {
-                    throwOnTimeout(startTime, maxRunTime)
+                    throwOnTimeout(maxEndTime)
                     if (!pattern || line.toLowerCase() =~ pattern.toLowerCase()) {
                         ret << [lineNumber, line]
                         lineNumber--
@@ -62,7 +63,7 @@ class LogReaderService extends BaseService {
 
                 long lineNumber = startLine
                 for (String line = reader.readLine(); line != null && ret.size() < maxLines; line = reader.readLine()) {
-                    throwOnTimeout(startTime, maxRunTime)
+                    throwOnTimeout(maxEndTime)
                     if (!pattern || line.toLowerCase() =~ pattern.toLowerCase()) {
                         ret << [lineNumber, line]
                         lineNumber++
@@ -77,13 +78,13 @@ class LogReaderService extends BaseService {
         }
     }
 
-    private long getFileLength(File file, long startTime, long maxRunTime) {
+    private long getFileLength(File file, long maxEndTime) {
         BufferedReader reader
         try {
             reader = new BufferedReader(new FileReader(file))
             long ret = 0;
             while (reader.readLine() != null) {
-                throwOnTimeout(startTime, maxRunTime)
+                throwOnTimeout(maxEndTime)
                 ret++;
             }
             return ret
@@ -92,9 +93,15 @@ class LogReaderService extends BaseService {
         }
     }
 
-    void throwOnTimeout(long startTime, long maxRunTime) {
-        if(System.currentTimeMillis() - startTime > maxRunTime) {
-            throw new Exception('Query took too long. Log search aborted.')
+    void throwOnTimeout(long maxEndTime) {
+        if (currentTimeMillis() > maxEndTime) {
+            throw new TimeoutException('Query took too long. Log search aborted.')
         }
+    }
+}
+
+class TimeoutException extends RuntimeException implements RoutineException  {
+    public TimeoutException(String message) {
+        super(message);
     }
 }
