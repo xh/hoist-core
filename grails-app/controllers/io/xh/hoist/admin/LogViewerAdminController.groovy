@@ -11,6 +11,7 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.log.LogUtils
 import groovy.io.FileType
 import io.xh.hoist.security.Access
+import org.apache.commons.io.input.ReversedLinesFileReader
 
 @Access(['HOIST_ADMIN'])
 class LogViewerAdminController extends BaseController {
@@ -42,31 +43,41 @@ class LogViewerAdminController extends BaseController {
     def getFile(String filename, Integer startLine, Integer maxLines, String pattern) {
         // Catch any exceptions and render clean failure - the admin client auto-polls for log file
         // updates, and we don't want to spam the logs with a repeated stacktrace.
+        def reader, counter
         try {
             def file = new File(LogUtils.logRootPath, filename),
-                content = file.readLines(),
-                size = content.size(),
-                tail = !startLine || startLine<0,
-                startIdx = tail ? size-1 : startLine-1 ,
-                lastIdx = tail ? 0: size-1,
-                idxIncrementer = tail ? -1 : 1,
-                idxComparator = tail ? {return it >= lastIdx} : {return it <= lastIdx},
-                lineCount = 0,
-                ret = []
+                tail = !startLine || startLine < 0,
+                ret = [],
+                lineNumber = 0,
+                lineIncrement
 
-            maxLines = maxLines ?: 10000
+            if (tail) {
+                counter = new BufferedReader(new FileReader(file))
+                lineNumber = counter.lines().count()
+                counter.close()
 
-            for (def i = startIdx; idxComparator(i) && lineCount < maxLines; i+=idxIncrementer) {
-                def line = content[i]
+                reader = new ReversedLinesFileReader(file)
+                lineIncrement = -1
+            } else {
+                lineNumber = startLine
+                reader = new BufferedReader(new FileReader(file))
+                reader.skip(lineNumber - 1)
+                lineIncrement = 1
+            }
+
+            for(def line = reader.readLine(); line != null && ret.size() < maxLines; line = reader.readLine()) {
                 if (!pattern || line.toLowerCase() =~ pattern.toLowerCase()) {
-                    lineCount++
-                    ret << [i + 1, line]
+                    ret << [lineNumber, line]
+                    lineNumber += lineIncrement
                 }
             }
 
             renderJSON(success: file.exists(), filename: filename, content: ret)
         } catch (Exception e) {
             renderJSON(success: false, filename: filename, content: [], exception: e.message)
+        } finally {
+            if(reader) reader.close()
+            if(counter) counter.close()
         }
     }
 
