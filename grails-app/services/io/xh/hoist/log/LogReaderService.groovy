@@ -93,7 +93,7 @@ class LogReaderService extends BaseService {
         }
     }
 
-    void throwOnTimeout(long maxEndTime) {
+    private void throwOnTimeout(long maxEndTime) {
         if (currentTimeMillis() > maxEndTime) {
             throw new TimeoutException('Query took too long. Log search aborted.')
         }
