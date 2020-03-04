@@ -156,6 +156,15 @@ class BootStrap {
                 defaultValue: 'none',
                 groupName: 'xh.io',
                 note: 'Email address to which status monitor alerts should be sent. Value "none" disables emailed alerts.'
+            ],
+            xhWebSocketConfig: [
+                valueType: 'json',
+                defaultValue: [
+                    sendTimeLimitMs: 1000,
+                    bufferSizeLimitBytes: 1000000
+                ],
+                groupName: 'xh.io',
+                note: 'Parameters for the managed WebSocket sessions created by Hoist.'
             ]
         ])
     }
