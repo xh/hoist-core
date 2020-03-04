@@ -7,6 +7,7 @@
 
 package io.xh.hoist.admin
 
+import groovy.util.logging.Slf4j
 import io.xh.hoist.BaseController
 import io.xh.hoist.log.LogUtils
 import groovy.io.FileType
@@ -14,6 +15,7 @@ import io.xh.hoist.security.Access
 import org.apache.commons.io.input.ReversedLinesFileReader
 
 @Access(['HOIST_ADMIN'])
+@Slf4j
 class LogViewerAdminController extends BaseController {
 
     def logArchiveService
@@ -43,6 +45,7 @@ class LogViewerAdminController extends BaseController {
     def getFile(String filename, Integer startLine, Integer maxLines, String pattern) {
         // Catch any exceptions and render clean failure - the admin client auto-polls for log file
         // updates, and we don't want to spam the logs with a repeated stacktrace.
+        long t1 = System.nanoTime()
         def reader, counter
         try {
             def file = new File(LogUtils.logRootPath, filename),
@@ -53,6 +56,7 @@ class LogViewerAdminController extends BaseController {
 
             if (tail) {
                 counter = new BufferedReader(new FileReader(file))
+                // BufferedReader.lines() is a stream; we don't read the whole file into memory at once
                 lineNumber = counter.lines().count()
                 counter.close()
 
@@ -78,6 +82,8 @@ class LogViewerAdminController extends BaseController {
         } finally {
             if(reader) reader.close()
             if(counter) counter.close()
+            long t2 = System.nanoTime()
+            log.info('fetching logs took ' + ((t2 - t1) / 1e6) + ' ms')
         }
     }
 

@@ -4,6 +4,10 @@
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v6.4.1...develop)
 
+### ⚙️ Technical
+
+* Made `LogViewerAdminController` use a streaming access file, reducing memory usage on large files. 
+  [#115](https://github.com/xh/hoist-core/issues/115)
 
 ## 6.4.1 - 2020-02-29
 
