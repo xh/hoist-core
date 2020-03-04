@@ -1,5 +1,10 @@
 # Changelog
 
+## 7.0-SNAPSHOT - unreleased
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.2...develop)
+
+
 ## 6.4.2 - 2020-03-04
 
 ### ⚙️ Bug Fixes
