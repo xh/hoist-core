@@ -2,9 +2,10 @@
 
 ## 7.0-SNAPSHOT - unreleased
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.2...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.3...develop)
 
 
+## 6.4.3 - 2020-03-04
 ## 6.4.2 - 2020-03-04
 
 ### ⚙️ Bug Fixes
@@ -15,7 +16,7 @@ and memory resources.
 ### ⚙️ Technical
 *  Add ability to configure WebSocketService resource limits using soft configuration.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.1...v6.4.2)
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.1...v6.4.3)
 
 ## 6.4.1 - 2020-02-29
 
