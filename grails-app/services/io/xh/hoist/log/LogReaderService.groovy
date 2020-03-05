@@ -20,7 +20,7 @@ class LogReaderService extends BaseService {
      * @param pattern - (optional) only lines matching pattern will be returned
      * @return - List of elements of the form [linenumber, text] for the requested lines
      */
-    List readFile(String filename, Integer startLine, Integer maxLines = 10000, String pattern) {
+    List readFile(String filename, Integer startLine, Integer maxLines, String pattern) {
         return (List) withDebug('Reading log file ' + filename + '|' + startLine + '|' + maxLines + '|' + pattern) {
             doRead(filename, startLine, maxLines, pattern)
         }
@@ -29,7 +29,9 @@ class LogReaderService extends BaseService {
     //------------------------
     // Implementation
     //------------------------
-    private List doRead(String filename, Integer startLine, Integer maxLines = 10000, String pattern) {
+    private List doRead(String filename, Integer startLine, Integer maxLines, String pattern) {
+        maxLines = maxLines ?: 10000
+
         def tail = !startLine || startLine <= 0,
             ret = new ArrayList(maxLines),
             file = new File(LogUtils.logRootPath, filename)
