@@ -4,7 +4,6 @@
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v6.4.3...develop)
 
-
 ## 6.4.3 - 2020-03-04
 ## 6.4.2 - 2020-03-04
 
