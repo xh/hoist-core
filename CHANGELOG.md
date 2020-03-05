@@ -2,20 +2,21 @@
 
 ## 7.0-SNAPSHOT - unreleased
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.3...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.4...develop)
 
-## 6.4.3 - 2020-03-04
-## 6.4.2 - 2020-03-04
+## 6.4.4 - 2020-03-05
 
 ### ⚙️ Bug Fixes
-*  Fixed issue where attempting to read very large log files would overconsume server processor
-and memory resources. 
-[#115](https://github.com/xh/hoist-core/issues/115)
+
+* Fixed issue where attempting to read very large log files would overly stress server processor and
+  memory resources. [#115](https://github.com/xh/hoist-core/issues/115)
 
 ### ⚙️ Technical
-*  Add ability to configure WebSocketService resource limits using soft configuration.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.1...v6.4.3)
+* Add ability to configure WebSocketService resource limits using soft configuration.
+* Note intermediate builds 6.4.2/6.4.3 not for use.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.1...v6.4.4)
 
 ## 6.4.1 - 2020-02-29
 

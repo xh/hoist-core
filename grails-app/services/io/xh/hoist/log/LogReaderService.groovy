@@ -50,8 +50,8 @@ class LogReaderService extends BaseService {
                     throwOnTimeout(maxEndTime)
                     if (!pattern || line.toLowerCase() =~ pattern.toLowerCase()) {
                         ret << [lineNumber, line]
-                        lineNumber--
                     }
+                    lineNumber--
                 }
 
             } else {
@@ -68,8 +68,8 @@ class LogReaderService extends BaseService {
                     throwOnTimeout(maxEndTime)
                     if (!pattern || line.toLowerCase() =~ pattern.toLowerCase()) {
                         ret << [lineNumber, line]
-                        lineNumber++
                     }
+                    lineNumber++
                 }
             }
 
