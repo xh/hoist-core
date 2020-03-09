@@ -12,6 +12,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.json.JSONSerializer
+import io.xh.hoist.log.LogSupport
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
@@ -25,11 +26,31 @@ import static org.apache.http.HttpStatus.SC_NOT_FOUND
 class ExceptionRenderer {
 
     /**
-     * Main entry point.  Render an exception to the response.
+     * Main entry point.  Render an exception to the response and log appropriately.
      */
-    void render(Throwable t, HttpServletRequest request, HttpServletResponse response) {
+    void render(Throwable t, HttpServletRequest request, HttpServletResponse response, LogSupport logSupport = null) {
+
+        // Prepare exception
         GrailsUtil.deepSanitize(t)
-        response.setStatus(getHttpStatus(t))
+        int status = getHttpStatus(t)
+        if (t instanceof grails.validation.ValidationException) {
+            t = new ValidationException(t)
+        }
+
+        // Log -- but don't trash logs for routine or client errors
+        if (logSupport) {
+            def message = t.message ?: 'Exception'
+            if (t instanceof RoutineException) {
+                logSupport.instanceLog.debug(message, t)
+            } else if (status < 500) {
+                logSupport.logErrorCompact(message, t)
+            } else {
+                logSupport.instanceLog.error(message, t)
+            }
+        }
+
+        // Render to response
+        response.setStatus(status)
         renderAsJSON(t, request, response)
         response.flushBuffer()
     }
