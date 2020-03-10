@@ -61,7 +61,7 @@ class LogUtils {
         withDelegate(config.script) {
             appender(name, RollingFileAppender) {
                 file = fileName + '.log'
-                encoder(PatternLayoutEncoder)           {pattern = logPattern}
+                encoder(JSONEn)           {pattern = logPattern}
                 rollingPolicy(TimeBasedRollingPolicy)   {fileNamePattern = fileName + ".%d{yyyy-MM-dd}.log"}
             }
         }

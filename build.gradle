@@ -70,6 +70,9 @@ dependencies {
     compile "com.grack:nanojson:1.4"
 
     compile 'commons-io:commons-io:2.6'
+
+    runtime "ch.qos.logback.contrib:logback-json-classic:0.1.5"
+    runtime "ch.qos.logback.contrib:logback-jackson:0.1.5"
 }
 
 bootRun {
