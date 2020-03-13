@@ -42,17 +42,6 @@ abstract class BaseController implements LogSupport {
     // Implementation
     //-------------------
     void handleException(Exception ex) {
-        if (ex instanceof grails.validation.ValidationException) {
-            ex = new ValidationException(ex)
-        }
-
-        def message = ex.message ?: 'Exception'
-
-        if (ex instanceof RoutineException) {
-            log.debug(message, ex)
-        } else {
-            log.error(message, ex) 
-        }
-        exceptionRenderer.render(ex, request, response)
+        exceptionRenderer.render(ex, request, response, this)
     }
 }

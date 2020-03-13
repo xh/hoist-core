@@ -9,7 +9,7 @@ package io.xh.hoist.exception
 /**
  * Exception for use when URL requested does not match any known pattern.
  */
-class NotFoundException extends RuntimeException implements RoutineException {
+class NotFoundException extends RuntimeException {
     NotFoundException(String message = "Not Found") {
         super(message)
     }
