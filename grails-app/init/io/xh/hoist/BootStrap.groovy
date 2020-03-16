@@ -121,6 +121,13 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'True to allow Hoist Admins to impersonate other users.'
             ],
+            xhEnableLogViewer: [
+                valueType: 'bool',
+                defaultValue: true,
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'True to enable log viewer.'
+            ],
             xhIdleTimeoutMins: [
                 valueType: 'int',
                 defaultValue: -1,
