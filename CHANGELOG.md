@@ -11,7 +11,7 @@
 customize built-in Hoist logging, including changing it to use alternative file formats such as JSON.
 * Also includes enhanced documentation and an example of how to configure logging in Hoist.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.4...6.5.0)
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.4...v6.5.0)
 
 ## 6.4.4 - 2020-03-05
 
