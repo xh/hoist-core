@@ -1,13 +1,13 @@
 # Changelog
 
-## 7.0-SNAPSHOT - unreleased
+## 6.5.0 - 2020-03-16
 
 ### 🎁 New Features
 * Added support for setting custom logging layouts.  Applications can use this to further
 customize built-in Hoist logging, including changing it to use alternative file formats such as JSON.
-* Also includes enhanced documentation and an example for how to configure logging in Hoist.
+* Also includes enhanced documentation and an example of how to configure logging in Hoist.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.4...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.4...6.5.0)
 
 ## 6.4.4 - 2020-03-05
 
