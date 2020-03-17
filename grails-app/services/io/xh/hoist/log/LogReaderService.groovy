@@ -21,6 +21,10 @@ class LogReaderService extends BaseService {
      * @return - List of elements of the form [linenumber, text] for the requested lines
      */
     List readFile(String filename, Integer startLine, Integer maxLines, String pattern) {
+        if (!configService.getBool('xhEnableLogViewer')) {
+            throw new RuntimeException("Log Viewer disabled. See 'xhEnableLogViewer' config.")
+        }
+
         return (List) withDebug('Reading log file ' + filename + '|' + startLine + '|' + maxLines + '|' + pattern) {
             doRead(filename, startLine, maxLines, pattern)
         }
