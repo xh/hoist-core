@@ -22,7 +22,7 @@ class LogReaderService extends BaseService {
      */
     List readFile(String filename, Integer startLine, Integer maxLines, String pattern) {
         if (!configService.getBool('xhEnableLogViewer')) {
-            throw new RuntimeException('Log Viewer disabled. See xhEnableLogViewer config.')
+            throw new RuntimeException("Log Viewer disabled. See 'xhEnableLogViewer' config.")
         }
 
         return (List) withDebug('Reading log file ' + filename + '|' + startLine + '|' + maxLines + '|' + pattern) {
