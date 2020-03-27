@@ -1,6 +1,6 @@
 # Changelog
 
-## 7.0-SNAPSHOT - unreleased
+## 6.6.0 - 2020-03-27
 
 ### 🎁 New Features
 
@@ -8,7 +8,7 @@
   console. Intended for scenarios where the UI server logs are not material/helpful, or potentially
   for cases where they are too chatty/large to be effectively viewed in the Admin UI.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v6.5.0...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.5.0...v6.6.0)
 
 ## 6.5.0 - 2020-03-16
 
