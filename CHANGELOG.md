@@ -2,13 +2,20 @@
 
 ## 7.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* New `xhEnableLogViewer` config available to fully disable the log viewer built into the Admin
+  console. Intended for scenarios where the UI server logs are not material/helpful, or potentially
+  for cases where they are too chatty/large to be effectively viewed in the Admin UI.
+
 [Commit Log](https://github.com/xh/hoist-core/compare/v6.5.0...develop)
 
 ## 6.5.0 - 2020-03-16
 
 ### 🎁 New Features
-* Added support for setting custom logging layouts.  Applications can use this to further
-customize built-in Hoist logging, including changing it to use alternative file formats such as JSON.
+
+* Added support for setting custom logging layouts. Applications can use this to further customize
+  built-in Hoist logging, including changing it to use alternative file formats such as JSON.
 * Also includes enhanced documentation and an example of how to configure logging in Hoist.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v6.4.4...v6.5.0)

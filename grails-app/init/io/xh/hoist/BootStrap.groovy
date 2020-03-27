@@ -126,7 +126,7 @@ class BootStrap {
                 defaultValue: true,
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'True to enable log viewer.'
+                note: 'True to enable the log viewer included with the Hoist Admin console as well as the associated server-side endpoints.'
             ],
             xhIdleTimeoutMins: [
                 valueType: 'int',
