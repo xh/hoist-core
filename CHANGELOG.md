@@ -8,7 +8,7 @@
   directory-style listing within Kubernetes. Required for a client application that is still on
   Hoist Core 4.3.0 but needs to go to K8s prior to a code upgrade.
 
-[Commit Log - 4.3.0 > 4.3.1](https://github.com/xh/hoist-core/compare/v4.3.0...v4.3.1)
+[Commit Log - 4.3.0 > 4.3.1](https://github.com/xh/hoist-core/compare/release-4.3.0...v4.3.1)
 
 ## 6.6.0 - 2020-03-27
 
