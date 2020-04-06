@@ -2,7 +2,7 @@ buildscript {
     repositories {
         mavenLocal()
         jcenter()
-        maven { url "https://repo.grails.org/grails/core" }
+        maven {url 'https://repo.grails.org/grails/core'}
     }
     dependencies {
         classpath "org.grails:grails-gradle-plugin:$grailsVersion"
@@ -19,7 +19,7 @@ apply plugin:'org.grails.grails-gsp'
 repositories {
     mavenLocal()
     jcenter()
-    maven { url 'https://repo.grails.org/grails/core' }
+    maven {url 'https://repo.grails.org/grails/core'}
 }
 
 configurations.all {
@@ -51,7 +51,7 @@ dependencies {
     provided "org.grails:grails-plugin-services"
     provided "org.grails:grails-plugin-domain-class"
 
-    compile 'org.grails.plugins:mail:2.0.0.RC6'
+    compile 'org.grails.plugins:mail:2.0.0'
     compile "org.grails.plugins:hibernate5"
     compile "org.hibernate:hibernate-core:5.1.10.Final"
     compile "org.hibernate:hibernate-ehcache:5.1.10.Final"
@@ -103,17 +103,17 @@ publishing {
                         delegate.url 'https://xh.io'
                     }
                     delegate.scm {
-                        delegate.url "https://github.com/exhi/hoist-core"
-                        delegate.connection "scm:git@github.com:exhi/hoist-core.git"
-                        delegate.developerConnection "scm:git@github.com:exhi/hoist-core.git"
+                        delegate.url "https://github.com/xh/hoist-core"
+                        delegate.connection "scm:git@github.com:xh/hoist-core.git"
+                        delegate.developerConnection "scm:git@github.com:xh/hoist-core.git"
                     }
                     delegate.issueManagement {
                         delegate.system "GitHub"
-                        delegate.url "https://github.com/exhi/hoist-core/issues"
+                        delegate.url "https://github.com/xh/hoist-core/issues"
                     }
                     delegate.developers {
                         delegate.developer {
-                            delegate.id 'exhi'
+                            delegate.id 'xh'
                             delegate.name 'Extremely Heavy Industries'
                             delegate.email 'info@xh.io'
                         }
@@ -138,14 +138,11 @@ publishing {
 
             repositories {
                 maven {
-                    if (version.endsWith('-SNAPSHOT')) {
-                        url "https://repo.xh.io/content/repositories/snapshots/"
-                    } else {
-                        url "https://repo.xh.io/content/repositories/releases/"
-                    }
+                    def repoEndpoint = version.endsWith('-SNAPSHOT') ? 'snapshots' : 'releases'
+                    url "https://repo.xh.io/content/repositories/$repoEndpoint/"
                     credentials {
-                        username xhRepoDeployUser
-                        password xhRepoDeployPassword
+                        username project.findProperty('xhRepoDeployUser')
+                        password project.findProperty('xhRepoDeployPassword')
                     }
                 }
             }

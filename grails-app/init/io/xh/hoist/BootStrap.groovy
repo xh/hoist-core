@@ -2,12 +2,14 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2018 Extremely Heavy Industries Inc.
+ * Copyright © 2020 Extremely Heavy Industries Inc.
  */
 package io.xh.hoist
 
 import grails.util.Holders
 import io.xh.hoist.util.Utils
+
+import static java.lang.Runtime.runtime
 
 class BootStrap {
 
@@ -38,7 +40,9 @@ class BootStrap {
   \\/_/\\/_/   \\/_____/   \\/_/   \\/_____/     \\/_/
 \n
           Hoist v${hoist.version} - ${Utils.getAppEnvironment()}
-          Extremely Heavy Industries - http://xh.io
+          Extremely Heavy - http://xh.io
+            + ${runtime.availableProcessors()} available processors
+            + ${String.format('%,d', (runtime.maxMemory() / 1000000).toLong())}mb available memory
 \n
         """)
     }
