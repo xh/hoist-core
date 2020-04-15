@@ -13,15 +13,11 @@ import grails.util.Holders
 import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.json.JSON
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.track.TrackLog
 import io.xh.hoist.user.BaseRoleService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.websocket.WebSocketService
-import org.grails.web.converters.exceptions.ConverterException
-import org.grails.web.json.JSONArray
-import org.grails.web.json.JSONObject
 import org.springframework.context.ApplicationContext
 
 
@@ -117,18 +113,6 @@ class Utils {
             return false
         }
     }
-
-    static Object stripJsonNulls(Object o) {
-        if (o == null || o.equals(null)) return null
-        if (o instanceof JSONArray) {
-            o.eachWithIndex{v, idx -> o[idx] = stripJsonNulls(v)}
-        }
-        if (o instanceof JSONObject) {
-            o.each{k, v -> o[k] = stripJsonNulls(v)}
-        }
-        return o
-    }
-
 
     /**
      * Return all singleton instances of io.xh.BaseService in the application

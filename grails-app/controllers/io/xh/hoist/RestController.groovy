@@ -9,7 +9,7 @@ package io.xh.hoist
 
 import grails.validation.ValidationException
 import groovy.util.logging.Slf4j
-import io.xh.hoist.json.JSON
+import io.xh.hoist.json.JSONParser
 import org.grails.web.json.JSONObject
 
 @Slf4j
@@ -31,7 +31,7 @@ abstract class RestController extends BaseController {
     }
 
     def read() {
-        def query = params.query ? JSON.parse(params.query) as Map : [:],
+        def query = params.query ? JSONParser.parseObject(params.query) : [:],
             ret = params.id ? [restTargetVal.get(params.id)] : doList(query)
         renderJSON(success:true, data:ret)
     }
@@ -53,7 +53,7 @@ abstract class RestController extends BaseController {
 
     def bulkUpdate() {
         def ids = params.list('ids'),
-            newParams = JSON.parse(params.newParams),
+            newParams = JSONParser.parseObject(params.newParams),
             successCount = 0,
             failCount = 0,
             target = restTargetVal,

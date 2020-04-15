@@ -10,6 +10,7 @@ package io.xh.hoist.http
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.xh.hoist.json.JSON
+import io.xh.hoist.json.JSONParser
 import org.apache.http.client.methods.CloseableHttpResponse
 import org.apache.http.client.methods.HttpRequestBase
 import org.apache.http.impl.client.CloseableHttpClient
@@ -54,6 +55,16 @@ class JSONClient {
     JSONArray executeAsJSONArray(HttpRequestBase method) {
         String ret = executeAsString(method)
         return ret ? (JSONArray) JSON.parse(ret) : null
+    }
+
+    Map executeAsMap(HttpRequestBase method) {
+        String ret = executeAsString(method)
+        return ret ? JSONParser.parseObject(ret) : null
+    }
+
+    List executeAsList(HttpRequestBase method) {
+        String ret = executeAsString(method)
+        return ret ? JSONParser.parseArray(ret) : null
     }
 
     String executeAsString(HttpRequestBase method) {
@@ -121,7 +132,7 @@ class JSONClient {
         def text = response.entity.content.getText()
         if (!text) return null
         try {
-            def ex = (JSONObject) JSON.parse(text),
+            def ex = JSONParser.parseObject(text),
                 className = ex.className,
                 msg = ex.message
 

@@ -20,6 +20,7 @@ import io.xh.hoist.exception.SessionMismatchException
 import io.xh.hoist.export.GridExportImplService
 import io.xh.hoist.feedback.FeedbackService
 import io.xh.hoist.json.JSON
+import io.xh.hoist.json.JSONParser
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.security.AccessAll
 import io.xh.hoist.track.TrackService
@@ -91,7 +92,7 @@ class XhController extends BaseController {
         trackService.track(
                 category: params.category,
                 msg: params.msg,
-                data: params.data ? JSON.parse((String) params.data) : null,
+                data: params.data ? JSONParser.parseObject((String) params.data) : null,
                 elapsed: params.elapsed,
                 severity: params.severity
         )
@@ -148,7 +149,7 @@ class XhController extends BaseController {
     // its content from the inputStream, and then parse the JSON to get usable params for GridExportImplService.
     def export() {
         def params = request.getPart('params').inputStream.text,
-            ret = gridExportImplService.getBytesForRender(JSON.parse(params) as Map)
+            ret = gridExportImplService.getBytesForRender(JSONParser.parseObject(params))
         render(ret)
     }
 

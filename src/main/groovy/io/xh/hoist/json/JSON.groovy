@@ -10,13 +10,15 @@ package io.xh.hoist.json
 import groovy.transform.CompileStatic
 
 /**
- * Alias for Grails JSON converter. Used for parsing JSON strings to Objects in Groovy.
+ * Alias for Grails JSON converter.
+ *
+ * DEPRECATED. This class is maintained here primarily for backwards compatibility; no future
+ * extensions or modifications are currently planned. Applications should consider using either
+ * JSONParser, or JSONSerializer API.  These classes uses the more modern and efficient Jackson
+ * library.
  *
  * In prior versions of this plugin, this class also supported customized serialization from Objects
- * to JSON. Applications should now use the Jackson-based JSONSerializer instead when writing JSON.
- *
- * This class is maintained here primarily for backwards compatibility; no future extensions or
- * modifications are currently planned.
+ * to JSON. Applications requiring this should use JSONSerializer instead.
  */
 @CompileStatic
 class JSON extends grails.converters.JSON {

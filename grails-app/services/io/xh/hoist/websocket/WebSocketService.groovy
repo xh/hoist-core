@@ -11,10 +11,9 @@ import grails.async.Promises
 import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
-import io.xh.hoist.json.JSON
+import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.user.IdentityService
-import org.grails.web.json.JSONObject
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
@@ -147,8 +146,8 @@ class WebSocketService extends BaseService implements EventPublisher {
         return new TextMessage(jsonString)
     }
 
-    private JSONObject deserialize(TextMessage message) {
-        return (JSONObject) JSON.parse(message.payload)
+    private Map deserialize(TextMessage message) {
+        return JSONParser.parseObject(message.payload)
     }
 
     private Collection<HoistWebSocketChannel> getChannelsForKeys(Collection<String> channelKeys) {
