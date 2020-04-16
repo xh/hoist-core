@@ -44,6 +44,8 @@ trait LogSupport {
     Object withShortInfo(Object msgs, Closure c)    {withShortInfo(log, msgs, c)}
 
     Object logErrorCompact(Object msg, Throwable e) {logErrorCompact(log, msg, e)}
+    Object logDebugCompact(Object msg, Throwable e) {logDebugCompact(log, msg, e)}
+
 
     //---------------------------------------------------------------------------
     // Variants for logging to a specific logger.
@@ -72,6 +74,16 @@ trait LogSupport {
             log.error(message, t)
         } else {
             log.error("$message | ${getThrowableSummary(t)}  [log on debug for more...]")
+        }
+    }
+
+    @CompileDynamic
+    static Object logDebugCompact(Object log, Object msg, Throwable t) {
+        String message = msg.toString()
+        if (log.traceEnabled) {
+            log.debug(message, t)
+        } else {
+            log.debug("$message | ${getThrowableSummary(t)}  [log on trace for more...]")
         }
     }
 

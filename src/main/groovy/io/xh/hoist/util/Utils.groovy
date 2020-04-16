@@ -13,6 +13,7 @@ import grails.util.Holders
 import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.exception.ExceptionRenderer
 import io.xh.hoist.json.JSON
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.track.TrackLog
@@ -82,6 +83,10 @@ class Utils {
 
     static BaseRoleService getRoleService() {
         return (BaseRoleService) appContext.roleService
+    }
+
+    static ExceptionRenderer getExceptionRenderer() {
+        return (ExceptionRenderer) appContext.exceptionRenderer
     }
 
     static WebSocketService getWebSocketService() {

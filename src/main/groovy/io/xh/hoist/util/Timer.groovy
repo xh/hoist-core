@@ -20,6 +20,7 @@ import java.util.concurrent.TimeoutException
 
 import static io.xh.hoist.util.DateTimeUtils.*
 import static io.xh.hoist.util.Utils.configService
+import static io.xh.hoist.util.Utils.getExceptionRenderer
 import static io.xh.hoist.util.Utils.withNewSession
 
 class Timer implements AsyncSupport {
@@ -158,7 +159,7 @@ class Timer implements AsyncSupport {
 
         if (throwable) {
             try {
-                owner.logErrorCompact("Failure in Timer [$name]", throwable)
+                exceptionRenderer.handleException(throwable, owner)
             } catch (Throwable ignore) {}
         }
     }
@@ -245,3 +246,5 @@ class Timer implements AsyncSupport {
         }
     }
 }
+
+
