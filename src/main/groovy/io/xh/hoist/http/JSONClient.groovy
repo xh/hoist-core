@@ -47,26 +47,25 @@ class JSONClient {
     //--------------------------------------------------
     // Convenience Methods for getting decoded response
     //---------------------------------------------------
-    JSONObject executeAsJSONObject(HttpRequestBase method) {
-        String ret = executeAsString(method)
-        return ret ? (JSONObject) JSON.parse(ret) : null
-    }
-
-    JSONArray executeAsJSONArray(HttpRequestBase method) {
-        String ret = executeAsString(method)
-        return ret ? (JSONArray) JSON.parse(ret) : null
-    }
-
+    /**
+     * Execute and parse a request expected to return a single JSON object.
+     */
     Map executeAsMap(HttpRequestBase method) {
         String ret = executeAsString(method)
         return ret ? JSONParser.parseObject(ret) : null
     }
 
+    /**
+     * Execute and parse a request expected to return an array of JSON objects.
+     */
     List executeAsList(HttpRequestBase method) {
         String ret = executeAsString(method)
         return ret ? JSONParser.parseArray(ret) : null
     }
 
+    /**
+     * Execute request and return raw content string.
+     */
     String executeAsString(HttpRequestBase method) {
         def response
         try {
@@ -79,6 +78,9 @@ class JSONClient {
         }
     }
 
+    /**
+     * Execute request and return status code only.
+     */
     Integer executeAsStatusCode(HttpRequestBase method) {
         def response
         try {
@@ -89,6 +91,30 @@ class JSONClient {
         }
     }
 
+    //----------------------
+    // Deprecated methods
+    //----------------------
+    /**
+     * @deprecated
+     *
+     * This method uses the deprecated JSON class for JSON parsing
+     * Consider using executeAsMap instead().
+     */
+    JSONObject executeAsJSONObject(HttpRequestBase method) {
+        String ret = executeAsString(method)
+        return ret ? (JSONObject) JSON.parse(ret) : null
+    }
+
+    /**
+     * @deprecated
+     *
+     * This method uses the deprecated JSON class for JSON parsing
+     * Consider using executeAsList instead().
+     */
+    JSONArray executeAsJSONArray(HttpRequestBase method) {
+        String ret = executeAsString(method)
+        return ret ? (JSONArray) JSON.parse(ret) : null
+    }
     
     //------------------------
     // Implementation
@@ -98,6 +124,14 @@ class JSONClient {
         Exception cause = null
         String statusText
         boolean success
+
+        if (!method.containsHeader('Content-type') && method.method in ['POST', 'PUT']) {
+            method.setHeader('Content-type', 'application/json')
+        }
+
+        if (!method.containsHeader('Accept')) {
+            method.setHeader('Accept', 'application/json')
+        }
 
         try {
             ret = executeRaw(_client, method)
