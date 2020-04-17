@@ -37,8 +37,7 @@ class ExceptionRenderer {
      * Main entry point for request based code (e.g. controllers)
      */
     void render(Throwable t, HttpServletRequest request, HttpServletResponse response, LogSupport logSupport = null) {
-
-        t = preprocessThrowable(t)
+        t = preprocess(t)
         if (logSupport) {
             logException(t, logSupport)
         }
@@ -49,20 +48,27 @@ class ExceptionRenderer {
         response.flushBuffer()
     }
 
-
     /**
      * Main entry point for non-request based code (e.g. Timers)
      */
     void handleException(Throwable t, LogSupport logSupport) {
-        t = preprocessThrowable(t)
+        t = preprocess(t)
         logException(t, logSupport)
     }
-
 
     //---------------------------------------------
     // Template methods.  For application override
     //---------------------------------------------
-    protected Throwable preprocessThrowable(Throwable t) {
+    String summaryTextForThrowable(Throwable e) {
+        def ret = e.message ?: e.cause?.message ?: e.class.name
+        if (ret && ret.size() > 250) {
+            ret = ret.substring(0, 250)
+        }
+        return ret
+    }
+
+
+    protected Throwable preprocess(Throwable t) {
         GrailsUtil.deepSanitize(t)
         if (t instanceof grails.validation.ValidationException) {
             t = new ValidationException(t)
@@ -71,15 +77,12 @@ class ExceptionRenderer {
     }
 
     protected void logException(Throwable t, LogSupport logSupport) {
-
-        def message = t.message ?: 'Exception'
-
         if (shouldLogDebugCompact(t)) {
-            logSupport.logDebugCompact(message, t)
+            logSupport.logDebugCompact(null, t)
         } else if (shouldLogErrorCompact(t)) {
-            logSupport.logErrorCompact(message, t)
+            logSupport.logErrorCompact(null, t)
         } else {
-            logSupport.instanceLog.error(message, t)
+            logSupport.instanceLog.error(summaryTextForThrowable(t), t)
         }
     }
 
