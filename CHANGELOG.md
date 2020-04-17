@@ -1,5 +1,12 @@
 # Changelog
 
+## 7.0-SNAPSHOT - unreleased
+
+### 🎁 New Features
+* Exception Handling has been improved in the newly enhanced `exceptionRenderer` bean.  This bean will
+catch uncaught exceptions from all Controllers and Timers and has been newly configured to limit the
+logging of unnecessary stack traces. 
+
 ## 6.6.0 - 2020-03-27
 
 ### 🎁 New Features
