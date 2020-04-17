@@ -1,5 +1,12 @@
 # Changelog
 
+## 7.0-SNAPSHOT - unreleased
+
+### 🎁 New Features
+* `JSONParser` has been added to the `io.xh.hoist.json` package, providing high performance JSON parsing
+based on the Jackson library.  This parser is used by new standard methods on `JsonClient` and 
+should improve the performance of REST clients and proxys.
+
 ## 6.6.0 - 2020-03-27
 
 ### 🎁 New Features
