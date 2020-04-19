@@ -2,13 +2,14 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2019 Extremely Heavy Industries Inc.
+ * Copyright © 2020 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.user
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
+import io.xh.hoist.config.ConfigService
 import io.xh.hoist.security.BaseAuthenticationService
 import io.xh.hoist.track.TrackService
 import org.grails.web.servlet.mvc.GrailsWebRequest
@@ -34,11 +35,11 @@ class IdentityService extends BaseService {
 
     static public String AUTH_USER_KEY = 'xhAuthUser'
     static public String APPARENT_USER_KEY = 'xhApparentUser'
-    
+
     BaseAuthenticationService authenticationService
     BaseUserService userService
     TrackService trackService
-
+    ConfigService configService
 
     /**
      * Return the current active user. Note that this is the 'apparent' user, used for most
@@ -93,10 +94,10 @@ class IdentityService extends BaseService {
             targetUser = userService.find(username),
             authUser = getAuthUser(request)
 
+        checkImpersonationEnabled()
         if (!request) {
             throw new RuntimeException('Cannot impersonate when outside the context of a request')
         }
-        
         if (!authUser.isHoistAdmin) {
             throw new RuntimeException("User '${authUser.username}' does not have permissions to impersonate")
         }
@@ -127,6 +128,7 @@ class IdentityService extends BaseService {
      * Return a list of users available for impersonation.
      */
     List<HoistUser> getImpersonationTargets() {
+        checkImpersonationEnabled()
         getAuthUser().isHoistAdmin ? userService.list(true) : new ArrayList<HoistUser>()
     }
 
@@ -186,6 +188,12 @@ class IdentityService extends BaseService {
     //----------------------
     // Implementation
     //----------------------
+    private void checkImpersonationEnabled() {
+        if (!configService.getBool('xhEnableImpersonation')) {
+            throw new RuntimeException('Impersonation is disabled for this app.')
+        }
+    }
+
     private HttpServletRequest getRequest() {
         def attr = RequestContextHolder.requestAttributes
 

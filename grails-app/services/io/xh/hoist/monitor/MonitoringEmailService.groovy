@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2019 Extremely Heavy Industries Inc.
+ * Copyright © 2020 Extremely Heavy Industries Inc.
  */
 package io.xh.hoist.monitor
 
@@ -11,6 +11,10 @@ import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.monitor.MonitorStatus.WARN
 
+/**
+ * Listens for status monitor change events from MonitoringService and emails status updates to
+ * a configurable list of recipients.
+ */
 class MonitoringEmailService extends BaseService {
 
     def emailService
@@ -26,7 +30,7 @@ class MonitoringEmailService extends BaseService {
     //------------------------
     private void emailReport(MonitorStatusReport report) {
         def to = emailService.parseMailConfig('xhMonitorEmailRecipients')
-        if (to && to != 'none') {
+        if (to) {
             emailService.sendEmail(
                 to: to,
                 subject: report.title,

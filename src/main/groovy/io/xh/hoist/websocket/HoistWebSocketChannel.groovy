@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2019 Extremely Heavy Industries Inc.
+ * Copyright © 2020 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.websocket
@@ -13,6 +13,7 @@ import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
+import org.grails.web.json.JSONObject
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
@@ -20,7 +21,9 @@ import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorato
 
 import java.time.Instant
 
-import static io.xh.hoist.util.Utils.getUserService
+import static io.xh.hoist.util.Utils.configService
+import static io.xh.hoist.util.Utils.userService
+import static io.xh.hoist.util.Utils.withNewSession
 
 /**
  * Managed wrapper around a raw WebSocketSession:
@@ -31,9 +34,6 @@ import static io.xh.hoist.util.Utils.getUserService
 @Slf4j
 @CompileStatic
 class HoistWebSocketChannel implements LogSupport, JSONFormat {
-
-    static int SEND_TIME_LIMIT_MS = 1000
-    static int BUFFER_SIZE_LIMIT_BYTES = 1000000
 
     final WebSocketSession session
     final String authUsername
@@ -46,7 +46,11 @@ class HoistWebSocketChannel implements LogSupport, JSONFormat {
     private Instant lastReceivedTime
 
     HoistWebSocketChannel(WebSocketSession webSocketSession) {
-        session = new ConcurrentWebSocketSessionDecorator(webSocketSession, SEND_TIME_LIMIT_MS, BUFFER_SIZE_LIMIT_BYTES)
+        JSONObject conf = getConfig()
+        int sendTimeLimit = conf.getInt('sendTimeLimitMs')
+        int bufferSizeLimit = conf.getInt('bufferSizeLimitBytes')
+        log.debug("Creating managed socket session: sendTimeLimit: $sendTimeLimit, bufferSizeLimit: $bufferSizeLimit")
+        session = new ConcurrentWebSocketSessionDecorator(webSocketSession, sendTimeLimit, bufferSizeLimit)
         authUsername = getAuthUsernameFromSession()
         apparentUsername = getApparentUsernameFromSession()
         createdTime = Instant.now()
@@ -88,6 +92,12 @@ class HoistWebSocketChannel implements LogSupport, JSONFormat {
 
     private String getApparentUsernameFromSession() {
         return (String) session.attributes[IdentityService.APPARENT_USER_KEY] ?: 'unknownUser'
+    }
+
+    private JSONObject getConfig() {
+        return (JSONObject) withNewSession {
+            configService.getJSONObject('xhWebSocketConfig')
+        }
     }
 
     Map formatForJSON() {

@@ -1,5 +1,74 @@
 # Changelog
 
+## 6.6.0 - 2020-03-27
+
+### 🎁 New Features
+
+* New `xhEnableLogViewer` config available to fully disable the log viewer built into the Admin
+  console. Intended for scenarios where the UI server logs are not material/helpful, or potentially
+  for cases where they are too chatty/large to be effectively viewed in the Admin UI.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.5.0...v6.6.0)
+
+## 6.5.0 - 2020-03-16
+
+### 🎁 New Features
+
+* Added support for setting custom logging layouts. Applications can use this to further customize
+  built-in Hoist logging, including changing it to use alternative file formats such as JSON.
+* Also includes enhanced documentation and an example of how to configure logging in Hoist.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.4...v6.5.0)
+
+## 6.4.4 - 2020-03-05
+
+### ⚙️ Bug Fixes
+
+* Fixed issue where attempting to read very large log files would overly stress server processor and
+  memory resources. [#115](https://github.com/xh/hoist-core/issues/115)
+
+### ⚙️ Technical
+
+* Add ability to configure WebSocketService resource limits using soft configuration.
+* Note intermediate builds 6.4.2/6.4.3 not for use.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.1...v6.4.4)
+
+## 6.4.1 - 2020-02-29
+
+### 🐞 Bug Fixes
+
+* Fixed an issue where GORM validation exceptions would trigger MethodNotFoundException
+
+### ⚙️ Technical
+
+* Switch to using [nanoJson](https://github.com/mmastrac/nanojson) for JSON validation, which
+  ensures stricter adherence to the JSON spec.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.4.0...v6.4.1)
+
+## 6.4.0 - 2020-01-21
+
+### 🎁 New Features
+
+* Added a new `xhEnableImpersonation` config for enabling or disabling impersonation app-wide. Note
+  that this config will be defaulted to false if not yet defined - set to true after upgrade to
+  continue supporting impersonation for your application.
+* The `xhMonitorConfig` config supports a new property `monitorTimeoutSecs` to control the max
+  runtime for any individual monitor check.
+* Any `appBuild` tag is now included in the output of `xh/version`, allowing for client-side version
+  checking to take the particular build into account when running on a SNAPSHOT.
+
+### ⚙️ Technical
+
+* All exceptions are now rendered as JSON. HTML exception rendering is no longer supported.
+* Exceptions in GORM validation will now be treated as routine and will not be logged.
+  ([#95](https://github.com/xh/hoist-core/issues/95))
+* GORM validation exceptions are now handled by `BaseController` rather than `RestController`, so
+  all endpoints will be handled consistently. ([#68](https://github.com/xh/hoist-core/issues/68))
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.3.1...v6.4.0)
+
 ## 6.3.1 - 2019-11-12
 
 ### 🐞 Bug Fixes
@@ -563,3 +632,10 @@ exposing them to the application as a map.
 * Make LogLevel adjustments synchronous, so they reflect immediately in Admin console UI.
   dc387e885bea14b0443d5e984ccd74238fa6e7b7
 
+------------------------------------------
+
+Copyright © 2020 Extremely Heavy Industries Inc. - all rights reserved
+
+------------------------------------------
+
+📫☎️🌎 info@xh.io | https://xh.io/contact

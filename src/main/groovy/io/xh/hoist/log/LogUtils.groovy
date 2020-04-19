@@ -2,14 +2,18 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2019 Extremely Heavy Industries Inc.
+ * Copyright © 2020 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.log
 
 import ch.qos.logback.core.ConsoleAppender
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder
+import ch.qos.logback.core.Context
 import ch.qos.logback.core.FileAppender
+import ch.qos.logback.core.Layout
+import ch.qos.logback.core.encoder.Encoder
+import ch.qos.logback.core.encoder.LayoutWrappingEncoder
 import ch.qos.logback.core.rolling.RollingFileAppender
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy
 import grails.util.BuildSettings
@@ -22,14 +26,43 @@ import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.WARN
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 
+/**
+ * This class supports the default logging configuration in Hoist.
+ *
+ * Applications should customize/specify their logging conventions via
+ * the file grails-app/conf/logback.groovy.  See sample-logback.groovy
+ * (in this directory) as well as the logback and grails documentation for
+ * more information on how to construct this file.
+ */
 class LogUtils {
 
-    static String DEFAULT_FULL_LAYOUT =      '%d{yyyy-MM-dd HH:mm:ss} | %c{0} [%p] | %m%n'
-    static String DEFAULT_MONTHLY_LAYOUT =   '%d{MM-dd HH:mm:ss} | %c{0} [%p] | %m%n'
-    static String DEFAULT_DAILY_LAYOUT =     '%d{HH:mm:ss} | %c{0} [%p] | %m%n'
-    static String DEFAULT_MONITOR_LAYOUT =   '%d{HH:mm:ss} | %m%n'
-
     private static _logRootPath = null
+
+    /**
+     * Layout used for for logging to stdout
+     * String or a Closure that produces a Layout
+     */
+    static Object stdoutLayout = '%d{yyyy-MM-dd HH:mm:ss} | %c{0} [%p] | %m%n'
+
+    /**
+     * Layout for logs created by dailyLog() function
+     * String or a Closure that produces a Layout
+     * This layout will be used by the built-in rolling daily log provided by hoist.
+     */
+    static Object dailyLayout = '%d{HH:mm:ss} | %c{0} [%p] | %m%n'
+
+    /**
+     * Layout for logs created by monthlyLog() function
+     * String or a Closure that produces a Layout
+     */
+    static Object monthlyLayout = '%d{MM-dd HH:mm:ss} | %c{0} [%p] | %m%n'
+
+    /**
+     * Layout used for logging monitor results to its dedicated monitor log.
+     * String or a Closure that produces a Layout
+     */
+    static Object monitorLayout = '%d{HH:mm:ss} | %m%n'
+
 
     /**
      * Return the logging directory path - [tomcatHome]/logs/[appName]-logs by default.
@@ -52,78 +85,79 @@ class LogUtils {
         return _logRootPath
     }
 
-    static dailyLog(Map config) {
-        def name = config.name ?: '',
+    /**
+     * Create an appender for a daily rolling log.
+     *
+     * @param config.name - name of log/appender
+     * @param config.script - logback script where this method is being called from
+     * @param config.subdir - subdirectory within main logging directory to place log (optional)
+     * @param config.layout - string or Logback layout to be used.  Defaults to dailyLayout (optional)
+     */
+    static void dailyLog(Map config) {
+        def name = config.name,
             subdir = config.subdir ?: '',
-            fileName = Paths.get(logRootPath, subdir, name).toString(),
-            logPattern = config.pattern ?: DEFAULT_DAILY_LAYOUT
+            fileName = Paths.get(logRootPath, subdir, name).toString()
 
         withDelegate(config.script) {
             appender(name, RollingFileAppender) {
                 file = fileName + '.log'
-                encoder(PatternLayoutEncoder)           {pattern = logPattern}
-                rollingPolicy(TimeBasedRollingPolicy)   {fileNamePattern = fileName + ".%d{yyyy-MM-dd}.log"}
+                encoder = LogUtils.createEncoder(config.layout ?: dailyLayout, context)
+                rollingPolicy(TimeBasedRollingPolicy) { fileNamePattern = fileName + ".%d{yyyy-MM-dd}.log" }
             }
         }
     }
 
-    static monthlyLog(Map config) {
-        def name = config.name ?: '',
+    /**
+     * Create an appender for a monthly rolling log.
+     *
+     * @param config.name - name of log/appender
+     * @param config.script - logback script where this method is being called from
+     * @param config.subdir - subdirectory within main logging directory to place log (optional)
+     * @param config.layout - string or Logback layout to be used.  Defaults to monthlyLayout (optional)
+     */
+    static void monthlyLog(Map config) {
+        def name = config.name,
             subdir = config.subdir ?: '',
-            fileName = Paths.get(logRootPath, subdir, name).toString(),
-            logPattern = config.pattern ?: DEFAULT_MONTHLY_LAYOUT
+            fileName = Paths.get(logRootPath, subdir, name).toString()
 
         withDelegate(config.script) {
             appender(name, RollingFileAppender) {
                 file = fileName + '.log'
-                encoder(PatternLayoutEncoder)           {pattern = logPattern}
+                encoder = LogUtils.createEncoder(config.layout ?: monthlyLayout, context)
                 rollingPolicy(TimeBasedRollingPolicy)   {fileNamePattern = fileName + ".%d{yyyy-MM}.log"}
             }
         }
     }
 
-    static monitorLog(Map config) {
-        def name = config.name ?: '',
-            subdir = config.subdir ?: '',
-            fileName = Paths.get(logRootPath, subdir, name).toString(),
-            logPattern = config.pattern ?: DEFAULT_MONITOR_LAYOUT
-
-        withDelegate(config.script) {
-            appender(name, RollingFileAppender) {
-                file = fileName + '.log'
-                encoder(PatternLayoutEncoder)           {pattern = logPattern}
-                rollingPolicy(TimeBasedRollingPolicy)   {fileNamePattern = fileName + ".%d{yyyy-MM-dd}.log"}
-            }
-        }
-    }
-
-    static monitorConsole(Map config) {
-        def name = config.name ?: '',
-            logPattern = config.pattern ?: DEFAULT_MONITOR_LAYOUT
-
-        withDelegate(config.script) {
-            appender(name, ConsoleAppender) {
-                encoder(PatternLayoutEncoder)           {pattern = logPattern}
-            }
-        }
-    }
-
+    /**
+     * Main entry point.
+     *
+     * This function sets up "built-in" appenders for stdout, a daily rolling log,
+     * and logs for Hoists built-in monitoring.
+     *
+     * It will also setup default logging levels logging levels for application, Hoist, and other
+     * third-party packages. Note that these logging levels can be overwritten statically by
+     * applications in logback.groovy.
+     *
+     * Application logback scripts need to call this method in their logback.groovy file.
+     * See example-logback.groovy in this directory for more details.
+     *
+     * @param script
+     */
     static void initConfig(Script script) {
         withDelegate(script) {
 
             def appLogName = Utils.appCode,
-                monitorLogName = "${appLogName}-monitor"
+                monitorLogName = "$appLogName-monitor"
 
             //----------------------------------
             // Appenders
             //----------------------------------
             appender('stdout', ConsoleAppender) {
-                encoder(PatternLayoutEncoder) {pattern = DEFAULT_FULL_LAYOUT}
+                encoder = LogUtils.createEncoder(stdoutLayout, context)
             }
-
             dailyLog(name: appLogName, script: script)
-            monitorLog(name: monitorLogName, script: script)
-            monitorConsole(name: 'monitor-console', script: script)
+            dailyLog(name: monitorLogName, script: script, layout: monitorLayout)
 
             //----------------------------------
             // Loggers
@@ -134,20 +168,20 @@ class LogUtils {
             logger('io.xh', INFO)
 
             // Logger for MonitoringService only. Do not duplicate in main log file, but write to stdout
-            logger('io.xh.hoist.monitor.MonitoringService', INFO, [monitorLogName, "monitor-console"], additivity = false)
+            logger('io.xh.hoist.monitor.MonitoringService', INFO, [monitorLogName, 'stdout'], additivity = false)
 
             // Quiet noisy loggers
             logger('org.hibernate',                 ERROR)
             logger('org.springframework',           ERROR)
             logger('net.sf.ehcache',                ERROR)
 
-            //----------------------------------
+            //------------------------------------------------------------
             // Full Stack trace, redirect to special log in dev mode only
-            //----------------------------------
+            //------------------------------------------------------------
             def targetDir = BuildSettings.TARGET_DIR
             if (Environment.isDevelopmentMode() && targetDir) {
                 appender('stacktrace', FileAppender) {
-                    file = "${targetDir}/stacktrace.log"
+                    file = "$targetDir/stacktrace.log"
                     append = true
                     encoder(PatternLayoutEncoder) {pattern = "%level %logger - %msg%n" }
                 }
@@ -165,4 +199,21 @@ class LogUtils {
         c.call()
     }
 
+    private static Encoder createEncoder(Object layoutSpec, Context context) {
+        Encoder ret
+        if (layoutSpec instanceof String) {
+            ret = new PatternLayoutEncoder()
+            ret.pattern = layoutSpec
+        } else {
+            ret = new LayoutWrappingEncoder()
+            Layout layout = layoutSpec.call();
+            layout.context = context
+            layout.start();
+            ret.layout = layout
+        }
+
+        ret.context = context
+        ret.start()
+        return ret
+    }
 }

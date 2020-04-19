@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2019 Extremely Heavy Industries Inc.
+ * Copyright © 2020 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.admin
@@ -15,7 +15,8 @@ import io.xh.hoist.security.Access
 @Access(['HOIST_ADMIN'])
 class LogViewerAdminController extends BaseController {
 
-    def logArchiveService
+    def logArchiveService,
+        logReaderService
 
     def listFiles() {
         def baseDir = new File(LogUtils.logRootPath),
@@ -31,45 +32,16 @@ class LogViewerAdminController extends BaseController {
         renderJSON(success:true, files:ret)
     }
 
-    /**
-     * Fetch the (selected) contents of a log file for viewing in the admin console.
-     * @param filename - (required) path to file from log root dir
-     * @param startLine - (optional) line number of file to start at; if null or zero or negative, will return tail of file
-     * @param maxLines - (optional) number of lines to return
-     * @param pattern - (optional) only lines matching pattern will be returned
-     * @return - JSON with content property containing multi-dim array of [lineNumber,text] for lines in file
-     */
     def getFile(String filename, Integer startLine, Integer maxLines, String pattern) {
         // Catch any exceptions and render clean failure - the admin client auto-polls for log file
         // updates, and we don't want to spam the logs with a repeated stacktrace.
         try {
-            def file = new File(LogUtils.logRootPath, filename),
-                content = file.readLines(),
-                size = content.size(),
-                tail = !startLine || startLine<0,
-                startIdx = tail ? size-1 : startLine-1 ,
-                lastIdx = tail ? 0: size-1,
-                idxIncrementer = tail ? -1 : 1,
-                idxComparator = tail ? {return it >= lastIdx} : {return it <= lastIdx},
-                lineCount = 0,
-                ret = []
-
-            maxLines = maxLines ?: 10000
-
-            for (def i = startIdx; idxComparator(i) && lineCount < maxLines; i+=idxIncrementer) {
-                def line = content[i]
-                if (!pattern || line.toLowerCase() =~ pattern.toLowerCase()) {
-                    lineCount++
-                    ret << [i + 1, line]
-                }
-            }
-
-            renderJSON(success: file.exists(), filename: filename, content: ret)
+            def content = logReaderService.readFile(filename, startLine, maxLines, pattern)
+            renderJSON(success: true, filename: filename, content: content)
         } catch (Exception e) {
             renderJSON(success: false, filename: filename, content: [], exception: e.message)
         }
     }
-
 
     /**
      * Deletes one or more files from the log directory.

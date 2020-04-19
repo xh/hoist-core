@@ -2,11 +2,13 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2019 Extremely Heavy Industries Inc.
+ * Copyright © 2020 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.util
 
+import com.grack.nanojson.JsonParser
+import com.grack.nanojson.JsonParserException
 import grails.util.Holders
 import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
@@ -46,6 +48,13 @@ class Utils {
      */
     static String getAppVersion() {
         return buildInfo.getProperty('info.app.version')
+    }
+
+    /**
+     * Optional git commit hash or other identifier set at build time.
+     */
+    static String getAppBuild() {
+        return buildInfo.getProperty('info.xh.appBuild')
     }
 
     /**
@@ -102,9 +111,9 @@ class Utils {
 
     static boolean isJSON(String val) {
         try {
-            if (val != null) JSON.parse(val)
+            if (val != null) JsonParser.any().from(val)
             return true
-        } catch (ConverterException ignored) {
+        } catch (JsonParserException ignored) {
             return false
         }
     }

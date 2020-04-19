@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2019 Extremely Heavy Industries Inc.
+ * Copyright © 2020 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.pref
@@ -154,9 +154,6 @@ class PrefService extends BaseService {
             } else {
                 if (currPref.type != valType) {
                     log.error("Unexpected value type for required preference ${prefName} | expected ${valType} got ${currPref.type} | review and fix!")
-                }
-                if (currPref.local != local) {
-                    log.error("Unexpected local value for required preference ${prefName} | expected ${local} got ${currPref.local} | review and fix!")
                 }
             }
         }

@@ -2,14 +2,16 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2019 Extremely Heavy Industries Inc.
+ * Copyright © 2020 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist
 
+
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.xh.hoist.exception.ExceptionRenderer
+import io.xh.hoist.exception.ValidationException
 import io.xh.hoist.exception.RoutineException
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
@@ -40,12 +42,6 @@ abstract class BaseController implements LogSupport {
     // Implementation
     //-------------------
     void handleException(Exception ex) {
-        def message = ex.message ?: 'Exception'
-        if (ex instanceof RoutineException) {
-            log.debug(message)
-        } else {
-            log.error(message, ex) 
-        }
-        exceptionRenderer.render(ex, request, response)
+        exceptionRenderer.render(ex, request, response, this)
     }
 }

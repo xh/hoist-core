@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2019 Extremely Heavy Industries Inc.
+ * Copyright © 2020 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist
@@ -15,8 +15,7 @@ import org.grails.web.json.JSONObject
 @Slf4j
 abstract class RestController extends BaseController {
 
-    def trackService,
-        messageSource
+    def trackService
 
     static trackChanges = false
     static restTarget = null // Implementations set to value of GORM domain class they are editing.
@@ -26,13 +25,9 @@ abstract class RestController extends BaseController {
         preprocessSubmit(data as JSONObject)
 
         def obj = restTargetVal.newInstance(data)
-        try {
-            doCreate(obj, data)
-            noteChange(obj, 'CREATE')
-            renderJSON(success:true, data:obj)
-        } catch (ValidationException ignored) {
-            throw new RuntimeException(errorsString(obj))
-        }
+        doCreate(obj, data)
+        noteChange(obj, 'CREATE')
+        renderJSON(success:true, data:obj)
     }
 
     def read() {
@@ -50,9 +45,9 @@ abstract class RestController extends BaseController {
             doUpdate(obj, data)
             noteChange(obj, 'UPDATE')
             renderJSON(success:true, data:obj)
-        } catch (ValidationException ignored) {
+        } catch (ValidationException ex) {
             obj.discard()
-            throw new RuntimeException(errorsString(obj))
+            throw ex
         }
     }
 
@@ -73,7 +68,8 @@ abstract class RestController extends BaseController {
             } catch (Exception e) {
                 failCount++
                 if (e instanceof ValidationException) {
-                    log.error(errorsString(obj))
+                    e = new io.xh.hoist.exception.ValidationException(e)
+                    log.debug("Validation exception updating ${obj}", e)
                 } else {
                     log.error("Unexpected exception updating ${obj}", e)
                 }
@@ -149,16 +145,6 @@ abstract class RestController extends BaseController {
                 category: 'Audit',
                 data: [ id: obj.id ]
         )
-    }
-
-    protected String errorsString(gormObject) {
-        return 'Could not save: ' + allErrors(gormObject).join(', ')
-    }
-
-    protected List allErrors(gormObject) {
-        return gormObject.errors.allErrors.collect{error ->
-            messageSource.getMessage(error, Locale.US)
-        }
     }
 
     private static String getChangeVerb(String changeType) {

@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2019 Extremely Heavy Industries Inc.
+ * Copyright © 2020 Extremely Heavy Industries Inc.
  */
 package io.xh.hoist
 
@@ -40,7 +40,7 @@ class BootStrap {
   \\/_/\\/_/   \\/_____/   \\/_/   \\/_____/     \\/_/
 \n
           Hoist v${hoist.version} - ${Utils.getAppEnvironment()}
-          Extremely Heavy Industries - http://xh.io
+          Extremely Heavy - http://xh.io
             + ${runtime.availableProcessors()} available processors
             + ${String.format('%,d', (runtime.maxMemory() / 1000000).toLong())}mb available memory
 \n
@@ -114,6 +114,20 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Email address to which support and feedback submissions should be sent.'
             ],
+            xhEnableImpersonation: [
+                valueType: 'bool',
+                defaultValue: false,
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'True to allow Hoist Admins to impersonate other users.'
+            ],
+            xhEnableLogViewer: [
+                valueType: 'bool',
+                defaultValue: true,
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'True to enable the log viewer included with the Hoist Admin console as well as the associated server-side endpoints.'
+            ],
             xhIdleTimeoutMins: [
                 valueType: 'int',
                 defaultValue: -1,
@@ -138,6 +152,7 @@ class BootStrap {
                     warnNotifyThreshold: 5,
                     monitorStartupDelayMins: 1,
                     monitorRepeatNotifyMins: 60,
+                    monitorTimeoutSecs: 15,
                     writeToMonitorLog: true
                 ],
                 groupName: 'xh.io',
@@ -148,6 +163,15 @@ class BootStrap {
                 defaultValue: 'none',
                 groupName: 'xh.io',
                 note: 'Email address to which status monitor alerts should be sent. Value "none" disables emailed alerts.'
+            ],
+            xhWebSocketConfig: [
+                valueType: 'json',
+                defaultValue: [
+                    sendTimeLimitMs: 1000,
+                    bufferSizeLimitBytes: 1000000
+                ],
+                groupName: 'xh.io',
+                note: 'Parameters for the managed WebSocket sessions created by Hoist.'
             ]
         ])
     }

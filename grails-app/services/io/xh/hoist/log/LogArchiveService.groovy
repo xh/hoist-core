@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2019 Extremely Heavy Industries Inc.
+ * Copyright © 2020 Extremely Heavy Industries Inc.
  */
 package io.xh.hoist.log
 
@@ -33,6 +33,11 @@ class LogArchiveService extends BaseService {
     }
 
     List<String> archiveLogs(Integer daysThreshold) {
+        if (!config.archiveFolder) {
+            log.warn("Log archiving disabled due to incomplete / disabled xhLogArchiveConfig entry")
+            return []
+        }
+
         File logPath = getLogPath()
         List archivedFilenames = []
 

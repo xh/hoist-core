@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2019 Extremely Heavy Industries Inc.
+ * Copyright © 2020 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.impl
@@ -14,8 +14,8 @@ import grails.util.Holders
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseController
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.dash.DashboardService
 import io.xh.hoist.clienterror.ClientErrorService
+import io.xh.hoist.exception.NotFoundException
 import io.xh.hoist.exception.SessionMismatchException
 import io.xh.hoist.export.GridExportImplService
 import io.xh.hoist.feedback.FeedbackService
@@ -33,7 +33,6 @@ class XhController extends BaseController {
 
     ClientErrorService clientErrorService
     ConfigService configService
-    DashboardService dashboardService
     FeedbackService feedbackService
     GridExportImplService gridExportImplService
     PrefService prefService
@@ -162,6 +161,7 @@ class XhController extends BaseController {
                 appCode:                Utils.appCode,
                 appName:                Utils.appName,
                 appVersion:             Utils.appVersion,
+                appBuild:               Utils.appBuild,
                 appEnvironment:         Utils.appEnvironment.toString(),
                 grailsVersion:          GrailsUtil.grailsVersion,
                 javaVersion:            System.getProperty('java.version')
@@ -174,9 +174,9 @@ class XhController extends BaseController {
         def user = identityService.getAuthUser(request)
         if (user && user.isHoistAdmin) {
             def dataSource = Utils.dataSource
-            ret['databaseConnectionString'] = dataSource.url
-            ret['databaseUser'] = dataSource.username
-            ret['databaseCreateMode'] = dataSource.dbCreate
+            ret.databaseConnectionString = dataSource.url
+            ret.databaseUser = dataSource.username
+            ret.databaseCreateMode = dataSource.dbCreate
         }
 
         renderJSON(ret)
@@ -186,27 +186,9 @@ class XhController extends BaseController {
         def shouldUpdate = configService.getBool('xhAppVersionCheckEnabled')
         renderJSON (
                 appVersion: Utils.appVersion,
+                appBuild: Utils.appBuild,
                 shouldUpdate: shouldUpdate
         )
-    }
-
-    //------------------------
-    // Dashboards
-    //------------------------
-    def getDashboard(String appCode) {
-        ensureClientUsernameMatchesSession()
-        renderJSON(dashboardService.get(appCode))
-    }
-
-    def saveDashboard(String appCode, String definition) {
-        ensureClientUsernameMatchesSession()
-        renderJSON(dashboardService.save(appCode, definition))
-    }
-
-    def deleteUserDashboard(String appCode) {
-        ensureClientUsernameMatchesSession()
-        dashboardService.deleteUserInstance(appCode)
-        renderJSON(success: true)
     }
 
     //------------------------
@@ -229,21 +211,27 @@ class XhController extends BaseController {
 
     //------------------------
     // Timezone
-    //
-    // Returns the timezone offset for a given timezone id. While abbreviations (e.g. 'GMT', 'PST', 'UTC+04') are supported,
-    // fully qualified timezone ids (e.g. 'Europe/London', 'America/New_York') are preferred, as these account for daylight savings.
-    // Note we explicitly check against the available ids - this is because TimeZone.getTimeZone() defaults to GMT if not recognized.
+    // Returns the timezone offset for a given timezone ID.
+    // While abbrevs (e.g. 'GMT', 'PST', 'UTC+04') are supported, fully qualified IDs (e.g.
+    // 'Europe/London', 'America/New_York') are preferred, as these account for daylight savings.
     //------------------------
     def getTimeZoneOffset(String timeZoneId) {
+        // Validate ID, as getTimeZone() defaults to GMT if not recognized.
         def availableIds = TimeZone.getAvailableIDs()
         if (!availableIds.contains(timeZoneId)) {
-            throw new RuntimeException('Timezone ID ' + timeZoneId + ' not recognized')
+            throw new NotFoundException("TimeZone ID ${timeZoneId} not recognized")
         }
         def tz = TimeZone.getTimeZone(timeZoneId)
         renderJSON([offset: tz.getOffset(System.currentTimeMillis())])
     }
 
-
+    //-----------------------
+    // Misc
+    //-----------------------
+    def notFound() {
+        throw new NotFoundException()
+    }
+    
     //------------------------
     // Implementation
     //------------------------

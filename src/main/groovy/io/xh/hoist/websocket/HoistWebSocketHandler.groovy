@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2019 Extremely Heavy Industries Inc.
+ * Copyright © 2020 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.websocket
@@ -16,7 +16,7 @@ import static io.xh.hoist.util.Utils.getWebSocketService
 
 /**
  * Helper class to relay events from the Spring websocket infrastructure to the Hoist
- * WebSocketService. Must be wired by the main Application.groovy class - see ExHI-provided
+ * WebSocketService. Must be wired by the main Application.groovy class - see XH-provided
  * template apps for examples.
  */
 @CompileStatic

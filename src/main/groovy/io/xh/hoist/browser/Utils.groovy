@@ -2,12 +2,11 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2019 Extremely Heavy Industries Inc.
+ * Copyright © 2020 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.browser
 
-import grails.util.Holders
 import groovy.util.logging.Slf4j
 import static io.xh.hoist.browser.Browser.*
 import static io.xh.hoist.browser.Device.*
@@ -52,7 +51,6 @@ class Utils {
             'Mac OS X': MAC  // Mac OS X must come after iPhone|iPad|iPod to prevent false positives
     ]
 
-    private static List MOBILE_DEVICES = [ANDROID, IPAD, IPOD, IPHONE]
     private static List IOS_DEVICES = [IPAD, IPOD, IPHONE]
 
     static Browser getBrowser(String userAgent) {
@@ -92,68 +90,13 @@ class Utils {
         return match ?: Device.OTHER
     }
 
-    static boolean isMobile(String userAgent) {
-        return MOBILE_DEVICES.contains(getDevice(userAgent))
-    }
-
     static boolean isIosDevice(String userAgent) {
         return IOS_DEVICES.contains(getDevice(userAgent))
-    }
-
-    static Map<Browser, Object> getSupportedDesktopBrowsers() {
-        def desktopBrowsers = Holders.grailsApplication.config.hoist.supportedDesktopBrowsers
-        return desktopBrowsers ?: [EDGE:0, IE:11, CHROME:45, FIREFOX:52, SAFARI:9, OTHER:false]
-    }
-
-    static Map<Browser, Object> getSupportedMobileBrowsers() {
-        def mobileBrowsers = Holders.grailsApplication.config.hoist.supportedMobileBrowsers
-        return mobileBrowsers ?: [EDGE:0, IE:11, CHROME:45, FIREFOX:52, SAFARI:9, IOS_HOMESCREEN:true, OTHER:false]
-    }
-
-    /**
-     * Is the given userAgent supported by this application?
-     *
-     * See getSupportedXXBrowsers().  Applications can customize this behavior by specifying
-     * maps for 'hoist.supportedMobileBrowsers' or 'hoist.supportedDesktopBrowsers' of the form
-     * [BROWSER: [VALUE]], where value can be either a boolean, or a minimum major version number
-     *
-     *  e.g.  [CHROME:52, IE:11, OTHER:false]
-     */
-    static boolean browserSupported(String userAgent) {
-        def device = getDevice(userAgent),
-            browser = getBrowser(userAgent),
-            browserName = browser.name(),
-            version = getBrowserVersion(userAgent),
-            majorVersion = getMajorVersion(version),
-            supportedBrowsers = isMobile(userAgent) ? getSupportedMobileBrowsers() : getSupportedDesktopBrowsers(),
-            support = supportedBrowsers.containsKey(browserName) ? supportedBrowsers[browserName] : null
-
-        log.debug("Evaluating browser support for $device | $browser v$version | majorVersion: $majorVersion | userAgent: $userAgent")
-        
-        if (support == true) return true
-
-        if (support instanceof Integer && majorVersion != null) {
-            return majorVersion >= support
-        }
-
-        return false
     }
 
     // Request-based convenience methods.
     static String  getAgent(HttpServletRequest request)             {request?.getHeader('User-Agent')}
     static Browser getBrowser(HttpServletRequest request)           {getBrowser(getAgent(request))}
-    static String  getBrowserVersion(HttpServletRequest request)    {getBrowserVersion(getAgent(request))}
     static Device  getDevice(HttpServletRequest request)            {getDevice(getAgent(request))}
-    static boolean isMobile(HttpServletRequest request)             {isMobile(getAgent(request))}
     static boolean browserSupported(HttpServletRequest request)     {browserSupported(getAgent(request))}
-
-    
-    //--------------------
-    // Implementation
-    //--------------------
-    static private Integer getMajorVersion(String version) {
-        def majorVersion = version?.tokenize('.')?.first()
-        return majorVersion?.isInteger() ? majorVersion as Integer : null
-    }
-    
 }
