@@ -34,7 +34,7 @@ class MonitorResultService extends BaseService implements AsyncSupport {
         return runMonitor(monitor, timeoutSeconds)
     }
 
-    MonitorResult runMonitor(Monitor monitor) {
+    MonitorResult runMonitor(Monitor monitor, long timeoutSeconds) {
         if (!monitor.active) {
             return inactiveMonitorResult(monitor)
         }
