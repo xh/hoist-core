@@ -1,5 +1,24 @@
 # Changelog
 
+## 7.0-SNAPSHOT - unreleased
+
+### ⚙️ Technical
+* This release upgrades the major version of grails from 3.3.9 to 4.0.3.  This major release
+includes the following upgrades of related libraries:
+    * spring boot `1.x -> 2.1.13` 
+    * groovy `2.4.15 -> 2.5.6`
+    * gradle `4.10.3 -> 5.6.4`
+    * gorm `6.1.11 -> 7.0.4`
+    * hibernate `5.1.10 -> 5.4.14`
+    * org.grails.plugins:mail `2.0.0 -> 3.0.0`
+
+* Please see the grails docs as well as the associated toolbox branch for more information
+on required changes to config and dependency files.
+
+* Application may be required to add @Transactional to service methods that update data
+with GORM. 
+
+
 ## 6.6.0 - 2020-03-27
 
 ### 🎁 New Features
