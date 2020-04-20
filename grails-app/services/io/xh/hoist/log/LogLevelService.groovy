@@ -34,7 +34,7 @@ class LogLevelService extends BaseService {
     // This is called on a timer, but any code that changes the raw LogLevel should call
     // this to force a synchronous recalculation.  See e.g. LogLevelAdminController.
     //--------------------------------------------------------------------------------
-    @Transactional
+    @Transactional(readOnly = true)
     void calculateAdjustments() {
         withDebug('Applying Log Level Adjustments') {
             def overrides = LogLevel.findAllByLevelIsNotNull()

@@ -155,7 +155,7 @@ class XhController extends BaseController {
     //------------------------
     // Environment
     //------------------------
-    @Transactional
+    @Transactional(readOnly = true)
     def environment() {
         def ret = [
                 appCode:                Utils.appCode,

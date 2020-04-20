@@ -27,7 +27,7 @@ class MonitorResultService extends BaseService implements AsyncSupport {
 
     def configService
 
-    @Transactional
+    @Transactional(readOnly = true)
     MonitorResult runMonitor(String code, long timeoutSeconds) {
         def monitor = Monitor.findByCode(code)
         if (!monitor) throw new RuntimeException("Monitor '$code' not found.")

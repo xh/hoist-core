@@ -18,7 +18,7 @@ class ConfigDiffAdminController extends BaseController {
 
     def configDiffService
 
-    @Transactional
+    @Transactional(readOnly = true)
     def configs() {
         def data = AppConfig.list()
         renderJSON(data: data)

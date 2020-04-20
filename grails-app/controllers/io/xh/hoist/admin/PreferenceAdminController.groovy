@@ -7,7 +7,6 @@
 
 package io.xh.hoist.admin
 
-import grails.gorm.transactions.Transactional
 import io.xh.hoist.pref.Preference
 import io.xh.hoist.RestController
 import io.xh.hoist.security.Access
@@ -19,7 +18,6 @@ class PreferenceAdminController extends RestController {
     static restTarget = Preference
     static trackChanges = true
 
-    @Transactional
     def lookupData() {
         renderJSON (
                 types: Preference.TYPES,

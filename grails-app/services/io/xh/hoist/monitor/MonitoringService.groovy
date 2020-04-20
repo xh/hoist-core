@@ -64,7 +64,7 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
         _monitorTimer.forceRun()
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     Map<String, MonitorResult> getResults() {
         Monitor.list().collectEntries {
             def result = _results[it.code] ?: monitorResultService.unknownMonitorResult(it)
@@ -76,7 +76,7 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
     //------------------------
     // Implementation
     //------------------------
-    @Transactional
+    @Transactional(readOnly = true)
     private void runAllMonitors() {
         withDebug('Running monitors') {
             def timeout = getTimeoutSeconds()

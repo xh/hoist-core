@@ -88,7 +88,7 @@ class PrefService extends BaseService {
         }
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     Map getClientConfig() {
         def username = username,
             ret = [:]
@@ -105,7 +105,7 @@ class PrefService extends BaseService {
         return ret
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     Map getLimitedClientConfig(List keys) {
         def username = username
         Preference.findAllByNameInList(keys).collectEntries {
@@ -199,7 +199,7 @@ class PrefService extends BaseService {
         userPref.save()
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     private Preference getDefaultPreference(String key, String type) {
         def p = Preference.findByName(key, [cache: true])
 

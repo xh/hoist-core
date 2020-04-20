@@ -17,7 +17,7 @@ class TrackLogAdminController extends BaseController {
 
     def trackService
 
-    @Transactional
+    @Transactional(readOnly = true)
     def index() {
         def startDate = parseDate(params.startDate),
             endDate = parseDate(params.endDate)

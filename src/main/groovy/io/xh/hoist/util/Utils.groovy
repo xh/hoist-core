@@ -10,6 +10,7 @@ package io.xh.hoist.util
 import com.grack.nanojson.JsonParser
 import com.grack.nanojson.JsonParserException
 import grails.util.Holders
+import grails.util.Metadata
 import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
@@ -33,6 +34,7 @@ class Utils {
      * Internal short name of the application - lowercase, no spaces.
      */
     static String getAppCode() {
+        return 'toolbox'
         return buildInfo.getProperty('info.xh.appCode')
     }
 

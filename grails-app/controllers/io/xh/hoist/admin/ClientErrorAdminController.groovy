@@ -15,7 +15,7 @@ import io.xh.hoist.security.Access
 @Access(['HOIST_ADMIN'])
 class ClientErrorAdminController extends BaseController {
 
-    @Transactional
+    @Transactional(readOnly = true)
     def index() {
         def startDate = parseDate(params.startDate),
             endDate = parseDate(params.endDate)
