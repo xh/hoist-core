@@ -25,9 +25,6 @@ import static java.util.concurrent.TimeUnit.SECONDS
  */
 class MonitorResultService extends BaseService implements AsyncSupport {
 
-    def configService
-
-    @Transactional(readOnly = true)
     MonitorResult runMonitor(String code, long timeoutSeconds) {
         def monitor = Monitor.findByCode(code)
         if (!monitor) throw new RuntimeException("Monitor '$code' not found.")

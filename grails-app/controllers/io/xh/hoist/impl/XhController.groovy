@@ -7,7 +7,6 @@
 
 package io.xh.hoist.impl
 
-import grails.gorm.transactions.Transactional
 import grails.plugins.GrailsPlugin
 import grails.util.GrailsUtil
 import grails.util.Holders
@@ -155,7 +154,6 @@ class XhController extends BaseController {
     //------------------------
     // Environment
     //------------------------
-    @Transactional(readOnly = true)
     def environment() {
         def ret = [
                 appCode:                Utils.appCode,

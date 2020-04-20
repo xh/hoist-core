@@ -88,7 +88,6 @@ class PrefService extends BaseService {
         }
     }
 
-    @Transactional(readOnly = true)
     Map getClientConfig() {
         def username = username,
             ret = [:]
@@ -105,7 +104,6 @@ class PrefService extends BaseService {
         return ret
     }
 
-    @Transactional(readOnly = true)
     Map getLimitedClientConfig(List keys) {
         def username = username
         Preference.findAllByNameInList(keys).collectEntries {
@@ -169,7 +167,6 @@ class PrefService extends BaseService {
         return getUserPreference(defaultPref, username)
     }
 
-    @Transactional
     private Object getUserPreference(Preference defaultPref, String username) {
         if (defaultPref.local) {
             throw new RuntimeException("Preference ${defaultPref.name} marked as local - user value cannot be read on server.")
@@ -199,7 +196,6 @@ class PrefService extends BaseService {
         userPref.save()
     }
 
-    @Transactional(readOnly = true)
     private Preference getDefaultPreference(String key, String type) {
         def p = Preference.findByName(key, [cache: true])
 

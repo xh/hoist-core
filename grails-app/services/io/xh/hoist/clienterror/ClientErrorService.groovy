@@ -41,13 +41,8 @@ class ClientErrorService extends BaseService implements EventPublisher {
                     appEnvironment: Utils.appEnvironment,
                     userAlerted: userAlerted
             ]
-        ClientError.withNewSession {
-            ClientError.withTransaction {
-                def ce = new ClientError(values)
-                ce.save(flush: true)
-                notify('xhClientErrorReceived', ce)
-            }
-        }
+        def ce = new ClientError(values)
+        ce.save(flush: true)
+        notify('xhClientErrorReceived', ce)
     }
-
 }

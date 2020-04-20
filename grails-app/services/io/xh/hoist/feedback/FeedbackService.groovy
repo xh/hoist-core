@@ -36,13 +36,8 @@ class FeedbackService extends BaseService implements EventPublisher {
                     appVersion: appVersion ?: Utils.appVersion,
                     appEnvironment: Utils.appEnvironment
             ]
-        Feedback.withNewSession {
-            Feedback.withTransaction {
-                def fb = new Feedback(values)
-                fb.save(flush: true)
-                notify('xhFeedbackReceived', fb)
-            }
-        }
+        def fb = new Feedback(values)
+        fb.save(flush: true)
+        notify('xhFeedbackReceived', fb)
     }
-
 }

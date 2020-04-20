@@ -7,7 +7,6 @@
 
 package io.xh.hoist.track
 
-import grails.gorm.transactions.Transactional
 import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
@@ -17,6 +16,7 @@ import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
 import static io.xh.hoist.json.JSONSerializer.serialize
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
+import static io.xh.hoist.util.Utils.withTransaction
 
 /**
  * Service for tracking user activity within the application. This service provides a server-side
@@ -60,7 +60,6 @@ class TrackService extends BaseService implements EventPublisher {
      * @param end - end date of query (exclusive)
      * @param username - optional filter for single username
      */
-    @Transactional(readOnly = true)
     Map<String, Integer> getUniqueVisitsByDay(Date start, Date end, String username) {
         def query = """
             select cast(dateCreated AS date), count(distinct username)
@@ -105,21 +104,23 @@ class TrackService extends BaseService implements EventPublisher {
         // Execute asynchronously after we get info from request, don't block application thread.
         // Save with additional try/catch to alert on persistence failures within this async block.
         asyncTask {
-            def tl = new TrackLog(values)
+            withTransaction {
+                def tl = new TrackLog(values)
 
-            if (getInstanceConfig('disableTrackLog') != 'true') {
-                try {
-                    tl.save()
-                } catch (Exception e) {
-                    logErrorCompact('Exception writing track log', e)
+                if (getInstanceConfig('disableTrackLog') != 'true') {
+                    try {
+                        tl.save()
+                    } catch (Exception e) {
+                        logErrorCompact('Exception writing track log', e)
+                    }
                 }
+
+                def name = tl.username
+                if (tl.impersonating) name += " (as ${tl.impersonating})"
+
+                def msgParts = [name, tl.category, tl.msg, tl.elapsed]
+                log.info(msgParts.findAll { it }.join(' | '))
             }
-
-            def name = tl.username
-            if (tl.impersonating) name += " (as ${tl.impersonating})"
-
-            def msgParts = [name, tl.category, tl.msg, tl.elapsed]
-            log.info(msgParts.findAll{it}.join(' | '))
         }
     }
 

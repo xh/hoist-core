@@ -64,7 +64,6 @@ class ConfigService extends BaseService implements EventPublisher {
         return (String) getInternalByName(name, 'pwd', notFoundValue)
     }
 
-    @Transactional(readOnly = true)
     Map getClientConfig() {
         def ret = [:]
 
@@ -157,7 +156,6 @@ class ConfigService extends BaseService implements EventPublisher {
     //-------------------
     //  Implementation
     //-------------------
-    @Transactional(readOnly = true)
     private Object getInternalByName(String name, String valueType, Object notFoundValue) {
         AppConfig c = AppConfig.findByName(name, [cache: true])
 

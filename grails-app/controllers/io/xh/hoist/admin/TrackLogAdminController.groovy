@@ -7,7 +7,6 @@
 
 package io.xh.hoist.admin
 
-import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
 import io.xh.hoist.track.TrackLog
@@ -17,7 +16,6 @@ class TrackLogAdminController extends BaseController {
 
     def trackService
 
-    @Transactional(readOnly = true)
     def index() {
         def startDate = parseDate(params.startDate),
             endDate = parseDate(params.endDate)
