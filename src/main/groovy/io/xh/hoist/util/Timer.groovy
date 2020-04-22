@@ -33,11 +33,11 @@ class Timer implements AsyncSupport {
      private static Long CONFIG_INTERVAL = 15 * SECONDS
 
     /** Object using this timer (for logging purposes) **/
-    public final LogSupport owner
+    final LogSupport owner
 
 
     /** Closure to run */
-    public final Closure runFn
+    final Closure runFn
 
     /**
      * Interval between runs.  Specify as a number, closure, or string.  The units for this
@@ -46,7 +46,7 @@ class Timer implements AsyncSupport {
      * If specified as a function, the value will be recomputed after every run. If specified as a string,
      * the value will be assumed to be a config key, and will be looked up after every run.
      */
-    public final Object interval
+    final Object interval
 
     /**
      * Max time to let function run before cancelling. Specify as a number, closure, or string.  The units for this
@@ -55,34 +55,35 @@ class Timer implements AsyncSupport {
      * If specified as a function, the value will be re-computed after every run. If specified as a string,
      * the value will be assumed to be a config key, and will be looked up after every run.
      */
-    public final Object timeout
-
-    /** Name for status logging disambiguation. Default is 'anon' **/
-    public final String name
+    final Object timeout
 
     /**
      *  Initial delay, in milliseconds. May be specified as a boolean or a number.
      *  If true the value of the delay will be the same as interval.  Default to false.
      */
-    public final Object delay
+    final Object delay
 
     /** Units for interval property.  Default is ms (1) */
-    public final Long intervalUnits
+    final Long intervalUnits
 
     /** Units for timeout property.  Default is ms (1) */
-    public final Long timeoutUnits
+    final Long timeoutUnits
 
     /** Run 'runFn' on a thread with hibernate session? Default true. */
-    public final boolean withHibernate
+    final boolean withHibernate
 
     /** Block on an immediate initial run?  Default is false. */
-    public final boolean runImmediatelyAndBlock
+    final boolean runImmediatelyAndBlock
 
     /** Date last run completed. */
-    public Date lastRun = null
+    Date getLastRun() {
+        _lastRun
+    }
 
     /** Is `runFn` currently executing? */
-    public boolean isRunning = false
+    boolean getIsRunning() {
+        _isRunning
+    }
 
     // NOTE that even when runImmediatelyAndBlock is false, the task may be run *nearly* immediately
     // but asynchronously, as governed by delay
@@ -91,9 +92,13 @@ class Timer implements AsyncSupport {
     private Long timeoutMs
     private Long coreIntervalMs
 
+
+    private Date _lastRun = null
+    private boolean _isRunning = false
     private boolean forceRun  = false
     private java.util.Timer coreTimer
     private java.util.Timer configTimer
+
 
     // Args from Grails 3.0 async promise implementation
     static ExecutorService executorService = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>())
@@ -104,7 +109,6 @@ class Timer implements AsyncSupport {
      * the service itself.
      */
     Timer(Map config) {
-        name = config.name ?: 'anon'
         owner = config.owner
         runFn = config.runFn
         runImmediatelyAndBlock = config.runImmediatelyAndBlock ?: false
@@ -167,7 +171,7 @@ class Timer implements AsyncSupport {
     // Implementation
     //------------------------
     private void doRun() {
-        isRunning = true
+        _isRunning = true
         Throwable throwable = null
         Future future = null
         try {
@@ -187,12 +191,12 @@ class Timer implements AsyncSupport {
             throwable = t
         }
 
-        lastRun = new Date()
-        isRunning = false
+        _lastRun = new Date()
+        _isRunning = false
 
         if (throwable) {
             try {
-                owner.logErrorCompact("Failure in Timer [$name]", throwable)
+                owner.logErrorCompact('Failure in Timer', throwable)
             } catch (Throwable ignore) {}
         }
     }
@@ -207,7 +211,8 @@ class Timer implements AsyncSupport {
         if (interval == null) return null
         Long ret = (interval instanceof Closure ? (interval as Closure)() : interval) * intervalUnits;
         if (ret > 0 && ret < 500) {
-            throw new RuntimeException('Object not appropriate for intervals less than 500ms.  Use a java.util.Timer instead.')
+            owner.instanceLog.warn('Timer cannot be set for values less than 500ms.')
+            ret = 500
         }
         return ret
     }
@@ -232,7 +237,7 @@ class Timer implements AsyncSupport {
             adjustCoreTimerIfNeeded()
 
         } catch (Throwable t) {
-            owner.logErrorCompact("Timer [$name] failed to reload config", t)
+            owner.logErrorCompact('Timer failed to reload config', t)
         }
     }
 
