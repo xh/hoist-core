@@ -1,5 +1,12 @@
 # Changelog
 
+## 7.0 -SNAPSHOT - unreleased
+
+### 💥 Breaking Changes
+* `Timer.delay` now expects either a millisecond value, or a boolean.  It no longer will take a string/closure and
+ `Timer.delayUnits` has been removed.  This has been changed to enhance the functionality and make it consistent
+ with its client-side counterpart in hoist-react.
+
 ## 6.6.0 - 2020-03-27
 
 ### 🎁 New Features
