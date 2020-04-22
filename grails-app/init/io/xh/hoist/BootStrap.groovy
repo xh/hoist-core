@@ -128,6 +128,13 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'True to enable the log viewer included with the Hoist Admin console as well as the associated server-side endpoints.'
             ],
+            xhExportTableCellThreshold: [
+                valueType: 'int',
+                defaultValue: 100000,
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'Maximum cell count to export to excel as fully formatted table. Exports with cell counts that exceed this value this will remove the table formatting in order to free up heap space.'
+            ],
             xhIdleTimeoutMins: [
                 valueType: 'int',
                 defaultValue: -1,

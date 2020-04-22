@@ -23,6 +23,8 @@ import org.openxmlformats.schemas.spreadsheetml.x2006.main.*
 
 class GridExportImplService extends BaseService {
 
+    def configService
+
     /**
      * Return map suitable for rendering file with grails controller render() method
      */
@@ -80,7 +82,8 @@ class GridExportImplService extends BaseService {
     private byte[] renderExcelFile(List rows, List meta, Boolean asTable) {
         def tableRows = rows.size()
         def tableColumns = rows[0]['data'].size()
-        def useStreamingAPI = tableRows > 10000
+        def tableCells = tableRows * tableColumns
+        def useStreamingAPI = tableCells > configService.getInt('xhExportTableCellThreshold')
         def wb
 
         if (useStreamingAPI) {
