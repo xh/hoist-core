@@ -13,13 +13,11 @@ import grails.util.Holders
 import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.json.JSON
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.track.TrackLog
 import io.xh.hoist.user.BaseRoleService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.websocket.WebSocketService
-import org.grails.web.converters.exceptions.ConverterException
 import org.grails.web.json.JSONArray
 import org.grails.web.json.JSONObject
 import org.springframework.context.ApplicationContext
@@ -28,6 +26,8 @@ import org.springframework.context.ApplicationContext
 class Utils {
 
     static Properties buildInfo = readBuildInfo()
+
+    static final Date startupTime = new Date()
 
     /**
      * Internal short name of the application - lowercase, no spaces.
@@ -108,7 +108,6 @@ class Utils {
         TrackLog.withNewSession(c) // Yes, a bizarre dependency on an arbitrary domain object
     }
 
-
     static boolean isJSON(String val) {
         try {
             if (val != null) JsonParser.any().from(val)
@@ -128,7 +127,6 @@ class Utils {
         }
         return o
     }
-
 
     /**
      * Return all singleton instances of io.xh.BaseService in the application

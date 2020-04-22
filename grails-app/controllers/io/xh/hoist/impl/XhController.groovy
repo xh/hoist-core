@@ -155,15 +155,16 @@ class XhController extends BaseController {
     // Environment
     //------------------------
     def environment() {
-        def ret = [
-                appCode:                Utils.appCode,
-                appName:                Utils.appName,
-                appVersion:             Utils.appVersion,
-                appBuild:               Utils.appBuild,
-                appEnvironment:         Utils.appEnvironment.toString(),
-                grailsVersion:          GrailsUtil.grailsVersion,
-                javaVersion:            System.getProperty('java.version')
-        ]
+        def ret = new HashMap<String, Object>([
+            appCode:                Utils.appCode,
+            appName:                Utils.appName,
+            appVersion:             Utils.appVersion,
+            appBuild:               Utils.appBuild,
+            appEnvironment:         Utils.appEnvironment.toString(),
+            startupTime:            Utils.startupTime,
+            grailsVersion:          GrailsUtil.grailsVersion,
+            javaVersion:            System.getProperty('java.version')
+        ])
 
         hoistGrailsPlugins.each {it ->
             ret[it.name + 'Version'] = it.version
