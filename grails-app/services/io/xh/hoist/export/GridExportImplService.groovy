@@ -12,14 +12,18 @@ import io.xh.hoist.util.Utils
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.usermodel.Sheet
-import org.apache.poi.ss.usermodel.CellStyle
+import org.apache.poi.ss.usermodel.FillPatternType
 import org.apache.poi.ss.usermodel.VerticalAlignment
 import org.apache.poi.ss.util.AreaReference
 import org.apache.poi.ss.util.CellReference
+import org.apache.poi.xssf.usermodel.XSSFCellStyle
+import org.apache.poi.xssf.usermodel.XSSFColor
 import org.apache.poi.xssf.usermodel.XSSFTable
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.apache.poi.xssf.streaming.SXSSFWorkbook
 import org.openxmlformats.schemas.spreadsheetml.x2006.main.*
+
+import java.awt.Color
 
 class GridExportImplService extends BaseService {
 
@@ -81,6 +85,8 @@ class GridExportImplService extends BaseService {
         def tableRows = rows.size()
         def tableColumns = rows[0]['data'].size()
         def useStreamingAPI = tableRows > 10000
+        def maxDepth = rows.collect{it.depth}.max()
+        def grouped = maxDepth > 0
         def wb
 
         if (useStreamingAPI) {
@@ -105,7 +111,7 @@ class GridExportImplService extends BaseService {
             CTTableStyleInfo tableStyle = table.addNewTableStyleInfo()
             tableStyle.setName('TableStyleMedium2')
             tableStyle.setShowColumnStripes(false)
-            tableStyle.setShowRowStripes(true)
+            tableStyle.setShowRowStripes(!grouped)
 
             // Create sortable header columns
             CTTableColumns columns = table.addNewTableColumns()
@@ -132,9 +138,18 @@ class GridExportImplService extends BaseService {
         }}
 
         def styles = [:],
+            groupColors = [],
             pendingGroups = [],
             completedGroups = [],
             valueParseFailures = 0
+
+        if (grouped) {
+            def startColor = new Color(181, 198, 235)
+            def endColor = new Color(255, 255, 255)
+            for (def i = 0; i <= maxDepth; i++) {
+                groupColors.add(blendColors(startColor, endColor, i / maxDepth))
+            }
+        }
 
         // Add rows
         rows.eachWithIndex { rowMap, i ->
@@ -159,7 +174,20 @@ class GridExportImplService extends BaseService {
                 // Set cell data format (skipping column headers)
                 if (i > 0 && format) {
                     if (!styles[format]) styles[format] = registerCellStyleForFormat(wb, format)
-                    cell.setCellStyle(styles[format])
+
+                    // If rendering grouped data into a table, set background color based on depth.
+                    // Note the confusing use of `ForegroundColor` to set background color below. This is because
+                    // Excel thinks of background colors as patterned "Fills", which each have their own
+                    // background and foreground colors. A solid background is `FillPatternType.SOLID_FOREGROUND`.
+                    if (asTable && grouped) {
+                        XSSFCellStyle style = wb.createCellStyle()
+                        style.cloneStyleFrom(styles[format])
+                        style.setFillForegroundColor(new XSSFColor(groupColors[rowMap.depth]));
+                        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                        cell.setCellStyle(style)
+                    } else {
+                        cell.setCellStyle(styles[format])
+                    }
                 }
 
                 if (i == 0 || !value) {
@@ -240,12 +268,24 @@ class GridExportImplService extends BaseService {
         return outputStream.toByteArray()
     }
 
-    private CellStyle registerCellStyleForFormat(wb, format) {
-        CellStyle style = wb.createCellStyle()
+    private XSSFCellStyle registerCellStyleForFormat(wb, format) {
+        XSSFCellStyle style = wb.createCellStyle()
         if (format == 'Text') style.setWrapText(true)
         style.setVerticalAlignment(VerticalAlignment.CENTER)
         style.setDataFormat(wb.createDataFormat().getFormat(format))
         return style
+    }
+
+    private Color blendColors(Color c1, Color c2, ratio) {
+        if (ratio <= 0) return c1
+        if (ratio >= 1) return c2
+
+        def iRatio = 1 - ratio;
+        int r = (c1.red * iRatio) + (c2.red * ratio)
+        int g = (c1.green * iRatio) + (c2.green * ratio)
+        int b = (c1.blue * iRatio) + (c2.blue * ratio)
+
+        return new Color(r, g, b)
     }
 
     private byte[] renderCSVFile(List rows) {
