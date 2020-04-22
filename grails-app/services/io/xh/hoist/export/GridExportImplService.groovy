@@ -12,10 +12,12 @@ import io.xh.hoist.util.Utils
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.usermodel.Sheet
-import org.apache.poi.ss.usermodel.CellStyle
+import org.apache.poi.ss.usermodel.FillPatternType
 import org.apache.poi.ss.usermodel.VerticalAlignment
 import org.apache.poi.ss.util.AreaReference
 import org.apache.poi.ss.util.CellReference
+import org.apache.poi.xssf.usermodel.XSSFCellStyle
+import org.apache.poi.xssf.usermodel.XSSFColor
 import org.apache.poi.xssf.usermodel.XSSFTable
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import org.apache.poi.xssf.streaming.SXSSFWorkbook
@@ -81,6 +83,7 @@ class GridExportImplService extends BaseService {
         def tableRows = rows.size()
         def tableColumns = rows[0]['data'].size()
         def useStreamingAPI = tableRows > 10000
+        def grouped = rows.any {rowMap -> rowMap.depth > 0 }
         def wb
 
         if (useStreamingAPI) {
@@ -105,7 +108,7 @@ class GridExportImplService extends BaseService {
             CTTableStyleInfo tableStyle = table.addNewTableStyleInfo()
             tableStyle.setName('TableStyleMedium2')
             tableStyle.setShowColumnStripes(false)
-            tableStyle.setShowRowStripes(true)
+            tableStyle.setShowRowStripes(!grouped)
 
             // Create sortable header columns
             CTTableColumns columns = table.addNewTableColumns()
@@ -159,7 +162,20 @@ class GridExportImplService extends BaseService {
                 // Set cell data format (skipping column headers)
                 if (i > 0 && format) {
                     if (!styles[format]) styles[format] = registerCellStyleForFormat(wb, format)
-                    cell.setCellStyle(styles[format])
+
+                    // If rendering grouped data into a table, set alternating background color based on depth.
+                    // Note the confusing use of `ForegroundColor` to set background color below. This is because
+                    // Excel thinks of background colors as patterned "Fills", which each have their own
+                    // background and foreground colors. A solid background is `FillPatternType.SOLID_FOREGROUND`.
+                    if (asTable && grouped && !(rowMap.depth % 2)) {
+                        XSSFCellStyle style = wb.createCellStyle()
+                        style.cloneStyleFrom(styles[format])
+                        style.setFillForegroundColor(new XSSFColor(new java.awt.Color(217, 225, 242)));
+                        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                        cell.setCellStyle(style)
+                    } else {
+                        cell.setCellStyle(styles[format])
+                    }
                 }
 
                 if (i == 0 || !value) {
@@ -240,8 +256,8 @@ class GridExportImplService extends BaseService {
         return outputStream.toByteArray()
     }
 
-    private CellStyle registerCellStyleForFormat(wb, format) {
-        CellStyle style = wb.createCellStyle()
+    private XSSFCellStyle registerCellStyleForFormat(wb, format) {
+        XSSFCellStyle style = wb.createCellStyle()
         if (format == 'Text') style.setWrapText(true)
         style.setVerticalAlignment(VerticalAlignment.CENTER)
         style.setDataFormat(wb.createDataFormat().getFormat(format))
