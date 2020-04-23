@@ -60,13 +60,8 @@ class ExceptionRenderer {
     // Template methods.  For application override
     //---------------------------------------------
     String summaryTextForThrowable(Throwable e) {
-        def ret = e.message ?: e.cause?.message ?: e.class.name
-        if (ret && ret.size() > 250) {
-            ret = ret.substring(0, 250)
-        }
-        return ret
+        return e.message ?: e.cause?.message ?: e.class.name
     }
-
 
     protected Throwable preprocess(Throwable t) {
         GrailsUtil.deepSanitize(t)

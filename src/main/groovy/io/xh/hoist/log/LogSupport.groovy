@@ -71,19 +71,25 @@ trait LogSupport {
     @CompileDynamic
     static Object logErrorCompact(Object log, Object msg, Throwable t) {
         String message = exceptionRenderer.summaryTextForThrowable(t)
-        if (msg) {
-            message = msg.toString() + ' | ' + message
+        if (msg) message = msg.toString() + ' | ' + message
+
+        if (log.debugEnabled) {
+            log.error(message, t)
+        } else {
+            log.error(message + ' [log on debug for more...]')
         }
-        log.error(message, log.debugEnabled ? t : null)
     }
 
     @CompileDynamic
     static Object logDebugCompact(Object log, Object msg, Throwable t) {
         String message = exceptionRenderer.summaryTextForThrowable(t)
-        if (msg) {
-            message = msg.toString() + ' | ' + message
+        if (msg) message = msg.toString() + ' | ' + message
+
+        if (log.traceEnabled) {
+            log.debug(message, t)
+        } else {
+            log.debug(message + ' [log on trace for more...]')
         }
-        log.debug(message, log.traceEnabled ? t : null)
     }
 
     //------------------------
