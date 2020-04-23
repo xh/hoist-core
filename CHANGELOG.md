@@ -2,6 +2,11 @@
 
 ## 7.0-SNAPSHOT - Unreleased
 
+### 🎁 New Features
+* Exception Handling has been improved in the newly enhanced `exceptionRenderer` bean.  This bean will
+catch uncaught exceptions from all Controllers and Timers and has been newly configured to limit the
+logging of unnecessary stack traces. 
+
 [Commit Log](https://github.com/xh/hoist-core/compare/v6.7.0...develop)
 
 

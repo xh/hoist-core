@@ -16,57 +16,81 @@ import io.xh.hoist.log.LogSupport
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
+import java.util.concurrent.TimeoutException
 
-import static org.apache.http.HttpStatus.SC_FORBIDDEN
 import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
-import static org.apache.http.HttpStatus.SC_NOT_FOUND
 
+/**
+ * This class provides the default server-side exception handling in Hoist.
+ *
+ * An instance of the class is installed as an injectable Spring Bean by the framework.  Applications
+ * may override it on startup by specifying an alternative Bean in resources.groovy.
+ *
+ * This bean is automatically wired up for use in all descendants of BaseController and Timer.  These
+ * two contexts capture the overwhelming majority of code execution in a hoist server.
+ */
 @CompileStatic
 @Slf4j
 class ExceptionRenderer {
 
     /**
-     * Main entry point.  Render an exception to the response and log appropriately.
+     * Main entry point for request based code (e.g. controllers)
      */
-    void render(Throwable t, HttpServletRequest request, HttpServletResponse response, LogSupport logSupport = null) {
+    void handleException(Throwable t, HttpServletRequest request, HttpServletResponse response, LogSupport logSupport) {
+        t = preprocess(t)
+        logException(t, logSupport)
 
-        // Prepare exception
-        GrailsUtil.deepSanitize(t)
-        int status = getHttpStatus(t)
-        if (t instanceof grails.validation.ValidationException) {
-            t = new ValidationException(t)
-        }
-
-        // Log -- but don't trash logs for routine or client errors
-        if (logSupport) {
-            def message = t.message ?: 'Exception'
-            if (t instanceof RoutineException) {
-                logSupport.instanceLog.debug(message, t)
-            } else if (status < 500) {
-                logSupport.logErrorCompact(message, t)
-            } else {
-                logSupport.instanceLog.error(message, t)
-            }
-        }
-
-        // Render to response
-        response.setStatus(status)
-        renderAsJSON(t, request, response)
+        response.setStatus(getHttpStatus(t))
+        response.setContentType('application/json')
+        response.writer.write(toJSON(t))
         response.flushBuffer()
     }
 
+    /**
+     * Main entry point for non-request based code (e.g. Timers)
+     */
+    void handleException(Throwable t, LogSupport logSupport) {
+        t = preprocess(t)
+        logException(t, logSupport)
+    }
+
     //---------------------------------------------
-    // Template methods.  For Application override
+    // Template methods.  For application override
     //---------------------------------------------
-    protected void renderAsJSON(Throwable t, HttpServletRequest request, HttpServletResponse response) {
-        response.setContentType('application/json')
-        response.writer.write(toJSON(t))
+    String summaryTextForThrowable(Throwable e) {
+        return e.message ?: e.cause?.message ?: e.class.name
+    }
+
+    protected Throwable preprocess(Throwable t) {
+        if (t instanceof grails.validation.ValidationException) {
+            t = new ValidationException(t)
+        }
+        GrailsUtil.deepSanitize(t)
+        return t
+    }
+
+    protected void logException(Throwable t, LogSupport logSupport) {
+        if (shouldLogDebugCompact(t)) {
+            logSupport.logDebugCompact(null, t)
+        } else if (shouldLogErrorCompact(t)) {
+            logSupport.logErrorCompact(null, t)
+        } else {
+            logSupport.instanceLog.error(summaryTextForThrowable(t), t)
+        }
+    }
+
+    protected boolean shouldLogDebugCompact(Throwable t) {
+        return t instanceof RoutineException
+    }
+
+    protected boolean shouldLogErrorCompact(Throwable t) {
+        return t instanceof HttpException || t instanceof TimeoutException
     }
 
     protected int getHttpStatus(Throwable t) {
-        if (t instanceof NotAuthorizedException) return SC_FORBIDDEN
-        if (t instanceof NotFoundException) return SC_NOT_FOUND
-        return SC_INTERNAL_SERVER_ERROR
+        return t instanceof HttpException && !(t instanceof ExternalHttpException) ?
+                ((HttpException) t).statusCode :
+                SC_INTERNAL_SERVER_ERROR
     }
 
     protected String toJSON(Throwable t) {

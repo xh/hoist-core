@@ -17,6 +17,7 @@ import static ch.qos.logback.classic.Level.DEBUG
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.WARN
 import static ch.qos.logback.classic.Level.ERROR
+import static io.xh.hoist.util.Utils.exceptionRenderer
 import static java.lang.System.currentTimeMillis
 
 
@@ -44,6 +45,8 @@ trait LogSupport {
     Object withShortInfo(Object msgs, Closure c)    {withShortInfo(log, msgs, c)}
 
     Object logErrorCompact(Object msg, Throwable e) {logErrorCompact(log, msg, e)}
+    Object logDebugCompact(Object msg, Throwable e) {logDebugCompact(log, msg, e)}
+
 
     //---------------------------------------------------------------------------
     // Variants for logging to a specific logger.
@@ -67,14 +70,27 @@ trait LogSupport {
 
     @CompileDynamic
     static Object logErrorCompact(Object log, Object msg, Throwable t) {
-        String message = msg.toString()
+        String message = exceptionRenderer.summaryTextForThrowable(t)
+        if (msg) message = msg.toString() + ' | ' + message
+
         if (log.debugEnabled) {
             log.error(message, t)
         } else {
-            log.error("$message | ${getThrowableSummary(t)}  [log on debug for more...]")
+            log.error(message + ' [log on debug for more...]')
         }
     }
 
+    @CompileDynamic
+    static Object logDebugCompact(Object log, Object msg, Throwable t) {
+        String message = exceptionRenderer.summaryTextForThrowable(t)
+        if (msg) message = msg.toString() + ' | ' + message
+
+        if (log.traceEnabled) {
+            log.debug(message, t)
+        } else {
+            log.debug(message + ' [log on trace for more...]')
+        }
+    }
 
     //------------------------
     // Implementation
@@ -90,7 +106,7 @@ trait LogSupport {
             ret = c.call()
         } catch (Exception e) {
             long elapsed = currentTimeMillis() - start
-            def exceptionSummary = getThrowableSummary((Throwable) e)
+            def exceptionSummary = exceptionRenderer.summaryTextForThrowable((Throwable) e)
             logAtLevel(log, level, "$msg | failed - $exceptionSummary | $elapsed")
             throw e
         }
@@ -110,13 +126,4 @@ trait LogSupport {
             case ERROR: log.error (msg); break
         }
     }
-
-    static private String getThrowableSummary(Throwable e) {
-        def ret = e.message ?: e.cause?.message ?: e.class.name
-        if (ret && ret.size() > 250) {
-            ret = ret.substring(0, 250)
-        }
-        return ret
-    }
-    
 }
