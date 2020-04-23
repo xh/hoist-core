@@ -1,11 +1,29 @@
 # Changelog
 
-## 7.0-SNAPSHOT - unreleased
+## 7.0-SNAPSHOT - Unreleased
 
 ### 🎁 New Features
+* Exception Handling has been improved in the newly enhanced `exceptionRenderer` bean.  This bean will
+catch uncaught exceptions from all Controllers and Timers and has been newly configured to limit the
+logging of unnecessary stack traces. 
+
 * `JSONParser` has been added to the `io.xh.hoist.json` package, providing high performance JSON parsing
 based on the Jackson library.  This parser is used by new standard methods on `JsonClient` and 
 should improve the performance of REST clients and proxys.
+
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.7.0...develop)
+
+
+## 6.7.0 - 2020-04-22
+
+### 💥 Breaking Changes
+* `Timer.delay` now expects either a millisecond value, or a boolean.  It no longer will take a string/closure and
+ `Timer.delayUnits` has been removed.  This has been changed to enhance the functionality and make it consistent
+ with its client-side counterpart in hoist-react.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.6.0...v6.7.0)
+
 
 ## 6.6.0 - 2020-03-27
 

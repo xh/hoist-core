@@ -13,6 +13,7 @@ import grails.util.Holders
 import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.exception.ExceptionRenderer
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.track.TrackLog
 import io.xh.hoist.user.BaseRoleService
@@ -24,6 +25,8 @@ import org.springframework.context.ApplicationContext
 class Utils {
 
     static Properties buildInfo = readBuildInfo()
+
+    static final Date startupTime = new Date()
 
     /**
      * Internal short name of the application - lowercase, no spaces.
@@ -80,6 +83,10 @@ class Utils {
         return (BaseRoleService) appContext.roleService
     }
 
+    static ExceptionRenderer getExceptionRenderer() {
+        return (ExceptionRenderer) appContext.exceptionRenderer
+    }
+
     static WebSocketService getWebSocketService() {
         return (WebSocketService) appContext.webSocketService
     }
@@ -103,7 +110,6 @@ class Utils {
     static withNewSession(Closure c) {
         TrackLog.withNewSession(c) // Yes, a bizarre dependency on an arbitrary domain object
     }
-
 
     static boolean isJSON(String val) {
         try {

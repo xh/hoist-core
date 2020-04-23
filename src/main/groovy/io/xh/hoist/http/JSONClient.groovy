@@ -9,6 +9,7 @@ package io.xh.hoist.http
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import io.xh.hoist.exception.ExternalHttpException
 import io.xh.hoist.json.JSON
 import io.xh.hoist.json.JSONParser
 import org.apache.http.client.methods.CloseableHttpResponse
@@ -67,14 +68,14 @@ class JSONClient {
      * Execute request and return raw content string.
      */
     String executeAsString(HttpRequestBase method) {
-        def response
+        def response = null
         try {
             response = execute(method)
             def statusCode = response.statusLine.statusCode
             if (statusCode == SC_NO_CONTENT) return null
             return response.entity.content.getText('UTF-8')
         } finally {
-            if (response) response.close()
+            response?.close()
         }
     }
 
@@ -82,12 +83,12 @@ class JSONClient {
      * Execute request and return status code only.
      */
     Integer executeAsStatusCode(HttpRequestBase method) {
-        def response
+        def response = null
         try {
             response = execute(method)
             return response.statusLine.statusCode
         } finally {
-            if (response) response.close()
+            response?.close()
         }
     }
 
@@ -115,14 +116,15 @@ class JSONClient {
         String ret = executeAsString(method)
         return ret ? (JSONArray) JSON.parse(ret) : null
     }
-    
+
     //------------------------
     // Implementation
     //------------------------
     private CloseableHttpResponse execute(HttpRequestBase method) {
         CloseableHttpResponse ret = null
-        Exception cause = null
-        String statusText
+        Throwable cause = null
+        Integer statusCode = null
+        String statusText = ''
         boolean success
 
         if (!method.containsHeader('Content-type') && method.method in ['POST', 'PUT']) {
@@ -135,23 +137,21 @@ class JSONClient {
 
         try {
             ret = executeRaw(_client, method)
-            Integer statusCode = ret.statusLine.statusCode
+            statusCode = ret.statusLine.statusCode
             success = (statusCode >= SC_OK  && statusCode <= SC_NO_CONTENT)
-            statusText = statusCode.toString()
-        } catch (Exception e) {
+            if (!success) {
+                cause = parseException(ret)
+                statusText = statusCode.toString()
+            }
+        } catch (Throwable e) {
             cause = e
             statusText = e.message
             success = false
         }
 
         if (!success) {
-            def exception = ret ? parseException(ret) : null
-            if (!exception) {
-                def msg = "Failure calling ${method.URI} : $statusText"
-                exception = new RuntimeException(msg, cause)
-            }
-            if (ret) ret.close()
-            throw exception
+            ret?.close()
+            throw new ExternalHttpException("Failure calling ${method.URI} : $statusText", cause, statusCode)
         }
 
         return ret

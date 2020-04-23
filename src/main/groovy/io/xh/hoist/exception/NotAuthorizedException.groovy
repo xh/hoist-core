@@ -7,6 +7,8 @@
 
 package io.xh.hoist.exception
 
+import static org.apache.http.HttpStatus.SC_FORBIDDEN
+
 /**
  * Exception for use when the authenticated user does not have access to the resource in question.
  *
@@ -17,8 +19,8 @@ package io.xh.hoist.exception
  *
  * Instances of this exception will be sent to clients with HttpStatus 403 ('Forbidden').
  */
-class NotAuthorizedException extends RuntimeException implements RoutineException {
+class NotAuthorizedException extends HttpException implements RoutineException {
     NotAuthorizedException(String s = 'Not Authorized') {
-        super(s)
+        super(s, null, SC_FORBIDDEN)
     }
 }

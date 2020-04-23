@@ -42,6 +42,6 @@ abstract class BaseController implements LogSupport {
     // Implementation
     //-------------------
     void handleException(Exception ex) {
-        exceptionRenderer.render(ex, request, response, this)
+        exceptionRenderer.handleException(ex, request, response, this)
     }
 }
