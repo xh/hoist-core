@@ -93,12 +93,10 @@ abstract class BaseProxyService extends BaseService {
     // Additional overrideable implementation methods
     //------------------------------------------------
     protected void installRequestHeaders(HttpServletRequest request, HttpRequestBase method) {
-        def names = proxyRequestHeaders()
-        Collection<String> send = request.headerNames.findAll {hasHeader(names, (String) it)}
+        def names = proxyRequestHeaders(),
+            send = (Collection<String>) request.headerNames.findAll { hasHeader(names, (String) it) }
 
-        send.each {
-            method.setHeader(it, request.getHeader(it))
-        }
+        send.each { method.setHeader(it, request.getHeader(it)) }
     }
 
     protected void installResponseHeaders(HttpServletResponse response, HttpResponse sourceResponse) {

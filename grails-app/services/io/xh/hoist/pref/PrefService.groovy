@@ -149,9 +149,6 @@ class PrefService extends BaseService {
                 if (currPref.type != valType) {
                     log.error("Unexpected value type for required preference ${prefName} | expected ${valType} got ${currPref.type} | review and fix!")
                 }
-                if (currPref.local != local) {
-                    log.error("Unexpected local value for required preference ${prefName} | expected ${local} got ${currPref.local} | review and fix!")
-                }
             }
         }
 

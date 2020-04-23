@@ -46,13 +46,13 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
 
     void init() {
         _monitorTimer = createTimer(
-                interval: monitorInterval,
+                interval: {monitorInterval},
                 delay: startupDelay,
                 runFn: this.&onMonitorTimer
         )
 
         _notifyTimer = createTimer (
-                interval: notifyInterval,
+                interval: {notifyInterval},
                 runFn: this.&onNotifyTimer
         )
 
@@ -217,7 +217,8 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
         super.clearCaches()
         _results.clear()
         _problems.clear()
-        _monitorTimer.forceRun()
+        if (monitorInterval > 0) {
+            _monitorTimer.forceRun()
+        }
     }
-    
 }

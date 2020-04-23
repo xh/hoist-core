@@ -13,7 +13,6 @@ import grails.util.Holders
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseController
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.dash.DashboardService
 import io.xh.hoist.clienterror.ClientErrorService
 import io.xh.hoist.exception.NotFoundException
 import io.xh.hoist.exception.SessionMismatchException
@@ -33,7 +32,6 @@ class XhController extends BaseController {
 
     ClientErrorService clientErrorService
     ConfigService configService
-    DashboardService dashboardService
     FeedbackService feedbackService
     GridExportImplService gridExportImplService
     PrefService prefService
@@ -157,15 +155,16 @@ class XhController extends BaseController {
     // Environment
     //------------------------
     def environment() {
-        def ret = [
-                appCode:                Utils.appCode,
-                appName:                Utils.appName,
-                appVersion:             Utils.appVersion,
-                appBuild:               Utils.appBuild,
-                appEnvironment:         Utils.appEnvironment.toString(),
-                grailsVersion:          GrailsUtil.grailsVersion,
-                javaVersion:            System.getProperty('java.version')
-        ]
+        def ret = new HashMap<String, Object>([
+            appCode:                Utils.appCode,
+            appName:                Utils.appName,
+            appVersion:             Utils.appVersion,
+            appBuild:               Utils.appBuild,
+            appEnvironment:         Utils.appEnvironment.toString(),
+            startupTime:            Utils.startupTime,
+            grailsVersion:          GrailsUtil.grailsVersion,
+            javaVersion:            System.getProperty('java.version')
+        ])
 
         hoistGrailsPlugins.each {it ->
             ret[it.name + 'Version'] = it.version
@@ -189,25 +188,6 @@ class XhController extends BaseController {
                 appBuild: Utils.appBuild,
                 shouldUpdate: shouldUpdate
         )
-    }
-
-    //------------------------
-    // Dashboards
-    //------------------------
-    def getDashboard(String appCode) {
-        ensureClientUsernameMatchesSession()
-        renderJSON(dashboardService.get(appCode))
-    }
-
-    def saveDashboard(String appCode, String definition) {
-        ensureClientUsernameMatchesSession()
-        renderJSON(dashboardService.save(appCode, definition))
-    }
-
-    def deleteUserDashboard(String appCode) {
-        ensureClientUsernameMatchesSession()
-        dashboardService.deleteUserInstance(appCode)
-        renderJSON(success: true)
     }
 
     //------------------------
