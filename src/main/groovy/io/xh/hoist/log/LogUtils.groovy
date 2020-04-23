@@ -146,6 +146,7 @@ class LogUtils {
      */
     static void initConfig(Script script) {
         withDelegate(script) {
+
             def appLogName = Utils.appCode,
                 monitorLogName = "$appLogName-monitor"
 

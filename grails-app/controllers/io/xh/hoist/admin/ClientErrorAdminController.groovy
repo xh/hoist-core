@@ -7,6 +7,7 @@
 
 package io.xh.hoist.admin
 
+import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseController
 import io.xh.hoist.clienterror.ClientError
 import io.xh.hoist.security.Access
@@ -14,6 +15,7 @@ import io.xh.hoist.security.Access
 @Access(['HOIST_ADMIN'])
 class ClientErrorAdminController extends BaseController {
 
+    @ReadOnly
     def index() {
         def startDate = parseDate(params.startDate),
             endDate = parseDate(params.endDate)

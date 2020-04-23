@@ -7,7 +7,7 @@
 
 package io.xh.hoist.monitor
 
-import grails.gorm.transactions.Transactional
+import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 import io.xh.hoist.async.AsyncSupport
@@ -25,6 +25,7 @@ import static java.util.concurrent.TimeUnit.SECONDS
  */
 class MonitorResultService extends BaseService implements AsyncSupport {
 
+    @ReadOnly
     MonitorResult runMonitor(String code, long timeoutSeconds) {
         def monitor = Monitor.findByCode(code)
         if (!monitor) throw new RuntimeException("Monitor '$code' not found.")

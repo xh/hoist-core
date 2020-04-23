@@ -9,8 +9,6 @@ package io.xh.hoist.admin
 
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
-
-
 import net.sf.ehcache.CacheManager
 
 @Access(['HOIST_ADMIN'])
@@ -53,7 +51,7 @@ class EhCacheAdminController extends BaseController {
     // Implementation
     //------------------------
     private CacheManager getCacheManager() {
-        return CacheManager.ALL_CACHE_MANAGERS.first()
+        CacheManager.ALL_CACHE_MANAGERS.first()
     }
 
     private void clearCache(String name) {

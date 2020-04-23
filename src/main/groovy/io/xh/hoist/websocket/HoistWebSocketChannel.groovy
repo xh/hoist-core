@@ -23,7 +23,6 @@ import java.time.Instant
 
 import static io.xh.hoist.util.Utils.configService
 import static io.xh.hoist.util.Utils.userService
-import static io.xh.hoist.util.Utils.withNewSession
 
 /**
  * Managed wrapper around a raw WebSocketSession:
@@ -95,9 +94,7 @@ class HoistWebSocketChannel implements LogSupport, JSONFormat {
     }
 
     private JSONObject getConfig() {
-        return (JSONObject) withNewSession {
-            configService.getJSONObject('xhWebSocketConfig')
-        }
+        return configService.getJSONObject('xhWebSocketConfig')
     }
 
     Map formatForJSON() {

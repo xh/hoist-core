@@ -10,6 +10,7 @@ package io.xh.hoist.config
 import grails.compiler.GrailsCompileStatic
 import grails.events.annotation.Subscriber
 import grails.gorm.transactions.Transactional
+import grails.gorm.transactions.ReadOnly
 import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
 import org.grails.datastore.mapping.engine.event.PreUpdateEvent
@@ -64,6 +65,7 @@ class ConfigService extends BaseService implements EventPublisher {
         return (String) getInternalByName(name, 'pwd', notFoundValue)
     }
 
+    @ReadOnly
     Map getClientConfig() {
         def ret = [:]
 
@@ -156,6 +158,7 @@ class ConfigService extends BaseService implements EventPublisher {
     //-------------------
     //  Implementation
     //-------------------
+    @ReadOnly
     private Object getInternalByName(String name, String valueType, Object notFoundValue) {
         AppConfig c = AppConfig.findByName(name, [cache: true])
 

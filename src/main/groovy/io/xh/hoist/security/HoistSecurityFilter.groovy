@@ -7,7 +7,6 @@
 
 package io.xh.hoist.security
 
-import grails.gorm.transactions.Transactional
 import groovy.transform.CompileStatic
 import io.xh.hoist.util.Utils
 import javax.servlet.*
@@ -19,7 +18,6 @@ class HoistSecurityFilter implements Filter {
     void init(FilterConfig filterConfig) {}
     void destroy() {}
 
-    @Transactional
     void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) {
         HttpServletRequest httpRequest = (HttpServletRequest) request
         HttpServletResponse httpResponse = (HttpServletResponse) response

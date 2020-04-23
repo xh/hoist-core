@@ -25,7 +25,6 @@ class ReactiveUtils {
      *
      * Params:
      *      timeout -- time to allow for operation, default null
-     *      hibernate -- setup a hibernate session for this operation, default true
      *      subscribeOn -- scheduler to use for subscribeOn, default Schedulers.io()
      *      observeOn -- scheduler to use for observeOn, default null
      *
@@ -42,14 +41,13 @@ class ReactiveUtils {
      */
     static Observable createObservable(Map options, Closure c) {
         Long timeout = (Long) options.timeout
-        boolean hibernate = options.containsKey('hibernate') ? options.hibernate : true
         Scheduler subscribeOn = (Scheduler) options.subscribeOn ?: Schedulers.io()
         Scheduler observeOn = (Scheduler) options.observeOn
 
         // 1) Wrap the function.  Need to handle hibernate, and also
         // provide a default return of true, for app convenience.
         def fn = {
-            def val = hibernate ? Utils.withNewSession(c) : c()
+            def val = c()
             return val != null ? val : true
         }
 

@@ -21,7 +21,6 @@ import org.springframework.beans.factory.DisposableBean
 
 import static io.xh.hoist.rx.ReactiveUtils.createObservable
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
-import static io.xh.hoist.util.Utils.withNewSession
 
 /**
  * Standard superclass for all Hoist and Application-level services.
@@ -101,14 +100,12 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
     }
 
     /**
-     * Setup a managed Subscription to a Grails event with an auto-wired Hibernate session.
+     * Setup a managed Subscription to a Grails event
      * See subscribe() for more information.
      */
     protected void subscribeWithSession(String eventName, Closure c) {
         subscribe(eventName) {Object... args ->
-            withNewSession {
-                c.call(*args)
-            }
+            c.call(*args)
         }
     }
 
@@ -167,7 +164,7 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
         if (deps) {
             subscribe('xhConfigChanged') {Map ev ->
                 if (deps.contains(ev.key)) {
-                    withNewSession {clearCaches()}
+                    clearCaches()
                 }
             }
         }

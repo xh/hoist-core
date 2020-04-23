@@ -20,7 +20,6 @@ import java.util.concurrent.TimeoutException
 
 import static io.xh.hoist.util.DateTimeUtils.*
 import static io.xh.hoist.util.Utils.configService
-import static io.xh.hoist.util.Utils.withNewSession
 
 class Timer implements AsyncSupport {
 
@@ -41,7 +40,6 @@ class Timer implements AsyncSupport {
     public final Long delayUnits                //  number to multiply delay by to get millis, [default 1]
     public final Long intervalUnits             //  number to multiply interval by to get millis, [default 1]
     public final Long timeoutUnits              //  number to multiply timeout by to get millis, [default 1]
-    public final boolean withHibernate          //  run the function on a thread with hibernate session? (default true)
     public final boolean runImmediatelyAndBlock //  block on an immediate initial run [default false]
 
     // NOTE that even when runImmediatelyAndBlock is false, the task may be run *nearly* immediately
@@ -65,7 +63,6 @@ class Timer implements AsyncSupport {
         owner = config.owner
         runFn = config.runFn
         runImmediatelyAndBlock = config.runImmediatelyAndBlock ?: false
-        withHibernate = config.containsKey('withHibernate') ? config.withHibernate : true
 
         interval = config.interval
         delay = config.delay && !runImmediatelyAndBlock ? config.delay : 0
@@ -137,7 +134,7 @@ class Timer implements AsyncSupport {
         Throwable throwable = null
         Future future = null
         try {
-            def callable = withHibernate ? {withNewSession {runFn()}} : runFn
+            def callable = runFn
             future = executorService.submit(callable)
             if (timeoutMs) {
                 future.get(timeoutMs, TimeUnit.MILLISECONDS)
@@ -195,10 +192,8 @@ class Timer implements AsyncSupport {
 
     private void onConfigTimer() {
         try {
-            withNewSession {
-                intervalMs = calcIntervalMs()
-                timeoutMs = calcTimeoutMs()
-            }
+            intervalMs = calcIntervalMs()
+            timeoutMs = calcTimeoutMs()
             adjustCoreTimerIfNeeded()
 
         } catch (Throwable t) {

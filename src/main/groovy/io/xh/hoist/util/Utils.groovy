@@ -28,8 +28,6 @@ import org.springframework.context.ApplicationContext
 
 class Utils {
 
-    static Properties buildInfo = readBuildInfo()
-
     /**
      * Internal short name of the application - lowercase, no spaces.
      */
@@ -103,20 +101,11 @@ class Utils {
     }
 
     /**
-     * Run a closure with a new hibernate session.  Useful for asynchronous routines that will not
-     * have a Grails-installed Hibernate session on the thread.
-     */
-    static withNewSession(Closure c) {
-        TrackLog.withNewSession(c) // Yes, a bizarre dependency on an arbitrary domain object
-    }
-
-    /**
      * Run a closure with a new hibernate transaction.
      */
     static withTransaction(Closure c) {
         TrackLog.withTransaction(c) // Yes, a bizarre dependency on an arbitrary domain object
     }
-
 
     static boolean isJSON(String val) {
         try {
@@ -155,7 +144,7 @@ class Utils {
     // For now, we just pulls values directly from the gradle artifact used by that file.
     // Note that our standard build.gradle injects appCode/appName
     // See http://grailsblog.objectcomputing.com/posts/2017/04/02/add-build-info-to-your-project.html
-    private static Properties readBuildInfo() {
+    private static Properties getBuildInfo() {
         def ret = new Properties(),
             loader = Thread.currentThread().getContextClassLoader(),
             file = 'META-INF/grails.build.info',

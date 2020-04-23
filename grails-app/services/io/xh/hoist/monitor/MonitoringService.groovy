@@ -9,6 +9,7 @@ package io.xh.hoist.monitor
 
 import grails.async.Promises
 import grails.events.EventPublisher
+import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Timer
 import io.xh.hoist.async.AsyncSupport
@@ -63,6 +64,7 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
         _monitorTimer.forceRun()
     }
 
+    @ReadOnly
     Map<String, MonitorResult> getResults() {
         Monitor.list().collectEntries {
             def result = _results[it.code] ?: monitorResultService.unknownMonitorResult(it)
@@ -74,6 +76,7 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
     //------------------------
     // Implementation
     //------------------------
+    @ReadOnly
     private void runAllMonitors() {
         withDebug('Running monitors') {
             def timeout = getTimeoutSeconds()

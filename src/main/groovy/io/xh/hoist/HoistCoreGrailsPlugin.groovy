@@ -50,13 +50,11 @@ class HoistCoreGrailsPlugin extends Plugin {
     void onChange(Map<String, Object> event) {
         def cls = event.source
         if (cls instanceof Class) {
-            Utils.withNewSession {
-                def svcs = Utils.appContext
-                        .getBeansOfType(BaseService)
-                        .values()
-                        .findAll {!it.initialized}
-                BaseService.parallelInit(svcs)
-            }
+            def svcs = Utils.appContext
+                    .getBeansOfType(BaseService)
+                    .values()
+                    .findAll {!it.initialized}
+            BaseService.parallelInit(svcs)
         }
     }
 

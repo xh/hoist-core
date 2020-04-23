@@ -16,12 +16,9 @@ import io.xh.hoist.util.Utils
 trait AsyncSupport {
 
     /**
-     * Create a grails.async.Promise that provides support for full GORM operations.
+     * Create a grails.async.Promise.
      */
     static Promise asyncTask(Closure c) {
-        Promises.task {
-            Utils.withNewSession(c) // Ensure a Hibernate session is available
-        }
+        Promises.task(c)
     }
-    
 }

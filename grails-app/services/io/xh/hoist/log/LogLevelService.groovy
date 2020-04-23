@@ -7,6 +7,7 @@
 
 package io.xh.hoist.log
 
+import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.LoggerContext
@@ -33,6 +34,7 @@ class LogLevelService extends BaseService {
     // This is called on a timer, but any code that changes the raw LogLevel should call
     // this to force a synchronous recalculation.  See e.g. LogLevelAdminController.
     //--------------------------------------------------------------------------------
+    @ReadOnly
     void calculateAdjustments() {
         withDebug('Applying Log Level Adjustments') {
             def overrides = LogLevel.findAllByLevelIsNotNull()

@@ -7,6 +7,7 @@
 
 package io.xh.hoist.track
 
+import grails.gorm.transactions.ReadOnly
 import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
@@ -60,6 +61,7 @@ class TrackService extends BaseService implements EventPublisher {
      * @param end - end date of query (exclusive)
      * @param username - optional filter for single username
      */
+    @ReadOnly
     Map<String, Integer> getUniqueVisitsByDay(Date start, Date end, String username) {
         def query = """
             select cast(dateCreated AS date), count(distinct username)
@@ -72,7 +74,7 @@ class TrackService extends BaseService implements EventPublisher {
 
         Map params = username ?  [start: start, end: end, username: username] : [start: start, end: end]
 
-        def ret =  (List<List>) TrackLog.executeQuery(query.toString(), params)
+        def ret = (List<List>) TrackLog.executeQuery(query.toString(), params)
         return ret.collectEntries {
             Date trackDate = (Date) it[0]
             [trackDate.format('yyyyMMdd'), it[1]]

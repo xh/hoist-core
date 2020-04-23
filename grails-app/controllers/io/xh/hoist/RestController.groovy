@@ -14,7 +14,7 @@ import io.xh.hoist.json.JSON
 import org.grails.web.json.JSONObject
 
 @Slf4j
-@Transactional()
+@Transactional
 abstract class RestController extends BaseController {
 
     def trackService

@@ -9,6 +9,7 @@ package io.xh.hoist.pref
 
 import grails.compiler.GrailsCompileStatic
 import grails.gorm.transactions.Transactional
+import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService
 import org.grails.web.json.JSONElement
 
@@ -88,6 +89,7 @@ class PrefService extends BaseService {
         }
     }
 
+    @ReadOnly
     Map getClientConfig() {
         def username = username,
             ret = [:]
@@ -104,6 +106,7 @@ class PrefService extends BaseService {
         return ret
     }
 
+    @ReadOnly
     Map getLimitedClientConfig(List keys) {
         def username = username
         Preference.findAllByNameInList(keys).collectEntries {
@@ -167,6 +170,7 @@ class PrefService extends BaseService {
         return getUserPreference(defaultPref, username)
     }
 
+    @ReadOnly
     private Object getUserPreference(Preference defaultPref, String username) {
         if (defaultPref.local) {
             throw new RuntimeException("Preference ${defaultPref.name} marked as local - user value cannot be read on server.")
@@ -196,6 +200,7 @@ class PrefService extends BaseService {
         userPref.save()
     }
 
+    @ReadOnly
     private Preference getDefaultPreference(String key, String type) {
         def p = Preference.findByName(key, [cache: true])
 
