@@ -128,6 +128,16 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'True to enable the log viewer included with the Hoist Admin console as well as the associated server-side endpoints.'
             ],
+            xhExportConfig: [
+                valueType: 'json',
+                defaultValue: [
+                    streamingCellThreshold: 100000,
+                    toastCellThreshold: 3000
+                ],
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'Configures exporting data to Excel.'
+            ],
             xhIdleTimeoutMins: [
                 valueType: 'int',
                 defaultValue: -1,
