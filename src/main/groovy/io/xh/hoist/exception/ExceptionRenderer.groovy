@@ -36,11 +36,9 @@ class ExceptionRenderer {
     /**
      * Main entry point for request based code (e.g. controllers)
      */
-    void render(Throwable t, HttpServletRequest request, HttpServletResponse response, LogSupport logSupport = null) {
+    void handleException(Throwable t, HttpServletRequest request, HttpServletResponse response, LogSupport logSupport) {
         t = preprocess(t)
-        if (logSupport) {
-            logException(t, logSupport)
-        }
+        logException(t, logSupport)
 
         response.setStatus(getHttpStatus(t))
         response.setContentType('application/json')
@@ -64,10 +62,10 @@ class ExceptionRenderer {
     }
 
     protected Throwable preprocess(Throwable t) {
-        GrailsUtil.deepSanitize(t)
         if (t instanceof grails.validation.ValidationException) {
             t = new ValidationException(t)
         }
+        GrailsUtil.deepSanitize(t)
         return t
     }
 
