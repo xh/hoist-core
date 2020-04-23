@@ -25,6 +25,16 @@ import org.openxmlformats.schemas.spreadsheetml.x2006.main.*
 
 import java.awt.Color
 
+/**
+ * Service to export row data to Excel or CSV.
+ *
+ * Uses the following properties from `xhExportConfig`:
+ *
+ *      `streamingCellThreshold`:   Maximum cell count to export to Excel as fully formatted table. Exports with cell
+ *                                  counts that exceed this value this will use Apache POI's streaming API, which frees
+ *                                  up heap space at the expenses of removing the table formatting.
+ *                                  See https://poi.apache.org/components/spreadsheet/how-to.html#sxssf
+ */
 class GridExportImplService extends BaseService {
 
     def configService
@@ -87,7 +97,7 @@ class GridExportImplService extends BaseService {
         def tableRows = rows.size()
         def tableColumns = rows[0]['data'].size()
         def tableCells = tableRows * tableColumns
-        def useStreamingAPI = tableCells > configService.getInt('xhExportTableCellThreshold')
+        def useStreamingAPI = tableCells > config.streamingCellThreshold
         def maxDepth = rows.collect{it.depth}.max()
         def grouped = maxDepth > 0
         def wb
@@ -307,6 +317,10 @@ class GridExportImplService extends BaseService {
         temp.delete()
 
         return ret
+    }
+
+    private Map getConfig() {
+        configService.getJSONObject('xhExportConfig')
     }
 
 }
