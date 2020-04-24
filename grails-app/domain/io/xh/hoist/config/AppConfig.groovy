@@ -7,7 +7,7 @@
 
 package io.xh.hoist.config
 
-import io.xh.hoist.json.JSON
+import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.util.Utils
 import org.jasypt.util.password.ConfigurablePasswordEncryptor
@@ -65,7 +65,7 @@ class AppConfig implements JSONFormat {
     Object externalValue(Map opts = [:]) {
         if (value == null) return null
         switch ( valueType ) {
-            case 'json':    return opts.jsonAsObject ? JSON.parse(value) : value
+            case 'json':    return opts.jsonAsObject ? JSONParser.parseObjectOrArray(value) : value
             case 'int':     return value.toInteger()
             case 'long':    return value.toLong()
             case 'double':  return value.toDouble()

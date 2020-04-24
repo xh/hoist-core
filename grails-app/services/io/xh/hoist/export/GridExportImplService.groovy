@@ -168,7 +168,7 @@ class GridExportImplService extends BaseService {
         rows.eachWithIndex { rowMap, i ->
             // 1) Process data for this row into cells
             Row row = sheet.createRow(i)
-            List cells = Utils.stripJsonNulls(rowMap.data as List)
+            List cells = rowMap.data as List
             cells.eachWithIndex { data, colIndex ->
                 Map metadata = meta[colIndex]
                 Cell cell = row.createCell(colIndex)
@@ -320,7 +320,7 @@ class GridExportImplService extends BaseService {
     }
 
     private Map getConfig() {
-        configService.getJSONObject('xhExportConfig')
+        configService.getMap('xhExportConfig')
     }
 
 }

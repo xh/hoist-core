@@ -10,7 +10,6 @@ package io.xh.hoist.admin
 import io.xh.hoist.pref.Preference
 import io.xh.hoist.RestController
 import io.xh.hoist.security.Access
-import org.grails.web.json.JSONObject
 
 @Access(['HOIST_ADMIN'])
 class PreferenceAdminController extends RestController {
@@ -25,7 +24,7 @@ class PreferenceAdminController extends RestController {
         )
     }
 
-    protected void preprocessSubmit(JSONObject submit) {
+    protected void preprocessSubmit(Map submit) {
         submit.lastUpdatedBy = username
     }
 

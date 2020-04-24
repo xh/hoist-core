@@ -19,8 +19,6 @@ import io.xh.hoist.track.TrackLog
 import io.xh.hoist.user.BaseRoleService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.websocket.WebSocketService
-import org.grails.web.json.JSONArray
-import org.grails.web.json.JSONObject
 import org.springframework.context.ApplicationContext
 
 
@@ -113,6 +111,8 @@ class Utils {
         TrackLog.withNewSession(c) // Yes, a bizarre dependency on an arbitrary domain object
     }
 
+    // TODO:  Move to Jackson when we are on Grails 4/Jackson 2.9:
+    // Jackson 2.9 has the support for FAIL_ON_TRAILING_TOKENS that we need
     static boolean isJSON(String val) {
         try {
             if (val != null) JsonParser.any().from(val)
@@ -120,17 +120,6 @@ class Utils {
         } catch (JsonParserException ignored) {
             return false
         }
-    }
-
-    static Object stripJsonNulls(Object o) {
-        if (o == null || o.equals(null)) return null
-        if (o instanceof JSONArray) {
-            o.eachWithIndex{v, idx -> o[idx] = stripJsonNulls(v)}
-        }
-        if (o instanceof JSONObject) {
-            o.each{k, v -> o[k] = stripJsonNulls(v)}
-        }
-        return o
     }
 
     /**

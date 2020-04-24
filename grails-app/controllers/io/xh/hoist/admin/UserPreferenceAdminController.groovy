@@ -11,7 +11,6 @@ import io.xh.hoist.pref.Preference
 import io.xh.hoist.pref.UserPreference
 import io.xh.hoist.RestController
 import io.xh.hoist.security.Access
-import org.grails.web.json.JSONObject
 
 @Access(['HOIST_ADMIN'])
 class UserPreferenceAdminController extends RestController {
@@ -25,7 +24,7 @@ class UserPreferenceAdminController extends RestController {
         )
     }
 
-    protected void preprocessSubmit(JSONObject submit) {
+    protected void preprocessSubmit(Map submit) {
         if (submit.name) {
             submit.preference = Preference.findByName(submit.name)
         }
