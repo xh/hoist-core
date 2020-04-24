@@ -10,19 +10,20 @@ logging of unnecessary stack traces.
 * New exception classes for `HttpException` and `ExternalHttpException` have been added.
 
 * JSON parsing in Hoist has been reworked to simplify and standardize based on the high-performance Jackson library. 
-(https://github.com/FasterXML/jackson).  In particular, this change includes:
-    * A new `JSONParser` API in the `io.xh.hoist.json` package, which provides JSON parsing of text and input streams.  
+(https://github.com/FasterXML/jackson).  Benchmarking shows a speedup in parsing times of 10x to 20x over the 
+`grails.converter.JSON` library currently used by Hoist.  In particular, this change includes:
+    * A new `JSONParser` API in the `io.xh.hoist.json` package that provides JSON parsing of text and input streams.  
     This API is designed to be symmetrical with the existing `JSONFormatter.`
-    * All core hoist classes now rely on the interface above.   Of special note are `JSONClient`, and `RestController`.  
+    * All core hoist classes now rely on the API above.  Of special note are `JSONClient`, and `RestController`.  
     * Cleanups to the APIs for `JSONClient`, `ConfigService`, and `PrefService`.  These methods now return java object
     representations using the standard java `Map` and `List` interfaces rather than the confusing `JSONObject`, 
     `JSONArray` and `JSONElement` objects.
 
 ### 🎁 Breaking Changes
-* The `getJSONArray()`, `getJSONObject()` and `getJSON()` methods  on `ConfigService` and `PrefService` have been
+* The `getJSONObject()`, `getJSONArray()`,  and `getJSON()` methods  on `ConfigService` and `PrefService` have been
 replaced with `getMap()` and `getList()`.
  
-* The `executeAsJSONArray()` and `executeAsJSONObject()` methods on `JSONClient` have been replaced with 
+* The `executeAsJSONObject()` and `executeAsJSONArray()` methods on `JSONClient` have been replaced with 
 `executeAsMap()` and `executeAsList()`.
 
 * The method `RestController.preprocessSubmit()` now takes a `Map` as its single input, rather than a `JSONObject`. 
