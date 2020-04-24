@@ -10,6 +10,7 @@ package io.xh.hoist.util
 import com.grack.nanojson.JsonParser
 import com.grack.nanojson.JsonParserException
 import grails.util.Holders
+import grails.util.Metadata
 import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
@@ -24,37 +25,34 @@ import org.springframework.context.ApplicationContext
 
 class Utils {
 
-    static Properties buildInfo = readBuildInfo()
-
     static final Date startupTime = new Date()
 
     /**
      * Internal short name of the application - lowercase, no spaces.
      */
     static String getAppCode() {
-        return 'toolbox'
-        return buildInfo.getProperty('info.xh.appCode')
+        return Metadata.current.getProperty('info.xh.appCode')
     }
 
     /**
      * User-facing display name of the application - proper case, can include spaces.
      */
     static String getAppName() {
-        return buildInfo.getProperty('info.xh.appName')
+        return Metadata.current.getProperty('info.xh.appName')
     }
 
     /**
      * Current version, either SemVer x.y.z format or x.y-SNAPSHOT.
      */
     static String getAppVersion() {
-        return buildInfo.getProperty('info.app.version')
+        return Metadata.current.getProperty('info.app.version')
     }
 
     /**
      * Optional git commit hash or other identifier set at build time.
      */
     static String getAppBuild() {
-        return buildInfo.getProperty('info.xh.appBuild')
+        return Metadata.current.getProperty('info.xh.appBuild')
     }
 
     /**
@@ -126,27 +124,4 @@ class Utils {
     static List<BaseService> getXhServices() {
         return appContext.getBeansOfType(BaseService, false, true).collect {it.value}
     }
-
-
-    //------------------------
-    // Implementation
-    //------------------------
-    // We *should* be able to draw this build info from grails.util.Metadata object.
-    // But that object began returning nulls with grails 3.3.0.
-    // For now, we just pulls values directly from the gradle artifact used by that file.
-    // Note that our standard build.gradle injects appCode/appName
-    // See http://grailsblog.objectcomputing.com/posts/2017/04/02/add-build-info-to-your-project.html
-    private static Properties readBuildInfo() {
-        def ret = new Properties(),
-            loader = Thread.currentThread().getContextClassLoader(),
-            file = 'META-INF/grails.build.info',
-            url = loader.getResource(file) ?: loader.getResource('../../' + file)
-
-        if (url) {
-            url.withInputStream {ret.load(it)}
-        }
-
-        return ret
-    }
-    
 }
