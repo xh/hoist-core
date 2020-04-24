@@ -11,7 +11,6 @@ import grails.compiler.GrailsCompileStatic
 import grails.gorm.transactions.Transactional
 import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService
-import org.grails.web.json.JSONElement
 
 import static io.xh.hoist.json.JSONSerializer.serialize
 import static io.xh.hoist.json.JSONSerializer.serializePretty
@@ -43,8 +42,12 @@ class PrefService extends BaseService {
         return (Boolean) getUserPreference(key, 'bool', username)
     }
 
-    JSONElement getJSON(String key, String username = username) {
-        return (JSONElement) getUserPreference(key, 'json', username)
+    Map getMap(String key, String username = username) {
+        return (Map) getUserPreference(key, 'json', username)
+    }
+
+    List getList(String key, String username = username) {
+        return (List) getUserPreference(key, 'json', username)
     }
 
     void setString(String key, String value, String username = username) {
@@ -67,7 +70,11 @@ class PrefService extends BaseService {
         setUserPreference(key, value.toString(), 'bool', username)
     }
 
-    void setJSON(String key, Object value, String username = username) {
+    void setMap(String key, Map value, String username = username) {
+        setUserPreference(key, serialize(value), 'json', username)
+    }
+
+    void setList(String key, List value, String username = username) {
         setUserPreference(key, serialize(value), 'json', username)
     }
 

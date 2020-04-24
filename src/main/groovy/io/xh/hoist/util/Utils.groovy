@@ -10,23 +10,23 @@ package io.xh.hoist.util
 import com.grack.nanojson.JsonParser
 import com.grack.nanojson.JsonParserException
 import grails.util.Holders
-import grails.util.Metadata
 import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.json.JSON
+import io.xh.hoist.exception.ExceptionRenderer
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.track.TrackLog
 import io.xh.hoist.user.BaseRoleService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.websocket.WebSocketService
-import org.grails.web.converters.exceptions.ConverterException
-import org.grails.web.json.JSONArray
-import org.grails.web.json.JSONObject
 import org.springframework.context.ApplicationContext
 
 
 class Utils {
+
+    static Properties buildInfo = readBuildInfo()
+
+    static final Date startupTime = new Date()
 
     /**
      * Internal short name of the application - lowercase, no spaces.
@@ -84,6 +84,10 @@ class Utils {
         return (BaseRoleService) appContext.roleService
     }
 
+    static ExceptionRenderer getExceptionRenderer() {
+        return (ExceptionRenderer) appContext.exceptionRenderer
+    }
+
     static WebSocketService getWebSocketService() {
         return (WebSocketService) appContext.webSocketService
     }
@@ -116,18 +120,6 @@ class Utils {
         }
     }
 
-    static Object stripJsonNulls(Object o) {
-        if (o == null || o.equals(null)) return null
-        if (o instanceof JSONArray) {
-            o.eachWithIndex{v, idx -> o[idx] = stripJsonNulls(v)}
-        }
-        if (o instanceof JSONObject) {
-            o.each{k, v -> o[k] = stripJsonNulls(v)}
-        }
-        return o
-    }
-
-
     /**
      * Return all singleton instances of io.xh.BaseService in the application
      */
@@ -144,7 +136,7 @@ class Utils {
     // For now, we just pulls values directly from the gradle artifact used by that file.
     // Note that our standard build.gradle injects appCode/appName
     // See http://grailsblog.objectcomputing.com/posts/2017/04/02/add-build-info-to-your-project.html
-    private static Properties getBuildInfo() {
+    private static Properties readBuildInfo() {
         def ret = new Properties(),
             loader = Thread.currentThread().getContextClassLoader(),
             file = 'META-INF/grails.build.info',

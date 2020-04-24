@@ -10,8 +10,7 @@ package io.xh.hoist
 import grails.gorm.transactions.Transactional
 import grails.validation.ValidationException
 import groovy.util.logging.Slf4j
-import io.xh.hoist.json.JSON
-import org.grails.web.json.JSONObject
+import io.xh.hoist.json.JSONParser
 
 @Slf4j
 @Transactional
@@ -23,8 +22,8 @@ abstract class RestController extends BaseController {
     static restTarget = null // Implementations set to value of GORM domain class they are editing.
 
     def create() {
-        def data = request.JSON.data
-        preprocessSubmit(data as JSONObject)
+        def data = JSONParser.parseObject(request.inputStream).data
+        preprocessSubmit(data)
 
         def obj = restTargetVal.newInstance(data)
         doCreate(obj, data)
@@ -33,14 +32,14 @@ abstract class RestController extends BaseController {
     }
 
     def read() {
-        def query = params.query ? JSON.parse(params.query) as Map : [:],
+        def query = params.query ? JSONParser.parseObject(params.query) : [:],
             ret = params.id ? [restTargetVal.get(params.id)] : doList(query)
         renderJSON(success:true, data:ret)
     }
 
     def update() {
-        def data = request.JSON.data
-        preprocessSubmit(data as JSONObject)
+        def data = JSONParser.parseObject(request.inputStream).data
+        preprocessSubmit(data)
 
         def obj = restTargetVal.get(data.id)
         try {
@@ -55,7 +54,7 @@ abstract class RestController extends BaseController {
 
     def bulkUpdate() {
         def ids = params.list('ids'),
-            newParams = JSON.parse(params.newParams),
+            newParams = JSONParser.parseObject(params.newParams),
             successCount = 0,
             failCount = 0,
             target = restTargetVal,
@@ -132,7 +131,7 @@ abstract class RestController extends BaseController {
         obj.delete(flush:true)
     }
 
-    protected void preprocessSubmit(JSONObject submit) {
+    protected void preprocessSubmit(Map submit) {
 
     }
 

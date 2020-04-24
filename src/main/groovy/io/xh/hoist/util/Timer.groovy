@@ -20,27 +20,70 @@ import java.util.concurrent.TimeoutException
 
 import static io.xh.hoist.util.DateTimeUtils.*
 import static io.xh.hoist.util.Utils.configService
+import static io.xh.hoist.util.Utils.getExceptionRenderer
 
+/**
+ * Core Hoist Timer object.
+ *
+ * This object is typically used by services that need to schedule work to maintain
+ * internal state.
+ */
 class Timer implements AsyncSupport {
 
      private static Long CONFIG_INTERVAL = 15 * SECONDS
 
-    // Note that 'delay', 'interval', and 'timeout' can be specified as a long, a closure, or a config name to be
-    // looked up in config service.   The last two options offer the possibility of 'hot' changes to the timers config.
+    /** Object using this timer (for logging purposes) **/
+    final LogSupport owner
 
-    // Required arguments
-    public final LogSupport owner               //  object using this timer (for logging purposes)
-    public final Object interval                //  interval,  If <= 0, job will not run
-    public final Closure runFn                  //  closure to run
 
-    // Optional arguments
-    public final String name                    //  name for status logging disambiguation [default 'anon']
-    public final Object delay                   //  delay [default 0]
-    public final Object timeout                 //  max time to let function run before cancelling, and attempting a later run (default 3 mins)
-    public final Long delayUnits                //  number to multiply delay by to get millis, [default 1]
-    public final Long intervalUnits             //  number to multiply interval by to get millis, [default 1]
-    public final Long timeoutUnits              //  number to multiply timeout by to get millis, [default 1]
-    public final boolean runImmediatelyAndBlock //  block on an immediate initial run [default false]
+    /** Closure to run */
+    final Closure runFn
+
+    /**
+     * Interval between runs.  Specify as a number, closure, or string.  The units for this
+     * argument are defined by intervalUnits property.  If value is not positive, the job will not run.
+     *
+     * If specified as a function, the value will be recomputed after every run. If specified as a string,
+     * the value will be assumed to be a config key, and will be looked up after every run.
+     */
+    final Object interval
+
+    /**
+     * Max time to let function run before cancelling. Specify as a number, closure, or string.  The units for this
+     * argument are defined by timeoutUnits property.  Default is 3 mins.
+     *
+     * If specified as a function, the value will be re-computed after every run. If specified as a string,
+     * the value will be assumed to be a config key, and will be looked up after every run.
+     */
+    final Object timeout
+
+    /**
+     *  Initial delay, in milliseconds. May be specified as a boolean or a number.
+     *  If true the value of the delay will be the same as interval.  Default to false.
+     */
+    final Object delay
+
+    /** Units for interval property.  Default is ms (1) */
+    final Long intervalUnits
+
+    /** Units for timeout property.  Default is ms (1) */
+    final Long timeoutUnits
+
+    /** Run 'runFn' on a thread with hibernate session? Default true. */
+    final boolean withHibernate
+
+    /** Block on an immediate initial run?  Default is false. */
+    final boolean runImmediatelyAndBlock
+
+    /** Date last run completed. */
+    Date getLastRun() {
+        _lastRun
+    }
+
+    /** Is `runFn` currently executing? */
+    boolean getIsRunning() {
+        _isRunning
+    }
 
     // NOTE that even when runImmediatelyAndBlock is false, the task may be run *nearly* immediately
     // but asynchronously, as governed by delay
@@ -49,44 +92,41 @@ class Timer implements AsyncSupport {
     private Long timeoutMs
     private Long coreIntervalMs
 
-    private Date lastRun = null
-    private boolean isRunning = false
+
+    private Date _lastRun = null
+    private boolean _isRunning = false
     private boolean forceRun  = false
     private java.util.Timer coreTimer
     private java.util.Timer configTimer
 
+
     // Args from Grails 3.0 async promise implementation
     static ExecutorService executorService = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>())
 
+    /**
+     * Applications should not typically use this constructor directly.  Timers
+     * are typically created by services using the createTimer() method on
+     * the service itself.
+     */
     Timer(Map config) {
-        name = config.name ?: 'anon'
         owner = config.owner
         runFn = config.runFn
         runImmediatelyAndBlock = config.runImmediatelyAndBlock ?: false
 
-        interval = config.interval
-        delay = config.delay && !runImmediatelyAndBlock ? config.delay : 0
-        timeout = config.containsKey('timeout') ? config.timeout : 3 * MINUTES
-
-        // Post-process config strings to canonical closures
-        interval = processConfigString(interval)
-        delay = processConfigString(delay)
-        timeout = processConfigString(timeout)
+        interval = parseDynamicValue(config.interval)
+        timeout = parseDynamicValue(config.containsKey('timeout') ? config.timeout : 3 * MINUTES)
+        delay = config.delay ?: false
 
         intervalUnits = config.intervalUnits ?: 1
-        delayUnits = config.delayUnits ?: 1
         timeoutUnits = config.timeoutUnits ?: 1
 
         if ([owner, interval, runFn].contains(null)) throw new RuntimeException('Missing required arguments for Timer.')
+        if (config.delayUnits) throw new RuntimeException('delayUnits has been removed from the API. Specify delay in ms.')
 
         intervalMs = calcIntervalMs()
-        delayMs = calcDelayMs()
         timeoutMs = calcTimeoutMs()
+        delayMs = calcDelayMs()
         coreIntervalMs = calcCoreIntervalMs()
-
-        if (intervalMs > 0 && intervalMs < 500) {
-            throw new RuntimeException('Object not appropriate for intervals less than 500ms.  Use a java.util.Timer instead.')
-        }
 
         if (runImmediatelyAndBlock) {
             doRun()
@@ -130,7 +170,7 @@ class Timer implements AsyncSupport {
     // Implementation
     //------------------------
     private void doRun() {
-        isRunning = true
+        _isRunning = true
         Throwable throwable = null
         Future future = null
         try {
@@ -150,12 +190,12 @@ class Timer implements AsyncSupport {
             throwable = t
         }
 
-        lastRun = new Date()
-        isRunning = false
+        _lastRun = new Date()
+        _isRunning = false
 
         if (throwable) {
             try {
-                owner.logErrorCompact("Failure in Timer [$name]", throwable)
+                exceptionRenderer.handleException(throwable, owner)
             } catch (Throwable ignore) {}
         }
     }
@@ -167,27 +207,24 @@ class Timer implements AsyncSupport {
     // We want to be dynamic without adding too much load.
     //-----------------------------------------------------------
     private Long calcIntervalMs() {
-        switch (interval) {
-            case null:      return null
-            case Closure:   return (interval as Closure)() * intervalUnits
-            default:        return interval * intervalUnits
+        if (interval == null) return null
+        Long ret = (interval instanceof Closure ? (interval as Closure)() : interval) * intervalUnits;
+        if (ret > 0 && ret < 500) {
+            owner.instanceLog.warn('Timer cannot be set for values less than 500ms.')
+            ret = 500
         }
+        return ret
     }
 
     private Long calcTimeoutMs() {
-        switch (timeout) {
-            case null:      return null
-            case Closure:   return (timeout as Closure)() * timeoutUnits
-            default:        return timeout * timeoutUnits
-        }
+        if (timeout == null) return null
+        return (timeout instanceof Closure ? (timeout as Closure)() : timeout) * timeoutUnits
     }
 
     private Long calcDelayMs() {
-        switch (delay) {
-            case null:      return null
-            case Closure:   return (delay as Closure)() * delayUnits
-            default:        return delay * delayUnits
-        }
+        if (runImmediatelyAndBlock || delay == null || delay == false) return 0
+        if (delay == true) return intervalMs
+        return (Long) delay
     }
 
     private void onConfigTimer() {
@@ -195,17 +232,13 @@ class Timer implements AsyncSupport {
             intervalMs = calcIntervalMs()
             timeoutMs = calcTimeoutMs()
             adjustCoreTimerIfNeeded()
-
         } catch (Throwable t) {
-            owner.logErrorCompact("Timer [$name] failed to reload config", t)
+            owner.logErrorCompact('Timer failed to reload config', t)
         }
     }
 
-    Object processConfigString(Object obj) {
-        if (obj instanceof String) {
-            return {configService.getInt(obj as String)}
-        }
-        return obj
+    Object parseDynamicValue(Object obj) {
+        return obj instanceof String ? {configService.getInt(obj as String)} : obj
     }
 
     //-------------------------------------------------------------------------------------------
@@ -240,3 +273,5 @@ class Timer implements AsyncSupport {
         }
     }
 }
+
+

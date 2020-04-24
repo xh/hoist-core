@@ -14,9 +14,6 @@ import grails.gorm.transactions.ReadOnly
 import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
 import org.grails.datastore.mapping.engine.event.PreUpdateEvent
-import org.grails.web.json.JSONArray
-import org.grails.web.json.JSONElement
-import org.grails.web.json.JSONObject
 import grails.events.*
 
 import static io.xh.hoist.json.JSONSerializer.serializePretty
@@ -49,16 +46,12 @@ class ConfigService extends BaseService implements EventPublisher {
         return (Boolean) getInternalByName(name, 'bool', notFoundValue)
     }
 
-    JSONElement getJSON(String name, JSONElement notFoundValue=null) {
-        return (JSONElement) getInternalByName(name, 'json', notFoundValue)
+    Map getMap(String name, Map notFoundValue=null) {
+        return (Map) getInternalByName(name, 'json', notFoundValue)
     }
 
-    JSONObject getJSONObject(String name, JSONObject notFoundValue=null) {
-        return (JSONObject) getJSON(name, notFoundValue)
-    }
-
-    JSONArray getJSONArray(String name, JSONArray notFoundValue=null) {
-        return (JSONArray) getJSON(name, notFoundValue)
+    List getList(String name, List notFoundValue=null) {
+        return (List) getInternalByName(name, 'json', notFoundValue)
     }
 
     String getPwd(String name, String notFoundValue=null) {

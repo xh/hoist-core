@@ -10,7 +10,6 @@ package io.xh.hoist.admin
 import io.xh.hoist.RestController
 import io.xh.hoist.monitor.Monitor
 import io.xh.hoist.security.Access
-import org.grails.web.json.JSONObject
 
 @Access(['HOIST_ADMIN'])
 class MonitorAdminController extends RestController {
@@ -24,7 +23,7 @@ class MonitorAdminController extends RestController {
         renderJSON(metricTypes: Monitor.METRIC_TYPES)
     }
 
-    protected void preprocessSubmit(JSONObject submit) {
+    protected void preprocessSubmit(Map submit) {
         submit.lastUpdatedBy = username
     }
 

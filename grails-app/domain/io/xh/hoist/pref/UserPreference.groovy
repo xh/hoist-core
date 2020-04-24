@@ -7,8 +7,8 @@
 
 package io.xh.hoist.pref
 
-import io.xh.hoist.json.JSON
 import io.xh.hoist.json.JSONFormat
+import io.xh.hoist.json.JSONParser
 
 class UserPreference implements JSONFormat {
 
@@ -34,7 +34,7 @@ class UserPreference implements JSONFormat {
     Object externalUserValue(Map opts = [:]) {
         def val = userValue;
         switch (preference.type) {
-            case 'json':    return opts.jsonAsObject ? JSON.parse(val) : val;
+            case 'json':    return opts.jsonAsObject ? JSONParser.parseObjectOrArray(val) : val;
             case 'int':     return val.toInteger()
             case 'long':    return val.toLong()
             case 'double':  return val.toDouble()

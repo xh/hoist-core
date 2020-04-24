@@ -56,7 +56,7 @@ class AccessInterceptor {
                     You do not have the application role(s) required to access this content. 
                     Currently logged in as: $username.
             """)
-        exceptionRenderer.render(ex, request, response)
+        exceptionRenderer.handleException(ex, request, response, identityService)
         return false
     }
 

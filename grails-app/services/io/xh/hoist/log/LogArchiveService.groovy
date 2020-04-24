@@ -173,7 +173,7 @@ class LogArchiveService extends BaseService {
     }
 
     private Map getConfig() {
-        return configService.getJSONObject('xhLogArchiveConfig')
+        return configService.getMap('xhLogArchiveConfig')
     }
 
 }

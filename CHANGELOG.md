@@ -1,6 +1,32 @@
 # Changelog
 
-## 7.0-SNAPSHOT - unreleased
+## 7.0-SNAPSHOT - Unreleased
+
+### 🎁 New Features
+* Exception Handling has been improved in the newly enhanced `exceptionRenderer` bean.  This bean will
+catch uncaught exceptions from all Controllers and Timers and has been newly configured to limit the
+logging of unnecessary stack traces. 
+
+* New exception classes for `HttpException` and `ExternalHttpException` have been added.
+
+* JSON parsing in Hoist has been reworked to simplify and standardize based on the high-performance Jackson library. 
+(https://github.com/FasterXML/jackson).  Benchmarking shows a speedup in parsing times of 10x to 20x over the 
+`grails.converter.JSON` library currently used by Hoist.  In particular, this change includes:
+    * A new `JSONParser` API in the `io.xh.hoist.json` package that provides JSON parsing of text and input streams.  
+    This API is designed to be symmetrical with the existing `JSONFormatter.`
+    * All core hoist classes now rely on the API above.  Of special note are `JSONClient`, and `RestController`.  
+    * Cleanups to the APIs for `JSONClient`, `ConfigService`, and `PrefService`.  These methods now return java object
+    representations using the standard java `Map` and `List` interfaces rather than the confusing `JSONObject`, 
+    `JSONArray` and `JSONElement` objects.
+
+### 🎁 Breaking Changes
+* The `getJSONObject()`, `getJSONArray()`,  and `getJSON()` methods  on `ConfigService` and `PrefService` have been
+replaced with `getMap()` and `getList()`.
+ 
+* The `executeAsJSONObject()` and `executeAsJSONArray()` methods on `JSONClient` have been replaced with 
+`executeAsMap()` and `executeAsList()`.
+
+* The method `RestController.preprocessSubmit()` now takes a `Map` as its single input, rather than a `JSONObject`. 
 
 ### ⚙️ Technical
 * This release upgrades the major version of grails from 3.3.9 to 4.0.3.  This major release
@@ -17,6 +43,18 @@ on required changes to config and dependency files.
 
 * Application may be required to add @Transactional to service methods that update data
 with GORM. 
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.7.0...develop)
+
+
+## 6.7.0 - 2020-04-22
+
+### 💥 Breaking Changes
+* `Timer.delay` now expects either a millisecond value, or a boolean.  It no longer will take a string/closure and
+ `Timer.delayUnits` has been removed.  This has been changed to enhance the functionality and make it consistent
+ with its client-side counterpart in hoist-react.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.6.0...v6.7.0)
 
 
 ## 6.6.0 - 2020-03-27

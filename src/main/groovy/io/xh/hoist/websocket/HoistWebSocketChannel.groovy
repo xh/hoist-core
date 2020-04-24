@@ -13,7 +13,6 @@ import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
-import org.grails.web.json.JSONObject
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
@@ -45,9 +44,9 @@ class HoistWebSocketChannel implements LogSupport, JSONFormat {
     private Instant lastReceivedTime
 
     HoistWebSocketChannel(WebSocketSession webSocketSession) {
-        JSONObject conf = getConfig()
-        int sendTimeLimit = conf.getInt('sendTimeLimitMs')
-        int bufferSizeLimit = conf.getInt('bufferSizeLimitBytes')
+        Map conf = getConfig()
+        def sendTimeLimit = (int) conf.sendTimeLimitMs,
+            bufferSizeLimit = (int) conf.bufferSizeLimitBytes
         log.debug("Creating managed socket session: sendTimeLimit: $sendTimeLimit, bufferSizeLimit: $bufferSizeLimit")
         session = new ConcurrentWebSocketSessionDecorator(webSocketSession, sendTimeLimit, bufferSizeLimit)
         authUsername = getAuthUsernameFromSession()
@@ -93,8 +92,8 @@ class HoistWebSocketChannel implements LogSupport, JSONFormat {
         return (String) session.attributes[IdentityService.APPARENT_USER_KEY] ?: 'unknownUser'
     }
 
-    private JSONObject getConfig() {
-        return configService.getJSONObject('xhWebSocketConfig')
+    private Map getConfig() {
+        return configService.getMap('xhWebSocketConfig')
     }
 
     Map formatForJSON() {

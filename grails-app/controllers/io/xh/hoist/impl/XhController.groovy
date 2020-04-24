@@ -18,13 +18,11 @@ import io.xh.hoist.exception.NotFoundException
 import io.xh.hoist.exception.SessionMismatchException
 import io.xh.hoist.export.GridExportImplService
 import io.xh.hoist.feedback.FeedbackService
-import io.xh.hoist.json.JSON
+import io.xh.hoist.json.JSONParser
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.security.AccessAll
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.util.Utils
-import org.grails.web.json.JSONElement
-import org.grails.web.json.JSONObject
 
 @AccessAll
 @CompileStatic
@@ -89,7 +87,7 @@ class XhController extends BaseController {
         trackService.track(
                 category: params.category,
                 msg: params.msg,
-                data: params.data ? JSON.parse((String) params.data) : null,
+                data: params.data ? JSONParser.parseObject((String) params.data) : null,
                 elapsed: params.elapsed,
                 severity: params.severity
         )
@@ -117,11 +115,13 @@ class XhController extends BaseController {
     def setPrefs(String updates) {
         ensureClientUsernameMatchesSession()
 
-        JSONObject prefs = (JSONObject) JSON.parse(updates)
+        Map prefs = JSONParser.parseObject(updates)
         prefs.each {k, value ->
             String key = k.toString()
-            if (value instanceof JSONElement) {
-                prefService.setJSON(key, value)
+            if (value instanceof Map) {
+                prefService.setMap(key, value)
+            } else if (value instanceof List) {
+                prefService.setList(key, value)
             } else {
                 prefService.setPreference(key, value.toString())
             }
@@ -145,8 +145,9 @@ class XhController extends BaseController {
     // The 'params' is a JSON encoded string, uploaded using multipart/form-data to be treated as a file. We must read
     // its content from the inputStream, and then parse the JSON to get usable params for GridExportImplService.
     def export() {
-        def params = request.getPart('params').inputStream.text,
-            ret = gridExportImplService.getBytesForRender(JSON.parse(params) as Map)
+        def inputStream = request.getPart('params').inputStream,
+            data = JSONParser.parseObject(inputStream),
+            ret = gridExportImplService.getBytesForRender(data)
         render(ret)
     }
 
@@ -155,15 +156,16 @@ class XhController extends BaseController {
     // Environment
     //------------------------
     def environment() {
-        def ret = [
-                appCode:                Utils.appCode,
-                appName:                Utils.appName,
-                appVersion:             Utils.appVersion,
-                appBuild:               Utils.appBuild,
-                appEnvironment:         Utils.appEnvironment.toString(),
-                grailsVersion:          GrailsUtil.grailsVersion,
-                javaVersion:            System.getProperty('java.version')
-        ]
+        def ret = new HashMap<String, Object>([
+            appCode:                Utils.appCode,
+            appName:                Utils.appName,
+            appVersion:             Utils.appVersion,
+            appBuild:               Utils.appBuild,
+            appEnvironment:         Utils.appEnvironment.toString(),
+            startupTime:            Utils.startupTime,
+            grailsVersion:          GrailsUtil.grailsVersion,
+            javaVersion:            System.getProperty('java.version')
+        ])
 
         hoistGrailsPlugins.each {it ->
             ret[it.name + 'Version'] = it.version
