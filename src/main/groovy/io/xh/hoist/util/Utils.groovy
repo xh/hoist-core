@@ -111,6 +111,8 @@ class Utils {
         TrackLog.withNewSession(c) // Yes, a bizarre dependency on an arbitrary domain object
     }
 
+    // TODO:  Move to Jackson when we are on Grails 4/Jackson 2.9:
+    // Jackson 2.9 has the support for FAIL_ON_TRAILING_TOKENS that we need
     static boolean isJSON(String val) {
         try {
             if (val != null) JsonParser.any().from(val)
