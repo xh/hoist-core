@@ -10,7 +10,6 @@ package io.xh.hoist
 import grails.validation.ValidationException
 import groovy.util.logging.Slf4j
 import io.xh.hoist.json.JSONParser
-import org.grails.web.json.JSONObject
 
 @Slf4j
 abstract class RestController extends BaseController {
@@ -21,8 +20,8 @@ abstract class RestController extends BaseController {
     static restTarget = null // Implementations set to value of GORM domain class they are editing.
 
     def create() {
-        def data = request.JSON.data
-        preprocessSubmit(data as JSONObject)
+        def data = JSONParser.parseObject(request.inputStream).data
+        preprocessSubmit(data)
 
         def obj = restTargetVal.newInstance(data)
         doCreate(obj, data)
@@ -37,8 +36,8 @@ abstract class RestController extends BaseController {
     }
 
     def update() {
-        def data = request.JSON.data
-        preprocessSubmit(data as JSONObject)
+        def data = JSONParser.parseObject(request.inputStream).data
+        preprocessSubmit(data)
 
         def obj = restTargetVal.get(data.id)
         try {
@@ -130,7 +129,7 @@ abstract class RestController extends BaseController {
         obj.delete(flush:true)
     }
 
-    protected void preprocessSubmit(JSONObject submit) {
+    protected void preprocessSubmit(Map submit) {
 
     }
 

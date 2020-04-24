@@ -10,27 +10,23 @@ package io.xh.hoist.http
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.xh.hoist.exception.ExternalHttpException
-import io.xh.hoist.json.JSON
 import io.xh.hoist.json.JSONParser
 import org.apache.http.client.methods.CloseableHttpResponse
 import org.apache.http.client.methods.HttpRequestBase
 import org.apache.http.impl.client.CloseableHttpClient
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.protocol.BasicHttpContext
-import org.grails.web.json.JSONArray
-import org.grails.web.json.JSONObject
 
 import static org.apache.http.HttpStatus.SC_NO_CONTENT
 import static org.apache.http.HttpStatus.SC_OK
 
 /**
- * A thin wrapper around an Apache HttpClient to execute HTTP requests and return pre-parsed
- * JSONObjects and JSONArrays. (Can also return responses as text or an int HTTP status code.)
+ * A thin wrapper around an Apache HttpClient to execute HTTP requests and return parsed
+ * java objects representing the JSON content.  This object can also return responses as
+ * text or an int HTTP status code.
  *
  * This wrapper also provides additional customizations around exceptions. If a response returns
  * with an HTTP status code indicating an error (i.e. *not* 200-204), the execute method will throw.
- * This class attempt to decode JSON serialized Hoist or java.lang exceptions from a remote host
- * and rethrow the actual exception class if possible, otherwise falling back to a RuntimeException.
  */
 @Slf4j
 @CompileStatic
@@ -52,16 +48,30 @@ class JSONClient {
      * Execute and parse a request expected to return a single JSON object.
      */
     Map executeAsMap(HttpRequestBase method) {
-        String ret = executeAsString(method)
-        return ret ? JSONParser.parseObject(ret) : null
+        def response = null
+        try {
+            response = execute(method)
+            def statusCode = response.statusLine.statusCode
+            if (statusCode == SC_NO_CONTENT) return null
+            return JSONParser.parseObject(response.entity.content)
+        } finally {
+            response?.close()
+        }
     }
 
     /**
      * Execute and parse a request expected to return an array of JSON objects.
      */
     List executeAsList(HttpRequestBase method) {
-        String ret = executeAsString(method)
-        return ret ? JSONParser.parseArray(ret) : null
+        def response = null
+        try {
+            response = execute(method)
+            def statusCode = response.statusLine.statusCode
+            if (statusCode == SC_NO_CONTENT) return null
+            return JSONParser.parseArray(response.entity.content)
+        } finally {
+            response?.close()
+        }
     }
 
     /**
@@ -73,7 +83,7 @@ class JSONClient {
             response = execute(method)
             def statusCode = response.statusLine.statusCode
             if (statusCode == SC_NO_CONTENT) return null
-            return response.entity.content.getText('UTF-8')
+            return response.entity.content.text
         } finally {
             response?.close()
         }
@@ -92,30 +102,6 @@ class JSONClient {
         }
     }
 
-    //----------------------
-    // Deprecated methods
-    //----------------------
-    /**
-     * @deprecated
-     *
-     * This method uses the deprecated JSON class for JSON parsing
-     * Consider using executeAsMap instead().
-     */
-    JSONObject executeAsJSONObject(HttpRequestBase method) {
-        String ret = executeAsString(method)
-        return ret ? (JSONObject) JSON.parse(ret) : null
-    }
-
-    /**
-     * @deprecated
-     *
-     * This method uses the deprecated JSON class for JSON parsing
-     * Consider using executeAsList instead().
-     */
-    JSONArray executeAsJSONArray(HttpRequestBase method) {
-        String ret = executeAsString(method)
-        return ret ? (JSONArray) JSON.parse(ret) : null
-    }
 
     //------------------------
     // Implementation
@@ -163,12 +149,10 @@ class JSONClient {
 
     // Attempt to parse a reasonable exception from failed response, but never actually throw if not possible.
     private Throwable parseException(CloseableHttpResponse response){
-        def text = response.entity.content.getText()
-        if (!text) return null
         try {
-            def ex = JSONParser.parseObject(text),
-                className = ex.className,
-                msg = ex.message
+            def ex = JSONParser.parseObject(response.entity.content),
+                className = ex?.className,
+                msg = ex?.message
 
             // Message is required
             if (msg instanceof String) {

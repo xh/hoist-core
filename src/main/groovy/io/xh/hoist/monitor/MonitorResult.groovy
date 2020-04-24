@@ -9,7 +9,7 @@ package io.xh.hoist.monitor
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.json.JSONFormat
-import org.grails.web.json.JSONObject
+import io.xh.hoist.json.JSONParser
 
 import static io.xh.hoist.monitor.MonitorStatus.UNKNOWN
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
@@ -37,8 +37,8 @@ class MonitorResult implements JSONFormat {
         monitor.code
     }
 
-    JSONObject getParams() {
-        monitor.params ? new JSONObject(monitor.params) : new JSONObject()
+    Map getParams() {
+        monitor.params ? JSONParser.parseObject(monitor.params) : [:]
     }
 
     String getMinsInStatus () {

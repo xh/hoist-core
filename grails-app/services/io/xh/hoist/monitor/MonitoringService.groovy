@@ -12,7 +12,6 @@ import grails.events.EventPublisher
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Timer
 import io.xh.hoist.async.AsyncSupport
-import org.grails.web.json.JSONObject
 
 import java.util.concurrent.ConcurrentHashMap
 
@@ -209,8 +208,8 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
         return monitorConfig.monitorTimeoutSecs ?: 15
     }
 
-    private JSONObject getMonitorConfig() {
-        configService.getJSONObject('xhMonitorConfig')
+    private Map getMonitorConfig() {
+        configService.getMap('xhMonitorConfig')
     }
 
     void clearCaches() {
