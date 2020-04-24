@@ -113,7 +113,7 @@ class JSONClient {
         String statusText = ''
         boolean success
 
-        if (!method.containsHeader('Content-type') && method.method in ['POST', 'PUT']) {
+        if (!method.containsHeader('Content-type') && method.method in ['POST', 'PUT', 'PATCH']) {
             method.setHeader('Content-type', 'application/json')
         }
 
