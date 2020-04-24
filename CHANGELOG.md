@@ -7,9 +7,26 @@
 catch uncaught exceptions from all Controllers and Timers and has been newly configured to limit the
 logging of unnecessary stack traces. 
 
-* `JSONParser` has been added to the `io.xh.hoist.json` package, providing high performance JSON parsing
-based on the Jackson library.  This parser is used by new standard methods on `JsonClient` and 
-should improve the performance of REST clients and proxys.
+* New exception classes for `HttpException` and `ExternalHttpException` have been added.
+
+* JSON parsing in Hoist has been reworked to simplify and standardize based on the high-performance Jackson library. 
+(https://github.com/FasterXML/jackson).  In particular, this change includes:
+    * A new `JSONParser` API in the `io.xh.hoist.json` package, which provides JSON parsing of text and input streams.  
+    This API is designed to be symmetrical with the existing `JSONFormatter.`
+    * All core hoist classes now rely on the interface above.   Of special note are `JSONClient`, `BaseRestController`, 
+    and `Utils.isJSON`.  
+    * Cleanups to the APIs for `JSONClient`, `ConfigService`, and `PrefService`.  These methods now return java object
+    representations using the standard java `Map` and `List` interfaces rather than the confusing `JSONObject`, 
+    `JSONArray` and `JSONElement` objects.
+
+### 🎁 Breaking Changes
+* The `getJSONArray()`, `getJSONObject()` and `getJSON()` methods  on `ConfigService` and `PrefService` have been
+replaced with `getMap()` and `getList()`.
+ 
+* The `executeAsJSONArray()` and `executeAsJSONObject()` methods on `JSONClient` have been replaced with 
+`executeAsMap()` and `executeAsList()`.
+
+* The method `BaseRestController.preprocessSubmit()` now takes a `Map` as its single input, rather than a `JSONObject`. 
 
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v6.7.0...develop)
