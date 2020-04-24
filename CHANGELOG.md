@@ -13,8 +13,7 @@ logging of unnecessary stack traces.
 (https://github.com/FasterXML/jackson).  In particular, this change includes:
     * A new `JSONParser` API in the `io.xh.hoist.json` package, which provides JSON parsing of text and input streams.  
     This API is designed to be symmetrical with the existing `JSONFormatter.`
-    * All core hoist classes now rely on the interface above.   Of special note are `JSONClient`, `BaseRestController`, 
-    and `Utils.isJSON`.  
+    * All core hoist classes now rely on the interface above.   Of special note are `JSONClient`, and `RestController`.  
     * Cleanups to the APIs for `JSONClient`, `ConfigService`, and `PrefService`.  These methods now return java object
     representations using the standard java `Map` and `List` interfaces rather than the confusing `JSONObject`, 
     `JSONArray` and `JSONElement` objects.
@@ -26,7 +25,7 @@ replaced with `getMap()` and `getList()`.
 * The `executeAsJSONArray()` and `executeAsJSONObject()` methods on `JSONClient` have been replaced with 
 `executeAsMap()` and `executeAsList()`.
 
-* The method `BaseRestController.preprocessSubmit()` now takes a `Map` as its single input, rather than a `JSONObject`. 
+* The method `RestController.preprocessSubmit()` now takes a `Map` as its single input, rather than a `JSONObject`. 
 
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v6.7.0...develop)
