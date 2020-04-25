@@ -31,6 +31,8 @@ replaced with `getMap()` and `getList()`.
 * The trait `AsyncSupport` with its single method `asyncTask` has been removed.  Use the equivalent method `task` 
 from `grails.async.Promises` instead.
 
+* The method `subscribeWithSession` on `BaseService` has been removed.  Use `subscribe` instead.
+
 ### ⚙️ Technical
 * This release upgrades the major version of grails from 3.3.9 to 4.0.3.  This major release
 includes the following upgrades of related libraries:
@@ -44,7 +46,7 @@ includes the following upgrades of related libraries:
 * Please see the grails docs as well as the associated toolbox branch for more information
 on required changes to config and dependency files.
 
-* Application may be required to add @Transactional to service methods that update data
+* Applications will be required to add `@Transactional` to service and controller methods that update data
 with GORM. 
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v6.7.0...develop)
