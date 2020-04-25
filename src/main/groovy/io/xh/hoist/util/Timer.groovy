@@ -7,7 +7,6 @@
 
 package io.xh.hoist.util
 
-import io.xh.hoist.async.AsyncSupport
 import io.xh.hoist.log.LogSupport
 
 import java.util.concurrent.ExecutionException
@@ -28,7 +27,7 @@ import static io.xh.hoist.util.Utils.getExceptionRenderer
  * This object is typically used by services that need to schedule work to maintain
  * internal state.
  */
-class Timer implements AsyncSupport {
+class Timer {
 
      private static Long CONFIG_INTERVAL = 15 * SECONDS
 

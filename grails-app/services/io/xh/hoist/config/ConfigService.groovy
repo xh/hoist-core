@@ -15,6 +15,7 @@ import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
 import org.grails.datastore.mapping.engine.event.PreUpdateEvent
 import grails.events.*
+import static grails.async.Promises.task
 
 import static io.xh.hoist.json.JSONSerializer.serializePretty
 
@@ -181,7 +182,7 @@ class ConfigService extends BaseService implements EventPublisher {
 
         if (changed) {
             // notify is called in a new thread and with a delay to make sure the newVal has had the time to propagate
-            asyncTask {
+            task {
                 Thread.sleep(500)
                 notify('xhConfigChanged', [key: obj.name, value: newVal])
             }

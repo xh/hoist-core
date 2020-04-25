@@ -10,7 +10,7 @@ package io.xh.hoist.monitor
 import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
-import io.xh.hoist.async.AsyncSupport
+import static grails.async.Promises.task
 
 import java.util.concurrent.TimeoutException
 
@@ -23,7 +23,7 @@ import static java.util.concurrent.TimeUnit.SECONDS
  * data-driven status monitor definitions. Timeouts and any other exceptions will be caught and
  * returned cleanly as failures.
  */
-class MonitorResultService extends BaseService implements AsyncSupport {
+class MonitorResultService extends BaseService {
 
     @ReadOnly
     MonitorResult runMonitor(String code, long timeoutSeconds) {
@@ -48,7 +48,7 @@ class MonitorResultService extends BaseService implements AsyncSupport {
             }
 
             // Run the check...
-            asyncTask {
+            task {
                 defSvc."$code"(result)
             }.get(timeoutSeconds, SECONDS)
 

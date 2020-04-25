@@ -28,6 +28,9 @@ replaced with `getMap()` and `getList()`.
 
 * The method `RestController.preprocessSubmit()` now takes a `Map` as its single input, rather than a `JSONObject`. 
 
+* The trait `AsyncSupport` with its single method `asyncTask` has been removed.  Use the equivalent method `task` 
+from `grails.async.Promises` instead.
+
 ### ⚙️ Technical
 * This release upgrades the major version of grails from 3.3.9 to 4.0.3.  This major release
 includes the following upgrades of related libraries:

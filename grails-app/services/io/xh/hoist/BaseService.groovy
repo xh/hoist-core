@@ -12,7 +12,6 @@ import grails.util.GrailsClassUtils
 import groovy.transform.CompileDynamic
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
-import io.xh.hoist.async.AsyncSupport
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.util.Timer
 import io.xh.hoist.user.HoistUser
@@ -27,7 +26,7 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
  * Provides template methods for service lifecycle / state management plus support for user lookups.
  */
 @Slf4j
-abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, EventBusAware {
+abstract class BaseService implements LogSupport, DisposableBean, EventBusAware {
 
     IdentityService identityService
     private boolean _initialized = false

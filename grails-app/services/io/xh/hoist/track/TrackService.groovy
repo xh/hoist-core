@@ -17,7 +17,7 @@ import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
 import static io.xh.hoist.json.JSONSerializer.serialize
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
-import static io.xh.hoist.util.Utils.withTransaction
+import static grails.async.Promises.task
 
 /**
  * Service for tracking user activity within the application. This service provides a server-side
@@ -105,8 +105,8 @@ class TrackService extends BaseService implements EventPublisher {
 
         // Execute asynchronously after we get info from request, don't block application thread.
         // Save with additional try/catch to alert on persistence failures within this async block.
-        asyncTask {
-            withTransaction {
+        task {
+            TrackLog.withTransaction {
                 def tl = new TrackLog(values)
 
                 if (getInstanceConfig('disableTrackLog') != 'true') {
