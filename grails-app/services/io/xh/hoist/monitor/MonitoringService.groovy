@@ -55,8 +55,6 @@ class MonitoringService extends BaseService implements EventPublisher {
                 interval: {notifyInterval},
                 runFn: this.&onNotifyTimer
         )
-
-        super.init()
     }
 
     void forceRun() {

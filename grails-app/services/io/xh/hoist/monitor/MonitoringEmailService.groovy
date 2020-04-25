@@ -20,10 +20,8 @@ class MonitoringEmailService extends BaseService {
     def emailService
 
     void init() {
-        subscribeWithSession('xhMonitorStatusReport', this.&emailReport)
-        super.init()
+        subscribe('xhMonitorStatusReport', this.&emailReport)
     }
-
     
     //------------------------
     // Implementation

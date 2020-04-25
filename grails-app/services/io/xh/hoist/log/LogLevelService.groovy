@@ -22,7 +22,6 @@ class LogLevelService extends BaseService {
 
     void init() {
         createTimer(interval: 30 * MINUTES, runImmediatelyAndBlock: true)
-        super.init()
     }
 
     private void onTimer() {

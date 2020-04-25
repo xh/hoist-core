@@ -29,7 +29,6 @@ class LogArchiveService extends BaseService {
 
     void init() {
         createTimer(interval: 1 * DAYS)
-        super.init()
     }
 
     List<String> archiveLogs(Integer daysThreshold) {

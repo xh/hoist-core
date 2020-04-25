@@ -15,11 +15,9 @@ class FeedbackEmailService extends BaseService {
     def emailService
 
     void init() {
-        subscribeWithSession('xhFeedbackReceived', this.&emailFeedback)
-        super.init()
+        subscribe('xhFeedbackReceived', this.&emailFeedback)
     }
 
-    
     //------------------------
     // Implementation
     //------------------------

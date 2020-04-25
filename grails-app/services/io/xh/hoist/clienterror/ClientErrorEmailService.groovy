@@ -15,10 +15,8 @@ class ClientErrorEmailService extends BaseService {
     def emailService
 
     void init() {
-        subscribeWithSession('xhClientErrorReceived', this.&emailClientException)
-        super.init()
+        subscribe('xhClientErrorReceived', this.&emailClientException)
     }
-
 
     //-------------------------
     // Implementation
