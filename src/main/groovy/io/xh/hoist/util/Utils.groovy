@@ -7,8 +7,7 @@
 
 package io.xh.hoist.util
 
-import com.grack.nanojson.JsonParser
-import com.grack.nanojson.JsonParserException
+import io.xh.hoist.json.JSONParser
 import grails.util.Holders
 import grails.util.Metadata
 import io.xh.hoist.AppEnvironment
@@ -109,13 +108,11 @@ class Utils {
         TrackLog.withTransaction(c) // Yes, a bizarre dependency on an arbitrary domain object
     }
 
+    /**
+     * Return true if a String represents valid JSON.
+     */
     static boolean isJSON(String val) {
-        try {
-            if (val != null) JsonParser.any().from(val)
-            return true
-        } catch (JsonParserException ignored) {
-            return false
-        }
+        JSONParser.validate(val)
     }
 
     /**
