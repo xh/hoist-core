@@ -76,6 +76,7 @@ public class JSONParser {
      * Return true if a String represents valid JSON
      */
     public static boolean validate(String s) {
+        if (s == null) return true;
         try {
             validateMapper.readTree(s);
             return true;
