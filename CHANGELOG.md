@@ -42,6 +42,11 @@ includes the following upgrades of related libraries:
     * gorm `6.1.11 -> 7.0.4`
     * hibernate `5.1.10 -> 5.4.14`
     * org.grails.plugins:mail `2.0.0 -> 3.0.0`
+    
+* HttpClient has been upgraded from `4.5.6` -> `5.5.0`.  Package names have changed, and applications using
+this API (e.g. with `JSONClient`) will need to update their imports statements to reflect the new locations @
+`org.apache.hc.client5.http`  and `org.apache.hc.core5.http`.  See toolbox for examples.
+  
 
 * Please see the grails docs as well as the associated toolbox branch for more information
 on required changes to config and dependency files.
