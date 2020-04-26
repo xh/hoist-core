@@ -1,6 +1,9 @@
 # Changelog
 
 ## 7.0-SNAPSHOT - Unreleased
+Version 7.0 includes a major upgrade of several underlying libraries, especially grails (v4.03) and spring-boot (2.1.13)
+With this version, Hoist can now be run on Java versions 8 - 11.  We have also cleaned up and enhanced some core
+APIs around Exception Handling and JSON parsing and configuration.
 
 ### 🎁 New Features
 * Exception Handling has been improved in the newly enhanced `exceptionRenderer` bean.  This bean will
@@ -47,12 +50,11 @@ includes the following upgrades of related libraries:
 this API (e.g. with `JSONClient`) will need to update their imports statements to reflect the new locations @
 `org.apache.hc.client5.http`  and `org.apache.hc.core5.http`.  See toolbox for examples.
   
-
 * Please see the grails docs as well as the associated toolbox branch for more information
 on required changes to config and dependency files.
 
-* Applications will be required to add `@Transactional` to service and controller methods that update data
-with GORM. 
+* Applications will be required to add the `@Transactional` or `@ReadOnly` annotations to service and controller
+methods that update data with GORM. 
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v6.7.0...develop)
 
