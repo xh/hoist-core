@@ -58,9 +58,9 @@ class Cache<K,V> {
     }
 
     V getOrCreate(K key, Closure c) {
-        def ret = get(key)
+        V ret = get(key)
         if (!ret) {
-            ret = c(key)
+            ret = (V) c(key)
             put(key, ret)
         }
         return ret
@@ -104,7 +104,7 @@ class Cache<K,V> {
             _lastCull = new Date()
             Set cullKeys = new HashSet()
             _map.each {k, v ->
-                if (shouldExpire(v)) cullKeys << k
+                if (shouldExpire(v)) cullKeys.add(k)
             }
 
             if (cullKeys.size()) {
