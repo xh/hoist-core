@@ -6,7 +6,7 @@
  */
 package io.xh.hoist.exception
 
-import static org.apache.http.HttpStatus.SC_NOT_FOUND
+import static org.apache.hc.core5.http.HttpStatus.SC_NOT_FOUND
 
 /**
  * Exception for use when URL requested does not match any known pattern.

@@ -11,14 +11,13 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.xh.hoist.exception.ExternalHttpException
 import io.xh.hoist.json.JSONParser
-import org.apache.http.client.methods.CloseableHttpResponse
-import org.apache.http.client.methods.HttpRequestBase
-import org.apache.http.impl.client.CloseableHttpClient
-import org.apache.http.impl.client.HttpClients
-import org.apache.http.protocol.BasicHttpContext
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse
+import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
+import org.apache.hc.client5.http.impl.classic.HttpClients
 
-import static org.apache.http.HttpStatus.SC_NO_CONTENT
-import static org.apache.http.HttpStatus.SC_OK
+import static org.apache.hc.core5.http.HttpStatus.SC_NO_CONTENT
+import static org.apache.hc.core5.http.HttpStatus.SC_OK
 
 /**
  * A thin wrapper around an Apache HttpClient to execute HTTP requests and return parsed
@@ -47,11 +46,11 @@ class JSONClient {
     /**
      * Execute and parse a request expected to return a single JSON object.
      */
-    Map executeAsMap(HttpRequestBase method) {
+    Map executeAsMap(HttpUriRequestBase method) {
         def response = null
         try {
             response = execute(method)
-            def statusCode = response.statusLine.statusCode
+            def statusCode = response.code
             if (statusCode == SC_NO_CONTENT) return null
             return JSONParser.parseObject(response.entity.content)
         } finally {
@@ -62,11 +61,11 @@ class JSONClient {
     /**
      * Execute and parse a request expected to return an array of JSON objects.
      */
-    List executeAsList(HttpRequestBase method) {
+    List executeAsList(HttpUriRequestBase method) {
         def response = null
         try {
             response = execute(method)
-            def statusCode = response.statusLine.statusCode
+            def statusCode = response.code
             if (statusCode == SC_NO_CONTENT) return null
             return JSONParser.parseArray(response.entity.content)
         } finally {
@@ -77,11 +76,11 @@ class JSONClient {
     /**
      * Execute request and return raw content string.
      */
-    String executeAsString(HttpRequestBase method) {
+    String executeAsString(HttpUriRequestBase method) {
         def response = null
         try {
             response = execute(method)
-            def statusCode = response.statusLine.statusCode
+            def statusCode = response.code
             if (statusCode == SC_NO_CONTENT) return null
             return response.entity.content.text
         } finally {
@@ -92,11 +91,11 @@ class JSONClient {
     /**
      * Execute request and return status code only.
      */
-    Integer executeAsStatusCode(HttpRequestBase method) {
+    Integer executeAsStatusCode(HttpUriRequestBase method) {
         def response = null
         try {
             response = execute(method)
-            return response.statusLine.statusCode
+            return response.code
         } finally {
             response?.close()
         }
@@ -106,7 +105,7 @@ class JSONClient {
     //------------------------
     // Implementation
     //------------------------
-    private CloseableHttpResponse execute(HttpRequestBase method) {
+    private CloseableHttpResponse execute(HttpUriRequestBase method) {
         CloseableHttpResponse ret = null
         Throwable cause = null
         Integer statusCode = null
@@ -123,7 +122,7 @@ class JSONClient {
 
         try {
             ret = executeRaw(_client, method)
-            statusCode = ret.statusLine.statusCode
+            statusCode = ret.code
             success = (statusCode >= SC_OK  && statusCode <= SC_NO_CONTENT)
             if (!success) {
                 cause = parseException(ret)
@@ -137,14 +136,14 @@ class JSONClient {
 
         if (!success) {
             ret?.close()
-            throw new ExternalHttpException("Failure calling ${method.URI} : $statusText", cause, statusCode)
+            throw new ExternalHttpException("Failure calling ${method.uri} : $statusText", cause, statusCode)
         }
 
         return ret
     }
 
-    protected CloseableHttpResponse executeRaw(CloseableHttpClient client, HttpRequestBase method) {
-        return client.execute(method, new BasicHttpContext())
+    protected CloseableHttpResponse executeRaw(CloseableHttpClient client, HttpUriRequestBase method) {
+        return client.execute(method)
     }
 
     // Attempt to parse a reasonable exception from failed response, but never actually throw if not possible.

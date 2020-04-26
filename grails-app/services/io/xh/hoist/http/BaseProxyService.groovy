@@ -10,19 +10,18 @@ package io.xh.hoist.http
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import org.apache.catalina.connector.ClientAbortException
-import org.apache.http.HttpResponse
-import org.apache.http.client.entity.UrlEncodedFormEntity
-import org.apache.http.client.methods.CloseableHttpResponse
-import org.apache.http.client.methods.HttpDelete
-import org.apache.http.client.methods.HttpEntityEnclosingRequestBase
-import org.apache.http.client.methods.HttpGet
-import org.apache.http.client.methods.HttpPatch
-import org.apache.http.client.methods.HttpPost
-import org.apache.http.client.methods.HttpPut
-import org.apache.http.client.methods.HttpRequestBase
-import org.apache.http.entity.StringEntity
-import org.apache.http.impl.client.CloseableHttpClient
-import org.apache.http.message.BasicNameValuePair
+import org.apache.hc.core5.http.HttpResponse
+import org.apache.hc.client5.http.entity.UrlEncodedFormEntity
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse
+import org.apache.hc.client5.http.classic.methods.HttpDelete
+import org.apache.hc.client5.http.classic.methods.HttpGet
+import org.apache.hc.client5.http.classic.methods.HttpPatch
+import org.apache.hc.client5.http.classic.methods.HttpPost
+import org.apache.hc.client5.http.classic.methods.HttpPut
+import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
+import org.apache.hc.core5.http.io.entity.StringEntity
+import org.apache.hc.core5.http.message.BasicNameValuePair
 import groovy.util.logging.Slf4j
 
 import javax.servlet.http.HttpServletRequest
@@ -49,7 +48,7 @@ abstract class BaseProxyService extends BaseService {
             cleanEndpoint = endpoint.replaceAll(/ /, '%20'),
             fullPath = sourceRoot + '/' + cleanEndpoint + queryStr
 
-        HttpRequestBase method = null
+        HttpUriRequestBase method = null
         switch (request.getMethod()) {
             case 'DELETE':
                 method = new HttpDelete(fullPath)
@@ -78,7 +77,7 @@ abstract class BaseProxyService extends BaseService {
         try {
             CloseableHttpClient source = sourceClient
             sourceResponse = source.execute(method)
-            response.setStatus(sourceResponse.statusLine.statusCode)
+            response.setStatus(sourceResponse.code)
             installResponseHeaders(response, sourceResponse)
             sourceResponse.entity.writeTo(response.outputStream)
             response.flushBuffer()
@@ -92,7 +91,7 @@ abstract class BaseProxyService extends BaseService {
     //------------------------------------------------
     // Additional overrideable implementation methods
     //------------------------------------------------
-    protected void installRequestHeaders(HttpServletRequest request, HttpRequestBase method) {
+    protected void installRequestHeaders(HttpServletRequest request, HttpUriRequestBase method) {
         def names = proxyRequestHeaders(),
             send = (Collection<String>) request.headerNames.findAll { hasHeader(names, (String) it) }
 
@@ -101,14 +100,14 @@ abstract class BaseProxyService extends BaseService {
 
     protected void installResponseHeaders(HttpServletResponse response, HttpResponse sourceResponse) {
         def names = proxyResponseHeaders(),
-            send = sourceResponse.allHeaders.findAll {hasHeader(names, it.name)}
+            send = sourceResponse.headers.findAll {hasHeader(names, it.name)}
 
         send.each {
             response.setHeader(it.name, it.value)
         }
     }
 
-    protected installParamsOnEntity(HttpServletRequest request, HttpEntityEnclosingRequestBase method) {
+    protected installParamsOnEntity(HttpServletRequest request, HttpUriRequestBase method) {
         if (request.getHeader('Content-Type').toLowerCase().contains('x-www-form-urlencoded')) {
             def formParams = request.parameterMap.collectMany {key, value ->
                 value.collect {new BasicNameValuePair(key, (String) it)}
