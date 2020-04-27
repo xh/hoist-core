@@ -45,6 +45,7 @@ includes the following upgrades of related libraries:
     * gorm `6.1.11 -> 7.0.4`
     * hibernate `5.1.10 -> 5.4.14`
     * org.grails.plugins:mail `2.0.0 -> 3.0.0`
+    * apache poi  `3.1.7` -> `4.1.2`
     
 * HttpClient has been upgraded from `4.5.6` -> `5.5.0`.  Package names have changed, and applications using
 this API (e.g. with `JSONClient`) will need to update their imports statements to reflect the new locations @
