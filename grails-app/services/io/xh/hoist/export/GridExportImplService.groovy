@@ -8,7 +8,6 @@
 package io.xh.hoist.export
 
 import io.xh.hoist.BaseService
-import io.xh.hoist.util.Utils
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.usermodel.Sheet
@@ -16,6 +15,7 @@ import org.apache.poi.ss.usermodel.FillPatternType
 import org.apache.poi.ss.usermodel.VerticalAlignment
 import org.apache.poi.ss.util.AreaReference
 import org.apache.poi.ss.util.CellReference
+import org.apache.poi.ss.SpreadsheetVersion
 import org.apache.poi.xssf.usermodel.XSSFCellStyle
 import org.apache.poi.xssf.usermodel.XSSFColor
 import org.apache.poi.xssf.usermodel.XSSFTable
@@ -113,7 +113,7 @@ class GridExportImplService extends BaseService {
         if (asTable) {
             // Create table
             XSSFTable xssfTable = sheet.createTable()
-            AreaReference tableRange = new AreaReference(new CellReference(0, 0), new CellReference(tableRows - 1, tableColumns - 1))
+            AreaReference tableRange = new AreaReference(new CellReference(0, 0), new CellReference(tableRows - 1, tableColumns - 1), SpreadsheetVersion.EXCEL2007)
             CTTable table = xssfTable.getCTTable()
             table.setRef(tableRange.formatAsString())
             table.setDisplayName('Export')
