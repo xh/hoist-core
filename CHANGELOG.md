@@ -1,6 +1,6 @@
 # Changelog
 
-## 7.0-SNAPSHOT - Unreleased
+## 7.0.0 - 2020-05-08
 
 ### 🎁 New Features
 * Exception Handling has been improved in the newly enhanced `exceptionRenderer` bean.  This bean will
@@ -29,7 +29,7 @@ replaced with `getMap()` and `getList()`.
 * The method `RestController.preprocessSubmit()` now takes a `Map` as its single input, rather than a `JSONObject`. 
 
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v6.7.0...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.7.0...v7.0.0)
 
 
 ## 6.7.0 - 2020-04-22
