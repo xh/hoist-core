@@ -8,6 +8,8 @@
 package io.xh.hoist.clienterror
 
 import io.xh.hoist.BaseService
+import io.xh.hoist.json.JSONParser
+import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.util.Utils
 
 class ClientErrorEmailService extends BaseService {
@@ -25,28 +27,46 @@ class ClientErrorEmailService extends BaseService {
     //-------------------------
     private void emailClientException(ClientError ce) {
         def to = emailService.parseMailConfig('xhEmailSupport'),
-            subject = "${Utils.appName} feedback"
+            subject = "${Utils.appName} Client Exception"
         if (to) {
             emailService.sendEmail(async: true, to: to, subject: subject, html: formatHtml(ce))
         }
     }
 
     private String formatHtml(ClientError ce) {
-        def msgText = ce.msg,
+        def userMessage = ce.msg,
             errorText = ce.error,
-            metaText = [
-                    "User: ${ce.username}",
-                    "App: ${Utils.appName} (${Utils.appCode})",
-                    "Version: ${ce.appVersion}",
-                    "Environment: ${ce.appEnvironment}",
-                    "Browser: ${ce.browser}",
-                    "Device: ${ce.device}",
-                    "Submitted: ${ce.dateCreated.format('dd-MMM-yyyy HH:mm:ss')}"
+            errorJSON = safeParseJSON(errorText)
+
+        def errorSummary = errorJSON ? errorJSON.message : errorText
+        errorSummary = errorSummary ? errorSummary.take(80) : 'Client Error'
+
+        def errorFull = errorJSON ?  '<pre>' + JSONSerializer.serializePretty(errorJSON) + '</pre>'  : errorText;
+
+        def metaText = [
+                "Error: ${errorSummary}",
+                "User: ${ce.username}",
+                "App: ${Utils.appName} (${Utils.appCode})",
+                "Version: ${ce.appVersion}",
+                "Environment: ${ce.appEnvironment}",
+                "Browser: ${ce.browser}",
+                "Device: ${ce.device}",
+                "Time: ${ce.dateCreated.format('dd-MMM-yyyy HH:mm:ss')}"
             ].join('<br/>')
 
-        return [msgText, errorText, metaText]
+        return [metaText, userMessage, errorFull]
                 .findAll {it}
                 .join('<br/><br/>')
     }
+
+
+    private Map safeParseJSON(String errorText) {
+        try {
+            return JSONParser.parseObject(errorText)
+        } catch (Exception ignored) {
+            return null
+        }
+    }
+
 
 }
