@@ -87,7 +87,7 @@ class XhController extends BaseController {
         trackService.track(
                 category: params.category,
                 msg: params.msg,
-                data: params.data ? JSONParser.parseObject((String) params.data) : null,
+                data: params.data ? JSONParser.parseObjectOrArray((String) params.data) : null,
                 elapsed: params.elapsed,
                 severity: params.severity
         )
