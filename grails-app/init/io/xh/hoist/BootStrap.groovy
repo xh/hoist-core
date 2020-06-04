@@ -138,12 +138,12 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Configures exporting data to Excel.'
             ],
-            xhIdleTimeoutMins: [
-                valueType: 'int',
-                defaultValue: -1,
+            xhIdleConfig: [
+                valueType: 'json',
+                defaultValue: [timeout: -1, appTimeouts: [:]],
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Number of minutes of inactivity before client application will enter "sleep mode", suspending background requests and prompting the user to reload to resume. Value -1 disables idle detection.'
+                note: 'governs how client application will enter "sleep mode", suspending background requests and prompting the user to reload to resume.  Timeouts are in minutes of inactivity.'
             ],
             xhLogArchiveConfig: [
                 valueType: 'json',
