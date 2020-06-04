@@ -2,6 +2,9 @@
 
 ## 7.0.1 - 2020-06-04
 
+### ⚙ Technical
+* Improvements to formatting of monitoring and error emails.
+
 ### 🎁 Bug Fixes
 * Fixed a regression to TrackService, preventing persisting lists in the `data` property.
 
