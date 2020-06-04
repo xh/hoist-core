@@ -1,5 +1,12 @@
 # Changelog
 
+## 7.0.1 - 2020-06-04
+
+### 🎁 Bug Fixes
+* Fixed a regression to TrackService, preventing persisting lists in the `data` property.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v7.0.0...v7.0.1)
+
 ## 7.0.0 - 2020-05-08
 
 ### 🎁 New Features

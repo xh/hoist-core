@@ -71,7 +71,7 @@ class TrackService extends BaseService implements EventPublisher {
 
         Map params = username ?  [start: start, end: end, username: username] : [start: start, end: end]
 
-        List<List> ret = TrackLog.executeQuery(query.toString(), params)
+        def ret = (List<List>) TrackLog.executeQuery(query.toString(), params)
         return ret.collectEntries {
             Date trackDate = (Date) it[0]
             [trackDate.format('yyyyMMdd'), it[1]]
