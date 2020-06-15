@@ -107,12 +107,12 @@ trait LogSupport {
         } catch (Exception e) {
             long elapsed = currentTimeMillis() - start
             def exceptionSummary = exceptionRenderer.summaryTextForThrowable((Throwable) e)
-            logAtLevel(log, level, "$msg | failed - $exceptionSummary | $elapsed")
+            logAtLevel(log, level, "$msg | failed - $exceptionSummary | ${elapsed}ms")
             throw e
         }
 
         long elapsed = currentTimeMillis() - start
-        logAtLevel(log, level, "$msg | completed | $elapsed")
+        logAtLevel(log, level, "$msg | completed | ${elapsed}ms")
 
         return ret
     }
