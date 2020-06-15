@@ -4,6 +4,7 @@
 
 ### ⚙ Technical
 * Improvements to formatting of monitoring and error emails.
+* Bootstrap `xhEnableMonitoring` config
 
 ### 🎁 Bug Fixes
 * Fixed a regression to TrackService, preventing persisting lists in the `data` property.

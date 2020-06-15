@@ -192,11 +192,11 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
     }
 
     private int getMonitorInterval() {
-        return isDevelopmentMode() ? -1 : (monitorConfig.monitorRefreshMins * MINUTES)
+        return isDevelopmentMode() || !configService.getBool('xhEnableMonitoring') ? -1 : (monitorConfig.monitorRefreshMins * MINUTES)
     }
 
     private int getNotifyInterval() {
-        return isDevelopmentMode() ? -1 : (15 * SECONDS)
+        return isDevelopmentMode() || !configService.getBool('xhEnableMonitoring') ? -1 : (15 * SECONDS)
     }
 
     private int getStartupDelay() {
