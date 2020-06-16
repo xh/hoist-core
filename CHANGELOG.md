@@ -1,5 +1,20 @@
 # Changelog
 
+## 8.0.0-SNAPSHOT - unreleased
+
+### ⚖️ Licensing Change
+
+As of this release, Hoist is [now licensed](LICENSE.md) under the popular and permissive
+[Apache 2.0 open source license](https://www.apache.org/licenses/LICENSE-2.0). Previously, Hoist was
+"source available" via our public GitHub repository but still covered by a proprietary license.
+
+We are making this change to align Hoist's licensing with our ongoing commitment to openness,
+transparency and ease-of-use, and to clarify and emphasize the suitability of Hoist for use within a
+wide variety of enterprise software projects. For any questions regarding this change, please
+[contact us](https://xh.io/contact/).
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v7.0.1...develop)
+
 ## 7.0.1 - 2020-06-04
 
 ### ⚙ Technical
