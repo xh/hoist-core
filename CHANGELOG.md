@@ -13,6 +13,9 @@ transparency and ease-of-use, and to clarify and emphasize the suitability of Ho
 wide variety of enterprise software projects. For any questions regarding this change, please
 [contact us](https://xh.io/contact/).
 
+### 🎁 New Features
+* New support for `appTimezone` and `serverTimezone` in `EnvironmentService`.
+
 [Commit Log](https://github.com/xh/hoist-core/compare/v7.0.1...develop)
 
 ## 7.0.1 - 2020-06-04
