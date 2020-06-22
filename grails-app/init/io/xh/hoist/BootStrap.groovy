@@ -76,6 +76,13 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Frequency with which the version of the app should be checked. Value of -1 disables version checking.'
             ],
+            xhAppTimezone: [
+                valueType: 'string',
+                defaultValue: 'GMT',
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'Canonical timezone for this App.  Used for business related dates that need to be considered and displayed consistently at all locations.'
+            ],
             xhAutoRefreshIntervals: [
                 valueType: 'json',
                 defaultValue: [app: -1],
