@@ -81,7 +81,7 @@ class BootStrap {
                 defaultValue: 'GMT',
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Canonical time zone for this App.  Used for business related dates that need to be considered and displayed consistently at all locations.'
+                note: 'Official TimeZone for this application - e.g. the zone of the head office. Used to format/parse business related dates that need to be considered and displayed consistently at all locations. Set to a valid Java TimeZone ID.'
             ],
             xhAutoRefreshIntervals: [
                 valueType: 'json',

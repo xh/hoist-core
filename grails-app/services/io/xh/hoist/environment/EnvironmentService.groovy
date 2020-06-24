@@ -12,7 +12,8 @@ import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 
 /**
- * Service with metadata describing the runtime environment of Hoist.
+ * Service with metadata describing the runtime environment of Hoist and this application.
+ * For the AppEnvironment (e.g. Development/Production), reference `Utils.appEnvironment`.
  */
 class EnvironmentService extends BaseService {
 
@@ -29,22 +30,22 @@ class EnvironmentService extends BaseService {
     }
 
     /**
-     * Canonical timezone for this application.
+     * Official TimeZone for this application - e.g. the zone of the head office or trading center.
      *
-     * Used for business related dates that need to be considered and displayed consistently at all locations.
-     * Not to be confused with 'serverTimeZone'.
+     * Used to format or parse business related dates that need to be considered and displayed in a
+     * consistent, agreed upon TimeZone, regardless of the location or zone of a client browser.
+     * Not to be confused with `serverTimeZone` below.
      */
     TimeZone getAppTimeZone() {
         return _appTimeZone
     }
 
-    /**
-     * Time zone for the server/JVM running this application.
-     */
+    /** TimeZone of the server/JVM running this application. */
     TimeZone getServerTimeZone() {
         return Calendar.instance.timeZone
     }
 
+    /** Bundle of environment-related metadata, for serialization to JS clients. */
     Map getEnvironment() {
         def serverTz = serverTimeZone,
             appTz = appTimeZone,
@@ -87,7 +88,7 @@ class EnvironmentService extends BaseService {
         def id = configService.getString('xhAppTimeZone', 'GMT'),
             availableIDs = TimeZone.availableIDs
         if (!availableIDs.contains(id)) {
-            log.error("xhAppTimeZone '$id' not recognized.  Falling back to GMT.")
+            log.error("xhAppTimeZone '$id' not recognized - will fall back to GMT.")
         }
         return TimeZone.getTimeZone(id)
     }
