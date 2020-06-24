@@ -15,6 +15,7 @@ wide variety of enterprise software projects. For any questions regarding this c
 
 ### 🎁 New Features
 * New support for `appTimeZone` and `serverTimeZone` in `EnvironmentService`.
+* New support for eliding long strings: `StringUtils.elide()`
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v7.0.1...develop)
 

@@ -11,6 +11,7 @@ import io.xh.hoist.BaseService
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.util.Utils
+import io.xh.hoist.util.StringUtils
 
 class ClientErrorEmailService extends BaseService {
 
@@ -39,7 +40,7 @@ class ClientErrorEmailService extends BaseService {
             errorJSON = safeParseJSON(errorText)
 
         def errorSummary = errorJSON ? errorJSON.message : errorText
-        errorSummary = errorSummary ? errorSummary.take(80) : 'Client Error'
+        errorSummary = errorSummary ? StringUtils.elide(errorSummary, 80) : 'Client Error'
 
         def errorFull = errorJSON ?  '<pre>' + JSONSerializer.serializePretty(errorJSON) + '</pre>'  : errorText;
 
