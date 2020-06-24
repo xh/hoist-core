@@ -188,7 +188,7 @@ class XhController extends BaseController {
     }
 
     //------------------------
-    // Timezone
+    // Time zone
     // Returns the timezone offset for a given timezone ID.
     // While abbrevs (e.g. 'GMT', 'PST', 'UTC+04') are supported, fully qualified IDs (e.g.
     // 'Europe/London', 'America/New_York') are preferred, as these account for daylight savings.

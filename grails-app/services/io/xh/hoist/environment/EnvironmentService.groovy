@@ -19,12 +19,12 @@ class EnvironmentService extends BaseService {
     def configService
     def hoistGrailsPlugins
 
-    private TimeZone _appTimezone
+    private TimeZone _appTimeZone
 
-    static clearCachesConfigs = ['xhAppTimezone']
+    static clearCachesConfigs = ['xhAppTimeZone']
 
     void init() {
-        _appTimezone = calcAppTimezone()
+        _appTimeZone = calcAppTimeZone()
         super.init();
     }
 
@@ -32,22 +32,22 @@ class EnvironmentService extends BaseService {
      * Canonical timezone for this application.
      *
      * Used for business related dates that need to be considered and displayed consistently at all locations.
-     * Not to be confused with 'serverTimezone'.
+     * Not to be confused with 'serverTimeZone'.
      */
-    TimeZone getAppTimezone() {
-        return _appTimezone
+    TimeZone getAppTimeZone() {
+        return _appTimeZone
     }
 
     /**
-     * Timezone for the server/JVM running this application.
+     * Time zone for the server/JVM running this application.
      */
-    TimeZone getServerTimezone() {
+    TimeZone getServerTimeZone() {
         return Calendar.instance.timeZone
     }
 
     Map getEnvironment() {
-        def serverTz = serverTimezone,
-            appTz = appTimezone,
+        def serverTz = serverTimeZone,
+            appTz = appTimeZone,
             now = System.currentTimeMillis()
 
         def ret = [
@@ -59,10 +59,10 @@ class EnvironmentService extends BaseService {
                 startupTime:            Utils.startupTime,
                 grailsVersion:          GrailsUtil.grailsVersion,
                 javaVersion:            System.getProperty('java.version'),
-                serverTimezone:         serverTz.toZoneId().id,
-                serverTimezoneOffset:   serverTz.getOffset(now),
-                appTimezone:            appTz.toZoneId().id,
-                appTimezoneOffset:      appTz.getOffset(now)
+                serverTimeZone:         serverTz.toZoneId().id,
+                serverTimeZoneOffset:   serverTz.getOffset(now),
+                appTimeZone:            appTz.toZoneId().id,
+                appTimeZoneOffset:      appTz.getOffset(now)
         ]
 
         hoistGrailsPlugins.each {it ->
@@ -83,17 +83,17 @@ class EnvironmentService extends BaseService {
     //---------------------
     // Implementation
     //---------------------
-    private TimeZone calcAppTimezone() {
-        def id = configService.getString('xhAppTimezone', 'GMT'),
+    private TimeZone calcAppTimeZone() {
+        def id = configService.getString('xhAppTimeZone', 'GMT'),
             availableIDs = TimeZone.availableIDs
         if (!availableIDs.contains(id)) {
-            log.error("App TimeZone '$id' not recognized.  Falling back to GMT.")
+            log.error("xhAppTimeZone '$id' not recognized.  Falling back to GMT.")
         }
         return TimeZone.getTimeZone(id)
     }
 
     void clearCaches() {
-        this._appTimezone = calcAppTimezone()
+        this._appTimeZone = calcAppTimeZone()
         super.clearCaches()
     }
 }

@@ -14,7 +14,7 @@ wide variety of enterprise software projects. For any questions regarding this c
 [contact us](https://xh.io/contact/).
 
 ### 🎁 New Features
-* New support for `appTimezone` and `serverTimezone` in `EnvironmentService`.
+* New support for `appTimeZone` and `serverTimeZone` in `EnvironmentService`.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v7.0.1...develop)
 
