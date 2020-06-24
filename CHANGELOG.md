@@ -23,6 +23,7 @@ wide variety of enterprise software projects. For any questions regarding this c
 ### ⚙ Technical
 * Improvements to formatting of monitoring and error emails.
 * Bootstrap `xhEnableMonitoring` config
+* Add Grails Quartz plugin (v2.0.13)
 
 ### 🎁 Bug Fixes
 * Fixed a regression to TrackService, preventing persisting lists in the `data` property.
