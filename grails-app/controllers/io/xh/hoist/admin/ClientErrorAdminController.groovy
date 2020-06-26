@@ -13,6 +13,7 @@ import io.xh.hoist.security.Access
 
 @Access(['HOIST_ADMIN'])
 class ClientErrorAdminController extends BaseController {
+
     def index() {
         def startDate = parseDate(params.startDate),
             endDate = parseDate(params.endDate)
@@ -27,11 +28,24 @@ class ClientErrorAdminController extends BaseController {
         renderJSON(results)
     }
 
+    def lookups() {
+        renderJSON([
+            usernames: distinctVals('username'),
+        ])
+    }
+
+
     //------------------------
     // Implementation
     //------------------------
-    private static Date parseDate(String dateStr) {
+    private Date parseDate(String dateStr) {
         return dateStr ? Date.parse('yyyyMMdd', dateStr) : null
+    }
+
+    private List distinctVals(String property) {
+        return ClientError.createCriteria().list {
+            projections { distinct(property) }
+        }.sort()
     }
 
 }
