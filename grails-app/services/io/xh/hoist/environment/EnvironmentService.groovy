@@ -20,7 +20,6 @@ import io.xh.hoist.util.Utils
 class EnvironmentService extends BaseService {
 
     def configService
-    def hoistGrailsPlugins
 
     private TimeZone _appTimeZone
 
