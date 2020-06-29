@@ -7,7 +7,9 @@
 
 package io.xh.hoist.environment
 
+import grails.plugins.GrailsPlugin
 import grails.util.GrailsUtil
+import grails.util.Holders
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 
@@ -91,6 +93,10 @@ class EnvironmentService extends BaseService {
             log.error("xhAppTimeZone '$id' not recognized - will fall back to GMT.")
         }
         return TimeZone.getTimeZone(id)
+    }
+
+    private Collection<GrailsPlugin> getHoistGrailsPlugins() {
+        return Holders.currentPluginManager().allPlugins.findAll{it.name.startsWith('hoist')}
     }
 
     void clearCaches() {

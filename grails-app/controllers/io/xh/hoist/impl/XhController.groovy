@@ -7,9 +7,6 @@
 
 package io.xh.hoist.impl
 
-import grails.plugins.GrailsPlugin
-import grails.util.GrailsUtil
-import grails.util.Holders
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseController
 import io.xh.hoist.config.ConfigService
@@ -213,9 +210,6 @@ class XhController extends BaseController {
     //------------------------
     // Implementation
     //------------------------
-    private Collection<GrailsPlugin> getHoistGrailsPlugins() {
-        return Holders.currentPluginManager().allPlugins.findAll{it.name.startsWith('hoist')}
-    }
 
     /**
      * Check to validate that the client's expectation of the current user matches the active user
