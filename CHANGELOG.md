@@ -1,6 +1,6 @@
 # Changelog
 
-## 8.0.0-SNAPSHOT - unreleased
+## 8.0.0 - 2020-06-29
 
 ### ⚖️ Licensing Change
 
@@ -19,7 +19,7 @@ wide variety of enterprise software projects. For any questions regarding this c
 * New support for eliding long strings: `StringUtils.elide()`.
 * New support for the enhanced Admin Activity Tracking tab shipping in hoist-react v35.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v7.0.1...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v7.0.1...v8.0.0)
 
 ## 7.0.1 - 2020-06-04
 
