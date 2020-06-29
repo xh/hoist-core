@@ -1,8 +1,11 @@
 # Changelog
 
-## 9.0-SNAPSHOT - unreleased
+## 8.0.1 - 2020-06-29
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v8.0.0...develop)
+### ⚙️ Bug Fixes
+* Fix minor regression to reporting of hoist-core version.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.0.0...v8.0.1)
 
 ## 8.0.0 - 2020-06-29
 
