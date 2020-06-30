@@ -202,13 +202,6 @@ class BootStrap {
 
     private void ensureRequiredPrefsCreated() {
         Utils.prefService.ensureRequiredPrefsCreated([
-            xhAdminActivityChartSize: [
-                type: 'json',
-                defaultValue: [:],
-                local: true,
-                groupName: 'xh.io',
-                note: 'Admin console Client Activity chart panel sizing info.'
-            ],
             xhAutoRefreshEnabled: [
                 type: 'bool',
                 defaultValue: true,
