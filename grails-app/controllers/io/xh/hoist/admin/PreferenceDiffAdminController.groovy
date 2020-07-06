@@ -17,7 +17,7 @@ class PreferenceDiffAdminController extends BaseController {
 
     def preferenceDiffService
 
-    def preference() {
+    def records() {
         def data = Preference.list()
         renderJSON(data: data)
     }
