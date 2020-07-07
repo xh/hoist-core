@@ -17,14 +17,6 @@ class ConfigDiffAdminController extends BaseController {
 
     def configDiffService
 
-    def records() {
-        def data = AppConfig.list()
-        renderJSON(data: data)
-    }
-
-    //----------------------------------------------------------------------------
-    // TODO: For backward compatibility -- remove after hoist react fully released
-    //-----------------------------------------------------------------------------
     def configs() {
         def data = AppConfig.list()
         renderJSON(data: data)
