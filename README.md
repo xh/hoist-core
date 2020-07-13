@@ -133,17 +133,19 @@ applications.
 
 ## Hoist usage, licensing, and support
 
-While we maintain open access to the Hoist codebase via these public repositories, Hoist is intended
-for use by clients of Extremely Heavy who are working with us to develop custom applications for 
-their enterprise.
+Hoist is currently developed exclusively by Extremely Heavy and intended for use by XH and our
+client partners to develop enterprise web applications with XH's guidance and direction. That said,
+we have released the toolkit under the permissive and open Apache 2.0 license. This allows other
+developers, regardless of whether they are current XH clients or not, to checkout, use, modify, and
+otherwise explore Hoist and its source code. See [this project's license file](LICENSE.md) for the
+full license.
 
-Extremely Heavy reserves all rights to the code and intellectual property contained
-within, does not offer public support or a license at this time, makes no warranties or guarantees
-as to the functionality, correctness, or fitness of this software, and shall not be held liable for
-its use outside the scope of a structured consulting engagement.
-
-That said, please [contact us](https://xh.io/contact/) with any inquiries or further questions - we
-are always interested in speaking with new potential clients, partners, and developers!
+We have selected an open source license as part of our ongoing commitment to openness, transparency,
+and ease-of-use, and to clarify and emphasize the suitability of Hoist for use within a wide variety
+of enterprise software projects. Note, however, that we cannot at this time commit to any particular
+support or contribution model outside of our consulting work. But if you are interested in Hoist
+and/or think it might be helpful for a project, please don't hesitate to
+[contact us](https://xh.io/contact)!
 
 ## Core Features - Additional Details
 

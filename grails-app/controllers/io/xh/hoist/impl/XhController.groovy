@@ -7,9 +7,6 @@
 
 package io.xh.hoist.impl
 
-import grails.plugins.GrailsPlugin
-import grails.util.GrailsUtil
-import grails.util.Holders
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseController
 import io.xh.hoist.config.ConfigService
@@ -22,6 +19,7 @@ import io.xh.hoist.json.JSONParser
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.security.AccessAll
 import io.xh.hoist.track.TrackService
+import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.util.Utils
 
 @AccessAll
@@ -34,7 +32,7 @@ class XhController extends BaseController {
     GridExportImplService gridExportImplService
     PrefService prefService
     TrackService trackService
-
+    EnvironmentService environmentService
 
     //------------------------
     // Identity / Auth
@@ -87,7 +85,7 @@ class XhController extends BaseController {
         trackService.track(
                 category: params.category,
                 msg: params.msg,
-                data: params.data ? JSONParser.parseObject((String) params.data) : null,
+                data: params.data ? JSONParser.parseObjectOrArray((String) params.data) : null,
                 elapsed: params.elapsed,
                 severity: params.severity
         )
@@ -156,30 +154,7 @@ class XhController extends BaseController {
     // Environment
     //------------------------
     def environment() {
-        def ret = new HashMap<String, Object>([
-            appCode:                Utils.appCode,
-            appName:                Utils.appName,
-            appVersion:             Utils.appVersion,
-            appBuild:               Utils.appBuild,
-            appEnvironment:         Utils.appEnvironment.toString(),
-            startupTime:            Utils.startupTime,
-            grailsVersion:          GrailsUtil.grailsVersion,
-            javaVersion:            System.getProperty('java.version')
-        ])
-
-        hoistGrailsPlugins.each {it ->
-            ret[it.name + 'Version'] = it.version
-        }
-
-        def user = identityService.getAuthUser(request)
-        if (user && user.isHoistAdmin) {
-            def dataSource = Utils.dataSource
-            ret.databaseConnectionString = dataSource.url
-            ret.databaseUser = dataSource.username
-            ret.databaseCreateMode = dataSource.dbCreate
-        }
-
-        renderJSON(ret)
+        renderJSON(environmentService.getEnvironment())
     }
 
     def version() {
@@ -210,7 +185,7 @@ class XhController extends BaseController {
     }
 
     //------------------------
-    // Timezone
+    // Time zone
     // Returns the timezone offset for a given timezone ID.
     // While abbrevs (e.g. 'GMT', 'PST', 'UTC+04') are supported, fully qualified IDs (e.g.
     // 'Europe/London', 'America/New_York') are preferred, as these account for daylight savings.
@@ -235,9 +210,6 @@ class XhController extends BaseController {
     //------------------------
     // Implementation
     //------------------------
-    private Collection<GrailsPlugin> getHoistGrailsPlugins() {
-        return Holders.currentPluginManager().allPlugins.findAll{it.name.startsWith('hoist')}
-    }
 
     /**
      * Check to validate that the client's expectation of the current user matches the active user

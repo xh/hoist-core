@@ -30,11 +30,24 @@ class ClientErrorAdminController extends BaseController {
         renderJSON(results)
     }
 
+    def lookups() {
+        renderJSON([
+            usernames: distinctVals('username')
+        ])
+    }
+
+
     //------------------------
     // Implementation
     //------------------------
-    private static Date parseDate(String dateStr) {
+    private Date parseDate(String dateStr) {
         return dateStr ? Date.parse('yyyyMMdd', dateStr) : null
+    }
+
+    private List distinctVals(String property) {
+        return ClientError.createCriteria().list {
+            projections { distinct(property) }
+        }.sort()
     }
 
 }

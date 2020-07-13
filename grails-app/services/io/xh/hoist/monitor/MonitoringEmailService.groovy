@@ -47,7 +47,7 @@ class MonitoringEmailService extends BaseService {
         if (report.status < WARN) return "There are no alerting monitors for ${Utils.appName}."
 
         return results.findAll{it.status >= WARN}.collect {
-            "+ $it.name: $it.message. Minutes in [$it.status]: ${it.minsInStatus}"
+            "+ $it.name | ${it.message ? it.message + ' | ' : ''}Minutes in [${it.status}]: ${it.minsInStatus}"
         }.join('<br>')
     }
     

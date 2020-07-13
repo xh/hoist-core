@@ -117,12 +117,12 @@ class TrackService extends BaseService implements EventPublisher {
                     }
                 }
 
-                def name = tl.username
-                if (tl.impersonating) name += " (as ${tl.impersonating})"
+            def elapsedStr = tl.elapsed != null ? tl.elapsed + 'ms' : null,
+                name = tl.username
+            if (tl.impersonating) name += " (as ${tl.impersonating})"
 
-                def msgParts = [name, tl.category, tl.msg, tl.elapsed]
-                log.info(msgParts.findAll { it }.join(' | '))
-            }
+            def msgParts = [name, tl.category, tl.msg, elapsedStr]
+            log.info(msgParts.findAll{it}.join(' | '))
         }
     }
 

@@ -76,6 +76,13 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Frequency with which the version of the app should be checked. Value of -1 disables version checking.'
             ],
+            xhAppTimeZone: [
+                valueType: 'string',
+                defaultValue: 'GMT',
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'Official TimeZone for this application - e.g. the zone of the head office. Used to format/parse business related dates that need to be considered and displayed consistently at all locations. Set to a valid Java TimeZone ID.'
+            ],
             xhAutoRefreshIntervals: [
                 valueType: 'json',
                 defaultValue: [app: -1],
@@ -128,6 +135,13 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'True to enable the log viewer included with the Hoist Admin console as well as the associated server-side endpoints.'
             ],
+            xhEnableMonitoring: [
+                    valueType: 'bool',
+                    defaultValue: true,
+                    clientVisible: true,
+                    groupName: 'xh.io',
+                    note: 'True to enable the monitor tab included with the Hoist Admin console and the associated server-side jobs'
+            ],
             xhExportConfig: [
                 valueType: 'json',
                 defaultValue: [
@@ -138,12 +152,12 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Configures exporting data to Excel.'
             ],
-            xhIdleTimeoutMins: [
-                valueType: 'int',
-                defaultValue: -1,
+            xhIdleConfig: [
+                valueType: 'json',
+                defaultValue: [timeout: -1, appTimeouts: [:]],
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Number of minutes of inactivity before client application will enter "sleep mode", suspending background requests and prompting the user to reload to resume. Value -1 disables idle detection.'
+                note: 'Governs how client application will enter "sleep mode", suspending background requests and prompting the user to reload to resume.  Timeouts are in minutes of inactivity.'
             ],
             xhLogArchiveConfig: [
                 valueType: 'json',
@@ -188,13 +202,6 @@ class BootStrap {
 
     private void ensureRequiredPrefsCreated() {
         Utils.prefService.ensureRequiredPrefsCreated([
-            xhAdminActivityChartSize: [
-                type: 'json',
-                defaultValue: [:],
-                local: true,
-                groupName: 'xh.io',
-                note: 'Admin console Client Activity chart panel sizing info.'
-            ],
             xhAutoRefreshEnabled: [
                 type: 'bool',
                 defaultValue: true,

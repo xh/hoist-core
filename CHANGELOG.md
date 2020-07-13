@@ -1,36 +1,14 @@
 # Changelog
 
-## 7.0-SNAPSHOT - Unreleased
+## 9.0-SNAPSHOT - unreleased
 Version 7.0 includes a major upgrade of several underlying libraries, especially grails (v4.03) and spring-boot (2.1.13)
 With this version, Hoist can now be run on Java versions 8 - 11.  We have also cleaned up and enhanced some core
 APIs around Exception Handling and JSON parsing and configuration.
 
 ### 🎁 New Features
-* Exception Handling has been improved in the newly enhanced `exceptionRenderer` bean.  This bean will
-catch uncaught exceptions from all Controllers and Timers and has been newly configured to limit the
-logging of unnecessary stack traces. 
-
-* New exception classes for `HttpException` and `ExternalHttpException` have been added.
-
-* JSON parsing in Hoist has been reworked to simplify and standardize based on the high-performance Jackson library. 
-(https://github.com/FasterXML/jackson).  Benchmarking shows a speedup in parsing times of 10x to 20x over the 
-`grails.converter.JSON` library currently used by Hoist.  In particular, this change includes:
-    * A new `JSONParser` API in the `io.xh.hoist.json` package that provides JSON parsing of text and input streams.  
-    This API is designed to be symmetrical with the existing `JSONFormatter.`
-    * All core hoist classes now rely on the API above.  Of special note are `JSONClient`, and `RestController`.  
-    * Cleanups to the APIs for `JSONClient`, `ConfigService`, and `PrefService`.  These methods now return java object
-    representations using the standard java `Map` and `List` interfaces rather than the confusing `JSONObject`, 
-    `JSONArray` and `JSONElement` objects.
+* Add support for Preference Diffing in the hoist-react admin tool.
 
 ### 🎁 Breaking Changes
-* The `getJSONObject()`, `getJSONArray()`,  and `getJSON()` methods  on `ConfigService` and `PrefService` have been
-replaced with `getMap()` and `getList()`.
- 
-* The `executeAsJSONObject()` and `executeAsJSONArray()` methods on `JSONClient` have been replaced with 
-`executeAsMap()` and `executeAsList()`.
-
-* The method `RestController.preprocessSubmit()` now takes a `Map` as its single input, rather than a `JSONObject`. 
-
 * The trait `AsyncSupport` with its single method `asyncTask` has been removed.  Use the equivalent method `task` 
 from `grails.async.Promises` instead.
 
@@ -57,18 +35,94 @@ on required changes to config and dependency files.
 * Applications will be required to add the `@Transactional` or `@ReadOnly` annotations to service and controller
 methods that update data with GORM. 
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v6.7.0...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.0.1...develop)
 
+
+## 8.0.1 - 2020-06-29
+
+### ⚙️ Bug Fixes
+* Fix minor regression to reporting of hoist-core version.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.0.0...v8.0.1)
+
+## 8.0.0 - 2020-06-29
+
+### ⚖️ Licensing Change
+
+As of this release, Hoist is [now licensed](LICENSE.md) under the popular and permissive
+[Apache 2.0 open source license](https://www.apache.org/licenses/LICENSE-2.0). Previously, Hoist was
+"source available" via our public GitHub repository but still covered by a proprietary license.
+
+We are making this change to align Hoist's licensing with our ongoing commitment to openness,
+transparency and ease-of-use, and to clarify and emphasize the suitability of Hoist for use within a
+wide variety of enterprise software projects. For any questions regarding this change, please
+[contact us](https://xh.io/contact/).
+
+### 🎁 New Features
+
+* New support for `appTimeZone` and `serverTimeZone` in `EnvironmentService`.
+* New support for eliding long strings: `StringUtils.elide()`.
+* New support for the enhanced Admin Activity Tracking tab shipping in hoist-react v35.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v7.0.1...v8.0.0)
+
+## 7.0.1 - 2020-06-04
+
+### ⚙ Technical
+
+* Improvements to formatting of monitoring and error emails.
+* Bootstrap `xhEnableMonitoring` config
+* Add Grails Quartz plugin (v2.0.13)
+
+### 🎁 Bug Fixes
+
+* Fixed a regression to TrackService, preventing persisting lists in the `data` property.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v7.0.0...v7.0.1)
+
+## 7.0.0 - 2020-05-08
+
+### 🎁 New Features
+
+* Exception Handling has been improved in the newly enhanced `exceptionRenderer` bean. This bean
+  will catch uncaught exceptions from all Controllers and Timers and has been newly configured to
+  limit the logging of unnecessary stack traces.
+
+* New exception classes for `HttpException` and `ExternalHttpException` have been added.
+
+* JSON parsing in Hoist has been reworked to simplify and standardize based on the high-performance
+  Jackson library. (https://github.com/FasterXML/jackson). Benchmarking shows a speedup in parsing
+  times of 10x to 20x over the `grails.converter.JSON` library currently used by Hoist. In
+  particular, this change includes:
+  * A new `JSONParser` API in the `io.xh.hoist.json` package that provides JSON parsing of text and
+    input streams.
+    This API is designed to be symmetrical with the existing `JSONFormatter.`
+  * All core hoist classes now rely on the API above. Of special note are `JSONClient`, and
+    `RestController`.
+  * Cleanups to the APIs for `JSONClient`, `ConfigService`, and `PrefService`. These methods now
+    return java object representations using the standard java `Map` and `List` interfaces rather
+    than the confusing `JSONObject`, `JSONArray` and `JSONElement` objects.
+
+### 🎁 Breaking Changes
+
+* The `getJSONObject()`, `getJSONArray()`, and `getJSON()` methods on `ConfigService` and
+  `PrefService` have been replaced with `getMap()` and `getList()`.
+* The `executeAsJSONObject()` and `executeAsJSONArray()` methods on `JSONClient` have been replaced
+  with `executeAsMap()` and `executeAsList()`.
+* The method `RestController.preprocessSubmit()` now takes a `Map` as its single input, rather than
+  a `JSONObject`.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v6.7.0...v7.0.0)
 
 ## 6.7.0 - 2020-04-22
 
 ### 💥 Breaking Changes
-* `Timer.delay` now expects either a millisecond value, or a boolean.  It no longer will take a string/closure and
- `Timer.delayUnits` has been removed.  This has been changed to enhance the functionality and make it consistent
- with its client-side counterpart in hoist-react.
+
+* `Timer.delay` now expects either a millisecond value, or a boolean. It no longer will take a
+  string/closure and `Timer.delayUnits` has been removed. This has been changed to enhance the
+  functionality and make it consistent with its client-side counterpart in hoist-react.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v6.6.0...v6.7.0)
-
 
 ## 6.6.0 - 2020-03-27
 
