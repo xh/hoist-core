@@ -1,12 +1,11 @@
 # Changelog
 
-## 9.0-SNAPSHOT - unreleased
-
-[Commit Log](https://github.com/xh/hoist-core/compare/v8.0.1...develop)
+## 8.1.0 - 2020-07-16
 
 ### 🎁 New Features
 * Add support for Preference Diffing in the hoist-react admin tool.
 
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.0.1...v8.1.0)
 
 ## 8.0.1 - 2020-06-29
 
