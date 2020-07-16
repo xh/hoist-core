@@ -1,5 +1,9 @@
 # Changelog
 
+## 9.0-SNAPSHOT - unreleased
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.1.0...develop)
+
 ## 8.1.0 - 2020-07-16
 
 ### 🎁 New Features
