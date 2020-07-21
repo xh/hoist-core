@@ -3,7 +3,7 @@ package io.xh.hoist.log
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.exception.RoutineException
+import io.xh.hoist.exception.RoutineRuntimeException
 import org.apache.commons.io.input.ReversedLinesFileReader
 import static java.lang.System.currentTimeMillis
 
@@ -101,13 +101,8 @@ class LogReaderService extends BaseService {
 
     private void throwOnTimeout(long maxEndTime) {
         if (currentTimeMillis() > maxEndTime) {
-            throw new TimeoutException('Query took too long. Log search aborted.')
+            throw new RoutineRuntimeException('Query took too long. Log search aborted.')
         }
     }
 }
 
-class TimeoutException extends RuntimeException implements RoutineException  {
-    public TimeoutException(String message) {
-        super(message);
-    }
-}
