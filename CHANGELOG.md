@@ -2,6 +2,14 @@
 
 ## 9.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+* Add new `RoutineRuntimeException`
+
+### ⚙️ Bug Fixes
+* Pref and Config Differ now record user making change
+* Fix bug with monitoring when monitor script timeouts
+
+
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.1.0...develop)
 
 ## 8.1.0 - 2020-07-16
