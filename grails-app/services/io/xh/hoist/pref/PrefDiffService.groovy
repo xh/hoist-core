@@ -20,6 +20,7 @@ class PrefDiffService extends BaseService implements DataBinder {
             // create new pref based on remote values
             if (!pref) {
                 pref = new Preference(vals)
+                pref.lastUpdatedBy = username
                 pref.save(flush:true)
                 log.info("Pref '${pref.name}' created")
                 return
@@ -28,6 +29,7 @@ class PrefDiffService extends BaseService implements DataBinder {
             // apply remote values to existing pref
             if (vals) {
                 bindData(pref, vals)
+                pref.lastUpdatedBy = username
                 pref.save(flush:true)
                 log.info("Pref '${pref.name}' updated")
                 return
