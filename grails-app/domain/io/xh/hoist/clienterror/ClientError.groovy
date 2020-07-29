@@ -27,6 +27,7 @@ class ClientError implements JSONFormat {
         cache true
         error type: 'text'
         msg type: 'text'
+        dateCreated index: 'idx_xh_client_error_date_created'
     }
 
     static constraints = {

@@ -23,6 +23,7 @@ class UserPreference implements JSONFormat {
         table 'xh_user_preference'
         cache true
         userValue type: 'text'
+        username index: 'idx_xh_user_preference_username'
     }
 
     static constraints = {

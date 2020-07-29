@@ -27,7 +27,8 @@ class TrackLog implements JSONFormat {
     static mapping = {
         table 'xh_track_log'
         cache true
-        data type: "text"
+        data type: 'text'
+        dateCreated index: 'idx_xh_track_log_date_created'
     }
 
     static constraints = {
