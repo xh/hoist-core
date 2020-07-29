@@ -3,28 +3,34 @@
 ## 9.0-SNAPSHOT - unreleased
 
 ### 🎁 New Features
+
 * Add new `RoutineRuntimeException`
 
-### ⚙️ Bug Fixes
-* Pref and Config Differ now record user making change
-* Fix bug with monitoring when monitor script timeouts
+### 🐞 Bug Fixes
 
+* Pref and Config Differ now record the admin user applying any changes via these tools.
+* Fix bug with monitoring when monitor script times out.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.1.0...develop)
+
 
 ## 8.1.0 - 2020-07-16
 
 ### 🎁 New Features
-* Add support for Preference Diffing in the hoist-react admin tool.
+
+* Add support for Preference Diffing in the Hoist React Admin console.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.0.1...v8.1.0)
 
+
 ## 8.0.1 - 2020-06-29
 
-### ⚙️ Bug Fixes
+### 🐞 Bug Fixes
+
 * Fix minor regression to reporting of hoist-core version.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.0.0...v8.0.1)
+
 
 ## 8.0.0 - 2020-06-29
 
@@ -55,7 +61,7 @@ wide variety of enterprise software projects. For any questions regarding this c
 * Bootstrap `xhEnableMonitoring` config
 * Add Grails Quartz plugin (v2.0.13)
 
-### 🎁 Bug Fixes
+### 🐞 Bug Fixes
 
 * Fixed a regression to TrackService, preventing persisting lists in the `data` property.
 
@@ -76,8 +82,7 @@ wide variety of enterprise software projects. For any questions regarding this c
   times of 10x to 20x over the `grails.converter.JSON` library currently used by Hoist. In
   particular, this change includes:
   * A new `JSONParser` API in the `io.xh.hoist.json` package that provides JSON parsing of text and
-    input streams.
-    This API is designed to be symmetrical with the existing `JSONFormatter.`
+    input streams. This API is designed to be symmetrical with the existing `JSONFormatter.`
   * All core hoist classes now rely on the API above. Of special note are `JSONClient`, and
     `RestController`.
   * Cleanups to the APIs for `JSONClient`, `ConfigService`, and `PrefService`. These methods now
@@ -127,7 +132,7 @@ wide variety of enterprise software projects. For any questions regarding this c
 
 ## 6.4.4 - 2020-03-05
 
-### ⚙️ Bug Fixes
+### 🐞 Bug Fixes
 
 * Fixed issue where attempting to read very large log files would overly stress server processor and
   memory resources. [#115](https://github.com/xh/hoist-core/issues/115)
@@ -408,7 +413,7 @@ wide variety of enterprise software projects. For any questions regarding this c
 ### 🐞 Bug Fixes
 
 * An admin client that happens to be polling for a non-existent log file (e.g. one that has just
-  been archived) will no longer spam the logs with stracktraces.it
+  been archived) will no longer spam the logs with stack traces.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v5.0.4...v5.1.0)
 
@@ -461,8 +466,7 @@ enterprise plugin and not require individual app changes.)
 
 ## v4.2.1
 
-* Added support for `activeOnly` argument to `UserAdminController` - required for
-  exhi/hoist-react#567
+* Added support for `activeOnly` argument to `UserAdminController` - required for xh/hoist-react#567
 
 [Commit Log](https://github.com/xh/hoist-core/compare/release-4.2.0...release-4.2.1)
 
