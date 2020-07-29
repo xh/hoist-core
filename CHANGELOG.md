@@ -11,6 +11,10 @@
 * Pref and Config Differ now record the admin user applying any changes via these tools.
 * Fix bug with monitoring when monitor script times out.
 
+### ⚙️ Technical
+
+* Specify default DB indices on a small number of bundled domain classes.
+
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.1.0...develop)
 
 
