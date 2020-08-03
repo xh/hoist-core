@@ -63,6 +63,13 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'List of root URLs for running instances of this app across environments. Currently only used for as a convenience feature in the Admin config diff tool.'
             ],
+            xhAppTimeZone: [
+                valueType: 'string',
+                defaultValue: 'GMT',
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'Official TimeZone for this application - e.g. the zone of the head office. Used to format/parse business related dates that need to be considered and displayed consistently at all locations. Set to a valid Java TimeZone ID.'
+            ],
             xhAppVersionCheckEnabled: [
                 valueType: 'bool',
                 defaultValue: true,
@@ -75,13 +82,6 @@ class BootStrap {
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Frequency with which the version of the app should be checked. Value of -1 disables version checking.'
-            ],
-            xhAppTimeZone: [
-                valueType: 'string',
-                defaultValue: 'GMT',
-                clientVisible: true,
-                groupName: 'xh.io',
-                note: 'Official TimeZone for this application - e.g. the zone of the head office. Used to format/parse business related dates that need to be considered and displayed consistently at all locations. Set to a valid Java TimeZone ID.'
             ],
             xhAutoRefreshIntervals: [
                 valueType: 'json',
@@ -136,11 +136,11 @@ class BootStrap {
                 note: 'True to enable the log viewer included with the Hoist Admin console as well as the associated server-side endpoints.'
             ],
             xhEnableMonitoring: [
-                    valueType: 'bool',
-                    defaultValue: true,
-                    clientVisible: true,
-                    groupName: 'xh.io',
-                    note: 'True to enable the monitor tab included with the Hoist Admin console and the associated server-side jobs'
+                valueType: 'bool',
+                defaultValue: true,
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'True to enable the monitor tab included with the Hoist Admin console and the associated server-side jobs'
             ],
             xhExportConfig: [
                 valueType: 'json',
