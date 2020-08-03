@@ -11,16 +11,21 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
 import io.xh.hoist.track.TrackLog
 
+import static java.lang.Integer.parseInt
+
 @Access(['HOIST_ADMIN'])
 class TrackLogAdminController extends BaseController {
+
+    static int DEFAULT_MAX_ROWS = 25000
 
     def trackService
 
     def index() {
         def startDate = parseDate(params.startDate),
-            endDate = parseDate(params.endDate)
+            endDate = parseDate(params.endDate),
+            maxRows = params.maxRows ? parseInt(params.maxRows) : DEFAULT_MAX_ROWS
 
-        def results = TrackLog.findAll(max: 10000, sort: 'dateCreated', order: 'desc') {
+        def results = TrackLog.findAll(max: maxRows, sort: 'dateCreated', order: 'desc') {
             if (startDate)          dateCreated >= startDate
             if (endDate)            dateCreated < endDate+1
             if (params.category)    category =~ "%$params.category%"
