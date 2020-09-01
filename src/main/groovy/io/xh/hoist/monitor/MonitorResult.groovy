@@ -51,7 +51,6 @@ class MonitorResult implements JSONFormat {
     Map formatForJSON() {
         [
             code: monitor.code,
-            active: monitor.active,
             name: monitor.name,
             params: monitor.params,
             notes: monitor.notes,
