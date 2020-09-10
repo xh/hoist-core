@@ -1,6 +1,6 @@
 # Changelog
 
-## 9.0-SNAPSHOT - unreleased
+## 8.2.0 - 2020-09-04
 
 ### 🎁 New Features
 
@@ -15,7 +15,7 @@
 
 * Specify default DB indices on a small number of bundled domain classes.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v8.1.0...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.1.0...v8.2.0)
 
 
 ## 8.1.0 - 2020-07-16
