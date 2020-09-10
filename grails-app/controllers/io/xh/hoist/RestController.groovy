@@ -51,8 +51,9 @@ abstract class RestController extends BaseController {
     }
 
     def bulkUpdate() {
-        def ids = params.list('ids'),
-            newParams = JSONParser.parseObject(request.inputStream).newParams,
+        def body = JSONParser.parseObject(request.inputStream),
+            ids = body.ids,
+            newParams = body.newParams,
             successCount = 0,
             failCount = 0,
             target = restTargetVal,
