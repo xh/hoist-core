@@ -18,7 +18,14 @@ class JsonBlobAdminController extends RestController {
 
     def lookupData() {
         renderJSON(
-            types: JsonBlob.list().collect{it.type}.unique().sort()
+            types: JsonBlob.createCriteria().list{
+                projections { distinct('type') }
+            }.sort()
         )
+    }
+
+    protected void preprocessSubmit(Map submit) {
+        submit.lastUpdatedBy = username
+        if (submit.value) submit.valueLastUpdated = new Date()
     }
 }

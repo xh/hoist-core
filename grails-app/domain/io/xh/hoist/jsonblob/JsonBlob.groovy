@@ -19,6 +19,7 @@ class JsonBlob implements JSONFormat {
     Date dateCreated
     Date lastUpdated
     Date valueLastUpdated
+    String lastUpdatedBy
 
     static mapping = {
         table 'xh_json_blob'
@@ -33,6 +34,7 @@ class JsonBlob implements JSONFormat {
         name maxSize: 50, blank: false
         value validator: {Utils.isJSON(it) ?: 'default.invalid.json.message'}
         description nullable: true
+        lastUpdatedBy nullable: true
     }
 
     Map formatForJSON() {[
@@ -44,6 +46,7 @@ class JsonBlob implements JSONFormat {
         description: description,
         dateCreated: dateCreated,
         lastUpdated: lastUpdated,
-        valueLastUpdated: valueLastUpdated
+        valueLastUpdated: valueLastUpdated,
+        lastUpdatedBy: lastUpdatedBy
     ]}
 }

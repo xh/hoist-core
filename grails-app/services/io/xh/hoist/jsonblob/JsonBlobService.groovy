@@ -25,6 +25,7 @@ class JsonBlobService extends BaseService {
             value: value,
             description: description,
             username: username,
+            lastUpdatedBy: username,
             valueLastUpdated: new Date()
         ).save()
         return blob
@@ -40,6 +41,7 @@ class JsonBlobService extends BaseService {
             blob.valueLastUpdated = new Date()
         }
 
+        blob.lastUpdatedBy = username
         blob.save()
         return blob
     }
