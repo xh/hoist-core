@@ -11,7 +11,13 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
 import io.xh.hoist.track.TrackLog
 
+import java.time.LocalDate
+
 import static java.lang.Integer.parseInt
+import static java.time.format.DateTimeFormatter.BASIC_ISO_DATE
+import static io.xh.hoist.util.DateTimeUtils.appStartOfDay
+import static io.xh.hoist.util.DateTimeUtils.appEndOfDay
+
 
 @Access(['HOIST_ADMIN'])
 class TrackLogAdminController extends BaseController {
@@ -21,15 +27,15 @@ class TrackLogAdminController extends BaseController {
     def trackService
 
     def index() {
-        def startDate = parseDate(params.startDate),
-            endDate = parseDate(params.endDate),
+        def startDay = parseDay(params.startDay),
+            endDay = parseDay(params.endDay),
             maxRows = params.maxRows ? parseInt(params.maxRows) : DEFAULT_MAX_ROWS
 
         def results = TrackLog.findAll(max: maxRows, sort: 'dateCreated', order: 'desc') {
-            if (startDate)          dateCreated >= startDate
-            if (endDate)            dateCreated < endDate+1
+            if (startDay)           dateCreated >= appStartOfDay(startDay)
+            if (endDay)             dateCreated <= appEndOfDay(endDay)
             if (params.category)    category =~ "%$params.category%"
-            if (params.username)    username =~ "%$params.username%"
+            if (params.username)    username =~ "%$params.username%"d
             if (params.browser)     browser =~ "%$params.browser%"
             if (params.device)      device =~ "%$params.device%"
             if (params.msg)         msg =~ "%$params.msg%"
@@ -47,22 +53,11 @@ class TrackLogAdminController extends BaseController {
         ])
     }
 
-    def dailyVisitors() {
-        def startDate = parseDate(params.startDate) ?: new Date(),
-            endDate = parseDate(params.endDate) ?: new Date(),
-            username = params.username ? params.username : null
-
-        renderJSON(
-            trackService.getUniqueVisitsByDay(startDate, endDate+1, username)
-        )
-    }
-
-    
     //------------------------
     // Implementation
     //------------------------
-    private Date parseDate(String dateStr) {
-        return dateStr ? Date.parse('yyyyMMdd', dateStr) : null
+    private LocalDate parseDay(String dateStr) {
+        return dateStr ? LocalDate.parse(dateStr, BASIC_ISO_DATE) : null
     }
 
     private List distinctVals(String property) {
