@@ -7,6 +7,7 @@
 package io.xh.hoist.jsonblob
 
 import io.xh.hoist.json.JSONFormat
+import io.xh.hoist.json.JSONParser
 import io.xh.hoist.util.Utils
 
 class JsonBlob implements JSONFormat {
@@ -42,11 +43,11 @@ class JsonBlob implements JSONFormat {
         type: type,
         username: username,
         name: name,
-        value: value,
         description: description,
         dateCreated: dateCreated,
         lastUpdated: lastUpdated,
         valueLastUpdated: valueLastUpdated,
-        lastUpdatedBy: lastUpdatedBy
+        lastUpdatedBy: lastUpdatedBy,
+        value: JSONParser.parseObjectOrArray(value)
     ]}
 }
