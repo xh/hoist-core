@@ -38,11 +38,11 @@ class DateTimeUtils {
     }
 
     static TimeZone getAppTimeZone() {
-        return Utils.appContext.environmentService.appTimeZone
+        return Utils.environmentService.appTimeZone
     }
 
     static TimeZone getServerTimeZone() {
-        return Utils.appContext.environmentService.serverTimeZone
+        return Utils.environmentService.serverTimeZone
     }
 
     static LocalDate appDay(Date dt) {
