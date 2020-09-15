@@ -35,7 +35,7 @@ class TrackLogAdminController extends BaseController {
             if (startDay)           dateCreated >= appStartOfDay(startDay)
             if (endDay)             dateCreated <= appEndOfDay(endDay)
             if (params.category)    category =~ "%$params.category%"
-            if (params.username)    username =~ "%$params.username%"d
+            if (params.username)    username =~ "%$params.username%"
             if (params.browser)     browser =~ "%$params.browser%"
             if (params.device)      device =~ "%$params.device%"
             if (params.msg)         msg =~ "%$params.msg%"
