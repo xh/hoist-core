@@ -14,8 +14,12 @@ class JsonBlobService extends BaseService {
         return JsonBlob.get(id)
     }
 
-    List<JsonBlob> list(String type, String username = username) {
-        return JsonBlob.findAllByTypeAndUsername(type, username)
+    List<Map> list(String type, Boolean includeValue, String username = username) {
+        return JsonBlob.findAllByTypeAndUsername(type, username).collect {
+            def ret = it.formatForJSON()
+            if (!includeValue) ret.remove('value')
+            return ret
+        }
     }
 
     JsonBlob create(String type, String name, String value, String description, String username = username) {

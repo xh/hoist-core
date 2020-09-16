@@ -20,8 +20,8 @@ class JsonBlobController extends BaseController {
         renderJSON(jsonBlobService.get(id))
     }
 
-    def list(String type) {
-        renderJSON(jsonBlobService.list(type))
+    def list(String type, boolean includeValue) {
+        renderJSON(jsonBlobService.list(type, includeValue))
     }
 
     def create(String type, String name, String value, String description) {

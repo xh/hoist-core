@@ -43,11 +43,11 @@ class JsonBlob implements JSONFormat {
         type: type,
         username: username,
         name: name,
+        value: value,
         description: description,
         dateCreated: dateCreated,
         lastUpdated: lastUpdated,
         valueLastUpdated: valueLastUpdated,
-        lastUpdatedBy: lastUpdatedBy,
-        value: JSONParser.parseObjectOrArray(value)
+        lastUpdatedBy: lastUpdatedBy
     ]}
 }
