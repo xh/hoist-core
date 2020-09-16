@@ -7,6 +7,7 @@
 package io.xh.hoist.security
 
 import groovy.transform.CompileStatic
+import io.xh.hoist.exception.NotAuthorizedException
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
 
@@ -99,9 +100,14 @@ abstract class BaseAuthenticationService {
 
     /**
      * Set the authenticated user, to be called by implementations of completeAuthentication()
-     * when user has been reliably determined.
+     * when an active user has been reliably determined.
+     *
+     * Will throw an exception if the user presented is inactive.
      */
     protected void setUser(HttpServletRequest request, HoistUser user) {
+        if (!user.active) {
+            throw new NotAuthorizedException("'${user.username}' is not an active user.")
+        }
         identityService.noteUserAuthenticated(request, user)
     }
 
