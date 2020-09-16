@@ -7,18 +7,21 @@
 package io.xh.hoist.jsonblob
 
 import io.xh.hoist.BaseService
+import io.xh.hoist.json.JSONParser
 
 class JsonBlobService extends BaseService {
 
-    JsonBlob get(int id) {
-        return JsonBlob.get(id)
+    Map get(int id) {
+        return formatForClient(JsonBlob.get(id), true)
     }
 
-    List<JsonBlob> list(String type, String username = username) {
-        return JsonBlob.findAllByTypeAndUsername(type, username)
+    List<Map> list(String type, Boolean includeValue, String username = username) {
+        return JsonBlob.findAllByTypeAndUsername(type, username).collect {blob ->
+            return formatForClient(blob, includeValue)
+        }
     }
 
-    JsonBlob create(String type, String name, String value, String description, String username = username) {
+    Map create(String type, String name, String value, String description, String username = username) {
         JsonBlob blob = new JsonBlob(
             type: type,
             name: name,
@@ -28,10 +31,10 @@ class JsonBlobService extends BaseService {
             lastUpdatedBy: username,
             valueLastUpdated: new Date()
         ).save()
-        return blob
+        return formatForClient(blob, true)
     }
 
-    JsonBlob update(int id, String name, String value, String description) {
+    Map update(int id, String name, String value, String description) {
         JsonBlob blob = JsonBlob.get(id)
 
         if (name) blob.name = name
@@ -43,12 +46,37 @@ class JsonBlobService extends BaseService {
 
         blob.lastUpdatedBy = username
         blob.save()
-        return blob
+        return formatForClient(blob, true)
     }
 
     void delete(int id) {
         JsonBlob blob = JsonBlob.get(id)
         blob.delete()
+    }
+
+    //-------------------------
+    // Implementation
+    //-------------------------
+    private Map formatForClient(JsonBlob blob, Boolean includeValue) {
+        if (!blob) return null
+
+        def ret = [
+            id: blob.id,
+            type: blob.type,
+            username: blob.username,
+            name: blob.name,
+            description: blob.description,
+            dateCreated: blob.dateCreated,
+            lastUpdated: blob.lastUpdated,
+            valueLastUpdated: blob.valueLastUpdated,
+            lastUpdatedBy: blob.lastUpdatedBy
+        ]
+
+        if (includeValue) {
+            ret.put('value', JSONParser.parseObjectOrArray(blob.value))
+        }
+
+        return ret
     }
 
 }
