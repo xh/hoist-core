@@ -7,13 +7,12 @@
 package io.xh.hoist.jsonblob
 
 import io.xh.hoist.json.JSONFormat
-import io.xh.hoist.json.JSONParser
 import io.xh.hoist.util.Utils
 
 class JsonBlob implements JSONFormat {
 
     String type
-    String username
+    String owner
     String name
     String value
     String description
@@ -31,7 +30,7 @@ class JsonBlob implements JSONFormat {
 
     static constraints = {
         type maxSize: 50, blank: false
-        username maxSize: 50, blank: false
+        owner maxSize: 50, blank: false
         name maxSize: 50, blank: false
         value validator: {Utils.isJSON(it) ?: 'default.invalid.json.message'}
         description nullable: true
@@ -41,7 +40,7 @@ class JsonBlob implements JSONFormat {
     Map formatForJSON() {[
         id: id,
         type: type,
-        username: username,
+        owner: owner,
         name: name,
         value: value,
         description: description,

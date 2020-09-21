@@ -15,19 +15,19 @@ class JsonBlobService extends BaseService {
         return formatForClient(JsonBlob.get(id), true)
     }
 
-    List<Map> list(String type, Boolean includeValue, String username = username) {
-        return JsonBlob.findAllByTypeAndUsername(type, username).collect {blob ->
+    List<Map> list(String type, List<String> owners, Boolean includeValue) {
+        return JsonBlob.findAllByTypeAndOwnerInList(type, owners).collect {blob ->
             return formatForClient(blob, includeValue)
         }
     }
 
-    Map create(String type, String name, String value, String description, String username = username) {
+    Map create(String type, String owner, String name, String value, String description) {
         JsonBlob blob = new JsonBlob(
             type: type,
             name: name,
             value: value,
             description: description,
-            username: username,
+            owner: owner,
             lastUpdatedBy: username,
             valueLastUpdated: new Date()
         ).save()
@@ -63,7 +63,7 @@ class JsonBlobService extends BaseService {
         def ret = [
             id: blob.id,
             type: blob.type,
-            username: blob.username,
+            owner: blob.owner,
             name: blob.name,
             description: blob.description,
             dateCreated: blob.dateCreated,
