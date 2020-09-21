@@ -145,12 +145,12 @@ class XhController extends BaseController {
         renderJSON(jsonBlobService.get(id))
     }
 
-    def listJsonBlobs(String type, boolean includeValue) {
-        renderJSON(jsonBlobService.list(type, includeValue))
+    def listJsonBlobs(String type, String owners, boolean includeValue) {
+        renderJSON(jsonBlobService.list(type, JSONParser.parseArray(owners), includeValue))
     }
 
-    def createJsonBlob(String type, String name, String value, String description) {
-        renderJSON(jsonBlobService.create(type, name, value, description))
+    def createJsonBlob(String type, String owner, String name, String value, String description) {
+        renderJSON(jsonBlobService.create(type, owner, name, value, description))
     }
 
     def updateJsonBlob(int id, String name, String value, String description) {
