@@ -9,6 +9,8 @@ package io.xh.hoist.clienterror
 
 import io.xh.hoist.json.JSONFormat
 
+import static io.xh.hoist.util.DateTimeUtils.appDay
+
 class ClientError implements JSONFormat {
 
     String msg
@@ -43,17 +45,18 @@ class ClientError implements JSONFormat {
 
     Map formatForJSON() {
         return [
-                id: id,
-                msg: msg,
-                error: error,
-                username: username,
-                userAgent: userAgent,
-                browser: browser,
-                device: device,
-                appVersion: appVersion,
+                id            : id,
+                msg           : msg,
+                error         : error,
+                username      : username,
+                userAgent     : userAgent,
+                browser       : browser,
+                device        : device,
+                appVersion    : appVersion,
                 appEnvironment: appEnvironment,
-                userAlerted: userAlerted,
-                dateCreated: dateCreated
+                userAlerted   : userAlerted,
+                dateCreated   : dateCreated,
+                day           : appDay(dateCreated)
         ]
     }
     

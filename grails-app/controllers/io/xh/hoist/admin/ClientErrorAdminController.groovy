@@ -11,7 +11,12 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.clienterror.ClientError
 import io.xh.hoist.security.Access
 
+import java.time.LocalDate
+
+import static io.xh.hoist.util.DateTimeUtils.appStartOfDay
+import static io.xh.hoist.util.DateTimeUtils.appEndOfDay
 import static java.lang.Integer.parseInt
+import static java.time.format.DateTimeFormatter.BASIC_ISO_DATE
 
 @Access(['HOIST_ADMIN'])
 class ClientErrorAdminController extends BaseController {
@@ -19,13 +24,13 @@ class ClientErrorAdminController extends BaseController {
     static int DEFAULT_MAX_ROWS = 25000
 
     def index() {
-        def startDate = parseDate(params.startDate),
-            endDate = parseDate(params.endDate),
+        def startDay = parseDay(params.startDay),
+            endDay = parseDay(params.endDay),
             maxRows = params.maxRows ? parseInt(params.maxRows) : DEFAULT_MAX_ROWS
 
         def results = ClientError.findAll(max: maxRows, sort: 'dateCreated', order: 'desc') {
-            if (startDate)          dateCreated >= startDate
-            if (endDate)            dateCreated < endDate+1
+            if (startDay)          dateCreated >= appStartOfDay(startDay)
+            if (endDay)            dateCreated <= appEndOfDay(endDay)
             if (params.username)    username =~ "%$params.username%"
             if (params.error)       error =~ "%$params.error%"
         }
@@ -43,8 +48,8 @@ class ClientErrorAdminController extends BaseController {
     //------------------------
     // Implementation
     //------------------------
-    private Date parseDate(String dateStr) {
-        return dateStr ? Date.parse('yyyyMMdd', dateStr) : null
+    private LocalDate parseDay(String dateStr) {
+        return dateStr ? LocalDate.parse(dateStr, BASIC_ISO_DATE) : null
     }
 
     private List distinctVals(String property) {

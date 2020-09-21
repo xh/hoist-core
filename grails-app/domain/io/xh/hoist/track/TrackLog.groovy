@@ -10,6 +10,8 @@ package io.xh.hoist.track
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.util.Utils
 
+import static io.xh.hoist.util.DateTimeUtils.appDay
+
 class TrackLog implements JSONFormat {
 
     String username
@@ -48,6 +50,7 @@ class TrackLog implements JSONFormat {
         return [
                 id: id,
                 dateCreated: dateCreated,
+                day: appDay(dateCreated),
                 username: username,
                 browser: browser,
                 device: device,
