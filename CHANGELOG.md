@@ -1,6 +1,6 @@
 # Changelog
 
-## 9.0-SNAPSHOT - unreleased
+## 8.3.0 - 2020-09-21
 
 ⚠ NOTE - apps should update to `hoist-react >= 36.1.0` when taking this hoist-core update. This is
 required to support the updates to Admin Activity and Client Error tracking described below.
@@ -18,7 +18,7 @@ required to support the updates to Admin Activity and Client Error tracking desc
   * This day will be reported consistently regardless of the time zones of the local browser or
     deployment server.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v8.2.0...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.2.0...v8.3.0)
 
 
 ## 8.2.0 - 2020-09-04
