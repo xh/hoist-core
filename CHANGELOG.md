@@ -3,12 +3,16 @@
 ## 9.0-SNAPSHOT - unreleased
 
 ### 🐞 Bug Fixes
-* Improved Timezone handling in Admin Activity Tracking.  Users will now see consistent bucketing of activity
- into an "App Day"  that corresponds to the LocalDate when the event occurred in the application's timezone.
- This will not be effected by the timezone of either the client or server.
+
+* Improved time zone handling in the Admin Console "Activity Tracking" and "Client Errors" tabs.
+  * Users will now see consistent bucketing of activity into an "App Day" that corresponds to the
+    LocalDate when the event occurred in the application's timezone and is consistently reported
+    independent of the time zones on the local browser or deployment server.
+  * ⚠ NOTE - apps should update to `hoist-react >= 36.1.0` when taking this hoist-core update.
+    Earlier versions of hoist-react will not pass the updated parameters required for date range
+    selection on these Admin activity tabs.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.2.0...develop)
-
 
 
 ## 8.2.0 - 2020-09-04
