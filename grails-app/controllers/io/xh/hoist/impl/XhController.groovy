@@ -16,6 +16,7 @@ import io.xh.hoist.exception.SessionMismatchException
 import io.xh.hoist.export.GridExportImplService
 import io.xh.hoist.feedback.FeedbackService
 import io.xh.hoist.json.JSONParser
+import io.xh.hoist.jsonblob.JsonBlobService
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.security.AccessAll
 import io.xh.hoist.track.TrackService
@@ -30,6 +31,7 @@ class XhController extends BaseController {
     ConfigService configService
     FeedbackService feedbackService
     GridExportImplService gridExportImplService
+    JsonBlobService jsonBlobService
     PrefService prefService
     TrackService trackService
     EnvironmentService environmentService
@@ -136,6 +138,30 @@ class XhController extends BaseController {
         renderJSON(success: true)
     }
 
+    //------------------------
+    // Json Blobs
+    //------------------------
+    def getJsonBlob(int id) {
+        renderJSON(jsonBlobService.get(id))
+    }
+
+    def listJsonBlobs(String type, String owners, boolean includeValue) {
+        renderJSON(jsonBlobService.list(type, JSONParser.parseArray(owners), includeValue))
+    }
+
+    def createJsonBlob(String type, String owner, String name, String value, String description) {
+        renderJSON(jsonBlobService.create(type, owner, name, value, description))
+    }
+
+    def updateJsonBlob(int id, String name, String value, String description) {
+        renderJSON(jsonBlobService.update(id, name, value, description))
+    }
+
+    def deleteJsonBlob(int id) {
+        jsonBlobService.delete(id)
+        renderJSON(success: true)
+    }
+
 
     //------------------------
     // Export
@@ -206,7 +232,7 @@ class XhController extends BaseController {
     def notFound() {
         throw new NotFoundException()
     }
-    
+
     //------------------------
     // Implementation
     //------------------------
