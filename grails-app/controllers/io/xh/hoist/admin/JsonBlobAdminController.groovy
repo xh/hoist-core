@@ -26,6 +26,5 @@ class JsonBlobAdminController extends RestController {
 
     protected void preprocessSubmit(Map submit) {
         submit.lastUpdatedBy = username
-        if (submit.value) submit.valueLastUpdated = new Date()
     }
 }
