@@ -1,5 +1,13 @@
 # Changelog
 
+## 8.4.0 - 2020-09-25
+
+* `JsonBlobService`: Security enhancements and finalization of API.
+* Server Support for Bulk editing of Configs and Preferences.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.3.0...v8.4.0)
+
+
 ## 8.3.0 - 2020-09-21
 
 ⚠ NOTE - apps should update to `hoist-react >= 36.1.0` when taking this hoist-core update. This is
