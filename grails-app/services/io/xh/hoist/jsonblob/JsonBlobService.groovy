@@ -75,6 +75,7 @@ class JsonBlobService extends BaseService {
             id: blob.id,
             type: blob.type,
             owner: blob.owner,
+            acl: blob.acl,
             name: blob.name,
             description: blob.description,
             dateCreated: blob.dateCreated,
