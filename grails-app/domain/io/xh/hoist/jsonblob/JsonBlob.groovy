@@ -11,6 +11,7 @@ import io.xh.hoist.util.Utils
 
 class JsonBlob implements JSONFormat {
 
+    String uuid = UUID.randomUUID().toString()
     String type
     String owner
     String acl
@@ -24,6 +25,7 @@ class JsonBlob implements JSONFormat {
     static mapping = {
         table 'xh_json_blob'
         cache true
+        uuid generator: 'assigned'
         acl type: 'text'
         value type: 'text'
         description type: 'text'
@@ -40,7 +42,7 @@ class JsonBlob implements JSONFormat {
     }
 
     Map formatForJSON() {[
-        id: id,
+        id: uuid,
         type: type,
         owner: owner,
         acl: acl,
