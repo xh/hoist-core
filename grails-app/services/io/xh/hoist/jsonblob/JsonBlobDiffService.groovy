@@ -34,7 +34,7 @@ class JsonBlobDiffService extends BaseService implements DataBinder {
                 return
             }
 
-            // delete local config if applying null remote value
+            // delete local blob if applying null remote value
             if (!vals) {
                 def name = blob.name
                 blob.delete(flush:true)
