@@ -17,7 +17,7 @@ class JsonBlobDiffAdminController extends BaseController {
 
     def jsonBlobDiffService
 
-    def configs() {
+    def jsonBlobs() {
         def data = JsonBlob.list()
         renderJSON(data: data)
     }
