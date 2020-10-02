@@ -12,8 +12,8 @@ import io.xh.hoist.json.JSONParser
 
 class JsonBlobService extends BaseService {
 
-    Map get(int id) {
-        return formatForClient(JsonBlob.get(id), true)
+    Map get(String token) {
+        return formatForClient(JsonBlob.findByToken(token), true)
     }
 
     List<Map> list(String type, Boolean includeValue) {
@@ -36,8 +36,8 @@ class JsonBlobService extends BaseService {
         return formatForClient(blob, true)
     }
 
-    Map update(int id, String name, String value, String description) {
-        JsonBlob blob = JsonBlob.get(id)
+    Map update(String token, String name, String value, String description) {
+        JsonBlob blob = JsonBlob.findByToken(token)
         ensurePassesAcl(blob)
 
         if (name) blob.name = name
@@ -49,8 +49,8 @@ class JsonBlobService extends BaseService {
         return formatForClient(blob, true)
     }
 
-    void delete(int id) {
-        JsonBlob blob = JsonBlob.get(id)
+    void delete(String token) {
+        JsonBlob blob = JsonBlob.findByToken(token)
         ensurePassesAcl(blob)
         blob.delete()
     }
@@ -73,6 +73,7 @@ class JsonBlobService extends BaseService {
 
         def ret = [
             id: blob.id,
+            token: blob.token,
             type: blob.type,
             owner: blob.owner,
             acl: blob.acl,

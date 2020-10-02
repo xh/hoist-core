@@ -141,8 +141,8 @@ class XhController extends BaseController {
     //------------------------
     // Json Blobs
     //------------------------
-    def getJsonBlob(int id) {
-        renderJSON(jsonBlobService.get(id))
+    def getJsonBlob(String token) {
+        renderJSON(jsonBlobService.get(token))
     }
 
     def listJsonBlobs(String type, boolean includeValue) {
@@ -153,12 +153,12 @@ class XhController extends BaseController {
         renderJSON(jsonBlobService.create(type, name, value, description))
     }
 
-    def updateJsonBlob(int id, String name, String value, String description) {
-        renderJSON(jsonBlobService.update(id, name, value, description))
+    def updateJsonBlob(String token, String name, String value, String description) {
+        renderJSON(jsonBlobService.update(token, name, value, description))
     }
 
-    def deleteJsonBlob(int id) {
-        jsonBlobService.delete(id)
+    def deleteJsonBlob(String token) {
+        jsonBlobService.delete(token)
         renderJSON(success: true)
     }
 
