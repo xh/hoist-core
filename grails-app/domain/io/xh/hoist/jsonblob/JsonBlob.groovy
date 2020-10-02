@@ -32,6 +32,7 @@ class JsonBlob implements JSONFormat {
     }
 
     static constraints = {
+        token unique: true, blank: false
         type maxSize: 50, blank: false
         owner maxSize: 50, nullable: true, blank: false
         acl nullable: true
