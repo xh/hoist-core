@@ -12,8 +12,8 @@ import io.xh.hoist.json.JSONParser
 
 class JsonBlobService extends BaseService {
 
-    Map get(String id) {
-        return formatForClient(JsonBlob.findByUuid(id), true)
+    Map get(String token) {
+        return formatForClient(JsonBlob.findByToken(token), true)
     }
 
     List<Map> list(String type, Boolean includeValue) {
@@ -26,6 +26,7 @@ class JsonBlobService extends BaseService {
 
     Map create(String type, String name, String value, String description) {
         JsonBlob blob = new JsonBlob(
+            token: generateToken(),
             type: type,
             name: name,
             value: value,
@@ -36,8 +37,8 @@ class JsonBlobService extends BaseService {
         return formatForClient(blob, true)
     }
 
-    Map update(String id, String name, String value, String description) {
-        JsonBlob blob = JsonBlob.findByUuid(id)
+    Map update(String token, String name, String value, String description) {
+        JsonBlob blob = JsonBlob.findByToken(token)
         ensurePassesAcl(blob)
 
         if (name) blob.name = name
@@ -49,8 +50,8 @@ class JsonBlobService extends BaseService {
         return formatForClient(blob, true)
     }
 
-    void delete(String id) {
-        JsonBlob blob = JsonBlob.findByUuid(id)
+    void delete(String token) {
+        JsonBlob blob = JsonBlob.findByToken(token)
         ensurePassesAcl(blob)
         blob.delete()
     }
@@ -58,6 +59,14 @@ class JsonBlobService extends BaseService {
     //-------------------------
     // Implementation
     //-------------------------
+    private String generateToken() {
+        def token
+        while (!token || JsonBlob.findByToken(token)) {
+            token = UUID.randomUUID().toString().substring(0, 8)
+        }
+        return token
+    }
+
     private boolean passesAcl(JsonBlob blob) {
         return blob.acl == '*' || blob.owner == username
     }
@@ -72,7 +81,8 @@ class JsonBlobService extends BaseService {
         if (!blob) return null
 
         def ret = [
-            id: blob.uuid,
+            id: blob.id,
+            token: blob.token,
             type: blob.type,
             owner: blob.owner,
             acl: blob.acl,
