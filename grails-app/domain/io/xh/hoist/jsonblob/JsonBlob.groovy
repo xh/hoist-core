@@ -11,7 +11,7 @@ import io.xh.hoist.util.Utils
 
 class JsonBlob implements JSONFormat {
 
-    String token
+    String token = UUID.randomUUID().toString().substring(0, 8)
     String type
     String owner
     String acl

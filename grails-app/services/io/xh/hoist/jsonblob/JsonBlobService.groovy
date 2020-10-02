@@ -26,7 +26,6 @@ class JsonBlobService extends BaseService {
 
     Map create(String type, String name, String value, String description) {
         JsonBlob blob = new JsonBlob(
-            token: generateToken(),
             type: type,
             name: name,
             value: value,
@@ -59,14 +58,6 @@ class JsonBlobService extends BaseService {
     //-------------------------
     // Implementation
     //-------------------------
-    private String generateToken() {
-        def token
-        while (!token || JsonBlob.findByToken(token)) {
-            token = UUID.randomUUID().toString().substring(0, 8)
-        }
-        return token
-    }
-
     private boolean passesAcl(JsonBlob blob) {
         return blob.acl == '*' || blob.owner == username
     }
