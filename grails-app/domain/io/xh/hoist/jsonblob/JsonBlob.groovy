@@ -36,7 +36,7 @@ class JsonBlob implements JSONFormat {
         type maxSize: 50, blank: false
         owner maxSize: 50, nullable: true, blank: false
         acl nullable: true
-        name maxSize: 255, blank: false
+        name unique: ['owner', 'type'], maxSize: 255, blank: false
         value validator: {Utils.isJSON(it) ?: 'default.invalid.json.message'}
         description nullable: true
         lastUpdatedBy nullable: true
@@ -53,6 +53,6 @@ class JsonBlob implements JSONFormat {
         description: description,
         dateCreated: dateCreated,
         lastUpdated: lastUpdated,
-        lastUpdatedBy: lastUpdatedBy
+        lastUpdatedBy: lastUpdatedBy,
     ]}
 }
