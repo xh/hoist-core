@@ -13,11 +13,13 @@ import io.xh.hoist.json.JSONParser
 class JsonBlobService extends BaseService {
 
     Map get(String token) {
-        return formatForClient(JsonBlob.findByToken(token), true)
+        JsonBlob blob = JsonBlob.findByTokenAndArchived(token, false)
+        ensurePassesAcl(blob)
+        return formatForClient(blob, true)
     }
 
     List<Map> list(String type, Boolean includeValue) {
-        return JsonBlob.findAllByType(type).findAll {blob ->
+        return JsonBlob.findAllByTypeAndArchived(type, false).findAll {blob ->
             return passesAcl(blob)
         }.collect {blob ->
             return formatForClient(blob, includeValue)
@@ -37,7 +39,7 @@ class JsonBlobService extends BaseService {
     }
 
     Map update(String token, String name, String value, String description) {
-        JsonBlob blob = JsonBlob.findByToken(token)
+        JsonBlob blob = JsonBlob.findByTokenAndArchived(token, false)
         ensurePassesAcl(blob)
 
         if (name) blob.name = name
@@ -49,10 +51,11 @@ class JsonBlobService extends BaseService {
         return formatForClient(blob, true)
     }
 
-    void delete(String token) {
-        JsonBlob blob = JsonBlob.findByToken(token)
+    void archive(String token) {
+        JsonBlob blob = JsonBlob.findByTokenAndArchived(token, false)
         ensurePassesAcl(blob)
-        blob.delete()
+        blob.archived = true
+        blob.save()
     }
 
     //-------------------------
@@ -63,7 +66,7 @@ class JsonBlobService extends BaseService {
     }
 
     private ensurePassesAcl(JsonBlob blob) {
-        if (!passesAcl(blob)) {
+        if (blob && !passesAcl(blob)) {
             throw new NotAuthorizedException("'${username}' does not have access to the JsonBlob.")
         }
     }
