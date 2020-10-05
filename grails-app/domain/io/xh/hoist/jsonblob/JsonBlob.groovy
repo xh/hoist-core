@@ -18,6 +18,7 @@ class JsonBlob implements JSONFormat {
     String name
     String value
     String description
+    boolean archived
     Date dateCreated
     Date lastUpdated
     String lastUpdatedBy
@@ -51,6 +52,7 @@ class JsonBlob implements JSONFormat {
         name: name,
         value: value,
         description: description,
+        archived: archived,
         dateCreated: dateCreated,
         lastUpdated: lastUpdated,
         lastUpdatedBy: lastUpdatedBy
