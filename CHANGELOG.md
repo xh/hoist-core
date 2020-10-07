@@ -1,5 +1,10 @@
 # Changelog
 
+## 8.5.0 - 2020-10-07
+* `JsonBlobService`: Use more scalable token-based access; support archiving.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.4.0...v8.5.0)
+
 ## 8.4.0 - 2020-09-25
 
 * `JsonBlobService`: Security enhancements and finalization of API.
