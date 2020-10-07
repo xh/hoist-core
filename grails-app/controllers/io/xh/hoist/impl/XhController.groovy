@@ -158,8 +158,7 @@ class XhController extends BaseController {
     }
 
     def archiveJsonBlob(String token) {
-        jsonBlobService.archive(token)
-        renderJSON(success: true)
+        renderJSON(jsonBlobService.archive(token))
     }
 
 

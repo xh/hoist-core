@@ -13,16 +13,15 @@ import io.xh.hoist.json.JSONParser
 class JsonBlobService extends BaseService {
 
     Map get(String token) {
-        JsonBlob blob = JsonBlob.findByTokenAndArchived(token, false)
-        ensurePassesAcl(blob)
+        def blob = getAvailableBlob(token)
         return formatForClient(blob, true)
     }
 
     List<Map> list(String type, Boolean includeValue) {
-        return JsonBlob.findAllByTypeAndArchived(type, false).findAll {blob ->
-            return passesAcl(blob)
-        }.collect {blob ->
-            return formatForClient(blob, includeValue)
+        return JsonBlob
+                .findAllByTypeAndArchived(type, false)
+                .findAll {passesAcl(it)}
+                .collect {formatForClient(it, includeValue)
         }
     }
 
@@ -39,8 +38,7 @@ class JsonBlobService extends BaseService {
     }
 
     Map update(String token, String name, String value, String description) {
-        JsonBlob blob = JsonBlob.findByTokenAndArchived(token, false)
-        ensurePassesAcl(blob)
+        def blob = getAvailableBlob(token)
 
         if (name) blob.name = name
         if (value) blob.value = value
@@ -51,24 +49,30 @@ class JsonBlobService extends BaseService {
         return formatForClient(blob, true)
     }
 
-    void archive(String token) {
-        JsonBlob blob = JsonBlob.findByTokenAndArchived(token, false)
-        ensurePassesAcl(blob)
+    Map archive(String token) {
+        def blob = getAvailableBlob(token)
         blob.archived = true
         blob.save()
+        return formatForClient(blob, true)
     }
 
     //-------------------------
     // Implementation
     //-------------------------
-    private boolean passesAcl(JsonBlob blob) {
-        return blob.acl == '*' || blob.owner == username
-    }
-
-    private ensurePassesAcl(JsonBlob blob) {
-        if (blob && !passesAcl(blob)) {
+    JsonBlob getAvailableBlob(String token) {
+        JsonBlob blob = JsonBlob.findByTokenAndArchived(token, false)
+        if (!blob) {
+            throw new RuntimeException("Active JsonBlob not found: '$token'")
+        }
+        if (!passesAcl(blob)) {
             throw new NotAuthorizedException("'${username}' does not have access to the JsonBlob.")
         }
+        return blob
+    }
+
+
+    private boolean passesAcl(JsonBlob blob) {
+        return blob.acl == '*' || blob.owner == username
     }
 
     private Map formatForClient(JsonBlob blob, Boolean includeValue) {
@@ -81,6 +85,7 @@ class JsonBlobService extends BaseService {
             owner: blob.owner,
             acl: blob.acl,
             name: blob.name,
+            archived: blob.archived,
             description: blob.description,
             dateCreated: blob.dateCreated,
             lastUpdated: blob.lastUpdated,
