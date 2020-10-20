@@ -19,7 +19,7 @@ class JsonBlobService extends BaseService {
 
     List<Map> list(String type, Boolean includeValue) {
         return JsonBlob
-                .findAllByTypeAndArchived(type, false)
+                .findAllByTypeAndArchivedDate(type, 0)
                 .findAll {passesAcl(it)}
                 .collect {formatForClient(it, includeValue)
         }
@@ -51,7 +51,7 @@ class JsonBlobService extends BaseService {
 
     Map archive(String token) {
         def blob = getAvailableBlob(token)
-        blob.archived = true
+        blob.archivedDate = new Date().getTime()
         blob.save()
         return formatForClient(blob, true)
     }
@@ -60,7 +60,7 @@ class JsonBlobService extends BaseService {
     // Implementation
     //-------------------------
     JsonBlob getAvailableBlob(String token) {
-        JsonBlob blob = JsonBlob.findByTokenAndArchived(token, false)
+        JsonBlob blob = JsonBlob.findByTokenAndArchivedDate(token, 0)
         if (!blob) {
             throw new RuntimeException("Active JsonBlob not found: '$token'")
         }
@@ -85,7 +85,8 @@ class JsonBlobService extends BaseService {
             owner: blob.owner,
             acl: blob.acl,
             name: blob.name,
-            archived: blob.archived,
+            archived: blob.archivedDate > 0,
+            archivedDate: blob.archivedDate,
             description: blob.description,
             dateCreated: blob.dateCreated,
             lastUpdated: blob.lastUpdated,

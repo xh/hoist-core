@@ -25,6 +25,12 @@ class JsonBlobAdminController extends RestController {
     }
 
     protected void preprocessSubmit(Map submit) {
+        // Note explicit true/false check to distinguish from undefined
+        if (submit.archived == true) {
+            submit.archivedDate = new Date().getTime()
+        } else if (submit.archived == false) {
+            submit.archivedDate = 0
+        }
         submit.lastUpdatedBy = username
     }
 }
