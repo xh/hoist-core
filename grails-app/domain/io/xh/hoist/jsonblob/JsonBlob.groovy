@@ -18,10 +18,10 @@ class JsonBlob implements JSONFormat {
     String name
     String value
     String description
-    boolean archived
     Date dateCreated
     Date lastUpdated
     String lastUpdatedBy
+    long archivedDate = 0
 
     static mapping = {
         table 'xh_json_blob'
@@ -37,7 +37,7 @@ class JsonBlob implements JSONFormat {
         type maxSize: 50, blank: false
         owner maxSize: 50, nullable: true, blank: false
         acl nullable: true
-        name maxSize: 255, blank: false
+        name maxSize: 255, blank: false, unique: ['owner', 'type', 'archivedDate']
         value validator: {Utils.isJSON(it) ?: 'default.invalid.json.message'}
         description nullable: true
         lastUpdatedBy nullable: true
@@ -52,7 +52,8 @@ class JsonBlob implements JSONFormat {
         name: name,
         value: value,
         description: description,
-        archived: archived,
+        archived: archivedDate > 0,
+        archivedDate: archivedDate,
         dateCreated: dateCreated,
         lastUpdated: lastUpdated,
         lastUpdatedBy: lastUpdatedBy

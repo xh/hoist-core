@@ -2,6 +2,11 @@
 
 ## 9.0-SNAPSHOT - unreleased
 
+* `JsonBlobService`: Enhancements to archiving, provide unique key constraint.
+    - Apps will need to modify the `xh_json_blob` table with a new
+      `archived_date` column and related unique constraint.
+    - Apps should update to `hoist-react >= 36.6.0`.
+
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.5.0...develop)
 
 
