@@ -13,7 +13,7 @@ class JsonBlobDiffService extends BaseService implements DataBinder {
 
     void applyRemoteValues(List records) {
         records.each {rec ->
-            def blob = JsonBlob.findByTypeAndOwnerAndName(rec.type, rec.owner, rec.name),
+            def blob = JsonBlob.findByTypeAndOwnerAndNameAndArchivedDate(rec.type, rec.owner, rec.name, rec.archivedDate),
                 vals = rec.remoteValue
 
             // create new blob based on remote values
