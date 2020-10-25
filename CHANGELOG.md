@@ -1,5 +1,10 @@
 # Changelog
 
+## 9.0-SNAPSHOT - Unreleased
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.6.0...develop)
+
+
 ## 8.6.0 - 2020-10-25
 
 * `JsonBlobService`: Enhancements to archiving, provide unique key constraint.
