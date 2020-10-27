@@ -25,11 +25,12 @@ class JsonBlobService extends BaseService {
         }
     }
 
-    Map create(String type, String name, String value, String description) {
+    Map create(String type, String name, String value, String meta, String description) {
         JsonBlob blob = new JsonBlob(
             type: type,
             name: name,
             value: value,
+            meta: meta,
             description: description,
             owner: username,
             lastUpdatedBy: username
@@ -37,11 +38,12 @@ class JsonBlobService extends BaseService {
         return formatForClient(blob, true)
     }
 
-    Map update(String token, String name, String value, String description) {
+    Map update(String token, String name, String value, String meta, String description) {
         def blob = getAvailableBlob(token)
 
         if (name) blob.name = name
         if (value) blob.value = value
+        if (meta) blob.meta = meta
         if (description) blob.description = description
 
         blob.lastUpdatedBy = username
@@ -70,7 +72,6 @@ class JsonBlobService extends BaseService {
         return blob
     }
 
-
     private boolean passesAcl(JsonBlob blob) {
         return blob.acl == '*' || blob.owner == username
     }
@@ -90,7 +91,8 @@ class JsonBlobService extends BaseService {
             description: blob.description,
             dateCreated: blob.dateCreated,
             lastUpdated: blob.lastUpdated,
-            lastUpdatedBy: blob.lastUpdatedBy
+            lastUpdatedBy: blob.lastUpdatedBy,
+            meta: JSONParser.parseObjectOrArray(blob.meta)
         ]
 
         if (includeValue) {
