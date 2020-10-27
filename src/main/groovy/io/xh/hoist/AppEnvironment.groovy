@@ -31,6 +31,7 @@ enum AppEnvironment implements JSONFormat {
     BETA('Beta'),
     STAGING('Staging'),
     DEVELOPMENT('Development'),
+    TEST('Test'),
     UAT('UAT'), // User Acceptance Testing - alternate option for beta/staging
     BCP('BCP')  // Business Continuity Planning - aka DR
 
