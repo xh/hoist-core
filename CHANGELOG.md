@@ -27,7 +27,7 @@
         ```sql
         alter table xh_json_blob add archived_date bigint not null go
         alter table xh_json_blob drop column archived go
-        alter table xh_json_blob add constraint UKbaef62a2f292268acb34ac8149d0 unique (archived_date, type, owner, name)
+        alter table xh_json_blob add constraint idx_xh_json_blob_unique_key unique (archived_date, type, owner, name)
         ```
       
     - Apps should update to `hoist-react >= 36.6.0`.
