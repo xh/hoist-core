@@ -1,8 +1,16 @@
 # Changelog
 
-## 9.0-SNAPSHOT - Unreleased
+## 8.6.1 - 2020-10-28
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v8.6.0...develop)
+* `JsonBlobService`: Complete support for metadata with additional `meta` property.
+        Requires additional column on blob table, e.g.
+        ```sql
+        alter table xh_json_blob add meta varchar(max) go
+        ``` 
+        
+* Introduce new `AppEnvironment` enumeration value: `Test`        
+        
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.6.0...v8.6.1)
 
 
 ## 8.6.0 - 2020-10-25
@@ -13,7 +21,6 @@
       migration SQL below:
       
         ```sql
-        alter table xh_json_blob add meta varchar(max) go
         alter table xh_json_blob add archived_date bigint not null go
         alter table xh_json_blob drop column archived go
         alter table xh_json_blob add constraint UKbaef62a2f292268acb34ac8149d0 unique (archived_date, type, owner, name)
