@@ -7,12 +7,13 @@
 
 ## 8.6.0 - 2020-10-25
 
-* `JsonBlobService`: Enhancements to archiving, provide unique key constraint.
-    - Apps will need to modify the `xh_json_blob` table with a new
-      `archived_date` column and related unique constraint. SAMPLE
+* `JsonBlobService`: Enhancements to archiving, new columns and new unique key constraint.
+    - Apps will need to modify the `xh_json_blob` table with new `meta`
+      and `archived_date` columns and related unique constraint. SAMPLE
       migration SQL below:
       
         ```sql
+        alter table xh_json_blob add meta varchar(max) go
         alter table xh_json_blob add archived_date bigint not null go
         alter table xh_json_blob drop column archived go
         alter table xh_json_blob add constraint UKbaef62a2f292268acb34ac8149d0 unique (archived_date, type, owner, name)

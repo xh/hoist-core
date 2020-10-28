@@ -17,6 +17,7 @@ class JsonBlob implements JSONFormat {
     String acl
     String name
     String value
+    String meta
     String description
     Date dateCreated
     Date lastUpdated
@@ -29,6 +30,7 @@ class JsonBlob implements JSONFormat {
         token index: 'idx_xh_json_blob_token'
         acl type: 'text'
         value type: 'text'
+        meta type: 'text'
         description type: 'text'
     }
 
@@ -39,6 +41,7 @@ class JsonBlob implements JSONFormat {
         acl nullable: true
         name maxSize: 255, blank: false, unique: ['owner', 'type', 'archivedDate']
         value validator: {Utils.isJSON(it) ?: 'default.invalid.json.message'}
+        meta nullable: true, validator: {Utils.isJSON(it) ?: 'default.invalid.json.message'}
         description nullable: true
         lastUpdatedBy nullable: true
     }
@@ -51,6 +54,7 @@ class JsonBlob implements JSONFormat {
         acl: acl,
         name: name,
         value: value,
+        meta: meta,
         description: description,
         archived: archivedDate > 0,
         archivedDate: archivedDate,
