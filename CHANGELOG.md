@@ -1,5 +1,9 @@
 # Changelog
 
+## 9.0-SNAPSHOT - unreleased
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.6.1...develop)
+
 ## 8.6.1 - 2020-10-28
 
 * `JsonBlobService`: Complete support for metadata with additional `meta` property.
