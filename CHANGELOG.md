@@ -2,6 +2,11 @@
 
 ## 9.0-SNAPSHOT - unreleased
 
+* Removed extra stacktraces from default logging that were resulting from the grails
+built-in 'StackTrace' logger.  This logger has now been set to level *OFF* by default.  
+To re-enable these stacktraces, raise the log level of this logger in either
+logback.groovy or dynamically at runtime in the Hoist Admin App. 
+
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.6.1...develop)
 
 ## 8.6.1 - 2020-10-28
