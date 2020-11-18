@@ -17,7 +17,7 @@ class LogLevel implements JSONFormat {
     String getDefaultLevel() {logLevelService.getDefaultLevel(name)}
     String getEffectiveLevel() {logLevelService.getEffectiveLevel(name)}
 
-    public static List<String> LEVELS = ['Trace', 'Debug', 'Info', 'Warn', 'Error', 'Inherit']
+    public static List<String> LEVELS = ['Trace', 'Debug', 'Info', 'Warn', 'Error', 'Inherit', 'Off']
 
     static mapping = {
         table 'xh_log_level'

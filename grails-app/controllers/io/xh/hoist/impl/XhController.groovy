@@ -250,7 +250,7 @@ class XhController extends BaseController {
         def clientUsername = params.clientUsername
 
         if (!clientUsername) {
-            throw new RuntimeException("This endpoint requires a clientUsername param to confirm the intended user.")
+            throw new SessionMismatchException("This endpoint requires a clientUsername param to confirm the intended user.")
         } else if (clientUsername != username) {
             throw new SessionMismatchException("The reported clientUsername param does not match current session user.")
         }

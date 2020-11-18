@@ -10,17 +10,15 @@ package io.xh.hoist.log
 import ch.qos.logback.core.ConsoleAppender
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder
 import ch.qos.logback.core.Context
-import ch.qos.logback.core.FileAppender
 import ch.qos.logback.core.Layout
 import ch.qos.logback.core.encoder.Encoder
 import ch.qos.logback.core.encoder.LayoutWrappingEncoder
 import ch.qos.logback.core.rolling.RollingFileAppender
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy
-import grails.util.BuildSettings
-import grails.util.Environment
 import io.xh.hoist.util.Utils
 import java.nio.file.Paths
 
+import static ch.qos.logback.classic.Level.OFF
 import static ch.qos.logback.classic.Level.ERROR
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.WARN
@@ -175,18 +173,10 @@ class LogUtils {
             logger('org.springframework',           ERROR)
             logger('net.sf.ehcache',                ERROR)
 
-            //------------------------------------------------------------
-            // Full Stack trace, redirect to special log in dev mode only
-            //------------------------------------------------------------
-            def targetDir = BuildSettings.TARGET_DIR
-            if (Environment.isDevelopmentMode() && targetDir) {
-                appender('stacktrace', FileAppender) {
-                    file = "$targetDir/stacktrace.log"
-                    append = true
-                    encoder(PatternLayoutEncoder) {pattern = "%level %logger - %msg%n" }
-                }
-                logger('StackTrace', ERROR, ['stacktrace'], false)
-            }
+            // Turn off built-in grails stacktrace logger.  It can easily swamp logs!
+            // If needed, it can be (carefully) re-enabled by in admin console.
+            logger('StackTrace', OFF)
+
         }
     }
 
