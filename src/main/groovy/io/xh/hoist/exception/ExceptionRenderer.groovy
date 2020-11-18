@@ -23,11 +23,11 @@ import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
 /**
  * This class provides the default server-side exception handling in Hoist.
  *
- * An instance of the class is installed as an injectable Spring Bean by the framework.  Applications
- * may override it on startup by specifying an alternative Bean in resources.groovy.
+ * An instance of the class is installed as an injectable Spring Bean by the framework.
+ * Applications may override it on startup by specifying an alternative Bean in resources.groovy.
  *
- * This bean is automatically wired up for use in all descendants of BaseController and Timer.  These
- * two contexts capture the overwhelming majority of code execution in a hoist server.
+ * This bean is automatically wired up for use in all descendants of BaseController and Timer.
+ * These two contexts capture the overwhelming majority of code execution in a Hoist server.
  */
 @CompileStatic
 @Slf4j

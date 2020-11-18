@@ -209,25 +209,25 @@ class XhController extends BaseController {
         renderJSON(success: true)
     }
 
-    //------------------------
-    // Time zone
-    // Returns the timezone offset for a given timezone ID.
-    // While abbrevs (e.g. 'GMT', 'PST', 'UTC+04') are supported, fully qualified IDs (e.g.
-    // 'Europe/London', 'America/New_York') are preferred, as these account for daylight savings.
-    //------------------------
+
+    //-----------------------
+    // Misc
+    //-----------------------
+    /**
+     * Returns the timezone offset for a given timezone ID.
+     * While abbrevs (e.g. 'GMT', 'PST', 'UTC+04') are supported, fully qualified IDs (e.g.
+     * 'Europe/London', 'America/New_York') are preferred, as these account for daylight savings.
+     */
     def getTimeZoneOffset(String timeZoneId) {
         // Validate ID, as getTimeZone() defaults to GMT if not recognized.
         def availableIds = TimeZone.getAvailableIDs()
         if (!availableIds.contains(timeZoneId)) {
-            throw new NotFoundException("TimeZone ID ${timeZoneId} not recognized")
+            throw new NotFoundException("Unknown timeZoneId")
         }
         def tz = TimeZone.getTimeZone(timeZoneId)
         renderJSON([offset: tz.getOffset(System.currentTimeMillis())])
     }
 
-    //-----------------------
-    // Misc
-    //-----------------------
     def notFound() {
         throw new NotFoundException()
     }
@@ -235,7 +235,6 @@ class XhController extends BaseController {
     //------------------------
     // Implementation
     //------------------------
-
     /**
      * Check to validate that the client's expectation of the current user matches the active user
      * actually present within the session. Should be called prior to any operations in this
@@ -250,9 +249,9 @@ class XhController extends BaseController {
         def clientUsername = params.clientUsername
 
         if (!clientUsername) {
-            throw new SessionMismatchException("This endpoint requires a clientUsername param to confirm the intended user.")
+            throw new SessionMismatchException("Unable to confirm match between client and session user.")
         } else if (clientUsername != username) {
-            throw new SessionMismatchException("The reported clientUsername param does not match current session user.")
+            throw new SessionMismatchException("The reported clientUsername does not match current session user.")
         }
     }
 

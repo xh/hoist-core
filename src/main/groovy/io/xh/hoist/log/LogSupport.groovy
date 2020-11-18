@@ -26,9 +26,9 @@ import static java.lang.System.currentTimeMillis
 trait LogSupport {
 
     /**
-     * Expose the conventional logger associated with the class of the concrete
-     * instance of this object.  This is useful for code in super classes or auxillary classes
-     * that want to produce log statements in the loggers of particular concrete instances.
+     * Expose the conventional logger associated with the class of the concrete instance of
+     * this object. This is useful for code in super classes or auxiliary classes that want
+     * to produce log statements in the loggers of particular concrete instances.
      */
     @CompileDynamic
     Logger getInstanceLog() {
