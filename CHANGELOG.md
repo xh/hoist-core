@@ -8,6 +8,8 @@
   runtime in the Hoist Admin Console.
 * HTML-encode certain user-provided params to XhController endpoints (e.g. track, clientErrors,
   feedback) to sanitize before storing / emailing.
+* Added new `MemoryMonitoringService` to sample and return simple statistics on heap (memory) usage
+  from the JVM runtime. Stores a rolling history of snapshots on a configurable interval.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.6.1...develop)
 

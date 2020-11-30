@@ -41,20 +41,20 @@ class Timer implements AsyncSupport {
     final Closure runFn
 
     /**
-     * Interval between runs.  Specify as a number, closure, or string.  The units for this
-     * argument are defined by intervalUnits property.  If value is not positive, the job will not run.
+     * Interval between runs. Specify as a number, closure, or string. The units for this argument
+     * are defined by intervalUnits property. If value is not positive, the job will not run.
      *
-     * If specified as a function, the value will be recomputed after every run. If specified as a string,
-     * the value will be assumed to be a config key, and will be looked up after every run.
+     * If specified as a function, the value will be recomputed after every run. If specified as a
+     * string, the value will be assumed to be a config key and will be looked up after every run.
      */
     final Object interval
 
     /**
-     * Max time to let function run before cancelling. Specify as a number, closure, or string.  The units for this
-     * argument are defined by timeoutUnits property.  Default is 3 mins.
+     * Max time to let function run before cancelling. Specify as a number, closure, or string.
+     * The units for this argument are defined by timeoutUnits property. Default is 3 mins.
      *
-     * If specified as a function, the value will be re-computed after every run. If specified as a string,
-     * the value will be assumed to be a config key, and will be looked up after every run.
+     * If specified as a function, the value will be re-computed after every run. If specified as a
+     * string, the value will be assumed to be a config key, and will be looked up after every run.
      */
     final Object timeout
 
@@ -105,9 +105,8 @@ class Timer implements AsyncSupport {
     static ExecutorService executorService = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>())
 
     /**
-     * Applications should not typically use this constructor directly.  Timers
-     * are typically created by services using the createTimer() method on
-     * the service itself.
+     * Applications should not typically use this constructor directly. Timers are typically
+     * created by services using the createTimer() method supplied by io.xh.hoist.BaseService.
      */
     Timer(Map config) {
         owner = config.owner
@@ -278,5 +277,3 @@ class Timer implements AsyncSupport {
         }
     }
 }
-
-
