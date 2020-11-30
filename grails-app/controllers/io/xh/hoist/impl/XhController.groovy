@@ -22,6 +22,7 @@ import io.xh.hoist.security.AccessAll
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.util.Utils
+import org.owasp.encoder.Encode
 
 @AccessAll
 @CompileStatic
@@ -81,15 +82,15 @@ class XhController extends BaseController {
     //------------------------
     // Tracking
     //------------------------
-    def track() {
+    def track(String category, String msg, String data, int elapsed, String severity) {
         ensureClientUsernameMatchesSession()
 
         trackService.track(
-                category: params.category,
-                msg: params.msg,
-                data: params.data ? JSONParser.parseObjectOrArray((String) params.data) : null,
-                elapsed: params.elapsed,
-                severity: params.severity
+            category: safeStr(category),
+            msg: safeStr(msg),
+            data: data ? JSONParser.parseObjectOrArray(safeStr(data)) : null,
+            elapsed: elapsed,
+            severity: safeStr(severity)
         )
 
         renderJSON(success: true)
@@ -185,9 +186,9 @@ class XhController extends BaseController {
     def version() {
         def shouldUpdate = configService.getBool('xhAppVersionCheckEnabled')
         renderJSON (
-                appVersion: Utils.appVersion,
-                appBuild: Utils.appBuild,
-                shouldUpdate: shouldUpdate
+            appVersion: Utils.appVersion,
+            appBuild: Utils.appBuild,
+            shouldUpdate: shouldUpdate
         )
     }
 
@@ -196,7 +197,12 @@ class XhController extends BaseController {
     //------------------------
     def submitError(String msg, String error, String appVersion, boolean userAlerted) {
         ensureClientUsernameMatchesSession()
-        clientErrorService.submit(msg, error, appVersion, userAlerted)
+        clientErrorService.submit(
+            safeStr(msg),
+            safeStr(error),
+            safeStr(appVersion),
+            userAlerted
+        )
         renderJSON(success: true)
     }
 
@@ -205,7 +211,10 @@ class XhController extends BaseController {
     //------------------------
     def submitFeedback(String msg, String appVersion) {
         ensureClientUsernameMatchesSession()
-        feedbackService.submit(msg, appVersion)
+        feedbackService.submit(
+            safeStr(msg),
+            safeStr(appVersion)
+        )
         renderJSON(success: true)
     }
 
@@ -253,6 +262,15 @@ class XhController extends BaseController {
         } else if (clientUsername != username) {
             throw new SessionMismatchException("The reported clientUsername does not match current session user.")
         }
+    }
+
+    /**
+     * Run user-provided string input through an OWASP-provided encoder to escape tags. Note the
+     * use of `forHtmlContent()` encodes only `&<>` and in particular leaves quotes un-escaped to
+     * support JSON strings.
+     */
+    private String safeStr(String input) {
+        return input ? Encode.forHtmlContent(input) : input
     }
 
 }

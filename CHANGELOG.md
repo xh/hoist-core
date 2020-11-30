@@ -2,45 +2,43 @@
 
 ## 9.0-SNAPSHOT - unreleased
 
-* Removed extra stacktraces from default logging that were resulting from the grails
-built-in 'StackTrace' logger.  This logger has now been set to level *OFF* by default.  
-To re-enable these stacktraces, raise the log level of this logger in either
-logback.groovy or dynamically at runtime in the Hoist Admin App. 
+* Removed extra stacktraces from default logging that were resulting from the built-in 'StackTrace'
+  logger configured by Grails. This logger has now been set to level *OFF* by default. To re-enable
+  these stacktraces, raise the log level of this logger in either logback.groovy or dynamically at
+  runtime in the Hoist Admin Console.
+* HTML-encode certain user-provided params to XhController endpoints (e.g. track, clientErrors,
+  feedback) to sanitize before storing / emailing.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.6.1...develop)
 
 ## 8.6.1 - 2020-10-28
 
-* `JsonBlobService`: Complete support for metadata with additional `meta` property.
-        Requires additional column on blob table, e.g.
-        ```sql
-        alter table xh_json_blob add meta varchar(max) go
-        ``` 
-        
-* Introduce new `AppEnvironment` enumeration value: `Test`        
-        
+* `JsonBlobService` - complete support for metadata with additional `meta` property. Requires an
+  additional column on blob table, e.g. ```sql alter table xh_json_blob add meta varchar(max) go ```
+* Introduce new `AppEnvironment.TEST` enumeration value.
+
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.6.0...v8.6.1)
 
 
 ## 8.6.0 - 2020-10-25
 
 * `JsonBlobService`: Enhancements to archiving, new columns and new unique key constraint.
-    - Apps will need to modify the `xh_json_blob` table with new `meta`
-      and `archived_date` columns and related unique constraint. SAMPLE
-      migration SQL below:
-      
-        ```sql
-        alter table xh_json_blob add archived_date bigint not null go
-        alter table xh_json_blob drop column archived go
-        alter table xh_json_blob add constraint idx_xh_json_blob_unique_key unique (archived_date, type, owner, name)
-        ```
-      
-    - Apps should update to `hoist-react >= 36.6.0`.
+  - Apps will need to modify the `xh_json_blob` table with new `meta` and `archived_date` columns
+    and related unique constraint. SAMPLE migration SQL below:
+
+    ```sql
+    alter table xh_json_blob add archived_date bigint not null go
+    alter table xh_json_blob drop column archived go
+    alter table xh_json_blob add constraint idx_xh_json_blob_unique_key unique (archived_date, type, owner, name)
+    ```
+
+  - Apps should update to `hoist-react >= 36.6.0`.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.5.0...v8.6.0)
 
 
 ## 8.5.0 - 2020-10-07
+
 * `JsonBlobService`: Use more scalable token-based access; support archiving.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.4.0...v8.5.0)
