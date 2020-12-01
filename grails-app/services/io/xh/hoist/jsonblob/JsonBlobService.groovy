@@ -25,26 +25,29 @@ class JsonBlobService extends BaseService {
         }
     }
 
-    Map create(String type, String name, String value, String meta, String description) {
+    Map create(String type, String name, String value, String meta, String description, String owner, String acl) {
         JsonBlob blob = new JsonBlob(
             type: type,
             name: name,
             value: value,
             meta: meta,
             description: description,
-            owner: username,
+            owner: owner ?: username,
+            acl: acl ?: null,
             lastUpdatedBy: username
         ).save()
         return formatForClient(blob, true)
     }
 
-    Map update(String token, String name, String value, String meta, String description) {
+    Map update(String token, String name, String value, String meta, String description, String owner, String acl) {
         def blob = getAvailableBlob(token)
 
         if (name) blob.name = name
         if (value) blob.value = value
         if (meta) blob.meta = meta
         if (description) blob.description = description
+        if (owner) blob.owner = owner
+        if (acl) blob.acl = acl
 
         blob.lastUpdatedBy = username
         blob.save()
