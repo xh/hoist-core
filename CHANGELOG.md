@@ -1,17 +1,18 @@
 # Changelog
 
-## 9.0-SNAPSHOT - unreleased
+## 8.7.0 - 2020-12-01
 
-* Removed extra stacktraces from default logging that were resulting from the built-in 'StackTrace'
-  logger configured by Grails. This logger has now been set to level *OFF* by default. To re-enable
-  these stacktraces, raise the log level of this logger in either logback.groovy or dynamically at
-  runtime in the Hoist Admin Console.
+* Removed verbose stacktraces appended to the primary app log by the built-in Grails 'StackTrace'
+  logger. This logger has now been set to level *OFF* by default. To re-enable these stacktraces,
+  raise the log level of this logger in either logback.groovy or dynamically at runtime in the Hoist
+  Admin Console.
+* Added new `MemoryMonitoringService` to sample and return simple statistics on heap (memory) usage
+  from the JVM runtime. Stores a rolling, in-memory history of snapshots on a configurable interval.
 * HTML-encode certain user-provided params to XhController endpoints (e.g. track, clientErrors,
   feedback) to sanitize before storing / emailing.
-* Added new `MemoryMonitoringService` to sample and return simple statistics on heap (memory) usage
-  from the JVM runtime. Stores a rolling history of snapshots on a configurable interval.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v8.6.1...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.6.1...v8.7.0)
+
 
 ## 8.6.1 - 2020-10-28
 
@@ -44,6 +45,7 @@
 * `JsonBlobService`: Use more scalable token-based access; support archiving.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.4.0...v8.5.0)
+
 
 ## 8.4.0 - 2020-09-25
 
