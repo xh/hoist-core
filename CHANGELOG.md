@@ -1,5 +1,9 @@
 # Changelog
 
+## 9.0-SNAPSHOT - unreleased
+
+* Enhancements to `JSONBlobService` API
+
 ## 8.7.0 - 2020-12-01
 
 * Removed verbose stacktraces appended to the primary app log by the built-in Grails 'StackTrace'
