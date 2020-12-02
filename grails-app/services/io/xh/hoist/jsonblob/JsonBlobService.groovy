@@ -58,6 +58,17 @@ class JsonBlobService extends BaseService {
         return formatForClient(blob, true)
     }
 
+    /** For specialized application use, not available in XH client API */
+    Map updateAccess(String token, String owner, String acl) {
+        def blob = getAvailableBlob(token)
+        blob.owner = owner
+        blob.acl = acl
+
+        blob.lastUpdatedBy = username
+        blob.save()
+        return formatForClient(blob, true)
+    }
+
     //-------------------------
     // Implementation
     //-------------------------
