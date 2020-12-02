@@ -25,29 +25,26 @@ class JsonBlobService extends BaseService {
         }
     }
 
-    Map create(String type, String name, String value, String meta, String description, String owner, String acl) {
+    Map create(String type, String name, String value, String meta, String description) {
         JsonBlob blob = new JsonBlob(
             type: type,
             name: name,
             value: value,
             meta: meta,
             description: description,
-            owner: owner ?: username,
-            acl: acl ?: null,
+            owner: username,
             lastUpdatedBy: username
         ).save()
         return formatForClient(blob, true)
     }
 
-    Map update(String token, String name, String value, String meta, String description, String owner, String acl) {
+    Map update(String token, String name, String value, String meta, String description) {
         def blob = getAvailableBlob(token)
 
         if (name) blob.name = name
         if (value) blob.value = value
         if (meta) blob.meta = meta
         if (description) blob.description = description
-        if (owner) blob.owner = owner
-        if (acl) blob.acl = acl
 
         blob.lastUpdatedBy = username
         blob.save()
@@ -57,6 +54,17 @@ class JsonBlobService extends BaseService {
     Map archive(String token) {
         def blob = getAvailableBlob(token)
         blob.archivedDate = new Date().getTime()
+        blob.save()
+        return formatForClient(blob, true)
+    }
+
+    /** For specialized application use, not available in XH client API */
+    Map updateAccess(String token, String owner, String acl) {
+        def blob = getAvailableBlob(token)
+        blob.owner = owner
+        blob.acl = acl
+
+        blob.lastUpdatedBy = username
         blob.save()
         return formatForClient(blob, true)
     }
