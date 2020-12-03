@@ -60,15 +60,25 @@ class JsonBlobService extends BaseService {
         return formatForClient(blob, true)
     }
 
-    /** For specialized application use, not available in XH client API */
-    Map updateAccess(String token, String owner, String acl) {
+    //------------------------------------------------------------------
+    // Methods for protected server-side use (not exposed in client API)
+    //------------------------------------------------------------------
+    JsonBlob updateAcl(String token, String acl) {
         def blob = getAvailableBlob(token)
-        blob.owner = owner
         blob.acl = acl
 
         blob.lastUpdatedBy = username
         blob.save()
-        return formatForClient(blob, true)
+        return blob
+    }
+
+    JsonBlob updateOwner(String token, String owner) {
+        def blob = getAvailableBlob(token)
+        blob.owner = owner
+
+        blob.lastUpdatedBy = username
+        blob.save()
+        return blob
     }
 
     JsonBlob getAvailableBlob(String token) {
