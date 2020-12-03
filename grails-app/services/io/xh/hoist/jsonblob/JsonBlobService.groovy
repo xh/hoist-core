@@ -54,6 +54,8 @@ class JsonBlobService extends BaseService {
     Map archive(String token) {
         def blob = getAvailableBlob(token)
         blob.archivedDate = new Date().getTime()
+
+        blob.lastUpdatedBy = username
         blob.save()
         return formatForClient(blob, true)
     }
@@ -69,9 +71,6 @@ class JsonBlobService extends BaseService {
         return formatForClient(blob, true)
     }
 
-    //-------------------------
-    // Implementation
-    //-------------------------
     JsonBlob getAvailableBlob(String token) {
         JsonBlob blob = JsonBlob.findByTokenAndArchivedDate(token, 0)
         if (!blob) {
@@ -83,6 +82,9 @@ class JsonBlobService extends BaseService {
         return blob
     }
 
+    //-------------------------
+    // Implementation
+    //-------------------------
     private boolean passesAcl(JsonBlob blob) {
         return blob.acl == '*' || blob.owner == username
     }
