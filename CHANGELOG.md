@@ -1,19 +1,35 @@
 # Changelog
 
-## 9.0-SNAPSHOT - unreleased
+## 8.7.1 - 2020-12-11
 
-* Enhancements to `JSONBlobService` API
+### ⚙️ Technical
+
+* Minor enhancements to `JSONBlobService` API.
+
+### 📚 Libraries
+
+* org.apache.httpcomponents:httpclient `4.5.6 -> 4.5.13`
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.7.0...v8.7.1)
 
 ## 8.7.0 - 2020-12-01
+
+### 🎁 New Features
+
+* Added new `MemoryMonitoringService` to sample and return simple statistics on heap (memory) usage
+  from the JVM runtime. Stores a rolling, in-memory history of snapshots on a configurable interval.
+
+### 🔒 Security
+
+* HTML-encode certain user-provided params to XhController endpoints (e.g. track, clientErrors,
+  feedback) to sanitize before storing / emailing.
+
+### ⚙️ Technical
 
 * Removed verbose stacktraces appended to the primary app log by the built-in Grails 'StackTrace'
   logger. This logger has now been set to level *OFF* by default. To re-enable these stacktraces,
   raise the log level of this logger in either logback.groovy or dynamically at runtime in the Hoist
   Admin Console.
-* Added new `MemoryMonitoringService` to sample and return simple statistics on heap (memory) usage
-  from the JVM runtime. Stores a rolling, in-memory history of snapshots on a configurable interval.
-* HTML-encode certain user-provided params to XhController endpoints (e.g. track, clientErrors,
-  feedback) to sanitize before storing / emailing.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.6.1...v8.7.0)
 
