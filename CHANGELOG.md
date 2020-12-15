@@ -1,5 +1,14 @@
 # Changelog
 
+## 9.0-SNAPSHOT - unreleased
+
+* Default exception logging in `ExceptionRender` will no longer include stacktraces,
+but will instead use `LogSupport.logErrorCompact()`.   To see stacktraces for 
+any given logger, set the logging level to `DEBUG`.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.7.2...develop)
+
+
 ## 8.7.2 - 2020-12-15
 
 ### 🐞 Bug Fixes

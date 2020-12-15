@@ -72,19 +72,13 @@ class ExceptionRenderer {
     protected void logException(Throwable t, LogSupport logSupport) {
         if (shouldLogDebugCompact(t)) {
             logSupport.logDebugCompact(null, t)
-        } else if (shouldLogErrorCompact(t)) {
-            logSupport.logErrorCompact(null, t)
         } else {
-            logSupport.instanceLog.error(summaryTextForThrowable(t), t)
+            logSupport.logErrorCompact(null, t)
         }
     }
 
     protected boolean shouldLogDebugCompact(Throwable t) {
         return t instanceof RoutineException
-    }
-
-    protected boolean shouldLogErrorCompact(Throwable t) {
-        return t instanceof HttpException || t instanceof TimeoutException
     }
 
     protected int getHttpStatus(Throwable t) {
