@@ -1,5 +1,13 @@
 # Changelog
 
+## 8.7.2 - 2020-12-15
+
+### 🐞 Bug Fixes
+
+* Fixed bug preventing cleanup of MemoryMonitoringService snapshots.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.7.1...v8.7.2)
+
 ## 8.7.1 - 2020-12-11
 
 ### ⚙️ Technical
