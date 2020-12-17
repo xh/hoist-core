@@ -57,7 +57,7 @@ trait LogSupport {
     Object withInfo(Object msgs, Closure c)         {withInfo(log, msgs, c)}
 
     /**
-     * Run a closure with a managed log message on DEBUG.
+     * Run a closure with a managed log message at Debug level.
      * see withInfo() for more information.
      */
     Object withDebug(Object msgs, Closure c)        {withDebug(log, msgs, c)}
@@ -95,11 +95,11 @@ trait LogSupport {
      */
     @CompileDynamic
     static Object withInfo(Object log, Object msgs, Closure c) {
-        loggedDo(log, INFO, msgs, log.traceEnabled, c)
+        loggedDo(log, INFO, log.traceEnabled, msgs, c)
     }
 
     /**
-     *  Run a closure with managed log message.
+     *  Run a closure with a managed log message.
      *
      *  This is a static variant of the instance method with the same name.
      *  This is typically used by base classes, that wish to use it with
@@ -109,7 +109,7 @@ trait LogSupport {
      */
     @CompileDynamic
     static Object withDebug(Object log, Object msgs, Closure c) {
-        loggedDo(log, DEBUG, msgs, log.traceEnabled, c)
+        loggedDo(log, DEBUG, log.traceEnabled, msgs, c)
     }
 
     /**
@@ -157,7 +157,7 @@ trait LogSupport {
     //------------------------
     // Implementation
     //------------------------
-    static private Object loggedDo(Object log, Level level, Object msgs, boolean full, Closure c) {
+    static private Object loggedDo(Object log, Level level, boolean full, Object msgs, Closure c) {
         long start = currentTimeMillis()
         String msg = msgs instanceof Collection ? msgs.collect {it.toString()}.join(' | ') : msgs.toString()
         def ret
