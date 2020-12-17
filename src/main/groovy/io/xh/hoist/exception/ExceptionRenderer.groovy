@@ -59,15 +59,16 @@ class ExceptionRenderer {
     //---------------------------------------------
     String summaryTextForThrowable(Throwable e) {
         def cause = e.cause,
-            message = e.message,
-            className = e.class.name
+            msg = e.message,
+            name = e.class.simpleName
 
-        if (message) return "$message [$className]"
+        if (msg) return "$msg [$name]"
         if (cause) {
-            def causeStr = cause.message ? "${cause.message} [${cause.class.name}]" : cause.class.name
-            return "$className caused by $causeStr"
+            def causeMsg = cause.message,
+                causeName = cause.class.simpleName
+            return name + " caused by " +  causeMsg ? "$causeMsg [$causeName]" : causeName
         }
-        return className
+        return name
     }
 
     protected Throwable preprocess(Throwable t) {
