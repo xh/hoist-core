@@ -13,6 +13,8 @@
  ### ⚙️ Technical
 * `RoutineException`s are now returned with HttpStatus `400` to client, rather than `500` 
 
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.7.3...v9.0.0)
+
 ## 8.7.3 - 2020-12-15
 
 * Default exception logging in `ExceptionRender` will no longer include stacktraces,
