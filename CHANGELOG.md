@@ -6,9 +6,8 @@
 
 * `LogSupport` API enhancements:
   * `logErrorCompact()` and `logDebugCompact()` now only shows stacktraces on `TRACE`
-  * `withInfo()` and  `withDebug()` now will automatically print "pre-execution" line 
-    if logging level on 'TRACE'.
-  *  `withShortInfo()` and `withShortDebug()` are now obsolete and have been removed. 
+  *  `withInfo()` and  `withDebug()` now log only once _after_ execution has completed. Raising the log level of the relevant class or package to `TRACE` will cause these utils to also log a line _before_ execution, as they did before. (As always, log levels can be adjusted dynamically at runtime via the Admin Console.)
+  * The upgrade to these two utils mean that they **completely replace** `withShortInfo()` and `withShortDebug()`, which have both been **removed** as part of this change. 
   *  Additional stacktraces have been removed from default logging.
  
 * `RoutineException`s are now returned with HttpStatus `400` to client, rather than `500` 
