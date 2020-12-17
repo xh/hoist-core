@@ -1,5 +1,18 @@
 # Changelog
 
+## 9.0.0 - 2020-12-17
+
+### 🎁 New Features
+
+* `LogSupport` API enhancements:
+  * `logErrorCompact()` and `logDebugCompact()` now only shows stacktraces on `TRACE`
+  * `withInfo()` and  `withDebug()` now will automatically print "pre-execution" line 
+    if logging level on 'TRACE'.
+  *  `withShortInfo()` and `withShortDebug()` are now obsolete and have been removed. 
+  *  Additional stacktraces have been removed from default logging.
+ 
+* `RoutineException`s are now returned with HttpStatus `400` to client, rather than `500` 
+
 ## 8.7.3 - 2020-12-15
 
 * Default exception logging in `ExceptionRender` will no longer include stacktraces,

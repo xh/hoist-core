@@ -7,7 +7,6 @@
 
 package io.xh.hoist.exception
 
-import groovy.transform.CompileStatic
 import io.xh.hoist.util.Utils
 
 /**

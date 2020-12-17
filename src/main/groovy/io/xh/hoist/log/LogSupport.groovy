@@ -39,37 +39,90 @@ trait LogSupport {
     // Main variants.  Will use closest inherited logger starting from the *class*
     // where the logging statement is written.
     // -----------------------------------------------------------------------------------
-    Object withDebug(Object msgs, Closure c)        {withDebug(log, msgs, c)}
-    Object withShortDebug(Object msgs, Closure c)   {withShortDebug(log, msgs, c)}
+    /**
+     * Run a closure with a managed log message.
+     *
+     * This method will run the passed closure, with a summary logging message
+     * indicating the time to complete, and whether the closure threw an exception
+     * or completed successfully.  The log message will be written as 'INFO'.
+     *
+     * If the configured logging level is TRACE, an additional line will be written
+     * BEFORE the closure  is started, for troubleshooting purposes.
+     *
+     * @param msgs - one or more objects that can be converted into strings.
+     *      Will be joined with a '|' delimiter.
+     * @param c - closure to be run.
+     * @return result of executing c
+     */
     Object withInfo(Object msgs, Closure c)         {withInfo(log, msgs, c)}
-    Object withShortInfo(Object msgs, Closure c)    {withShortInfo(log, msgs, c)}
 
-    Object logErrorCompact(Object msg, Throwable e) {logErrorCompact(log, msg, e)}
-    Object logDebugCompact(Object msg, Throwable e) {logDebugCompact(log, msg, e)}
+    /**
+     * Run a closure with a managed log message on DEBUG.
+     * see withInfo() for more information.
+     */
+    Object withDebug(Object msgs, Closure c)        {withDebug(log, msgs, c)}
+
+    /**
+     * Log an exception at Error level.
+     *
+     * Basic summary information about the exception will be appended.
+     * If logging level is TRACE, a stacktrace will be included as well
+     */
+    void logErrorCompact(Object msg, Throwable e) {logErrorCompact(log, msg, e)}
+
+
+    /**
+     * Log an exception at Debug level.
+     *
+     * Basic summary information about the exception will be appended.
+     * If logging level is TRACE, a stacktrace will be included as well.
+     */
+    void logDebugCompact(Object msg, Throwable e) {logDebugCompact(log, msg, e)}
 
 
     //---------------------------------------------------------------------------
     // Variants for logging to a specific logger.
     // Typically used with getInstanceLog(), or when calling from a static method
     //---------------------------------------------------------------------------
-    static Object withDebug(Object log, Object msgs, Closure c) {
-        loggedDo(log, DEBUG, true, msgs, c)
-    }
-
-    static Object withShortDebug(Object log, Object msgs, Closure c) {
-        loggedDo(log, DEBUG, false, msgs, c)
-    }
-
-    static Object withInfo(Object log, Object msgs, Closure c) {
-        loggedDo(log, INFO, true, msgs, c)
-    }
-
-    static Object withShortInfo(Object log, Object msgs, Closure c) {
-        loggedDo(log, INFO, false, msgs, c)
-    }
-
+    /**
+     *  Run a closure with managed log message.
+     *
+     *  This is a static variant of the instance method with the same name.
+     *  This is typically used by base classes, that wish to use it with
+     *  getInstanceLog().
+     *
+     *  Applications should typically use the instance method instead.
+     */
     @CompileDynamic
-    static Object logErrorCompact(Object log, Object msg, Throwable t) {
+    static Object withInfo(Object log, Object msgs, Closure c) {
+        loggedDo(log, INFO, msgs, log.traceEnabled, c)
+    }
+
+    /**
+     *  Run a closure with managed log message.
+     *
+     *  This is a static variant of the instance method with the same name.
+     *  This is typically used by base classes, that wish to use it with
+     *  getInstanceLog().
+     *
+     *  Applications should typically use the instance method instead.
+     */
+    @CompileDynamic
+    static Object withDebug(Object log, Object msgs, Closure c) {
+        loggedDo(log, DEBUG, msgs, log.traceEnabled, c)
+    }
+
+    /**
+     * Log an exception at Error level.
+     *
+     * This is a static variant of the instance method with the same name.
+     * This is typically used by base classes, that wish to use it with
+     * getInstanceLog().
+     *
+     * Applications should typically use the instance method instead.
+     */
+     @CompileDynamic
+    static logErrorCompact(Object log, Object msg, Throwable t) {
         String message = exceptionRenderer.summaryTextForThrowable(t)
         if (msg) message = msg.toString() + ' | ' + message
 
@@ -80,8 +133,17 @@ trait LogSupport {
         }
     }
 
+    /**
+     * Log an exception at Debug level.
+     *
+     * This is a static variant of the instance method with the same name.
+     * This is typically used by base classes, that wish to use it with
+     * getInstanceLog().
+     *
+     * Applications should typically use the instance method instead.
+     */
     @CompileDynamic
-    static Object logDebugCompact(Object log, Object msg, Throwable t) {
+    static logDebugCompact(Object log, Object msg, Throwable t) {
         String message = exceptionRenderer.summaryTextForThrowable(t)
         if (msg) message = msg.toString() + ' | ' + message
 
@@ -95,7 +157,7 @@ trait LogSupport {
     //------------------------
     // Implementation
     //------------------------
-    static private Object loggedDo(Object log, Level level, boolean full, Object msgs, Closure c) {
+    static private Object loggedDo(Object log, Level level, Object msgs, boolean full, Closure c) {
         long start = currentTimeMillis()
         String msg = msgs instanceof Collection ? msgs.collect {it.toString()}.join(' | ') : msgs.toString()
         def ret

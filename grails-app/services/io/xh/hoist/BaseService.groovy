@@ -48,7 +48,7 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
         def initService = {svc ->
             def name = svc.class.simpleName
             createObservable(timeout: timeout) {
-                withShortInfo(log, "Initialized service $name") {
+                withInfo(log, "Initialized service $name") {
                     svc.init()
                 }
             }.onErrorReturn {e ->
