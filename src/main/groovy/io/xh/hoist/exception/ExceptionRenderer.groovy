@@ -62,8 +62,11 @@ class ExceptionRenderer {
             message = e.message,
             className = e.class.name
 
-        if (message) return "$message [$className]";
-        if (cause?.message) return "${cause.message} [${cause.class.name}]"
+        if (message) return "$message [$className]"
+        if (cause) {
+            def causeStr = cause.message ? "${cause.message} [${cause.class.name}]" : cause.class.name
+            return "$className caused by $causeStr"
+        }
         return className
     }
 
