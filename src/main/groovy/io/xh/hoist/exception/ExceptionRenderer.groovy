@@ -16,8 +16,8 @@ import io.xh.hoist.log.LogSupport
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
-import java.util.concurrent.TimeoutException
 
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST
 import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
 
 /**
@@ -58,7 +58,16 @@ class ExceptionRenderer {
     // Template methods.  For application override
     //---------------------------------------------
     String summaryTextForThrowable(Throwable e) {
-        return e.message ?: e.cause?.message ?: e.class.name
+        def cause = e.cause,
+            message = e.message,
+            className = e.class.name
+
+        if (message) return "$message [$className]"
+        if (cause) {
+            def causeStr = cause.message ? "${cause.message} [${cause.class.name}]" : cause.class.name
+            return "$className caused by $causeStr"
+        }
+        return className
     }
 
     protected Throwable preprocess(Throwable t) {
@@ -82,8 +91,13 @@ class ExceptionRenderer {
     }
 
     protected int getHttpStatus(Throwable t) {
-        return t instanceof HttpException && !(t instanceof ExternalHttpException) ?
-                ((HttpException) t).statusCode :
+
+        if (t instanceof HttpException && !(t instanceof ExternalHttpException)) {
+            return ((HttpException) t).statusCode
+        }
+
+        return t instanceof RoutineException ?
+                SC_BAD_REQUEST :
                 SC_INTERNAL_SERVER_ERROR
     }
 

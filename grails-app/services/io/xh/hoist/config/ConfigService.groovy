@@ -65,7 +65,7 @@ class ConfigService extends BaseService implements EventPublisher {
             try {
                 ret[name] = config.externalValue(obscurePassword: true, jsonAsObject: true);
             } catch (Exception e) {
-                log.error("Exception while getting client config: '$name'", e)
+                logErrorCompact("Exception while getting client config: '$name'", e)
             }
         }
 

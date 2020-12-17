@@ -48,7 +48,7 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
         def initService = {svc ->
             def name = svc.class.simpleName
             createObservable(timeout: timeout) {
-                withShortInfo(log, "Initialized service $name") {
+                withInfo(log, "Initialized service $name") {
                     svc.init()
                 }
             }.onErrorReturn {e ->
@@ -95,7 +95,7 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
                 instanceLog.debug("Receiving event '$eventName'")
                 c.call(*args)
             } catch (Exception e) {
-                instanceLog.error("Exception handling event '$eventName':", e)
+                logErrorCompact(instanceLog, "Exception handling event '$eventName':", e)
             }
         }
     }
