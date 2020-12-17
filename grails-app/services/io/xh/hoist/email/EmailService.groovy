@@ -102,7 +102,7 @@ class EmailService extends BaseService {
                 log.info("Sent mail | $logMsg")
             }
         } catch (Exception e) {
-            log.error("Error sending email $logMsg | ${e.message}")
+            logErrorCompact("Error sending email $logMsg", e)
             if (throwError) throw e
         }
     }

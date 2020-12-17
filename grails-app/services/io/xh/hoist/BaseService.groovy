@@ -95,7 +95,7 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
                 instanceLog.debug("Receiving event '$eventName'")
                 c.call(*args)
             } catch (Exception e) {
-                instanceLog.error("Exception handling event '$eventName':", e)
+                logErrorCompact(instanceLog, "Exception handling event '$eventName':", e)
             }
         }
     }

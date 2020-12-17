@@ -73,10 +73,10 @@ trait LogSupport {
         String message = exceptionRenderer.summaryTextForThrowable(t)
         if (msg) message = msg.toString() + ' | ' + message
 
-        if (log.debugEnabled) {
+        if (log.traceEnabled) {
             log.error(message, t)
         } else {
-            log.error(message + ' [log on debug for more...]')
+            log.error(message + ' [log on trace for more...]')
         }
     }
 
