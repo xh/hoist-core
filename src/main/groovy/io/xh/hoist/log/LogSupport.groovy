@@ -121,7 +121,7 @@ trait LogSupport {
      *
      * Applications should typically use the instance method instead.
      */
-     @CompileDynamic
+    @CompileDynamic
     static logErrorCompact(Object log, Object msg, Throwable t) {
         String message = exceptionRenderer.summaryTextForThrowable(t)
         if (msg) message = msg.toString() + ' | ' + message
@@ -168,8 +168,7 @@ trait LogSupport {
             ret = c.call()
         } catch (Exception e) {
             long elapsed = currentTimeMillis() - start
-            def exceptionSummary = exceptionRenderer.summaryTextForThrowable((Throwable) e)
-            logAtLevel(log, level, "$msg | failed - $exceptionSummary | ${elapsed}ms")
+            logAtLevel(log, level, "$msg | failed | ${elapsed}ms")
             throw e
         }
 

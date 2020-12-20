@@ -16,6 +16,7 @@ import io.xh.hoist.log.LogSupport
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
+import java.util.concurrent.ExecutionException
 
 import static org.apache.http.HttpStatus.SC_BAD_REQUEST
 import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
@@ -57,18 +58,17 @@ class ExceptionRenderer {
     //---------------------------------------------
     // Template methods.  For application override
     //---------------------------------------------
-    String summaryTextForThrowable(Throwable e) {
-        def cause = e.cause,
-            msg = e.message,
-            name = e.class.simpleName
-
-        if (msg) return "$msg [$name]"
-        if (cause) {
-            def causeMsg = cause.message,
-                causeName = cause.class.simpleName
-            return name + " caused by " +  causeMsg ? "$causeMsg [$causeName]" : causeName
-        }
-        return name
+    /**
+     * Produce a one-line summary string for an exception.
+     *
+     * The default implementation a bit of a heuristic, designed to unearth meaningful information, while
+     * keeping things to a one-line summary.
+     *
+     * For more detailed exception rendering, users will need to log the entire exception, typically via
+     * using "TRACE" mode
+     */
+    String summaryTextForThrowable(Throwable t) {
+        summaryTextInternal(t, true)
     }
 
     protected Throwable preprocess(Throwable t) {
@@ -112,5 +112,30 @@ class ExceptionRenderer {
                         isRoutine: t instanceof RoutineException
                 ].findAll {it.value}
         return JSONSerializer.serialize(ret);
+    }
+
+
+    //---------------------------
+    // Implementation
+    //---------------------------
+    String summaryTextInternal(Throwable t, boolean includeCause) {
+
+        // Skip the common thin wrapper around async exceptions
+        if (t instanceof ExecutionException && t.cause) {
+            t = t.cause;
+        }
+
+        // Return (optional) message and class name
+        def msg = t.message,
+            cause = t.cause,
+            name = t.class.simpleName,
+            ret = msg ? "$msg [$name]" : "[$name]"
+
+        // ...appending one level of cause, recursively. Could consider also drilling down to "root" cause.
+        if (cause && includeCause) {
+            ret += " caused by " + summaryTextInternal(cause, false)
+        }
+
+        return ret
     }
 }
