@@ -19,6 +19,7 @@ import io.xh.hoist.pref.PrefService
 import io.xh.hoist.track.TrackLog
 import io.xh.hoist.user.BaseRoleService
 import io.xh.hoist.user.BaseUserService
+import io.xh.hoist.user.IdentityService
 import io.xh.hoist.websocket.WebSocketService
 import org.springframework.context.ApplicationContext
 
@@ -82,6 +83,10 @@ class Utils {
 
     static BaseUserService getUserService() {
         return (BaseUserService) appContext.userService
+    }
+
+    static IdentityService getIdentityService() {
+        return (IdentityService) appContext.identityService
     }
 
     static BaseRoleService getRoleService() {
