@@ -1,5 +1,15 @@
 # Changelog
 
+## 10.0-SNAPSHOT - unreleased
+
+### ⚙️ Technical
+* Built-in logging utils -- `withDebug`, `withInfo`, `compactErrorLog` and `compactDebugLog`  will log
+ username for logging done in the context of a user request.
+* Improve consistency of exception descriptions in logs.
+* Remove repeated exception descriptions in logs -- `withDebug` and `withInfo` will no longer print exception 
+details.
+
+
 ## 9.0.0 - 2020-12-17
 
 ### 💥 Breaking Changes
