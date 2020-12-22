@@ -1,15 +1,20 @@
 # Changelog
 
-## 10.0-SNAPSHOT - unreleased
+## 9.1.0 - 2020-12-22
+
+### 🎁 New Features
+* Built-in logging utils -- `withDebug`, `withInfo`, `compactErrorLog` and `compactDebugLog`  will log
+ username for logging done in the context of a user request. 
+* New method `IdentityService.getUsername()` for efficient access to username when no additional details about
+current user are needed.
 
 ### ⚙️ Technical
-* Built-in logging utils -- `withDebug`, `withInfo`, `compactErrorLog` and `compactDebugLog`  will log
- username for logging done in the context of a user request.
 * Improve consistency of exception descriptions in logs.
 * Remove repeated exception descriptions in logs -- `withDebug` and `withInfo` will no longer print exception 
 details.
-* New method `IdentityService.getUsername()` for efficient access to username when no additional details about
-current user are needed.
+* TrackService will now log to a dedicated daily log
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.0.0...v9.1.0)
 
 ## 9.0.0 - 2020-12-17
 
