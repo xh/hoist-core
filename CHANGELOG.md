@@ -8,7 +8,8 @@
 * Improve consistency of exception descriptions in logs.
 * Remove repeated exception descriptions in logs -- `withDebug` and `withInfo` will no longer print exception 
 details.
-
+* New method `IdentityService.getUsername()` for efficient access to username when no additional details about
+current user are needed.
 
 ## 9.0.0 - 2020-12-17
 

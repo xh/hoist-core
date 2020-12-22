@@ -55,9 +55,6 @@ class ExceptionRenderer {
         logException(t, logSupport)
     }
 
-    //---------------------------------------------
-    // Template methods.  For application override
-    //---------------------------------------------
     /**
      * Produce a one-line summary string for an exception.
      *
@@ -70,6 +67,9 @@ class ExceptionRenderer {
         summaryTextInternal(t, true)
     }
 
+    //---------------------------------------------
+    // Template methods.  For application override
+    //---------------------------------------------
     protected Throwable preprocess(Throwable t) {
         if (t instanceof grails.validation.ValidationException) {
             t = new ValidationException(t)
@@ -117,7 +117,7 @@ class ExceptionRenderer {
     //---------------------------
     // Implementation
     //---------------------------
-    String summaryTextInternal(Throwable t, boolean includeCause) {
+    private String summaryTextInternal(Throwable t, boolean includeCause) {
 
         // Skip the common thin wrapper around async exceptions
         if (t instanceof ExecutionException && t.cause) {
