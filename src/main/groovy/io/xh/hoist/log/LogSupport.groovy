@@ -51,7 +51,6 @@ trait LogSupport {
      * BEFORE the closure  is started, for troubleshooting purposes.
      *
      * @param msgs - one or more objects that can be converted into strings.
-     *      Will be joined with a '|' delimiter.
      * @param c - closure to be run.
      * @return result of executing c
      */
@@ -60,6 +59,10 @@ trait LogSupport {
     /**
      * Run a closure with a managed log message at Debug level.
      * see withInfo() for more information.
+     *
+     * @param msgs - one or more objects that can be converted into strings
+     * @param c - closure to be run.
+     * @return result of executing c
      */
     Object withDebug(Object msgs, Closure c)        {withDebug((Logger) log, msgs, c)}
 
@@ -67,9 +70,12 @@ trait LogSupport {
      * Log an exception at Error level.
      *
      * Basic summary information about the exception will be appended.
-     * If logging level is TRACE, a stacktrace will be included as well
+     * If logging level is TRACE, a stacktrace will be included as well.
+     *
+     * @param msgs - one or more objects that can be converted into strings
+     * @param t - Throwable to be logged
      */
-    void logErrorCompact(Object msg, Throwable e) {logErrorCompact((Logger) log, msg, e)}
+    void logErrorCompact(Object msgs, Throwable t) {logErrorCompact((Logger) log, msgs, t)}
 
 
     /**
@@ -77,8 +83,11 @@ trait LogSupport {
      *
      * Basic summary information about the exception will be appended.
      * If logging level is TRACE, a stacktrace will be included as well.
+     *
+     * @param msgs - one or more objects that can be converted into strings
+     * @param t - Throwable to be logged
      */
-    void logDebugCompact(Object msg, Throwable e) {logDebugCompact((Logger) log, msg, e)}
+    void logDebugCompact(Object msgs, Throwable t) {logDebugCompact((Logger) log, msgs, t)}
 
 
     //---------------------------------------------------------------------------
@@ -120,11 +129,11 @@ trait LogSupport {
      *
      * Applications should typically use the instance method instead.
      */
-    static logErrorCompact(Logger log, Object msg, Throwable t) {
+    static logErrorCompact(Logger log, Object msgs, Throwable t) {
         if (!log.errorEnabled) return
 
         String summary = exceptionRenderer.summaryTextForThrowable(t)
-        String txt = delimitedTxtWithUser([msg, summary])
+        String txt = delimitedTxtWithUser(msgs, summary)
 
         if (log.traceEnabled) {
             log.error(txt, t)
@@ -142,11 +151,11 @@ trait LogSupport {
      *
      * Applications should typically use the instance method instead.
      */
-    static logDebugCompact(Logger log, Object msg, Throwable t) {
+    static logDebugCompact(Logger log, Object msgs, Throwable t) {
         if (!log.debugEnabled) return
 
         String summary = exceptionRenderer.summaryTextForThrowable(t)
-        String txt = delimitedTxtWithUser([msg, summary])
+        String txt = delimitedTxtWithUser(msgs, summary)
 
         if (log.traceEnabled) {
             log.debug(txt, t)
@@ -160,7 +169,7 @@ trait LogSupport {
     //------------------------
     static private Object loggedDo(Logger log, Level level, Object msgs, Closure c) {
         long start = currentTimeMillis()
-        String txt = delimitedTxtWithUser(msgs instanceof Collection ? msgs.toList() : [msgs])
+        String txt = delimitedTxtWithUser(msgs)
         def ret
 
         if (log.traceEnabled) {
@@ -191,8 +200,15 @@ trait LogSupport {
         }
     }
 
-    static private delimitedTxtWithUser(List<Object> msgs) {
-        msgs.push(identityService.user?.username)
-        return msgs.findAll().collect { it.toString() }.join(' | ')
+    static private String delimitedTxtWithUser(Object msgs, String extra = null) {
+        def username = identityService?.username
+        List<String> ret = msgs ?
+                msgs instanceof Collection ? msgs.collect { it.toString() } : [msgs.toString()] :
+                null
+
+        if (extra) ret.push(extra)
+        if (username) ret.push(username)
+
+        return ret.join(' | ')
     }
 }

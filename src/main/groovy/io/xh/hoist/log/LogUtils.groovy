@@ -183,8 +183,10 @@ class LogUtils {
             logger('org.springframework', ERROR)
             logger('net.sf.ehcache', ERROR)
 
-            // Turn off built-in grails stacktrace logger.  It can easily swamp logs!
+            // Turn off built-in global grails stacktrace logger.  It can easily swamp logs!
             // If needed, it can be (carefully) re-enabled by in admin console.
+            // Applications should *not* typically enable -- instead Hoist stacktraces can be
+            // enabled for any given logger by setting its level to TRACE
             logger('StackTrace', OFF)
         }
     }

@@ -43,11 +43,13 @@ class GridExportImplService extends BaseService {
      * Return map suitable for rendering file with grails controller render() method
      */
     Map getBytesForRender(Map params) {
-        return [
-            file:           getFileData(params.type, params.rows, params.meta),
-            contentType:    getContentType(params.type),
-            fileName:       getFileName(params.filename, params.type)
-        ]
+        withDebug(['Generating Export', params.filename, params.rows.size() + " rows"]) {
+            return [
+                    file       : getFileData(params.type, params.rows, params.meta),
+                    contentType: getContentType(params.type),
+                    fileName   : getFileName(params.filename, params.type)
+            ]
+        } as Map
     }
 
     

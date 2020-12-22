@@ -61,11 +61,10 @@ class ExceptionRenderer {
     /**
      * Produce a one-line summary string for an exception.
      *
-     * The default implementation a bit of a heuristic, designed to unearth meaningful information, while
-     * keeping things to a one-line summary.
+     * The default implementation is designed to yield meaningful information within a one-line summary.
      *
      * For more detailed exception rendering, users will need to log the entire exception, typically via
-     * using "TRACE" mode
+     * using "TRACE" mode.
      */
     String summaryTextForThrowable(Throwable t) {
         summaryTextInternal(t, true)
