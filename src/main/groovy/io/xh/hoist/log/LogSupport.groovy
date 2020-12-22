@@ -203,12 +203,11 @@ trait LogSupport {
     static private String delimitedTxtWithUser(Object msgs, String extra = null) {
         def username = identityService?.username
         List<String> ret = msgs ?
-                msgs instanceof Collection ? msgs.collect { it.toString() } : [msgs.toString()] :
-                null
+                (msgs instanceof Collection ? msgs.collect { it.toString() } : [msgs.toString()]) :
+                []
 
         if (extra) ret.push(extra)
         if (username) ret.push(username)
-
         return ret.join(' | ')
     }
 }
