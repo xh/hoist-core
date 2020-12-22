@@ -1,13 +1,27 @@
 # Changelog
 
+## 10.0-SNAPSHOT - unreleased
+
+### ⚙️ Technical
+* Built-in logging utils -- `withDebug`, `withInfo`, `compactErrorLog` and `compactDebugLog`  will log
+ username for logging done in the context of a user request.
+* Improve consistency of exception descriptions in logs.
+* Remove repeated exception descriptions in logs -- `withDebug` and `withInfo` will no longer print exception 
+details.
+* New method `IdentityService.getUsername()` for efficient access to username when no additional details about
+current user are needed.
+
 ## 9.0.0 - 2020-12-17
 
 ### 💥 Breaking Changes
 
 * `LogSupport` API enhancements:
   * `logErrorCompact()` and `logDebugCompact()` now only show stacktraces on `TRACE`
-  *  `withInfo()` and  `withDebug()` now log only once _after_ execution has completed. Raising the log level of the relevant class or package to `TRACE` will cause these utils to also log a line _before_ execution, as they did before. (As always, log levels can be adjusted dynamically at runtime via the Admin Console.)
-  * The upgrade to these two utils mean that they **completely replace** `withShortInfo()` and `withShortDebug()`, which have both been **removed** as part of this change. 
+  *  `withInfo()` and  `withDebug()` now log only once _after_ execution has completed. Raising the log level of the 
+     relevant class or package to `TRACE` will cause these utils to also log a line _before_ execution, as they did 
+     before. (As always, log levels can be adjusted dynamically at runtime via the Admin Console.)
+  * The upgrade to these two utils mean that they **completely replace** `withShortInfo()` and `withShortDebug()`, 
+     which have both been **removed** as part of this change. 
   *  Additional stacktraces have been removed from default logging.
  
  ### ⚙️ Technical

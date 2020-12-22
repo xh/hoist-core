@@ -56,10 +56,16 @@ class LogUtils {
     static Object monthlyLayout = '%d{MM-dd HH:mm:ss} | %c{0} [%p] | %m%n'
 
     /**
-     * Layout used for logging monitor results to its dedicated monitor log.
+     * Layout used for logging monitor results to a dedicated log.
      * String or a Closure that produces a Layout
      */
     static Object monitorLayout = '%d{HH:mm:ss} | %m%n'
+
+    /**
+     * Layout used for logging client-side tracking results to a dedicated log.
+     * String or a Closure that produces a Layout
+     */
+    static Object trackLayout = '%d{HH:mm:ss} | %m%n'
 
 
     /**
@@ -146,6 +152,7 @@ class LogUtils {
         withDelegate(script) {
 
             def appLogName = Utils.appCode,
+                trackLogName = "$appLogName-track",
                 monitorLogName = "$appLogName-monitor"
 
             //----------------------------------
@@ -155,6 +162,7 @@ class LogUtils {
                 encoder = LogUtils.createEncoder(stdoutLayout, context)
             }
             dailyLog(name: appLogName, script: script)
+            dailyLog(name: trackLogName, script: script, layout: trackLayout)
             dailyLog(name: monitorLogName, script: script, layout: monitorLayout)
 
             //----------------------------------
@@ -165,18 +173,21 @@ class LogUtils {
             // Raise Hoist to info
             logger('io.xh', INFO)
 
-            // Logger for MonitoringService only. Do not duplicate in main log file, but write to stdout
-            logger('io.xh.hoist.monitor.MonitoringService', INFO, [monitorLogName, 'stdout'], additivity = false)
+            // Loggers for MonitoringService and TrackService.
+            // Do not duplicate in main log file, but write to stdout
+            logger('io.xh.hoist.monitor.MonitoringService', INFO, [monitorLogName, 'stdout'], false)
+            logger('io.xh.hoist.track.TrackService', INFO, [trackLogName, 'stdout'], false)
 
             // Quiet noisy loggers
-            logger('org.hibernate',                 ERROR)
-            logger('org.springframework',           ERROR)
-            logger('net.sf.ehcache',                ERROR)
+            logger('org.hibernate', ERROR)
+            logger('org.springframework', ERROR)
+            logger('net.sf.ehcache', ERROR)
 
-            // Turn off built-in grails stacktrace logger.  It can easily swamp logs!
+            // Turn off built-in global grails stacktrace logger.  It can easily swamp logs!
             // If needed, it can be (carefully) re-enabled by in admin console.
+            // Applications should *not* typically enable -- instead Hoist stacktraces can be
+            // enabled for any given logger by setting its level to TRACE
             logger('StackTrace', OFF)
-
         }
     }
 

@@ -53,6 +53,19 @@ class IdentityService extends BaseService {
     }
 
     /**
+     * Return the current active username. Note that this is the 'apparent' user, used for most
+     * application level purposes. In the case of an active impersonation session this will be
+     * different from the authenticated user.
+     *
+     * If called outside the context of a request, this getter will return null.
+     */
+    String getUsername() {
+        HttpSession session = getSessionIfExists(getRequest())
+        return session ? session[APPARENT_USER_KEY] : null
+    }
+
+
+    /**
      *  The 'apparent' user, used for most application level purposes.
      *
      *  If called outside the context of a request, this getter will return null.
