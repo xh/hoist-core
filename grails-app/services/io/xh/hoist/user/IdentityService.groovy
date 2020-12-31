@@ -112,14 +112,20 @@ class IdentityService extends BaseService {
             throw new RuntimeException('Cannot impersonate when outside the context of a request')
         }
         if (!authUser.isHoistAdmin) {
-            throw new RuntimeException("User '${authUser.username}' does not have permissions to impersonate")
+            throw new RuntimeException("User '$authUser.username' does not have permissions to impersonate")
         }
         if (!targetUser?.active) {
             throw new RuntimeException("Cannot impersonate '$username' - no active user found")
         }
 
-        trackImpersonate("User '${authUser.username}' is now impersonating user '${targetUser.username}'")
+        // first explicitly end any existing impersonation session -- important for tracking.
+        if (impersonating) endImpersonate()
+
         request.session[APPARENT_USER_KEY] = targetUser.username
+
+        trackImpersonate('Started impersonation', [target: targetUser.username])
+        log.info("User '$authUser.username' has started impersonating user '$targetUser.username'")
+
         return targetUser
     }
 
@@ -132,8 +138,9 @@ class IdentityService extends BaseService {
             authUser = getAuthUser(request)
 
         if (apparentUser != authUser) {
+            trackImpersonate("Stopped impersonation", [target: apparentUser.username])
+            log.info("User '$authUser.username' has stopped impersonating user '$apparentUser.username'")
             request.session[APPARENT_USER_KEY] = authUser
-            trackImpersonate("User '${authUser.username}' has stopped impersonating user '${apparentUser.username}'")
         }
     }
 
@@ -216,8 +223,13 @@ class IdentityService extends BaseService {
                 null
     }
 
-    private void trackImpersonate(String msg) {
-        trackService.track(category: 'Impersonate', msg: msg, severity: 'WARN')
+    private void trackImpersonate(String msg, Map data) {
+        trackService.track(
+                category: 'Impersonate',
+                severity: 'WARN',
+                msg: msg,
+                data: data
+        );
     }
 
     private HoistUser findHoistUserViaSessionKey(HttpServletRequest request, String key) {

@@ -150,11 +150,11 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
     boolean isDestroyed()   {_destroyed}
 
     protected HoistUser getUser() {
-        identityService.getUser()
+        identityService.user
     }
 
     protected String getUsername() {
-        getUser()?.username
+        identityService.username
     }
 
     private void setupClearCachesConfigs() {

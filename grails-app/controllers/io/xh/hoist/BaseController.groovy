@@ -29,11 +29,11 @@ abstract class BaseController implements LogSupport {
     }
 
     protected HoistUser getUser() {
-        return identityService.getUser()
+        identityService.user
     }
 
     protected String getUsername() {
-        return getUser()?.username
+        identityService.username
     }
     
     //-------------------
