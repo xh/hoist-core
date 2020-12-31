@@ -51,7 +51,7 @@ class AccessInterceptor {
             }
         }
 
-        def username = identityService.getUser()?.username ?: 'UNKNOWN',
+        def username = identityService.username ?: 'UNKNOWN',
             ex = new NotAuthorizedException("""
                     You do not have the application role(s) required to access this content. 
                     Currently logged in as: $username.
