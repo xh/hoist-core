@@ -16,18 +16,20 @@ import io.xh.hoist.log.LogSupport
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
-import java.util.concurrent.TimeoutException
+import java.util.concurrent.ExecutionException
 
+import static org.apache.hc.core5.http.HttpStatus.SC_BAD_REQUEST
 import static org.apache.hc.core5.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
+
 
 /**
  * This class provides the default server-side exception handling in Hoist.
  *
- * An instance of the class is installed as an injectable Spring Bean by the framework.  Applications
- * may override it on startup by specifying an alternative Bean in resources.groovy.
+ * An instance of the class is installed as an injectable Spring Bean by the framework.
+ * Applications may override it on startup by specifying an alternative Bean in resources.groovy.
  *
- * This bean is automatically wired up for use in all descendants of BaseController and Timer.  These
- * two contexts capture the overwhelming majority of code execution in a hoist server.
+ * This bean is automatically wired up for use in all descendants of BaseController and Timer.
+ * These two contexts capture the overwhelming majority of code execution in a Hoist server.
  */
 @CompileStatic
 @Slf4j
@@ -54,13 +56,21 @@ class ExceptionRenderer {
         logException(t, logSupport)
     }
 
+    /**
+     * Produce a one-line summary string for an exception.
+     *
+     * The default implementation is designed to yield meaningful information within a one-line summary.
+     *
+     * For more detailed exception rendering, users will need to log the entire exception, typically via
+     * using "TRACE" mode.
+     */
+    String summaryTextForThrowable(Throwable t) {
+        summaryTextInternal(t, true)
+    }
+
     //---------------------------------------------
     // Template methods.  For application override
     //---------------------------------------------
-    String summaryTextForThrowable(Throwable e) {
-        return e.message ?: e.cause?.message ?: e.class.name
-    }
-
     protected Throwable preprocess(Throwable t) {
         if (t instanceof grails.validation.ValidationException) {
             t = new ValidationException(t)
@@ -72,10 +82,8 @@ class ExceptionRenderer {
     protected void logException(Throwable t, LogSupport logSupport) {
         if (shouldLogDebugCompact(t)) {
             logSupport.logDebugCompact(null, t)
-        } else if (shouldLogErrorCompact(t)) {
-            logSupport.logErrorCompact(null, t)
         } else {
-            logSupport.instanceLog.error(summaryTextForThrowable(t), t)
+            logSupport.logErrorCompact(null, t)
         }
     }
 
@@ -83,13 +91,14 @@ class ExceptionRenderer {
         return t instanceof RoutineException
     }
 
-    protected boolean shouldLogErrorCompact(Throwable t) {
-        return t instanceof HttpException || t instanceof TimeoutException
-    }
-
     protected int getHttpStatus(Throwable t) {
-        return t instanceof HttpException && !(t instanceof ExternalHttpException) ?
-                ((HttpException) t).statusCode :
+
+        if (t instanceof HttpException && !(t instanceof ExternalHttpException)) {
+            return ((HttpException) t).statusCode
+        }
+
+        return t instanceof RoutineException ?
+                SC_BAD_REQUEST :
                 SC_INTERNAL_SERVER_ERROR
     }
 
@@ -103,5 +112,30 @@ class ExceptionRenderer {
                         isRoutine: t instanceof RoutineException
                 ].findAll {it.value}
         return JSONSerializer.serialize(ret);
+    }
+
+
+    //---------------------------
+    // Implementation
+    //---------------------------
+    private String summaryTextInternal(Throwable t, boolean includeCause) {
+
+        // Skip the common thin wrapper around async exceptions
+        if (t instanceof ExecutionException && t.cause) {
+            t = t.cause;
+        }
+
+        // Return (optional) message and class name
+        def msg = t.message,
+            cause = t.cause,
+            name = t.class.simpleName,
+            ret = msg ? "$msg [$name]" : "[$name]"
+
+        // ...appending one level of cause, recursively. Could consider also drilling down to "root" cause.
+        if (cause && includeCause) {
+            ret += " caused by " + summaryTextInternal(cause, false)
+        }
+
+        return ret
     }
 }

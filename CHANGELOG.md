@@ -1,7 +1,7 @@
 # Changelog
 
-## 9.0-SNAPSHOT - unreleased
-Version 7.0 includes a major upgrade of several underlying libraries, especially grails (v4.03) and spring-boot (2.1.13)
+## 10.0-SNAPSHOT - unreleased
+Version 7.0 includes a major upgrade of several underlying libraries, especially grails (v4.0.6) and spring-boot (2.1.13)
 With this version, Hoist can now be run on Java versions 8 - 11.  We have also cleaned up and enhanced some core
 APIs around Exception Handling and JSON parsing and configuration.
 
@@ -35,15 +35,191 @@ on required changes to config and dependency files.
 * Applications will be required to add the `@Transactional` or `@ReadOnly` annotations to service and controller
 methods that update data with GORM. 
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v8.0.1...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.1.0...develop)
+
+
+
+## 9.1.0 - 2020-12-22
+
+### 🎁 New Features
+* Built-in logging utils -- `withDebug`, `withInfo`, `compactErrorLog` and `compactDebugLog`  will log
+ username for logging done in the context of a user request. 
+* New method `IdentityService.getUsername()` for efficient access to username when no additional details about
+current user are needed.
+
+### ⚙️ Technical
+* Improve consistency of exception descriptions in logs.
+* Remove repeated exception descriptions in logs -- `withDebug` and `withInfo` will no longer print exception 
+details.
+* TrackService will now log to a dedicated daily log
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.0.0...v9.1.0)
+
+## 9.0.0 - 2020-12-17
+
+### 💥 Breaking Changes
+
+* `LogSupport` API enhancements:
+  * `logErrorCompact()` and `logDebugCompact()` now only show stacktraces on `TRACE`
+  *  `withInfo()` and  `withDebug()` now log only once _after_ execution has completed. Raising the log level of the 
+     relevant class or package to `TRACE` will cause these utils to also log a line _before_ execution, as they did 
+     before. (As always, log levels can be adjusted dynamically at runtime via the Admin Console.)
+  * The upgrade to these two utils mean that they **completely replace** `withShortInfo()` and `withShortDebug()`, 
+     which have both been **removed** as part of this change. 
+  *  Additional stacktraces have been removed from default logging.
+ 
+ ### ⚙️ Technical
+* `RoutineException`s are now returned with HttpStatus `400` to client, rather than `500` 
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.7.3...v9.0.0)
+
+## 8.7.3 - 2020-12-15
+
+* Default exception logging in `ExceptionRender` will no longer include stacktraces,
+but will instead use `LogSupport.logErrorCompact()`.  To see stacktraces for 
+any given logger, set the logging level to `DEBUG`.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.7.2...v8.7.3)
+
+## 8.7.2 - 2020-12-15
+
+### 🐞 Bug Fixes
+
+* Fixed bug preventing cleanup of MemoryMonitoringService snapshots.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.7.1...v8.7.2)
+
+## 8.7.1 - 2020-12-11
+
+### ⚙️ Technical
+
+* Minor enhancements to `JSONBlobService` API.
+
+### 📚 Libraries
+
+* org.apache.httpcomponents:httpclient `4.5.6 -> 4.5.13`
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.7.0...v8.7.1)
+
+## 8.7.0 - 2020-12-01
+
+### 🎁 New Features
+
+* Added new `MemoryMonitoringService` to sample and return simple statistics on heap (memory) usage
+  from the JVM runtime. Stores a rolling, in-memory history of snapshots on a configurable interval.
+
+### 🔒 Security
+
+* HTML-encode certain user-provided params to XhController endpoints (e.g. track, clientErrors,
+  feedback) to sanitize before storing / emailing.
+
+### ⚙️ Technical
+
+* Removed verbose stacktraces appended to the primary app log by the built-in Grails 'StackTrace'
+  logger. This logger has now been set to level *OFF* by default. To re-enable these stacktraces,
+  raise the log level of this logger in either logback.groovy or dynamically at runtime in the Hoist
+  Admin Console.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.6.1...v8.7.0)
+
+
+## 8.6.1 - 2020-10-28
+
+* `JsonBlobService` - complete support for metadata with additional `meta` property. Requires an
+  additional column on blob table, e.g. ```sql alter table xh_json_blob add meta varchar(max) go ```
+* Introduce new `AppEnvironment.TEST` enumeration value.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.6.0...v8.6.1)
+
+
+## 8.6.0 - 2020-10-25
+
+* `JsonBlobService`: Enhancements to archiving, new columns and new unique key constraint.
+  - Apps will need to modify the `xh_json_blob` table with new `meta` and `archived_date` columns
+    and related unique constraint. SAMPLE migration SQL below:
+
+    ```sql
+    alter table xh_json_blob add archived_date bigint not null go
+    alter table xh_json_blob drop column archived go
+    alter table xh_json_blob add constraint idx_xh_json_blob_unique_key unique (archived_date, type, owner, name)
+    ```
+
+  - Apps should update to `hoist-react >= 36.6.0`.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.5.0...v8.6.0)
+
+
+## 8.5.0 - 2020-10-07
+
+* `JsonBlobService`: Use more scalable token-based access; support archiving.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.4.0...v8.5.0)
+
+
+## 8.4.0 - 2020-09-25
+
+* `JsonBlobService`: Security enhancements and finalization of API.
+* Server Support for Bulk editing of Configs and Preferences.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.3.0...v8.4.0)
+
+
+## 8.3.0 - 2020-09-21
+
+⚠ NOTE - apps should update to `hoist-react >= 36.1.0` when taking this hoist-core update. This is
+required to support the updates to Admin Activity and Client Error tracking described below.
+
+### 🎁 New Features
+
+* Adds support for storing and retrieving `JsonBlob`s - chunks of arbitrary JSON data used by the
+  corresponding `JsonBlobService` introduced in hoist-react v36.1.0.
+
+### 🐞 Bug Fixes
+
+* Improved time zone handling in the Admin Console "Activity Tracking" and "Client Errors" tabs.
+  * Users will now see consistent bucketing of activity into an "App Day" that corresponds to the
+    LocalDate when the event occurred in the application's timezone.
+  * This day will be reported consistently regardless of the time zones of the local browser or
+    deployment server.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.2.0...v8.3.0)
+
+
+## 8.2.0 - 2020-09-04
+
+### 🎁 New Features
+
+* Add new `RoutineRuntimeException`
+
+### 🐞 Bug Fixes
+
+* Pref and Config Differ now record the admin user applying any changes via these tools.
+* Fix bug with monitoring when monitor script times out.
+
+### ⚙️ Technical
+
+* Specify default DB indices on a small number of bundled domain classes.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.1.0...v8.2.0)
+
+
+## 8.1.0 - 2020-07-16
+
+### 🎁 New Features
+
+* Add support for Preference Diffing in the Hoist React Admin console.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v8.0.1...v8.1.0)
 
 
 ## 8.0.1 - 2020-06-29
 
-### ⚙️ Bug Fixes
+### 🐞 Bug Fixes
+
 * Fix minor regression to reporting of hoist-core version.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.0.0...v8.0.1)
+
 
 ## 8.0.0 - 2020-06-29
 
@@ -74,7 +250,7 @@ wide variety of enterprise software projects. For any questions regarding this c
 * Bootstrap `xhEnableMonitoring` config
 * Add Grails Quartz plugin (v2.0.13)
 
-### 🎁 Bug Fixes
+### 🐞 Bug Fixes
 
 * Fixed a regression to TrackService, preventing persisting lists in the `data` property.
 
@@ -95,8 +271,7 @@ wide variety of enterprise software projects. For any questions regarding this c
   times of 10x to 20x over the `grails.converter.JSON` library currently used by Hoist. In
   particular, this change includes:
   * A new `JSONParser` API in the `io.xh.hoist.json` package that provides JSON parsing of text and
-    input streams.
-    This API is designed to be symmetrical with the existing `JSONFormatter.`
+    input streams. This API is designed to be symmetrical with the existing `JSONFormatter.`
   * All core hoist classes now rely on the API above. Of special note are `JSONClient`, and
     `RestController`.
   * Cleanups to the APIs for `JSONClient`, `ConfigService`, and `PrefService`. These methods now
@@ -146,7 +321,7 @@ wide variety of enterprise software projects. For any questions regarding this c
 
 ## 6.4.4 - 2020-03-05
 
-### ⚙️ Bug Fixes
+### 🐞 Bug Fixes
 
 * Fixed issue where attempting to read very large log files would overly stress server processor and
   memory resources. [#115](https://github.com/xh/hoist-core/issues/115)
@@ -427,7 +602,7 @@ wide variety of enterprise software projects. For any questions regarding this c
 ### 🐞 Bug Fixes
 
 * An admin client that happens to be polling for a non-existent log file (e.g. one that has just
-  been archived) will no longer spam the logs with stracktraces.it
+  been archived) will no longer spam the logs with stack traces.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v5.0.4...v5.1.0)
 
@@ -480,8 +655,7 @@ enterprise plugin and not require individual app changes.)
 
 ## v4.2.1
 
-* Added support for `activeOnly` argument to `UserAdminController` - required for
-  exhi/hoist-react#567
+* Added support for `activeOnly` argument to `UserAdminController` - required for xh/hoist-react#567
 
 [Commit Log](https://github.com/xh/hoist-core/compare/release-4.2.0...release-4.2.1)
 

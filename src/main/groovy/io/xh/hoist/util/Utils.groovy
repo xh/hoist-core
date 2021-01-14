@@ -13,11 +13,13 @@ import grails.util.Metadata
 import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.exception.ExceptionRenderer
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.track.TrackLog
 import io.xh.hoist.user.BaseRoleService
 import io.xh.hoist.user.BaseUserService
+import io.xh.hoist.user.IdentityService
 import io.xh.hoist.websocket.WebSocketService
 import org.springframework.context.ApplicationContext
 
@@ -73,8 +75,16 @@ class Utils {
         return (PrefService) appContext.prefService
     }
 
+    static EnvironmentService getEnvironmentService() {
+        return (EnvironmentService) appContext.environmentService
+    }
+
     static BaseUserService getUserService() {
         return (BaseUserService) appContext.userService
+    }
+
+    static IdentityService getIdentityService() {
+        return (IdentityService) appContext.identityService
     }
 
     static BaseRoleService getRoleService() {

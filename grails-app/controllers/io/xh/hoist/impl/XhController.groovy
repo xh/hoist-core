@@ -16,11 +16,13 @@ import io.xh.hoist.exception.SessionMismatchException
 import io.xh.hoist.export.GridExportImplService
 import io.xh.hoist.feedback.FeedbackService
 import io.xh.hoist.json.JSONParser
+import io.xh.hoist.jsonblob.JsonBlobService
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.security.AccessAll
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.util.Utils
+import org.owasp.encoder.Encode
 
 @AccessAll
 @CompileStatic
@@ -30,6 +32,7 @@ class XhController extends BaseController {
     ConfigService configService
     FeedbackService feedbackService
     GridExportImplService gridExportImplService
+    JsonBlobService jsonBlobService
     PrefService prefService
     TrackService trackService
     EnvironmentService environmentService
@@ -79,15 +82,15 @@ class XhController extends BaseController {
     //------------------------
     // Tracking
     //------------------------
-    def track() {
+    def track(String category, String msg, String data, int elapsed, String severity) {
         ensureClientUsernameMatchesSession()
 
         trackService.track(
-                category: params.category,
-                msg: params.msg,
-                data: params.data ? JSONParser.parseObjectOrArray((String) params.data) : null,
-                elapsed: params.elapsed,
-                severity: params.severity
+            category: safeStr(category),
+            msg: safeStr(msg),
+            data: data ? JSONParser.parseObjectOrArray(safeStr(data)) : null,
+            elapsed: elapsed,
+            severity: safeStr(severity)
         )
 
         renderJSON(success: true)
@@ -136,6 +139,29 @@ class XhController extends BaseController {
         renderJSON(success: true)
     }
 
+    //------------------------
+    // Json Blobs
+    //------------------------
+    def getJsonBlob(String token) {
+        renderJSON(jsonBlobService.get(token))
+    }
+
+    def listJsonBlobs(String type, boolean includeValue) {
+        renderJSON(jsonBlobService.list(type, includeValue))
+    }
+
+    def createJsonBlob(String type, String name, String value, String meta, String description) {
+        renderJSON(jsonBlobService.create(type, name, value, meta, description))
+    }
+
+    def updateJsonBlob(String token, String name, String value, String meta, String description) {
+        renderJSON(jsonBlobService.update(token, name, value, meta, description))
+    }
+
+    def archiveJsonBlob(String token) {
+        renderJSON(jsonBlobService.archive(token))
+    }
+
 
     //------------------------
     // Export
@@ -160,9 +186,9 @@ class XhController extends BaseController {
     def version() {
         def shouldUpdate = configService.getBool('xhAppVersionCheckEnabled')
         renderJSON (
-                appVersion: Utils.appVersion,
-                appBuild: Utils.appBuild,
-                shouldUpdate: shouldUpdate
+            appVersion: Utils.appVersion,
+            appBuild: Utils.appBuild,
+            shouldUpdate: shouldUpdate
         )
     }
 
@@ -171,7 +197,12 @@ class XhController extends BaseController {
     //------------------------
     def submitError(String msg, String error, String appVersion, boolean userAlerted) {
         ensureClientUsernameMatchesSession()
-        clientErrorService.submit(msg, error, appVersion, userAlerted)
+        clientErrorService.submit(
+            safeStr(msg),
+            safeStr(error),
+            safeStr(appVersion),
+            userAlerted
+        )
         renderJSON(success: true)
     }
 
@@ -180,37 +211,39 @@ class XhController extends BaseController {
     //------------------------
     def submitFeedback(String msg, String appVersion) {
         ensureClientUsernameMatchesSession()
-        feedbackService.submit(msg, appVersion)
+        feedbackService.submit(
+            safeStr(msg),
+            safeStr(appVersion)
+        )
         renderJSON(success: true)
     }
 
-    //------------------------
-    // Time zone
-    // Returns the timezone offset for a given timezone ID.
-    // While abbrevs (e.g. 'GMT', 'PST', 'UTC+04') are supported, fully qualified IDs (e.g.
-    // 'Europe/London', 'America/New_York') are preferred, as these account for daylight savings.
-    //------------------------
+
+    //-----------------------
+    // Misc
+    //-----------------------
+    /**
+     * Returns the timezone offset for a given timezone ID.
+     * While abbrevs (e.g. 'GMT', 'PST', 'UTC+04') are supported, fully qualified IDs (e.g.
+     * 'Europe/London', 'America/New_York') are preferred, as these account for daylight savings.
+     */
     def getTimeZoneOffset(String timeZoneId) {
         // Validate ID, as getTimeZone() defaults to GMT if not recognized.
         def availableIds = TimeZone.getAvailableIDs()
         if (!availableIds.contains(timeZoneId)) {
-            throw new NotFoundException("TimeZone ID ${timeZoneId} not recognized")
+            throw new NotFoundException("Unknown timeZoneId")
         }
         def tz = TimeZone.getTimeZone(timeZoneId)
         renderJSON([offset: tz.getOffset(System.currentTimeMillis())])
     }
 
-    //-----------------------
-    // Misc
-    //-----------------------
     def notFound() {
         throw new NotFoundException()
     }
-    
+
     //------------------------
     // Implementation
     //------------------------
-
     /**
      * Check to validate that the client's expectation of the current user matches the active user
      * actually present within the session. Should be called prior to any operations in this
@@ -225,10 +258,19 @@ class XhController extends BaseController {
         def clientUsername = params.clientUsername
 
         if (!clientUsername) {
-            throw new RuntimeException("This endpoint requires a clientUsername param to confirm the intended user.")
+            throw new SessionMismatchException("Unable to confirm match between client and session user.")
         } else if (clientUsername != username) {
-            throw new SessionMismatchException("The reported clientUsername param does not match current session user.")
+            throw new SessionMismatchException("The reported clientUsername does not match current session user.")
         }
+    }
+
+    /**
+     * Run user-provided string input through an OWASP-provided encoder to escape tags. Note the
+     * use of `forHtmlContent()` encodes only `&<>` and in particular leaves quotes un-escaped to
+     * support JSON strings.
+     */
+    private String safeStr(String input) {
+        return input ? Encode.forHtmlContent(input) : input
     }
 
 }

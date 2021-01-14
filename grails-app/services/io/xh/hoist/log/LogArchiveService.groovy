@@ -43,7 +43,7 @@ class LogArchiveService extends BaseService {
         daysThreshold = daysThreshold ?: config.archiveAfterDays
 
         List<File> oldLogs = getOldLogFiles(logPath, daysThreshold)
-        withShortInfo("Archiving ${oldLogs.size()} log(s) older than ${daysThreshold} days.") {
+        withInfo("Archiving ${oldLogs.size()} log(s) older than ${daysThreshold} days.") {
             Map logsByCategory = mapLogsByCategory(oldLogs)
 
             logsByCategory.each {String category, List<File> logFiles ->

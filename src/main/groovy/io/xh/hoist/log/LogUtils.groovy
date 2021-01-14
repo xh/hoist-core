@@ -10,17 +10,15 @@ package io.xh.hoist.log
 import ch.qos.logback.core.ConsoleAppender
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder
 import ch.qos.logback.core.Context
-import ch.qos.logback.core.FileAppender
 import ch.qos.logback.core.Layout
 import ch.qos.logback.core.encoder.Encoder
 import ch.qos.logback.core.encoder.LayoutWrappingEncoder
 import ch.qos.logback.core.rolling.RollingFileAppender
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy
-import grails.util.BuildSettings
-import grails.util.Environment
 import io.xh.hoist.util.Utils
 import java.nio.file.Paths
 
+import static ch.qos.logback.classic.Level.OFF
 import static ch.qos.logback.classic.Level.ERROR
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.WARN
@@ -58,10 +56,16 @@ class LogUtils {
     static Object monthlyLayout = '%d{MM-dd HH:mm:ss} | %c{0} [%p] | %m%n'
 
     /**
-     * Layout used for logging monitor results to its dedicated monitor log.
+     * Layout used for logging monitor results to a dedicated log.
      * String or a Closure that produces a Layout
      */
     static Object monitorLayout = '%d{HH:mm:ss} | %m%n'
+
+    /**
+     * Layout used for logging client-side tracking results to a dedicated log.
+     * String or a Closure that produces a Layout
+     */
+    static Object trackLayout = '%d{HH:mm:ss} | %m%n'
 
 
     /**
@@ -148,6 +152,7 @@ class LogUtils {
         withDelegate(script) {
 
             def appLogName = Utils.appCode,
+                trackLogName = "$appLogName-track",
                 monitorLogName = "$appLogName-monitor"
 
             //----------------------------------
@@ -157,6 +162,7 @@ class LogUtils {
                 encoder = LogUtils.createEncoder(stdoutLayout, context)
             }
             dailyLog(name: appLogName, script: script)
+            dailyLog(name: trackLogName, script: script, layout: trackLayout)
             dailyLog(name: monitorLogName, script: script, layout: monitorLayout)
 
             //----------------------------------
@@ -167,26 +173,21 @@ class LogUtils {
             // Raise Hoist to info
             logger('io.xh', INFO)
 
-            // Logger for MonitoringService only. Do not duplicate in main log file, but write to stdout
-            logger('io.xh.hoist.monitor.MonitoringService', INFO, [monitorLogName, 'stdout'], additivity = false)
+            // Loggers for MonitoringService and TrackService.
+            // Do not duplicate in main log file, but write to stdout
+            logger('io.xh.hoist.monitor.MonitoringService', INFO, [monitorLogName, 'stdout'], false)
+            logger('io.xh.hoist.track.TrackService', INFO, [trackLogName, 'stdout'], false)
 
             // Quiet noisy loggers
-            logger('org.hibernate',                 ERROR)
-            logger('org.springframework',           ERROR)
-            logger('net.sf.ehcache',                ERROR)
+            logger('org.hibernate', ERROR)
+            logger('org.springframework', ERROR)
+            logger('net.sf.ehcache', ERROR)
 
-            //------------------------------------------------------------
-            // Full Stack trace, redirect to special log in dev mode only
-            //------------------------------------------------------------
-            def targetDir = BuildSettings.TARGET_DIR
-            if (Environment.isDevelopmentMode() && targetDir) {
-                appender('stacktrace', FileAppender) {
-                    file = "$targetDir/stacktrace.log"
-                    append = true
-                    encoder(PatternLayoutEncoder) {pattern = "%level %logger - %msg%n" }
-                }
-                logger('StackTrace', ERROR, ['stacktrace'], false)
-            }
+            // Turn off built-in global grails stacktrace logger.  It can easily swamp logs!
+            // If needed, it can be (carefully) re-enabled by in admin console.
+            // Applications should *not* typically enable -- instead Hoist stacktraces can be
+            // enabled for any given logger by setting its level to TRACE
+            logger('StackTrace', OFF)
         }
     }
 

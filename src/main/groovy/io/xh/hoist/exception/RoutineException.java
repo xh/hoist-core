@@ -15,6 +15,7 @@ package io.xh.hoist.exception;
  * or unhandled bugs in server-side code or processing that should trigger alerts or require fixing.
  *
  * For example usages of this interface within Hoist:
+ * @see RoutineRuntimeException
  * @see NotAuthorizedException
  * @see DataNotAvailableException
  */

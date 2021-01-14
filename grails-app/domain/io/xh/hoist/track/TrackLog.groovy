@@ -10,6 +10,8 @@ package io.xh.hoist.track
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.util.Utils
 
+import static io.xh.hoist.util.DateTimeUtils.appDay
+
 class TrackLog implements JSONFormat {
 
     String username
@@ -27,7 +29,8 @@ class TrackLog implements JSONFormat {
     static mapping = {
         table 'xh_track_log'
         cache true
-        data type: "text"
+        data type: 'text'
+        dateCreated index: 'idx_xh_track_log_date_created'
     }
 
     static constraints = {
@@ -47,6 +50,7 @@ class TrackLog implements JSONFormat {
         return [
                 id: id,
                 dateCreated: dateCreated,
+                day: appDay(dateCreated),
                 username: username,
                 browser: browser,
                 device: device,

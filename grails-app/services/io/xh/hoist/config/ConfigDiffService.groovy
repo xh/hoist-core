@@ -22,6 +22,7 @@ class ConfigDiffService extends BaseService implements DataBinder {
             // create new config based on remote values
             if (!config) {
                 config = new AppConfig(vals)
+                config.lastUpdatedBy = username
                 config.save(flush:true)
                 log.info("Config '${config.name}' created")
                 return
@@ -30,6 +31,7 @@ class ConfigDiffService extends BaseService implements DataBinder {
             // apply remote values to existing config
             if (vals) {
                 bindData(config, vals)
+                config.lastUpdatedBy = username
                 config.save(flush:true)
                 log.info("Config '${config.name}' updated")
                 return

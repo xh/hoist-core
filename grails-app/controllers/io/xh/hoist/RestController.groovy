@@ -53,8 +53,9 @@ abstract class RestController extends BaseController {
     }
 
     def bulkUpdate() {
-        def ids = params.list('ids'),
-            newParams = JSONParser.parseObject(params.newParams),
+        def body = JSONParser.parseObject(request.inputStream),
+            ids = body.ids,
+            newParams = body.newParams,
             successCount = 0,
             failCount = 0,
             target = restTargetVal,
@@ -72,7 +73,7 @@ abstract class RestController extends BaseController {
                     e = new io.xh.hoist.exception.ValidationException(e)
                     log.debug("Validation exception updating ${obj}", e)
                 } else {
-                    log.error("Unexpected exception updating ${obj}", e)
+                    logErrorCompact(instanceLog, "Unexpected exception updating ${obj}", e)
                 }
             }
         }

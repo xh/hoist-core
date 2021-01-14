@@ -113,7 +113,7 @@ abstract class BaseService implements LogSupport, DisposableBean, EventBusAware 
                 instanceLog.debug("Receiving event '$eventName'")
                 c.call(*args)
             } catch (Exception e) {
-                instanceLog.error("Exception handling event '$eventName':", e)
+                logErrorCompact(instanceLog, "Exception handling event '$eventName':", e)
             }
         }
     }
@@ -151,11 +151,11 @@ abstract class BaseService implements LogSupport, DisposableBean, EventBusAware 
     boolean isDestroyed()   {_destroyed}
 
     protected HoistUser getUser() {
-        identityService.getUser()
+        identityService.user
     }
 
     protected String getUsername() {
-        getUser()?.username
+        identityService.username
     }
 
     protected void setupClearCachesConfigs() {

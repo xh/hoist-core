@@ -61,7 +61,7 @@ class MonitorResultService extends BaseService {
             evaluateThresholds(monitor, result)
         } catch (Exception e) {
             result.message = e instanceof TimeoutException ?
-                                "Monitor run timed out after $timeout seconds." :
+                                "Monitor run timed out after $timeoutSeconds seconds." :
                                 e.message ?: e.class.name
             result.status = FAIL
             result.exception = e

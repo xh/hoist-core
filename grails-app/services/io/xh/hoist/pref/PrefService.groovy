@@ -106,7 +106,7 @@ class PrefService extends BaseService {
             try {
                 ret[name] = formatForClient(it, username)
             } catch (Exception e) {
-                log.error("Exception while getting client preference: '$name'", e)
+                logErrorCompact("Exception while getting client preference: '$name'", e)
             }
         }
 
