@@ -16,7 +16,7 @@ import org.springframework.core.Ordered
 
 class HoistCoreGrailsPlugin extends Plugin {
 
-    def grailsVersion = '4.0.3 > *'
+    def grailsVersion = '4.0.6 > *'
     def pluginExcludes = []
 
     def title = 'hoist-core'
