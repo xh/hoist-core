@@ -62,6 +62,10 @@ dependencies {
     compile "org.codehaus.groovy:groovy-dateutil:2.5.8"
     provided "org.grails:grails-plugin-domain-class"
     compile "org.grails.plugins:mail:3.0.0"
+
+    compile("org.quartz-scheduler:quartz:2.2.3") {
+        exclude group: 'slf4j-api', module: 'c3p0'
+    }
     compile 'org.grails.plugins:quartz:2.0.13'
 
     compile "org.hibernate:hibernate-core:5.4.14.Final"
