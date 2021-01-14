@@ -23,9 +23,13 @@ configurations.all {
     resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
 }
 
+def allJvmArgs = [
+        '-Dspring.output.ansi.enabled=always'
+]
+
 // Workaround for groovy reflection warning
 // See https://dev.to/erichelgeson/removing-illegal-reflective-access-warnings-in-grails-4-393o
-def jvmOpenModulesArgs = [
+allJvmArgs += [
         "java.management/com.sun.jmx.mbeanserver",
         "java.base/java.io",
         "java.base/java.lang",
@@ -95,7 +99,7 @@ def jvmOpenModulesArgs = [
         "java.rmi/java.rmi.registry",
         "java.rmi/java.rmi.server",
         "java.sql/java.sql"
-].collect {"--add-opens=$it=ALL-UNNAMED"}
+].collect {"--add-opens=$it=ALL-UNNAMED".toString()}
 
 configurations {
     developmentOnly
@@ -162,10 +166,17 @@ dependencies {
 }
 
 bootRun {
-    jvmArgs('-Dspring.output.ansi.enabled=always')
-    jvmArgs(jvmOpenModulesArgs)
+    jvmArgs(allJvmArgs)
     sourceResources sourceSets.main
 }
+
+
+tasks.withType(GroovyCompile) {
+    configure(groovyOptions) {
+        forkOptions.jvmArgs = allJvmArgs
+    }
+}
+
 
 bootJar.enabled = false
 
