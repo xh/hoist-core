@@ -23,83 +23,6 @@ configurations.all {
     resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
 }
 
-def allJvmArgs = [
-        '-Dspring.output.ansi.enabled=always'
-]
-
-// Workaround for groovy reflection warning
-// See https://dev.to/erichelgeson/removing-illegal-reflective-access-warnings-in-grails-4-393o
-allJvmArgs += [
-        "java.management/com.sun.jmx.mbeanserver",
-        "java.base/java.io",
-        "java.base/java.lang",
-        "java.base/java.lang.annotation",
-        "java.base/java.lang.invoke",
-        "java.base/java.lang.module",
-        "java.base/java.lang.ref",
-        "java.base/java.lang.reflect",
-        "java.base/java.math",
-        "java.base/java.net",
-        "java.base/java.net.spi",
-        "java.base/java.nio",
-        "java.base/java.nio.channels",
-        "java.base/java.nio.channels.spi",
-        "java.base/java.nio.charset",
-        "java.base/java.nio.charset.spi",
-        "java.base/java.nio.file",
-        "java.base/java.nio.file.attribute",
-        "java.base/java.nio.file.spi",
-        "java.base/java.security",
-        "java.base/java.security.acl",
-        "java.base/java.security.cert",
-        "java.base/java.security.interfaces",
-        "java.base/java.security.spec",
-        "java.base/java.text",
-        "java.base/java.text.spi",
-        "java.base/java.time",
-        "java.base/java.time.chrono",
-        "java.base/java.time.format",
-        "java.base/java.time.temporal",
-        "java.base/java.time.zone",
-        "java.base/java.util",
-        "java.base/java.util.concurrent",
-        "java.base/java.util.concurrent.atomic",
-        "java.base/java.util.concurrent.locks",
-        "java.base/java.util.function",
-        "java.base/java.util.jar",
-        "java.base/java.util.regex",
-        "java.base/java.util.spi",
-        "java.base/java.util.stream",
-        "java.base/java.util.zip",
-        "java.datatransfer/java.awt.datatransfer",
-        "java.desktop/java.applet",
-        "java.desktop/java.awt",
-        "java.desktop/java.awt.color",
-        "java.desktop/java.awt.desktop",
-        "java.desktop/java.awt.dnd",
-        "java.desktop/java.awt.dnd.peer",
-        "java.desktop/java.awt.event",
-        "java.desktop/java.awt.font",
-        "java.desktop/java.awt.geom",
-        "java.desktop/java.awt.im",
-        "java.desktop/java.awt.im.spi",
-        "java.desktop/java.awt.image",
-        "java.desktop/java.awt.image.renderable",
-        "java.desktop/java.awt.peer",
-        "java.desktop/java.awt.print",
-        "java.desktop/java.beans",
-        "java.desktop/java.beans.beancontext",
-        "java.instrument/java.lang.instrument",
-        "java.logging/java.util.logging",
-        "java.management/java.lang.management",
-        "java.prefs/java.util.prefs",
-        "java.rmi/java.rmi",
-        "java.rmi/java.rmi.activation",
-        "java.rmi/java.rmi.dgc",
-        "java.rmi/java.rmi.registry",
-        "java.rmi/java.rmi.server",
-        "java.sql/java.sql"
-].collect {"--add-opens=$it=ALL-UNNAMED".toString()}
 
 configurations {
     developmentOnly
@@ -165,11 +88,35 @@ dependencies {
     compile "org.owasp.encoder:encoder:1.2.3"
 }
 
+def allJvmArgs = [
+        '-Dspring.output.ansi.enabled=always'
+]
+// Prevent reflection warning: See https://dev.to/erichelgeson/removing-illegal-reflective-access-warnings-in-grails-4-393o
+allJvmArgs += [
+        "java.management/com.sun.jmx.mbeanserver", "java.base/java.io", "java.base/java.lang", "java.base/java.lang.annotation",
+        "java.base/java.lang.invoke", "java.base/java.lang.module", "java.base/java.lang.ref", "java.base/java.lang.reflect",
+        "java.base/java.math", "java.base/java.net", "java.base/java.net.spi", "java.base/java.nio", "java.base/java.nio.channels",
+        "java.base/java.nio.channels.spi", "java.base/java.nio.charset", "java.base/java.nio.charset.spi", "java.base/java.nio.file",
+        "java.base/java.nio.file.attribute", "java.base/java.nio.file.spi", "java.base/java.security", "java.base/java.security.acl",
+        "java.base/java.security.cert", "java.base/java.security.interfaces", "java.base/java.security.spec", "java.base/java.text",
+        "java.base/java.text.spi", "java.base/java.time", "java.base/java.time.chrono", "java.base/java.time.format",
+        "java.base/java.time.temporal", "java.base/java.time.zone", "java.base/java.util", "java.base/java.util.concurrent",
+        "java.base/java.util.concurrent.atomic", "java.base/java.util.concurrent.locks", "java.base/java.util.function",
+        "java.base/java.util.jar", "java.base/java.util.regex", "java.base/java.util.spi", "java.base/java.util.stream",
+        "java.base/java.util.zip", "java.datatransfer/java.awt.datatransfer", "java.desktop/java.applet", "java.desktop/java.awt",
+        "java.desktop/java.awt.color", "java.desktop/java.awt.desktop", "java.desktop/java.awt.dnd", "java.desktop/java.awt.dnd.peer",
+        "java.desktop/java.awt.event", "java.desktop/java.awt.font", "java.desktop/java.awt.geom", "java.desktop/java.awt.im",
+        "java.desktop/java.awt.im.spi", "java.desktop/java.awt.image", "java.desktop/java.awt.image.renderable",
+        "java.desktop/java.awt.peer", "java.desktop/java.awt.print", "java.desktop/java.beans", "java.desktop/java.beans.beancontext",
+        "java.instrument/java.lang.instrument", "java.logging/java.util.logging", "java.management/java.lang.management",
+        "java.prefs/java.util.prefs", "java.rmi/java.rmi", "java.rmi/java.rmi.activation", "java.rmi/java.rmi.dgc",
+        "java.rmi/java.rmi.registry", "java.rmi/java.rmi.server", "java.sql/java.sql"
+].collect {"--add-opens=$it=ALL-UNNAMED".toString()}
+
 bootRun {
     jvmArgs(allJvmArgs)
     sourceResources sourceSets.main
 }
-
 
 tasks.withType(GroovyCompile) {
     configure(groovyOptions) {
