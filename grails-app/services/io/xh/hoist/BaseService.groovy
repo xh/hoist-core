@@ -69,7 +69,7 @@ abstract class BaseService implements LogSupport, DisposableBean, EventBusAware 
      */
     final void initialize(int timeout) {
         try {
-            withShortInfo("Initializing") {
+            withInfo("Initializing") {
                 task {
                     init()
                 }.get(timeout, TimeUnit.MILLISECONDS)

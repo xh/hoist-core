@@ -68,9 +68,6 @@ class Timer {
     /** Units for timeout property.  Default is ms (1) */
     final Long timeoutUnits
 
-    /** Run 'runFn' on a thread with hibernate session? Default true. */
-    final boolean withHibernate
-
     /** Block on an immediate initial run?  Default is false. */
     final boolean runImmediatelyAndBlock
 

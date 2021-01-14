@@ -81,6 +81,8 @@ dependencies {
     compile 'org.jasypt:jasypt:1.9.3'
     compile "commons-io:commons-io:2.6"
     runtime "net.java.dev.jna:jna:4.5.1"
+    compile "org.owasp.encoder:encoder:1.2.3"
+
 }
 
 bootRun {

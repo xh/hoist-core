@@ -54,33 +54,6 @@ class TrackService extends BaseService implements EventPublisher {
         }
     }
 
-    /**
-     * Return a map of value date to visit count, where *any* track logging for a given user on a
-     * given day counts as one visit for that user.
-     * @param start - start date of query (inclusive)
-     * @param end - end date of query (exclusive)
-     * @param username - optional filter for single username
-     */
-    @ReadOnly
-    Map<String, Integer> getUniqueVisitsByDay(Date start, Date end, String username) {
-        def query = """
-            select cast(dateCreated AS date), count(distinct username)
-            from TrackLog
-            where dateCreated >= :start
-            and dateCreated < :end
-            ${username ? 'and username = :username' : ''}
-            group by cast(dateCreated AS date)
-        """
-
-        Map params = username ? [start: start, end: end, username: username] : [start: start, end: end]
-
-        def ret = (List<List>) TrackLog.executeQuery(query.toString(), params)
-        return ret.collectEntries {
-            Date trackDate = (Date) it[0]
-            [trackDate.format('yyyyMMdd'), it[1]]
-        }
-    }
-
 
     //-------------------------
     // Implementation
