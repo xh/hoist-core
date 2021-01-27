@@ -1,18 +1,28 @@
 # Changelog
 
+## 9.1.1 - 2021-01-27
+
+### ⚙️ Technical
+
+* Improvements to the tracking / logging of admin impersonation sessions.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.1.0...v9.1.1)
+
 ## 9.1.0 - 2020-12-22
 
 ### 🎁 New Features
-* Built-in logging utils -- `withDebug`, `withInfo`, `compactErrorLog` and `compactDebugLog`  will log
- username for logging done in the context of a user request. 
-* New method `IdentityService.getUsername()` for efficient access to username when no additional details about
-current user are needed.
+
+* Built-in logging utils `withDebug`, `withInfo`, `compactErrorLog` and `compactDebugLog` will log
+  username when called in the context of a user request.
+* New method `IdentityService.getUsername()` for efficient access to username when no additional
+  details about current user are needed.
 
 ### ⚙️ Technical
+
 * Improve consistency of exception descriptions in logs.
-* Remove repeated exception descriptions in logs -- `withDebug` and `withInfo` will no longer print exception 
-details.
-* TrackService will now log to a dedicated daily log
+* Remove repeated exception descriptions in logs: `withDebug` and `withInfo` will no longer print
+  exception details.
+* TrackService will now log to a dedicated daily log file.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v9.0.0...v9.1.0)
 
@@ -22,23 +32,25 @@ details.
 
 * `LogSupport` API enhancements:
   * `logErrorCompact()` and `logDebugCompact()` now only show stacktraces on `TRACE`
-  *  `withInfo()` and  `withDebug()` now log only once _after_ execution has completed. Raising the log level of the 
-     relevant class or package to `TRACE` will cause these utils to also log a line _before_ execution, as they did 
-     before. (As always, log levels can be adjusted dynamically at runtime via the Admin Console.)
-  * The upgrade to these two utils mean that they **completely replace** `withShortInfo()` and `withShortDebug()`, 
-     which have both been **removed** as part of this change. 
-  *  Additional stacktraces have been removed from default logging.
- 
- ### ⚙️ Technical
-* `RoutineException`s are now returned with HttpStatus `400` to client, rather than `500` 
+  * `withInfo()` and `withDebug()` now log only once _after_ execution has completed. Raising the
+    log level of the relevant class or package to `TRACE` will cause these utils to also log a line
+    _before_ execution, as they did before. (As always, log levels can be adjusted dynamically at
+    runtime via the Admin Console.)
+  * The upgrade to these two utils mean that they **completely replace** `withShortInfo()` and
+    `withShortDebug()`, which have both been **removed** as part of this change.
+  * Additional stacktraces have been removed from default logging.
+
+### ⚙️ Technical
+
+* `RoutineException`s are now returned with HttpStatus `400` to client, rather than `500`
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.7.3...v9.0.0)
 
 ## 8.7.3 - 2020-12-15
 
-* Default exception logging in `ExceptionRender` will no longer include stacktraces,
-but will instead use `LogSupport.logErrorCompact()`.  To see stacktraces for 
-any given logger, set the logging level to `DEBUG`.
+* Default exception logging in `ExceptionRender` will no longer include stacktraces, but will
+  instead use `LogSupport.logErrorCompact()`. To see stacktraces for any given logger, set the
+  logging level to `DEBUG`.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.7.2...v8.7.3)
 
