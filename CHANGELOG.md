@@ -1,6 +1,6 @@
 # Changelog
 
-## 9.2.0 - unreleased
+## 9.2.0 - 2021-03-25
 
 ### 🐞 Bug Fixes
 * Restore JSON Serialization of `NaN` and `Infinity` as `null`.  
