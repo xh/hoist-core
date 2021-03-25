@@ -1,5 +1,13 @@
 # Changelog
 
+## 9.2.0 - unreleased
+
+### 🐞 Bug Fixes
+* Restore JSON Serialization of `NaN` and `Infinity` as `null`.  
+This had long been the standard Hoist JSON serialization for `Double`s and `Float`s but 
+was regressed in v7.0 with the move to Jackson-based JSON serialization.
+
+
 ## 9.1.1 - 2021-01-27
 
 ### ⚙️ Technical

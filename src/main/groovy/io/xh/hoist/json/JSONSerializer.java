@@ -46,7 +46,9 @@ public class JSONSerializer {
                 .addSerializer(Instant.class, new InstantSerializer())
                 .addSerializer(GString.class, new GStringSerializer())
                 .addSerializer(JSONFormatCached.class, new JSONFormatCachedSerializer())
-                .addSerializer(JSONFormat.class, new JSONFormatSerializer());
+                .addSerializer(JSONFormat.class, new JSONFormatSerializer())
+                .addSerializer(Double.class, new DoubleSerializer())
+                .addSerializer(Float.class, new FloatSerializer());
         
         registerModules(module);
     }
