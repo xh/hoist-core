@@ -25,10 +25,10 @@ public class DoubleSerializer extends StdSerializer<Double> {
 
     @Override
     public void serialize(Double value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
-        if (value.isNaN() || value.isInfinite()) {
-            jgen.writeNull();
-        } else {
+        if (Double.isFinite(value)) {
             jgen.writeNumber(value);
+        } else {
+            jgen.writeNull();
         }
     }
 

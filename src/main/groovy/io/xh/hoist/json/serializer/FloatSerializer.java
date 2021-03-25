@@ -25,10 +25,10 @@ public class FloatSerializer extends StdSerializer<Float> {
 
     @Override
     public void serialize(Float value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
-        if (value.isNaN() || value.isInfinite()) {
-            jgen.writeNull();
-        } else {
+        if (Float.isFinite(value)) {
             jgen.writeNumber(value);
+        } else {
+            jgen.writeNull();
         }
     }
 }
