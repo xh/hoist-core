@@ -2,15 +2,15 @@
 
 ## 10.0.0-SNAPSHOT - unreleased
 
-
 [Commit Log](https://github.com/xh/hoist-core/compare/v9.2.0...develop)
 
 ## 9.2.0 - 2021-03-25
 
 ### 🐞 Bug Fixes
-* Restore JSON Serialization of `NaN` and `Infinity` as `null`.  
-This had long been the standard Hoist JSON serialization for `Double`s and `Float`s but 
-was regressed in v7.0 with the move to Jackson-based JSON serialization.
+
+* Restore JSON Serialization of `NaN` and `Infinity` as `null`.
+  This had long been the standard Hoist JSON serialization for `Double`s and `Float`s but was
+  regressed in v7.0 with the move to Jackson-based JSON serialization.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v9.1.1...v9.2.0)
 
