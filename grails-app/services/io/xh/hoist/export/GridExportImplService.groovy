@@ -115,7 +115,7 @@ class GridExportImplService extends BaseService {
         if (asTable) {
             // Create table
             XSSFTable xssfTable = sheet.createTable()
-            AreaReference tableRange = new AreaReference(new CellReference(0, 0), new CellReference(tableRows - 1, tableColumns - 1), SpreadsheetVersion.EXCEL2007)
+            AreaReference tableRange = new AreaReference(new CellReference(0, 0), new CellReference(Math.max(1, tableRows - 1), tableColumns - 1), SpreadsheetVersion.EXCEL2007)
             CTTable table = xssfTable.getCTTable()
             table.setRef(tableRange.formatAsString())
             table.setDisplayName('Export')
