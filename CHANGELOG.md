@@ -4,8 +4,10 @@
 
 ### 🐞 Bug Fixes
 
-* `GridExportImplService` now handles Excel table exports containing no data rows. Previously, the Excel file required 
-repair, during which process all table and column header formatting was removed.
+* `GridExportImplService` now handles Excel table exports containing no data rows. Previously, the
+  Excel file required repair, during which process all table and column header formatting was
+  removed.
+* Fix incorrect formatting pattern strings on `DateTimeUtils`.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v9.2.0...develop)
 
@@ -13,9 +15,9 @@ repair, during which process all table and column header formatting was removed.
 
 ### 🐞 Bug Fixes
 
-* Restore JSON Serialization of `NaN` and `Infinity` as `null`.
-  This had long been the standard Hoist JSON serialization for `Double`s and `Float`s but was
-  regressed in v7.0 with the move to Jackson-based JSON serialization.
+* Restore JSON Serialization of `NaN` and `Infinity` as `null`. This had long been the standard
+  Hoist JSON serialization for `Double`s and `Float`s but was regressed in v7.0 with the move to
+  Jackson-based JSON serialization.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v9.1.1...v9.2.0)
 
