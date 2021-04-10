@@ -57,8 +57,12 @@ class MonitorResultService extends BaseService implements AsyncSupport {
                 result.status = OK
             }
 
-            // Then (maybe) evaluate thresholds for metric-based checks.
-            evaluateThresholds(monitor, result)
+            // If a check has been marked as inactive or failed, skip any metric-based evaluation -
+            // the check implementation has already decided this should not run or is failing.
+            // Otherwise, eval metrics to confirm a final status.
+            if (result.status != INACTIVE && result.status != FAIL) {
+                evaluateThresholds(monitor, result)
+            }
         } catch (Exception e) {
             result.message = e instanceof TimeoutException ?
                                 "Monitor run timed out after $timeoutSeconds seconds." :

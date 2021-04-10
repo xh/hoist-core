@@ -7,6 +7,8 @@
 * `GridExportImplService` now handles Excel table exports containing no data rows. Previously, the
   Excel file required repair, during which process all table and column header formatting was
   removed.
+* Status Monitors no longer evaluate metric-based thresholds if an app-level check implementation
+  has already set marked the result with a `FAIL` or `INACTIVE` status.
 * Fix incorrect formatting pattern strings on `DateTimeUtils`.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v9.2.0...develop)
