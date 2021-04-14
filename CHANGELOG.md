@@ -1,17 +1,17 @@
 # Changelog
 
-## 10.0.0-SNAPSHOT - unreleased
+## 9.2.1 - 2021-04-14
 
 ### 🐞 Bug Fixes
 
 * `GridExportImplService` now handles Excel table exports containing no data rows. Previously, the
-  Excel file required repair, during which process all table and column header formatting was
-  removed.
+  Excel file required repair, during which all table and column header formatting was lost.
 * Status Monitors no longer evaluate metric-based thresholds if an app-level check implementation
-  has already set marked the result with a `FAIL` or `INACTIVE` status.
+  has already set marked the result with a `FAIL` or `INACTIVE` status, allowing an app to fail or
+  dynamically disable a check regardless of its metric.
 * Fix incorrect formatting pattern strings on `DateTimeUtils`.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v9.2.0...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.2.0...v9.2.1)
 
 ## 9.2.0 - 2021-03-25
 
