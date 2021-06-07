@@ -1,5 +1,15 @@
 # Changelog
 
+## 9.2.2 - 2021-06-07
+
+### 🐞 Technical
+
+* Replacing obsolete jcenter dependency
+(see https://blog.gradle.org/jcenter-shutdown)
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.2.1...v9.2.2)
+
+
 ## 9.2.1 - 2021-04-14
 
 ### 🐞 Bug Fixes
