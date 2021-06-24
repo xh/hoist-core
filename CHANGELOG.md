@@ -1,14 +1,21 @@
 # Changelog
 
+## 9.2.3 - 2021-06-24
+
+### 🐞 Technical
+
+* Parsing of `AppEnvironment` from a string provided via instance config / JVM opts is now
+  case-insensitive.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.2.2...v9.2.3)
+
 ## 9.2.2 - 2021-06-07
 
 ### 🐞 Technical
 
-* Replacing obsolete jcenter dependency
-(see https://blog.gradle.org/jcenter-shutdown)
+* Replacing obsolete jcenter dependency (see https://blog.gradle.org/jcenter-shutdown).
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v9.2.1...v9.2.2)
-
 
 ## 9.2.1 - 2021-04-14
 
