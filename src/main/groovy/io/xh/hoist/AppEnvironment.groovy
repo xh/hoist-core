@@ -46,7 +46,7 @@ enum AppEnvironment implements JSONFormat {
     String formatForJSON() {toString()}
 
     static AppEnvironment parse(String str) {
-        return values().find {it.displayName == str}
+        return values().find {it.displayName.equalsIgnoreCase(str)}
     }
-    
+
 }
