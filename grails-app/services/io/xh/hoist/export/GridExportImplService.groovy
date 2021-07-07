@@ -27,13 +27,6 @@ import java.awt.Color
 
 /**
  * Service to export row data to Excel or CSV.
- *
- * Uses the following properties from `xhExportConfig`:
- *
- *      `streamingCellThreshold`:   Maximum cell count to export to Excel as fully formatted table. Exports with cell
- *                                  counts that exceed this value this will use Apache POI's streaming API, which frees
- *                                  up heap space at the expenses of removing the table formatting.
- *                                  See https://poi.apache.org/components/spreadsheet/how-to.html#sxssf
  */
 class GridExportImplService extends BaseService {
 
@@ -59,9 +52,8 @@ class GridExportImplService extends BaseService {
     private byte[] getFileData(String type, List rows, List meta) {
         switch(type) {
             case 'excel':
-                return renderExcelFile(rows, meta, false)
             case 'excelTable':
-                return renderExcelFile(rows, meta, true)
+                return renderExcelFile(rows, meta, type == 'excelTable')
             case 'csv':
                 return renderCSVFile(rows)
             default:
@@ -98,15 +90,12 @@ class GridExportImplService extends BaseService {
     private byte[] renderExcelFile(List rows, List meta, Boolean asTable) {
         def tableRows = rows.size()
         def tableColumns = rows[0]['data'].size()
-        def tableCells = tableRows * tableColumns
-        def useStreamingAPI = tableCells > config.streamingCellThreshold
         def maxDepth = rows.collect{it.depth}.max()
         def grouped = maxDepth > 0
         def wb
 
-        if (useStreamingAPI) {
+        if (!asTable) {
             wb = new SXSSFWorkbook(100)
-            asTable = false
         } else {
             wb = new XSSFWorkbook()
         }
@@ -187,22 +176,15 @@ class GridExportImplService extends BaseService {
                 value = value?.toString()
 
                 // Set cell data format (skipping column headers)
+                // Cache style based on format and depth (for group colors) in order to prevent costly or prohibited
+                // generation of cell styles on workbook (max. 64,000)
                 if (i > 0 && format) {
-                    if (!styles[format]) styles[format] = registerCellStyleForFormat(wb, format)
-
-                    // If rendering grouped data into a table, set background color based on depth.
-                    // Note the confusing use of `ForegroundColor` to set background color below. This is because
-                    // Excel thinks of background colors as patterned "Fills", which each have their own
-                    // background and foreground colors. A solid background is `FillPatternType.SOLID_FOREGROUND`.
-                    if (asTable && grouped) {
-                        XSSFCellStyle style = wb.createCellStyle()
-                        style.cloneStyleFrom(styles[format])
-                        style.setFillForegroundColor(new XSSFColor(groupColors[rowMap.depth]));
-                        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-                        cell.setCellStyle(style)
-                    } else {
-                        cell.setCellStyle(styles[format])
+                    int depth = rowMap.depth ?: 0
+                    String styleKey = format + '|' + depth.toString()
+                    if (!styles[styleKey]) {
+                        styles[styleKey] = registerCellStyleForFormat(wb, format, grouped ? groupColors[depth] : null)
                     }
+                    cell.setCellStyle(styles[styleKey])
                 }
 
                 if (i == 0 || !value) {
@@ -261,7 +243,7 @@ class GridExportImplService extends BaseService {
         }
 
         // Auto-width columns to fit content
-        if (!useStreamingAPI) {
+        if (asTable) {
             for (int i = 0; i < tableColumns; i++) {
                 if (definedWidthColumns.contains(i)) {
                     int colWidth = meta.get(i).width * 256
@@ -279,15 +261,25 @@ class GridExportImplService extends BaseService {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
         wb.write(outputStream)
         outputStream.close()
-        if (useStreamingAPI) wb.dispose()
+        if (!asTable) wb.dispose()
         return outputStream.toByteArray()
     }
 
-    private XSSFCellStyle registerCellStyleForFormat(wb, format) {
+    private XSSFCellStyle registerCellStyleForFormat(wb, format, colorGroup) {
         XSSFCellStyle style = wb.createCellStyle()
         if (format == 'Text') style.setWrapText(true)
         style.setVerticalAlignment(VerticalAlignment.CENTER)
         style.setDataFormat(wb.createDataFormat().getFormat(format))
+
+        // If rendering grouped data into a table, set background color based on depth.
+        // Note the confusing use of `ForegroundColor` to set background color below. This is because
+        // Excel thinks of background colors as patterned "Fills", which each have their own
+        // background and foreground colors. A solid background is `FillPatternType.SOLID_FOREGROUND`.
+        if (colorGroup) {
+            style.setFillForegroundColor(new XSSFColor(colorGroup));
+            style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        }
+
         return style
     }
 
