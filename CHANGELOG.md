@@ -1,5 +1,13 @@
 # Changelog
 
+## 10.0.0-SNAPSHOT - unreleased
+
+### 🎁 New Features
+
+* `xhExportConfig.streamingCellThreshold` config is now obsolete. With cell style re-use, Excel 
+  tables are no longer subject to downgrading because of cell style limitations (previously limited
+  to 64,000).
+
 ## 9.2.3 - 2021-06-24
 
 ### 🐞 Technical
