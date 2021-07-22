@@ -27,6 +27,13 @@ import java.awt.Color
 
 /**
  * Service to export row data to Excel or CSV.
+ *
+ * Uses the following properties from `xhExportConfig`:
+ *
+ *      `streamingCellThreshold`:   Maximum cell count to export to Excel as fully formatted table. Exports with cell
+ *                                  counts that exceed this value this will use Apache POI's streaming API, which frees
+ *                                  up heap space at the expenses of removing the table formatting.
+ *                                  See https://poi.apache.org/components/spreadsheet/how-to.html#sxssf
  */
 class GridExportImplService extends BaseService {
 
@@ -36,7 +43,7 @@ class GridExportImplService extends BaseService {
      * Return map suitable for rendering file with grails controller render() method
      */
     Map getBytesForRender(Map params) {
-        withDebug(['Generating Export', params.filename, params.rows.size() + " rows"]) {
+        withDebug(['Generating Export', params.filename, params.rows.size() + " rows", params.meta.size() + " cols"]) {
             return [
                     file       : getFileData(params.type, params.rows, params.meta),
                     contentType: getContentType(params.type),
@@ -52,8 +59,9 @@ class GridExportImplService extends BaseService {
     private byte[] getFileData(String type, List rows, List meta) {
         switch(type) {
             case 'excel':
+                return renderExcelFile(rows, meta, false)
             case 'excelTable':
-                return renderExcelFile(rows, meta, type == 'excelTable')
+                return renderExcelFile(rows, meta, true)
             case 'csv':
                 return renderCSVFile(rows)
             default:
@@ -90,12 +98,15 @@ class GridExportImplService extends BaseService {
     private byte[] renderExcelFile(List rows, List meta, Boolean asTable) {
         def tableRows = rows.size()
         def tableColumns = rows[0]['data'].size()
+        def tableCells = tableRows * tableColumns
+        def useStreamingAPI = tableCells > config.streamingCellThreshold
         def maxDepth = rows.collect{it.depth}.max()
         def grouped = maxDepth > 0
         def wb
 
-        if (!asTable) {
+        if (useStreamingAPI) {
             wb = new SXSSFWorkbook(100)
+            asTable = false
         } else {
             wb = new XSSFWorkbook()
         }
@@ -243,7 +254,7 @@ class GridExportImplService extends BaseService {
         }
 
         // Auto-width columns to fit content
-        if (asTable) {
+        if (!useStreamingAPI) {
             for (int i = 0; i < tableColumns; i++) {
                 if (definedWidthColumns.contains(i)) {
                     int colWidth = meta.get(i).width * 256
@@ -261,7 +272,7 @@ class GridExportImplService extends BaseService {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
         wb.write(outputStream)
         outputStream.close()
-        if (!asTable) wb.dispose()
+        if (useStreamingAPI) wb.dispose()
         return outputStream.toByteArray()
     }
 

@@ -4,9 +4,8 @@
 
 ### 🎁 New Features
 
-* `xhExportConfig.streamingCellThreshold` config is now obsolete. With cell style re-use, Excel 
-  tables are no longer subject to downgrading because of cell style limitations (previously limited
-  to 64,000).
+* Excel cell styles with grouped colors are now cached for re-use, avoiding previously common file error that limits 
+  Excel tables to 64,000 total styles.
 
 ## 9.2.3 - 2021-06-24
 
