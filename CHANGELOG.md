@@ -6,6 +6,7 @@
 
 * Excel cell styles with grouped colors are now cached for re-use, avoiding previously common file error that limits 
   Excel tables to 64,000 total styles.
+* Client error reports now include the full URL for additional troubleshooting context.
 
 ## 9.2.3 - 2021-06-24
 
