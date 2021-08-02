@@ -195,12 +195,13 @@ class XhController extends BaseController {
     //------------------------
     // Client Errors
     //------------------------
-    def submitError(String msg, String error, String appVersion, boolean userAlerted) {
+    def submitError(String msg, String error, String appVersion, String url, boolean userAlerted) {
         ensureClientUsernameMatchesSession()
         clientErrorService.submit(
             safeStr(msg),
             safeStr(error),
             safeStr(appVersion),
+            safeStr(url),
             userAlerted
         )
         renderJSON(success: true)
