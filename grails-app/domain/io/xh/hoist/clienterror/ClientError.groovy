@@ -21,6 +21,7 @@ class ClientError implements JSONFormat {
     String device
     String appVersion
     String appEnvironment
+    String url
     boolean userAlerted = false
     Date dateCreated
 
@@ -29,6 +30,7 @@ class ClientError implements JSONFormat {
         cache true
         error type: 'text'
         msg type: 'text'
+        url type: 'text'
         dateCreated index: 'idx_xh_client_error_date_created'
     }
 
@@ -41,6 +43,7 @@ class ClientError implements JSONFormat {
         userAgent(nullable: true)
         appVersion(nullable: true, maxSize: 100)
         appEnvironment(nullable: true, maxSize: 100)
+        url(nullable: true)
     }
 
     Map formatForJSON() {
@@ -54,6 +57,7 @@ class ClientError implements JSONFormat {
                 device        : device,
                 appVersion    : appVersion,
                 appEnvironment: appEnvironment,
+                url           : url,
                 userAlerted   : userAlerted,
                 dateCreated   : dateCreated,
                 day           : appDay(dateCreated)
