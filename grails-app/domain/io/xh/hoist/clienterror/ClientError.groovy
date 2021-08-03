@@ -30,7 +30,6 @@ class ClientError implements JSONFormat {
         cache true
         error type: 'text'
         msg type: 'text'
-        url type: 'text'
         dateCreated index: 'idx_xh_client_error_date_created'
     }
 
@@ -43,7 +42,7 @@ class ClientError implements JSONFormat {
         userAgent(nullable: true)
         appVersion(nullable: true, maxSize: 100)
         appEnvironment(nullable: true, maxSize: 100)
-        url(nullable: true)
+        url(nullable: true, maxSize: 500)
     }
 
     Map formatForJSON() {
