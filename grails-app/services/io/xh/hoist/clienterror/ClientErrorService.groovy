@@ -38,7 +38,7 @@ class ClientErrorService extends BaseService implements EventPublisher {
                     device: getDevice(userAgent),
                     appVersion: appVersion ?: Utils.appVersion,
                     appEnvironment: Utils.appEnvironment,
-                    url: url,
+                    url: url.take(500),
                     userAlerted: userAlerted
             ]
 
