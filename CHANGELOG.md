@@ -1,5 +1,9 @@
 # Changelog
 
+## 10.0-SNAPSHOT - unreleased
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.3.0...develop)
+
 ## 9.3.0 - 2021-08-11
 
 ### 🎁 New Features
