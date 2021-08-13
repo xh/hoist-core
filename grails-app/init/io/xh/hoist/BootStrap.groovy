@@ -233,6 +233,12 @@ class BootStrap {
                 local: true,
                 groupName: 'xh.io',
                 note: 'Visual theme for the client application - "light" or "dark".'
+            ],
+            xhSizingMode: [
+                type: 'string',
+                defaultValue: 'standard',
+                groupName: 'xh.io',
+                note: 'Sizing mode used throughout application.'
             ]
         ])
     }
