@@ -1,18 +1,21 @@
 # Changelog
 
-## 10.0-SNAPSHOT - unreleased
+## 9.3.1 - 2021-08-20
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v9.3.0...develop)
+* Bootstrap new `xhSizingMode` core preference.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.3.0...v9.3.1)
 
 ## 9.3.0 - 2021-08-11
 
 ### 🎁 New Features
-* Excel cell styles with grouped colors are now cached for re-use, avoiding previously common file error that limits
-  Excel tables to 64,000 total styles.
+
+* Excel cell styles with grouped colors are now cached for re-use, avoiding previously common file
+  error that limits Excel tables to 64,000 total styles.
 * Client error reports now include the full URL for additional troubleshooting context.
-  * ⚠ NOTE - this requires a new, nullable varchar(500) column be added to the xh_client_error table in your app's
-    configuration database. Review and run the following SQL, or an equivalent suitable for the particular database you
-    are using:
+  * ⚠ NOTE - this requires a new, nullable varchar(500) column be added to the xh_client_error table
+    in your app's configuration database. Review and run the following SQL, or an equivalent
+    suitable for the particular database you are using:
 
     ```sql
     ALTER TABLE `xh_client_error` ADD COLUMN `url` VARCHAR(500) NULL;

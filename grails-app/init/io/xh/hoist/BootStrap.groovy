@@ -227,18 +227,18 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: "Control display of Hoist footer with app version info. Options are 'auto' (show in non-prod env, or always for admins), 'always', and 'never'."
             ],
+            xhSizingMode: [
+                type: 'json',
+                defaultValue: [:],
+                groupName: 'xh.io',
+                note: 'Sizing mode used by Grid and any other responsive components. Keyed by platform: [desktop|mobile|tablet].'
+            ],
             xhTheme: [
                 type: 'string',
                 defaultValue: 'light',
                 local: true,
                 groupName: 'xh.io',
                 note: 'Visual theme for the client application - "light" or "dark".'
-            ],
-            xhSizingMode: [
-                type: 'json',
-                defaultValue: [:],
-                groupName: 'xh.io',
-                note: 'Sizing mode used, keyed by platform desktop|mobile|tablet.'
             ]
         ])
     }
