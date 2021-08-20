@@ -235,10 +235,10 @@ class BootStrap {
                 note: 'Visual theme for the client application - "light" or "dark".'
             ],
             xhSizingMode: [
-                type: 'string',
-                defaultValue: 'standard',
+                type: 'json',
+                defaultValue: [:],
                 groupName: 'xh.io',
-                note: 'Sizing mode used throughout application.'
+                note: 'Sizing mode used, keyed by platform desktop|mobile|tablet.'
             ]
         ])
     }
