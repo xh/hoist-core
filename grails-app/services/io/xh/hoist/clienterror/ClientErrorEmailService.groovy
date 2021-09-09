@@ -52,6 +52,7 @@ class ClientErrorEmailService extends BaseService {
                 "Environment: ${ce.appEnvironment}",
                 "Browser: ${ce.browser}",
                 "Device: ${ce.device}",
+                "URL: ${ce.url}",
                 "Time: ${ce.dateCreated.format('dd-MMM-yyyy HH:mm:ss')}"
             ].join('<br/>')
 
