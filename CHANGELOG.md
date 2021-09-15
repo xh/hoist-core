@@ -1,5 +1,10 @@
 # Changelog
 
+## 10.0.0-SNAPSHOT - unreleased
+
+* "Local" Preference support in `PreferenceService` is no longer supported.  Applications should use
+  `LocalStorageService` instead.  
+
 ## 9.3.1 - 2021-08-20
 
 * Bootstrap new `xhSizingMode` core preference.

@@ -162,6 +162,11 @@ class PrefService extends BaseService {
         log.debug("Validated presense of ${requiredPrefs.size()} required configs | created ${created}")
     }
 
+    boolean isUnset(String key, String username = username) {
+        def defaultPref = getDefaultPreference(key, null)
+        return !UserPreference.findByPreferenceAndUsername(defaultPref, username, [cache: true])
+    }
+
     //-------------------------
     // Implementation
     //-------------------------
@@ -171,9 +176,6 @@ class PrefService extends BaseService {
     }
 
     private Object getUserPreference(Preference defaultPref, String username) {
-        if (defaultPref.local) {
-            throw new RuntimeException("Preference ${defaultPref.name} marked as local - user value cannot be read on server.")
-        }
 
         def userPref = UserPreference.findByPreferenceAndUsername(defaultPref, username, [cache: true])
 
@@ -182,10 +184,6 @@ class PrefService extends BaseService {
 
     private void setUserPreference(String key, String value, String type, String username) {
         def defaultPref = getDefaultPreference(key, type)
-
-        if (defaultPref.local) {
-            throw new RuntimeException("Preference ${key} marked as local - user value cannot be set on server.")
-        }
 
         def userPref = UserPreference.findByPreferenceAndUsername(defaultPref, username, [cache: true])
 
@@ -212,17 +210,11 @@ class PrefService extends BaseService {
     }
 
     private Map formatForClient(Preference defaultPref, String username) {
-        def ret = [local: defaultPref.local, type: defaultPref.type] as Map<String, Object>
+        def ret = [type: defaultPref.type] as Map<String, Object>
 
-        if (defaultPref.local) {
-            // Local prefs serialized with default value only - client checks for local user value
-            ret.value = null
-            ret.defaultValue = defaultPref.externalDefaultValue(jsonAsObject: true)
-        } else {
-            // Server-side prefs serialized with merged user/default value
-            ret.value = getUserPreference(defaultPref, username)
-            ret.defaultValue = defaultPref.externalDefaultValue(jsonAsObject: true)
-        }
+        // prefs serialized with merged user/default value
+        ret.value = getUserPreference(defaultPref, username)
+        ret.defaultValue = defaultPref.externalDefaultValue(jsonAsObject: true)
 
         return ret
     }

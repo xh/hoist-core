@@ -19,7 +19,6 @@ class Preference implements JSONFormat {
     String type = 'string'
     String defaultValue
     String notes
-    Boolean local
     String lastUpdatedBy
     Date lastUpdated
     String groupName = 'Default'
@@ -82,7 +81,6 @@ class Preference implements JSONFormat {
                 type: type,
                 defaultValue: externalDefaultValue(),
                 notes: notes,
-                local: local,
                 lastUpdatedBy: lastUpdatedBy,
                 lastUpdated: lastUpdated
         ]

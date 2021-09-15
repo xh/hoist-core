@@ -8,6 +8,7 @@
 package io.xh.hoist.impl
 
 import groovy.transform.CompileStatic
+import groovy.util.logging.Slf4j
 import io.xh.hoist.BaseController
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.clienterror.ClientErrorService
@@ -26,6 +27,7 @@ import org.owasp.encoder.Encode
 
 @AccessAll
 @CompileStatic
+@Slf4j
 class XhController extends BaseController {
 
     ClientErrorService clientErrorService
@@ -131,6 +133,27 @@ class XhController extends BaseController {
         def ret = prefService.getLimitedClientConfig(prefs.keySet() as List)
 
         renderJSON(preferences: ret)
+    }
+
+    def migrateLocalPrefs(String updates) {
+        ensureClientUsernameMatchesSession()
+        Map prefs = JSONParser.parseObject(updates)
+        prefs.each { k, value ->
+            String key = k.toString()
+            try {
+                if (!prefService.isUnset(key)) return
+                if (value instanceof Map) {
+                    prefService.setMap(key, value)
+                } else if (value instanceof List) {
+                    prefService.setList(key, value)
+                } else {
+                    prefService.setPreference(key, value.toString())
+                }
+            } catch (e) {
+                logErrorCompact("Failed to recover pref '$key' for user '$username'", e)
+            }
+        }
+        renderJSON(success: true)
     }
 
     def clearPrefs() {
