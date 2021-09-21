@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2020 Extremely Heavy Industries Inc.
+ * Copyright © 2021 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.util
@@ -22,14 +22,14 @@ class DateTimeUtils {
     static final Long HOURS = 60 * 60 * 1000
     static final Long ONE_DAY = 24 * 60 * 60 * 1000
     static final Long DAYS = 24 * 60 * 60 * 1000
-    
+
     static final String YEAR_OF_WEEK = 'YYYY'
     static final String CALENDAR_YEAR = 'yyyy'
-    
-    static final String DATE_FMT = "${CALENDAR_YEAR}-MM-DD"
-    static final String DATETIME_FMT = "${CALENDAR_YEAR}-MM-DD h:mma"
+
+    static final String DATE_FMT = "${CALENDAR_YEAR}-MM-dd"
+    static final String DATETIME_FMT = "${CALENDAR_YEAR}-MM-dd h:mma"
     static final String TIME_FMT = 'h:mma'
-    static final String MONTH_DAY_FMT = 'MMM D'
+    static final String MONTH_DAY_FMT = 'MMM d'
 
     static boolean intervalElapsed(Long interval, Object lastRun) {
         if (!lastRun) return true

@@ -12,20 +12,24 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
 import java.io.IOException;
-import java.time.Instant;
 
-public class InstantSerializer extends StdSerializer<Instant> {
+public class DoubleSerializer extends StdSerializer<Double> {
 
-    public InstantSerializer() {
+    public DoubleSerializer() {
         this(null);
     }
 
-    public InstantSerializer(Class<Instant> t) {
+    public DoubleSerializer(Class<Double> t) {
         super(t);
     }
 
     @Override
-    public void serialize(Instant value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
-        jgen.writeNumber(value.toEpochMilli());
+    public void serialize(Double value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+        if (Double.isFinite(value)) {
+            jgen.writeNumber(value);
+        } else {
+            jgen.writeNull();
+        }
     }
+
 }

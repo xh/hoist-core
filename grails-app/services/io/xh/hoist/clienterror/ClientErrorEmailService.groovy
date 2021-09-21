@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2020 Extremely Heavy Industries Inc.
+ * Copyright © 2021 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.clienterror
@@ -50,6 +50,7 @@ class ClientErrorEmailService extends BaseService {
                 "Environment: ${ce.appEnvironment}",
                 "Browser: ${ce.browser}",
                 "Device: ${ce.device}",
+                "URL: ${ce.url}",
                 "Time: ${ce.dateCreated.format('dd-MMM-yyyy HH:mm:ss')}"
             ].join('<br/>')
 

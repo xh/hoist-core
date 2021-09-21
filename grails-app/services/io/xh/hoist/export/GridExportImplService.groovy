@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2020 Extremely Heavy Industries Inc.
+ * Copyright © 2021 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.export
@@ -43,7 +43,7 @@ class GridExportImplService extends BaseService {
      * Return map suitable for rendering file with grails controller render() method
      */
     Map getBytesForRender(Map params) {
-        withDebug(['Generating Export', params.filename, params.rows.size() + " rows"]) {
+        withDebug(['Generating Export', params.filename, params.rows.size() + " rows", params.meta.size() + " cols"]) {
             return [
                     file       : getFileData(params.type, params.rows, params.meta),
                     contentType: getContentType(params.type),
@@ -115,7 +115,7 @@ class GridExportImplService extends BaseService {
         if (asTable) {
             // Create table
             XSSFTable xssfTable = sheet.createTable()
-            AreaReference tableRange = new AreaReference(new CellReference(0, 0), new CellReference(tableRows - 1, tableColumns - 1), SpreadsheetVersion.EXCEL2007)
+            AreaReference tableRange = new AreaReference(new CellReference(0, 0), new CellReference(Math.max(1, tableRows - 1), tableColumns - 1), SpreadsheetVersion.EXCEL2007)
             CTTable table = xssfTable.getCTTable()
             table.setRef(tableRange.formatAsString())
             table.setDisplayName('Export')
@@ -187,22 +187,15 @@ class GridExportImplService extends BaseService {
                 value = value?.toString()
 
                 // Set cell data format (skipping column headers)
+                // Cache style based on format and depth (for group colors) in order to prevent costly or prohibited
+                // generation of cell styles on workbook (max. 64,000)
                 if (i > 0 && format) {
-                    if (!styles[format]) styles[format] = registerCellStyleForFormat(wb, format)
-
-                    // If rendering grouped data into a table, set background color based on depth.
-                    // Note the confusing use of `ForegroundColor` to set background color below. This is because
-                    // Excel thinks of background colors as patterned "Fills", which each have their own
-                    // background and foreground colors. A solid background is `FillPatternType.SOLID_FOREGROUND`.
-                    if (asTable && grouped) {
-                        XSSFCellStyle style = wb.createCellStyle()
-                        style.cloneStyleFrom(styles[format])
-                        style.setFillForegroundColor(new XSSFColor(groupColors[rowMap.depth]));
-                        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-                        cell.setCellStyle(style)
-                    } else {
-                        cell.setCellStyle(styles[format])
+                    int depth = rowMap.depth ?: 0
+                    String styleKey = format + '|' + depth.toString()
+                    if (!styles[styleKey]) {
+                        styles[styleKey] = registerCellStyleForFormat(wb, format, grouped ? groupColors[depth] : null)
                     }
+                    cell.setCellStyle(styles[styleKey])
                 }
 
                 if (i == 0 || !value) {
@@ -283,11 +276,21 @@ class GridExportImplService extends BaseService {
         return outputStream.toByteArray()
     }
 
-    private XSSFCellStyle registerCellStyleForFormat(wb, format) {
+    private XSSFCellStyle registerCellStyleForFormat(wb, format, colorGroup) {
         XSSFCellStyle style = wb.createCellStyle()
         if (format == 'Text') style.setWrapText(true)
         style.setVerticalAlignment(VerticalAlignment.CENTER)
         style.setDataFormat(wb.createDataFormat().getFormat(format))
+
+        // If rendering grouped data into a table, set background color based on depth.
+        // Note the confusing use of `ForegroundColor` to set background color below. This is because
+        // Excel thinks of background colors as patterned "Fills", which each have their own
+        // background and foreground colors. A solid background is `FillPatternType.SOLID_FOREGROUND`.
+        if (colorGroup) {
+            style.setFillForegroundColor(new XSSFColor(colorGroup));
+            style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        }
+
         return style
     }
 

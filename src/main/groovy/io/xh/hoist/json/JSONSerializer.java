@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2020 Extremely Heavy Industries Inc.
+ * Copyright © 2021 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.json;
@@ -46,7 +46,9 @@ public class JSONSerializer {
                 .addSerializer(Instant.class, new InstantSerializer())
                 .addSerializer(GString.class, new GStringSerializer())
                 .addSerializer(JSONFormatCached.class, new JSONFormatCachedSerializer())
-                .addSerializer(JSONFormat.class, new JSONFormatSerializer());
+                .addSerializer(JSONFormat.class, new JSONFormatSerializer())
+                .addSerializer(Double.class, new DoubleSerializer())
+                .addSerializer(Float.class, new FloatSerializer());
         
         registerModules(module);
     }

@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2020 Extremely Heavy Industries Inc.
+ * Copyright © 2021 Extremely Heavy Industries Inc.
  */
 package io.xh.hoist
 
@@ -226,6 +226,12 @@ class BootStrap {
                 defaultValue: 'auto',
                 groupName: 'xh.io',
                 note: "Control display of Hoist footer with app version info. Options are 'auto' (show in non-prod env, or always for admins), 'always', and 'never'."
+            ],
+            xhSizingMode: [
+                type: 'json',
+                defaultValue: [:],
+                groupName: 'xh.io',
+                note: 'Sizing mode used by Grid and any other responsive components. Keyed by platform: [desktop|mobile|tablet].'
             ],
             xhTheme: [
                 type: 'string',

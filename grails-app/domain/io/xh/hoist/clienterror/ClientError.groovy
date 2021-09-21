@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2020 Extremely Heavy Industries Inc.
+ * Copyright © 2021 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.clienterror
@@ -21,6 +21,7 @@ class ClientError implements JSONFormat {
     String device
     String appVersion
     String appEnvironment
+    String url
     boolean userAlerted = false
     Date dateCreated
 
@@ -41,6 +42,7 @@ class ClientError implements JSONFormat {
         userAgent(nullable: true)
         appVersion(nullable: true, maxSize: 100)
         appEnvironment(nullable: true, maxSize: 100)
+        url(nullable: true, maxSize: 500)
     }
 
     Map formatForJSON() {
@@ -54,6 +56,7 @@ class ClientError implements JSONFormat {
                 device        : device,
                 appVersion    : appVersion,
                 appEnvironment: appEnvironment,
+                url           : url,
                 userAlerted   : userAlerted,
                 dateCreated   : dateCreated,
                 day           : appDay(dateCreated)

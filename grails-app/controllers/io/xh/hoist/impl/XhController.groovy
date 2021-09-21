@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2020 Extremely Heavy Industries Inc.
+ * Copyright © 2021 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.impl
@@ -195,12 +195,13 @@ class XhController extends BaseController {
     //------------------------
     // Client Errors
     //------------------------
-    def submitError(String msg, String error, String appVersion, boolean userAlerted) {
+    def submitError(String msg, String error, String appVersion, String url, boolean userAlerted) {
         ensureClientUsernameMatchesSession()
         clientErrorService.submit(
             safeStr(msg),
             safeStr(error),
             safeStr(appVersion),
+            safeStr(url),
             userAlerted
         )
         renderJSON(success: true)

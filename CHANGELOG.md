@@ -37,21 +37,93 @@ methods that update data with GORM.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v9.1.0...develop)
 
+## 9.3.1 - 2021-08-20
+
+* Bootstrap new `xhSizingMode` core preference.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.3.0...v9.3.1)
+
+## 9.3.0 - 2021-08-11
+
+### 🎁 New Features
+
+* Excel cell styles with grouped colors are now cached for re-use, avoiding previously common file
+  error that limits Excel tables to 64,000 total styles.
+* Client error reports now include the full URL for additional troubleshooting context.
+  * ⚠ NOTE - this requires a new, nullable varchar(500) column be added to the xh_client_error table
+    in your app's configuration database. Review and run the following SQL, or an equivalent
+    suitable for the particular database you are using:
+
+    ```sql
+    ALTER TABLE `xh_client_error` ADD COLUMN `url` VARCHAR(500) NULL;
+    ```
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.2.3...v9.3.0)
+
+## 9.2.3 - 2021-06-24
+
+### 🐞 Technical
+
+* Parsing of `AppEnvironment` from a string provided via instance config / JVM opts is now
+  case-insensitive.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.2.2...v9.2.3)
+
+## 9.2.2 - 2021-06-07
+
+### 🐞 Technical
+
+* Replacing obsolete jcenter dependency (see https://blog.gradle.org/jcenter-shutdown).
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.2.1...v9.2.2)
+
+## 9.2.1 - 2021-04-14
+
+### 🐞 Bug Fixes
+
+* `GridExportImplService` now handles Excel table exports containing no data rows. Previously, the
+  Excel file required repair, during which all table and column header formatting was lost.
+* Status Monitors no longer evaluate metric-based thresholds if an app-level check implementation
+  has already set marked the result with a `FAIL` or `INACTIVE` status, allowing an app to fail or
+  dynamically disable a check regardless of its metric.
+* Fix incorrect formatting pattern strings on `DateTimeUtils`.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.2.0...v9.2.1)
+
+## 9.2.0 - 2021-03-25
+
+### 🐞 Bug Fixes
+
+* Restore JSON Serialization of `NaN` and `Infinity` as `null`. This had long been the standard
+  Hoist JSON serialization for `Double`s and `Float`s but was regressed in v7.0 with the move to
+  Jackson-based JSON serialization.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.1.1...v9.2.0)
+
+## 9.1.1 - 2021-01-27
+
+### ⚙️ Technical
+
+* Improvements to the tracking / logging of admin impersonation sessions.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.1.0...v9.1.1)
 
 
 ## 9.1.0 - 2020-12-22
 
 ### 🎁 New Features
-* Built-in logging utils -- `withDebug`, `withInfo`, `compactErrorLog` and `compactDebugLog`  will log
- username for logging done in the context of a user request. 
-* New method `IdentityService.getUsername()` for efficient access to username when no additional details about
-current user are needed.
+
+* Built-in logging utils `withDebug`, `withInfo`, `compactErrorLog` and `compactDebugLog` will log
+  username when called in the context of a user request.
+* New method `IdentityService.getUsername()` for efficient access to username when no additional
+  details about current user are needed.
 
 ### ⚙️ Technical
+
 * Improve consistency of exception descriptions in logs.
-* Remove repeated exception descriptions in logs -- `withDebug` and `withInfo` will no longer print exception 
-details.
-* TrackService will now log to a dedicated daily log
+* Remove repeated exception descriptions in logs: `withDebug` and `withInfo` will no longer print
+  exception details.
+* TrackService will now log to a dedicated daily log file.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v9.0.0...v9.1.0)
 
@@ -61,23 +133,25 @@ details.
 
 * `LogSupport` API enhancements:
   * `logErrorCompact()` and `logDebugCompact()` now only show stacktraces on `TRACE`
-  *  `withInfo()` and  `withDebug()` now log only once _after_ execution has completed. Raising the log level of the 
-     relevant class or package to `TRACE` will cause these utils to also log a line _before_ execution, as they did 
-     before. (As always, log levels can be adjusted dynamically at runtime via the Admin Console.)
-  * The upgrade to these two utils mean that they **completely replace** `withShortInfo()` and `withShortDebug()`, 
-     which have both been **removed** as part of this change. 
-  *  Additional stacktraces have been removed from default logging.
- 
- ### ⚙️ Technical
-* `RoutineException`s are now returned with HttpStatus `400` to client, rather than `500` 
+  * `withInfo()` and `withDebug()` now log only once _after_ execution has completed. Raising the
+    log level of the relevant class or package to `TRACE` will cause these utils to also log a line
+    _before_ execution, as they did before. (As always, log levels can be adjusted dynamically at
+    runtime via the Admin Console.)
+  * The upgrade to these two utils mean that they **completely replace** `withShortInfo()` and
+    `withShortDebug()`, which have both been **removed** as part of this change.
+  * Additional stacktraces have been removed from default logging.
+
+### ⚙️ Technical
+
+* `RoutineException`s are now returned with HttpStatus `400` to client, rather than `500`
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.7.3...v9.0.0)
 
 ## 8.7.3 - 2020-12-15
 
-* Default exception logging in `ExceptionRender` will no longer include stacktraces,
-but will instead use `LogSupport.logErrorCompact()`.  To see stacktraces for 
-any given logger, set the logging level to `DEBUG`.
+* Default exception logging in `ExceptionRender` will no longer include stacktraces, but will
+  instead use `LogSupport.logErrorCompact()`. To see stacktraces for any given logger, set the
+  logging level to `DEBUG`.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.7.2...v8.7.3)
 
@@ -932,7 +1006,7 @@ exposing them to the application as a map.
 
 ------------------------------------------
 
-Copyright © 2020 Extremely Heavy Industries Inc. - all rights reserved
+Copyright © 2021 Extremely Heavy Industries Inc. - all rights reserved
 
 ------------------------------------------
 
