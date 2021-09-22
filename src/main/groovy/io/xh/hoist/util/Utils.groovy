@@ -108,7 +108,7 @@ class Utils {
      * database housing Hoist-related tables as well as any app-specific domain objects.
      */
     static Map<String, String> getDataSource() {
-        return (Map<String, String>) Holders.grailsApplication.config.dataSource
+        return (Map<String, String>) Holders.grailsApplication.config.getProperty('dataSource', Map.class)
     }
 
     /**
