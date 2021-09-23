@@ -1,9 +1,10 @@
 # Changelog
 
 ## 10.0-SNAPSHOT - unreleased
-Version 7.0 includes a major upgrade of several underlying libraries, especially grails (v4.0.6) and spring-boot (2.1.13)
-With this version, Hoist can now be run on Java versions 8 - 11.  We have also cleaned up and enhanced some core
-APIs around Exception Handling and JSON parsing and configuration.
+This version includes a major upgrade of several underlying libraries, especially grails (5.0.0),
+spring-boot (2.5.4), groovy (3.0.7), and gradle (6.9.1). With this version, Hoist can now be run 
+on Java versions 8 - 11.  We have also cleaned up and enhanced some core
+APIs around Exception Handling, JSON parsing and configuration.
 
 ### 🎁 New Features
 * Add support for Preference Diffing in the hoist-react admin tool.
@@ -17,15 +18,15 @@ from `grails.async.Promises` instead.
 ### ⚙️ Technical
 * This release upgrades the major version of grails from 3.3.9 to 4.0.3.  This major release
 includes the following upgrades of related libraries:
-    * spring boot `1.x -> 2.1.13` 
-    * groovy `2.4.15 -> 2.5.6`
-    * gradle `4.10.3 -> 5.6.4`
-    * gorm `6.1.11 -> 7.0.4`
-    * hibernate `5.1.10 -> 5.4.14`
+    * spring boot `1.x -> 2.5.4` 
+    * groovy `2.4.15 -> 3.0.7`
+    * gradle `4.10.3 -> 6.9.1`
+    * gorm `6.1.11 -> 7.1.0`
+    * hibernate `5.1.10 -> 5.5.7`
     * org.grails.plugins:mail `2.0.0 -> 3.0.0`
     * apache poi  `3.1.7` -> `4.1.2`
     
-* HttpClient has been upgraded from `4.5.6` -> `5.5.0`.  Package names have changed, and applications using
+* HttpClient has been upgraded from `4.5.6` -> `5.1.0`.  Package names have changed, and applications using
 this API (e.g. with `JSONClient`) will need to update their imports statements to reflect the new locations @
 `org.apache.hc.client5.http`  and `org.apache.hc.core5.http`.  See toolbox for examples.
   
