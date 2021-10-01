@@ -1,5 +1,13 @@
 # Changelog
 
+## 9.3.2 - 2021-10-01
+
+* `EmailService` now requires an override or filter config before sending any mails in local
+  development mode.
+* `ClientErrorEmailService` now relays any client URL captured with the error.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.3.1...v9.3.2)
+
 ## 9.3.1 - 2021-08-20
 
 * Bootstrap new `xhSizingMode` core preference.

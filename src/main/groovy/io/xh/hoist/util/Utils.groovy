@@ -9,6 +9,7 @@ package io.xh.hoist.util
 
 import com.grack.nanojson.JsonParser
 import com.grack.nanojson.JsonParserException
+import grails.util.Environment
 import grails.util.Holders
 import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
@@ -67,6 +68,13 @@ class Utils {
 
     static Boolean getIsProduction() {
         return appEnvironment == AppEnvironment.PRODUCTION
+    }
+
+    /**
+     * Indicates if app is running in local development mode, regardless of AppEnvironment.
+     */
+    static Boolean getIsLocalDevelopment() {
+        return Environment.isDevelopmentMode()
     }
 
     static ConfigService getConfigService() {
@@ -160,5 +168,5 @@ class Utils {
 
         return ret
     }
-    
+
 }

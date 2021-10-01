@@ -49,12 +49,20 @@ class EmailService extends BaseService {
             throwError = args.throwError
 
         try {
+            def override = parseMailConfig('xhEmailOverride'),
+                filter = parseMailConfig('xhEmailFilter')
+
             def originalTo = args.to,
                 sender = args.from ? formatAddresses(args.from)[0] : parseMailConfig('xhEmailDefaultSender')[0],
                 doLog = args.containsKey('doLog') ? args.doLog : true,
                 logIdentifier = args.logIdentifier ?: args.subject
 
             logMsg = "$sender -> ${originalTo.take(100)} | ${logIdentifier.take(70)}"
+
+            if (Utils.isLocalDevelopment && !override & !filter) {
+                log.info("No emails sent | emailing from local development requires an active xhEmailOverride or xhEmailFilter config | ${logMsg}")
+                return
+            }
 
             def toRecipients = filterAddresses(formatAddresses(args.to)),
                 ccRecipients = args.cc ? filterAddresses(formatAddresses(args.cc)) : null,
@@ -64,15 +72,14 @@ class EmailService extends BaseService {
                 isAsync = args.containsKey('async') ? args.async : false
 
             if (!toRecipients) {
-                log.debug("No valid recipients found after filtering | ${logMsg}")
+                log.debug("No emails sent | no valid recipients found after filtering | ${logMsg}")
                 return
             }
 
-            def overrideEmail = parseMailConfig('xhEmailOverride')
-            if (overrideEmail) {
-                toRecipients = overrideEmail
+            if (override) {
+                toRecipients = override
                 ccRecipients = null
-                subj += " [for $originalTo]"
+                subj += " (for $originalTo)"
                 logMsg += " | redirected to $toRecipients"
             }
 
@@ -99,7 +106,8 @@ class EmailService extends BaseService {
             }
 
             if (doLog) {
-                log.info("Sent mail | $logMsg")
+                def recipCount = toRecipients.size() + (ccRecipients?.size() ?: 0)
+                log.info("Sent mail | ${recipCount} actual recipients | $logMsg")
             }
         } catch (Exception e) {
             logErrorCompact("Error sending email $logMsg", e)
@@ -149,6 +157,6 @@ class EmailService extends BaseService {
             email.contains('@') ? email : (email + domain)
         }
     }
-    
+
 }
 
