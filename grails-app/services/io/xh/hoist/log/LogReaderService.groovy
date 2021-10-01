@@ -3,6 +3,7 @@ package io.xh.hoist.log
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.log.LogUtils
 import io.xh.hoist.exception.RoutineRuntimeException
 import org.apache.commons.io.input.ReversedLinesFileReader
 import static java.lang.System.currentTimeMillis
@@ -28,6 +29,12 @@ class LogReaderService extends BaseService {
         return (List) withDebug('Reading log file ' + filename + '|' + startLine + '|' + maxLines + '|' + pattern) {
             doRead(filename, startLine, maxLines, pattern)
         }
+    }
+
+    File get(String filename) {
+        def ret = new File("$LogUtils.logRootPath/$filename")
+        if (!ret?.exists()) throw new RuntimeException("File not found with filename \"${filename}\".")
+        return ret
     }
 
     //------------------------

@@ -1,5 +1,11 @@
 # Changelog
 
+## 10.0.0 - 2021-10-01
+
+### 🎁 New Features
+
+* Log Viewer now supports downloading log files.
+
 ## 9.3.1 - 2021-08-20
 
 * Bootstrap new `xhSizingMode` core preference.
