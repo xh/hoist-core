@@ -1,5 +1,20 @@
 # Changelog
 
+## 10.0.0 - 2021-10-01
+
+### 🎁 New Features
+
+* Log Levels now include information on when the custom config was last updated and by whom. 
+  * ⚠ NOTE - this requires two new columns be added to the xh_log_level table in your app's configuration database:
+    a datetime column and a nullable varchar(50) column. Review and run the following SQL, or an equivalent suitable for 
+    the particular database you are using:
+
+    ```sql
+    ALTER TABLE `xh_log_level` 
+      ADD `last_updated` DATETIME,
+          `last_updated_by` VARCHAR(50) NULL;
+    ```
+
 ## 9.3.1 - 2021-08-20
 
 * Bootstrap new `xhSizingMode` core preference.
