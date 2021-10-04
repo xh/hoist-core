@@ -1,5 +1,12 @@
 # Changelog
 
+## 10.0.0 - unreleased
+
+### 🎁 New Features
+
+* Log Viewer now supports downloading log files.
+
+
 ## 9.3.2 - 2021-10-01
 
 * `EmailService` now requires an override or filter config before sending any mails in local
