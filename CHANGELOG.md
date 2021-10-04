@@ -1,10 +1,19 @@
 # Changelog
 
-## 10.0.0 - 2021-10-01
+## 10.0.0 - unreleased
 
 ### 🎁 New Features
 
 * Log Viewer now supports downloading log files.
+
+
+## 9.3.2 - 2021-10-01
+
+* `EmailService` now requires an override or filter config before sending any mails in local
+  development mode.
+* `ClientErrorEmailService` now relays any client URL captured with the error.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.3.1...v9.3.2)
 
 ## 9.3.1 - 2021-08-20
 
