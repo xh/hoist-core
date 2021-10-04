@@ -59,7 +59,7 @@ class EmailService extends BaseService {
 
             logMsg = "$sender -> ${originalTo.take(100)} | ${logIdentifier.take(70)}"
 
-            if (Utils.isLocalDevelopment && !override & !filter) {
+            if (Utils.isLocalDevelopment && !override && !filter) {
                 log.info("No emails sent | emailing from local development requires an active xhEmailOverride or xhEmailFilter config | ${logMsg}")
                 return
             }
