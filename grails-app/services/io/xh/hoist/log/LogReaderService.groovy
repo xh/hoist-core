@@ -30,9 +30,12 @@ class LogReaderService extends BaseService {
         }
     }
 
+    /**
+     * Fetch the raw contents of a log file for direct download.
+     */
     File get(String filename) {
         def ret = new File(LogUtils.logRootPath, filename)
-        if (!ret?.exists()) throw new RuntimeException("File not found with filename \"${filename}\".")
+        if (!ret.exists()) throw new FileNotFoundException()
         return ret
     }
 
