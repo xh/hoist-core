@@ -6,6 +6,10 @@
 
 * Log Viewer now supports downloading log files.
 
+### ⚙️ Technical
+
+* Server will no longer default to "development" environment in server deployments.  
+A recognized environment must be provided. 
 
 ## 9.3.2 - 2021-10-01
 
