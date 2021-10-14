@@ -95,9 +95,11 @@ class InstanceConfigUtils {
         // Populate environment, popping it off the map if provided via config. Priority as documented above.
         def optEnvString = System.getProperty('io.xh.hoist.environment'),
             confEnvString = ret.remove('environment'),
-            envString = optEnvString ?: (confEnvString ?: 'Development')
+            envString = optEnvString ?: (confEnvString ?: 'Development'),
+            env = AppEnvironment.parse(envString)
 
-        _appEnvironment = AppEnvironment.parse(envString) ?: AppEnvironment.DEVELOPMENT
+        if (!env) throw new RuntimeException("Cannot identify Hoist environment: '$envString'")
+        _appEnvironment = env
 
         return ret
     }
