@@ -9,6 +9,8 @@ package io.xh.hoist.util
 import io.xh.hoist.AppEnvironment
 import org.yaml.snakeyaml.Yaml
 
+import static io.xh.hoist.util.Utils.isLocalDevelopment
+
 
 /**
  * Utility for loading optional, file-based configuration properties once on startup and exposing
@@ -95,10 +97,17 @@ class InstanceConfigUtils {
         // Populate environment, popping it off the map if provided via config. Priority as documented above.
         def optEnvString = System.getProperty('io.xh.hoist.environment'),
             confEnvString = ret.remove('environment'),
-            envString = optEnvString ?: (confEnvString ?: 'Development'),
+            envString = optEnvString ?: confEnvString,
             env = AppEnvironment.parse(envString)
 
-        if (!env) throw new RuntimeException("Cannot identify Hoist environment: '$envString'")
+        if (!env) {
+            if (isLocalDevelopment) {
+                env = AppEnvironment.DEVELOPMENT
+            } else {
+                throw new RuntimeException("Cannot identify Hoist environment: '$envString'")
+            }
+        }
+
         _appEnvironment = env
 
         return ret
