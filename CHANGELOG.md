@@ -8,8 +8,8 @@
 
 ### ⚙️ Technical
 
-* Server will no longer default to "development" environment in server deployments.  
-A recognized environment must be provided. 
+* Applications will no longer default to "development" environment in server deployments.  
+A recognized environment must be explicitly provided. 
 
 ## 9.3.2 - 2021-10-01
 
