@@ -1,5 +1,7 @@
 # Changelog
 
+## 10.0.0-SNAPSHOT - unreleased
+
 ## 9.4.0 - 2021-10-15
 
 ### 🎁 New Features
