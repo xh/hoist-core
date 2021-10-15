@@ -228,6 +228,12 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Set to true prevent IdleService from suspending the application due to inactivity.'
             ],
+            xhLastReadChangelog: [
+                type: 'string',
+                defaultValue: '0.0.0',
+                groupName: 'xh.io',
+                note: 'The most recent changelog entry version viewed by the user - read/written by XH.changelogService.'
+            ],
             xhShowVersionBar: [
                 type: 'string',
                 defaultValue: 'auto',
