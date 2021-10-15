@@ -1,10 +1,12 @@
 # Changelog
 
-## 10.0.0 - unreleased
+## 9.4.0 - 2012-10-15
 
 ### 🎁 New Features
 
 * Log Viewer now supports downloading log files.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.3.1...v9.4.0)
 
 ### ⚙️ Technical
 
