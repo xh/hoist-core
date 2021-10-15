@@ -56,6 +56,13 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'AppConfigs to display in the client app About panel. Enter as a list of object of the form {"key": "configName", "label": "Display Name"}.'
             ],
+            xhAlertBannerConfig: [
+                valueType: 'json',
+                defaultValue: [enabled: true, interval: 30],
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'Configures support for showing an app-wide alert banner.\n\nAdmins configure and activate alert banners from the Hoist Admin console. To generally enable this system, set "enabled" to true and "interval" to a positive value (in seconds) to control how often connected apps check for a new alert.'
+            ],
             xhAppInstances: [
                 valueType: 'json',
                 defaultValue: [],
