@@ -59,14 +59,14 @@ class ClientErrorEmailService extends BaseService {
         parts << metaText
         parts << ce.userMessage
         if (withDetails) {
-            parts << errorJSON ? '<pre>' + JSONSerializer.serializePretty(errorJSON) + '</pre>' : errorText
+            parts << (errorJSON ? '<pre>' + JSONSerializer.serializePretty(errorJSON) + '</pre>' : errorText)
         }
         return parts.findAll().join('<br/><br/>')
     }
 
     private String formatDigest(Collection<Map> msgs) {
         return msgs
-                .sort { it.dateCreated }
+                .sort { -it.dateCreated.date }
                 .collect { this.formatSingle(it, false) }
                 .join('<br><br/>==================<br/><br/>')
     }
