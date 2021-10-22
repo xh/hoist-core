@@ -68,7 +68,7 @@ class ClientErrorEmailService extends BaseService {
         return msgs
                 .sort { it.dateCreated }
                 .collect { this.formatSingle(it, false) }
-                .join('<br>==================<br/>==================<br/><br/>')
+                .join('<br><br/>==================<br/><br/>')
     }
 
     private Map safeParseJSON(String errorText) {
