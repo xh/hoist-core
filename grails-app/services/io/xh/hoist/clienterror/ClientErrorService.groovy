@@ -18,7 +18,16 @@ import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static java.lang.System.currentTimeMillis
 
+/**
+ * This class manages client error reports, saving them in the database and
+ * broadcasting via email.
+ *
+ * It processes any reports received in a timer in bulk.  With a 'maxErrors' config,
+ * this prevents us from ever overwhelming the server due to client issues,
+ * and also allows us to produce a digest form of the email.
+ */
 class ClientErrorService extends BaseService implements EventPublisher {
 
     def clientErrorEmailService,
@@ -33,8 +42,7 @@ class ClientErrorService extends BaseService implements EventPublisher {
         super.init()
         createTimer(
                 interval: { alertInterval },
-                delay: 10 * SECONDS,
-                runImmediatelyAndBlock: true
+                delay: 15 * SECONDS
         )
     }
 
@@ -46,52 +54,54 @@ class ClientErrorService extends BaseService implements EventPublisher {
      * @param url - location where error occurred
      */
     void submit(String message, String error, String appVersion, String url, boolean userAlerted) {
+        def request = WebUtils.retrieveGrailsWebRequest().currentRequest
+        if (!request) return
 
-        if (errors.size() > maxErrors) return
+        def authUsername = identityService.authUser.username,
+            userAgent = request.getHeader('User-Agent')
 
-        def request = WebUtils.retrieveGrailsWebRequest().currentRequest,
-            userAgent = request?.getHeader('User-Agent'),
-            idSvc = identityService,
-            authUsername = idSvc.authUser.username,
-            key = username + System.currentTimeMillis()
+        log.debug("Client Error received from $authUsername")
 
-        errors[key] = [
-                msg           : message,
-                error         : error,
-                username      : authUsername,
-                userAgent     : userAgent,
-                browser       : getBrowser(userAgent),
-                device        : getDevice(userAgent),
-                appVersion    : appVersion ?: Utils.appVersion,
-                appEnvironment: Utils.appEnvironment,
-                url           : url?.take(500),
-                userAlerted   : userAlerted,
-                dateCreated   : new Date()
-        ]
-        log.debug("Client Error Received")
+        if (errors.size() < maxErrors) {
+            errors[authUsername + currentTimeMillis()] = [
+                    msg           : message,
+                    error         : error,
+                    username      : authUsername,
+                    userAgent     : userAgent,
+                    browser       : getBrowser(userAgent),
+                    device        : getDevice(userAgent),
+                    appVersion    : appVersion ?: Utils.appVersion,
+                    appEnvironment: Utils.appEnvironment,
+                    url           : url?.take(500),
+                    userAlerted   : userAlerted,
+                    dateCreated   : new Date()
+            ]
+        }
     }
 
     //--------------------------------------------------------
     // Implementation
-    // Process in bulk on a timer to avoid storm of requests
     //---------------------------------------------------------
     void onTimer() {
-        log.debug("Processing Client Error reports")
+       if (!errors) return
+
         // swap out buffer
         def maxErrors = getMaxErrors(),
-            errs = errors.values().take(maxErrors)
+            errs = errors.values().take(maxErrors),
+            count = errs.size()
         errors = new ConcurrentHashMap()
 
-        // Send mail, possibly a digest
-        if (errs) {
-            clientErrorEmailService.sendMail(errs, maxErrors)
-        }
+        withDebug("Processing $count Client Errors") {
+            // Send mail, possibly a digest
+            clientErrorEmailService.sendMail(errs, count == maxErrors)
 
-        // Save in DB
-        ClientError.withNewSession {
-            errs.each {
-                def ce = new ClientError(it)
-                ce.save(flush: true)
+            // Save in DB and notify listeners
+            ClientError.withNewSession {
+                errs.each {
+                    def ce = new ClientError(it)
+                    ce.save(flush: true)
+                    notify('xhClientErrorReceived', ce)
+                }
             }
         }
     }

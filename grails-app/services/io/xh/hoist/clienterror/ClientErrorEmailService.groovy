@@ -19,14 +19,14 @@ class ClientErrorEmailService extends BaseService {
 
     def emailService
 
-    void sendMail(Collection<Map> errors, int maxErrors) {
+    void sendMail(Collection<Map> errors, boolean maxErrorsReached) {
         def to = emailService.parseMailConfig('xhEmailSupport')
         if (to) {
             def count = errors.size(),
                 single = count == 1,
                 subject = single ?
                     "$appName Client Exception" :
-                    "$appName Client Exceptions ($count${count == maxErrors ? '+' : ''}) ",
+                    "$appName Client Exceptions ($count${maxErrorsReached ? '+' : ''}) ",
                 html = single ? formatSingle(errors.first()) : formatDigest(errors)
 
             emailService.sendEmail(async: true, to: to, subject: subject, html: html)
@@ -68,7 +68,7 @@ class ClientErrorEmailService extends BaseService {
         return msgs
                 .sort { -it.dateCreated.date }
                 .collect { this.formatSingle(it, false) }
-                .join('<br><br/>==================<br/><br/>')
+                .join('<br/><br/><hr/><br/>')
     }
 
     private Map safeParseJSON(String errorText) {
