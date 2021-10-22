@@ -92,10 +92,8 @@ class ClientErrorService extends BaseService implements EventPublisher {
         errors = new ConcurrentHashMap()
 
         withDebug("Processing $count Client Errors") {
-            // Send mail, possibly a digest
             clientErrorEmailService.sendMail(errs, count == maxErrors)
 
-            // Save in DB and notify listeners
             ClientError.withNewSession {
                 errs.each {
                     def ce = new ClientError(it)
