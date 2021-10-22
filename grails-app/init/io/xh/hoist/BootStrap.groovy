@@ -97,6 +97,10 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Map of clientAppCodes to intervals (in seconds) on which the client-side AutoRefreshService should fire. Note the xhAutoRefreshEnabled preference must also be true for the client service to activate.'
             ],
+            xhClientErrorConfig: [
+                valueType: 'json',
+                defaultValue: [intervalMins: 2, maxErrors: 25]
+            ],
             xhEmailDefaultDomain: [
                 valueType: 'string',
                 defaultValue: 'xh.io',

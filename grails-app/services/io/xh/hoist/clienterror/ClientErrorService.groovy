@@ -12,10 +12,31 @@ import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 import org.grails.web.util.WebUtils
 
+import java.util.concurrent.ConcurrentHashMap
+
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
+import static io.xh.hoist.util.DateTimeUtils.MINUTES
+import static io.xh.hoist.util.DateTimeUtils.SECONDS
 
 class ClientErrorService extends BaseService implements EventPublisher {
+
+    def clientErrorEmailService,
+        configService
+
+    private Map<String, Map> errors = new ConcurrentHashMap()
+
+    private int getMaxErrors()      {configService.getMap('xhClientErrorConfig').maxErrors}
+    private int getAlertInterval()  {configService.getMap('xhClientErrorConfig').intervalMins * MINUTES}
+
+    void init() {
+        super.init()
+        createTimer(
+                interval: { alertInterval },
+                delay: 10 * SECONDS,
+                runImmediatelyAndBlock: true
+        )
+    }
 
     /**
      * Create a client exception entry. Username, browser info, environment info, and datetime will be set automatically.
@@ -25,28 +46,53 @@ class ClientErrorService extends BaseService implements EventPublisher {
      * @param url - location where error occurred
      */
     void submit(String message, String error, String appVersion, String url, boolean userAlerted) {
+
+        if (errors.size() > maxErrors) return
+
         def request = WebUtils.retrieveGrailsWebRequest().currentRequest,
             userAgent = request?.getHeader('User-Agent'),
             idSvc = identityService,
-            authUsername = idSvc.getAuthUser().username,
-            values = [
-                    msg: message,
-                    error: error,
-                    username: authUsername,
-                    userAgent: userAgent,
-                    browser: getBrowser(userAgent),
-                    device: getDevice(userAgent),
-                    appVersion: appVersion ?: Utils.appVersion,
-                    appEnvironment: Utils.appEnvironment,
-                    url: url?.take(500),
-                    userAlerted: userAlerted
-            ]
+            authUsername = idSvc.authUser.username,
+            key = username + System.currentTimeMillis()
 
-        ClientError.withNewSession {
-            def ce = new ClientError(values)
-            ce.save(flush: true)
-            notify('xhClientErrorReceived', ce)
-        }
+        errors[key] = [
+                msg           : message,
+                error         : error,
+                username      : authUsername,
+                userAgent     : userAgent,
+                browser       : getBrowser(userAgent),
+                device        : getDevice(userAgent),
+                appVersion    : appVersion ?: Utils.appVersion,
+                appEnvironment: Utils.appEnvironment,
+                url           : url?.take(500),
+                userAlerted   : userAlerted,
+                dateCreated   : new Date()
+        ]
+        log.debug("Client Error Received")
     }
 
+    //--------------------------------------------------------
+    // Implementation
+    // Process in bulk on a timer to avoid storm of requests
+    //---------------------------------------------------------
+    void onTimer() {
+        log.debug("Processing Client Error reports")
+        // swap out buffer
+        def maxErrors = getMaxErrors(),
+            errs = errors.values().take(maxErrors)
+        errors = new ConcurrentHashMap()
+
+        // Send mail, possibly a digest
+        if (errs) {
+            clientErrorEmailService.sendMail(errs, maxErrors)
+        }
+
+        // Save in DB
+        ClientError.withNewSession {
+            errs.each {
+                def ce = new ClientError(it)
+                ce.save(flush: true)
+            }
+        }
+    }
 }
