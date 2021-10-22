@@ -5,7 +5,7 @@
 ### ⚙️ Technical
 * Client Error messages are now saved and sent in bulk on a timer.  This allows Hoist to use a digest mail and
   generally manage any storm of error reports.
-
+* Improved JsonBlob editing support
 ## 9.4.0 - 2021-10-15
 
 ### 🎁 New Features
