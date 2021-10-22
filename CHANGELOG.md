@@ -5,9 +5,9 @@
 ### ⚙️ Technical
 * Client Error messages are now saved and sent in bulk on a timer.  This allows Hoist to use a digest mail and
   generally manage any storm of error reports.
+* Improved JsonBlob editing support
 
 ### 🎁 New Features
-
 * Log Levels now include information on when the custom config was last updated and by whom.
   * ⚠ NOTE - this requires two new columns be added to the xh_log_level table in your app's configuration database:
     a datetime column and a nullable varchar(50) column. Review and run the following SQL, or an equivalent suitable for

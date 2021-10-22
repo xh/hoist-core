@@ -9,6 +9,7 @@ package io.xh.hoist.jsonblob
 import io.xh.hoist.BaseService
 import io.xh.hoist.exception.NotAuthorizedException
 import io.xh.hoist.json.JSONParser
+import static io.xh.hoist.json.JSONSerializer.serialize
 
 class JsonBlobService extends BaseService {
 
@@ -38,13 +39,14 @@ class JsonBlobService extends BaseService {
         return formatForClient(blob, true)
     }
 
-    Map update(String token, String name, String value, String meta, String description) {
-        def blob = getAvailableBlob(token)
+    Map update(String token, String payload) {
+        def blob = getAvailableBlob(token),
+            data = JSONParser.parseObject(payload)
 
-        if (name) blob.name = name
-        if (value) blob.value = value
-        if (meta) blob.meta = meta
-        if (description) blob.description = description
+        if (data.containsKey('name')) blob.name = data.name
+        if (data.containsKey('value')) blob.value = serialize(data.value)
+        if (data.containsKey('meta')) blob.meta = serialize(data.meta)
+        if (data.containsKey('description')) blob.description = data.description
 
         blob.lastUpdatedBy = username
         blob.save()
