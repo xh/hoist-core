@@ -9,6 +9,7 @@ package io.xh.hoist.impl
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseController
+import io.xh.hoist.alertbanner.AlertBannerService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.clienterror.ClientErrorService
 import io.xh.hoist.exception.NotFoundException
@@ -28,6 +29,7 @@ import org.owasp.encoder.Encode
 @CompileStatic
 class XhController extends BaseController {
 
+    AlertBannerService alertBannerService
     ClientErrorService clientErrorService
     ConfigService configService
     FeedbackService feedbackService
@@ -219,6 +221,12 @@ class XhController extends BaseController {
         renderJSON(success: true)
     }
 
+    //----------------------
+    // Alert Banner
+    //----------------------
+    def currentAlert() {
+        renderJSON(alertBannerService.currentAlert)
+    }
 
     //-----------------------
     // Misc

@@ -65,6 +65,22 @@ class JsonBlobService extends BaseService {
     //------------------------------------------------------------------
     // Methods for protected server-side use (not exposed in client API)
     //------------------------------------------------------------------
+    List<JsonBlob> listSystemBlobs(String type) {
+        JsonBlob.findAllByTypeAndOwnerAndArchivedDate(type, null, 0)
+    }
+
+    JsonBlob createSystemBlob(String type, String name, String value, String meta, String description) {
+        new JsonBlob(
+                type: type,
+                name: name,
+                value: value,
+                meta: meta,
+                description: description,
+                owner: null,
+                lastUpdatedBy: username
+        )
+    }
+
     JsonBlob updateAcl(String token, String acl) {
         def blob = getAvailableBlob(token)
         blob.acl = acl
