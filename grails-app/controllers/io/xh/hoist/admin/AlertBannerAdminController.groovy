@@ -15,7 +15,7 @@ class AlertBannerAdminController extends BaseController {
 
     def alertBannerService
 
-    def getAlertSpec() {
+    def alertSpec() {
         renderJSON(alertBannerService.alertSpec)
     }
 
