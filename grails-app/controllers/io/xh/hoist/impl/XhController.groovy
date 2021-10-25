@@ -224,8 +224,8 @@ class XhController extends BaseController {
     //----------------------
     // Alert Banner
     //----------------------
-    def currentAlert() {
-        renderJSON(alertBannerService.currentAlert)
+    def alertBanner() {
+        renderJSON(alertBannerService.alertBanner)
     }
 
     //-----------------------

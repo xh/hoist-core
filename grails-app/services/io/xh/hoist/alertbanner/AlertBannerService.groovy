@@ -25,23 +25,25 @@ class AlertBannerService extends BaseService {
     def configService,
         jsonBlobService
 
+    private final static String BLOB_ID = 'xhAlertBanner';
+
     private final emptyAlert = [active: false]
-    private Map _currentAlert = emptyAlert
+    private Map cachedBanner = emptyAlert
 
     void init() {
         super.init()
         createTimer(
-                runFn: this.&refreshCurrentAlert,
+                runFn: this.&refreshCachedBanner,
                 interval: 2 * MINUTES,
                 runImmediatelyAndBlock: true
         )
     }
 
     /**
-     * Main public entry point for clients.  Return current alert.
+     * Main public entry point for clients.
      */
-    Map getCurrentAlert() {
-        _currentAlert
+    Map getAlertBanner() {
+        cachedBanner
     }
 
     //--------------------
@@ -49,25 +51,25 @@ class AlertBannerService extends BaseService {
     //--------------------
     Map getAlertSpec() {
         jsonBlobService
-                .listSystemBlobs('xhAlertBanner')
-                .find { it.name == 'currentAlert' }
+                .listSystemBlobs(BLOB_ID)
+                .find { it.name == BLOB_ID }
                 ?.with {JSONParser.parseObject(it.value)}
                 ?: emptyAlert
     }
 
     void setAlertSpec(String value) {
-        def blob = jsonBlobService.listSystemBlobs('xhAlertBanner').find { it.name == 'currentAlert' } ?:
-                jsonBlobService.createSystemBlob('xhAlertBanner', 'currentAlert', '{}', null, null)
+        def blob = jsonBlobService.listSystemBlobs(BLOB_ID).find { it.name == BLOB_ID } ?:
+                jsonBlobService.createSystemBlob(BLOB_ID, BLOB_ID, '{}', null, null)
 
         blob.value = value
         blob.save()
-        refreshCurrentAlert()
+        refreshCachedBanner()
     }
 
     //----------------------------
     // Implementation
     //-----------------------------
-    private Map readCurrentAlert() {
+    private Map readFromSpec() {
         def conf = configService.getMap('xhAlertBannerConfig', [:])
         if (conf.enabled) {
             def spec = getAlertSpec()
@@ -78,13 +80,13 @@ class AlertBannerService extends BaseService {
         return emptyAlert
     }
 
-    private void refreshCurrentAlert() {
-        _currentAlert = readCurrentAlert()
-        log.debug("Publishing new Alert Banner state: " + _currentAlert.toMapString())
+    private void refreshCachedBanner() {
+        cachedBanner = readFromSpec()
+        log.debug("Refreshing Alert Banner state: " + cachedBanner.toMapString())
     }
 
     void clearCaches() {
         super.clearCaches()
-        refreshCurrentAlert()
+        refreshCachedBanner()
     }
 }
