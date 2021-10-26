@@ -1,5 +1,9 @@
 # Changelog
 
+## 11.0.0-SNAPSHOT - unreleased
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v10.0.0...develop)
+
 ## 10.0.0 - 2021-10-26
 
 ⚠ NOTE - apps must update to `hoist-react >= 44.0.0` when taking this hoist-core update.
@@ -31,7 +35,7 @@
 
 * Dedicated admin endpoints added for Alert Banner management, backed by a new `AlertBannerService`.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v9.4.0...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.4.0...v10.0.0)
 
 ## 9.4.0 - 2021-10-15
 
@@ -39,7 +43,7 @@
 
 * Log Viewer now supports downloading log files.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v9.3.1...v10.0.0)
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.3.1...v9.4.0)
 
 ### ⚙️ Technical
 
