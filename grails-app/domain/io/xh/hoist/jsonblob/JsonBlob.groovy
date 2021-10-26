@@ -9,6 +9,8 @@ package io.xh.hoist.jsonblob
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.util.Utils
 
+import static io.xh.hoist.json.JSONParser.parseObjectOrArray
+
 class JsonBlob implements JSONFormat {
 
     String token = UUID.randomUUID().toString().substring(0, 8)
@@ -46,6 +48,7 @@ class JsonBlob implements JSONFormat {
         lastUpdatedBy nullable: true
     }
 
+    // Serialization used by JsonBlobAdminController for Admin Console management of blobs.
     Map formatForJSON() {[
         id: id,
         token: token,
@@ -62,4 +65,29 @@ class JsonBlob implements JSONFormat {
         lastUpdated: lastUpdated,
         lastUpdatedBy: lastUpdatedBy
     ]}
+
+    // Serialization used when sending blobs down to business users via XHController actions.
+    Map formatForClient(Boolean includeValue = true) {
+        def ret = [
+                id: id,
+                token: token,
+                type: type,
+                owner: owner,
+                acl: acl,
+                name: name,
+                archived: archivedDate > 0,
+                archivedDate: archivedDate,
+                description: description,
+                dateCreated: dateCreated,
+                lastUpdated: lastUpdated,
+                lastUpdatedBy: lastUpdatedBy,
+                meta: parseObjectOrArray(meta)
+        ]
+
+        if (includeValue) {
+            ret.value = parseObjectOrArray(value)
+        }
+
+        return ret
+    }
 }
