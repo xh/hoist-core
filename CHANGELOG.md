@@ -2,21 +2,36 @@
 
 ## 10.0.0-SNAPSHOT - unreleased
 
-### ⚙️ Technical
-* Client Error messages are now saved and sent in bulk on a timer.  This allows Hoist to use a digest mail and
-  generally manage any storm of error reports.
-* Improved JsonBlob editing support
+⚠ NOTE - apps must update to `hoist-react >= 44.0.0` when taking this hoist-core update.
 
 ### 🎁 New Features
-* Log Levels now include information on when the custom config was last updated and by whom.
-  * ⚠ NOTE - this requires two new columns be added to the xh_log_level table in your app's configuration database:
-    a datetime column and a nullable varchar(50) column. Review and run the following SQL, or an equivalent suitable for
-    the particular database you are using:
 
+* Log Levels now include information on when the custom config was last updated and by whom. Note
+  required database modifications in Breaking Changes below.
+* Client Error messages are now saved and sent in bulk on a timer. This allows Hoist to bundle
+  multiple error reports into a single alert email and generally improves how a potential storm of
+  error reports is handled.
+* Improved `JsonBlob` editing now supports setting null values for relevant fields.
+
+### 💥 Breaking Changes
+
+* Update required to `hoist-react >= 44.0.0` due to changes in `JsonBlobService` APIs and the
+  addition of new, dedicated endpoints for Alert Banner management.
+* Public methods on `JsonBlobService` have been updated - input parameters have changed in some
+  cases, and they now return `JsonBlob` instances (instead of pre-formatted Maps).
+* Two new columns should be added to the `xh_log_level` table in your app's database: a datetime
+  column and a nullable varchar(50) column. Review and run the following SQL, or an equivalent
+  suitable for the particular database you are using:
     ```sql
     ALTER TABLE `xh_log_level` ADD `last_updated` DATETIME;
     ALTER TABLE `xh_log_level` ADD`last_updated_by` VARCHAR(50) NULL;
     ```
+
+### ⚙️ Technical
+
+* Dedicated admin endpoints added for Alert Banner management, backed by a new `AlertBannerService`.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.4.0...develop)
 
 ## 9.4.0 - 2021-10-15
 
@@ -28,8 +43,8 @@
 
 ### ⚙️ Technical
 
-* Applications will no longer default to "development" environment in server deployments.  
-A recognized environment must be explicitly provided. 
+* Applications will no longer default to "development" environment in server deployments.
+  A recognized environment must be explicitly provided.
 
 ## 9.3.2 - 2021-10-01
 
@@ -64,7 +79,7 @@ A recognized environment must be explicitly provided.
 
 ## 9.2.3 - 2021-06-24
 
-### 🐞 Technical
+### ⚙️ Technical
 
 * Parsing of `AppEnvironment` from a string provided via instance config / JVM opts is now
   case-insensitive.
@@ -73,9 +88,9 @@ A recognized environment must be explicitly provided.
 
 ## 9.2.2 - 2021-06-07
 
-### 🐞 Technical
+### ⚙️ Technical
 
-* Replacing obsolete jcenter dependency (see https://blog.gradle.org/jcenter-shutdown).
+* Replaced obsolete jcenter dependency (see https://blog.gradle.org/jcenter-shutdown).
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v9.2.1...v9.2.2)
 
