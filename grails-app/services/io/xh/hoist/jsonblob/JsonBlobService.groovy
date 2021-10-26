@@ -18,10 +18,10 @@ class JsonBlobService extends BaseService implements DataBinder {
     JsonBlob get(String token, String username = username) {
         JsonBlob ret = JsonBlob.findByTokenAndArchivedDate(token, 0)
         if (!ret) {
-            throw new RuntimeException("Active JsonBlob not found: '$token'")
+            throw new RuntimeException("Active JsonBlob not found with token '$token'")
         }
         if (!passesAcl(ret, username)) {
-            throw new NotAuthorizedException("'$username' does not have access to the JsonBlob.")
+            throw new NotAuthorizedException("User '$username' does not have access to JsonBlob with token '$token'")
         }
         return ret
     }
