@@ -25,7 +25,9 @@ class AlertBannerService extends BaseService {
     def configService,
         jsonBlobService
 
-    private final static String BLOB_ID = 'xhAlertBanner';
+    private final static String blobType = 'xhAlertBanner';
+    private final static String blobName = 'xhAlertBanner';
+    private final static String blobOwner = 'xhAlertBannerService';
 
     private final emptyAlert = [active: false]
     private Map cachedBanner = emptyAlert
@@ -50,19 +52,20 @@ class AlertBannerService extends BaseService {
     // Admin entry points
     //--------------------
     Map getAlertSpec() {
-        jsonBlobService
-                .listSystemBlobs(BLOB_ID)
-                .find { it.name == BLOB_ID }
-                ?.with {JSONParser.parseObject(it.value)}
-                ?: emptyAlert
+        def svc = jsonBlobService,
+            blob = svc.list(blobType, blobOwner).find { it.name == blobName }
+
+        blob ? JSONParser.parseObject(blob.value) : emptyAlert
     }
 
-    void setAlertSpec(String value) {
-        def blob = jsonBlobService.listSystemBlobs(BLOB_ID).find { it.name == BLOB_ID } ?:
-                jsonBlobService.createSystemBlob(BLOB_ID, BLOB_ID, '{}', null, null)
-
-        blob.value = value
-        blob.save()
+    void setAlertSpec(Map value) {
+        def svc = jsonBlobService,
+            blob = svc.list(blobType, blobOwner).find { it.name == blobName }
+        if (blob) {
+            svc.update(blob.token, [value: value], blobOwner)
+        } else {
+            svc.create([type: blobType, name: blobName, value: value], blobOwner)
+        }
         refreshCachedBanner()
     }
 

@@ -62,4 +62,29 @@ class JsonBlob implements JSONFormat {
         lastUpdated: lastUpdated,
         lastUpdatedBy: lastUpdatedBy
     ]}
+
+
+    Map formatForClient(Boolean includeValue = true) {
+        def ret = [
+                id: id,
+                token: token,
+                type: type,
+                owner: owner,
+                acl: acl,
+                name: name,
+                archived: archivedDate > 0,
+                archivedDate: archivedDate,
+                description: description,
+                dateCreated: dateCreated,
+                lastUpdated: lastUpdated,
+                lastUpdatedBy: lastUpdatedBy,
+                meta: parseObjectOrArray(meta)
+        ]
+
+        if (includeValue) {
+            ret.value = parseObjectOrArray(value)
+        }
+
+        return ret
+    }
 }
