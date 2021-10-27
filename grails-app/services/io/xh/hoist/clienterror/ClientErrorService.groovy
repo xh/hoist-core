@@ -35,7 +35,7 @@ class ClientErrorService extends BaseService implements EventPublisher {
 
     private Map<String, Map> errors = new ConcurrentHashMap()
 
-    private int getMaxErrors()      {configService.getMap('xhClientErrorConfig').maxErrors}
+    private int getMaxErrors()      {configService.getMap('xhClientErrorConfig').maxErrors as int}
     private int getAlertInterval()  {configService.getMap('xhClientErrorConfig').intervalMins * MINUTES}
 
     void init() {
@@ -60,8 +60,6 @@ class ClientErrorService extends BaseService implements EventPublisher {
         def authUsername = identityService.authUser.username,
             userAgent = request.getHeader('User-Agent')
 
-        log.debug("Client Error received from $authUsername")
-
         if (errors.size() < maxErrors) {
             errors[authUsername + currentTimeMillis()] = [
                     msg           : message,
@@ -76,6 +74,9 @@ class ClientErrorService extends BaseService implements EventPublisher {
                     userAlerted   : userAlerted,
                     dateCreated   : new Date()
             ]
+            log.debug("Client Error received from $authUsername | queued for processing")
+        } else {
+            log.debug("Client Error received from $authUsername | maxErrors threshold exceeded - error report will be dropped")
         }
     }
 

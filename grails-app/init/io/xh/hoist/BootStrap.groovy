@@ -99,7 +99,9 @@ class BootStrap {
             ],
             xhClientErrorConfig: [
                 valueType: 'json',
-                defaultValue: [intervalMins: 2, maxErrors: 25]
+                defaultValue: [intervalMins: 2, maxErrors: 25],
+                groupName: 'xh.io',
+                note: 'Configures handling of client error reports. Errors are queued when received and processed every [intervalMins]. If more than [maxErrors] arrive within an interval, further reports are dropped to avoid storms of errors from multiple clients.'
             ],
             xhEmailDefaultDomain: [
                 valueType: 'string',
