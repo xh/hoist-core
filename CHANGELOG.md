@@ -24,10 +24,11 @@
 * Public methods on `JsonBlobService` have been updated - input parameters have changed in some
   cases, and they now return `JsonBlob` instances (instead of pre-formatted Maps).
 * Two new columns should be added to the `xh_log_level` table in your app's database: a datetime
-  column and a nullable varchar(50) column. Review and run the following SQL, or an equivalent
-  suitable for the particular database you are using:
+  column and a nullable varchar(50) column. Review and run the SQL below, or an equivalent
+  suitable for your app's database. (Note that both columns are marked as nullable to allow the 
+  schema change to be applied to a database in advance of the upgraded deployment.)
     ```sql
-    ALTER TABLE `xh_log_level` ADD `last_updated` DATETIME;
+    ALTER TABLE `xh_log_level` ADD `last_updated` DATETIME NULL;
     ALTER TABLE `xh_log_level` ADD`last_updated_by` VARCHAR(50) NULL;
     ```
 
