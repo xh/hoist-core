@@ -2,6 +2,10 @@
 
 ## 11.0.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* New Admin endpoint to output environment variables and JVM system properties.
+
 [Commit Log](https://github.com/xh/hoist-core/compare/v10.0.0...develop)
 
 ## 10.0.0 - 2021-10-26
@@ -25,7 +29,7 @@
   cases, and they now return `JsonBlob` instances (instead of pre-formatted Maps).
 * Two new columns should be added to the `xh_log_level` table in your app's database: a datetime
   column and a nullable varchar(50) column. Review and run the SQL below, or an equivalent
-  suitable for your app's database. (Note that both columns are marked as nullable to allow the 
+  suitable for your app's database. (Note that both columns are marked as nullable to allow the
   schema change to be applied to a database in advance of the upgraded deployment.)
     ```sql
     ALTER TABLE `xh_log_level` ADD `last_updated` DATETIME NULL;
