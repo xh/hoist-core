@@ -1,8 +1,8 @@
 # Changelog
 
-## 10.0-SNAPSHOT - unreleased
+## 12.0-SNAPSHOT - unreleased
 This version includes a major upgrade of several underlying libraries, especially grails (5.0.0),
-spring-boot (2.5.4), groovy (3.0.7), and gradle (6.9.1). With this version, Hoist can now be run 
+spring-boot (2.5.4), groovy (3.0.7), and gradle (6.9.1). With this version, Hoist can now be run
 on Java versions 8 - 11.  We have also cleaned up and enhanced some core
 APIs around Exception Handling, JSON parsing and configuration.
 
@@ -10,33 +10,96 @@ APIs around Exception Handling, JSON parsing and configuration.
 * Add support for Preference Diffing in the hoist-react admin tool.
 
 ### 🎁 Breaking Changes
-* The trait `AsyncSupport` with its single method `asyncTask` has been removed.  Use the equivalent method `task` 
-from `grails.async.Promises` instead.
+* The trait `AsyncSupport` with its single method `asyncTask` has been removed.  Use the equivalent method `task`
+  from `grails.async.Promises` instead.
 
 * The method `subscribeWithSession` on `BaseService` has been removed.  Use `subscribe` instead.
 
 ### ⚙️ Technical
 * This release upgrades the major version of grails from 3.3.9 to 4.0.3.  This major release
-includes the following upgrades of related libraries:
-    * spring boot `1.x -> 2.5.4` 
-    * groovy `2.4.15 -> 3.0.7`
-    * gradle `4.10.3 -> 6.9.1`
-    * gorm `6.1.11 -> 7.1.0`
-    * hibernate `5.1.10 -> 5.5.7`
-    * org.grails.plugins:mail `2.0.0 -> 3.0.0`
-    * apache poi  `3.1.7` -> `4.1.2`
-    
+  includes the following upgrades of related libraries:
+  * spring boot `1.x -> 2.5.4`
+  * groovy `2.4.15 -> 3.0.7`
+  * gradle `4.10.3 -> 6.9.1`
+  * gorm `6.1.11 -> 7.1.0`
+  * hibernate `5.1.10 -> 5.5.7`
+  * org.grails.plugins:mail `2.0.0 -> 3.0.0`
+  * apache poi  `3.1.7` -> `4.1.2`
+
 * HttpClient has been upgraded from `4.5.6` -> `5.1.0`.  Package names have changed, and applications using
-this API (e.g. with `JSONClient`) will need to update their imports statements to reflect the new locations @
-`org.apache.hc.client5.http`  and `org.apache.hc.core5.http`.  See toolbox for examples.
-  
+  this API (e.g. with `JSONClient`) will need to update their imports statements to reflect the new locations @
+  `org.apache.hc.client5.http`  and `org.apache.hc.core5.http`.  See toolbox for examples.
+
 * Please see the grails docs as well as the associated toolbox branch for more information
-on required changes to config and dependency files.
+  on required changes to config and dependency files.
 
 * Applications will be required to add the `@Transactional` or `@ReadOnly` annotations to service and controller
-methods that update data with GORM. 
+  methods that update data with GORM.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v9.1.0...develop)
+
+## 11.0.0-SNAPSHOT - unreleased
+
+### 🎁 New Features
+
+* New Admin endpoint to output environment variables and JVM system properties.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v10.0.0...develop)
+
+## 10.0.0 - 2021-10-26
+
+⚠ NOTE - apps must update to `hoist-react >= 44.0.0` when taking this hoist-core update.
+
+### 🎁 New Features
+
+* Log Levels now include information on when the custom config was last updated and by whom. Note
+  required database modifications in Breaking Changes below.
+* Client Error messages are now saved and sent in bulk on a timer. This allows Hoist to bundle
+  multiple error reports into a single alert email and generally improves how a potential storm of
+  error reports is handled.
+* Improved `JsonBlob` editing now supports setting null values for relevant fields.
+
+### 💥 Breaking Changes
+
+* Update required to `hoist-react >= 44.0.0` due to changes in `JsonBlobService` APIs and the
+  addition of new, dedicated endpoints for Alert Banner management.
+* Public methods on `JsonBlobService` have been updated - input parameters have changed in some
+  cases, and they now return `JsonBlob` instances (instead of pre-formatted Maps).
+* Two new columns should be added to the `xh_log_level` table in your app's database: a datetime
+  column and a nullable varchar(50) column. Review and run the SQL below, or an equivalent
+  suitable for your app's database. (Note that both columns are marked as nullable to allow the
+  schema change to be applied to a database in advance of the upgraded deployment.)
+    ```sql
+    ALTER TABLE `xh_log_level` ADD `last_updated` DATETIME NULL;
+    ALTER TABLE `xh_log_level` ADD`last_updated_by` VARCHAR(50) NULL;
+    ```
+
+### ⚙️ Technical
+
+* Dedicated admin endpoints added for Alert Banner management, backed by a new `AlertBannerService`.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.4.0...v10.0.0)
+
+## 9.4.0 - 2021-10-15
+
+### 🎁 New Features
+
+* Log Viewer now supports downloading log files.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.3.1...v9.4.0)
+
+### ⚙️ Technical
+
+* Applications will no longer default to "development" environment in server deployments.
+  A recognized environment must be explicitly provided.
+
+## 9.3.2 - 2021-10-01
+
+* `EmailService` now requires an override or filter config before sending any mails in local
+  development mode.
+* `ClientErrorEmailService` now relays any client URL captured with the error.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v9.3.1...v9.3.2)
 
 ## 9.3.1 - 2021-08-20
 
@@ -63,7 +126,7 @@ methods that update data with GORM.
 
 ## 9.2.3 - 2021-06-24
 
-### 🐞 Technical
+### ⚙️ Technical
 
 * Parsing of `AppEnvironment` from a string provided via instance config / JVM opts is now
   case-insensitive.
@@ -72,9 +135,9 @@ methods that update data with GORM.
 
 ## 9.2.2 - 2021-06-07
 
-### 🐞 Technical
+### ⚙️ Technical
 
-* Replacing obsolete jcenter dependency (see https://blog.gradle.org/jcenter-shutdown).
+* Replaced obsolete jcenter dependency (see https://blog.gradle.org/jcenter-shutdown).
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v9.2.1...v9.2.2)
 
@@ -108,7 +171,6 @@ methods that update data with GORM.
 * Improvements to the tracking / logging of admin impersonation sessions.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v9.1.0...v9.1.1)
-
 
 ## 9.1.0 - 2020-12-22
 

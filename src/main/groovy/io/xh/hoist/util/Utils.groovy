@@ -8,6 +8,7 @@
 package io.xh.hoist.util
 
 import io.xh.hoist.json.JSONParser
+import grails.util.Environment
 import grails.util.Holders
 import grails.util.Metadata
 import io.xh.hoist.AppEnvironment
@@ -65,6 +66,13 @@ class Utils {
 
     static Boolean getIsProduction() {
         return appEnvironment == AppEnvironment.PRODUCTION
+    }
+
+    /**
+     * Indicates if app is running in local development mode, regardless of AppEnvironment.
+     */
+    static Boolean getIsLocalDevelopment() {
+        return Environment.isDevelopmentMode()
     }
 
     static ConfigService getConfigService() {

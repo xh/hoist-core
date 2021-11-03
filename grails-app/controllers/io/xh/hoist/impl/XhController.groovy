@@ -9,6 +9,7 @@ package io.xh.hoist.impl
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseController
+import io.xh.hoist.alertbanner.AlertBannerService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.clienterror.ClientErrorService
 import io.xh.hoist.exception.NotFoundException
@@ -24,10 +25,13 @@ import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.util.Utils
 import org.owasp.encoder.Encode
 
+import static io.xh.hoist.json.JSONParser.parseObject
+
 @AccessAll
 @CompileStatic
 class XhController extends BaseController {
 
+    AlertBannerService alertBannerService
     ClientErrorService clientErrorService
     ConfigService configService
     FeedbackService feedbackService
@@ -116,7 +120,7 @@ class XhController extends BaseController {
     def setPrefs(String updates) {
         ensureClientUsernameMatchesSession()
 
-        Map prefs = JSONParser.parseObject(updates)
+        Map prefs = parseObject(updates)
         prefs.each {k, value ->
             String key = k.toString()
             if (value instanceof Map) {
@@ -143,23 +147,28 @@ class XhController extends BaseController {
     // Json Blobs
     //------------------------
     def getJsonBlob(String token) {
-        renderJSON(jsonBlobService.get(token))
+        def ret = jsonBlobService.get(token)
+        renderJSON(ret.formatForClient())
     }
 
     def listJsonBlobs(String type, boolean includeValue) {
-        renderJSON(jsonBlobService.list(type, includeValue))
+        def ret = jsonBlobService.list(type)
+        renderJSON(ret*.formatForClient(includeValue))
     }
 
-    def createJsonBlob(String type, String name, String value, String meta, String description) {
-        renderJSON(jsonBlobService.create(type, name, value, meta, description))
+    def createJsonBlob(String data) {
+        def ret = jsonBlobService.create(parseObject(data))
+        renderJSON(ret.formatForClient())
     }
 
-    def updateJsonBlob(String token, String name, String value, String meta, String description) {
-        renderJSON(jsonBlobService.update(token, name, value, meta, description))
+    def updateJsonBlob(String token, String update) {
+        def ret = jsonBlobService.update(token, parseObject(update))
+        renderJSON(ret.formatForClient())
     }
 
     def archiveJsonBlob(String token) {
-        renderJSON(jsonBlobService.archive(token))
+        def ret = jsonBlobService.archive(token)
+        renderJSON(ret.formatForClient())
     }
 
 
@@ -170,7 +179,7 @@ class XhController extends BaseController {
     // its content from the inputStream, and then parse the JSON to get usable params for GridExportImplService.
     def export() {
         def inputStream = request.getPart('params').inputStream,
-            data = JSONParser.parseObject(inputStream),
+            data = parseObject(inputStream),
             ret = gridExportImplService.getBytesForRender(data)
         render(ret)
     }
@@ -219,6 +228,12 @@ class XhController extends BaseController {
         renderJSON(success: true)
     }
 
+    //----------------------
+    // Alert Banner
+    //----------------------
+    def alertBanner() {
+        renderJSON(alertBannerService.alertBanner)
+    }
 
     //-----------------------
     // Misc

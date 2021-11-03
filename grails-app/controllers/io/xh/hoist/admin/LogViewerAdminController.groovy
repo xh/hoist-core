@@ -43,6 +43,15 @@ class LogViewerAdminController extends BaseController {
         }
     }
 
+    def download(String filename) {
+        def file = logReaderService.get(filename)
+        render(
+                file: file,
+                fileName: filename,
+                contentType: 'application/octet-stream'
+        )
+    }
+
     /**
      * Deletes one or more files from the log directory.
      * @param filenames - (required)
