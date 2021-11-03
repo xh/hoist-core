@@ -96,7 +96,7 @@ class ClientErrorService extends BaseService implements EventPublisher {
         withDebug("Processing $count Client Errors") {
             clientErrorEmailService.sendMail(errs, count == maxErrors)
 
-            ClientError.withNewSession {
+            ClientError.withTransaction {
                 errs.each {
                     def ce = new ClientError(it)
                     ce.save(flush: true)
