@@ -1,16 +1,17 @@
 # Changelog
 
-## 11.0.0-SNAPSHOT - unreleased
+## 10.1.0 - 2021-11-03
 
 ### 🎁 New Features
 
 * New Admin endpoint to output environment variables and JVM system properties.
+  * Take (optional) update to `hoist-react >= 44.1.0` for corresponding Hoist Admin Console UI.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v10.0.0...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v10.0.0...v10.1.0)
 
 ## 10.0.0 - 2021-10-26
 
-⚠ NOTE - apps must update to `hoist-react >= 44.0.0` when taking this hoist-core update.
+⚠ NOTE - apps *must* update to `hoist-react >= 44.0.0` when taking this hoist-core update.
 
 ### 🎁 New Features
 
