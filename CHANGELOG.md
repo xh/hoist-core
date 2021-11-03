@@ -6,9 +6,6 @@ spring-boot (2.5.4), groovy (3.0.7), and gradle (6.9.1). With this version, Hois
 on Java versions 8 - 11.  We have also cleaned up and enhanced some core
 APIs around Exception Handling, JSON parsing and configuration.
 
-### 🎁 New Features
-* Add support for Preference Diffing in the hoist-react admin tool.
-
 ### 🎁 Breaking Changes
 * The trait `AsyncSupport` with its single method `asyncTask` has been removed.  Use the equivalent method `task`
   from `grails.async.Promises` instead.
@@ -36,7 +33,7 @@ APIs around Exception Handling, JSON parsing and configuration.
 * Applications will be required to add the `@Transactional` or `@ReadOnly` annotations to service and controller
   methods that update data with GORM.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v9.1.0...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v11.0.0...develop)
 
 ## 11.0.0-SNAPSHOT - unreleased
 
@@ -44,7 +41,7 @@ APIs around Exception Handling, JSON parsing and configuration.
 
 * New Admin endpoint to output environment variables and JVM system properties.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v10.0.0...develop)
+[Commit Log] (https://github.com/xh/hoist-core/compare/v10.0.0...develop)
 
 ## 10.0.0 - 2021-10-26
 

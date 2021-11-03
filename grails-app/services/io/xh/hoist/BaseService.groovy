@@ -7,7 +7,6 @@
 
 package io.xh.hoist
 
-import grails.async.Promise
 import grails.async.Promises
 import grails.events.bus.EventBusAware
 import grails.util.GrailsClassUtils
