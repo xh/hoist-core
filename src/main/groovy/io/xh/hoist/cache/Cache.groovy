@@ -9,6 +9,7 @@ package io.xh.hoist.cache
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
+import io.xh.hoist.log.LogSupport
 
 import java.util.concurrent.ConcurrentHashMap
 
@@ -108,7 +109,7 @@ class Cache<K,V> {
             }
 
             if (cullKeys.size()) {
-                svc.instanceLog.debug("Cache '$name' culling ${cullKeys.size()} out of ${_map.size()} entries")
+                LogSupport.logDebug(svc.instanceLog, "Cache '$name' culling ${cullKeys.size()} out of ${_map.size()} entries")
             }
 
             cullKeys.each {_map.remove(it)}

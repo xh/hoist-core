@@ -52,7 +52,7 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
                     svc.init()
                 }
             }.onErrorReturn {e ->
-                log.info("Failed to initialize service $name: ${e.message}")
+                logInfo("Failed to initialize service $name: ${e.message}")
                 false
             }
         }
@@ -95,7 +95,7 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
                 instanceLog.debug("Receiving event '$eventName'")
                 c.call(*args)
             } catch (Exception e) {
-                logErrorCompact(instanceLog, "Exception handling event '$eventName':", e)
+                logError(instanceLog, "Exception handling event '$eventName':", e)
             }
         }
     }

@@ -41,7 +41,31 @@ trait LogSupport {
     // where the logging statement is written.
     // -----------------------------------------------------------------------------------
     /**
-     * Run a closure with a managed log message.
+     * Log at INFO level.
+     *
+     * If an exception is provided, basic summary info about it will be appended.
+     * If logging level is TRACE, a stacktrace will be included as well.
+     *
+     * @param msgs - one or more objects that can be converted into strings
+     * @param t - Throwable to be logged, optional
+     */
+    void logInfo(Object msgs, Throwable t = null) {logInfo((Logger) log, msgs, t)}
+
+    /** Log at TRACE level.*/
+    void logTrace(Object msgs, Throwable t = null) {logTrace((Logger) log, msgs, t)}
+
+    /** Log at DEBUG level.*/
+    void logDebug(Object msgs, Throwable t = null) {logDebug((Logger) log, msgs, t)}
+
+    /** Log at WARN level.*/
+    void logWarn(Object msgs, Throwable t = null) {logWarn((Logger) log, msgs, t)}
+
+    /** Log at ERROR level.*/
+    void logError(Object msgs, Throwable t = null) {logError((Logger) log, msgs, t)}
+
+
+    /**
+     * Log closure execution at INFO level
      *
      * This method will run the passed closure, with a summary logging message
      * indicating the time to complete, and whether the closure threw an exception
@@ -56,38 +80,8 @@ trait LogSupport {
      */
     Object withInfo(Object msgs, Closure c)         {withInfo((Logger) log, msgs, c)}
 
-    /**
-     * Run a closure with a managed log message at Debug level.
-     * see withInfo() for more information.
-     *
-     * @param msgs - one or more objects that can be converted into strings
-     * @param c - closure to be run.
-     * @return result of executing c
-     */
+    /** Log closure execution at DEBUG level*/
     Object withDebug(Object msgs, Closure c)        {withDebug((Logger) log, msgs, c)}
-
-    /**
-     * Log an exception at Error level.
-     *
-     * Basic summary information about the exception will be appended.
-     * If logging level is TRACE, a stacktrace will be included as well.
-     *
-     * @param msgs - one or more objects that can be converted into strings
-     * @param t - Throwable to be logged
-     */
-    void logErrorCompact(Object msgs, Throwable t) {logErrorCompact((Logger) log, msgs, t)}
-
-
-    /**
-     * Log an exception at Debug level.
-     *
-     * Basic summary information about the exception will be appended.
-     * If logging level is TRACE, a stacktrace will be included as well.
-     *
-     * @param msgs - one or more objects that can be converted into strings
-     * @param t - Throwable to be logged
-     */
-    void logDebugCompact(Object msgs, Throwable t) {logDebugCompact((Logger) log, msgs, t)}
 
 
     //---------------------------------------------------------------------------
@@ -95,7 +89,55 @@ trait LogSupport {
     // Typically used with getInstanceLog(), or when calling from a static method
     //---------------------------------------------------------------------------
     /**
-     *  Run a closure with managed log message.
+     * Log at INFO level.
+     *
+     * This is a static variant of the instance method with the same name.
+     * This is typically used by base classes, that wish to use it with
+     * getInstanceLog().
+     *
+     * Applications should typically use the instance method instead.
+     */
+    static void logInfo(Logger log, Object msgs, Throwable t = null) {
+        if (log.infoEnabled) {
+            String txt = delimitedTxt(msgs, t)
+            log.traceEnabled && t ? log.info(txt, t) : log.info(txt)
+        }
+    }
+
+    /** Log at TRACE level. */
+    static void logTrace(Logger log, Object msgs, Throwable t = null) {
+        if (log.traceEnabled) {
+            String txt = delimitedTxt(msgs, t)
+            t ? log.trace(txt, t) : log.trace(txt)
+        }
+    }
+
+    /** Log at DEBUG level. */
+    static void logDebug(Logger log, Object msgs, Throwable t = null) {
+        if (log.debugEnabled) {
+            String txt = delimitedTxt(msgs, t)
+            log.traceEnabled && t ? log.debug(txt, t) : log.debug(txt)
+        }
+    }
+
+    /** Log at WARN level. */
+    static void logWarn(Logger log, Object msgs, Throwable t = null) {
+        if (log.warnEnabled) {
+            String txt = delimitedTxt(msgs, t)
+            log.traceEnabled && t ? log.warn(txt, t) : log.warn(txt)
+        }
+    }
+
+    /** Log at ERROR level. */
+    static void logError(Logger log, Object msgs, Throwable t = null) {
+        if (log.errorEnabled) {
+            String txt = delimitedTxt(msgs, t)
+            log.traceEnabled && t ? log.error(txt, t) : log.error(txt)
+        }
+    }
+
+    /**
+     *  Log closure execution at INFO level
      *
      *  This is a static variant of the instance method with the same name.
      *  This is typically used by base classes, that wish to use it with
@@ -107,61 +149,9 @@ trait LogSupport {
         log.infoEnabled ? loggedDo(log, INFO, msgs, c) : c.call()
     }
 
-    /**
-     *  Run a closure with a managed log message.
-     *
-     *  This is a static variant of the instance method with the same name.
-     *  This is typically used by base classes, that wish to use it with
-     *  getInstanceLog().
-     *
-     *  Applications should typically use the instance method instead.
-     */
+    /** Log closure execution at DEBUG level. */
     static Object withDebug(Logger log, Object msgs, Closure c) {
         log.debugEnabled ? loggedDo(log, DEBUG,  msgs, c) : c.call()
-    }
-
-    /**
-     * Log an exception at Error level.
-     *
-     * This is a static variant of the instance method with the same name.
-     * This is typically used by base classes, that wish to use it with
-     * getInstanceLog().
-     *
-     * Applications should typically use the instance method instead.
-     */
-    static logErrorCompact(Logger log, Object msgs, Throwable t) {
-        if (!log.errorEnabled) return
-
-        String summary = exceptionRenderer.summaryTextForThrowable(t)
-        String txt = delimitedTxtWithUser(msgs, summary)
-
-        if (log.traceEnabled) {
-            log.error(txt, t)
-        } else {
-            log.error(txt)
-        }
-    }
-
-    /**
-     * Log an exception at Debug level.
-     *
-     * This is a static variant of the instance method with the same name.
-     * This is typically used by base classes, that wish to use it with
-     * getInstanceLog().
-     *
-     * Applications should typically use the instance method instead.
-     */
-    static logDebugCompact(Logger log, Object msgs, Throwable t) {
-        if (!log.debugEnabled) return
-
-        String summary = exceptionRenderer.summaryTextForThrowable(t)
-        String txt = delimitedTxtWithUser(msgs, summary)
-
-        if (log.traceEnabled) {
-            log.debug(txt, t)
-        } else {
-            log.debug(txt)
-        }
     }
 
     //------------------------
@@ -169,7 +159,7 @@ trait LogSupport {
     //------------------------
     static private Object loggedDo(Logger log, Level level, Object msgs, Closure c) {
         long start = currentTimeMillis()
-        String txt = delimitedTxtWithUser(msgs)
+        String txt = delimitedTxt(msgs, null)
         def ret
 
         if (log.traceEnabled) {
@@ -200,13 +190,13 @@ trait LogSupport {
         }
     }
 
-    static private String delimitedTxtWithUser(Object msgs, String extra = null) {
+    static private String delimitedTxt(Object msgs, Throwable t) {
         def username = identityService?.username
         List<String> ret = msgs ?
                 (msgs instanceof Collection ? msgs.collect { it.toString() } : [msgs.toString()]) :
                 []
 
-        if (extra) ret.push(extra)
+        if (t) ret.push(exceptionRenderer.summaryTextForThrowable(t))
         if (username) ret.push(username)
         return ret.join(' | ')
     }

@@ -237,7 +237,7 @@ class Timer implements AsyncSupport {
             adjustCoreTimerIfNeeded()
 
         } catch (Throwable t) {
-            owner.logErrorCompact('Timer failed to reload config', t)
+            owner.logError('Timer failed to reload config', t)
         }
     }
 
