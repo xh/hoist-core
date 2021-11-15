@@ -74,9 +74,9 @@ class ClientErrorService extends BaseService implements EventPublisher {
                     userAlerted   : userAlerted,
                     dateCreated   : new Date()
             ]
-            logDebug("Client Error received from $authUsername | queued for processing")
+            logDebug("Client Error received from $authUsername", "queued for processing")
         } else {
-            logDebug("Client Error received from $authUsername | maxErrors threshold exceeded - error report will be dropped")
+            logDebug("Client Error received from $authUsername", "maxErrors threshold exceeded - error report will be dropped")
         }
     }
 

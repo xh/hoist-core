@@ -60,7 +60,11 @@ class EmailService extends BaseService {
             logMsg = "$sender -> ${originalTo.take(100)} | ${logIdentifier.take(70)}"
 
             if (Utils.isLocalDevelopment && !override && !filter) {
-                log.info("No emails sent | emailing from local development requires an active xhEmailOverride or xhEmailFilter config | ${logMsg}")
+                logInfo(
+                        'No emails sent',
+                        'emailing from local development requires an active xhEmailOverride or xhEmailFilter config',
+                        logMsg
+                )
                 return
             }
 
@@ -72,7 +76,7 @@ class EmailService extends BaseService {
                 isAsync = args.containsKey('async') ? args.async : false
 
             if (!toRecipients) {
-                log.debug("No emails sent | no valid recipients found after filtering | ${logMsg}")
+                logDebug('No emails sent', 'no valid recipients found after filtering', logMsg)
                 return
             }
 
@@ -107,10 +111,10 @@ class EmailService extends BaseService {
 
             if (doLog) {
                 def recipCount = toRecipients.size() + (ccRecipients?.size() ?: 0)
-                log.info("Sent mail | ${recipCount} actual recipients | $logMsg")
+                logInfo('Sent mail', "$recipCount actual recipients", logMsg)
             }
         } catch (Exception e) {
-            logError("Error sending email $logMsg", e)
+            logError('Error sending email', logMsg, e)
             if (throwError) throw e
         }
     }

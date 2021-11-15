@@ -46,13 +46,12 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
      */
     static void parallelInit(List services, int timeout = 30 * SECONDS) {
         def initService = {svc ->
-            def name = svc.class.simpleName
             createObservable(timeout: timeout) {
-                withInfo(log, "Initialized service $name") {
+                svc.withInfo('Initialized') {
                     svc.init()
                 }
             }.onErrorReturn {e ->
-                logInfo("Failed to initialize service $name: ${e.message}")
+                svc.logInfo('Failed to initialize', e)
                 false
             }
         }
@@ -92,10 +91,10 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
         eventBus.subscribe(eventName) {Object... args ->
             if (destroyed) return
             try {
-                instanceLog.debug("Receiving event '$eventName'")
+                logDebug("Receiving event '$eventName'")
                 c.call(*args)
             } catch (Exception e) {
-                logError(instanceLog, "Exception handling event '$eventName':", e)
+                logError("Exception handling event '$eventName'", e)
             }
         }
     }

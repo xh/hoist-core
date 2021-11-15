@@ -8,11 +8,8 @@
 package io.xh.hoist.log
 
 import ch.qos.logback.classic.Level
-import groovy.transform.CompileDynamic
-import groovy.transform.CompileStatic
-import groovy.util.logging.Slf4j
-
 import org.slf4j.Logger
+
 import static ch.qos.logback.classic.Level.ERROR
 import static ch.qos.logback.classic.Level.WARN
 import static ch.qos.logback.classic.Level.INFO
@@ -22,8 +19,6 @@ import static io.xh.hoist.util.Utils.exceptionRenderer
 import static io.xh.hoist.util.Utils.identityService
 import static java.lang.System.currentTimeMillis
 
-@Slf4j
-@CompileStatic
 trait LogSupport {
 
     /**
@@ -31,7 +26,6 @@ trait LogSupport {
      * this object. This is useful for code in super classes or auxiliary classes that want
      * to produce log statements in the loggers of particular concrete instances.
      */
-    @CompileDynamic
     Logger getInstanceLog() {
         log
     }
@@ -47,22 +41,26 @@ trait LogSupport {
      * If logging level is TRACE, a stacktrace will be included as well.
      *
      * @param msgs - one or more objects that can be converted into strings
-     * @param t - Throwable to be logged, optional
      */
-    void logInfo(Object msgs, Throwable t = null) {logInfo((Logger) log, msgs, t)}
+    void logInfo(Object... msgs) {logInfoInternal(instanceLog, msgs)}
 
     /** Log at TRACE level.*/
-    void logTrace(Object msgs, Throwable t = null) {logTrace((Logger) log, msgs, t)}
+    void logTrace(Object... msgs) {logTraceInternal(instanceLog, msgs)}
 
     /** Log at DEBUG level.*/
-    void logDebug(Object msgs, Throwable t = null) {logDebug((Logger) log, msgs, t)}
+    void logDebug(Object... msgs) {logDebugInternal(instanceLog, msgs)}
 
     /** Log at WARN level.*/
-    void logWarn(Object msgs, Throwable t = null) {logWarn((Logger) log, msgs, t)}
+    void logWarn(Object... msgs) {logWarnInternal(instanceLog, msgs)}
 
     /** Log at ERROR level.*/
-    void logError(Object msgs, Throwable t = null) {logError((Logger) log, msgs, t)}
+    void logError(Object... msgs) {logErrorInternal(instanceLog, msgs)}
 
+    void logInfoInBase(Object... msgs)   {logInfoInternal((Logger) log, msgs)}
+    void logTraceInBase(Object... msgs)  {logTraceInternal((Logger) log, msgs)}
+    void logDebugInBase(Object... msgs)  {logDebugInternal((Logger) log, msgs)}
+    void logWarnInBase(Object... msgs)   {logWarnInternal((Logger) log, msgs)}
+    void logErrorInBase(Object... msgs)  {logErrorInternal((Logger) log, msgs)}
 
     /**
      * Log closure execution at INFO level
@@ -78,88 +76,76 @@ trait LogSupport {
      * @param c - closure to be run.
      * @return result of executing c
      */
-    Object withInfo(Object msgs, Closure c)         {withInfo((Logger) log, msgs, c)}
+    Object withInfo(Object msgs, Closure c)             {withInfoInternal(instanceLog, msgs, c)}
 
     /** Log closure execution at DEBUG level*/
-    Object withDebug(Object msgs, Closure c)        {withDebug((Logger) log, msgs, c)}
+    Object withDebug(Object msgs, Closure c)            {withDebugInternal(instanceLog, msgs, c)}
 
+    /** Log closure execution at TRACE level*/
+    Object withTrace(Object msgs, Closure c)            {withTraceInternal(instanceLog, msgs, c)}
+
+    Object withInfoInBase(Object msgs, Closure c)      {withInfoInternal((Logger) log, msgs, c)}
+    Object withDebugInBase(Object msgs, Closure c)     {withDebugInternal((Logger) log, msgs, c)}
+    Object withTraceInBase(Object msgs, Closure c)     {withTraceInternal((Logger) log, msgs, c)}
 
     //---------------------------------------------------------------------------
-    // Variants for logging to a specific logger.
-    // Typically used with getInstanceLog(), or when calling from a static method
+    // Implementation
     //---------------------------------------------------------------------------
-    /**
-     * Log at INFO level.
-     *
-     * This is a static variant of the instance method with the same name.
-     * This is typically used by base classes, that wish to use it with
-     * getInstanceLog().
-     *
-     * Applications should typically use the instance method instead.
-     */
-    static void logInfo(Logger log, Object msgs, Throwable t = null) {
+    private static void logInfoInternal(Logger log, Object[] msgs) {
         if (log.infoEnabled) {
-            String txt = delimitedTxt(msgs, t)
-            log.traceEnabled && t ? log.info(txt, t) : log.info(txt)
+            def txt = delimitedTxt(msgs),
+                t = log.traceEnabled ? getThrowable(msgs) : null
+            t ? log.info(txt, t) : log.info(txt)
         }
     }
 
-    /** Log at TRACE level. */
-    static void logTrace(Logger log, Object msgs, Throwable t = null) {
+    private static void logTraceInternal(Logger log, Object[] msgs) {
         if (log.traceEnabled) {
-            String txt = delimitedTxt(msgs, t)
+            def txt = delimitedTxt(msgs),
+                t = getThrowable(msgs)
             t ? log.trace(txt, t) : log.trace(txt)
         }
     }
 
-    /** Log at DEBUG level. */
-    static void logDebug(Logger log, Object msgs, Throwable t = null) {
+    private static void logDebugInternal(Logger log, Object[] msgs) {
         if (log.debugEnabled) {
-            String txt = delimitedTxt(msgs, t)
-            log.traceEnabled && t ? log.debug(txt, t) : log.debug(txt)
+            def txt = delimitedTxt(msgs),
+                t = log.traceEnabled ? getThrowable(msgs) : null
+            t ? log.debug(txt, t) : log.debug(txt)
         }
     }
 
-    /** Log at WARN level. */
-    static void logWarn(Logger log, Object msgs, Throwable t = null) {
+    private static void logWarnInternal(Logger log, Object[] msgs) {
         if (log.warnEnabled) {
-            String txt = delimitedTxt(msgs, t)
-            log.traceEnabled && t ? log.warn(txt, t) : log.warn(txt)
+            def txt = delimitedTxt(msgs),
+                t = log.traceEnabled ? getThrowable(msgs) : null
+            t ? log.warn(txt, t) : log.warn(txt)
         }
     }
 
-    /** Log at ERROR level. */
-    static void logError(Logger log, Object msgs, Throwable t = null) {
+    private static void logErrorInternal(Logger log, Object[] msgs) {
         if (log.errorEnabled) {
-            String txt = delimitedTxt(msgs, t)
-            log.traceEnabled && t ? log.error(txt, t) : log.error(txt)
+            def txt = delimitedTxt(msgs),
+                t = log.traceEnabled ? getThrowable(msgs) : null
+            t ? log.error(txt, t) : log.error(txt)
         }
     }
 
-    /**
-     *  Log closure execution at INFO level
-     *
-     *  This is a static variant of the instance method with the same name.
-     *  This is typically used by base classes, that wish to use it with
-     *  getInstanceLog().
-     *
-     *  Applications should typically use the instance method instead.
-     */
-    static Object withInfo(Logger log, Object msgs, Closure c) {
+    private static Object withInfoInternal(Logger log, Object msgs, Closure c) {
         log.infoEnabled ? loggedDo(log, INFO, msgs, c) : c.call()
     }
 
-    /** Log closure execution at DEBUG level. */
-    static Object withDebug(Logger log, Object msgs, Closure c) {
+    private static Object withDebugInternal(Logger log, Object msgs, Closure c) {
         log.debugEnabled ? loggedDo(log, DEBUG,  msgs, c) : c.call()
     }
 
-    //------------------------
-    // Implementation
-    //------------------------
-    static private Object loggedDo(Logger log, Level level, Object msgs, Closure c) {
+    private static Object withTraceInternal(Logger log, Object msgs, Closure c) {
+        log.debugEnabled ? loggedDo(log, DEBUG,  msgs, c) : c.call()
+    }
+
+    private static  Object loggedDo(Logger log, Level level, Object msgs, Closure c) {
         long start = currentTimeMillis()
-        String txt = delimitedTxt(msgs, null)
+        String txt = delimitedTxt(msgs instanceof Collection ? msgs : [msgs])
         def ret
 
         if (log.traceEnabled) {
@@ -190,13 +176,16 @@ trait LogSupport {
         }
     }
 
-    static private String delimitedTxt(Object msgs, Throwable t) {
-        def username = identityService?.username
-        List<String> ret = msgs ?
-                (msgs instanceof Collection ? msgs.collect { it.toString() } : [msgs.toString()]) :
-                []
+    static private String getThrowable(Object[] msgs) {
+        def last = msgs.last()
+        return last instanceof Throwable ? last : null
+    }
 
-        if (t) ret.push(exceptionRenderer.summaryTextForThrowable(t))
+    static private String delimitedTxt(Object msgs) {
+        def username = identityService?.username
+        List<String> ret = msgs.iterator().collect {
+            it instanceof Throwable ? exceptionRenderer.summaryTextForThrowable(it) : it.toString()
+        }
         if (username) ret.push(username)
         return ret.join(' | ')
     }

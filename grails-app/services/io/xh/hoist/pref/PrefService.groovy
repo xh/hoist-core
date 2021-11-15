@@ -150,16 +150,23 @@ class PrefService extends BaseService {
                     lastUpdatedBy: 'hoist-bootstrap'
                 ).save()
 
-                log.warn("Required preference ${prefName} missing and created with default value | verify default is appropriate for this application")
+                logWarn(
+                        "Required preference $prefName missing and created with default value",
+                        'verify default is appropriate for this application'
+                )
                 created++
             } else {
                 if (currPref.type != valType) {
-                    log.error("Unexpected value type for required preference ${prefName} | expected ${valType} got ${currPref.type} | review and fix!")
+                    logError(
+                            "Unexpected value type for required preference $prefName",
+                            "expected $valType got ${currPref.type}",
+                            'review and fix!'
+                    )
                 }
             }
         }
 
-        log.debug("Validated presense of ${requiredPrefs.size()} required configs | created ${created}")
+        logDebug("Validated presense of ${requiredPrefs.size()} required configs", "created $created")
     }
 
     //-------------------------

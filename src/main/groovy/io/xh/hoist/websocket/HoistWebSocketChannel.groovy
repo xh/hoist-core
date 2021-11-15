@@ -48,7 +48,7 @@ class HoistWebSocketChannel implements LogSupport, JSONFormat {
         Map conf = getConfig()
         def sendTimeLimit = (int) conf.sendTimeLimitMs,
             bufferSizeLimit = (int) conf.bufferSizeLimitBytes
-        log.debug("Creating managed socket session: sendTimeLimit: $sendTimeLimit, bufferSizeLimit: $bufferSizeLimit")
+        logDebug("Creating managed socket session","sendTimeLimit: $sendTimeLimit", "bufferSizeLimit: $bufferSizeLimit")
         session = new ConcurrentWebSocketSessionDecorator(webSocketSession, sendTimeLimit, bufferSizeLimit)
         authUsername = getAuthUsernameFromSession()
         apparentUsername = getApparentUsernameFromSession()

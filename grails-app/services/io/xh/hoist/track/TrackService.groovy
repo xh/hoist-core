@@ -92,7 +92,7 @@ class TrackService extends BaseService implements EventPublisher {
             if (tl.impersonating) name += " (as ${tl.impersonating})"
 
             def msgParts = [name, tl.category, tl.msg, elapsedStr]
-            log.info(msgParts.findAll().join(' | '))
+            logInfo(msgParts.findAll())
         }
     }
 

@@ -7,6 +7,7 @@
 package io.xh.hoist.security
 
 import groovy.transform.CompileStatic
+import io.xh.hoist.BaseService
 import io.xh.hoist.exception.NotAuthorizedException
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
@@ -21,7 +22,7 @@ import javax.servlet.http.HttpServletResponse
  * Apps must define a concrete implementation of this service with the name 'AuthenticationService'.
  */
 @CompileStatic
-abstract class BaseAuthenticationService {
+abstract class BaseAuthenticationService extends BaseService {
 
     IdentityService identityService
 
