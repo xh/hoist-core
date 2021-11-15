@@ -1,5 +1,17 @@
 # Changelog
 
+## 11.0.0-SNAPSHOT - unreleased
+
+### 🎁 New Features
+
+* Enhancement to `LogSupport` to help standardize logging across all Service and Controllers.
+New methods `logInfo`, `logDebug`, `logTrace`, `logWarn`, and `logError`, now provide consistent
+formatting of multi-part log messages.  See LogSupport for more info.
+
+### 💥 Breaking Changes
+* The methods `LogSupport.logErrorCompact` and `LogSupport.logDebugCompact` have been removed.
+Use `logError` and `logDebug` instead, passing your `Throwable` as the last argument to these methods.
+
 ## 10.1.0 - 2021-11-03
 
 ### 🎁 New Features

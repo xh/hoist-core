@@ -22,19 +22,6 @@ import static java.lang.System.currentTimeMillis
 trait LogSupport {
 
     /**
-     * Expose the conventional logger associated with the class of the concrete instance of
-     * this object. This is useful for code in super classes or auxiliary classes that want
-     * to produce log statements in the loggers of particular concrete instances.
-     */
-    Logger getInstanceLog() {
-        log
-    }
-
-    //------------------------------------------------------------------------------------
-    // Main variants.  Will use closest inherited logger starting from the *class*
-    // where the logging statement is written.
-    // -----------------------------------------------------------------------------------
-    /**
      * Log at INFO level.
      *
      * If an exception is provided, basic summary info about it will be appended.
@@ -55,12 +42,6 @@ trait LogSupport {
 
     /** Log at ERROR level.*/
     void logError(Object... msgs) {logErrorInternal(instanceLog, msgs)}
-
-    void logInfoInBase(Object... msgs)   {logInfoInternal((Logger) log, msgs)}
-    void logTraceInBase(Object... msgs)  {logTraceInternal((Logger) log, msgs)}
-    void logDebugInBase(Object... msgs)  {logDebugInternal((Logger) log, msgs)}
-    void logWarnInBase(Object... msgs)   {logWarnInternal((Logger) log, msgs)}
-    void logErrorInBase(Object... msgs)  {logErrorInternal((Logger) log, msgs)}
 
     /**
      * Log closure execution at INFO level
@@ -84,9 +65,27 @@ trait LogSupport {
     /** Log closure execution at TRACE level*/
     Object withTrace(Object msgs, Closure c)            {withTraceInternal(instanceLog, msgs, c)}
 
+    //-------------------------------------------------------------
+    // Support logging from base class logger
+    // Currently undocumented, pending better understanding of need
+    //--------------------------------------------------------------
+    void logInfoInBase(Object... msgs)   {logInfoInternal((Logger) log, msgs)}
+    void logTraceInBase(Object... msgs)  {logTraceInternal((Logger) log, msgs)}
+    void logDebugInBase(Object... msgs)  {logDebugInternal((Logger) log, msgs)}
+    void logWarnInBase(Object... msgs)   {logWarnInternal((Logger) log, msgs)}
+    void logErrorInBase(Object... msgs)  {logErrorInternal((Logger) log, msgs)}
     Object withInfoInBase(Object msgs, Closure c)      {withInfoInternal((Logger) log, msgs, c)}
     Object withDebugInBase(Object msgs, Closure c)     {withDebugInternal((Logger) log, msgs, c)}
     Object withTraceInBase(Object msgs, Closure c)     {withTraceInternal((Logger) log, msgs, c)}
+
+    /**
+     * Expose the conventional logger associated with the class of the concrete instance of
+     * this object. This may be useful for code in super classes or auxiliary classes that want
+     * to produce log statements in the loggers of particular concrete instances.
+     */
+    Logger getInstanceLog() {
+        log
+    }
 
     //---------------------------------------------------------------------------
     // Implementation
