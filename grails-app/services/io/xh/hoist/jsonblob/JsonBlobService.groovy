@@ -57,7 +57,7 @@ class JsonBlobService extends BaseService implements DataBinder {
         def blob = get(token, username)
         blob.archivedDate = currentTimeMillis()
 
-        blob.lastUpdatedBy = username
+        blob.lastUpdatedBy = authUsername
         blob.save()
     }
 

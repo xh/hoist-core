@@ -21,7 +21,7 @@ class LogLevelAdminController extends RestController {
         if (submit.level == 'None') {
             submit.level = null
         }
-        submit.lastUpdatedBy = username
+        submit.lastUpdatedBy = authUsername
     }
 
     def lookupData() {

@@ -31,6 +31,6 @@ class JsonBlobAdminController extends RestController {
         } else if (submit.archived == false) {
             submit.archivedDate = 0
         }
-        submit.lastUpdatedBy = username
+        submit.lastUpdatedBy = authUsername
     }
 }

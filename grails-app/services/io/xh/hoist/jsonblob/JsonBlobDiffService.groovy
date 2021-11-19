@@ -19,7 +19,7 @@ class JsonBlobDiffService extends BaseService implements DataBinder {
             // create new blob based on remote values
             if (!blob) {
                 blob = new JsonBlob(vals)
-                blob.lastUpdatedBy = username
+                blob.lastUpdatedBy = authUsername
                 blob.save(flush:true)
                 log.info("JsonBlob '${blob.name}' created")
                 return
@@ -28,7 +28,7 @@ class JsonBlobDiffService extends BaseService implements DataBinder {
             // apply remote values to existing config
             if (vals) {
                 bindData(blob, vals)
-                blob.lastUpdatedBy = username
+                blob.lastUpdatedBy = authUsername
                 blob.save(flush:true)
                 log.info("JsonBlob '${blob.name}' updated")
                 return
