@@ -84,6 +84,16 @@ class IdentityService extends BaseService {
     }
 
     /**
+     * Return the username of the 'authorized' user as verified by AuthenticationService.
+     *
+     * If called outside the context of a request, this getter will return null.
+     */
+    String getAuthUsername() {
+        HttpSession session = getSessionIfExists(getRequest())
+        return session ? session[AUTH_USER_KEY] : null
+    }
+
+    /**
      * Is the authorized user currently impersonating someone else?
      */
     boolean isImpersonating() {

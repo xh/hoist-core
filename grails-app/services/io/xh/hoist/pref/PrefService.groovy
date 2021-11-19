@@ -194,7 +194,7 @@ class PrefService extends BaseService {
         }
 
         userPref.userValue = value
-        userPref.lastUpdatedBy = username
+        userPref.lastUpdatedBy = authUsername
         userPref.save()
     }
 

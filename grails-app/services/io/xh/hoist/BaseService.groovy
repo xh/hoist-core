@@ -157,6 +157,14 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
         identityService.username
     }
 
+    protected HoistUser getAuthUser() {
+        identityService.authUser
+    }
+
+    protected String getAuthUsername() {
+        identityService.authUsername
+    }
+
     private void setupClearCachesConfigs() {
         Set deps = new HashSet()
         for (Class clazz = getClass(); clazz; clazz = clazz.superclass) {

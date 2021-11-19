@@ -35,6 +35,14 @@ abstract class BaseController implements LogSupport {
     protected String getUsername() {
         identityService.username
     }
+
+    protected HoistUser getAuthUser() {
+        identityService.authUser
+    }
+
+    protected String getAuthUsername() {
+        identityService.authUsername
+    }
     
     //-------------------
     // Implementation
