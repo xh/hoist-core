@@ -47,7 +47,7 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
     static void parallelInit(List services, int timeout = 30 * SECONDS) {
         def initService = {svc ->
             createObservable(timeout: timeout) {
-                svc.withInfo('Initialized') {
+                svc.withInfo('Init') {
                     svc.init()
                 }
             }.onErrorReturn {e ->
@@ -60,7 +60,7 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
                 .flatMap(initService)
                 .blockingSubscribe()
     }
-    
+
 
     /**
      * Create a new managed Timer bound to this service.
@@ -162,7 +162,7 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
             def list = GrailsClassUtils.getStaticFieldValue(clazz, 'clearCachesConfigs')
             list.each {deps << it}
         }
-        
+
         if (deps) {
             subscribe('xhConfigChanged') {Map ev ->
                 if (deps.contains(ev.key)) {
@@ -171,5 +171,5 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
             }
         }
     }
-    
+
 }

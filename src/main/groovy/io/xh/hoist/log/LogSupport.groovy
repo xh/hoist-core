@@ -24,8 +24,10 @@ trait LogSupport {
     /**
      * Log at INFO level.
      *
-     * If an exception is provided, basic summary info about it will be appended.
-     * If logging level is TRACE, a stacktrace will be included as well.
+     * If an exception is provided, basic summary info about it will be appended. If effective
+     * logging level is TRACE, a stacktrace will be included as well. This aims to avoid logs being
+     * spammed by recurring / lengthy stacktraces, while still providing a clear indication that an
+     * error occurred plus access to stacktraces when troubleshooting an ongoing situation.
      *
      * @param msgs - one or more objects that can be converted into strings
      */
@@ -46,23 +48,22 @@ trait LogSupport {
     /**
      * Log closure execution at INFO level
      *
-     * This method will run the passed closure, with a summary logging message
-     * indicating the time to complete, and whether the closure threw an exception
-     * or completed successfully.  The log message will be written as 'INFO'.
+     * This method will run the passed closure, then log a summary message on INFO indicating the
+     * elapsed time to complete and whether the closure threw or completed successfully.
      *
-     * If the configured logging level is TRACE, an additional line will be written
-     * BEFORE the closure  is started, for troubleshooting purposes.
+     * If the configured logging level is TRACE, an additional line will be written BEFORE the
+     * closure is started, providing a finer-grained view on when logged routines start and end.
      *
      * @param msgs - one or more objects that can be converted into strings.
-     * @param c - closure to be run.
+     * @param c - closure to be run and timed.
      * @return result of executing c
      */
     Object withInfo(Object msgs, Closure c)             {withInfoInternal(instanceLog, msgs, c)}
 
-    /** Log closure execution at DEBUG level*/
+    /** Log closure execution at DEBUG level */
     Object withDebug(Object msgs, Closure c)            {withDebugInternal(instanceLog, msgs, c)}
 
-    /** Log closure execution at TRACE level*/
+    /** Log closure execution at TRACE level */
     Object withTrace(Object msgs, Closure c)            {withTraceInternal(instanceLog, msgs, c)}
 
     //-------------------------------------------------------------

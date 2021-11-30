@@ -4,13 +4,15 @@
 
 ### 🎁 New Features
 
-* Enhancement to `LogSupport` to help standardize logging across all Service and Controllers.
-New methods `logInfo`, `logDebug`, `logTrace`, `logWarn`, and `logError`, now provide consistent
-formatting of multi-part log messages.  See LogSupport for more info.
+* Enhancement to `LogSupport` to help standardize logging across all Service and Controllers. New
+  methods `logInfo`, `logDebug`, `logTrace`, `logWarn`, and `logError` now provide consistent
+  formatting of log messages plus log-level aware output of any throwables passed to these methods.
+  See LogSupport for more info.
 
 ### 💥 Breaking Changes
-* The methods `LogSupport.logErrorCompact` and `LogSupport.logDebugCompact` have been removed.
-Use `logError` and `logDebug` instead, passing your `Throwable` as the last argument to these methods.
+
+* The methods `LogSupport.logErrorCompact` and `LogSupport.logDebugCompact` have been removed. Use
+  `logError` and `logDebug` instead, passing your `Throwable` as the last argument to these methods.
 
 ## 10.1.0 - 2021-11-03
 
@@ -41,13 +43,14 @@ Use `logError` and `logDebug` instead, passing your `Throwable` as the last argu
 * Public methods on `JsonBlobService` have been updated - input parameters have changed in some
   cases, and they now return `JsonBlob` instances (instead of pre-formatted Maps).
 * Two new columns should be added to the `xh_log_level` table in your app's database: a datetime
-  column and a nullable varchar(50) column. Review and run the SQL below, or an equivalent
-  suitable for your app's database. (Note that both columns are marked as nullable to allow the
-  schema change to be applied to a database in advance of the upgraded deployment.)
-    ```sql
-    ALTER TABLE `xh_log_level` ADD `last_updated` DATETIME NULL;
-    ALTER TABLE `xh_log_level` ADD`last_updated_by` VARCHAR(50) NULL;
-    ```
+  column and a nullable varchar(50) column. Review and run the SQL below, or an equivalent suitable
+  for your app's database. (Note that both columns are marked as nullable to allow the schema change
+  to be applied to a database in advance of the upgraded deployment.)
+
+  ```sql
+  ALTER TABLE `xh_log_level` ADD `last_updated` DATETIME NULL;
+  ALTER TABLE `xh_log_level` ADD`last_updated_by` VARCHAR(50) NULL;
+  ```
 
 ### ⚙️ Technical
 
@@ -65,8 +68,8 @@ Use `logError` and `logDebug` instead, passing your `Throwable` as the last argu
 
 ### ⚙️ Technical
 
-* Applications will no longer default to "development" environment in server deployments.
-  A recognized environment must be explicitly provided.
+* Applications will no longer default to "development" environment in server deployments. A
+  recognized environment must be explicitly provided.
 
 ## 9.3.2 - 2021-10-01
 
