@@ -13,7 +13,10 @@
 
 * The methods `LogSupport.logErrorCompact` and `LogSupport.logDebugCompact` have been removed. Use
   `logError` and `logDebug` instead, passing your `Throwable` as the last argument to these methods. 
-* The `lastUpdatedBy` column found in various Admin grids now tracks the authenticated user's username, 
+
+### 🐞 Bug Fixes
+
+* The `lastUpdatedBy` column found in various Admin grids now tracks the authenticated user's username,
   indicating if an update was made while impersonating a user.
 
 ## 10.1.0 - 2021-11-03
