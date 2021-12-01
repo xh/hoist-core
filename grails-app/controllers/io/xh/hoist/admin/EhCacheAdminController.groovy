@@ -56,7 +56,7 @@ class EhCacheAdminController extends BaseController {
 
     private void clearCache(String name) {
         cacheManager.clearAllStartingWith(name)
-        log.info('Cleared hibernate cache: ' + name)
+        logInfo('Cleared hibernate cache: ' + name)
     }
     
 }

@@ -27,7 +27,7 @@ class ServiceAdminController extends BaseController {
             def svc = allServices[it]
             if (svc) {
                 svc.clearCaches()
-                log.info("Cleared service cache: $it")
+                logInfo('Cleared service cache', it)
             }
 
         }

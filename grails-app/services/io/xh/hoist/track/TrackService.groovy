@@ -48,7 +48,7 @@ class TrackService extends BaseService implements EventPublisher {
         try {
             createTrackLog(params)
         } catch (Exception e) {
-            logErrorCompact('Exception writing track log', e)
+            logError('Exception writing track log', e)
         }
     }
 
@@ -83,7 +83,7 @@ class TrackService extends BaseService implements EventPublisher {
                 try {
                     tl.save()
                 } catch (Exception e) {
-                    logErrorCompact('Exception writing track log', e)
+                    logError('Exception writing track log', e)
                 }
             }
 
@@ -92,7 +92,7 @@ class TrackService extends BaseService implements EventPublisher {
             if (tl.impersonating) name += " (as ${tl.impersonating})"
 
             def msgParts = [name, tl.category, tl.msg, elapsedStr]
-            log.info(msgParts.findAll().join(' | '))
+            logInfo(msgParts.findAll())
         }
     }
 

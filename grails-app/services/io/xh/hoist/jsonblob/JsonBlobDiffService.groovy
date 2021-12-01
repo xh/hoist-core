@@ -21,7 +21,7 @@ class JsonBlobDiffService extends BaseService implements DataBinder {
                 blob = new JsonBlob(vals)
                 blob.lastUpdatedBy = username
                 blob.save(flush:true)
-                log.info("JsonBlob '${blob.name}' created")
+                logInfo("JsonBlob '${blob.name}' created")
                 return
             }
 
@@ -30,7 +30,7 @@ class JsonBlobDiffService extends BaseService implements DataBinder {
                 bindData(blob, vals)
                 blob.lastUpdatedBy = username
                 blob.save(flush:true)
-                log.info("JsonBlob '${blob.name}' updated")
+                logInfo("JsonBlob '${blob.name}' updated")
                 return
             }
 
@@ -38,7 +38,7 @@ class JsonBlobDiffService extends BaseService implements DataBinder {
             if (!vals) {
                 def name = blob.name
                 blob.delete(flush:true)
-                log.info("JsonBlob '${name}' deleted")
+                logInfo("JsonBlob '${name}' deleted")
                 return
             }
         }
