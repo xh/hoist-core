@@ -79,14 +79,14 @@ class ExceptionRenderer {
     }
 
     protected void logException(Throwable t, LogSupport logSupport) {
-        if (shouldLogDebugCompact(t)) {
-            logSupport.logDebugCompact(null, t)
+        if (shouldlogDebug(t)) {
+            logSupport.logDebug(null, t)
         } else {
-            logSupport.logErrorCompact(null, t)
+            logSupport.logError(null, t)
         }
     }
 
-    protected boolean shouldLogDebugCompact(Throwable t) {
+    protected boolean shouldlogDebug(Throwable t) {
         return t instanceof RoutineException
     }
 

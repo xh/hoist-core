@@ -108,14 +108,14 @@ class WebSocketService extends BaseService implements EventPublisher {
         def channel = _channels[session] = new HoistWebSocketChannel(session)
         sendMessage(channel, REG_SUCCESS_TOPIC, [channelKey: channel.key])
         notify(CHANNEL_OPENED_EVENT, channel)
-        log.debug("Registered session | ${channel.key}")
+        logDebug("Registered session", channel.key)
     }
 
     void unregisterSession(WebSocketSession session, CloseStatus closeStatus) {
         def channel = _channels.remove(session)
         if (channel) {
             notify(CHANNEL_CLOSED_EVENT, channel)
-            log.debug("Closed session | ${channel.key} | ${closeStatus.toString()}")
+            logDebug("Closed session", channel.key, closeStatus)
         }
     }
 
@@ -124,7 +124,7 @@ class WebSocketService extends BaseService implements EventPublisher {
         if (!channel) return
 
         channel.noteMessageReceived()
-        log.debug("Message received | ${channel.key} | ${message.payload}")
+        logDebug("Message received", channel.key, message.payload)
         def msgJSON = deserialize(message)
 
         if (msgJSON.topic == HEARTBEAT_TOPIC) {

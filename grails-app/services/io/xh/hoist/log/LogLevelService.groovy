@@ -59,7 +59,7 @@ class LogLevelService extends BaseService {
 
             adjustments = newAdjustments
 
-            log.debug("Adjustments applied: ${adjustments.size()}")
+            logDebug("Adjustments applied: ${adjustments.size()}")
         }
     }
 

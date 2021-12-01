@@ -22,7 +22,7 @@ class PrefDiffService extends BaseService implements DataBinder {
                 pref = new Preference(vals)
                 pref.lastUpdatedBy = username
                 pref.save(flush:true)
-                log.info("Pref '${pref.name}' created")
+                logInfo("Pref '${pref.name}' created")
                 return
             }
 
@@ -31,7 +31,7 @@ class PrefDiffService extends BaseService implements DataBinder {
                 bindData(pref, vals)
                 pref.lastUpdatedBy = username
                 pref.save(flush:true)
-                log.info("Pref '${pref.name}' updated")
+                logInfo("Pref '${pref.name}' updated")
                 return
             }
 
@@ -39,7 +39,7 @@ class PrefDiffService extends BaseService implements DataBinder {
             if (!vals) {
                 def name = pref.name
                 pref.delete(flush:true)
-                log.info("Pref '${name}' deleted")
+                logInfo("Pref '${name}' deleted")
                 return
             }
         }

@@ -48,7 +48,7 @@ class HoistWebSocketChannel implements LogSupport, JSONFormat {
         Map conf = getConfig()
         def sendTimeLimit = (int) conf.sendTimeLimitMs,
             bufferSizeLimit = (int) conf.bufferSizeLimitBytes
-        log.debug("Creating managed socket session: sendTimeLimit: $sendTimeLimit, bufferSizeLimit: $bufferSizeLimit")
+        logDebug("Creating managed socket session","sendTimeLimit: $sendTimeLimit", "bufferSizeLimit: $bufferSizeLimit")
         session = new ConcurrentWebSocketSessionDecorator(webSocketSession, sendTimeLimit, bufferSizeLimit)
         authUsername = getAuthUsernameFromSession()
         apparentUsername = getApparentUsernameFromSession()
@@ -69,7 +69,7 @@ class HoistWebSocketChannel implements LogSupport, JSONFormat {
             sentMessageCount++
             lastSentTime = Instant.now()
         } catch (Exception e) {
-            logErrorCompact("Failed to send message to $key", e)
+            logError("Failed to send message to $key", e)
         }
     }
 

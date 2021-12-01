@@ -64,7 +64,7 @@ class LogViewerAdminController extends BaseController {
                 fileDeleted = fileToDelete.delete()
 
             if (!fileDeleted) {
-                log.warn("Failed to delete log: '$filename'.  User may not have permissions.")
+                logWarn("Failed to delete log: '$filename'.  User may not have permissions.")
             }
         }
 
