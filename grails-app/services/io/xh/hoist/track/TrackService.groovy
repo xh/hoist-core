@@ -59,8 +59,6 @@ class TrackService extends BaseService implements EventPublisher {
     private void createTrackLog(Map params) {
         def request = WebUtils.retrieveGrailsWebRequest().currentRequest,
             userAgent = request?.getHeader('User-Agent'),
-            idSvc = identityService,
-            authUsername = idSvc.getAuthUser().username,
             values = [
                 username: authUsername,
                 category: params.category ?: 'Default',
@@ -71,7 +69,7 @@ class TrackService extends BaseService implements EventPublisher {
                 data: params.data ? serialize(params.data) : null,
                 elapsed: params.elapsed,
                 severity: params.severity ?: 'INFO',
-                impersonating: idSvc.isImpersonating() ? username : null
+                impersonating: identityService.isImpersonating() ? username : null
             ]
 
         // Execute asynchronously after we get info from request, don't block application thread.

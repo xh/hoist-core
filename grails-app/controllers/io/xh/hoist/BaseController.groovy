@@ -15,10 +15,11 @@ import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
+import io.xh.hoist.user.IdentitySupport
 
 @Slf4j
 @CompileStatic
-abstract class BaseController implements LogSupport {
+abstract class BaseController implements IdentitySupport, LogSupport {
 
     IdentityService identityService
     ExceptionRenderer exceptionRenderer
@@ -28,21 +29,10 @@ abstract class BaseController implements LogSupport {
         render (JSONSerializer.serialize(o))
     }
 
-    protected HoistUser getUser() {
-        identityService.user
-    }
-
-    protected String getUsername() {
-        identityService.username
-    }
-
-    protected HoistUser getAuthUser() {
-        identityService.authUser
-    }
-
-    protected String getAuthUsername() {
-        identityService.authUsername
-    }
+    HoistUser getUser()         {identityService.user}
+    String getUsername()        {identityService.username}
+    HoistUser getAuthUser()     {identityService.authUser}
+    String getAuthUsername()    {identityService.authUsername}
     
     //-------------------
     // Implementation

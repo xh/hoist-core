@@ -83,14 +83,14 @@ abstract class BaseAuthenticationService extends BaseService {
      * point for subclass implementation.
      */
     boolean allowRequest(HttpServletRequest request, HttpServletResponse response) {
-        if (identityService.getAuthUser(request) || isWhitelist(request)) {
+        if (identityService.findAuthUser(request) || isWhitelist(request)) {
             return true
         }
 
         def complete = completeAuthentication(request, response)
         if (!complete) return false
 
-        if (!identityService.getAuthUser(request)) {
+        if (!identityService.findAuthUser(request)) {
             response.setStatus(401)
             response.flushBuffer()
             return false

@@ -71,7 +71,7 @@ class EnvironmentService extends BaseService {
             ret[it.name + 'Version'] = it.version
         }
 
-        def user = identityService.getAuthUser()
+        def user = authUser
         if (user?.isHoistAdmin) {
             def dataSource = Utils.dataSource
             ret.databaseConnectionString = dataSource.url
