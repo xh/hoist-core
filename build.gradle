@@ -79,9 +79,7 @@ bootRun {
     addResources = true
 }
 
-tasks.withType(Javadoc) {
-    failOnError false
-}
+
 
 bootRepackage.enabled = false
 
