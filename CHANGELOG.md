@@ -1,6 +1,6 @@
 # Changelog
 
-## 11.0.0-SNAPSHOT - unreleased
+## 11.0.0 - 2021-12-03
 
 ### 🎁 New Features
 
@@ -16,8 +16,10 @@
 
 ### 🐞 Bug Fixes
 
-* The `lastUpdatedBy` column found in various Admin grids now tracks the authenticated user's username,
+* The `lastUpdatedBy` column found in various Admin grid now tracks the authenticated user's username,
   indicating if an update was made while impersonating a user.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v10.1.0...v11.0.0)
 
 ## 10.1.0 - 2021-11-03
 
