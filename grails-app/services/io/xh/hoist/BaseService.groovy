@@ -14,6 +14,7 @@ import groovy.util.logging.Slf4j
 import io.reactivex.Observable
 import io.xh.hoist.async.AsyncSupport
 import io.xh.hoist.log.LogSupport
+import io.xh.hoist.user.IdentitySupport
 import io.xh.hoist.util.Timer
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
@@ -28,7 +29,7 @@ import static io.xh.hoist.util.Utils.withNewSession
  * Provides template methods for service lifecycle / state management plus support for user lookups.
  */
 @Slf4j
-abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, EventBusAware {
+abstract class BaseService implements IdentitySupport, LogSupport, AsyncSupport, DisposableBean, EventBusAware {
 
     IdentityService identityService
     private boolean _initialized = false
@@ -148,13 +149,10 @@ abstract class BaseService implements LogSupport, AsyncSupport, DisposableBean, 
     boolean isInitialized() {_initialized}
     boolean isDestroyed()   {_destroyed}
 
-    protected HoistUser getUser() {
-        identityService.user
-    }
-
-    protected String getUsername() {
-        identityService.username
-    }
+    HoistUser getUser()         {identityService.user}
+    String getUsername()        {identityService.username}
+    HoistUser getAuthUser()     {identityService.authUser}
+    String getAuthUsername()    {identityService.authUsername}
 
     private void setupClearCachesConfigs() {
         Set deps = new HashSet()
