@@ -282,7 +282,7 @@
   additional columns on blob table, e.g:
 
   ```sql
-  alter table xh_json_blob add token varchar(50) not null go
+  alter table xh_json_blob add token varchar(255) not null go
   alter table xh_json_blob add archived boolean default false go
   ```
   
