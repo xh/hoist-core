@@ -93,40 +93,45 @@ trait LogSupport {
     //---------------------------------------------------------------------------
     private static void logInfoInternal(Logger log, Object[] msgs) {
         if (log.infoEnabled) {
-            def txt = delimitedTxt(msgs),
-                t = log.traceEnabled ? getThrowable(msgs) : null
+            def msgCol = flatten(msgs),
+                txt = delimitedTxt(msgCol),
+                t = log.traceEnabled ? getThrowable(msgCol) : null
             t ? log.info(txt, t) : log.info(txt)
         }
     }
 
     private static void logTraceInternal(Logger log, Object[] msgs) {
         if (log.traceEnabled) {
-            def txt = delimitedTxt(msgs),
-                t = getThrowable(msgs)
+            def msgCol = flatten(msgs),
+                txt = delimitedTxt(msgCol),
+                t = getThrowable(msgCol)
             t ? log.trace(txt, t) : log.trace(txt)
         }
     }
 
     private static void logDebugInternal(Logger log, Object[] msgs) {
         if (log.debugEnabled) {
-            def txt = delimitedTxt(msgs),
-                t = log.traceEnabled ? getThrowable(msgs) : null
+            def msgCol = flatten(msgs),
+                txt = delimitedTxt(msgCol),
+                t = log.traceEnabled ? getThrowable(msgCol) : null
             t ? log.debug(txt, t) : log.debug(txt)
         }
     }
 
     private static void logWarnInternal(Logger log, Object[] msgs) {
         if (log.warnEnabled) {
-            def txt = delimitedTxt(msgs),
-                t = log.traceEnabled ? getThrowable(msgs) : null
+            def msgCol = flatten(msgs),
+                txt = delimitedTxt(msgCol),
+                t = log.traceEnabled ? getThrowable(msgCol) : null
             t ? log.warn(txt, t) : log.warn(txt)
         }
     }
 
     private static void logErrorInternal(Logger log, Object[] msgs) {
         if (log.errorEnabled) {
-            def txt = delimitedTxt(msgs),
-                t = log.traceEnabled ? getThrowable(msgs) : null
+            def msgCol = flatten(msgs),
+                txt = delimitedTxt(msgCol),
+                t = log.traceEnabled ? getThrowable(msgCol) : null
             t ? log.error(txt, t) : log.error(txt)
         }
     }
@@ -143,10 +148,11 @@ trait LogSupport {
         log.debugEnabled ? loggedDo(log, DEBUG,  msgs, c) : c.call()
     }
 
-    private static  Object loggedDo(Logger log, Level level, Object msgs, Closure c) {
-        long start = currentTimeMillis()
-        String txt = delimitedTxt(msgs instanceof Collection ? msgs : [msgs])
-        def ret
+    private static Object loggedDo(Logger log, Level level, Object msgs, Closure c) {
+        def start = currentTimeMillis(),
+            msgCol =  msgs instanceof List ? msgs.flatten() : [msgs],
+            txt = delimitedTxt(msgCol),
+            ret
 
         if (log.traceEnabled) {
             logAtLevel(log, level, "$txt | started")
@@ -176,17 +182,21 @@ trait LogSupport {
         }
     }
 
-    static private String getThrowable(Object[] msgs) {
+    static private String getThrowable(List msgs) {
         def last = msgs.last()
         return last instanceof Throwable ? last : null
     }
 
-    static private String delimitedTxt(Object msgs) {
+    static private String delimitedTxt(List msgs) {
         def username = identityService?.username
-        List<String> ret = msgs.iterator().collect {
+        List<String> ret = msgs.collect {
             it instanceof Throwable ? exceptionRenderer.summaryTextForThrowable(it) : it.toString()
         }
         if (username) ret.push(username)
         return ret.join(' | ')
+    }
+
+    static private List flatten(Object[] msgs) {
+       Arrays.asList(msgs).flatten()
     }
 }
