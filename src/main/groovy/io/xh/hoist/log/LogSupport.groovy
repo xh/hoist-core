@@ -80,9 +80,11 @@ trait LogSupport {
     Object withTraceInBase(Object msgs, Closure c)     {withTraceInternal((Logger) log, msgs, c)}
 
     /**
-     * Expose the conventional logger associated with the class of the concrete instance of
-     * this object. This may be useful for code in super classes or auxiliary classes that want
-     * to produce log statements in the loggers of particular concrete instances.
+     * Expose the logger used by the main instance methods on this class.
+     * The default implementation of this is the SLFJ `log` property on the concrete
+     * instance (subclass).
+     *
+     * May be overridden to apply logging to a different class.
      */
     Logger getInstanceLog() {
         log

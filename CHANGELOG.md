@@ -1,5 +1,12 @@
 # Changelog
 
+## 11.0.2 - 2021-12-06
+
+### ⚙️ Technical
+* Minor tweak to allow nested lists and arrays in `LogSupport` statements. Improved documentation
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v11.0.1...v11.0.2)
+
 ## 11.0.1 - 2021-12-03
 
 ### 🎁 New Features
