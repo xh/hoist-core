@@ -249,7 +249,11 @@
 ## 8.6.1 - 2020-10-28
 
 * `JsonBlobService` - complete support for metadata with additional `meta` property. Requires an
-  additional column on blob table, e.g. ```sql alter table xh_json_blob add meta varchar(max) go ```
+  additional column on blob table, e.g: 
+
+  ```sql
+  alter table xh_json_blob add meta varchar(max) go
+  ```
 * Introduce new `AppEnvironment.TEST` enumeration value.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.6.0...v8.6.1)
@@ -258,7 +262,7 @@
 ## 8.6.0 - 2020-10-25
 
 * `JsonBlobService`: Enhancements to archiving, new columns and new unique key constraint.
-  - Apps will need to modify the `xh_json_blob` table with new `meta` and `archived_date` columns
+  - Apps will need to modify the `xh_json_blob` table with new `archived_date` column
     and related unique constraint. SAMPLE migration SQL below:
 
     ```sql
@@ -274,7 +278,16 @@
 
 ## 8.5.0 - 2020-10-07
 
-* `JsonBlobService`: Use more scalable token-based access; support archiving.
+* `JsonBlobService`: Use more scalable token-based access; support archiving. Requires
+  additional columns on blob table, e.g:
+
+  ```sql
+  alter table xh_json_blob add token varchar(50) not null go
+  alter table xh_json_blob add archived boolean default false go
+  ```
+  
+  Note that the `archived` column is dropped in subsequent versions, and thus need not be
+  added unless you are using 8.5.0 specifically.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.4.0...v8.5.0)
 
