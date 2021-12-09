@@ -4,9 +4,9 @@ buildscript {
         maven {url 'https://repo.grails.org/grails/core'}
     }
     dependencies {
-        classpath "org.grails:grails-gradle-plugin:$grailsVersion"
+        classpath "org.grails:grails-gradle-plugin:$grailsGradlePluginVersion"
         classpath "org.grails.plugins:hibernate5:$gormVersion"
-        classpath "org.grails.plugins:views-gradle:2.1.0.RC3"
+        classpath "org.grails.plugins:views-gradle:2.1.0"
     }
 }
 
@@ -62,7 +62,7 @@ dependencies {
     // Hoist Additions
     //--------------------
     compile "org.codehaus.groovy:groovy-dateutil:3.0.9"
-    provided "org.grails:grails-plugin-domain-class"
+    compile "org.grails:grails-plugin-domain-class"
     compile "org.grails.plugins:mail:3.0.0"
 
     // Quartz, with Grails 4/5 workaround (https://github.com/grails-plugins/grails-quartz/issues/107
