@@ -14,6 +14,7 @@ import groovy.transform.CompileDynamic
 import groovy.util.logging.Slf4j
 import io.xh.hoist.exception.ExceptionRenderer
 import io.xh.hoist.log.LogSupport
+import io.xh.hoist.user.IdentitySupport
 import io.xh.hoist.util.Timer
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
@@ -29,7 +30,7 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
  * Provides template methods for service lifecycle / state management plus support for user lookups.
  */
 @Slf4j
-abstract class BaseService implements LogSupport, DisposableBean, EventBusAware {
+abstract class BaseService implements IdentitySupport, LogSupport, DisposableBean, EventBusAware {
 
     IdentityService identityService
     ExceptionRenderer exceptionRenderer
@@ -80,6 +81,7 @@ abstract class BaseService implements LogSupport, DisposableBean, EventBusAware 
         }
     }
 
+
     /**
      * Create a new managed Timer bound to this service.
      * @param args - arguments appropriate for a Hoist Timer.
@@ -109,10 +111,10 @@ abstract class BaseService implements LogSupport, DisposableBean, EventBusAware 
         eventBus.subscribe(eventName) {Object... args ->
             if (destroyed) return
             try {
-                instanceLog.debug("Receiving event '$eventName'")
+                logDebug("Receiving event '$eventName'")
                 c.call(*args)
             } catch (Exception e) {
-                logErrorCompact(instanceLog, "Exception handling event '$eventName':", e)
+                logError("Exception handling event '$eventName'", e)
             }
         }
     }
@@ -149,13 +151,10 @@ abstract class BaseService implements LogSupport, DisposableBean, EventBusAware 
     boolean isInitialized() {_initialized}
     boolean isDestroyed()   {_destroyed}
 
-    protected HoistUser getUser() {
-        identityService.user
-    }
-
-    protected String getUsername() {
-        identityService.username
-    }
+    HoistUser getUser()         {identityService.user}
+    String getUsername()        {identityService.username}
+    HoistUser getAuthUser()     {identityService.authUser}
+    String getAuthUsername()    {identityService.authUsername}
 
     protected void setupClearCachesConfigs() {
         Set deps = new HashSet()
@@ -163,11 +162,12 @@ abstract class BaseService implements LogSupport, DisposableBean, EventBusAware 
             def list = GrailsClassUtils.getStaticFieldValue(clazz, 'clearCachesConfigs')
             list.each {deps << it}
         }
-        
+
         if (deps) {
             subscribe('xhConfigChanged') {Map ev ->
                 if (deps.contains(ev.key)) clearCaches()
             }
         }
     }
+
 }

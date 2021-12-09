@@ -45,8 +45,7 @@ class XhController extends BaseController {
     // Identity / Auth
     //------------------------
     def authStatus() {
-        def user = identityService.getAuthUser(request)
-        renderJSON(authenticated: user != null)
+        renderJSON(authenticated: authUser != null)
     }
 
     def getIdentity() {

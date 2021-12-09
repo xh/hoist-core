@@ -25,7 +25,7 @@ class ConfigAdminController extends RestController {
     }
 
     protected void preprocessSubmit(Map submit) {
-        submit.lastUpdatedBy = username
+        submit.lastUpdatedBy = authUsername
     }
 
 }

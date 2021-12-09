@@ -8,11 +8,8 @@
 package io.xh.hoist.log
 
 import ch.qos.logback.classic.Level
-import groovy.transform.CompileDynamic
-import groovy.transform.CompileStatic
-import groovy.util.logging.Slf4j
-
 import org.slf4j.Logger
+
 import static ch.qos.logback.classic.Level.ERROR
 import static ch.qos.logback.classic.Level.WARN
 import static ch.qos.logback.classic.Level.INFO
@@ -22,155 +19,142 @@ import static io.xh.hoist.util.Utils.exceptionRenderer
 import static io.xh.hoist.util.Utils.identityService
 import static java.lang.System.currentTimeMillis
 
-@Slf4j
-@CompileStatic
 trait LogSupport {
 
     /**
-     * Expose the conventional logger associated with the class of the concrete instance of
-     * this object. This is useful for code in super classes or auxiliary classes that want
-     * to produce log statements in the loggers of particular concrete instances.
+     * Log at INFO level.
+     *
+     * If an exception is provided, basic summary info about it will be appended. If effective
+     * logging level is TRACE, a stacktrace will be included as well. This aims to avoid logs being
+     * spammed by recurring / lengthy stacktraces, while still providing a clear indication that an
+     * error occurred plus access to stacktraces when troubleshooting an ongoing situation.
+     *
+     * @param msgs - one or more objects that can be converted into strings
      */
-    @CompileDynamic
+    void logInfo(Object... msgs) {logInfoInternal(instanceLog, msgs)}
+
+    /** Log at TRACE level.*/
+    void logTrace(Object... msgs) {logTraceInternal(instanceLog, msgs)}
+
+    /** Log at DEBUG level.*/
+    void logDebug(Object... msgs) {logDebugInternal(instanceLog, msgs)}
+
+    /** Log at WARN level.*/
+    void logWarn(Object... msgs) {logWarnInternal(instanceLog, msgs)}
+
+    /** Log at ERROR level.*/
+    void logError(Object... msgs) {logErrorInternal(instanceLog, msgs)}
+
+    /**
+     * Log closure execution at INFO level
+     *
+     * This method will run the passed closure, then log a summary message on INFO indicating the
+     * elapsed time to complete and whether the closure threw or completed successfully.
+     *
+     * If the configured logging level is TRACE, an additional line will be written BEFORE the
+     * closure is started, providing a finer-grained view on when logged routines start and end.
+     *
+     * @param msgs - one or more objects that can be converted into strings.
+     * @param c - closure to be run and timed.
+     * @return result of executing c
+     */
+    Object withInfo(Object msgs, Closure c)             {withInfoInternal(instanceLog, msgs, c)}
+
+    /** Log closure execution at DEBUG level */
+    Object withDebug(Object msgs, Closure c)            {withDebugInternal(instanceLog, msgs, c)}
+
+    /** Log closure execution at TRACE level */
+    Object withTrace(Object msgs, Closure c)            {withTraceInternal(instanceLog, msgs, c)}
+
+    //-------------------------------------------------------------
+    // Support logging from base class logger
+    // Currently undocumented, pending better understanding of need
+    //--------------------------------------------------------------
+    void logInfoInBase(Object... msgs)   {logInfoInternal((Logger) log, msgs)}
+    void logTraceInBase(Object... msgs)  {logTraceInternal((Logger) log, msgs)}
+    void logDebugInBase(Object... msgs)  {logDebugInternal((Logger) log, msgs)}
+    void logWarnInBase(Object... msgs)   {logWarnInternal((Logger) log, msgs)}
+    void logErrorInBase(Object... msgs)  {logErrorInternal((Logger) log, msgs)}
+    Object withInfoInBase(Object msgs, Closure c)      {withInfoInternal((Logger) log, msgs, c)}
+    Object withDebugInBase(Object msgs, Closure c)     {withDebugInternal((Logger) log, msgs, c)}
+    Object withTraceInBase(Object msgs, Closure c)     {withTraceInternal((Logger) log, msgs, c)}
+
+    /**
+     * Expose the logger used by the main instance methods on this class.
+     * The default implementation of this is the SLFJ `log` property on the concrete
+     * instance (subclass).
+     *
+     * May be overridden to apply logging to a different class.
+     */
     Logger getInstanceLog() {
         log
     }
 
-    //------------------------------------------------------------------------------------
-    // Main variants.  Will use closest inherited logger starting from the *class*
-    // where the logging statement is written.
-    // -----------------------------------------------------------------------------------
-    /**
-     * Run a closure with a managed log message.
-     *
-     * This method will run the passed closure, with a summary logging message
-     * indicating the time to complete, and whether the closure threw an exception
-     * or completed successfully.  The log message will be written as 'INFO'.
-     *
-     * If the configured logging level is TRACE, an additional line will be written
-     * BEFORE the closure  is started, for troubleshooting purposes.
-     *
-     * @param msgs - one or more objects that can be converted into strings.
-     * @param c - closure to be run.
-     * @return result of executing c
-     */
-    Object withInfo(Object msgs, Closure c)         {withInfo((Logger) log, msgs, c)}
-
-    /**
-     * Run a closure with a managed log message at Debug level.
-     * see withInfo() for more information.
-     *
-     * @param msgs - one or more objects that can be converted into strings
-     * @param c - closure to be run.
-     * @return result of executing c
-     */
-    Object withDebug(Object msgs, Closure c)        {withDebug((Logger) log, msgs, c)}
-
-    /**
-     * Log an exception at Error level.
-     *
-     * Basic summary information about the exception will be appended.
-     * If logging level is TRACE, a stacktrace will be included as well.
-     *
-     * @param msgs - one or more objects that can be converted into strings
-     * @param t - Throwable to be logged
-     */
-    void logErrorCompact(Object msgs, Throwable t) {logErrorCompact((Logger) log, msgs, t)}
-
-
-    /**
-     * Log an exception at Debug level.
-     *
-     * Basic summary information about the exception will be appended.
-     * If logging level is TRACE, a stacktrace will be included as well.
-     *
-     * @param msgs - one or more objects that can be converted into strings
-     * @param t - Throwable to be logged
-     */
-    void logDebugCompact(Object msgs, Throwable t) {logDebugCompact((Logger) log, msgs, t)}
-
-
     //---------------------------------------------------------------------------
-    // Variants for logging to a specific logger.
-    // Typically used with getInstanceLog(), or when calling from a static method
+    // Implementation
     //---------------------------------------------------------------------------
-    /**
-     *  Run a closure with managed log message.
-     *
-     *  This is a static variant of the instance method with the same name.
-     *  This is typically used by base classes, that wish to use it with
-     *  getInstanceLog().
-     *
-     *  Applications should typically use the instance method instead.
-     */
-    static Object withInfo(Logger log, Object msgs, Closure c) {
+    private static void logInfoInternal(Logger log, Object[] msgs) {
+        if (log.infoEnabled) {
+            def msgCol = flatten(msgs),
+                txt = delimitedTxt(msgCol),
+                t = log.traceEnabled ? getThrowable(msgCol) : null
+            t ? log.info(txt, t) : log.info(txt)
+        }
+    }
+
+    private static void logTraceInternal(Logger log, Object[] msgs) {
+        if (log.traceEnabled) {
+            def msgCol = flatten(msgs),
+                txt = delimitedTxt(msgCol),
+                t = getThrowable(msgCol)
+            t ? log.trace(txt, t) : log.trace(txt)
+        }
+    }
+
+    private static void logDebugInternal(Logger log, Object[] msgs) {
+        if (log.debugEnabled) {
+            def msgCol = flatten(msgs),
+                txt = delimitedTxt(msgCol),
+                t = log.traceEnabled ? getThrowable(msgCol) : null
+            t ? log.debug(txt, t) : log.debug(txt)
+        }
+    }
+
+    private static void logWarnInternal(Logger log, Object[] msgs) {
+        if (log.warnEnabled) {
+            def msgCol = flatten(msgs),
+                txt = delimitedTxt(msgCol),
+                t = log.traceEnabled ? getThrowable(msgCol) : null
+            t ? log.warn(txt, t) : log.warn(txt)
+        }
+    }
+
+    private static void logErrorInternal(Logger log, Object[] msgs) {
+        if (log.errorEnabled) {
+            def msgCol = flatten(msgs),
+                txt = delimitedTxt(msgCol),
+                t = log.traceEnabled ? getThrowable(msgCol) : null
+            t ? log.error(txt, t) : log.error(txt)
+        }
+    }
+
+    private static Object withInfoInternal(Logger log, Object msgs, Closure c) {
         log.infoEnabled ? loggedDo(log, INFO, msgs, c) : c.call()
     }
 
-    /**
-     *  Run a closure with a managed log message.
-     *
-     *  This is a static variant of the instance method with the same name.
-     *  This is typically used by base classes, that wish to use it with
-     *  getInstanceLog().
-     *
-     *  Applications should typically use the instance method instead.
-     */
-    static Object withDebug(Logger log, Object msgs, Closure c) {
+    private static Object withDebugInternal(Logger log, Object msgs, Closure c) {
         log.debugEnabled ? loggedDo(log, DEBUG,  msgs, c) : c.call()
     }
 
-    /**
-     * Log an exception at Error level.
-     *
-     * This is a static variant of the instance method with the same name.
-     * This is typically used by base classes, that wish to use it with
-     * getInstanceLog().
-     *
-     * Applications should typically use the instance method instead.
-     */
-    static logErrorCompact(Logger log, Object msgs, Throwable t) {
-        if (!log.errorEnabled) return
-
-        String summary = exceptionRenderer.summaryTextForThrowable(t)
-        String txt = delimitedTxtWithUser(msgs, summary)
-
-        if (log.traceEnabled) {
-            log.error(txt, t)
-        } else {
-            log.error(txt)
-        }
+    private static Object withTraceInternal(Logger log, Object msgs, Closure c) {
+        log.debugEnabled ? loggedDo(log, DEBUG,  msgs, c) : c.call()
     }
 
-    /**
-     * Log an exception at Debug level.
-     *
-     * This is a static variant of the instance method with the same name.
-     * This is typically used by base classes, that wish to use it with
-     * getInstanceLog().
-     *
-     * Applications should typically use the instance method instead.
-     */
-    static logDebugCompact(Logger log, Object msgs, Throwable t) {
-        if (!log.debugEnabled) return
-
-        String summary = exceptionRenderer.summaryTextForThrowable(t)
-        String txt = delimitedTxtWithUser(msgs, summary)
-
-        if (log.traceEnabled) {
-            log.debug(txt, t)
-        } else {
-            log.debug(txt)
-        }
-    }
-
-    //------------------------
-    // Implementation
-    //------------------------
-    static private Object loggedDo(Logger log, Level level, Object msgs, Closure c) {
-        long start = currentTimeMillis()
-        String txt = delimitedTxtWithUser(msgs)
-        def ret
+    private static Object loggedDo(Logger log, Level level, Object msgs, Closure c) {
+        def start = currentTimeMillis(),
+            msgCol =  msgs instanceof List ? msgs.flatten() : [msgs],
+            txt = delimitedTxt(msgCol),
+            ret
 
         if (log.traceEnabled) {
             logAtLevel(log, level, "$txt | started")
@@ -200,14 +184,21 @@ trait LogSupport {
         }
     }
 
-    static private String delimitedTxtWithUser(Object msgs, String extra = null) {
-        def username = identityService?.username
-        List<String> ret = msgs ?
-                (msgs instanceof Collection ? msgs.collect { it.toString() } : [msgs.toString()]) :
-                []
+    static private String getThrowable(List msgs) {
+        def last = msgs.last()
+        return last instanceof Throwable ? last : null
+    }
 
-        if (extra) ret.push(extra)
+    static private String delimitedTxt(List msgs) {
+        def username = identityService?.username
+        List<String> ret = msgs.collect {
+            it instanceof Throwable ? exceptionRenderer.summaryTextForThrowable(it) : it.toString()
+        }
         if (username) ret.push(username)
         return ret.join(' | ')
+    }
+
+    static private List flatten(Object[] msgs) {
+       Arrays.asList(msgs).flatten()
     }
 }

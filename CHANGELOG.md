@@ -1,6 +1,5 @@
 # Changelog
-
-## 12.0-SNAPSHOT - unreleased
+# 12.0-SNAPSHOT - unreleased
 This version includes a major upgrade of several underlying libraries, especially grails (5.0.0),
 spring-boot (2.5.4), groovy (3.0.7), and gradle (6.9.1). With this version, Hoist can now be run
 on Java versions 8 - 11.  We have also cleaned up and enhanced some core
@@ -33,19 +32,49 @@ APIs around Exception Handling, JSON parsing and configuration.
 * Applications will be required to add the `@Transactional` or `@ReadOnly` annotations to service and controller
   methods that update data with GORM.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v11.0.0...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v11.0.2...develop)
 
-## 11.0.0-SNAPSHOT - unreleased
+## 11.0.2 - 2021-12-06
+
+### ⚙️ Technical
+* Minor tweak to allow nested lists and arrays in `LogSupport` statements. Improved documentation
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v11.0.1...v11.0.2)
+
+## 11.0.1 - 2021-12-03
+
+### 🎁 New Features
+
+* Enhancement to `LogSupport` to help standardize logging across all Service and Controllers. New
+  methods `logInfo`, `logDebug`, `logTrace`, `logWarn`, and `logError` now provide consistent
+  formatting of log messages plus log-level aware output of any throwables passed to these methods.
+  See LogSupport for more info.
+
+### 💥 Breaking Changes
+
+* The methods `LogSupport.logErrorCompact` and `LogSupport.logDebugCompact` have been removed. Use
+  `logError` and `logDebug` instead, passing your `Throwable` as the last argument to these methods. 
+
+### 🐞 Bug Fixes
+
+* The `lastUpdatedBy` column found in various Admin grid now tracks the authenticated user's username,
+  indicating if an update was made while impersonating a user.
+* Fix to bug causing 'Edge' browser to be incorrectly identified.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v10.1.0...v11.0.1)
+
+## 10.1.0 - 2021-11-03
 
 ### 🎁 New Features
 
 * New Admin endpoint to output environment variables and JVM system properties.
+  * Take (optional) update to `hoist-react >= 44.1.0` for corresponding Hoist Admin Console UI.
 
-[Commit Log] (https://github.com/xh/hoist-core/compare/v10.0.0...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v10.0.0...v10.1.0)
 
 ## 10.0.0 - 2021-10-26
 
-⚠ NOTE - apps must update to `hoist-react >= 44.0.0` when taking this hoist-core update.
+⚠ NOTE - apps *must* update to `hoist-react >= 44.0.0` when taking this hoist-core update.
 
 ### 🎁 New Features
 
@@ -63,13 +92,14 @@ APIs around Exception Handling, JSON parsing and configuration.
 * Public methods on `JsonBlobService` have been updated - input parameters have changed in some
   cases, and they now return `JsonBlob` instances (instead of pre-formatted Maps).
 * Two new columns should be added to the `xh_log_level` table in your app's database: a datetime
-  column and a nullable varchar(50) column. Review and run the SQL below, or an equivalent
-  suitable for your app's database. (Note that both columns are marked as nullable to allow the
-  schema change to be applied to a database in advance of the upgraded deployment.)
-    ```sql
-    ALTER TABLE `xh_log_level` ADD `last_updated` DATETIME NULL;
-    ALTER TABLE `xh_log_level` ADD`last_updated_by` VARCHAR(50) NULL;
-    ```
+  column and a nullable varchar(50) column. Review and run the SQL below, or an equivalent suitable
+  for your app's database. (Note that both columns are marked as nullable to allow the schema change
+  to be applied to a database in advance of the upgraded deployment.)
+
+  ```sql
+  ALTER TABLE `xh_log_level` ADD `last_updated` DATETIME NULL;
+  ALTER TABLE `xh_log_level` ADD`last_updated_by` VARCHAR(50) NULL;
+  ```
 
 ### ⚙️ Technical
 
@@ -87,8 +117,8 @@ APIs around Exception Handling, JSON parsing and configuration.
 
 ### ⚙️ Technical
 
-* Applications will no longer default to "development" environment in server deployments.
-  A recognized environment must be explicitly provided.
+* Applications will no longer default to "development" environment in server deployments. A
+  recognized environment must be explicitly provided.
 
 ## 9.3.2 - 2021-10-01
 
@@ -260,7 +290,11 @@ APIs around Exception Handling, JSON parsing and configuration.
 ## 8.6.1 - 2020-10-28
 
 * `JsonBlobService` - complete support for metadata with additional `meta` property. Requires an
-  additional column on blob table, e.g. ```sql alter table xh_json_blob add meta varchar(max) go ```
+  additional column on blob table, e.g: 
+
+  ```sql
+  alter table xh_json_blob add meta varchar(max) go
+  ```
 * Introduce new `AppEnvironment.TEST` enumeration value.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.6.0...v8.6.1)
@@ -269,7 +303,7 @@ APIs around Exception Handling, JSON parsing and configuration.
 ## 8.6.0 - 2020-10-25
 
 * `JsonBlobService`: Enhancements to archiving, new columns and new unique key constraint.
-  - Apps will need to modify the `xh_json_blob` table with new `meta` and `archived_date` columns
+  - Apps will need to modify the `xh_json_blob` table with new `archived_date` column
     and related unique constraint. SAMPLE migration SQL below:
 
     ```sql
@@ -285,7 +319,16 @@ APIs around Exception Handling, JSON parsing and configuration.
 
 ## 8.5.0 - 2020-10-07
 
-* `JsonBlobService`: Use more scalable token-based access; support archiving.
+* `JsonBlobService`: Use more scalable token-based access; support archiving. Requires
+  additional columns on blob table, e.g:
+
+  ```sql
+  alter table xh_json_blob add token varchar(255) not null go
+  alter table xh_json_blob add archived boolean default false go
+  ```
+  
+  Note that the `archived` column is dropped in subsequent versions, and thus need not be
+  added unless you are using 8.5.0 specifically.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.4.0...v8.5.0)
 

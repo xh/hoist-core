@@ -214,7 +214,7 @@ class GridExportImplService extends BaseService {
                             value = value.toDouble()
                         }
                     } catch (Exception ex) {
-                        log.trace("Error parsing value ${value} for declared type ${metadata.type} | ${ex.message}")
+                        logTrace("Error parsing value $value for declared type ${metadata.type}", ex.message)
                         valueParseFailures++
                     }
 
@@ -243,7 +243,7 @@ class GridExportImplService extends BaseService {
         }
 
         if (valueParseFailures) {
-            log.warn("Errors encountered during parsing for grid export - failed to parse ${valueParseFailures} cell values.")
+            logWarn("Errors encountered during parsing for grid export - failed to parse $valueParseFailures cell values.")
         }
 
         if (asTable && completedGroups.size()) {

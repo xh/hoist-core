@@ -69,7 +69,7 @@ class ConfigService extends BaseService implements EventPublisher {
             try {
                 ret[name] = config.externalValue(obscurePassword: true, jsonAsObject: true)
             } catch (Exception e) {
-                logErrorCompact("Exception while getting client config: '$name'", e)
+                logError("Exception while getting client config: '$name'", e)
             }
         }
 
@@ -112,8 +112,8 @@ class ConfigService extends BaseService implements EventPublisher {
         def currConfigs = AppConfig.list(),
             created = 0
 
-        reqConfigs.each{confName, confDefaults ->
-            def currConfig = currConfigs.find{it.name == confName},
+        reqConfigs.each { confName, confDefaults ->
+            def currConfig = currConfigs.find { it.name == confName },
                 valType = confDefaults.valueType,
                 defaultVal = confDefaults.defaultValue,
                 clientVisible = confDefaults.clientVisible ?: false,
@@ -124,28 +124,39 @@ class ConfigService extends BaseService implements EventPublisher {
                 if (valType == 'json') defaultVal = serializePretty(defaultVal)
 
                 new AppConfig(
-                    name: confName,
-                    valueType: valType,
-                    value: defaultVal,
-                    groupName: confDefaults.groupName ?: 'Default',
-                    clientVisible: clientVisible,
-                    lastUpdatedBy: 'hoist-bootstrap',
-                    note: note
+                        name: confName,
+                        valueType: valType,
+                        value: defaultVal,
+                        groupName: confDefaults.groupName ?: 'Default',
+                        clientVisible: clientVisible,
+                        lastUpdatedBy: 'hoist-bootstrap',
+                        note: note
                 ).save()
 
-                log.warn("Required config ${confName} missing and created with default value | verify default is appropriate for this application")
+                logWarn(
+                        "Required config $confName missing and created with default value",
+                        'verify default is appropriate for this application'
+                )
                 created++
             } else {
                 if (currConfig.valueType != valType) {
-                    log.error("Unexpected value type for required config ${confName} | expected ${valType} got ${currConfig.valueType} | review and fix!")
+                    logError(
+                            "Unexpected value type for required config $confName",
+                            "expected $valType got ${currConfig.valueType}",
+                            'review and fix!'
+                    )
                 }
                 if (currConfig.clientVisible != clientVisible) {
-                    log.error("Unexpected clientVisible for required config ${confName} | expected ${clientVisible} got ${currConfig.clientVisible} | review and fix!")
+                    logError(
+                            "Unexpected clientVisible for required config $confName",
+                            "expected $clientVisible got ${currConfig.clientVisible}",
+                            'review and fix!'
+                    )
                 }
             }
         }
 
-        log.debug("Validated presense of ${reqConfigs.size()} required configs | created ${created}")
+        logDebug("Validated presense of ${reqConfigs.size()} required configs", "created ${created}")
     }
 
 

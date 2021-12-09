@@ -50,7 +50,7 @@ class TrackService extends BaseService implements EventPublisher {
         try {
             createTrackLog(params)
         } catch (Exception e) {
-            logErrorCompact('Exception writing track log', e)
+            logError('Exception writing track log', e)
         }
     }
 
@@ -61,19 +61,17 @@ class TrackService extends BaseService implements EventPublisher {
     private void createTrackLog(Map params) {
         def request = WebUtils.retrieveGrailsWebRequest().currentRequest,
             userAgent = request?.getHeader('User-Agent'),
-            idSvc = identityService,
-            authUsername = idSvc.getAuthUser().username,
             values = [
-                    username     : authUsername,
-                    category     : params.category ?: 'Default',
-                    msg          : params.msg,
-                    userAgent    : userAgent,
-                    browser      : getBrowser(userAgent),
-                    device       : getDevice(userAgent),
-                    data         : params.data ? serialize(params.data) : null,
-                    elapsed      : params.elapsed,
-                    severity     : params.severity ?: 'INFO',
-                    impersonating: idSvc.isImpersonating() ? username : null
+                username: authUsername,
+                category: params.category ?: 'Default',
+                msg: params.msg,
+                userAgent: userAgent,
+                browser: getBrowser(userAgent),
+                device: getDevice(userAgent),
+                data: params.data ? serialize(params.data) : null,
+                elapsed: params.elapsed,
+                severity: params.severity ?: 'INFO',
+                impersonating: identityService.isImpersonating() ? username : null
             ]
 
         // Execute asynchronously after we get info from request, don't block application thread.
@@ -86,7 +84,7 @@ class TrackService extends BaseService implements EventPublisher {
                     try {
                         tl.save()
                     } catch (Exception e) {
-                        logErrorCompact('Exception writing track log', e)
+                        logError('Exception writing track log', e)
                     }
                 }
 
@@ -95,7 +93,7 @@ class TrackService extends BaseService implements EventPublisher {
                 if (tl.impersonating) name += " (as ${tl.impersonating})"
 
                 def msgParts = [name, tl.category, tl.msg, elapsedStr]
-                log.info(msgParts.findAll().join(' | '))
+                logInfo(msgParts.findAll())
             }
         }
     }

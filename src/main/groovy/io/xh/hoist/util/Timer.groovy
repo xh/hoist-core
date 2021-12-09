@@ -205,7 +205,7 @@ class Timer {
         if (interval == null) return null
         Long ret = (interval instanceof Closure ? (interval as Closure)() : interval) * intervalUnits;
         if (ret > 0 && ret < 500) {
-            owner.instanceLog.warn('Timer cannot be set for values less than 500ms.')
+            owner.logWarn('Timer cannot be set for values less than 500ms.')
             ret = 500
         }
         return ret
@@ -228,7 +228,7 @@ class Timer {
             timeoutMs = calcTimeoutMs()
             adjustCoreTimerIfNeeded()
         } catch (Throwable t) {
-            owner.logErrorCompact('Timer failed to reload config', t)
+            owner.logError('Timer failed to reload config', t)
         }
     }
 

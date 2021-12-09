@@ -108,7 +108,7 @@ class Cache<K,V> {
             }
 
             if (cullKeys.size()) {
-                svc.instanceLog.debug("Cache '$name' culling ${cullKeys.size()} out of ${_map.size()} entries")
+                svc.logDebug("Cache '$name' culling ${cullKeys.size()} out of ${_map.size()} entries")
             }
 
             cullKeys.each {_map.remove(it)}

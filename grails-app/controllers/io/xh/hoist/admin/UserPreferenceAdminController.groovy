@@ -29,7 +29,7 @@ class UserPreferenceAdminController extends RestController {
             submit.preference = Preference.findByName(submit.name)
         }
 
-        submit.lastUpdatedBy = username
+        submit.lastUpdatedBy = authUsername
     }
 
     protected List doList(Map query) {

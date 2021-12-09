@@ -82,7 +82,7 @@ abstract class BaseProxyService extends BaseService {
             sourceResponse.entity.writeTo(response.outputStream)
             response.flushBuffer()
         } catch (ClientAbortException ignored) {
-            log.debug("Client has aborted request to [$endpoint] - ignoring")
+            logDebug("Client has aborted request to [$endpoint] - ignoring")
         } finally {
             if (sourceResponse) sourceResponse.close()
         }
