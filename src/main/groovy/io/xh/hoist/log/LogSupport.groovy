@@ -93,7 +93,7 @@ trait LogSupport {
     //---------------------------------------------------------------------------
     // Implementation
     //---------------------------------------------------------------------------
-    private static void logInfoInternal(Logger log, Object[] msgs) {
+    private void logInfoInternal(Logger log, Object[] msgs) {
         if (log.infoEnabled) {
             def msgCol = flatten(msgs),
                 txt = delimitedTxt(msgCol),
@@ -102,7 +102,7 @@ trait LogSupport {
         }
     }
 
-    private static void logTraceInternal(Logger log, Object[] msgs) {
+    private void logTraceInternal(Logger log, Object[] msgs) {
         if (log.traceEnabled) {
             def msgCol = flatten(msgs),
                 txt = delimitedTxt(msgCol),
@@ -111,7 +111,7 @@ trait LogSupport {
         }
     }
 
-    private static void logDebugInternal(Logger log, Object[] msgs) {
+    private void logDebugInternal(Logger log, Object[] msgs) {
         if (log.debugEnabled) {
             def msgCol = flatten(msgs),
                 txt = delimitedTxt(msgCol),
@@ -120,7 +120,7 @@ trait LogSupport {
         }
     }
 
-    private static void logWarnInternal(Logger log, Object[] msgs) {
+    private void logWarnInternal(Logger log, Object[] msgs) {
         if (log.warnEnabled) {
             def msgCol = flatten(msgs),
                 txt = delimitedTxt(msgCol),
@@ -129,7 +129,7 @@ trait LogSupport {
         }
     }
 
-    private static void logErrorInternal(Logger log, Object[] msgs) {
+    private void logErrorInternal(Logger log, Object[] msgs) {
         if (log.errorEnabled) {
             def msgCol = flatten(msgs),
                 txt = delimitedTxt(msgCol),
@@ -138,19 +138,19 @@ trait LogSupport {
         }
     }
 
-    private static Object withInfoInternal(Logger log, Object msgs, Closure c) {
+    private Object withInfoInternal(Logger log, Object msgs, Closure c) {
         log.infoEnabled ? loggedDo(log, INFO, msgs, c) : c.call()
     }
 
-    private static Object withDebugInternal(Logger log, Object msgs, Closure c) {
+    private Object withDebugInternal(Logger log, Object msgs, Closure c) {
         log.debugEnabled ? loggedDo(log, DEBUG,  msgs, c) : c.call()
     }
 
-    private static Object withTraceInternal(Logger log, Object msgs, Closure c) {
+    private Object withTraceInternal(Logger log, Object msgs, Closure c) {
         log.debugEnabled ? loggedDo(log, DEBUG,  msgs, c) : c.call()
     }
 
-    private static Object loggedDo(Logger log, Level level, Object msgs, Closure c) {
+    private Object loggedDo(Logger log, Level level, Object msgs, Closure c) {
         def start = currentTimeMillis(),
             msgCol =  msgs instanceof List ? msgs.flatten() : [msgs],
             txt = delimitedTxt(msgCol),
@@ -174,7 +174,7 @@ trait LogSupport {
         return ret
     }
 
-    static private void logAtLevel(Logger log, Level level, GString msg) {
+    private void logAtLevel(Logger log, Level level, GString msg) {
         switch (level) {
             case DEBUG: log.debug (msg); break
             case INFO:  log.info (msg); break
@@ -184,12 +184,12 @@ trait LogSupport {
         }
     }
 
-    static private String getThrowable(List msgs) {
+    private Throwable getThrowable(List msgs) {
         def last = msgs.last()
         return last instanceof Throwable ? last : null
     }
 
-    static private String delimitedTxt(List msgs) {
+    private String delimitedTxt(List msgs) {
         def username = identityService?.username
         List<String> ret = msgs.collect {
             it instanceof Throwable ? exceptionRenderer.summaryTextForThrowable(it) : it.toString()
@@ -198,7 +198,7 @@ trait LogSupport {
         return ret.join(' | ')
     }
 
-    static private List flatten(Object[] msgs) {
+    private List flatten(Object[] msgs) {
        Arrays.asList(msgs).flatten()
     }
 }
