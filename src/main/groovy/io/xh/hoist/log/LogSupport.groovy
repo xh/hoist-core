@@ -184,7 +184,7 @@ trait LogSupport {
         }
     }
 
-    private String getThrowable(List msgs) {
+    private Throwable getThrowable(List msgs) {
         def last = msgs.last()
         return last instanceof Throwable ? last : null
     }

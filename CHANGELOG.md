@@ -34,6 +34,14 @@ APIs around Exception Handling, JSON parsing and configuration.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v11.0.2...develop)
 
+## 11.0.3 - 2021-12-10
+
+### 🐞 Bug Fixes
+* Fix to Regression in v11 preventing proper display of stacktraces in log
+
+* [Commit Log](https://github.com/xh/hoist-core/compare/v11.0.2...v11.0.3)
+
+
 ## 11.0.2 - 2021-12-06
 
 ### ⚙️ Technical
