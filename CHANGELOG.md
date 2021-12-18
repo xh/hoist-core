@@ -1,5 +1,6 @@
 # Changelog
-# 12.0-SNAPSHOT - unreleased
+
+# 13.0-SNAPSHOT - unreleased
 This version includes a major upgrade of several underlying libraries, especially grails (5.0.0),
 spring-boot (2.5.4), groovy (3.0.7), and gradle (6.9.1). With this version, Hoist can now be run
 on Java versions 8 - 11.  We have also cleaned up and enhanced some core
@@ -32,7 +33,7 @@ APIs around Exception Handling, JSON parsing and configuration.
 * Applications will be required to add the `@Transactional` or `@ReadOnly` annotations to service and controller
   methods that update data with GORM.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v11.0.2...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v11.0.3...grails5)
 
 ## 11.0.3 - 2021-12-10
 
