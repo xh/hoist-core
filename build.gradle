@@ -15,13 +15,12 @@ group 'io.xh'
 
 apply plugin:'idea'
 apply plugin:'org.grails.grails-plugin'
+apply plugin:'java-library'
 
 repositories {
     mavenLocal()
     maven {url 'https://repo.grails.org/grails/core'}
 }
-
-
 configurations {
     developmentOnly
     runtimeClasspath {
@@ -62,28 +61,28 @@ dependencies {
     //--------------------
     // Hoist Additions
     //--------------------
-    compile "org.codehaus.groovy:groovy-dateutil:3.0.9"
-    compile "org.grails:grails-plugin-domain-class"
-    compile "org.grails.plugins:mail:3.0.0"
+    api "org.codehaus.groovy:groovy-dateutil:3.0.9"
+    api "org.grails:grails-plugin-domain-class"
+    api "org.grails.plugins:mail:3.0.0"
 
     // Quartz, with Grails 4/5 workaround (https://github.com/grails-plugins/grails-quartz/issues/107
-    compile("org.quartz-scheduler:quartz:2.2.3") {exclude group: 'slf4j-api', module: 'c3p0'}
-    compile 'org.grails.plugins:quartz:2.0.13'
+    api("org.quartz-scheduler:quartz:2.2.3") {exclude group: 'slf4j-api', module: 'c3p0'}
+    api 'org.grails.plugins:quartz:2.0.13'
 
-    compile "org.hibernate:hibernate-core:5.5.7.Final"
-    compile "net.sf.ehcache:ehcache:2.10.9.2"
+    api "org.hibernate:hibernate-core:5.5.7.Final"
+    api "net.sf.ehcache:ehcache:2.10.9.2"
 
-    compile "org.apache.poi:poi:4.1.2"
-    compile "org.apache.poi:poi-ooxml:4.1.2"
-    compile "org.apache.poi:poi-ooxml-schemas:4.1.2"
-    compile "org.apache.poi:ooxml-schemas:1.4"
+    api "org.apache.poi:poi:4.1.2"
+    api "org.apache.poi:poi-ooxml:4.1.2"
+    api "org.apache.poi:poi-ooxml-schemas:4.1.2"
+    api "org.apache.poi:ooxml-schemas:1.4"
 
-    compile "org.springframework:spring-websocket"
-    compile "org.apache.httpcomponents.client5:httpclient5:5.1"
-    compile 'org.jasypt:jasypt:1.9.3'
-    compile "commons-io:commons-io:2.8.0"
-    runtime "net.java.dev.jna:jna:4.5.1"   //TODO:  Is this needed?
-    compile "org.owasp.encoder:encoder:1.2.3"
+    api "org.springframework:spring-websocket"
+    api "org.apache.httpcomponents.client5:httpclient5:5.1"
+    api 'org.jasypt:jasypt:1.9.3'
+    api "commons-io:commons-io:2.8.0"
+    runtimeOnly "net.java.dev.jna:jna:4.5.1"   //TODO:  Is this needed?
+    api "org.owasp.encoder:encoder:1.2.3"
 }
 
 def allJvmArgs = [
