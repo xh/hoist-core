@@ -155,7 +155,7 @@ publishing {
 
             from components.java
             artifact sourcesJar
-            artifact javadocJar
+            //artifact javadocJar
 
             def groovyOutputDir = sourceSets.main.output.classesDirs.files.find{it.path.contains('/groovy/')}
             artifact source: "${groovyOutputDir}/META-INF/grails-plugin.xml",
