@@ -51,14 +51,13 @@ dependencies {
     profile "org.grails.profiles:rest-api-plugin"
 
     runtimeOnly "org.glassfish.web:el-impl:2.2.1-b05"
-    runtimeOnly "com.h2database:h2"
-    runtimeOnly "org.apache.tomcat:tomcat-jdbc"
     runtimeOnly "javax.xml.bind:jaxb-api:2.3.1"
 
+    //--------------------
+    // API Additions
+    //--------------------
+    api "org.apache.tomcat:tomcat-jdbc"
 
-    //--------------------
-    // Hoist Additions
-    //--------------------
     api "org.codehaus.groovy:groovy-dateutil:3.0.9"
     api "org.grails:grails-plugin-domain-class"
     api "org.grails.plugins:mail:3.0.0"
@@ -79,7 +78,6 @@ dependencies {
     api "org.apache.httpcomponents.client5:httpclient5:5.1"
     api 'org.jasypt:jasypt:1.9.3'
     api "commons-io:commons-io:2.8.0"
-    runtimeOnly "net.java.dev.jna:jna:4.5.1"   //TODO:  Is this needed?
     api "org.owasp.encoder:encoder:1.2.3"
 }
 
