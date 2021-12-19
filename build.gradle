@@ -28,45 +28,49 @@ configurations {
 }
 
 dependencies {
-    //-----------------------------------
-    // Grails 5.0 REST Plugin Defaults
-    //-----------------------------------
-    compileOnly "io.micronaut:micronaut-inject-groovy"
-    implementation "org.springframework.boot:spring-boot-starter-logging"
-    implementation "org.springframework.boot:spring-boot-autoconfigure"
-    implementation "org.grails:grails-core"
-    implementation "org.springframework.boot:spring-boot-starter-actuator"
-    implementation "org.springframework.boot:spring-boot-starter-tomcat"
-    implementation "org.grails:grails-plugin-url-mappings"
-    implementation "org.grails:grails-plugin-rest"
-    implementation "org.grails:grails-plugin-codecs"
-    implementation "org.grails:grails-plugin-interceptors"
-    implementation "org.grails:grails-plugin-services"
-    implementation "org.grails:grails-plugin-datasource"
-    implementation "org.grails:grails-plugin-databinding"
-    implementation "org.grails:grails-web-boot"
-    implementation "org.grails:grails-logging"
-    implementation "org.grails.plugins:async"
-    implementation "org.grails.plugins:hibernate5"
+
+    // Java 11 dev time support - full spring-boot reload of entire app
+    developmentOnly "org.springframework.boot:spring-boot-devtools"
+
+    //-------------------------------------------------------
+    // Grails 5.0 REST Plugin Defaults + Other Grails Plugins
+    //-------------------------------------------------------
     profile "org.grails.profiles:rest-api-plugin"
+    api "org.springframework.boot:spring-boot-starter-logging"
+    api "org.springframework.boot:spring-boot-autoconfigure"
+    api "org.grails:grails-core"
+    api "org.springframework.boot:spring-boot-starter-actuator"
+    api "org.springframework.boot:spring-boot-starter-tomcat"
+    api "org.grails:grails-plugin-url-mappings"
+    api "org.grails:grails-plugin-rest"
+    api "org.grails:grails-plugin-codecs"
+    api "org.grails:grails-plugin-interceptors"
+    api "org.grails:grails-plugin-services"
+    api "org.grails:grails-plugin-datasource"
+    api "org.grails:grails-plugin-databinding"
+    api "org.grails:grails-plugin-domain-class"
+    api "org.grails:grails-web-boot"
+    api "org.grails:grails-logging"
+    api "org.grails.plugins:async"
+    api "org.grails.plugins:hibernate5"
+    api "org.grails.plugins:events"
+    api "org.grails.plugins:mail:3.0.0"
 
     runtimeOnly "org.glassfish.web:el-impl:2.2.1-b05"
     runtimeOnly "javax.xml.bind:jaxb-api:2.3.1"
 
     //--------------------
-    // API Additions
+    // Hoist Additions
     //--------------------
     api "org.apache.tomcat:tomcat-jdbc"
-
     api "org.codehaus.groovy:groovy-dateutil:3.0.9"
-    api "org.grails:grails-plugin-domain-class"
-    api "org.grails.plugins:mail:3.0.0"
 
     // Quartz, with Grails 4/5 workaround (https://github.com/grails-plugins/grails-quartz/issues/107
-    api("org.quartz-scheduler:quartz:2.2.3") {exclude group: 'slf4j-api', module: 'c3p0'}
+    api("org.quartz-scheduler:quartz:2.3.2") {exclude group: 'slf4j-api', module: 'c3p0'}
     api 'org.grails.plugins:quartz:2.0.13'
 
     api "org.hibernate:hibernate-core:5.5.7.Final"
+    api "org.hibernate:hibernate-ehcache:5.5.7.Final"
     api "net.sf.ehcache:ehcache:2.10.9.2"
 
     api "org.apache.poi:poi:4.1.2"
@@ -81,10 +85,7 @@ dependencies {
     api "org.owasp.encoder:encoder:1.2.3"
 }
 
-def allJvmArgs = [
-        '-Dspring.output.ansi.enabled=always'
-]
-
+def allJvmArgs = ['-Dspring.output.ansi.enabled=always']
 bootRun {
     jvmArgs(allJvmArgs)
     sourceResources sourceSets.main
@@ -95,7 +96,6 @@ tasks.withType(GroovyCompile) {
         forkOptions.jvmArgs = allJvmArgs
     }
 }
-
 bootJar.enabled = false
 
 //------------------------
