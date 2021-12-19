@@ -6,7 +6,6 @@ buildscript {
     dependencies {
         classpath "org.grails:grails-gradle-plugin:$grailsGradlePluginVersion"
         classpath "org.grails.plugins:hibernate5:$gormVersion"
-        classpath "org.grails.plugins:views-gradle:2.1.0"
     }
 }
 
@@ -47,7 +46,6 @@ dependencies {
     implementation "org.grails:grails-plugin-databinding"
     implementation "org.grails:grails-web-boot"
     implementation "org.grails:grails-logging"
-    implementation "org.grails.plugins:cache"
     implementation "org.grails.plugins:async"
     implementation "org.grails.plugins:hibernate5"
     profile "org.grails.profiles:rest-api-plugin"
