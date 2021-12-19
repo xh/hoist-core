@@ -20,17 +20,8 @@ repositories {
     mavenLocal()
     maven {url 'https://repo.grails.org/grails/core'}
 }
-configurations {
-    developmentOnly
-    runtimeClasspath {
-        extendsFrom developmentOnly
-    }
-}
 
 dependencies {
-
-    // Java 11 dev time support - full spring-boot reload of entire app
-    developmentOnly "org.springframework.boot:spring-boot-devtools"
 
     //-------------------------------------------------------
     // Grails 5.0 REST Plugin Defaults + Other Grails Plugins
