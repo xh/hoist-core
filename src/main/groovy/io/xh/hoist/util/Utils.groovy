@@ -33,28 +33,28 @@ class Utils {
      * Internal short name of the application - lowercase, no spaces.
      */
     static String getAppCode() {
-        return Metadata.current.getProperty('info.xh.appCode')
+        return Metadata.current.getProperty('info.xh.appCode', String)
     }
 
     /**
      * User-facing display name of the application - proper case, can include spaces.
      */
     static String getAppName() {
-        return Metadata.current.getProperty('info.xh.appName')
+        return Metadata.current.getProperty('info.xh.appName', String)
     }
 
     /**
      * Current version, either SemVer x.y.z format or x.y-SNAPSHOT.
      */
     static String getAppVersion() {
-        return Metadata.current.getProperty('info.app.version')
+        return Metadata.current.getProperty('info.app.version', String)
     }
 
     /**
      * Optional git commit hash or other identifier set at build time.
      */
     static String getAppBuild() {
-        return Metadata.current.getProperty('info.xh.appBuild')
+        return Metadata.current.getProperty('info.xh.appBuild', String)
     }
 
     /**
@@ -115,8 +115,11 @@ class Utils {
      * Return the app's primary dataSource configuration. This is the connection to the app's
      * database housing Hoist-related tables as well as any app-specific domain objects.
      */
-    static Map<String, String> getDataSource() {
-        return (Map<String, String>) Holders.grailsApplication.config.getProperty('dataSource', Map.class)
+    static Map getDataSource() {
+        Holders.grailsApplication
+            .config
+            .getProperty('dataSource', Map.class)
+            .collectEntries {it}
     }
 
     /**

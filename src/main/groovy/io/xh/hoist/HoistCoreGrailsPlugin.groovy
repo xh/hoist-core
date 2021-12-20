@@ -40,7 +40,7 @@ class HoistCoreGrailsPlugin extends Plugin {
                 order = Ordered.HIGHEST_PRECEDENCE + 40
             }
 
-            if (config.hoist.enableWebSockets) {
+            if (config.getProperty('hoist.enableWebSockets', Boolean)) {
                 hoistWebSocketConfigurer(HoistWebSocketConfigurer)
             }
 
