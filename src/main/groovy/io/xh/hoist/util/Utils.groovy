@@ -33,28 +33,28 @@ class Utils {
      * Internal short name of the application - lowercase, no spaces.
      */
     static String getAppCode() {
-        return Metadata.current.getProperty('info.xh.appCode', String)
+        return Metadata.current.getProperty('info.xh.appCode', String).orElse(null)
     }
 
     /**
      * User-facing display name of the application - proper case, can include spaces.
      */
     static String getAppName() {
-        return Metadata.current.getProperty('info.xh.appName', String)
+        return Metadata.current.getProperty('info.xh.appName', String).orElse(null)
     }
 
     /**
      * Current version, either SemVer x.y.z format or x.y-SNAPSHOT.
      */
     static String getAppVersion() {
-        return Metadata.current.getProperty('info.app.version', String)
+        return Metadata.current.getProperty('info.app.version', String).orElse(null)
     }
 
     /**
      * Optional git commit hash or other identifier set at build time.
      */
     static String getAppBuild() {
-        return Metadata.current.getProperty('info.xh.appBuild', String)
+        return Metadata.current.getProperty('info.xh.appBuild', String).orElse(null)
     }
 
     /**
