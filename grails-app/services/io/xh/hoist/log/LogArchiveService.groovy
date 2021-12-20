@@ -14,7 +14,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
-import static io.xh.hoist.log.LogUtils.logRootPath
+import static io.xh.hoist.configuration.LogbackConfig.logRootPath
 import static io.xh.hoist.util.DateTimeUtils.DAYS
 import static java.io.File.separator
 

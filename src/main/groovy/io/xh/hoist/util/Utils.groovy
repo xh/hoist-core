@@ -139,4 +139,14 @@ class Utils {
     static List<BaseService> getXhServices() {
         return appContext.getBeansOfType(BaseService, false, true).collect {it.value}
     }
+
+    /**
+     * Execute a closure with a given delegate.
+     *
+     * Useful for applying configuration to a script. See ApplicationConfig.applyDefault()
+     */
+    static void withDelegate(Object o, Closure c) {
+        c.delegate = o
+        c.call()
+    }
 }

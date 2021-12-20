@@ -3,6 +3,7 @@ package io.xh.hoist.log
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.configuration.LogbackConfig
 import io.xh.hoist.exception.RoutineRuntimeException
 import org.apache.commons.io.input.ReversedLinesFileReader
 import static java.lang.System.currentTimeMillis
@@ -34,7 +35,7 @@ class LogReaderService extends BaseService {
      * Fetch the raw contents of a log file for direct download.
      */
     File get(String filename) {
-        def ret = new File(LogUtils.logRootPath, filename)
+        def ret = new File(LogbackConfig.logRootPath, filename)
         if (!ret.exists()) throw new FileNotFoundException()
         return ret
     }
@@ -47,7 +48,7 @@ class LogReaderService extends BaseService {
 
         def tail = !startLine || startLine <= 0,
             ret = new ArrayList(maxLines),
-            file = new File(LogUtils.logRootPath, filename)
+            file = new File(LogbackConfig.logRootPath, filename)
 
         if (!file.exists()) throw new FileNotFoundException()
 

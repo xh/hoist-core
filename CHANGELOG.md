@@ -35,7 +35,9 @@ APIs around Exception Handling, JSON parsing and configuration.
 
 * WebSocket Support has been simplified.  To enable WebSockets, simply set the application config
 `hoist.enableWebSockets` in application.groovy.
-* 
+
+* Default application configuration provided by plugin.  See new classes `ApplicationConfig`, `LogbackConfig` and
+`RuntimeConfig`.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v11.0.3...grails5)
 
