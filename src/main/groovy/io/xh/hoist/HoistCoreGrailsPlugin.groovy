@@ -11,6 +11,7 @@ import grails.plugins.Plugin
 import io.xh.hoist.exception.ExceptionRenderer
 import io.xh.hoist.security.HoistSecurityFilter
 import io.xh.hoist.util.Utils
+import io.xh.hoist.websocket.HoistWebSocketConfigurer
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.core.Ordered
 
@@ -37,6 +38,10 @@ class HoistCoreGrailsPlugin extends Plugin {
             hoistIdentityFilter(FilterRegistrationBean) {
                 filter = bean(HoistSecurityFilter)
                 order = Ordered.HIGHEST_PRECEDENCE + 40
+            }
+
+            if (config.hoist.enableWebSockets) {
+                hoistWebSocketConfigurer(HoistWebSocketConfigurer)
             }
 
             exceptionRenderer(ExceptionRenderer)

@@ -33,6 +33,10 @@ APIs around Exception Handling, JSON parsing and configuration.
 * Applications will be required to add the `@Transactional` or `@ReadOnly` annotations to service and controller
   methods that update data with GORM.
 
+* WebSocket Support has been simplified.  To enable WebSockets, simply set the application config
+`hoist.enableWebSockets` in application.groovy.
+* 
+
 [Commit Log](https://github.com/xh/hoist-core/compare/v11.0.3...grails5)
 
 ## 11.0.3 - 2021-12-10
