@@ -8,8 +8,8 @@
 package io.xh.hoist.config
 
 import grails.gorm.transactions.Transactional
-import io.xh.hoist.BaseService
 import grails.web.databinding.DataBinder
+import io.xh.hoist.BaseService
 
 class ConfigDiffService extends BaseService implements DataBinder {
 

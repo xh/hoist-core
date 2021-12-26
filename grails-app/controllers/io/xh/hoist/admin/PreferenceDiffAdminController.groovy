@@ -7,6 +7,7 @@
 
 package io.xh.hoist.admin
 
+import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseController
 import io.xh.hoist.pref.Preference
 import io.xh.hoist.json.JSONParser
@@ -17,6 +18,7 @@ class PreferenceDiffAdminController extends BaseController {
 
     def prefDiffService
 
+    @ReadOnly
     def preferences() {
         def data = Preference.list()
         renderJSON(data: data)
