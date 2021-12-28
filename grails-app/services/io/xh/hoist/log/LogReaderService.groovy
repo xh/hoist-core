@@ -31,6 +31,7 @@ class LogReaderService extends BaseService {
         }
     }
 
+
     /**
      * Fetch the raw contents of a log file for direct download.
      */
@@ -73,7 +74,7 @@ class LogReaderService extends BaseService {
 
                 // Skip lines as needed
                 for (def i = 1; i < startLine; i++) {
-                    def throwAway = reader.readLine();
+                    def throwAway = reader.readLine()
                     if (throwAway == null) return []
                 }
 
