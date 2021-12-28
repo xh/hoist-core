@@ -99,10 +99,10 @@ class LogReaderService extends BaseService {
         BufferedReader reader
         try {
             reader = new BufferedReader(new FileReader(file))
-            long ret = 0;
+            long ret = 0
             while (reader.readLine() != null) {
                 throwOnTimeout(maxEndTime)
-                ret++;
+                ret++
             }
             return ret
         } finally {
