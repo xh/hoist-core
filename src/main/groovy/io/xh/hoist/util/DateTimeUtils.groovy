@@ -12,6 +12,8 @@ import groovy.transform.CompileStatic
 import java.time.LocalDate
 import java.time.LocalTime
 
+import static java.time.format.DateTimeFormatter.BASIC_ISO_DATE
+
 @CompileStatic
 class DateTimeUtils {
     static final Long ONE_SECOND = 1000
@@ -67,5 +69,14 @@ class DateTimeUtils {
 
     static Date serverEndOfDay(LocalDate localDate) {
         Date.from(localDate.atTime(LocalTime.MAX).atZone(serverTimeZone.toZoneId()).toInstant())
+    }
+
+    /**
+     * Parse a local date
+     * @param s - Valid date in 'YYYYMMDD' or 'YYYY-MM-DD' format.
+     */
+    static LocalDate parseLocalDate(String s) {
+        if (!s) return null
+        return LocalDate.parse(s.replace('-', ''), BASIC_ISO_DATE)
     }
 }
