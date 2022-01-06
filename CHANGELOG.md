@@ -3,8 +3,8 @@
 # 13.0-SNAPSHOT - unreleased
 This version includes a major upgrade of several underlying libraries, especially grails (5.0.3),
 spring-boot (2.5.4), groovy (3.0.7), and gradle (7.x). With this version, Hoist can now be run
-on Java versions 8 - 11.  We have also cleaned up and enhanced some core
-APIs around Exception Handling, JSON parsing and configuration.
+on Java versions 8 - 17.  We have also cleaned up and enhanced some core APIs around 
+Exception Handling, JSON parsing and configuration.
 
 ### 🎁 Breaking Changes
 * The trait `AsyncSupport` with its single method `asyncTask` has been removed.  Use the equivalent method `task`
@@ -13,12 +13,12 @@ APIs around Exception Handling, JSON parsing and configuration.
 * The method `subscribeWithSession` on `BaseService` has been removed.  Use `subscribe` instead.
 
 ### ⚙️ Technical
-* This release upgrades the major version of grails from 3.3.9 to 5.0.3.  This major release
+* This release upgrades the major version of grails from 3.3.9 to 5.1.1.  This major release
   includes the following upgrades of related libraries:
-  * spring boot `1.x -> 2.5.4`
-  * groovy `2.4.15 -> 3.0.7`
+  * spring boot `1.x -> 2.6.1`
+  * groovy `2.4.15 -> 3.0.9`
   * gradle `4.10.3 -> 7.x`
-  * gorm `6.1.11 -> 7.1.0`
+  * gorm `6.1.11 -> 7.1.2`
   * hibernate `5.1.10 -> 5.6.3`
   * org.grails.plugins:mail `2.0.0 -> 3.0.0`
   * apache poi  `3.1.7` -> `4.1.2`

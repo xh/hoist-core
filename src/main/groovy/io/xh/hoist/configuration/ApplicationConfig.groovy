@@ -16,6 +16,11 @@ class ApplicationConfig {
                 enableWebSockets = false
             }
 
+            spring {
+                main.'allow-bean-definition-overriding' = true
+                main.'allow-circular-references' = true
+            }
+
             grails {
                 profile = 'rest-api'
                 cors {
@@ -70,7 +75,7 @@ class ApplicationConfig {
                 exceptionresolver.params.exclude = ['password', 'pin']
 
                 gorm {
-                    reactor.events =  false
+                    reactor.events = false
                     failOnError = true
                 }
             }
