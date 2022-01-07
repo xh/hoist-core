@@ -82,6 +82,11 @@ bootRun {
     sourceResources sourceSets.main
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
 tasks.withType(GroovyCompile) {
     configure(groovyOptions) {
         forkOptions.jvmArgs = allJvmArgs
