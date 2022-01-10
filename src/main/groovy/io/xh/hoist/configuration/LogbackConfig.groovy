@@ -28,7 +28,7 @@ import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
  * This class supports the default logging configuration in Hoist.
  *
  * Applications should customize/specify their logging conventions via
- * the file grails-app/conf/logback.groovy.  See sample-logback.groovy
+ * the file grails-app/conf/logback.groovy.  See example-logback.txt
  * (in this directory) as well as the logback and grails documentation for
  * more information on how to construct this file.
  */
@@ -94,6 +94,7 @@ class LogbackConfig {
             // Appenders
             //----------------------------------
             appender('stdout', ConsoleAppender) {
+                //noinspection UnnecessaryQualifiedReference
                 encoder = LogbackConfig.createEncoder(stdoutLayout, context)
             }
             dailyLog(name: appLogName, script: script)

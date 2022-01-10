@@ -42,13 +42,13 @@ abstract class BaseService implements IdentitySupport, LogSupport, DisposableBea
     /**
      * Initialize a collection of BaseServices in parallel.
      *
-     * This is a blocking method.  Applications should make one more
-     * calls to it to batch initialize their services in an appropriate order.
+     * This is a blocking method.  Applications should make one or more calls to it to batch
+     * initialize their services in an appropriate order.
      *
      * @param services - BaseServices to initialize
-     * @param timeout - maximum time to wait for each service to init.
+     * @param timeout - maximum time to wait for each service to init (in ms).
      */
-    static void parallelInit(List services, int timeout = 30 * SECONDS) {
+    static void parallelInit(Collection<BaseService> services, int timeout = 30 * SECONDS) {
         def allTasks = services.collect {svc ->
             task { svc.initialize(timeout) }
         }
@@ -58,14 +58,12 @@ abstract class BaseService implements IdentitySupport, LogSupport, DisposableBea
     /**
      * Initialize this service.
      *
-     * Applications should be sure to call this method in their bootstrap,
-     * either directly or indirect via BaseService.parallelInit.
+     * Applications should be sure to call this method in their bootstrap, either directly or
+     * via `BaseService.parallelInit()`.
      *
-     * NOTE -- this method is designed to catch (and log) all exceptions,
-     * in order to avoid preventing server startup.
+     * NOTE - this method catches (and logs) all exceptions to prevent a single from blocking server startup.
      *
-     * @param timeout
-     * @param timeout - maximum time to wait for each service to init.
+     * @param timeout - maximum time to wait for each service to init (in ms).
      */
     final void initialize(int timeout) {
         try {

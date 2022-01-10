@@ -28,7 +28,7 @@ class HoistCoreGrailsPlugin extends Plugin {
 
     // URL to the plugin's documentation
     def documentation = 'https://github.com/xh/hoist-core/blob/master/README.md'
-    def organization = [name: 'Extremely Heavy', url: 'http://xh.io']
+    def organization = [name: 'Extremely Heavy', url: 'https://xh.io']
     def scm = [url: 'https://github.com/xh/hoist-core']
     def observe = ["services"]
 
@@ -66,5 +66,5 @@ class HoistCoreGrailsPlugin extends Plugin {
     void onConfigChange(Map<String, Object> event) {}
 
     void onShutdown(Map<String, Object> event) {}
-    
+
 }

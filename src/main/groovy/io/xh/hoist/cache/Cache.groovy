@@ -57,10 +57,10 @@ class Cache<K,V> {
         _map.put(key, new Entry(obj))
     }
 
-    V getOrCreate(K key, Closure c) {
+    V getOrCreate(K key, Closure<V> c) {
         V ret = get(key)
         if (!ret) {
-            ret = (V) c(key)
+            ret = c(key)
             put(key, ret)
         }
         return ret
@@ -79,7 +79,7 @@ class Cache<K,V> {
         _map.clear()
     }
 
-    
+
     //------------------------
     // Implementation
     //------------------------
@@ -114,5 +114,5 @@ class Cache<K,V> {
             cullKeys.each {_map.remove(it)}
         }
     }
-    
+
 }

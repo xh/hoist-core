@@ -13,7 +13,7 @@ class RuntimeConfig {
     static void defaultConfig(Script script) {
         withDelegate(script) {
             grails.serverURL = getInstanceConfig('serverURL')
-
         }
     }
+
 }
