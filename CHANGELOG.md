@@ -1,5 +1,11 @@
 # Changelog
 
+## 12.0.0-SNAPSHOT - unreleased
+
+### 🐞 Bug Fixes
+* Parse dates posted to activity and error logging with ISO_LOCAL_DATE, not BASIC_ISO_DATE
+
+
 ## 11.0.3 - 2021-12-10
 
 ### 🐞 Bug Fixes
