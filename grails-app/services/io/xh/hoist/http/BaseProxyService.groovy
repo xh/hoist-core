@@ -20,6 +20,7 @@ import org.apache.hc.client5.http.classic.methods.HttpPost
 import org.apache.hc.client5.http.classic.methods.HttpPut
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
+import org.apache.hc.core5.http.NameValuePair
 import org.apache.hc.core5.http.io.entity.StringEntity
 import org.apache.hc.core5.http.message.BasicNameValuePair
 import groovy.util.logging.Slf4j
@@ -109,7 +110,7 @@ abstract class BaseProxyService extends BaseService {
 
     protected installParamsOnEntity(HttpServletRequest request, HttpUriRequestBase method) {
         if (request.getHeader('Content-Type').toLowerCase().contains('x-www-form-urlencoded')) {
-            def formParams = request.parameterMap.collectMany {key, value ->
+            List<NameValuePair> formParams = request.parameterMap.collectMany { key, value ->
                 value.collect {new BasicNameValuePair(key, (String) it)}
             }
             method.setEntity(new UrlEncodedFormEntity(formParams))
