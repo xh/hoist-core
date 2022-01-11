@@ -1,10 +1,10 @@
 # Changelog
 
-# 13.0-SNAPSHOT - unreleased
-This version includes a major upgrade of several underlying libraries, especially grails (5.0.3),
-spring-boot (2.5.4), groovy (3.0.7), and gradle (7.x). With this version, Hoist can now be run
-on Java versions 8 - 17.  We have also cleaned up and enhanced some core APIs around 
-Exception Handling, JSON parsing and configuration.
+# 13.0.5 - 2022-01-11
+This version includes a major upgrade of several underlying libraries, especially grails (5.1),
+spring (5.3), spring-boot (2.6), groovy (3.0), and gradle (7.3). With this version, Hoist can now be run
+on Java versions 11 - 17.  We have also cleaned up and enhanced some core APIs around Exception Handling, JSON 
+parsing and configuration.
 
 ### 🎁 Breaking Changes
 * The trait `AsyncSupport` with its single method `asyncTask` has been removed.  Use the equivalent method `task`
@@ -13,40 +13,47 @@ Exception Handling, JSON parsing and configuration.
 * The method `subscribeWithSession` on `BaseService` has been removed.  Use `subscribe` instead.
 
 ### ⚙️ Technical
-* This release upgrades the major version of grails from 3.3.9 to 5.1.1.  This major release
+* This release upgrades the major version of grails from 3.3.9 to 5.1.  This major release
   includes the following upgrades of related libraries:
-  * spring boot `1.x -> 2.6.1`
-  * groovy `2.4.15 -> 3.0.9`
-  * gradle `4.10.3 -> 7.x`
-  * gorm `6.1.11 -> 7.1.2`
-  * hibernate `5.1.10 -> 5.6.3`
-  * org.grails.plugins:mail `2.0.0 -> 3.0.0`
-  * apache poi  `3.1.7` -> `4.1.2`
+  * spring boot `1.x -> 2.6`
+  * groovy `2.4.15 -> 3.0`
+  * gradle `4.10.3 -> 7.3`
+  * gorm `6.1.11 -> 7.1`
+  * hibernate `5.1.10 -> 5.6`
+  * org.grails.plugins:mail `2.0.0 -> 3.0`
+  * apache poi  `3.1.7` -> `4.1`
+  
+* Default application configuration is now provided by plugin.  See new classes `ApplicationConfig`, `LogbackConfig`
+  and `RuntimeConfig`. Please see the grails docs as well as the associated toolbox branch for more information on required changes to
+  config and dependency files.
 
-* HttpClient has been upgraded from `4.5.6` -> `5.1.2`.  Package names have changed, and applications using
+* Options for hot reloading have changed, as `spring-loaded` is now longer supported for java versions > jdk 8.  As
+such, options for hot reloading of individual classes are more limited, and may require additional tools such as JRebel. 
+See the grails upgrade guide for more info.
+  
+* Applications will be required to add the `@Transactional` or `@ReadOnly` annotations to service and controller
+  methods that update data or read data from Hibernate/GORM.
+
+* HttpClient has been upgraded from `4.5.6` -> `5.1`.  Package names have changed, and applications using
   this API (e.g. with `JSONClient`) will need to update their imports statements to reflect the new locations @
   `org.apache.hc.client5.http`  and `org.apache.hc.core5.http`.  See toolbox for examples.
 
-* Please see the grails docs as well as the associated toolbox branch for more information
-  on required changes to config and dependency files.
-
-* Applications will be required to add the `@Transactional` or `@ReadOnly` annotations to service and controller
-  methods that update data with GORM.
-
 * WebSocket Support has been simplified.  To enable WebSockets, simply set the application config
-`hoist.enableWebSockets` in application.groovy.
+`hoist.enableWebSockets` to `true` in application.groovy.  This can replace the custom Annotation/Enhancement of the 
+Application class used in earlier versions of Hoist.
 
-* Default application configuration provided by plugin.  See new classes `ApplicationConfig`, `LogbackConfig` and
-`RuntimeConfig`.
+* Hoist Json Validation is now done fully with the same jackson configuration used by the `JSONParser`.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v11.0.3...grails5)
+* The optional `withHibernate` argument to `Timer` is obsolete and no longer needed.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v11.0.3...13.0.5)
 
 ## 11.0.3 - 2021-12-10
 
 ### 🐞 Bug Fixes
 * Fix to Regression in v11 preventing proper display of stacktraces in log
 
-* [Commit Log](https://github.com/xh/hoist-core/compare/v11.0.2...v11.0.3)
+* [Commit Log](https://github.com/xh/hoist-core/compare/v11.0.2...v13.0.5)
 
 
 ## 11.0.2 - 2021-12-06

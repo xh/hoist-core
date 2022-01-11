@@ -52,17 +52,6 @@ class HoistCoreGrailsPlugin extends Plugin {
 
     void doWithApplicationContext() {}
 
-    void onChange(Map<String, Object> event) {
-        def cls = event.source
-        if (cls instanceof Class) {
-            def svcs = Utils.appContext
-                    .getBeansOfType(BaseService)
-                    .values()
-                    .findAll {!it.initialized}
-            BaseService.parallelInit(svcs)
-        }
-    }
-
     void onConfigChange(Map<String, Object> event) {}
 
     void onShutdown(Map<String, Object> event) {}

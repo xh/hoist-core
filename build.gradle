@@ -18,6 +18,7 @@ apply plugin:'java-library'
 
 repositories {
     mavenLocal()
+    mavenCentral()
     maven {url 'https://repo.grails.org/grails/core'}
 }
 
@@ -76,11 +77,6 @@ dependencies {
     api "org.owasp.encoder:encoder:1.2.3"
 }
 
-def allJvmArgs = ['-Dspring.output.ansi.enabled=always']
-bootRun {
-    jvmArgs(allJvmArgs)
-    sourceResources sourceSets.main
-}
 
 java {
     sourceCompatibility = JavaVersion.VERSION_11
@@ -89,7 +85,7 @@ java {
 
 tasks.withType(GroovyCompile) {
     configure(groovyOptions) {
-        forkOptions.jvmArgs = allJvmArgs
+        forkOptions.jvmArgs = ['-Dspring.output.ansi.enabled=always']
     }
 }
 bootJar.enabled = false
@@ -147,7 +143,6 @@ publishing {
 
             from components.java
             artifact sourcesJar
-            //artifact javadocJar
 
             def groovyOutputDir = sourceSets.main.output.classesDirs.files.find{it.path.contains('/groovy/')}
             artifact source: "${groovyOutputDir}/META-INF/grails-plugin.xml",

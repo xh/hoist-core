@@ -17,7 +17,6 @@ import io.xh.hoist.config.ConfigService
 import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.exception.ExceptionRenderer
 import io.xh.hoist.pref.PrefService
-import io.xh.hoist.track.TrackLog
 import io.xh.hoist.user.BaseRoleService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.user.IdentityService
@@ -51,7 +50,7 @@ class Utils {
     }
 
     /**
-     * Optional git commit hash or other identifier set at build time.
+     * git commit hash or other identifier set at build time.
      */
     static String getAppBuild() {
         return Metadata.current.getProperty('info.xh.appBuild', String).orElse(null)
@@ -120,13 +119,6 @@ class Utils {
             .config
             .getProperty('dataSource', Map.class)
             .collectEntries {it}
-    }
-
-    /**
-     * Run a closure with a new hibernate transaction.
-     */
-    static withTransaction(Closure c) {
-        TrackLog.withTransaction(c) // Yes, a bizarre dependency on an arbitrary domain object
     }
 
     /**

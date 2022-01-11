@@ -19,6 +19,12 @@ class ApplicationConfig {
             spring {
                 main.'allow-bean-definition-overriding' = true
                 main.'allow-circular-references' = true
+                groovy.template.'check-template-location' = false
+                devtools.restart.exclude = ['grails-app/conf/**']
+            }
+
+            management {
+                endpoints.'enabled-by-default' = false
             }
 
             grails {
@@ -27,15 +33,6 @@ class ApplicationConfig {
                     enabled = true
                     allowCredentials = true
                     allowedOriginPatterns = ['*']
-                }
-
-                spring {
-                    groovy.template.'check-template-location' = false
-                    devtools.restart.exclude = ['grails-app/conf/**']
-                }
-
-                management {
-                    endpoints.'enabled-by-default' = false
                 }
 
                 mime {
