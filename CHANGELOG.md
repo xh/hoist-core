@@ -3,49 +3,50 @@
 # 14.0-SNAPSHOT - unreleased
 
 # 13.0.5 - 2022-01-11
+
 This version includes a major upgrade of several underlying libraries, especially grails (5.1),
-spring (5.3), spring-boot (2.6), groovy (3.0), and gradle (7.3). With this version, Hoist can now be run
-on Java versions 11 - 17.  We have also cleaned up and enhanced some core APIs around Exception Handling, JSON 
-parsing and configuration.
+spring (5.3), spring-boot (2.6), groovy (3.0), and gradle (7.3). With this version, Hoist can now be
+run on Java versions 11 - 17. We have also cleaned up and enhanced some core APIs around Exception
+Handling, JSON parsing and configuration.
+
+Please see
+the [Grails5 Toolbox update commit](https://github.com/xh/toolbox/commit/2e75cb44f5c600384334406724bb63e3abc98dcc)
+for the application-level changes to core configuration files and dependencies.
 
 ### 🎁 Breaking Changes
-* The trait `AsyncSupport` with its single method `asyncTask` has been removed.  Use the equivalent method `task`
-  from `grails.async.Promises` instead.
 
-* The method `subscribeWithSession` on `BaseService` has been removed.  Use `subscribe` instead.
+* The trait `AsyncSupport` with its single method `asyncTask` has been removed. Use the equivalent
+  method `task` from `grails.async.Promises` instead.
+* The method `subscribeWithSession` on `BaseService` has been removed. Use `subscribe` instead.
+* Application Tomcat Dockerfiles must be updated to use a new `xh-tomcat` base image on JDK 11/17.
 
 ### ⚙️ Technical
-* This release upgrades the major version of grails from 3.3.9 to 5.1.  This major release
-  includes the following upgrades of related libraries:
-  * spring boot `1.x -> 2.6`
-  * groovy `2.4.15 -> 3.0`
-  * gradle `4.10.3 -> 7.3`
-  * gorm `6.1.11 -> 7.1`
-  * hibernate `5.1.10 -> 5.6`
-  * org.grails.plugins:mail `2.0.0 -> 3.0`
-  * apache poi  `3.1.7` -> `4.1`
-  
-* Default application configuration is now provided by plugin.  See new classes `ApplicationConfig`, `LogbackConfig`
-  and `RuntimeConfig`. Please see the grails docs as well as the associated toolbox branch for more information on required changes to
-  config and dependency files.
 
-* Options for hot reloading have changed, as `spring-loaded` is now longer supported for java versions > jdk 8.  As
-such, options for hot reloading of individual classes are more limited, and may require additional tools such as JRebel. 
-See the grails upgrade guide for more info.
-  
-* Applications will be required to add the `@Transactional` or `@ReadOnly` annotations to service and controller
-  methods that update data or read data from Hibernate/GORM.
-
-* HttpClient has been upgraded from `4.5.6` -> `5.1`.  Package names have changed, and applications using
-  this API (e.g. with `JSONClient`) will need to update their imports statements to reflect the new locations @
-  `org.apache.hc.client5.http`  and `org.apache.hc.core5.http`.  See toolbox for examples.
-
-* WebSocket Support has been simplified.  To enable WebSockets, simply set the application config
-`hoist.enableWebSockets` to `true` in application.groovy.  This can replace the custom Annotation/Enhancement of the 
-Application class used in earlier versions of Hoist.
-
-* Hoist Json Validation is now done fully with the same jackson configuration used by the `JSONParser`.
-
+* This release upgrades the major version of grails from 3.3.9 to 5.1. This major release includes
+  the following upgrades of related libraries:
+    * spring boot `1.x -> 2.6`
+    * groovy `2.4 -> 3.0`
+    * gradle `4.10 -> 7.3`
+    * gorm `6.1 -> 7.1`
+    * hibernate `5.1 -> 5.6`
+    * org.grails.plugins:mail `2.0 -> 3.0`
+    * apache poi  `3.1` -> `4.1`
+* Default application configuration is now better bundled within hoist-core. See new
+  classes `ApplicationConfig`, `LogbackConfig`, and `RuntimeConfig`. Please consult the grails docs
+  as well as the Toolbox update linked above for more information on required changes to config and
+  dependency files.
+* Options for hot reloading have changed, as `spring-loaded` is now longer supported for java
+  versions > jdk 8. As such, options for hot reloading of individual classes are more limited, and
+  may require additional tools such as JRebel. See the grails upgrade guide for more info.
+* Applications will be required to add the `@Transactional` or `@ReadOnly` annotations to service
+  and controller methods that update data or read data from Hibernate/GORM.
+* HttpClient has been upgraded from `4.5 -> 5.1`. Package names have changed, and applications using
+  this API (e.g. with `JSONClient`) will need to update their imports statements to reflect the new
+  locations @ `org.apache.hc.client5.http` and `org.apache.hc.core5.http`. See Toolbox for examples.
+* WebSocket Support has been simplified. To enable WebSockets, simply set the application config
+  `hoist.enableWebSockets = true` in `application.groovy`. This can replace the custom annotation /
+  enhancement of the Application class used in earlier versions of Hoist.
+* Hoist JSON Validation now uses the same Jackson configuration used by `JSONParser`.
 * The optional `withHibernate` argument to `Timer` is obsolete and no longer needed.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v11.0.3...13.0.5)
@@ -53,14 +54,15 @@ Application class used in earlier versions of Hoist.
 ## 11.0.3 - 2021-12-10
 
 ### 🐞 Bug Fixes
+
 * Fix to Regression in v11 preventing proper display of stacktraces in log
 
 * [Commit Log](https://github.com/xh/hoist-core/compare/v11.0.2...v13.0.5)
 
-
 ## 11.0.2 - 2021-12-06
 
 ### ⚙️ Technical
+
 * Minor tweak to allow nested lists and arrays in `LogSupport` statements. Improved documentation
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v11.0.1...v11.0.2)
@@ -77,12 +79,12 @@ Application class used in earlier versions of Hoist.
 ### 💥 Breaking Changes
 
 * The methods `LogSupport.logErrorCompact` and `LogSupport.logDebugCompact` have been removed. Use
-  `logError` and `logDebug` instead, passing your `Throwable` as the last argument to these methods. 
+  `logError` and `logDebug` instead, passing your `Throwable` as the last argument to these methods.
 
 ### 🐞 Bug Fixes
 
-* The `lastUpdatedBy` column found in various Admin grid now tracks the authenticated user's username,
-  indicating if an update was made while impersonating a user.
+* The `lastUpdatedBy` column found in various Admin grid now tracks the authenticated user's
+  username, indicating if an update was made while impersonating a user.
 * Fix to bug causing 'Edge' browser to be incorrectly identified.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v10.1.0...v11.0.1)
@@ -92,7 +94,7 @@ Application class used in earlier versions of Hoist.
 ### 🎁 New Features
 
 * New Admin endpoint to output environment variables and JVM system properties.
-  * Take (optional) update to `hoist-react >= 44.1.0` for corresponding Hoist Admin Console UI.
+    * Take (optional) update to `hoist-react >= 44.1.0` for corresponding Hoist Admin Console UI.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v10.0.0...v10.1.0)
 
@@ -165,13 +167,13 @@ Application class used in earlier versions of Hoist.
 * Excel cell styles with grouped colors are now cached for re-use, avoiding previously common file
   error that limits Excel tables to 64,000 total styles.
 * Client error reports now include the full URL for additional troubleshooting context.
-  * ⚠ NOTE - this requires a new, nullable varchar(500) column be added to the xh_client_error table
-    in your app's configuration database. Review and run the following SQL, or an equivalent
-    suitable for the particular database you are using:
+    * ⚠ NOTE - this requires a new, nullable varchar(500) column be added to the xh_client_error
+      table in your app's configuration database. Review and run the following SQL, or an equivalent
+      suitable for the particular database you are using:
 
-    ```sql
-    ALTER TABLE `xh_client_error` ADD COLUMN `url` VARCHAR(500) NULL;
-    ```
+      ```sql
+      ALTER TABLE `xh_client_error` ADD COLUMN `url` VARCHAR(500) NULL;
+      ```
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v9.2.3...v9.3.0)
 
@@ -246,14 +248,15 @@ Application class used in earlier versions of Hoist.
 ### 💥 Breaking Changes
 
 * `LogSupport` API enhancements:
-  * `logErrorCompact()` and `logDebugCompact()` now only show stacktraces on `TRACE`
-  * `withInfo()` and `withDebug()` now log only once _after_ execution has completed. Raising the
-    log level of the relevant class or package to `TRACE` will cause these utils to also log a line
-    _before_ execution, as they did before. (As always, log levels can be adjusted dynamically at
-    runtime via the Admin Console.)
-  * The upgrade to these two utils mean that they **completely replace** `withShortInfo()` and
-    `withShortDebug()`, which have both been **removed** as part of this change.
-  * Additional stacktraces have been removed from default logging.
+    * `logErrorCompact()` and `logDebugCompact()` now only show stacktraces on `TRACE`
+    * `withInfo()` and `withDebug()` now log only once _after_ execution has completed. Raising the
+      log level of the relevant class or package to `TRACE` will cause these utils to also log a
+      line
+      _before_ execution, as they did before. (As always, log levels can be adjusted dynamically at
+      runtime via the Admin Console.)
+    * The upgrade to these two utils mean that they **completely replace** `withShortInfo()` and
+      `withShortDebug()`, which have both been **removed** as part of this change.
+    * Additional stacktraces have been removed from default logging.
 
 ### ⚙️ Technical
 
@@ -310,11 +313,10 @@ Application class used in earlier versions of Hoist.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.6.1...v8.7.0)
 
-
 ## 8.6.1 - 2020-10-28
 
 * `JsonBlobService` - complete support for metadata with additional `meta` property. Requires an
-  additional column on blob table, e.g: 
+  additional column on blob table, e.g:
 
   ```sql
   alter table xh_json_blob add meta varchar(max) go
@@ -323,39 +325,36 @@ Application class used in earlier versions of Hoist.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.6.0...v8.6.1)
 
-
 ## 8.6.0 - 2020-10-25
 
 * `JsonBlobService`: Enhancements to archiving, new columns and new unique key constraint.
-  - Apps will need to modify the `xh_json_blob` table with new `archived_date` column
-    and related unique constraint. SAMPLE migration SQL below:
+    - Apps will need to modify the `xh_json_blob` table with new `archived_date` column and related
+      unique constraint. SAMPLE migration SQL below:
 
-    ```sql
-    alter table xh_json_blob add archived_date bigint not null go
-    alter table xh_json_blob drop column archived go
-    alter table xh_json_blob add constraint idx_xh_json_blob_unique_key unique (archived_date, type, owner, name)
-    ```
+      ```sql
+      alter table xh_json_blob add archived_date bigint not null go
+      alter table xh_json_blob drop column archived go
+      alter table xh_json_blob add constraint idx_xh_json_blob_unique_key unique (archived_date, type, owner, name)
+      ```
 
-  - Apps should update to `hoist-react >= 36.6.0`.
+    - Apps should update to `hoist-react >= 36.6.0`.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.5.0...v8.6.0)
 
-
 ## 8.5.0 - 2020-10-07
 
-* `JsonBlobService`: Use more scalable token-based access; support archiving. Requires
-  additional columns on blob table, e.g:
+* `JsonBlobService`: Use more scalable token-based access; support archiving. Requires additional
+  columns on blob table, e.g:
 
   ```sql
   alter table xh_json_blob add token varchar(255) not null go
   alter table xh_json_blob add archived boolean default false go
   ```
-  
-  Note that the `archived` column is dropped in subsequent versions, and thus need not be
-  added unless you are using 8.5.0 specifically.
+
+  Note that the `archived` column is dropped in subsequent versions, and thus need not be added
+  unless you are using 8.5.0 specifically.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.4.0...v8.5.0)
-
 
 ## 8.4.0 - 2020-09-25
 
@@ -363,7 +362,6 @@ Application class used in earlier versions of Hoist.
 * Server Support for Bulk editing of Configs and Preferences.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.3.0...v8.4.0)
-
 
 ## 8.3.0 - 2020-09-21
 
@@ -378,13 +376,12 @@ required to support the updates to Admin Activity and Client Error tracking desc
 ### 🐞 Bug Fixes
 
 * Improved time zone handling in the Admin Console "Activity Tracking" and "Client Errors" tabs.
-  * Users will now see consistent bucketing of activity into an "App Day" that corresponds to the
-    LocalDate when the event occurred in the application's timezone.
-  * This day will be reported consistently regardless of the time zones of the local browser or
-    deployment server.
+    * Users will now see consistent bucketing of activity into an "App Day" that corresponds to the
+      LocalDate when the event occurred in the application's timezone.
+    * This day will be reported consistently regardless of the time zones of the local browser or
+      deployment server.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.2.0...v8.3.0)
-
 
 ## 8.2.0 - 2020-09-04
 
@@ -403,7 +400,6 @@ required to support the updates to Admin Activity and Client Error tracking desc
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.1.0...v8.2.0)
 
-
 ## 8.1.0 - 2020-07-16
 
 ### 🎁 New Features
@@ -412,7 +408,6 @@ required to support the updates to Admin Activity and Client Error tracking desc
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.0.1...v8.1.0)
 
-
 ## 8.0.1 - 2020-06-29
 
 ### 🐞 Bug Fixes
@@ -420,7 +415,6 @@ required to support the updates to Admin Activity and Client Error tracking desc
 * Fix minor regression to reporting of hoist-core version.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.0.0...v8.0.1)
-
 
 ## 8.0.0 - 2020-06-29
 
@@ -471,13 +465,13 @@ wide variety of enterprise software projects. For any questions regarding this c
   Jackson library. (https://github.com/FasterXML/jackson). Benchmarking shows a speedup in parsing
   times of 10x to 20x over the `grails.converter.JSON` library currently used by Hoist. In
   particular, this change includes:
-  * A new `JSONParser` API in the `io.xh.hoist.json` package that provides JSON parsing of text and
-    input streams. This API is designed to be symmetrical with the existing `JSONFormatter.`
-  * All core hoist classes now rely on the API above. Of special note are `JSONClient`, and
-    `RestController`.
-  * Cleanups to the APIs for `JSONClient`, `ConfigService`, and `PrefService`. These methods now
-    return java object representations using the standard java `Map` and `List` interfaces rather
-    than the confusing `JSONObject`, `JSONArray` and `JSONElement` objects.
+    * A new `JSONParser` API in the `io.xh.hoist.json` package that provides JSON parsing of text
+      and input streams. This API is designed to be symmetrical with the existing `JSONFormatter.`
+    * All core hoist classes now rely on the API above. Of special note are `JSONClient`, and
+      `RestController`.
+    * Cleanups to the APIs for `JSONClient`, `ConfigService`, and `PrefService`. These methods now
+      return java object representations using the standard java `Map` and `List` interfaces rather
+      than the confusing `JSONObject`, `JSONArray` and `JSONElement` objects.
 
 ### 🎁 Breaking Changes
 
@@ -614,15 +608,16 @@ wide variety of enterprise software projects. For any questions regarding this c
 * **WebSocket support** has been added in the form of `WebSocketService`. The new service maintains
   and provides send/receive functionality to connected Hoist client apps, each associated with a
   unique channel identifier.
-  * ⚠ **Note** this change requires that applications specify a new dependency in their
-    `build.gradle` file on `compile "org.springframework:spring-websocket"`. If missing, apps will
-    throw an exception on startup related to a failure instantiating `WebSocketService`. Apps should
-    *not* need to make any changes to their own code / services aside from this new dep.
-  * This service and its related endpoints integrate with client-side websocket support and admin
-    tools added to Hoist React v26.
-  * As per the included class-level documentation, applications must update their Application.groovy
-    file to expose an endpoint for connections and wire up a `HoistWebSocketHandler` to relay
-    connection events to the new service.
+    * ⚠ **Note** this change requires that applications specify a new dependency in their
+      `build.gradle` file on `compile "org.springframework:spring-websocket"`. If missing, apps will
+      throw an exception on startup related to a failure instantiating `WebSocketService`. Apps
+      should
+      *not* need to make any changes to their own code / services aside from this new dep.
+    * This service and its related endpoints integrate with client-side websocket support and admin
+      tools added to Hoist React v26.
+    * As per the included class-level documentation, applications must update their
+      Application.groovy file to expose an endpoint for connections and wire up
+      a `HoistWebSocketHandler` to relay connection events to the new service.
 
 ### 🐞 Bug Fixes
 
@@ -827,6 +822,7 @@ override").
 **This release includes several core API changes to how users and their roles (permissions) are
 loaded.** (Note that the breaking changes below will typically be handled by updates to a custom
 enterprise plugin and not require individual app changes.)
+
 * Applications (or enterprise plugins) must implement a new `RoleService` extending from
   `BaseRoleService` to provide a map of users to their app-specific roles. Roles continue to be
   modelled as simple strings for use both on server and client.
@@ -862,7 +858,7 @@ enterprise plugin and not require individual app changes.)
 
 ## v4.2.0
 
-### 🎁  New Features
+### 🎁 New Features
 
 * Added support for PUT, PATCH, DELETE to BaseProxyService.
 
@@ -893,7 +889,7 @@ enterprise plugin and not require individual app changes.)
 
 * The `xhEmailDefaultDomain` config no longer needs a leading (and confusing) `@` - EmailService
   will prepend this automatically.
-  * ⚠️ Note app-level configs with a leading `@` in place will need to be adjusted. (#43)
+    * ⚠️ Note app-level configs with a leading `@` in place will need to be adjusted. (#43)
 
 [Commit Log](https://github.com/xh/hoist-core/compare/release-3.1.1...release-3.1.2)
 
@@ -916,18 +912,23 @@ enterprise plugin and not require individual app changes.)
 
 ```sql
 --MySQL
-ALTER TABLE xh_preference ADD group_name VARCHAR(255);
-UPDATE xh_preference SET group_name = 'Default' WHERE group_name IS NULL;
-ALTER TABLE xh_preference MODIFY group_name VARCHAR(255) NOT NULL;
+ALTER TABLE xh_preference
+    ADD group_name VARCHAR(255);
+UPDATE xh_preference
+SET group_name = 'Default'
+WHERE group_name IS NULL;
+ALTER TABLE xh_preference MODIFY group_name VARCHAR (255) NOT NULL;
 ```
 
 ```sql
 --SQL Server
-ALTER TABLE xh_preference ADD group_name VARCHAR(255);
-UPDATE xh_preference SET group_name = 'Default' WHERE group_name IS NULL;
+ALTER TABLE xh_preference
+    ADD group_name VARCHAR(255);
+UPDATE xh_preference
+SET group_name = 'Default'
+WHERE group_name IS NULL;
 ALTER TABLE xh_preference ALTER COLUMN group_name varchar(255) NOT NULL
 ```
-
 
 * ClientError tracking gets a `userAlerted` flag to record whether or not the user was shown a
   pop-up dialog (vs. an error being reported quietly in the background).<br><br> ⚠️ **Note** schema
@@ -935,9 +936,11 @@ ALTER TABLE xh_preference ALTER COLUMN group_name varchar(255) NOT NULL
 
 ```sql
 -- SQL Server
-ALTER TABLE xh_client_error ADD user_alerted bit NOT NULL DEFAULT 0
+ALTER TABLE xh_client_error
+    ADD user_alerted bit NOT NULL DEFAULT 0
 -- MySQL
-ALTER TABLE xh_client_error ADD user_alerted bit(1) NOT NULL DEFAULT 0
+ALTER TABLE xh_client_error
+    ADD user_alerted bit(1) NOT NULL DEFAULT 0
 ```
 
 ### 🐞 Bug Fixes
@@ -1032,7 +1035,6 @@ UPDATE `xh_config` SET `value` = `prod_value`
 UPDATE xh_config SET value = prod_value
 ```
 
-
 #### Step 3
 
 Update app code in environment to use hoist-core v3.0.0 and hoist-react v5.X.X or hoist-sencha
@@ -1046,7 +1048,6 @@ supportedEnvironments = ['Staging', 'Development']
 
 from grails-app/conf/application.groovy in your app. (Note that this line might appear twice - once
 near the top if an app has customized and once in the "hoistDefaults" section.)
-
 
 #### Step 4
 
@@ -1072,7 +1073,6 @@ ALTER TABLE xh_config
   DROP COLUMN prod_value, dev_value, stage_value, beta_value
 
 ```
-
 
 ### 🎁 New Features
 
@@ -1114,9 +1114,10 @@ ALTER TABLE xh_config
 ### 🎁 New Features
 
 This release adds support for
-[InstanceConfigUtils](https://github.com/xh/hoist-core/blob/1fa43564fb77e11a04dd075d969b300f38252579/src/main/groovy/io/xh/hoist/util/InstanceConfigUtils.groovy),
-a utility for loading configuration properties from an external YAML file once on startup and
+[InstanceConfigUtils](https://github.com/xh/hoist-core/blob/1fa43564fb77e11a04dd075d969b300f38252579/src/main/groovy/io/xh/hoist/util/InstanceConfigUtils.groovy)
+, a utility for loading configuration properties from an external YAML file once on startup and
 exposing them to the application as a map.
+
 * These are intended to be minimal, low-level configs that apply to a particular deployed instance
   of the application and therefore are better sourced from a local file/volume vs. source code,
   JavaOpts, or database-driven ConfigService entries.
