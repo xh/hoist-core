@@ -16,7 +16,7 @@ import java.time.LocalDate
 import static io.xh.hoist.util.DateTimeUtils.appStartOfDay
 import static io.xh.hoist.util.DateTimeUtils.appEndOfDay
 import static java.lang.Integer.parseInt
-import static java.time.format.DateTimeFormatter.BASIC_ISO_DATE
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE
 
 @Access(['HOIST_ADMIN'])
 class ClientErrorAdminController extends BaseController {
@@ -49,7 +49,7 @@ class ClientErrorAdminController extends BaseController {
     // Implementation
     //------------------------
     private LocalDate parseDay(String dateStr) {
-        return dateStr ? LocalDate.parse(dateStr, BASIC_ISO_DATE) : null
+        return dateStr ? LocalDate.parse(dateStr, ISO_LOCAL_DATE) : null
     }
 
     private List distinctVals(String property) {

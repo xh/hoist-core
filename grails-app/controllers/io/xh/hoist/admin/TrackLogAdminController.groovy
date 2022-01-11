@@ -14,7 +14,7 @@ import io.xh.hoist.track.TrackLog
 import java.time.LocalDate
 
 import static java.lang.Integer.parseInt
-import static java.time.format.DateTimeFormatter.BASIC_ISO_DATE
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE
 import static io.xh.hoist.util.DateTimeUtils.appStartOfDay
 import static io.xh.hoist.util.DateTimeUtils.appEndOfDay
 
@@ -57,7 +57,7 @@ class TrackLogAdminController extends BaseController {
     // Implementation
     //------------------------
     private LocalDate parseDay(String dateStr) {
-        return dateStr ? LocalDate.parse(dateStr, BASIC_ISO_DATE) : null
+        return dateStr ? LocalDate.parse(dateStr, ISO_LOCAL_DATE) : null
     }
 
     private List distinctVals(String property) {
