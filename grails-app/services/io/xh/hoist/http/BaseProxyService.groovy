@@ -110,7 +110,7 @@ abstract class BaseProxyService extends BaseService {
 
     protected installParamsOnEntity(HttpServletRequest request, HttpUriRequestBase method) {
         if (request.getHeader('Content-Type').toLowerCase().contains('x-www-form-urlencoded')) {
-            List<NameValuePair> formParams = request.parameterMap.collectMany { key, value ->
+            List<BasicNameValuePair> formParams = request.parameterMap.collectMany { key, value ->
                 value.collect {new BasicNameValuePair(key, (String) it)}
             }
             method.setEntity(new UrlEncodedFormEntity(formParams))
