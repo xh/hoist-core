@@ -7,7 +7,6 @@
 
 package io.xh.hoist.user
 
-import groovy.transform.CompileStatic
 import io.xh.hoist.json.JSONFormat
 import static io.xh.hoist.util.Utils.configService
 import static io.xh.hoist.util.Utils.roleService
@@ -15,7 +14,6 @@ import static io.xh.hoist.util.Utils.roleService
 /**
  * Core user properties required for Hoist.
  */
-@CompileStatic
 trait HoistUser implements JSONFormat {
 
     static boolean validateUsername(String username) {

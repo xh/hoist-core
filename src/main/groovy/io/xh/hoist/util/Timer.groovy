@@ -7,7 +7,6 @@
 
 package io.xh.hoist.util
 
-import io.xh.hoist.async.AsyncSupport
 import io.xh.hoist.log.LogSupport
 
 import java.util.concurrent.ExecutionException
@@ -20,7 +19,6 @@ import java.util.concurrent.TimeoutException
 
 import static io.xh.hoist.util.DateTimeUtils.*
 import static io.xh.hoist.util.Utils.configService
-import static io.xh.hoist.util.Utils.withNewSession
 import static io.xh.hoist.util.Utils.getExceptionRenderer
 
 /**
@@ -29,7 +27,7 @@ import static io.xh.hoist.util.Utils.getExceptionRenderer
  * This object is typically used by services that need to schedule work to maintain
  * internal state.
  */
-class Timer implements AsyncSupport {
+class Timer {
 
      private static Long CONFIG_INTERVAL = 15 * SECONDS
 
@@ -70,9 +68,6 @@ class Timer implements AsyncSupport {
     /** Units for timeout property.  Default is ms (1) */
     final Long timeoutUnits
 
-    /** Run 'runFn' on a thread with hibernate session? Default true. */
-    final boolean withHibernate
-
     /** Block on an immediate initial run?  Default is false. */
     final boolean runImmediatelyAndBlock
 
@@ -112,7 +107,6 @@ class Timer implements AsyncSupport {
         owner = config.owner
         runFn = config.runFn
         runImmediatelyAndBlock = config.runImmediatelyAndBlock ?: false
-        withHibernate = config.containsKey('withHibernate') ? config.withHibernate : true
 
         interval = parseDynamicValue(config.interval)
         timeout = parseDynamicValue(config.containsKey('timeout') ? config.timeout : 3 * MINUTES)
@@ -175,7 +169,7 @@ class Timer implements AsyncSupport {
         Throwable throwable = null
         Future future = null
         try {
-            def callable = withHibernate ? {withNewSession {runFn()}} : runFn
+            def callable = runFn
             future = executorService.submit(callable)
             if (timeoutMs) {
                 future.get(timeoutMs, TimeUnit.MILLISECONDS)
@@ -230,12 +224,9 @@ class Timer implements AsyncSupport {
 
     private void onConfigTimer() {
         try {
-            withNewSession {
-                intervalMs = calcIntervalMs()
-                timeoutMs = calcTimeoutMs()
-            }
+            intervalMs = calcIntervalMs()
+            timeoutMs = calcTimeoutMs()
             adjustCoreTimerIfNeeded()
-
         } catch (Throwable t) {
             owner.logError('Timer failed to reload config', t)
         }

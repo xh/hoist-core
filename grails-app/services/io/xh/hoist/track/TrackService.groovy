@@ -7,6 +7,7 @@
 
 package io.xh.hoist.track
 
+import grails.gorm.transactions.ReadOnly
 import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
@@ -16,6 +17,7 @@ import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
 import static io.xh.hoist.json.JSONSerializer.serialize
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
+import static grails.async.Promises.task
 
 /**
  * Service for tracking user activity within the application. This service provides a server-side
@@ -74,24 +76,25 @@ class TrackService extends BaseService implements EventPublisher {
 
         // Execute asynchronously after we get info from request, don't block application thread.
         // Save with additional try/catch to alert on persistence failures within this async block.
-        asyncTask {
-            def tl = new TrackLog(values)
+        task {
+            TrackLog.withTransaction {
+                def tl = new TrackLog(values)
 
-            if (getInstanceConfig('disableTrackLog') != 'true') {
-                try {
-                    tl.save()
-                } catch (Exception e) {
-                    logError('Exception writing track log', e)
+                if (getInstanceConfig('disableTrackLog') != 'true') {
+                    try {
+                        tl.save()
+                    } catch (Exception e) {
+                        logError('Exception writing track log', e)
+                    }
                 }
+
+                def elapsedStr = tl.elapsed != null ? tl.elapsed + 'ms' : null,
+                    name = tl.username
+                if (tl.impersonating) name += " (as ${tl.impersonating})"
+
+                def msgParts = [name, tl.category, tl.msg, elapsedStr]
+                logInfo(msgParts.findAll())
             }
-
-            def elapsedStr = tl.elapsed != null ? tl.elapsed + 'ms' : null,
-                name = tl.username
-            if (tl.impersonating) name += " (as ${tl.impersonating})"
-
-            def msgParts = [name, tl.category, tl.msg, elapsedStr]
-            logInfo(msgParts.findAll())
         }
     }
-
 }

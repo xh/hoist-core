@@ -9,10 +9,13 @@ package io.xh.hoist.config
 
 import grails.compiler.GrailsCompileStatic
 import grails.events.annotation.Subscriber
+import grails.gorm.transactions.Transactional
+import grails.gorm.transactions.ReadOnly
 import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
 import org.grails.datastore.mapping.engine.event.PreUpdateEvent
 import grails.events.*
+import static grails.async.Promises.task
 
 import static io.xh.hoist.json.JSONSerializer.serializePretty
 
@@ -56,6 +59,7 @@ class ConfigService extends BaseService implements EventPublisher {
         return (String) getInternalByName(name, 'pwd', notFoundValue)
     }
 
+    @ReadOnly
     Map getClientConfig() {
         def ret = [:]
 
@@ -63,7 +67,7 @@ class ConfigService extends BaseService implements EventPublisher {
             AppConfig config = (AppConfig) it
             def name = config.name
             try {
-                ret[name] = config.externalValue(obscurePassword: true, jsonAsObject: true);
+                ret[name] = config.externalValue(obscurePassword: true, jsonAsObject: true)
             } catch (Exception e) {
                 logError("Exception while getting client config: '$name'", e)
             }
@@ -103,6 +107,7 @@ class ConfigService extends BaseService implements EventPublisher {
      * supplied default values if not found. Called for xh.io configs by Hoist Core Bootstrap.
      * @param reqConfigs - map of configName to map of [valueType, defaultValue, clientVisible, groupName]
      */
+    @Transactional
     void ensureRequiredConfigsCreated(Map<String, Map> reqConfigs) {
         def currConfigs = AppConfig.list(),
             created = 0
@@ -158,6 +163,7 @@ class ConfigService extends BaseService implements EventPublisher {
     //-------------------
     //  Implementation
     //-------------------
+    @ReadOnly
     private Object getInternalByName(String name, String valueType, Object notFoundValue) {
         AppConfig c = AppConfig.findByName(name, [cache: true])
 
@@ -187,7 +193,7 @@ class ConfigService extends BaseService implements EventPublisher {
 
         if (changed) {
             // notify is called in a new thread and with a delay to make sure the newVal has had the time to propagate
-            asyncTask {
+            task {
                 Thread.sleep(500)
                 notify('xhConfigChanged', [key: obj.name, value: newVal])
             }

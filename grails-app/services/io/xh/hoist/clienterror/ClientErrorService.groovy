@@ -8,6 +8,7 @@
 package io.xh.hoist.clienterror
 
 import grails.events.*
+import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 import org.grails.web.util.WebUtils
@@ -83,6 +84,7 @@ class ClientErrorService extends BaseService implements EventPublisher {
     //--------------------------------------------------------
     // Implementation
     //---------------------------------------------------------
+    @Transactional
     void onTimer() {
        if (!errors) return
 
@@ -95,12 +97,10 @@ class ClientErrorService extends BaseService implements EventPublisher {
         withDebug("Processing $count Client Errors") {
             clientErrorEmailService.sendMail(errs, count == maxErrors)
 
-            ClientError.withNewSession {
-                errs.each {
-                    def ce = new ClientError(it)
-                    ce.save(flush: true)
-                    notify('xhClientErrorReceived', ce)
-                }
+            errs.each {
+                def ce = new ClientError(it)
+                ce.save(flush: true)
+                notify('xhClientErrorReceived', ce)
             }
         }
     }

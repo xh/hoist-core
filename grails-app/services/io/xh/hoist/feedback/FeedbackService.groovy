@@ -7,6 +7,7 @@
 
 package io.xh.hoist.feedback
 
+import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 import org.grails.web.util.WebUtils
@@ -22,6 +23,7 @@ class FeedbackService extends BaseService implements EventPublisher {
      * @param message - comments supplied by the user
      * @param appVersion - expected from client to ensure we record the version user's browser is actually running
      */
+    @Transactional
     void submit(String message, String appVersion) {
         def request = WebUtils.retrieveGrailsWebRequest().currentRequest,
             userAgent = request?.getHeader('User-Agent'),
@@ -34,12 +36,8 @@ class FeedbackService extends BaseService implements EventPublisher {
                     appVersion: appVersion ?: Utils.appVersion,
                     appEnvironment: Utils.appEnvironment
             ]
-
-        Feedback.withNewSession {
-            def fb = new Feedback(values)
-            fb.save(flush: true)
-            notify('xhFeedbackReceived', fb)
-        }
+        def fb = new Feedback(values)
+        fb.save(flush: true)
+        notify('xhFeedbackReceived', fb)
     }
-
 }

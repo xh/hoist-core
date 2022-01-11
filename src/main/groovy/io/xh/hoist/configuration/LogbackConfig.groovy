@@ -5,7 +5,7 @@
  * Copyright © 2021 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.log
+package io.xh.hoist.configuration
 
 import ch.qos.logback.core.ConsoleAppender
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder
@@ -28,11 +28,11 @@ import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
  * This class supports the default logging configuration in Hoist.
  *
  * Applications should customize/specify their logging conventions via
- * the file grails-app/conf/logback.groovy.  See sample-logback.groovy
+ * the file grails-app/conf/logback.groovy.  See example-logback.txt
  * (in this directory) as well as the logback and grails documentation for
  * more information on how to construct this file.
  */
-class LogUtils {
+class LogbackConfig {
 
     private static _logRootPath = null
 
@@ -66,6 +66,66 @@ class LogUtils {
      * String or a Closure that produces a Layout
      */
     static Object trackLayout = '%d{HH:mm:ss} | %m%n'
+
+
+    /**
+     * Main entry point.
+     *
+     * This function sets up "built-in" appenders for stdout, a daily rolling log,
+     * and logs for Hoists built-in monitoring.
+     *
+     * It will also setup default logging levels logging levels for application, Hoist, and other
+     * third-party packages. Note that these logging levels can be overwritten statically by
+     * applications in logback.groovy.
+     *
+     * Application logback scripts need to call this method in their logback.groovy file.
+     * See example-logback.groovy in this directory for more details.
+     *
+     * @param script
+     */
+    static void defaultConfig(Script script) {
+        withDelegate(script) {
+
+            def appLogName = Utils.appCode,
+                trackLogName = "$appLogName-track",
+                monitorLogName = "$appLogName-monitor"
+
+            //----------------------------------
+            // Appenders
+            //----------------------------------
+            appender('stdout', ConsoleAppender) {
+                //noinspection UnnecessaryQualifiedReference
+                encoder = LogbackConfig.createEncoder(stdoutLayout, context)
+            }
+            dailyLog(name: appLogName, script: script)
+            dailyLog(name: trackLogName, script: script, layout: trackLayout)
+            dailyLog(name: monitorLogName, script: script, layout: monitorLayout)
+
+            //----------------------------------
+            // Loggers
+            //----------------------------------
+            root(WARN, ['stdout', appLogName])
+
+            // Raise Hoist to info
+            logger('io.xh', INFO)
+
+            // Loggers for MonitoringService and TrackService.
+            // Do not duplicate in main log file, but write to stdout
+            logger('io.xh.hoist.monitor.MonitoringService', INFO, [monitorLogName, 'stdout'], false)
+            logger('io.xh.hoist.track.TrackService', INFO, [trackLogName, 'stdout'], false)
+
+            // Quiet noisy loggers
+            logger('org.hibernate', ERROR)
+            logger('org.springframework', ERROR)
+            logger('net.sf.ehcache', ERROR)
+
+            // Turn off built-in global grails stacktrace logger.  It can easily swamp logs!
+            // If needed, it can be (carefully) re-enabled by in admin console.
+            // Applications should *not* typically enable -- instead Hoist stacktraces can be
+            // enabled for any given logger by setting its level to TRACE
+            logger('StackTrace', OFF)
+        }
+    }
 
 
     /**
@@ -105,7 +165,7 @@ class LogUtils {
         withDelegate(config.script) {
             appender(name, RollingFileAppender) {
                 file = fileName + '.log'
-                encoder = LogUtils.createEncoder(config.layout ?: dailyLayout, context)
+                encoder = LogbackConfig.createEncoder(config.layout ?: dailyLayout, context)
                 rollingPolicy(TimeBasedRollingPolicy) { fileNamePattern = fileName + ".%d{yyyy-MM-dd}.log" }
             }
         }
@@ -127,70 +187,11 @@ class LogUtils {
         withDelegate(config.script) {
             appender(name, RollingFileAppender) {
                 file = fileName + '.log'
-                encoder = LogUtils.createEncoder(config.layout ?: monthlyLayout, context)
+                encoder = LogbackConfig.createEncoder(config.layout ?: monthlyLayout, context)
                 rollingPolicy(TimeBasedRollingPolicy)   {fileNamePattern = fileName + ".%d{yyyy-MM}.log"}
             }
         }
     }
-
-    /**
-     * Main entry point.
-     *
-     * This function sets up "built-in" appenders for stdout, a daily rolling log,
-     * and logs for Hoists built-in monitoring.
-     *
-     * It will also setup default logging levels logging levels for application, Hoist, and other
-     * third-party packages. Note that these logging levels can be overwritten statically by
-     * applications in logback.groovy.
-     *
-     * Application logback scripts need to call this method in their logback.groovy file.
-     * See example-logback.groovy in this directory for more details.
-     *
-     * @param script
-     */
-    static void initConfig(Script script) {
-        withDelegate(script) {
-
-            def appLogName = Utils.appCode,
-                trackLogName = "$appLogName-track",
-                monitorLogName = "$appLogName-monitor"
-
-            //----------------------------------
-            // Appenders
-            //----------------------------------
-            appender('stdout', ConsoleAppender) {
-                encoder = LogUtils.createEncoder(stdoutLayout, context)
-            }
-            dailyLog(name: appLogName, script: script)
-            dailyLog(name: trackLogName, script: script, layout: trackLayout)
-            dailyLog(name: monitorLogName, script: script, layout: monitorLayout)
-
-            //----------------------------------
-            // Loggers
-            //----------------------------------
-            root(WARN, ['stdout', appLogName])
-
-            // Raise Hoist to info
-            logger('io.xh', INFO)
-
-            // Loggers for MonitoringService and TrackService.
-            // Do not duplicate in main log file, but write to stdout
-            logger('io.xh.hoist.monitor.MonitoringService', INFO, [monitorLogName, 'stdout'], false)
-            logger('io.xh.hoist.track.TrackService', INFO, [trackLogName, 'stdout'], false)
-
-            // Quiet noisy loggers
-            logger('org.hibernate', ERROR)
-            logger('org.springframework', ERROR)
-            logger('net.sf.ehcache', ERROR)
-
-            // Turn off built-in global grails stacktrace logger.  It can easily swamp logs!
-            // If needed, it can be (carefully) re-enabled by in admin console.
-            // Applications should *not* typically enable -- instead Hoist stacktraces can be
-            // enabled for any given logger by setting its level to TRACE
-            logger('StackTrace', OFF)
-        }
-    }
-
 
     //------------------------
     // Implementation

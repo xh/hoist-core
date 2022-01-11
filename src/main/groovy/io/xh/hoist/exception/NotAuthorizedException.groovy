@@ -7,7 +7,7 @@
 
 package io.xh.hoist.exception
 
-import static org.apache.http.HttpStatus.SC_FORBIDDEN
+import static org.apache.hc.core5.http.HttpStatus.SC_FORBIDDEN
 
 /**
  * Exception for use when the authenticated user does not have access to the resource in question.

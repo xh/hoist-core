@@ -7,11 +7,13 @@
 
 package io.xh.hoist.pref
 
+import grails.gorm.transactions.Transactional
 import grails.web.databinding.DataBinder
 import io.xh.hoist.BaseService
 
 class PrefDiffService extends BaseService implements DataBinder {
 
+    @Transactional
     void applyRemoteValues(List records) {
         records.each {rec ->
             def pref = Preference.findByName(rec.name),
@@ -20,7 +22,7 @@ class PrefDiffService extends BaseService implements DataBinder {
             // create new pref based on remote values
             if (!pref) {
                 pref = new Preference(vals)
-                pref.lastUpdatedBy = username
+                pref.lastUpdatedBy = authUsername
                 pref.save(flush:true)
                 logInfo("Pref '${pref.name}' created")
                 return
@@ -29,7 +31,7 @@ class PrefDiffService extends BaseService implements DataBinder {
             // apply remote values to existing pref
             if (vals) {
                 bindData(pref, vals)
-                pref.lastUpdatedBy = username
+                pref.lastUpdatedBy = authUsername
                 pref.save(flush:true)
                 logInfo("Pref '${pref.name}' updated")
                 return

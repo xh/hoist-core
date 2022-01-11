@@ -18,8 +18,9 @@ import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 import java.util.concurrent.ExecutionException
 
-import static org.apache.http.HttpStatus.SC_BAD_REQUEST
-import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
+import static org.apache.hc.core5.http.HttpStatus.SC_BAD_REQUEST
+import static org.apache.hc.core5.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
+
 
 /**
  * This class provides the default server-side exception handling in Hoist.

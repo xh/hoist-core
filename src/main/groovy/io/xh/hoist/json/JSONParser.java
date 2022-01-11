@@ -8,6 +8,7 @@
 package io.xh.hoist.json;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -20,7 +21,15 @@ import java.util.Map;
  */
 public class JSONParser {
 
-    private static ObjectMapper mapper = new ObjectMapper();
+    private static ObjectMapper mapper;
+    private static ObjectMapper validateMapper;
+
+    static {
+        mapper = new ObjectMapper();
+
+        validateMapper = new ObjectMapper()
+                .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
+    }
 
     /**
      * Parse a String representing a JSON Object to a java representation.
@@ -61,5 +70,18 @@ public class JSONParser {
         if (s == null || s.isEmpty()) return null;
         s = s.trim();
         return s.startsWith("[") ? parseArray(s) : parseObject(s);
+    }
+
+    /**
+     * Return true if a String represents valid JSON
+     */
+    public static boolean validate(String s) {
+        if (s == null) return true;
+        try {
+            validateMapper.readTree(s);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

@@ -8,7 +8,7 @@
 package io.xh.hoist.admin
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.log.LogUtils
+import io.xh.hoist.configuration.LogbackConfig
 import groovy.io.FileType
 import io.xh.hoist.security.Access
 
@@ -19,7 +19,7 @@ class LogViewerAdminController extends BaseController {
         logReaderService
 
     def listFiles() {
-        def baseDir = new File(LogUtils.logRootPath),
+        def baseDir = new File(LogbackConfig.logRootPath),
             basePath = baseDir.toPath(),
             files = []
 
@@ -60,7 +60,7 @@ class LogViewerAdminController extends BaseController {
         def filenames = params.list('filenames')
 
         filenames.each {String filename ->
-            def fileToDelete = new File(LogUtils.logRootPath, filename),
+            def fileToDelete = new File(LogbackConfig.logRootPath, filename),
                 fileDeleted = fileToDelete.delete()
 
             if (!fileDeleted) {

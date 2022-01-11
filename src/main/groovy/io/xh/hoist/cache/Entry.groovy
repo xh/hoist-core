@@ -16,7 +16,7 @@ class Entry<V> {
     final Long dateEntered = System.currentTimeMillis()
 
     Entry(Object value) {
-        this.value = value
+        this.value = (V) value
     }
     
 }

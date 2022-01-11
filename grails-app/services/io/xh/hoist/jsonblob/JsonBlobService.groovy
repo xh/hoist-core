@@ -6,15 +6,19 @@
  */
 package io.xh.hoist.jsonblob
 
+import grails.gorm.transactions.ReadOnly
 import grails.web.databinding.DataBinder
 import io.xh.hoist.BaseService
 import io.xh.hoist.exception.NotAuthorizedException
+
+import javax.transaction.Transactional
 
 import static io.xh.hoist.json.JSONSerializer.serialize
 import static java.lang.System.currentTimeMillis
 
 class JsonBlobService extends BaseService implements DataBinder {
 
+    @ReadOnly
     JsonBlob get(String token, String username = username) {
         JsonBlob ret = JsonBlob.findByTokenAndArchivedDate(token, 0)
         if (!ret) {
@@ -26,12 +30,14 @@ class JsonBlobService extends BaseService implements DataBinder {
         return ret
     }
 
+    @ReadOnly
     List<JsonBlob> list(String type, String username = username) {
         JsonBlob
                 .findAllByTypeAndArchivedDate(type, 0)
                 .findAll { passesAcl(it, username) }
     }
 
+    @Transactional
     JsonBlob create(Map data, String username = username) {
         data = [*: data, owner: username, lastUpdatedBy: username]
         if (data.containsKey('value')) data.value = serialize(data.value)
@@ -40,6 +46,7 @@ class JsonBlobService extends BaseService implements DataBinder {
         new JsonBlob(data).save()
     }
 
+    @Transactional
     JsonBlob update(String token, Map data, String username = username) {
         def blob = get(token, username)
         if (data) {
@@ -53,6 +60,7 @@ class JsonBlobService extends BaseService implements DataBinder {
         return blob
     }
 
+    @Transactional
     JsonBlob archive(String token, String username = username) {
         def blob = get(token, username)
         blob.archivedDate = currentTimeMillis()

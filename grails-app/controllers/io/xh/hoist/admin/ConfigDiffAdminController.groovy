@@ -7,6 +7,7 @@
 
 package io.xh.hoist.admin
 
+import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseController
 import io.xh.hoist.config.AppConfig
 import io.xh.hoist.json.JSONParser
@@ -17,6 +18,7 @@ class ConfigDiffAdminController extends BaseController {
 
     def configDiffService
 
+    @ReadOnly
     def configs() {
         def data = AppConfig.list()
         renderJSON(data: data)
