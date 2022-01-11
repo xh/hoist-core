@@ -1,5 +1,7 @@
 # Changelog
 
+# 14.0-SNAPSHOT - unreleased
+
 # 13.0.5 - 2022-01-11
 This version includes a major upgrade of several underlying libraries, especially grails (5.1),
 spring (5.3), spring-boot (2.6), groovy (3.0), and gradle (7.3). With this version, Hoist can now be run
