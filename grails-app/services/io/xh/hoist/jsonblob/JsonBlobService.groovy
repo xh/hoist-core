@@ -7,11 +7,10 @@
 package io.xh.hoist.jsonblob
 
 import grails.gorm.transactions.ReadOnly
+import grails.gorm.transactions.Transactional
 import grails.web.databinding.DataBinder
 import io.xh.hoist.BaseService
 import io.xh.hoist.exception.NotAuthorizedException
-
-import javax.transaction.Transactional
 
 import static io.xh.hoist.json.JSONSerializer.serialize
 import static java.lang.System.currentTimeMillis
