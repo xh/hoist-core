@@ -1,12 +1,17 @@
 # Changelog
 
-# 14.0-SNAPSHOT - unreleased
+# 13.0.6 - 2022-01-13
 
 ###  ⚙️ Technical
 * LocalDates are now serialized in the more fully ISO standard 'YYYY-MM-DD' format, rather than 'YYYYMMDD'.  
 Note that this is consistent with similar changes to LocalDate serialization in Hoist React v46. Although 
 this format will be accepted client-side by Hoist React v45+, applications that are parsing these strings 
 directly on the client may need to be updated accordingly.
+
+### 🐞 Bug Fixes
+* Fix to Regressions in JsonBlobService/AlertBannerService
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v13.0.5...13.0.6)
 
 # 13.0.5 - 2022-01-11
 
