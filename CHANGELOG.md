@@ -2,6 +2,12 @@
 
 # 14.0-SNAPSHOT - unreleased
 
+###  ⚙️ Technical
+* LocalDates are now serialized in the more fully ISO standard 'YYYY-MM-DD' format, rather than 'YYYYMMDD'.  
+Note that this is consistent with similar changes to LocalDate serialization in Hoist React v46. Although 
+this format will be accepted client-side by Hoist React v45+, applications that are parsing these strings 
+directly on the client may need to be updated accordingly.
+
 # 13.0.5 - 2022-01-11
 
 This version includes a major upgrade of several underlying libraries, especially grails (5.1),
