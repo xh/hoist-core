@@ -1,6 +1,7 @@
 package io.xh.hoist.configuration
 
 import static io.xh.hoist.util.Utils.withDelegate
+import static io.xh.hoist.util.Utils.getAppPackage
 
 /**
  * Default Application config.
@@ -28,6 +29,10 @@ class ApplicationConfig {
             }
 
             grails {
+                project.groupId = appPackage
+                app.context = '/'
+                resources.pattern = '/**'
+
                 profile = 'rest-api'
                 cors {
                     enabled = true

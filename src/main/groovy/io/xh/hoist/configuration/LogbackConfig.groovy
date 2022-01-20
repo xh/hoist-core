@@ -106,8 +106,9 @@ class LogbackConfig {
             //----------------------------------
             root(WARN, ['stdout', appLogName])
 
-            // Raise Hoist to info
+            // Raise Hoist and application to info
             logger('io.xh', INFO)
+            logger(Utils.appPackage, INFO)
 
             // Loggers for MonitoringService and TrackService.
             // Do not duplicate in main log file, but write to stdout
