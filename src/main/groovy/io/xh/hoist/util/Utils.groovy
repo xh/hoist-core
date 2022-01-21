@@ -36,6 +36,13 @@ class Utils {
     }
 
     /**
+     * Internal package name of the application - lowercase, no spaces.
+     */
+    static String getAppPackage() {
+        return Metadata.current.getProperty('info.xh.appPackage', String).orElse(null)
+    }
+
+    /**
      * User-facing display name of the application - proper case, can include spaces.
      */
     static String getAppName() {
