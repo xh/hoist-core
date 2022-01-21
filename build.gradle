@@ -90,6 +90,10 @@ tasks.withType(GroovyCompile) {
 }
 bootJar.enabled = false
 
+tasks.bootRun.doFirst {
+    throw new RuntimeException('The bootRun task is not supported in hoist-core. If running in a "wrapper" config, ensure you run the task from your app, not the top-level wrapper.')
+}
+
 //------------------------
 // Maven publishing
 // This is a modified version of the gradle configs setup by the Grails plugin publishing plugin
