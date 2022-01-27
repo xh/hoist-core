@@ -8,6 +8,7 @@
 package io.xh.hoist.websocket
 
 import grails.async.Promises
+import grails.core.GrailsApplication
 import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
@@ -45,6 +46,7 @@ import java.util.concurrent.ConcurrentHashMap
 @CompileStatic
 class WebSocketService extends BaseService implements EventPublisher {
 
+    GrailsApplication grailsApplication
     IdentityService identityService
 
     static final String HEARTBEAT_TOPIC = 'xhHeartbeat'
@@ -54,6 +56,10 @@ class WebSocketService extends BaseService implements EventPublisher {
     static final String MSG_RECEIVED_EVENT = 'xhWebSocketMessageReceived'
 
     private Map<WebSocketSession, HoistWebSocketChannel> _channels = new ConcurrentHashMap<>()
+
+    boolean isEnabled() {
+        return grailsApplication.config.getProperty('hoist.enableWebSockets', Boolean)
+    }
 
     /**
      * Push a message to a connected client, as identified by its channel key. Requests to send to

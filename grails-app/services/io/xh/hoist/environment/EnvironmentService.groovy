@@ -19,7 +19,8 @@ import io.xh.hoist.util.Utils
  */
 class EnvironmentService extends BaseService {
 
-    def configService
+    def configService,
+        webSocketService
 
     private TimeZone _appTimeZone
 
@@ -64,7 +65,8 @@ class EnvironmentService extends BaseService {
                 serverTimeZone:         serverTz.toZoneId().id,
                 serverTimeZoneOffset:   serverTz.getOffset(now),
                 appTimeZone:            appTz.toZoneId().id,
-                appTimeZoneOffset:      appTz.getOffset(now)
+                appTimeZoneOffset:      appTz.getOffset(now),
+                webSocketsEnabled:      webSocketService.enabled,
         ]
 
         hoistGrailsPlugins.each {it ->
