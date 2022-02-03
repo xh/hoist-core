@@ -194,7 +194,7 @@ trait LogSupport {
         List<String> ret = msgs.collect {
             it instanceof Throwable ? exceptionRenderer.summaryTextForThrowable(it) : it.toString()
         }
-        if (username) ret.push(username)
+        if (username) ret.add(username)
         return ret.join(' | ')
     }
 

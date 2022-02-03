@@ -230,7 +230,7 @@ class GridExportImplService extends BaseService {
 
             if (depth > prevDepth) {
                 // Open new group
-                pendingGroups.push([start: i, depth: depth])
+                pendingGroups.add([start: i, depth: depth])
             }
 
             while (pendingGroups) {
