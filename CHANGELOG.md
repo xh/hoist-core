@@ -31,8 +31,8 @@ for the application-level changes to core configuration files and dependencies.
 * The method `subscribeWithSession` on `BaseService` has been removed. Use `subscribe` instead.
 * Application Tomcat Dockerfiles must be updated to use a new `xh-tomcat` base image on JDK 11/17.
 * Groovy Language:  `list` methods changed:
-  `push()` now prepends an item to the start of the List. To append to the end of a list, use `add()`
-  `pop()` now removes the initial item from the List. To remove the last item use `removeLast()`
+  * `push()` now prepends an item to the start of the List. To append to the end of a list, use `add()`
+  * `pop()` now removes the initial item from the List. To remove the last item use `removeLast()`
 
 ### ⚙️ Technical
 
