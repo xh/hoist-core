@@ -238,7 +238,7 @@ class GridExportImplService extends BaseService {
                 def group = pendingGroups.last()
                 if (group.depth <= nextDepth) break
                 group.end = i
-                completedGroups << pendingGroups.pop()
+                completedGroups << pendingGroups.removeLast()
             }
         }
 
