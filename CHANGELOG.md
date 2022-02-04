@@ -1,5 +1,15 @@
 # Changelog
 
+# 13.1.0 - 2022-02-03
+
+###  ⚙️ Technical
+* Support for reporting configuration state of Web Sockets
+* New property `Utils.appPackage` for DRY configuration. 
+
+### 🐞 Bug Fixes
+* Fix to regressions in excel exports and logging due to changes in Groovy list() API.
+
+
 # 13.0.6 - 2022-01-13
 
 ###  ⚙️ Technical
