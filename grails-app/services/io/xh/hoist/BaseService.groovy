@@ -65,7 +65,8 @@ abstract class BaseService implements IdentitySupport, LogSupport, DisposableBea
      *
      * @param timeout - maximum time to wait for each service to init (in ms).
      */
-    final void initialize(int timeout) {
+    final void initialize(int timeout = 30 * SECONDS) {
+        if (_initialized) return
         try {
             withInfo("Initializing") {
                 task {

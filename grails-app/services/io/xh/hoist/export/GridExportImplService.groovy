@@ -24,6 +24,7 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook
 import org.openxmlformats.schemas.spreadsheetml.x2006.main.*
 
 import java.awt.Color
+import java.awt.GraphicsEnvironment
 
 /**
  * Service to export row data to Excel or CSV.
@@ -38,6 +39,16 @@ import java.awt.Color
 class GridExportImplService extends BaseService {
 
     def configService
+
+    void init() {
+        if (instanceLog.debugEnabled) {
+            GraphicsEnvironment ge = GraphicsEnvironment.localGraphicsEnvironment
+            logDebug(
+                'Fonts available for Excel Column Sizing',
+                ge.allFonts*.name.toString()
+            )
+        }
+    }
 
     /**
      * Return map suitable for rendering file with grails controller render() method

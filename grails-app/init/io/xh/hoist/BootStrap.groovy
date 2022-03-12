@@ -13,12 +13,15 @@ import static java.lang.Runtime.runtime
 
 class BootStrap {
 
+    def logLevelService
+
     def init = {servletContext ->
         logStartupMsg()
         ensureRequiredConfigsCreated()
         ensureRequiredPrefsCreated()
 
         def services = Utils.xhServices.findAll {it.class.canonicalName.startsWith('io.xh.hoist')}
+        BaseService.parallelInit([logLevelService])
         BaseService.parallelInit(services)
     }
 
