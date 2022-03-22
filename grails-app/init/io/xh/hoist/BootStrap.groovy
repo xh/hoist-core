@@ -260,7 +260,7 @@ class BootStrap {
                 defaultValue: 'light',
                 local: true,
                 groupName: 'xh.io',
-                note: 'Visual theme for the client application - "light" or "dark".'
+                note: 'Visual theme for the client application - "light", "dark", or "system".'
             ]
         ])
     }
