@@ -21,14 +21,18 @@ class LogViewerAdminController extends BaseController {
     def listFiles() {
         def baseDir = new File(LogbackConfig.logRootPath),
             basePath = baseDir.toPath(),
-            files = []
+            files = new ArrayList<File>()
 
         baseDir.eachFileRecurse FileType.FILES, {
             def matches = it.name ==~ /.*\.log/
-            if (matches) files << basePath.relativize(it.toPath())
+            if (matches) files << it
         }
 
-        def ret = files.collect { [filename: it.toString()] }
+        def ret = files.collect { [
+                filename: basePath.relativize(it.toPath()).toString(),
+                size: it.size(),
+                lastModified: it.lastModified()
+        ]}
         renderJSON(success:true, files:ret)
     }
 
