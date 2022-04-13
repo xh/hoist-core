@@ -21,9 +21,9 @@ class LogViewerAdminController extends BaseController {
     def listFiles() {
         def baseDir = new File(LogbackConfig.logRootPath),
             basePath = baseDir.toPath(),
-            files = new ArrayList<File>()
+            files = []
 
-        baseDir.eachFileRecurse FileType.FILES, {
+        baseDir.eachFileRecurse(FileType.FILES) {
             def matches = it.name ==~ /.*\.log/
             if (matches) files << it
         }
