@@ -91,6 +91,13 @@ class ApplicationConfig {
                 }
                 show_sql = false
             }
+
+            // Increase max form post size to 20mb to support large grid exports
+            server {
+                tomcat {
+                    maxHttpFormPostSize = 20971520
+                }
+            }
         }
     }
 }
