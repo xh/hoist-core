@@ -7,6 +7,7 @@ import static io.xh.hoist.util.Utils.getAppPackage
  * Default Application config.
  *
  * Main entry point to be called from application.groovy
+ * These settings can be overridden in an app's application.groovy file.
  */
 class ApplicationConfig {
 
