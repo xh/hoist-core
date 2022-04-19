@@ -2,6 +2,8 @@
 
 # 14.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+* Admin log file listing includes size and last modified date, visible with optional upgrade to `hoist-react >= 48.0`.
 
 # 13.1.0 - 2022-02-03
 
@@ -12,6 +14,7 @@
 ### 🐞 Bug Fixes
 * Fix to regressions in excel exports and logging due to changes in Groovy list() API.
 
+[Commit Log](https://github.com/xh/hoist-core/compare/v13.0.6...13.1.0)
 
 # 13.0.6 - 2022-01-13
 
@@ -37,7 +40,7 @@ Please see
 the [Grails5 Toolbox update commit](https://github.com/xh/toolbox/commit/2e75cb44f5c600384334406724bb63e3abc98dcc)
 for the application-level changes to core configuration files and dependencies.
 
-### 🎁 Breaking Changes
+### 💥 Breaking Changes
 
 * The trait `AsyncSupport` with its single method `asyncTask` has been removed. Use the equivalent
   method `task` from `grails.async.Promises` instead.
