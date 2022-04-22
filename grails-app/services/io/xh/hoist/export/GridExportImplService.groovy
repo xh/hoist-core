@@ -219,9 +219,7 @@ class GridExportImplService extends BaseService {
                             value = Date.parse('yyyy-MM-dd', value)
                         } else if (metadata.type == 'datetime') {
                             value = Date.parse('yyyy-MM-dd HH:mm:ss', value)
-                        } else if (metadata.type == 'int' || (!metadata.type && value.isInteger())) {
-                            value = value.toInteger()
-                        } else if (metadata.type == 'double' || (!metadata.type && value.isDouble())) {
+                        } else if (metadata.type == 'number') {
                             value = value.toDouble()
                         }
                     } catch (Exception ex) {
