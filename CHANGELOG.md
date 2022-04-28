@@ -1,9 +1,11 @@
 # Changelog
 
-# 14.0-SNAPSHOT - unreleased
+# 13.2.0 - 2022-04-28
 
 ### 🎁 New Features
 * Admin log file listing includes size and last modified date, visible with optional upgrade to `hoist-react >= 48.0`.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v13.1.0...13.2.0)
 
 # 13.1.0 - 2022-02-03
 
@@ -12,7 +14,7 @@
 * New property `Utils.appPackage` for DRY configuration. 
 
 ### 🐞 Bug Fixes
-* Fix to regressions in excel exports and logging due to changes in Groovy list() API.
+* Fix to regressions in Excel exports and logging due to changes in Groovy `list()` API.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v13.0.6...13.1.0)
 
