@@ -8,6 +8,8 @@
 package io.xh.hoist.export
 
 import io.xh.hoist.BaseService
+import org.apache.poi.sl.usermodel.TextRun
+import org.apache.poi.ss.usermodel.ExcelNumberFormat
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.usermodel.Sheet
@@ -25,6 +27,8 @@ import org.openxmlformats.schemas.spreadsheetml.x2006.main.*
 
 import java.awt.Color
 import java.awt.GraphicsEnvironment
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 /**
  * Service to export row data to Excel or CSV.
@@ -190,12 +194,14 @@ class GridExportImplService extends BaseService {
                 def value, format
                 if (data instanceof Map) {
                     value = data?.value
-                    format = data?.format
+                    format = data?.format ?: metadata.format
                 } else {
                     value = data
                     format = metadata.format
                 }
+
                 value = value?.toString()
+                format = format?.toString()
 
                 // Set cell data format (skipping column headers)
                 // Cache style based on format and depth (for group colors) in order to prevent costly or prohibited
@@ -213,14 +219,18 @@ class GridExportImplService extends BaseService {
                     // Column headers and empty values ignore metadata
                     cell.setCellValue(value)
                 } else {
-                    // Set cell value from type
+                    // Set cell value from type (Field.js) or format (ExcelFormat.js), otherwise default to text
                     try {
-                        if (metadata.type == 'date') {
-                            value = Date.parse('yyyy-MM-dd', value)
-                        } else if (metadata.type == 'datetime') {
+                        if (metadata.type == 'localdate' || format == 'yyyy-mm-dd') {
+                            value = LocalDate.parse(value, DateTimeFormatter.ofPattern('yyyy-MM-dd'))
+                        } else if (metadata.type == 'date' || format == 'yyyy-mm-dd h:mm AM/PM') {
                             value = Date.parse('yyyy-MM-dd HH:mm:ss', value)
-                        } else if (metadata.type == 'number') {
+                        } else if (metadata.type == 'int' || format == '0') {
+                            value = value.toLong()
+                        } else if (metadata.type == 'number' || format?.contains('0')) {
                             value = value.toDouble()
+                        } else if (metadata.type == 'bool') {
+                            value = value.toBoolean()
                         }
                     } catch (Exception ex) {
                         logTrace("Error parsing value $value for declared type ${metadata.type}", ex.message)
