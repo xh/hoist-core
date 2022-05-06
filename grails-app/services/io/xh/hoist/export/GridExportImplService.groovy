@@ -190,18 +190,28 @@ class GridExportImplService extends BaseService {
                 Map metadata = meta[colIndex]
                 Cell cell = row.createCell(colIndex)
 
-                // Collect cell value and cell format
-                def value, format
+                // Collect cell value, format, and type
+                def value, format, type
                 if (data instanceof Map) {
                     value = data?.value
                     format = data?.format ?: metadata.format
+                    type = data?.type ?: metadata.type
                 } else {
                     value = data
                     format = metadata.format
+                    type = metadata.type
                 }
 
                 value = value?.toString()
                 format = format?.toString()
+                type = type?.toString()
+
+                // Set a default excel format for date and localdate typed values
+                if(type == 'date' && (format == null || format == 'General')) {
+                    format = 'yyyy-mm-dd'
+                }else if(type == 'localdate' && (format == null || format == 'General')) {
+                    format = 'yyyy-mm-dd h:mm AM/PM'
+                }
 
                 // Set cell data format (skipping column headers)
                 // Cache style based on format and depth (for group colors) in order to prevent costly or prohibited
@@ -219,21 +229,22 @@ class GridExportImplService extends BaseService {
                     // Column headers and empty values ignore metadata
                     cell.setCellValue(value)
                 } else {
-                    // Set cell value from type (Field.js) or format (ExcelFormat.js), otherwise default to text
+                    // Set cell value from type (FieldType from Field.js) or format (ExcelFormat.js), otherwise default to text
                     try {
-                        if (metadata.type == 'localdate' || format == 'yyyy-mm-dd') {
-                            value = LocalDate.parse(value, DateTimeFormatter.ofPattern('yyyy-MM-dd'))
-                        } else if (metadata.type == 'date' || format == 'yyyy-mm-dd h:mm AM/PM') {
-                            value = Date.parse('yyyy-MM-dd HH:mm:ss', value)
-                        } else if (metadata.type == 'int' || format == '0') {
-                            value = value.toLong()
-                        } else if (metadata.type == 'number' || format?.contains('0')) {
+                        // Excel does not have dedicated date type, it formats a number field
+                        if(type == 'date' || type == 'localdate' || format == 'yyyy-mm-dd' || format == 'yyyy-mm-dd h:mm AM/PM') {
                             value = value.toDouble()
-                        } else if (metadata.type == 'bool') {
+
+                        // Numbers should be formatted as numbers as well as well
+                        } else if (type == 'int' || type == 'number' || format?.contains('0')) {
+                            value = value.toDouble()
+
+                        // Excel does have a dedicated boolean type
+                        } else if (type == 'bool') {
                             value = value.toBoolean()
                         }
                     } catch (Exception ex) {
-                        logTrace("Error parsing value $value for declared type ${metadata.type}", ex.message)
+                        logTrace("Error parsing value $value for declared type ${type} and format ${format}", ex.message)
                         valueParseFailures++
                     }
 
