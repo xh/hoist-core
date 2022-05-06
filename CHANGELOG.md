@@ -1,6 +1,6 @@
 # Changelog
 
-# 14.0-SNAPSHOT - unreleased
+## 13.2.0 - 2022-04-28
 
 ### 🐞 Bug Fixes
 * Fixed issue where exporting to excel file would occasionally coerce strings (like "1e10") into
@@ -9,18 +9,20 @@
 ### 🎁 New Features
 * Admin log file listing includes size and last modified date, visible with optional upgrade to `hoist-react >= 48.0`.
 
-# 13.1.0 - 2022-02-03
+[Commit Log](https://github.com/xh/hoist-core/compare/v13.1.0...13.2.0)
+
+## 13.1.0 - 2022-02-03
 
 ###  ⚙️ Technical
 * Support for reporting configuration state of Web Sockets
 * New property `Utils.appPackage` for DRY configuration. 
 
 ### 🐞 Bug Fixes
-* Fix to regressions in excel exports and logging due to changes in Groovy list() API.
+* Fix to regressions in Excel exports and logging due to changes in Groovy `list()` API.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v13.0.6...13.1.0)
 
-# 13.0.6 - 2022-01-13
+## 13.0.6 - 2022-01-13
 
 ###  ⚙️ Technical
 * LocalDates are now serialized in the more fully ISO standard 'YYYY-MM-DD' format, rather than 'YYYYMMDD'.  
@@ -33,7 +35,7 @@ directly on the client may need to be updated accordingly.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v13.0.5...13.0.6)
 
-# 13.0.5 - 2022-01-11
+## 13.0.5 - 2022-01-11
 
 This version includes a major upgrade of several underlying libraries, especially grails (5.1),
 spring (5.3), spring-boot (2.6), groovy (3.0), and gradle (7.3). With this version, Hoist can now be
