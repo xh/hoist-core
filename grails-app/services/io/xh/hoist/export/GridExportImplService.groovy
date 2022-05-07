@@ -27,8 +27,8 @@ import org.openxmlformats.schemas.spreadsheetml.x2006.main.*
 
 import java.awt.Color
 import java.awt.GraphicsEnvironment
+import java.text.SimpleDateFormat
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 /**
  * Service to export row data to Excel or CSV.
@@ -198,18 +198,18 @@ class GridExportImplService extends BaseService {
                     type = data?.type ?: metadata.type
                 } else {
                     value = data
-                    format = metadata.format
-                    type = metadata.type
+                    format = metadata?.format
+                    type = metadata?.type
                 }
 
                 value = value?.toString()
                 format = format?.toString()
                 type = type?.toString()
 
-                // Set a default excel format for date and localdate typed values
-                if(type == 'date' && (format == null || format == 'General')) {
+                // Set a default excel format for DATE and LOCAL_DATE typed values
+                if (type == 'localDate' && (format == null || format == 'General')) {
                     format = 'yyyy-mm-dd'
-                }else if(type == 'localdate' && (format == null || format == 'General')) {
+                } else if (type == 'date' && (format == null || format == 'General')) {
                     format = 'yyyy-mm-dd h:mm AM/PM'
                 }
 
@@ -231,15 +231,12 @@ class GridExportImplService extends BaseService {
                 } else {
                     // Set cell value from type (FieldType from Field.js) or format (ExcelFormat.js), otherwise default to text
                     try {
-                        // Excel does not have dedicated date type, it formats a number field
-                        if(type == 'date' || type == 'localdate' || format == 'yyyy-mm-dd' || format == 'yyyy-mm-dd h:mm AM/PM') {
-                            value = value.toDouble()
-
-                        // Numbers should be formatted as numbers as well as well
+                        if (type == 'localDate' || format == 'yyyy-mm-dd') {
+                            value = LocalDate.parse(value)
+                        } else if (type == 'date' || format == 'yyyy-mm-dd h:mm AM/PM') {
+                            value = new SimpleDateFormat().parse(value)
                         } else if (type == 'int' || type == 'number' || format?.contains('0')) {
                             value = value.toDouble()
-
-                        // Excel does have a dedicated boolean type
                         } else if (type == 'bool') {
                             value = value.toBoolean()
                         }
@@ -247,7 +244,6 @@ class GridExportImplService extends BaseService {
                         logTrace("Error parsing value $value for declared type ${type} and format ${format}", ex.message)
                         valueParseFailures++
                     }
-
                     cell.setCellValue(value)
                 }
 
