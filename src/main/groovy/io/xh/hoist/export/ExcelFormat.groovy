@@ -1,6 +1,6 @@
 package io.xh.hoist.export
 
-// Copy of ExcelFormat.js from Hoist-React
+// Server-side copy of ExcelFormat.js from Hoist-React
 enum ExcelFormat {
 
     DEFAULT('General'),

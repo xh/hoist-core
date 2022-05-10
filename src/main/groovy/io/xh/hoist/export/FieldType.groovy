@@ -1,5 +1,6 @@
 package io.xh.hoist.export
 
+// Server-side copy of the FieldType enum from Field.js in Hoist-React
 enum FieldType {
 
     AUTO('auto'),
