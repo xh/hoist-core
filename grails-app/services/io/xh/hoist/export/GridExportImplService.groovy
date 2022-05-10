@@ -202,13 +202,13 @@ class GridExportImplService extends BaseService {
                 type = metadata.type
 
                 value = value?.toString()
-                format = format?.toString()
-                type = type?.toString()
+                format = format?.toString() ?: 'General'
+                type = type?.toString() ?: 'auto'
 
                 // Set a default excel format for DATE and LOCAL_DATE typed values
-                if (type == 'localDate' && (format == null || format == 'General')) {
+                if (type == 'localDate' && format == 'General') {
                     format = 'yyyy-mm-dd'
-                } else if (type == 'date' && (format == null || format == 'General')) {
+                } else if (type == 'date' && format == 'General') {
                     format = 'yyyy-mm-dd h:mm AM/PM'
                 }
 
@@ -234,7 +234,9 @@ class GridExportImplService extends BaseService {
                             value = LocalDate.parse(value)
                         } else if (type == 'date' || format == 'yyyy-mm-dd h:mm AM/PM') {
                             value = new SimpleDateFormat().parse(value)
-                        } else if (type == 'int' || type == 'number' || format?.contains('0')) {
+                        } else if (type == 'int' || format == '0') {
+                            value = value.toInteger()
+                        } else if (type == 'number' || format.contains('0')) {
                             value = value.toDouble()
                         } else if (type == 'bool') {
                             value = value.toBoolean()
