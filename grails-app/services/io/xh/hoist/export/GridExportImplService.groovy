@@ -193,14 +193,13 @@ class GridExportImplService extends BaseService {
                 // Collect cell value, format, and type
                 def value, format, type
                 if (data instanceof Map) {
-                    value = data?.value
-                    format = data?.format ?: metadata.format
-                    type = data?.type ?: metadata.type
+                    value = data.value
+                    format = data.format ?: metadata.format
                 } else {
                     value = data
-                    format = metadata?.format
-                    type = metadata?.type
+                    format = metadata.format
                 }
+                type = metadata.type
 
                 value = value?.toString()
                 format = format?.toString()
