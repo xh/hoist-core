@@ -231,13 +231,13 @@ class GridExportImplService extends BaseService {
                 } else {
                     // Set cell value from type (FieldType from Field.js) or format (ExcelFormat.js), otherwise default to text
                     try {
-                        if (type == FieldType.LOCAL_DATE || format == ExcelFormat.DATE_FMT) {
-                            // Defaults to ISO local date format, which is 'yyyy-MM-dd'
-                            value = LocalDate.parse(value)
-                        } else if (type == FieldType.DATE || format == ExcelFormat.DATETIME_FMT) {
+                        if (type == FieldType.DATE || format == ExcelFormat.DATETIME_FMT) {
                             // Note that the format string for SimpleDateFormat (called here using Groovy's
                             // DateUtilStaticExtension) is slightly different from js and excel date formatting
                             value = Date.parse('yyyy-MM-dd HH:mm:ss', value)
+                        } else if (type == FieldType.LOCAL_DATE || format == ExcelFormat.DATE_FMT) {
+                            // Defaults to ISO local date format, which is 'yyyy-MM-dd'
+                            value = LocalDate.parse(value)
                         } else if (type == FieldType.INT || format == ExcelFormat.NUM) {
                             value = value.toInteger()
                         } else if (type == FieldType.NUMBER || format.toString().contains('0')) { // Looks for any of the numeric ExcelFormats
