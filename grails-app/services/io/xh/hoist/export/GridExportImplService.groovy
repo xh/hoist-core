@@ -201,15 +201,16 @@ class GridExportImplService extends BaseService {
                 }
                 type = metadata.type
 
+                // Parse format and type into their respective enums
                 value = value?.toString()
-                format = format?.toString() ?: 'General'
-                type = type?.toString() ?: 'auto'
+                format = ExcelFormat.parse(format?.toString()) ?: ExcelFormat.DEFAULT
+                type = FieldType.parse(type?.toString()) ?: FieldType.AUTO
 
                 // Set a default excel format for DATE and LOCAL_DATE typed values
-                if (type == 'localDate' && format == 'General') {
-                    format = 'yyyy-mm-dd'
-                } else if (type == 'date' && format == 'General') {
-                    format = 'yyyy-mm-dd h:mm AM/PM'
+                if (type == FieldType.LOCAL_DATE && format == ExcelFormat.DEFAULT) {
+                    format = ExcelFormat.DATE_FMT
+                } else if (type == FieldType.DATE && format == ExcelFormat.DEFAULT) {
+                    format = ExcelFormat.DATETIME_FMT
                 }
 
                 // Set cell data format (skipping column headers)
@@ -217,7 +218,7 @@ class GridExportImplService extends BaseService {
                 // generation of cell styles on workbook (max. 64,000)
                 if (i > 0 && format) {
                     int depth = rowMap.depth ?: 0
-                    String styleKey = format + '|' + depth.toString()
+                    String styleKey = format.toString() + '|' + depth.toString()
                     if (!styles[styleKey]) {
                         styles[styleKey] = registerCellStyleForFormat(wb, format, grouped ? groupColors[depth] : null)
                     }
@@ -230,15 +231,18 @@ class GridExportImplService extends BaseService {
                 } else {
                     // Set cell value from type (FieldType from Field.js) or format (ExcelFormat.js), otherwise default to text
                     try {
-                        if (type == 'localDate' || format == 'yyyy-mm-dd') {
+                        if (type == FieldType.LOCAL_DATE || format == ExcelFormat.DATE_FMT) {
+                            // Defaults to ISO local date format, which is 'yyyy-MM-dd'
                             value = LocalDate.parse(value)
-                        } else if (type == 'date' || format == 'yyyy-mm-dd h:mm AM/PM') {
-                            value = new SimpleDateFormat().parse(value)
-                        } else if (type == 'int' || format == '0') {
+                        } else if (type == FieldType.DATE || format == ExcelFormat.DATETIME_FMT) {
+                            // Note that the format string for SimpleDateFormat (called here using Groovy's
+                            // DateUtilStaticExtension) is slightly different from js and excel date formatting
+                            value = Date.parse('yyyy-MM-dd HH:mm:ss', value)
+                        } else if (type == FieldType.INT || format == ExcelFormat.NUM) {
                             value = value.toInteger()
-                        } else if (type == 'number' || format.contains('0')) {
+                        } else if (type == FieldType.NUMBER || format.toString().contains('0')) { // Looks for any of the numeric ExcelFormats
                             value = value.toDouble()
-                        } else if (type == 'bool') {
+                        } else if (type == FieldType.BOOL) {
                             value = value.toBoolean()
                         }
                     } catch (Exception ex) {
@@ -305,9 +309,9 @@ class GridExportImplService extends BaseService {
 
     private XSSFCellStyle registerCellStyleForFormat(wb, format, colorGroup) {
         XSSFCellStyle style = wb.createCellStyle()
-        if (format == 'Text') style.setWrapText(true)
+        if (format == ExcelFormat.LONG_TEXT) style.setWrapText(true)
         style.setVerticalAlignment(VerticalAlignment.CENTER)
-        style.setDataFormat(wb.createDataFormat().getFormat(format))
+        style.setDataFormat(wb.createDataFormat().getFormat(format.toString()))
 
         // If rendering grouped data into a table, set background color based on depth.
         // Note the confusing use of `ForegroundColor` to set background color below. This is because
