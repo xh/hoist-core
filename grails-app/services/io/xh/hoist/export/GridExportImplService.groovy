@@ -71,6 +71,11 @@ class GridExportImplService extends BaseService {
     //------------------------
     // Implementation
     //------------------------
+    // FieldType from Field.js in Hoist-React
+    private final static def FieldType = [AUTO: 'auto', BOOL: 'bool', DATE: 'date', INT: 'int', LOCAL_DATE: 'localDate', NUMBER: 'number', STRING: 'string'].asImmutable()
+    // ExcelFormat from ExcelFormat.js in Hoist-React
+    private final static def ExcelFormat = [LONG_TEXT: 'Text'].asImmutable()
+
     private byte[] getFileData(String type, List rows, List meta) {
         switch(type) {
             case 'excel':
@@ -195,30 +200,24 @@ class GridExportImplService extends BaseService {
                 if (data instanceof Map) {
                     value = data.value
                     format = data.format ?: metadata.format
+                    type = data.type ?: metadata.type
                 } else {
                     value = data
                     format = metadata.format
+                    type = metadata.type
                 }
-                type = metadata.type
 
                 // Parse format and type into their respective enums
                 value = value?.toString()
-                format = ExcelFormat.parse(format?.toString()) ?: ExcelFormat.DEFAULT
-                type = FieldType.parse(type?.toString()) ?: FieldType.AUTO
-
-                // Set a default excel format for DATE and LOCAL_DATE typed values
-                if (type == FieldType.LOCAL_DATE && format == ExcelFormat.DEFAULT) {
-                    format = ExcelFormat.DATE_FMT
-                } else if (type == FieldType.DATE && format == ExcelFormat.DEFAULT) {
-                    format = ExcelFormat.DATETIME_FMT
-                }
+                format = format.toString()
+                type = type.toString()
 
                 // Set cell data format (skipping column headers)
                 // Cache style based on format and depth (for group colors) in order to prevent costly or prohibited
                 // generation of cell styles on workbook (max. 64,000)
                 if (i > 0 && format) {
                     int depth = rowMap.depth ?: 0
-                    String styleKey = format.toString() + '|' + depth.toString()
+                    String styleKey = format + '|' + depth.toString()
                     if (!styles[styleKey]) {
                         styles[styleKey] = registerCellStyleForFormat(wb, format, grouped ? groupColors[depth] : null)
                     }
@@ -229,18 +228,18 @@ class GridExportImplService extends BaseService {
                     // Column headers and empty values ignore metadata
                     cell.setCellValue(value)
                 } else {
-                    // Set cell value from type (FieldType from Field.js) or format (ExcelFormat.js), otherwise default to text
+                    // Set cell value using type (FieldType from Field.js), otherwise default to text
                     try {
-                        if (type == FieldType.DATE || format == ExcelFormat.DATETIME_FMT) {
+                        if (type == FieldType.DATE) {
                             // Note that the format string for SimpleDateFormat (called here using Groovy's
                             // DateUtilStaticExtension) is slightly different from js and excel date formatting
                             value = Date.parse('yyyy-MM-dd HH:mm:ss', value)
-                        } else if (type == FieldType.LOCAL_DATE || format == ExcelFormat.DATE_FMT) {
+                        } else if (type == FieldType.LOCAL_DATE) {
                             // Defaults to ISO local date format, which is 'yyyy-MM-dd'
                             value = LocalDate.parse(value)
-                        } else if (type == FieldType.INT || format == ExcelFormat.NUM) {
+                        } else if (type == FieldType.INT) {
                             value = value.toInteger()
-                        } else if (type == FieldType.NUMBER || format.toString().contains('0')) { // Looks for any of the numeric ExcelFormats
+                        } else if (type == FieldType.NUMBER) {
                             value = value.toDouble()
                         } else if (type == FieldType.BOOL) {
                             value = value.toBoolean()
