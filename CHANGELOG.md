@@ -1,5 +1,10 @@
 # Changelog
 
+## 14.0.0-SNAPSHOT - unreleased
+
+### 🐞 Bug Fixes
+* Fixed a bug with impersonation not being properly ended, causing the ex-impersonator's session to break upon server restart.
+
 ## 13.2.0 - 2022-04-28
 
 ### 🎁 New Features
