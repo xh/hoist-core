@@ -1,5 +1,11 @@
 # Changelog
 
+## 13.2.1 - 2022-05-26
+
+### 🐞 Bug Fixes
+* Fix to regression in implementation `clearCachesConfigs`
+
+
 ## 13.2.0 - 2022-04-28
 
 ### 🎁 New Features
