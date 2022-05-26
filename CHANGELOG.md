@@ -3,7 +3,8 @@
 ## 13.2.1 - 2022-05-26
 
 ### 🐞 Bug Fixes
-* Fix to regression in implementation of `clearCachesConfigs`
+* Fixed a bug with impersonation not being properly ended, causing the ex-impersonator's session to break upon server restart.
+* Fixed a bug in implementation of `clearCachesConfigs`
 
 
 ## 13.2.0 - 2022-04-28
