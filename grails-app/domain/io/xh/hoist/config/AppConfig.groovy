@@ -7,6 +7,7 @@
 
 package io.xh.hoist.config
 
+import grails.events.EventPublisher
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.util.Utils
@@ -14,7 +15,9 @@ import org.jasypt.util.password.ConfigurablePasswordEncryptor
 import org.jasypt.util.text.BasicTextEncryptor
 import org.jasypt.util.text.TextEncryptor
 
-class AppConfig implements JSONFormat {
+import static grails.async.Promises.task
+
+class AppConfig implements JSONFormat, EventPublisher {
 
     static private final TextEncryptor encryptor = createEncryptor()
     static private final ConfigurablePasswordEncryptor digestEncryptor = createDigestEncryptor()
@@ -88,7 +91,18 @@ class AppConfig implements JSONFormat {
     }
 
     def beforeInsert() {encryptIfPwd(true)}
-    def beforeUpdate() {encryptIfPwd(false)}
+    def beforeUpdate() {
+        encryptIfPwd(false)
+
+        // Note:  Use beforeUpdate instead of afterUpdate, because easier to identify
+        // This is post validation. called with a delay to make sure the new value has time to propagate
+        if (hasChanged('value')) {
+            task {
+                Thread.sleep(500)
+                notify('xhConfigChanged', [key: name, value: externalValue()])
+            }
+        }
+    }
 
     private encryptIfPwd(boolean isInsert) {
         if (valueType == 'pwd' && (hasChanged('value') || isInsert)) {

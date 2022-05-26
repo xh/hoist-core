@@ -8,14 +8,11 @@
 package io.xh.hoist.config
 
 import grails.compiler.GrailsCompileStatic
-import grails.events.annotation.Subscriber
 import grails.gorm.transactions.Transactional
 import grails.gorm.transactions.ReadOnly
 import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
-import org.grails.datastore.mapping.engine.event.PreUpdateEvent
 import grails.events.*
-import static grails.async.Promises.task
 
 import static io.xh.hoist.json.JSONSerializer.serializePretty
 
@@ -176,28 +173,4 @@ class ConfigService extends BaseService implements EventPublisher {
         }
         return c.externalValue(decryptPassword: true, jsonAsObject: true)
     }
-
-    //------------------------------------------------------------------------------
-    // Listen to Changes to AppConfig object to generate 'xhConfigChanged'
-    //
-    // Note:  Use beforeUpdate instead of afterUpdate, because easier to identify
-    // what changed (rare extra event for aborted updates preferable to complexity)
-    //------------------------------------------------------------------------------
-    @Subscriber
-    void beforeUpdate(PreUpdateEvent event) {
-        if (!(event.entityObject instanceof AppConfig)) return
-
-        def obj = (AppConfig) event.entityObject,
-            changed = obj.hasChanged('value'),
-            newVal = obj.externalValue()
-
-        if (changed) {
-            // notify is called in a new thread and with a delay to make sure the newVal has had the time to propagate
-            task {
-                Thread.sleep(500)
-                notify('xhConfigChanged', [key: obj.name, value: newVal])
-            }
-        }
-    }
-
 }
