@@ -3,7 +3,7 @@
 ## 13.2.1 - 2022-05-26
 
 ### 🐞 Bug Fixes
-* Fix to regression in implementation `clearCachesConfigs`
+* Fix to regression in implementation of `clearCachesConfigs`
 
 
 ## 13.2.0 - 2022-04-28

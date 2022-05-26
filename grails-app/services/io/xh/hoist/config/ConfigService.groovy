@@ -156,6 +156,9 @@ class ConfigService extends BaseService implements EventPublisher {
         logDebug("Validated presense of ${reqConfigs.size()} required configs", "created ${created}")
     }
 
+    void fireConfigChanged(AppConfig obj) {
+        notify('xhConfigChanged', [key: obj.name, value: obj.externalValue()])
+    }
 
     //-------------------
     //  Implementation
