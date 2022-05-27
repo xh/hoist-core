@@ -1,9 +1,11 @@
 # Changelog
 
-## 14.0.0-SNAPSHOT - unreleased
+## 13.2.1 - 2022-05-26
 
 ### 🐞 Bug Fixes
 * Fixed a bug with impersonation not being properly ended, causing the ex-impersonator's session to break upon server restart.
+* Fixed a bug in implementation of `clearCachesConfigs`
+
 
 ## 13.2.0 - 2022-04-28
 

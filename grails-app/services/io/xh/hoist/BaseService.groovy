@@ -164,7 +164,10 @@ abstract class BaseService implements IdentitySupport, LogSupport, DisposableBea
 
         if (deps) {
             subscribe('xhConfigChanged') {Map ev ->
-                if (deps.contains(ev.key)) clearCaches()
+                if (deps.contains(ev.key)) {
+                    logInfo("Clearing caches due to config change", ev.key)
+                    clearCaches()
+                }
             }
         }
     }
