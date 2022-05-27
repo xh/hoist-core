@@ -1,6 +1,6 @@
 # Changelog
 
-## 13.2.1 - 2022-05-26
+## 13.2.1 - 2022-05-27
 
 ### 🐞 Bug Fixes
 * Fixed a bug with impersonation not being properly ended, causing the ex-impersonator's session to break upon server restart.
