@@ -6,6 +6,7 @@
 * Fixed a bug with impersonation not being properly ended, causing the ex-impersonator's session to break upon server restart.
 * Fixed a bug in implementation of `clearCachesConfigs`
 
+[Commit Log](https://github.com/xh/hoist-core/compare/v13.2.0...13.2.1)
 
 ## 13.2.0 - 2022-04-28
 
