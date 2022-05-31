@@ -120,7 +120,7 @@ class IdentityService extends BaseService {
         if (apparentUser != authUser) {
             trackImpersonate("Stopped impersonation", [target: apparentUser.username])
             logInfo("User '$authUser.username' has stopped impersonating user '$apparentUser.username'")
-            request.session[APPARENT_USER_KEY] = authUser
+            request.session[APPARENT_USER_KEY] = authUser.username
         }
     }
 

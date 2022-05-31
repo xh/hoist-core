@@ -147,7 +147,7 @@ trait LogSupport {
     }
 
     private Object withTraceInternal(Logger log, Object msgs, Closure c) {
-        log.debugEnabled ? loggedDo(log, DEBUG,  msgs, c) : c.call()
+        log.traceEnabled ? loggedDo(log, TRACE,  msgs, c) : c.call()
     }
 
     private Object loggedDo(Logger log, Level level, Object msgs, Closure c) {
