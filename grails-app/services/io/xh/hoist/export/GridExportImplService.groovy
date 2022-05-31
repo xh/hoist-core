@@ -8,8 +8,6 @@
 package io.xh.hoist.export
 
 import io.xh.hoist.BaseService
-import org.apache.poi.sl.usermodel.TextRun
-import org.apache.poi.ss.usermodel.ExcelNumberFormat
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.usermodel.Sheet
@@ -27,7 +25,6 @@ import org.openxmlformats.schemas.spreadsheetml.x2006.main.*
 
 import java.awt.Color
 import java.awt.GraphicsEnvironment
-import java.text.SimpleDateFormat
 import java.time.LocalDate
 
 /**
@@ -195,22 +192,18 @@ class GridExportImplService extends BaseService {
                 Map metadata = meta[colIndex]
                 Cell cell = row.createCell(colIndex)
 
-                // Collect cell value, format, and type
-                def value, format, type
+                // Collect cell value and cell format
+                def value, format
                 if (data instanceof Map) {
-                    value = data.value
-                    format = data.format ?: metadata.format
-                    type = data.type ?: metadata.type
+                    value = data?.value
+                    format = data?.format ?: metadata.format
                 } else {
                     value = data
                     format = metadata.format
-                    type = metadata.type
                 }
 
-                // Parse format and type into their respective enums
                 value = value?.toString()
                 format = format.toString()
-                type = type.toString()
 
                 // Set cell data format (skipping column headers)
                 // Cache style based on format and depth (for group colors) in order to prevent costly or prohibited
@@ -229,6 +222,7 @@ class GridExportImplService extends BaseService {
                     cell.setCellValue(value)
                 } else {
                     // Set cell value using type (FieldType from Field.js), otherwise default to text
+                    def type = metadata.type.toString()
                     try {
                         if (type == FieldType.DATE) {
                             // Note that the format string for SimpleDateFormat (called here using Groovy's
