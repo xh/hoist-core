@@ -2,6 +2,10 @@
 
 ## 14.0-SNAPSHOT - unreleased
 
+### 🐞 Bug Fixes
+* Fixed issue where exporting to excel file would occasionally coerce strings (like "1e10") into
+  numbers. Use with `hoist-react >= 49.2` for the fixed behavior.
+
 ## 13.2.1 - 2022-05-27
 
 ### 🐞 Bug Fixes
@@ -11,10 +15,6 @@
 [Commit Log](https://github.com/xh/hoist-core/compare/v13.2.0...13.2.1)
 
 ## 13.2.0 - 2022-04-28
-
-### 🐞 Bug Fixes
-* Fixed issue where exporting to excel file would occasionally coerce strings (like "1e10") into
-  numbers. Use with `hoist-react >= 49.0` for the fixed behavior.
 
 ### 🎁 New Features
 * Admin log file listing includes size and last modified date, visible with optional upgrade to `hoist-react >= 48.0`.
