@@ -203,7 +203,6 @@ class GridExportImplService extends BaseService {
                 }
 
                 value = value?.toString()
-                format = format.toString()
 
                 // Set cell data format (skipping column headers)
                 // Cache style based on format and depth (for group colors) in order to prevent costly or prohibited
@@ -222,7 +221,7 @@ class GridExportImplService extends BaseService {
                     cell.setCellValue(value)
                 } else {
                     // Set cell value using type (FieldType from Field.js), otherwise default to text
-                    def type = metadata.type.toString()
+                    def type = metadata.type
                     try {
                         if (type == FieldType.DATE) {
                             // Note that the format string for SimpleDateFormat (called here using Groovy's
@@ -239,7 +238,9 @@ class GridExportImplService extends BaseService {
                             value = value.toBoolean()
                         }
                     } catch (Exception ex) {
-                        logTrace("Error parsing value $value for declared type ${type} and format ${format}", ex.message)
+                        if (valueParseFailures < 100) {
+                            logTrace("Error parsing value $value for declared type ${type} and format ${format}", ex.message)
+                        }
                         valueParseFailures++
                     }
                     cell.setCellValue(value)
