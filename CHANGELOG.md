@@ -1,6 +1,12 @@
 # Changelog
 
-## 14.0-SNAPSHOT - unreleased
+## 13.2.2 - 2022-06-14
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v13.2.1...13.2.2)
+
+### 🐞 Bug Fixes
+
+* Fixed a bug with JSON Blob diffing.
 
 ## 13.2.1 - 2022-05-27
 
