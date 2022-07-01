@@ -1184,7 +1184,7 @@ exposing them to the application as a map.
 
 ------------------------------------------
 
-Copyright © 2021 Extremely Heavy Industries Inc. - all rights reserved
+Copyright © 2022 Extremely Heavy Industries Inc. - all rights reserved
 
 ------------------------------------------
 
