@@ -2,9 +2,11 @@
 
 ## 14.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes
+* Requires `hoist-react >= 50.0`. Exporting to Excel defaults to using column FieldType.
+
 ### 🐞 Bug Fixes
-* Fixed issue where exporting to excel file would occasionally coerce strings (like "1e10") into
-  numbers. Use with `hoist-react >= 49.2` for the fixed behavior.
+* Fixed exporting to Excel file erroneously coercing certain strings (like "1e10") into numbers.
 
 ## 13.2.1 - 2022-05-27
 
