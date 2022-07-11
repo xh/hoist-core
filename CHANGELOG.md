@@ -2,6 +2,12 @@
 
 ## 14.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+* New method on `BaseController` `runAsync` provides support for asynchronous controllers
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v13.2.2...develop)
+
+
 ## 13.2.2 - 2022-06-14
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v13.2.1...v13.2.2)

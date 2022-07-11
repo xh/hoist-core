@@ -7,7 +7,8 @@
 
 package io.xh.hoist
 
-
+import grails.async.Promise
+import grails.async.web.WebPromises
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.xh.hoist.exception.ExceptionRenderer
@@ -27,6 +28,14 @@ abstract class BaseController implements IdentitySupport, LogSupport {
     protected void renderJSON(Object o){
         response.setContentType('application/json; charset=UTF-8')
         render (JSONSerializer.serialize(o))
+    }
+
+    protected Promise runAsync(Closure c) {
+        WebPromises.task {
+            c.call()
+        }.onError { Throwable t ->
+            exceptionRenderer.handleException(t, request, response, this)
+        }
     }
 
     HoistUser getUser()         {identityService.user}
