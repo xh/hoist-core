@@ -5,16 +5,21 @@
 ### 🎁 New Features
 * New method on `BaseController` `runAsync` provides support for asynchronous controllers
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v13.2.2...develop)
+### 🐞 Bug Fixes
+* Fixed exporting to Excel file erroneously coercing certain strings (like "1e10") into numbers.
 
+### 💥 Breaking Changes
+* Requires `hoist-react >= 50.0`. Exporting to Excel defaults to using column FieldType.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v13.2.2...develop)
 
 ## 13.2.2 - 2022-06-14
 
+### 🐞 Bug Fixes
+* Fixed a bug with JSON Blob diffing.
+
 [Commit Log](https://github.com/xh/hoist-core/compare/v13.2.1...v13.2.2)
 
-### 🐞 Bug Fixes
-
-* Fixed a bug with JSON Blob diffing.
 
 ## 13.2.1 - 2022-05-27
 

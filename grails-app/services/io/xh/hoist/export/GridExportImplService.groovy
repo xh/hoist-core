@@ -25,6 +25,7 @@ import org.openxmlformats.schemas.spreadsheetml.x2006.main.*
 
 import java.awt.Color
 import java.awt.GraphicsEnvironment
+import java.time.LocalDate
 
 /**
  * Service to export row data to Excel or CSV.
@@ -67,6 +68,11 @@ class GridExportImplService extends BaseService {
     //------------------------
     // Implementation
     //------------------------
+    // FieldType from Field.js in Hoist-React
+    private final static def FieldType = [AUTO: 'auto', BOOL: 'bool', DATE: 'date', INT: 'int', LOCAL_DATE: 'localDate', NUMBER: 'number', STRING: 'string'].asImmutable()
+    // ExcelFormat from ExcelFormat.js in Hoist-React
+    private final static def ExcelFormat = [LONG_TEXT: 'Text'].asImmutable()
+
     private byte[] getFileData(String type, List rows, List meta) {
         switch(type) {
             case 'excel':
@@ -190,11 +196,12 @@ class GridExportImplService extends BaseService {
                 def value, format
                 if (data instanceof Map) {
                     value = data?.value
-                    format = data?.format
+                    format = data?.format ?: metadata.format
                 } else {
                     value = data
                     format = metadata.format
                 }
+
                 value = value?.toString()
 
                 // Set cell data format (skipping column headers)
@@ -213,22 +220,29 @@ class GridExportImplService extends BaseService {
                     // Column headers and empty values ignore metadata
                     cell.setCellValue(value)
                 } else {
-                    // Set cell value from type
+                    // Set cell value using type (FieldType from Field.js), otherwise default to text
+                    def type = metadata.type
                     try {
-                        if (metadata.type == 'date') {
-                            value = Date.parse('yyyy-MM-dd', value)
-                        } else if (metadata.type == 'datetime') {
+                        if (type == FieldType.DATE) {
+                            // Note that the format string for SimpleDateFormat (called here using Groovy's
+                            // DateUtilStaticExtension) is slightly different from js and excel date formatting
                             value = Date.parse('yyyy-MM-dd HH:mm:ss', value)
-                        } else if (metadata.type == 'int' || (!metadata.type && value.isInteger())) {
+                        } else if (type == FieldType.LOCAL_DATE) {
+                            // Defaults to ISO local date format, which is 'yyyy-MM-dd'
+                            value = LocalDate.parse(value)
+                        } else if (type == FieldType.INT) {
                             value = value.toInteger()
-                        } else if (metadata.type == 'double' || (!metadata.type && value.isDouble())) {
+                        } else if (type == FieldType.NUMBER) {
                             value = value.toDouble()
+                        } else if (type == FieldType.BOOL) {
+                            value = value.toBoolean()
                         }
                     } catch (Exception ex) {
-                        logTrace("Error parsing value $value for declared type ${metadata.type}", ex.message)
+                        if (valueParseFailures < 100) {
+                            logTrace("Error parsing value $value for declared type ${type} and format ${format}", ex.message)
+                        }
                         valueParseFailures++
                     }
-
                     cell.setCellValue(value)
                 }
 
@@ -289,9 +303,9 @@ class GridExportImplService extends BaseService {
 
     private XSSFCellStyle registerCellStyleForFormat(wb, format, colorGroup) {
         XSSFCellStyle style = wb.createCellStyle()
-        if (format == 'Text') style.setWrapText(true)
+        if (format == ExcelFormat.LONG_TEXT) style.setWrapText(true)
         style.setVerticalAlignment(VerticalAlignment.CENTER)
-        style.setDataFormat(wb.createDataFormat().getFormat(format))
+        style.setDataFormat(wb.createDataFormat().getFormat(format.toString()))
 
         // If rendering grouped data into a table, set background color based on depth.
         // Note the confusing use of `ForegroundColor` to set background color below. This is because
