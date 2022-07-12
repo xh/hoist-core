@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.admin
@@ -28,7 +28,7 @@ class EhCacheAdminController extends BaseController {
                         evictionPolicy: cache.memoryStoreEvictionPolicy.name,
                         status: cache.status.toString()
                 ]
-            }    
+            }
         }
 
         renderJSON(caches)
@@ -58,5 +58,5 @@ class EhCacheAdminController extends BaseController {
         cacheManager.clearAllStartingWith(name)
         logInfo('Cleared hibernate cache: ' + name)
     }
-    
+
 }

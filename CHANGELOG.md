@@ -2,11 +2,24 @@
 
 ## 14.0-SNAPSHOT - unreleased
 
-### 💥 Breaking Changes
-* Requires `hoist-react >= 50.0`. Exporting to Excel defaults to using column FieldType.
+### 🎁 New Features
+* New method on `BaseController` `runAsync` provides support for asynchronous controllers
 
 ### 🐞 Bug Fixes
 * Fixed exporting to Excel file erroneously coercing certain strings (like "1e10") into numbers.
+
+### 💥 Breaking Changes
+* Requires `hoist-react >= 50.0`. Exporting to Excel defaults to using column FieldType.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v13.2.2...develop)
+
+## 13.2.2 - 2022-06-14
+
+### 🐞 Bug Fixes
+* Fixed a bug with JSON Blob diffing.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v13.2.1...v13.2.2)
+
 
 ## 13.2.1 - 2022-05-27
 
@@ -14,14 +27,14 @@
 * Fixed a bug with impersonation not being properly ended, causing the ex-impersonator's session to break upon server restart.
 * Fixed a bug in implementation of `clearCachesConfigs`
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v13.2.0...13.2.1)
+[Commit Log](https://github.com/xh/hoist-core/compare/v13.2.0...v13.2.1)
 
 ## 13.2.0 - 2022-04-28
 
 ### 🎁 New Features
 * Admin log file listing includes size and last modified date, visible with optional upgrade to `hoist-react >= 48.0`.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v13.1.0...13.2.0)
+[Commit Log](https://github.com/xh/hoist-core/compare/v13.1.0...v13.2.0)
 
 ## 13.1.0 - 2022-02-03
 
@@ -32,7 +45,7 @@
 ### 🐞 Bug Fixes
 * Fix to regressions in Excel exports and logging due to changes in Groovy `list()` API.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v13.0.6...13.1.0)
+[Commit Log](https://github.com/xh/hoist-core/compare/v13.0.6...v13.1.0)
 
 ## 13.0.6 - 2022-01-13
 
@@ -45,7 +58,7 @@ directly on the client may need to be updated accordingly.
 ### 🐞 Bug Fixes
 * Fix to Regressions in JsonBlobService/AlertBannerService
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v13.0.5...13.0.6)
+[Commit Log](https://github.com/xh/hoist-core/compare/v13.0.5...v13.0.6)
 
 ## 13.0.5 - 2022-01-11
 
@@ -97,7 +110,7 @@ for the application-level changes to core configuration files and dependencies.
 * Hoist JSON Validation now uses the same Jackson configuration used by `JSONParser`.
 * The optional `withHibernate` argument to `Timer` is obsolete and no longer needed.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v11.0.3...13.0.5)
+[Commit Log](https://github.com/xh/hoist-core/compare/v11.0.3...v13.0.5)
 
 ## 11.0.3 - 2021-12-10
 
@@ -1182,7 +1195,7 @@ exposing them to the application as a map.
 
 ------------------------------------------
 
-Copyright © 2021 Extremely Heavy Industries Inc. - all rights reserved
+Copyright © 2022 Extremely Heavy Industries Inc. - all rights reserved
 
 ------------------------------------------
 
