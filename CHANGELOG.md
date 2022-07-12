@@ -1,6 +1,6 @@
 # Changelog
 
-## 14.0-SNAPSHOT - unreleased
+## 14.0.0 - 2022-07-12
 
 ### 🎁 New Features
 * New method on `BaseController` `runAsync` provides support for asynchronous controllers
@@ -11,7 +11,7 @@
 ### 💥 Breaking Changes
 * Requires `hoist-react >= 50.0`. Exporting to Excel defaults to using column FieldType.
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v13.2.2...develop)
+[Commit Log](https://github.com/xh/hoist-core/compare/v13.2.2..v14.0.0)
 
 ## 13.2.2 - 2022-06-14
 
