@@ -2,6 +2,9 @@
 
 ## 15.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+* Enable apps to use .gsp files
+
 ## 14.0.0 - 2022-07-12
 
 ### 🎁 New Features
