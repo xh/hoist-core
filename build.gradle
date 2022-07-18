@@ -48,7 +48,7 @@ dependencies {
     api "org.grails.plugins:hibernate5"
     api "org.grails.plugins:events"
     api "org.grails.plugins:mail:3.0.0"
-    implementation "org.grails.plugins:gsp:5.2.1"
+    api "org.grails.plugins:gsp"
 
     runtimeOnly "org.glassfish.web:el-impl:2.2.1-b05"
     runtimeOnly "javax.xml.bind:jaxb-api:2.3.1"
