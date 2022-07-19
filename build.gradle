@@ -15,7 +15,6 @@ group 'io.xh'
 apply plugin:'idea'
 apply plugin:'org.grails.grails-plugin'
 apply plugin:'java-library'
-apply plugin:"org.grails.grails-gsp"
 
 repositories {
     mavenLocal()
@@ -48,8 +47,7 @@ dependencies {
     api "org.grails.plugins:hibernate5"
     api "org.grails.plugins:events"
     api "org.grails.plugins:mail:3.0.0"
-    api "org.grails.plugins:gsp"
-
+    
     runtimeOnly "org.glassfish.web:el-impl:2.2.1-b05"
     runtimeOnly "javax.xml.bind:jaxb-api:2.3.1"
 
