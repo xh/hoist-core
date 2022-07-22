@@ -11,6 +11,7 @@ import groovy.transform.CompileStatic
 
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
 
 import static java.time.format.DateTimeFormatter.BASIC_ISO_DATE
 
@@ -43,32 +44,40 @@ class DateTimeUtils {
         return Utils.environmentService.appTimeZone
     }
 
+    static ZoneId getAppZoneId() {
+        return appTimeZone.toZoneId()
+    }
+
     static TimeZone getServerTimeZone() {
         return Utils.environmentService.serverTimeZone
     }
 
-    static LocalDate appDay(Date dt) {
-        dt.toInstant().atZone(appTimeZone.toZoneId()).toLocalDate()
+    static ZoneId getServerZoneId() {
+        return serverTimeZone.toZoneId()
     }
 
-    static LocalDate serverDay(Date dt) {
-        dt.toInstant().atZone(serverTimeZone.toZoneId()).toLocalDate()
+    static LocalDate appDay(Date forDate = null) {
+        forDate ? forDate.toInstant().atZone(appZoneId).toLocalDate() : LocalDate.now(appZoneId)
     }
 
-    static Date appStartOfDay(LocalDate localDate) {
-        Date.from(localDate.atStartOfDay().atZone(appTimeZone.toZoneId()).toInstant())
+    static LocalDate serverDay(Date forDate = null) {
+        forDate ? forDate.toInstant().atZone(serverZoneId).toLocalDate() : LocalDate.now(serverZoneId)
     }
 
-    static Date serverStartOfDay(LocalDate localDate) {
-        Date.from(localDate.atStartOfDay().atZone(serverTimeZone.toZoneId()).toInstant())
+    static Date appStartOfDay(LocalDate localDate = LocalDate.now(appZoneId)) {
+        Date.from(localDate.atStartOfDay().atZone(appZoneId).toInstant())
     }
 
-    static Date appEndOfDay(LocalDate localDate) {
-        Date.from(localDate.atTime(LocalTime.MAX).atZone(appTimeZone.toZoneId()).toInstant())
+    static Date serverStartOfDay(LocalDate localDate = LocalDate.now(serverZoneId)) {
+        Date.from(localDate.atStartOfDay().atZone(serverZoneId).toInstant())
     }
 
-    static Date serverEndOfDay(LocalDate localDate) {
-        Date.from(localDate.atTime(LocalTime.MAX).atZone(serverTimeZone.toZoneId()).toInstant())
+    static Date appEndOfDay(LocalDate localDate = LocalDate.now(appZoneId)) {
+        Date.from(localDate.atTime(LocalTime.MAX).atZone(appZoneId).toInstant())
+    }
+
+    static Date serverEndOfDay(LocalDate localDate = LocalDate.now(serverZoneId)) {
+        Date.from(localDate.atTime(LocalTime.MAX).atZone(serverZoneId).toInstant())
     }
 
     /**

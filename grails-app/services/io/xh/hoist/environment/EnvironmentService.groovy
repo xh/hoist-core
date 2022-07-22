@@ -11,6 +11,7 @@ import grails.plugins.GrailsPlugin
 import grails.util.GrailsUtil
 import grails.util.Holders
 import io.xh.hoist.BaseService
+import io.xh.hoist.util.DateTimeUtils
 import io.xh.hoist.util.Utils
 
 /**
@@ -64,8 +65,10 @@ class EnvironmentService extends BaseService {
                 javaVersion:            System.getProperty('java.version'),
                 serverTimeZone:         serverTz.toZoneId().id,
                 serverTimeZoneOffset:   serverTz.getOffset(now),
+                serverDay:              DateTimeUtils.serverDay(),
                 appTimeZone:            appTz.toZoneId().id,
                 appTimeZoneOffset:      appTz.getOffset(now),
+                appDay:                 DateTimeUtils.appDay(),
                 webSocketsEnabled:      webSocketService.enabled,
         ]
 
