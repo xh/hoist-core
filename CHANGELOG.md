@@ -2,6 +2,8 @@
 
 ## 15.0-SNAPSHOT - unreleased
 
+###  ⚙️ Technical
+* `DateTimeUtils` app/server timezone conversion utils default to current day/date if called without arguments.
 
 ## 14.0.0 - 2022-07-12
 
@@ -22,7 +24,6 @@
 * Fixed a bug with JSON Blob diffing.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v13.2.1...v13.2.2)
-
 
 ## 13.2.1 - 2022-05-27
 
