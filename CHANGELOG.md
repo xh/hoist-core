@@ -2,18 +2,25 @@
 
 ## 15.0-SNAPSHOT - unreleased
 
-###  ⚙️ Technical
+### ⚙️ Technical
+
+* `PrefService.getClientConfig()` has been optimized to reduce the number of database calls. Previously one select was
+  issued per non-local preference when the second-level query cache was cold for a given user. Now only a single select
+  is required.
 * `DateTimeUtils` app/server timezone conversion utils default to current day/date if called without arguments.
 
 ## 14.0.0 - 2022-07-12
 
 ### 🎁 New Features
+
 * New method on `BaseController` `runAsync` provides support for asynchronous controllers
 
 ### 🐞 Bug Fixes
+
 * Fixed exporting to Excel file erroneously coercing certain strings (like "1e10") into numbers.
 
 ### 💥 Breaking Changes
+
 * Requires `hoist-react >= 50.0`. Exporting to Excel defaults to using column FieldType.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v13.2.2..v14.0.0)
@@ -21,6 +28,7 @@
 ## 13.2.2 - 2022-06-14
 
 ### 🐞 Bug Fixes
+
 * Fixed a bug with JSON Blob diffing.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v13.2.1...v13.2.2)
@@ -28,7 +36,8 @@
 ## 13.2.1 - 2022-05-27
 
 ### 🐞 Bug Fixes
-* Fixed a bug with impersonation not being properly ended, causing the ex-impersonator's session to break upon server restart.
+
+* Fixed a bug with impersonation not ending cleanly, causing the ex-impersonator's session to break upon server restart.
 * Fixed a bug in implementation of `clearCachesConfigs`
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v13.2.0...v13.2.1)
@@ -36,30 +45,35 @@
 ## 13.2.0 - 2022-04-28
 
 ### 🎁 New Features
+
 * Admin log file listing includes size and last modified date, visible with optional upgrade to `hoist-react >= 48.0`.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v13.1.0...v13.2.0)
 
 ## 13.1.0 - 2022-02-03
 
-###  ⚙️ Technical
+### ⚙️ Technical
+
 * Support for reporting configuration state of Web Sockets
-* New property `Utils.appPackage` for DRY configuration. 
+* New property `Utils.appPackage` for DRY configuration.
 
 ### 🐞 Bug Fixes
+
 * Fix to regressions in Excel exports and logging due to changes in Groovy `list()` API.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v13.0.6...v13.1.0)
 
 ## 13.0.6 - 2022-01-13
 
-###  ⚙️ Technical
+### ⚙️ Technical
+
 * LocalDates are now serialized in the more fully ISO standard 'YYYY-MM-DD' format, rather than 'YYYYMMDD'.  
-Note that this is consistent with similar changes to LocalDate serialization in Hoist React v46. Although 
-this format will be accepted client-side by Hoist React v45+, applications that are parsing these strings 
-directly on the client may need to be updated accordingly.
+  Note that this is consistent with similar changes to LocalDate serialization in Hoist React v46. Although
+  this format will be accepted client-side by Hoist React v45+, applications that are parsing these strings
+  directly on the client may need to be updated accordingly.
 
 ### 🐞 Bug Fixes
+
 * Fix to Regressions in JsonBlobService/AlertBannerService
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v13.0.5...v13.0.6)
@@ -82,8 +96,8 @@ for the application-level changes to core configuration files and dependencies.
 * The method `subscribeWithSession` on `BaseService` has been removed. Use `subscribe` instead.
 * Application Tomcat Dockerfiles must be updated to use a new `xh-tomcat` base image on JDK 11/17.
 * Groovy Language:  `list` methods changed:
-  * `push()` now prepends an item to the start of the List. To append to the end of a list, use `add()`
-  * `pop()` now removes the initial item from the List. To remove the last item use `removeLast()`
+    * `push()` now prepends an item to the start of the List. To append to the end of a list, use `add()`
+    * `pop()` now removes the initial item from the List. To remove the last item use `removeLast()`
 
 ### ⚙️ Technical
 

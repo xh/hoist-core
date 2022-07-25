@@ -90,21 +90,18 @@ class PrefService extends BaseService {
 
     @Transactional
     void clearPreferences(String username = username) {
-        UserPreference.findAllByUsername(username).each {
-            UserPreference userPref = (UserPreference) it
-            userPref.delete()
-        }
+        getUserPrefs(username).each { it.delete() }
     }
 
     @ReadOnly
     Map getClientConfig() {
-        def username = username,
+        def userPrefs = getUserPrefsByPrefId(username),
             ret = [:]
 
-        Preference.list().each {
-            def name = it.name
+        Preference.list().each { pref ->
+            def name = pref.name
             try {
-                ret[name] = formatForClient(it, username)
+                ret[name] = formatForClient(pref, userPrefs[pref.id])
             } catch (Exception e) {
                 logError("Exception while getting client preference: '$name'", e)
             }
@@ -115,10 +112,10 @@ class PrefService extends BaseService {
 
     @ReadOnly
     Map getLimitedClientConfig(List keys) {
-        def username = username
+        def userPrefs = getUserPrefsByPrefId(username)
         Preference.findAllByNameInList(keys).collectEntries {
             Preference pref = (Preference) it
-            [pref.name, formatForClient(pref, username)]
+            [pref.name, formatForClient(pref, userPrefs[pref.id])]
         }
     }
 
@@ -136,12 +133,12 @@ class PrefService extends BaseService {
         def currPrefs = Preference.list(),
             created = 0
 
-        requiredPrefs.each {prefName, prefDefaults ->
-            def currPref = currPrefs.find {it.name == prefName},
+        requiredPrefs.each { prefName, prefDefaults ->
+            def currPref = currPrefs.find { it.name == prefName },
                 valType = prefDefaults.type,
                 defaultVal = prefDefaults.defaultValue,
                 local = prefDefaults.local ?: false,
-                // Mismatch on notes <> note vs. AppConfig - stuck with singular "note" for the API to this method
+            // Mismatch on notes <> note vs. AppConfig - stuck with singular "note" for the API to this method
                 notes = prefDefaults.note ?: ''
 
             if (!currPref) {
@@ -179,6 +176,15 @@ class PrefService extends BaseService {
     //-------------------------
     // Implementation
     //-------------------------
+    @ReadOnly
+    private List<UserPreference> getUserPrefs(String username) {
+        UserPreference.findAllByUsername(username, [cache: true])
+    }
+
+    private Map<Long, UserPreference> getUserPrefsByPrefId(String username) {
+        getUserPrefs(username).collectEntries { [it.preferenceId, it] }
+    }
+
     private Object getUserPreference(String key, String type, String username) {
         def defaultPref = getDefaultPreference(key, type)
         return getUserPreference(defaultPref, username)
@@ -186,11 +192,14 @@ class PrefService extends BaseService {
 
     @ReadOnly
     private Object getUserPreference(Preference defaultPref, String username) {
+        def userPref = UserPreference.findByPreferenceAndUsername(defaultPref, username, [cache: true])
+        return getUserPreference(defaultPref, userPref)
+    }
+
+    private Object getUserPreference(Preference defaultPref, UserPreference userPref) {
         if (defaultPref.local) {
             throw new RuntimeException("Preference ${defaultPref.name} marked as local - user value cannot be read on server.")
         }
-
-        def userPref = UserPreference.findByPreferenceAndUsername(defaultPref, username, [cache: true])
 
         return userPref ? userPref.externalUserValue(jsonAsObject: true) : defaultPref.externalDefaultValue(jsonAsObject: true)
     }
@@ -216,19 +225,20 @@ class PrefService extends BaseService {
 
     @ReadOnly
     private Preference getDefaultPreference(String key, String type) {
-        def p = Preference.findByName(key, [cache: true])
+        def pref = Preference.findByName(key, [cache: true])
 
-        if (!p) {
+        if (!pref) {
             throw new RuntimeException('Preference not found: ' + key)
         }
-        if (type && p.type != type) {
+
+        if (type && pref.type != type) {
             throw new RuntimeException('Unexpected type for preference: ' + key)
         }
 
-        return p
+        return pref
     }
 
-    private Map formatForClient(Preference defaultPref, String username) {
+    private Map formatForClient(Preference defaultPref, UserPreference userPref) {
         def ret = [local: defaultPref.local, type: defaultPref.type] as Map<String, Object>
 
         if (defaultPref.local) {
@@ -237,7 +247,7 @@ class PrefService extends BaseService {
             ret.defaultValue = defaultPref.externalDefaultValue(jsonAsObject: true)
         } else {
             // Server-side prefs serialized with merged user/default value
-            ret.value = getUserPreference(defaultPref, username)
+            ret.value = getUserPreference(defaultPref, userPref)
             ret.defaultValue = defaultPref.externalDefaultValue(jsonAsObject: true)
         }
 
