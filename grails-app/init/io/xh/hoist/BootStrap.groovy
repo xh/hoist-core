@@ -190,12 +190,6 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Interval in seconds on which the Hoist MemoryMonitoringService should sample current JVM Heap usage.'
             ],
-            xhMemoryMonitorIntervalMins: [
-                valueType: 'int',
-                defaultValue: 60,
-                groupeName: 'xh.io',
-                note: 'Interval in minutes on which the Hoist MemoryMonitoringService should create an INFO log.'
-            ],
             xhMonitorConfig: [
                 valueType: 'json',
                 defaultValue: [

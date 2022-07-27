@@ -12,8 +12,9 @@ import io.xh.hoist.util.Timer
 
 import java.util.concurrent.ConcurrentHashMap
 
-import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static io.xh.hoist.util.DateTimeUtils.HOURS
+import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static java.lang.Runtime.getRuntime
 
 /**
@@ -24,19 +25,13 @@ class MemoryMonitoringService extends BaseService {
 
     private Map<Long, Map> _snapshots = new ConcurrentHashMap()
     private Timer _snapshotTimer
-    private Timer _infoTimer
+    private Date _lastInfoLogged
 
     void init() {
         _snapshotTimer = createTimer(
             interval: 'xhMemoryMonitorIntervalSecs',
             intervalUnits: SECONDS,
             runFn: this.&takeSnapshot
-        )
-
-        _infoTimer = createTimer(
-            interval: 'xhMemoryMonitorIntervalMins',
-            intervalUnits: MINUTES,
-            runFn: this.&onInfoTimer
         )
     }
 
@@ -51,13 +46,9 @@ class MemoryMonitoringService extends BaseService {
      * Take a snapshot of JVM memory usage, store in this service's in-memory history, and return.
      */
     Map takeSnapshot() {
-        def newSnap = getStats(),
-            totalHeap = newSnap.totalHeapMb,
-            maxHeap = newSnap.maxHeapMb,
-            usedHeap = newSnap.usedHeapMb,
-            freeHeap = newSnap.freeHeapMb,
-            usedPctTotal = newSnap.usedPctTotal
-        _snapshots.put(System.currentTimeMillis(), newSnap)
+        def newSnap = getStats()
+
+        _snapshots[System.currentTimeMillis()] = newSnap
 
         // Don't allow snapshot history to grow endlessly - cap @ 1440 samples, i.e. 24 hours of
         // history if left at default config interval of one snap/minute.
@@ -66,12 +57,16 @@ class MemoryMonitoringService extends BaseService {
             _snapshots.remove(oldest)
         }
 
-        if(usedPctTotal > 90) {
+        def msg = logMessagesForSnapshot(newSnap)
+        if (newSnap.usedPctTotal > 90) {
+            logWarn(msg)
             logWarn("MEMORY USAGE ABOVE 90%")
+        } else if (intervalElapsed(1 * HOURS, _lastInfoLogged)) {
+            logInfo(msg)
+            _lastInfoLogged = new Date()
+        } else {
+            logDebug(msg)
         }
-
-        logDebug(["Total=${totalHeap}MB", "Max=${maxHeap}MB", "Used=${usedHeap}MB", "Free=${freeHeap}MB",
-                 "Used Percent of Total=${usedPctTotal}%"])
 
         return newSnap
     }
@@ -115,15 +110,15 @@ class MemoryMonitoringService extends BaseService {
         ]
     }
 
-    private void onInfoTimer() {
-        def newSnap = getStats(),
-            totalHeap = newSnap.totalHeapMb,
-            maxHeap = newSnap.maxHeapMb,
-            usedHeap = newSnap.usedHeapMb,
-            freeHeap = newSnap.freeHeapMb,
-            usedPctTotal = newSnap.usedPctTotal
-        logInfo(["Total=${totalHeap}MB", "Max=${maxHeap}MB", "Used=${usedHeap}MB", "Free=${freeHeap}MB",
-                 "Used Percent of Total=${usedPctTotal}%"])
+    private List logMessagesForSnapshot(Map snap) {
+        def totalHeap = snap.totalHeapMb,
+            maxHeap = snap.maxHeapMb,
+            usedHeap = snap.usedHeapMb,
+            freeHeap = snap.freeHeapMb,
+            usedPctTotal = snap.usedPctTotal
+
+        return ["Total=${totalHeap}MB", "Max=${maxHeap}MB", "Used=${usedHeap}MB", "Free=${freeHeap}MB",
+                "Used Percent of Total=${usedPctTotal}%"]
     }
 
     void clearCaches() {
