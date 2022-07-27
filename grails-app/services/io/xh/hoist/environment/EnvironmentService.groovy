@@ -65,10 +65,8 @@ class EnvironmentService extends BaseService {
                 javaVersion:            System.getProperty('java.version'),
                 serverTimeZone:         serverTz.toZoneId().id,
                 serverTimeZoneOffset:   serverTz.getOffset(now),
-                serverDay:              DateTimeUtils.serverDay(),
                 appTimeZone:            appTz.toZoneId().id,
                 appTimeZoneOffset:      appTz.getOffset(now),
-                appDay:                 DateTimeUtils.appDay(),
                 webSocketsEnabled:      webSocketService.enabled,
         ]
 

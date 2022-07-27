@@ -1,6 +1,6 @@
 # Changelog
 
-## 15.0-SNAPSHOT - unreleased
+## 14.0.1 - 2022-07-27
 
 ### ⚙️ Technical
 
@@ -8,6 +8,8 @@
   issued per non-local preference when the second-level query cache was cold for a given user. Now only a single select
   is required.
 * `DateTimeUtils` app/server timezone conversion utils default to current day/date if called without arguments.
+
+[Commit Log](https://github.com/xh/hoist-core/compare/v14.0.0..v14.0.1)
 
 ## 14.0.0 - 2022-07-12
 
