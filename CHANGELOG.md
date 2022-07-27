@@ -9,6 +9,11 @@
   is required.
 * `DateTimeUtils` app/server timezone conversion utils default to current day/date if called without arguments.
 
+### 🎁 New Features
+
+* `MemoryMonitoringService` now logs an `INFO` message once per hour, a `DEBUG` message once per minute, and a 
+  `WARNING` message once per minute if memory usage exceeds 90% of available.
+
 [Commit Log](https://github.com/xh/hoist-core/compare/v14.0.0..v14.0.1)
 
 ## 14.0.0 - 2022-07-12
