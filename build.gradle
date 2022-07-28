@@ -55,7 +55,7 @@ dependencies {
     // Hoist Additions
     //--------------------
     api "org.apache.tomcat:tomcat-jdbc"
-    api "org.codehaus.groovy:groovy-dateutil:3.0.9"
+    api "org.codehaus.groovy:groovy-dateutil:$groovyVersion"
 
     // Quartz, with Grails 4/5 workaround (https://github.com/grails-plugins/grails-quartz/issues/107
     api("org.quartz-scheduler:quartz:2.3.2") {exclude group: 'slf4j-api', module: 'c3p0'}
