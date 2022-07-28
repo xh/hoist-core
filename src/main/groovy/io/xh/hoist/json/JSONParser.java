@@ -8,13 +8,17 @@
 package io.xh.hoist.json;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS;
+import static com.fasterxml.jackson.databind.DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
+
 
 /**
  * Hoist wrapper around the Jackson library for JSON parsing into java objects.
@@ -25,10 +29,16 @@ public class JSONParser {
     private static ObjectMapper validateMapper;
 
     static {
-        mapper = new ObjectMapper();
+        SimpleModule javaTimeModule = new JavaTimeModule();
+
+        mapper = new ObjectMapper()
+                .registerModule(javaTimeModule)
+                .disable(READ_DATE_TIMESTAMPS_AS_NANOSECONDS);
 
         validateMapper = new ObjectMapper()
-                .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
+                .registerModule(javaTimeModule)
+                .disable(READ_DATE_TIMESTAMPS_AS_NANOSECONDS)
+                .enable(FAIL_ON_TRAILING_TOKENS);
     }
 
     /**
