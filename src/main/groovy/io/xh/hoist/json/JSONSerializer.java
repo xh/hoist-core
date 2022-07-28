@@ -19,7 +19,6 @@ import io.xh.hoist.json.serializer.*;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import static java.util.Arrays.asList;
@@ -47,8 +46,7 @@ public class JSONSerializer {
 
         // Hoist Conventional JSON Formats
         SimpleModule hoistModule = new SimpleModule();
-        hoistModule.addSerializer(Date.class, new DateSerializer())
-                .addSerializer(GString.class, new GStringSerializer())
+        hoistModule.addSerializer(GString.class, new GStringSerializer())
                 .addSerializer(JSONFormatCached.class, new JSONFormatCachedSerializer())
                 .addSerializer(JSONFormat.class, new JSONFormatSerializer())
                 .addSerializer(Double.class, new DoubleSerializer())
