@@ -118,7 +118,7 @@ class MemoryMonitoringService extends BaseService {
             usedPctTotal = snap.usedPctTotal
 
         return ["Total=${totalHeap}MB", "Max=${maxHeap}MB", "Used=${usedHeap}MB", "Free=${freeHeap}MB",
-                "Used Percent of Total=${usedPctTotal}%"]
+                "Used/Total=${usedPctTotal}%"]
     }
 
     void clearCaches() {
