@@ -16,6 +16,12 @@
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v14.0.0..v14.0.1)
 
+###  ⚙️ Technical
+
+* `LogSupport` methods `withInfo`, `withDebug`, and  `withTrace` will now output a pre-work 
+'Starting' message whenever logging is at level 'debug' or above.  Previously level 'trace' was 
+required for this additional message to be output.
+
 ## 14.0.0 - 2022-07-12
 
 ### 🎁 New Features

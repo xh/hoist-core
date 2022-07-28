@@ -156,7 +156,7 @@ trait LogSupport {
             txt = delimitedTxt(msgCol),
             ret
 
-        if (log.traceEnabled) {
+        if (log.debugEnabled) {
             logAtLevel(log, level, "$txt | started")
         }
 
