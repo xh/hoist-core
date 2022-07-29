@@ -3,20 +3,21 @@
 ## 14.1.0 - 2022-07-28
 
 ### ⚙️ Technical
-
 * `PrefService.getClientConfig()` has been optimized to reduce the number of database calls. Previously one select was
   issued per non-local preference when the second-level query cache was cold for a given user. Now only a single select
   is required.
 * `DateTimeUtils` app/server timezone conversion utils default to current day/date if called without arguments.
-* Pinned logback to version 1.2.7. This is a workaround to allow the continued use of logback.groovy which is 
-* no longer directly supported by Grails
-* This release includes the following upgrades of related libraries:
+* Standard JSON serialization/deserialization of various Java date classes has been added via the registration of the 
+   JSR310 module.
+
+### 📚 Libraries
+
   * grails `5.1.1 -> 5.2.1`
   * groovy `3.0.9 -> 3.0.11`
   * gorm `7.1.2 -> 7.3.2`
   * hibernate `5.6.3 -> 5.6.10`
   * org.grails.plugins:hibernate `7.2.0 -> 7.3.0`
-  * httpclient5 `5.1.2` -> `5.1.3`
+  * httpclient `5.1.2` -> `5.1.3`
 
 ### 🎁 New Features
 
