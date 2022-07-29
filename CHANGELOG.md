@@ -1,6 +1,6 @@
 # Changelog
 
-## 14.1.0 - 2022-07-28
+## 14.1.0 - 2022-07-29
 
 ### ⚙️ Technical
 * `PrefService.getClientConfig()` has been optimized to reduce the number of database calls. Previously one select was
@@ -24,7 +24,7 @@
 * New logging in `MemoryMonitoringService`.
 
 
-[Commit Log](https://github.com/xh/hoist-core/compare/v14.0.0..v14.0.1)
+[Commit Log](https://github.com/xh/hoist-core/compare/v14.0.0..v14.1.0)
 
 ###  ⚙️ Technical
 
