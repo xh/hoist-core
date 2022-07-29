@@ -70,10 +70,10 @@ class ApplicationConfig {
                 controllers {
                     defaultScope = 'singleton'
 
-                    // Increase limits to 20mb to support large grid exports, other file uploads.
+                    // Increase limits to 50mb to support large grid exports, other file uploads.
                     upload {
-                        maxFileSize = 20971520
-                        maxRequestSize = 20971520
+                        maxFileSize = 52428800
+                        maxRequestSize = 52428800
                     }
                 }
 
