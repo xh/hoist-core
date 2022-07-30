@@ -3,34 +3,26 @@
 ## 14.1.0 - 2022-07-29
 
 ### ⚙️ Technical
+
 * `PrefService.getClientConfig()` has been optimized to reduce the number of database calls. Previously one select was
   issued per non-local preference when the second-level query cache was cold for a given user. Now only a single select
   is required.
 * `DateTimeUtils` app/server timezone conversion utils default to current day/date if called without arguments.
-* Standard JSON serialization/deserialization of various Java date classes has been added via the registration of the 
-   JSR310 module.
+* Standard JSON serialization/deserialization of newer Java date classes added with registration of the JSR310 module.
+* `LogSupport` methods `withInfo`, `withDebug`, and  `withTrace` will now output a pre-work "Starting" message whenever 
+  logging is at level 'debug' or above. Previously level 'trace' was required.
+* Additional logging added to `MemoryMonitoringService`.
 
 ### 📚 Libraries
 
-  * grails `5.1.1 -> 5.2.1`
-  * groovy `3.0.9 -> 3.0.11`
-  * gorm `7.1.2 -> 7.3.2`
-  * hibernate `5.6.3 -> 5.6.10`
-  * org.grails.plugins:hibernate `7.2.0 -> 7.3.0`
-  * httpclient `5.1.2` -> `5.1.3`
-
-### 🎁 New Features
-
-* New logging in `MemoryMonitoringService`.
-
+* grails `5.1.1 -> 5.2.1`
+* groovy `3.0.9 -> 3.0.11`
+* gorm `7.1.2 -> 7.3.2`
+* hibernate `5.6.3 -> 5.6.10`
+* org.grails.plugins:hibernate `7.2.0 -> 7.3.0`
+* httpclient `5.1.2` -> `5.1.3`
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v14.0.0..v14.1.0)
-
-###  ⚙️ Technical
-
-* `LogSupport` methods `withInfo`, `withDebug`, and  `withTrace` will now output a pre-work 
-'Starting' message whenever logging is at level 'debug' or above.  Previously level 'trace' was 
-required for this additional message to be output.
 
 ## 14.0.0 - 2022-07-12
 
