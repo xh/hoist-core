@@ -2,6 +2,9 @@
 
 ## 14.1.0 - 2022-07-29
 
+⚠ Note - applications should add `logback.version=1.2.7` as a new line to their `gradle.properties` file to fix logback
+on a version that remains compatible with Hoist's Groovy-based configuration.
+
 ### ⚙️ Technical
 
 * `PrefService.getClientConfig()` has been optimized to reduce the number of database calls. Previously one select was
@@ -9,7 +12,7 @@
   is required.
 * `DateTimeUtils` app/server timezone conversion utils default to current day/date if called without arguments.
 * Standard JSON serialization/deserialization of newer Java date classes added with registration of the JSR310 module.
-* `LogSupport` methods `withInfo`, `withDebug`, and  `withTrace` will now output a pre-work "Starting" message whenever 
+* `LogSupport` methods `withInfo`, `withDebug`, and  `withTrace` will now output a pre-work "Starting" message whenever
   logging is at level 'debug' or above. Previously level 'trace' was required.
 * Additional logging added to `MemoryMonitoringService`.
 
