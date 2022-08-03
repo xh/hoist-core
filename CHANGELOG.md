@@ -3,7 +3,7 @@
 ## 15.0-SNAPSHOT - unreleased
 
 ### ⚙️ Technical
-* Removed arbitrary 70-character limit on subject length for emails sent via `emailService`.
+* Relaxed character limit on subject length for emails sent via `emailService` from `70` to `255`
 
 ## 14.1.1 - 2022-08-03
 

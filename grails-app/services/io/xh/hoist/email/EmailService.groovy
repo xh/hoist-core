@@ -94,7 +94,7 @@ class EmailService extends BaseService {
                 if (ccRecipients) {
                     cc ccRecipients.toArray()
                 }
-                subject subj
+                subject subj.take(255)
 
                 if (args.containsKey('html')) {
                     html args.html as String
