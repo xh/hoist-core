@@ -1,5 +1,15 @@
 # Changelog
 
+## 14.1.1 - 2022-08-03
+
+### ⚙️ Technical
+
+* Revert groovy version to `3.0.9` to support java/groovy compilation.
+
+### 📚 Libraries
+
+* groovy `3.0.11 -> 3.0.9`
+
 ## 14.1.0 - 2022-07-29
 
 ⚠ Note - applications should add `logback.version=1.2.7` as a new line to their `gradle.properties` file to fix logback
