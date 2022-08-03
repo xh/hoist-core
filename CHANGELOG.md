@@ -1,9 +1,13 @@
 # Changelog
 
+## 15.0-SNAPSHOT - unreleased
+
+### ⚙️ Technical
+* Removed arbitrary 70-character limit on subject length for emails sent via `emailService`.
+
 ## 14.1.1 - 2022-08-03
 
 ### ⚙️ Technical
-
 * Revert groovy version to `3.0.9` to support java/groovy compilation.
 
 ### 📚 Libraries
