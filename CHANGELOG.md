@@ -1,6 +1,6 @@
 # Changelog
 
-## 15.0-SNAPSHOT - unreleased
+## 14.1.2 - 2022-08-05
 
 ### ⚙️ Technical
 * Relaxed character limit on subject length for emails sent via `emailService` from `70` to `255`
