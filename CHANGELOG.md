@@ -1,9 +1,13 @@
 # Changelog
 
+## 14.2.0 - 2022-08-18
+* Activity tracking now allows explicit specification of user associated with action.
+
 ## 14.1.2 - 2022-08-05
 
 ### ⚙️ Technical
 * Relaxed character limit on subject length for emails sent via `emailService` from `70` to `255`
+
 
 ## 14.1.1 - 2022-08-03
 

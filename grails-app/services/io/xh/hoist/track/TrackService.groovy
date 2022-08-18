@@ -44,11 +44,19 @@ class TrackService extends BaseService implements EventPublisher {
 
     /**
      * Create a new track log entry. Username, browser info, and datetime will be set automatically.
-     * @param params [String category, String msg, Map data, Integer elapsed, String severity]
+     *   @param args
+     *      msg {String}            - required, identifier of action being tracked
+     *      category {String}       - optional, grouping category. Defaults to 'Default'
+     *      data {Object}           - optional, object with related data to be serialized as JSON
+     *      username {String}       - optional, defaults to currently authenticated user.
+     *      severity {String}       - optional, defaults to 'INFO'.
+     *      elapsed {int}           - optional, time associated with action in millis
+     *
+     * @param Map params String category, String msg, Map data, Integer elapsed, String severity]
      */
-    void track(Map params) {
+    void track(Map args) {
         try {
-            createTrackLog(params)
+            createTrackLog(args)
         } catch (Exception e) {
             logError('Exception writing track log', e)
         }
@@ -62,7 +70,7 @@ class TrackService extends BaseService implements EventPublisher {
         def request = WebUtils.retrieveGrailsWebRequest().currentRequest,
             userAgent = request?.getHeader('User-Agent'),
             values = [
-                username: authUsername,
+                username: params.username ?: authUsername,
                 category: params.category ?: 'Default',
                 msg: params.msg,
                 userAgent: userAgent,
@@ -71,7 +79,7 @@ class TrackService extends BaseService implements EventPublisher {
                 data: params.data ? serialize(params.data) : null,
                 elapsed: params.elapsed,
                 severity: params.severity ?: 'INFO',
-                impersonating: identityService.isImpersonating() ? username : null
+                impersonating: !params.username && identityService.isImpersonating() ? username : null
             ]
 
         // Execute asynchronously after we get info from request, don't block application thread.
