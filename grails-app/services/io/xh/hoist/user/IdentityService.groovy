@@ -12,8 +12,7 @@ import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.security.BaseAuthenticationService
 import io.xh.hoist.track.TrackService
-import org.grails.web.servlet.mvc.GrailsWebRequest
-import org.springframework.web.context.request.RequestContextHolder
+import static io.xh.hoist.util.Utils.getCurrentRequest
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpSession
@@ -200,15 +199,6 @@ class IdentityService extends BaseService {
         if (!configService.getBool('xhEnableImpersonation')) {
             throw new RuntimeException('Impersonation is disabled for this app.')
         }
-    }
-
-    private HttpServletRequest getCurrentRequest() {
-        def attr = RequestContextHolder.requestAttributes
-
-        // If we are not in the context of a request (e.g. service timer) this will return null.
-        return (attr && attr instanceof GrailsWebRequest) ?
-                ((GrailsWebRequest)attr).request:
-                null
     }
 
     private void trackImpersonate(String msg, Map data) {

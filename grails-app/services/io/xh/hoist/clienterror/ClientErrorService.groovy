@@ -11,12 +11,13 @@ import grails.events.*
 import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
-import org.grails.web.util.WebUtils
 
 import java.util.concurrent.ConcurrentHashMap
 
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
+import static io.xh.hoist.util.Utils.getCurrentRequest
+
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static java.lang.System.currentTimeMillis
@@ -55,8 +56,11 @@ class ClientErrorService extends BaseService implements EventPublisher {
      * @param url - location where error occurred
      */
     void submit(String message, String error, String appVersion, String url, boolean userAlerted) {
-        def request = WebUtils.retrieveGrailsWebRequest().currentRequest
-        if (!request) return
+        def request = currentRequest
+
+        if (!request) {
+            throw new RuntimeException('Cannot submit a client error outside the context of an HttpRequest.')
+        }
 
         def authUsername = identityService.authUser.username,
             userAgent = request.getHeader('User-Agent')

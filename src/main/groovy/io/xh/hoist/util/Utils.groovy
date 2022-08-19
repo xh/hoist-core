@@ -21,7 +21,10 @@ import io.xh.hoist.user.BaseRoleService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.user.IdentityService
 import io.xh.hoist.websocket.WebSocketService
+import org.grails.web.servlet.mvc.GrailsWebRequest
 import org.springframework.context.ApplicationContext
+import org.springframework.web.context.request.RequestContextHolder
+import javax.servlet.http.HttpServletRequest
 
 
 class Utils {
@@ -116,6 +119,19 @@ class Utils {
     static ApplicationContext getAppContext() {
         return Holders.applicationContext
     }
+
+    /**
+     * Get the current request.
+     *
+     * Returns null if code is not executing in the context of
+     * a HTTP request. (e.g. a service timer, or async code)
+     */
+    static HttpServletRequest getCurrentRequest() {
+        def attr = RequestContextHolder.requestAttributes
+
+        return attr instanceof GrailsWebRequest ? attr.request : null
+    }
+
 
     /**
      * Return the app's primary dataSource configuration. This is the connection to the app's

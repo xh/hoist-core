@@ -1,7 +1,8 @@
 # Changelog
 
 ## 14.2.0 - 2022-08-18
-* Activity tracking now allows explicit specification of user associated with action.
+* Activity tracking enhancements.  Tracking can now be done without the context of a web request and
+an explicit specification of a username is allowed.
 
 ## 14.1.2 - 2022-08-05
 

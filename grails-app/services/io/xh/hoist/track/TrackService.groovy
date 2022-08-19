@@ -7,17 +7,16 @@
 
 package io.xh.hoist.track
 
-import grails.gorm.transactions.ReadOnly
 import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
-import org.grails.web.util.WebUtils
 
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
 import static io.xh.hoist.json.JSONSerializer.serialize
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 import static grails.async.Promises.task
+import static io.xh.hoist.util.Utils.getCurrentRequest
 
 /**
  * Service for tracking user activity within the application. This service provides a server-side
@@ -65,8 +64,7 @@ class TrackService extends BaseService implements EventPublisher {
     // Implementation
     //-------------------------
     private void createTrackLog(Map params) {
-        def request = WebUtils.retrieveGrailsWebRequest().currentRequest,
-            userAgent = request?.getHeader('User-Agent'),
+        def userAgent = currentRequest?.getHeader('User-Agent'),
             values = [
                 username: params.username ?: authUsername,
                 category: params.category ?: 'Default',
