@@ -1,6 +1,7 @@
 # Changelog
 
 ## 14.2.0 - 2022-08-19
+
 * Activity tracking enhancements.  Tracking can now be done without the context of a web request and
 an explicit specification of a username is allowed.
 
@@ -8,7 +9,6 @@ an explicit specification of a username is allowed.
 
 ### ⚙️ Technical
 * Relaxed character limit on subject length for emails sent via `emailService` from `70` to `255`
-
 
 ## 14.1.1 - 2022-08-03
 
