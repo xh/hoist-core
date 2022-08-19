@@ -51,8 +51,6 @@ class TrackService extends BaseService implements EventPublisher {
      *      username {String}       - optional, defaults to currently authenticated user.
      *      severity {String}       - optional, defaults to 'INFO'.
      *      elapsed {int}           - optional, time associated with action in millis
-     *
-     * @param Map params String category, String msg, Map data, Integer elapsed, String severity]
      */
     void track(Map args) {
         try {
