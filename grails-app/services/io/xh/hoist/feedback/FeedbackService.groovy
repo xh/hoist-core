@@ -10,9 +10,8 @@ package io.xh.hoist.feedback
 import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
-import org.grails.web.util.WebUtils
 import grails.events.*
-
+import static io.xh.hoist.util.Utils.getCurrentRequest
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
 
@@ -25,11 +24,11 @@ class FeedbackService extends BaseService implements EventPublisher {
      */
     @Transactional
     void submit(String message, String appVersion) {
-        def request = WebUtils.retrieveGrailsWebRequest().currentRequest,
+        def request = currentRequest,
             userAgent = request?.getHeader('User-Agent'),
             values = [
                     msg: message,
-                    username: username ?: 'ANON',
+                    username: authUsername ?: 'ANON',
                     userAgent: userAgent,
                     browser: getBrowser(userAgent),
                     device: getDevice(userAgent),

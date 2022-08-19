@@ -1,16 +1,14 @@
 # Changelog
 
-## Unreleased
-
-### 💥 Breaking Changes
-
-* `xhAboutMenuConfigs` soft-config is no longer supported.  To customize the `AboutDialog`, see
-  `HoistAppModel.getAboutDialogItems()` in `hoist-react`
+## 14.2.0 - 2022-08-19
+* Activity tracking enhancements.  Tracking can now be done without the context of a web request and
+an explicit specification of a username is allowed.
 
 ## 14.1.2 - 2022-08-05
 
 ### ⚙️ Technical
 * Relaxed character limit on subject length for emails sent via `emailService` from `70` to `255`
+
 
 ## 14.1.1 - 2022-08-03
 
