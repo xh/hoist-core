@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### 💥 Breaking Changes
+
+* `xhAboutMenuConfigs` soft-config is no longer supported.  To customize the `AboutDialog`, see
+  `HoistAppModel.getAboutDialogItems()` in `hoist-react`
+
 ## 14.1.2 - 2022-08-05
 
 ### ⚙️ Technical

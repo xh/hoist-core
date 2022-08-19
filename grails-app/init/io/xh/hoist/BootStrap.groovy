@@ -52,13 +52,6 @@ class BootStrap {
 
     private void ensureRequiredConfigsCreated() {
         Utils.configService.ensureRequiredConfigsCreated([
-            xhAboutMenuConfigs: [
-                valueType: 'json',
-                defaultValue: [],
-                clientVisible: true,
-                groupName: 'xh.io',
-                note: 'AppConfigs to display in the client app About panel. Enter as a list of object of the form {"key": "configName", "label": "Display Name"}.'
-            ],
             xhAlertBannerConfig: [
                 valueType: 'json',
                 defaultValue: [enabled: true, interval: 30],
