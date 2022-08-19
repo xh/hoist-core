@@ -62,8 +62,7 @@ class ClientErrorService extends BaseService implements EventPublisher {
             throw new RuntimeException('Cannot submit a client error outside the context of an HttpRequest.')
         }
 
-        def authUsername = identityService.authUser.username,
-            userAgent = request.getHeader('User-Agent')
+        def userAgent = request.getHeader('User-Agent')
 
         if (errors.size() < maxErrors) {
             errors[authUsername + currentTimeMillis()] = [
@@ -77,7 +76,8 @@ class ClientErrorService extends BaseService implements EventPublisher {
                     appEnvironment: Utils.appEnvironment,
                     url           : url?.take(500),
                     userAlerted   : userAlerted,
-                    dateCreated   : new Date()
+                    dateCreated   : new Date(),
+                    impersonating: identityService.impersonating ? username : null
             ]
             logDebug("Client Error received from $authUsername", "queued for processing")
         } else {

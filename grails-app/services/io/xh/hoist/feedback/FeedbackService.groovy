@@ -28,7 +28,7 @@ class FeedbackService extends BaseService implements EventPublisher {
             userAgent = request?.getHeader('User-Agent'),
             values = [
                     msg: message,
-                    username: username ?: 'ANON',
+                    username: authUsername ?: 'ANON',
                     userAgent: userAgent,
                     browser: getBrowser(userAgent),
                     device: getDevice(userAgent),

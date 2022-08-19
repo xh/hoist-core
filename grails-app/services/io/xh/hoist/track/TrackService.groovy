@@ -75,7 +75,7 @@ class TrackService extends BaseService implements EventPublisher {
                 data: params.data ? serialize(params.data) : null,
                 elapsed: params.elapsed,
                 severity: params.severity ?: 'INFO',
-                impersonating: !params.username && identityService.isImpersonating() ? username : null
+                impersonating: !params.username && identityService.impersonating ? username : null
             ]
 
         // Execute asynchronously after we get info from request, don't block application thread.
