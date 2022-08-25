@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+* Excel exports now support per-cell data types.
+
 ## 14.2.0 - 2022-08-19
 
 * Activity tracking enhancements.  Tracking can now be done without the context of a web request and
