@@ -46,7 +46,7 @@ class ClientErrorEmailService extends BaseService {
 
         def metaText = [
                 "Error: ${errorSummary}",
-                "User: ${ce.username}" +  ce.impersonating ? " (as ${ce.impersonating})" : '',
+                "User: ${ce.username}" + (ce.impersonating ? " (as ${ce.impersonating})" : ''),
                 "App: ${appName} (${Utils.appCode})",
                 "Version: ${ce.appVersion}",
                 "Environment: ${ce.appEnvironment}",
