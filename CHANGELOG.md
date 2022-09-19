@@ -1,5 +1,9 @@
 # Changelog
 
+## 14.3.0 - 2022-XX-XX
+
+* Excel exports now support per-cell data types.
+
 ## 14.2.1 - 2022-09-06
 
 ### 🐞 Bugfixes

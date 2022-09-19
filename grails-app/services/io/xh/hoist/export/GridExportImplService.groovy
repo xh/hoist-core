@@ -192,14 +192,16 @@ class GridExportImplService extends BaseService {
                 Map metadata = meta[colIndex]
                 Cell cell = row.createCell(colIndex)
 
-                // Collect cell value and cell format
-                def value, format
+                // Collect cell value, cell format, and cell type
+                def value, format, type
                 if (data instanceof Map) {
                     value = data?.value
                     format = data?.format ?: metadata.format
+                    type = data?.type ?: metadata.type
                 } else {
                     value = data
                     format = metadata.format
+                    type = metadata.type
                 }
 
                 value = value?.toString()
@@ -221,7 +223,6 @@ class GridExportImplService extends BaseService {
                     cell.setCellValue(value)
                 } else {
                     // Set cell value using type (FieldType from Field.js), otherwise default to text
-                    def type = metadata.type
                     try {
                         if (type == FieldType.DATE) {
                             // Note that the format string for SimpleDateFormat (called here using Groovy's
