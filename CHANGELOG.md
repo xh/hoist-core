@@ -2,7 +2,7 @@
 
 ## 14.3.0 - 2022-XX-XX
 
-* Excel exports now support per-cell data types.
+* Excel exports now support per-cell data types and long values for `int` types.
 
 ## 14.2.1 - 2022-09-06
 

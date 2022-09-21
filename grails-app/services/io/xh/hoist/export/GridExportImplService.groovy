@@ -232,7 +232,7 @@ class GridExportImplService extends BaseService {
                             // Defaults to ISO local date format, which is 'yyyy-MM-dd'
                             value = LocalDate.parse(value)
                         } else if (type == FieldType.INT) {
-                            value = value.toInteger()
+                            value = value.toLong()
                         } else if (type == FieldType.NUMBER) {
                             value = value.toDouble()
                         } else if (type == FieldType.BOOL) {
