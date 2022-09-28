@@ -32,11 +32,11 @@ class ConfigService extends BaseService implements EventPublisher {
         return (Integer) getInternalByName(name, 'int', notFoundValue)
     }
 
-    Long getLong(String name, Integer notFoundValue=null) {
+    Long getLong(String name, Long notFoundValue=null) {
         return (Long) getInternalByName(name, 'long', notFoundValue)
     }
 
-    Double getDouble(String name, Integer notFoundValue=null) {
+    Double getDouble(String name, Double notFoundValue=null) {
         return (Double) getInternalByName(name, 'double', notFoundValue)
     }
 
