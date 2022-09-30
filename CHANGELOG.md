@@ -1,5 +1,10 @@
 # Changelog
 
+## UNRELEASED
+
+### ⚙️ Technical
+* Status monitor now prepends to the check-defined message on ERROR, FAIL, and WARN rather than overriding it.
+
 ## 14.3.0 - 2022-09-23
 
 * Excel exports now support per-cell data types and long values for `int` types.
