@@ -64,9 +64,10 @@ class MonitorResultService extends BaseService {
                 evaluateThresholds(monitor, result)
             }
         } catch (Exception e) {
-            result.message = e instanceof TimeoutException ?
-                                "Monitor run timed out after $timeoutSeconds seconds." :
-                                e.message ?: e.class.name
+            result.prependMessage(e instanceof TimeoutException ?
+                                    "Monitor run timed out after $timeoutSeconds seconds." :
+                                    e.message ?: e.class.name
+                                 )
             result.status = FAIL
             result.exception = e
         } finally {
@@ -108,7 +109,7 @@ class MonitorResultService extends BaseService {
 
         if (metric == null) {
             result.status = FAIL
-            result.message =  'Monitor failed to compute metric'
+            result.prependMessage("Monitor failed to compute metric")
             return
         }
 
@@ -122,11 +123,10 @@ class MonitorResultService extends BaseService {
 
         if (fail != null && (metric - fail) * sign > 0 && currSeverity < FAIL.severity) {
             result.status = FAIL
-            result.message = "Metric value is $verb failure limit of $fail $units"
+            result.prependMessage("Metric value is $verb failure limit of $fail $units")
         } else if (warn != null && (metric - warn) * sign > 0 && currSeverity < WARN.severity) {
             result.status = WARN
-            result.message = "Metric value is $verb warn limit of $warn $units"
+            result.prependMessage("Metric value is $verb warn limit of $warn $units")
         }
     }
-
 }
