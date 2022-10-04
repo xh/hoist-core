@@ -109,7 +109,7 @@ class MonitorResultService extends BaseService {
 
         if (metric == null) {
             result.status = FAIL
-            result.message = "Monitor failed to compute metric \n\n$result.message"
+            result.prependMessage("Monitor failed to compute metric")
             return
         }
 
