@@ -1,9 +1,15 @@
 # Changelog
 
-## UNRELEASED
+## 14.3.1 - 2022-10-10
 
 ### ⚙️ Technical
-* Status monitor now prepends to the check-defined message on ERROR, FAIL, and WARN rather than overriding it.
+
+* Status monitor now prepends its generated message to any more specific message provided by app-level status check code
+  when the result is ERROR, FAIL, or WARN. Previously any app-specific messages were overridden entirely.
+
+### 🐞 Bugfixes
+
+* Correct type specified for `notFoundValue` arg in `ConfigService.getLong()` and `getDouble()` method signatures.
 
 ## 14.3.0 - 2022-09-23
 
@@ -12,21 +18,24 @@
 ## 14.2.1 - 2022-09-06
 
 ### 🐞 Bugfixes
+
 * Fix to minor regression in client error emails.
 
 ## 14.2.0 - 2022-08-19
 
-* Activity tracking enhancements.  Tracking can now be done without the context of a web request and
-an explicit specification of a username is allowed.
+* Activity tracking enhancements. Tracking can now be done without the context of a web request and
+  an explicit specification of a username is allowed.
 
 ## 14.1.2 - 2022-08-05
 
 ### ⚙️ Technical
+
 * Relaxed character limit on subject length for emails sent via `emailService` from `70` to `255`
 
 ## 14.1.1 - 2022-08-03
 
 ### ⚙️ Technical
+
 * Revert groovy version to `3.0.9` to support java/groovy compilation.
 
 ### 📚 Libraries
