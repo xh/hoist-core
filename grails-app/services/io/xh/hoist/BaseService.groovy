@@ -48,7 +48,7 @@ abstract class BaseService implements IdentitySupport, LogSupport, DisposableBea
      * @param services - BaseServices to initialize
      * @param timeout - maximum time to wait for each service to init (in ms).
      */
-    static void parallelInit(Collection<BaseService> services, int timeout = 30 * SECONDS) {
+    static void parallelInit(Collection<BaseService> services, Long timeout = 30 * SECONDS) {
         def allTasks = services.collect {svc ->
             task { svc.initialize(timeout) }
         }
@@ -65,7 +65,7 @@ abstract class BaseService implements IdentitySupport, LogSupport, DisposableBea
      *
      * @param timeout - maximum time to wait for each service to init (in ms).
      */
-    final void initialize(int timeout = 30 * SECONDS) {
+    final void initialize(Long timeout = 30 * SECONDS) {
         if (_initialized) return
         try {
             withInfo("Initializing") {
