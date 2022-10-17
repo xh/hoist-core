@@ -42,18 +42,17 @@ class AccessInterceptor {
         String actionNm = actionName ?: controllerClass.defaultAction
         Method method = clazz.getMethod(actionNm)
 
-        Access access = method.getAnnotation(Access) ?: clazz.getAnnotation(Access) as Access
-        if (access) {
+        def access = method.getAnnotation(Access) ?:
+                method.getAnnotation(AccessAll) ?:
+                clazz.getAnnotation(Access) as Access ?:
+                clazz.getAnnotation(AccessAll) as AccessAll
+
+        if (access instanceof Access) {
             HoistUser user = identityService.getUser()
-            if (user.hasAllRoles(access.value())) {
-                return true
-            } else {
-                return handleUnauthorized()
-            }
+            return user.hasAllRoles(access.value()) ? true : handleUnauthorized()
         }
 
-        AccessAll accessAll = method.getAnnotation(AccessAll) ?: clazz.getAnnotation(AccessAll) as AccessAll
-        if (accessAll) {
+        if (access instanceof AccessAll) {
             return true
         }
 

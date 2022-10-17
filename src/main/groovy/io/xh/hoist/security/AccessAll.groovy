@@ -14,7 +14,7 @@ import java.lang.annotation.*
  * @see AccessInterceptor
  */
 @Inherited
-@Target([ElementType.TYPE])
+@Target([ElementType.METHOD, ElementType.TYPE])
 @Retention(RetentionPolicy.RUNTIME)
 @interface AccessAll {
 
