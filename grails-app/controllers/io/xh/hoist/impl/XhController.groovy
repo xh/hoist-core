@@ -19,7 +19,6 @@ import io.xh.hoist.feedback.FeedbackService
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.jsonblob.JsonBlobService
 import io.xh.hoist.pref.PrefService
-import io.xh.hoist.security.Access
 import io.xh.hoist.security.AccessAll
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.environment.EnvironmentService
@@ -66,13 +65,13 @@ class XhController extends BaseController {
 
     //------------------------
     // Admin Impersonation
+    // Protected internally by identity service.
     //------------------------
     def impersonationTargets() {
         def targets = identityService.impersonationTargets
         renderJSON(targets.collect{[username: it.username]})
     }
 
-    @Access(['HOIST_IMPERSONATOR'])
     def impersonate(String username) {
         identityService.impersonate(username)
         renderJSON(success: true)

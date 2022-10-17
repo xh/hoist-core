@@ -8,7 +8,6 @@
 package io.xh.hoist.admin
 
 import io.xh.hoist.config.AppConfig
-import io.xh.hoist.RestController
 import io.xh.hoist.security.Access
 
 @Access(['HOIST_ADMIN_READER'])

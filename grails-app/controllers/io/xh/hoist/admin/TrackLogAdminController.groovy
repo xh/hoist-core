@@ -12,8 +12,6 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
 import io.xh.hoist.track.TrackLog
 
-import java.time.LocalDate
-
 import static java.lang.Integer.parseInt
 import static io.xh.hoist.util.DateTimeUtils.appStartOfDay
 import static io.xh.hoist.util.DateTimeUtils.appEndOfDay

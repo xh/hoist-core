@@ -14,6 +14,7 @@ import io.xh.hoist.security.Access
 
 @Slf4j
 @Transactional
+@Access(['HOIST_ADMIN_READER'])
 abstract class AdminRestController extends RestController{
 
     @Access(['HOIST_ADMIN'])

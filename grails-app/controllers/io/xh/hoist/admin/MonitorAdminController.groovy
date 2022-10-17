@@ -7,7 +7,6 @@
 
 package io.xh.hoist.admin
 
-import io.xh.hoist.RestController
 import io.xh.hoist.monitor.Monitor
 import io.xh.hoist.security.Access
 

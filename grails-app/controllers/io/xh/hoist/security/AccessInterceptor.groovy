@@ -12,6 +12,7 @@ import io.xh.hoist.exception.ExceptionRenderer
 import io.xh.hoist.exception.NotAuthorizedException
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
+import java.lang.reflect.Method
 
 @CompileStatic
 class AccessInterceptor {
@@ -39,28 +40,21 @@ class AccessInterceptor {
         
         Class clazz = controllerClass.clazz
         String actionNm = actionName ?: controllerClass.defaultAction
+        Method method = clazz.getMethod(actionNm)
 
-        Access accessOnAction = clazz.getMethod(actionNm).getAnnotation(Access)
-        if (accessOnAction) {
+        Access access = method.getAnnotation(Access) ?: clazz.getAnnotation(Access) as Access
+        if (access) {
             HoistUser user = identityService.getUser()
-            if (user.hasAllRoles(accessOnAction.value())) {
+            if (user.hasAllRoles(access.value())) {
                 return true
             } else {
                 return handleUnauthorized()
             }
         }
 
-        AccessAll accessAll = clazz.getAnnotation(AccessAll)
+        AccessAll accessAll = method.getAnnotation(AccessAll) ?: clazz.getAnnotation(AccessAll) as AccessAll
         if (accessAll) {
             return true
-        }
-
-        Access accessOnCtlr = clazz.getAnnotation(Access)
-        if (accessOnCtlr) {
-            HoistUser user = identityService.getUser()
-            if (user.hasAllRoles(accessOnCtlr.value())) {
-                return true
-            }
         }
 
         return handleUnauthorized()

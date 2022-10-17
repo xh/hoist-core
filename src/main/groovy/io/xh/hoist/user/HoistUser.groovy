@@ -22,7 +22,6 @@ trait HoistUser implements JSONFormat {
 
     static String HOIST_ADMIN_ROLE = 'HOIST_ADMIN'
     static String HOIST_ADMIN_READER_ROLE = 'HOIST_ADMIN_READER'
-    static String HOIST_IMPERSONATOR_ROLE = 'HOIST_IMPERSONATOR'
 
     abstract boolean isActive()
     abstract String getEmail()
@@ -62,10 +61,6 @@ trait HoistUser implements JSONFormat {
 
     boolean getIsHoistAdminReader() {
         return hasRole(HOIST_ADMIN_READER_ROLE)
-    }
-
-    boolean getHasImpersonatorRole() {
-        return hasRole(HOIST_IMPERSONATOR_ROLE)
     }
     /**
      * Gates are a lighter-weight concept, similar to roles, but sourced here from soft-config
