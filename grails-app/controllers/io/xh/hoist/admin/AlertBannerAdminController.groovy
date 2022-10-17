@@ -12,7 +12,7 @@ import io.xh.hoist.security.Access
 
 import static io.xh.hoist.json.JSONParser.parseObject
 
-@Access(['HOIST_ADMIN'])
+@Access(['HOIST_ADMIN_READER'])
 class AlertBannerAdminController extends BaseController {
 
     def alertBannerService
@@ -21,6 +21,7 @@ class AlertBannerAdminController extends BaseController {
         renderJSON(alertBannerService.alertSpec)
     }
 
+    @Access(['HOIST_ADMIN'])
     def setAlertSpec(String value) {
         alertBannerService.setAlertSpec(parseObject(value))
         renderJSON(success: true)

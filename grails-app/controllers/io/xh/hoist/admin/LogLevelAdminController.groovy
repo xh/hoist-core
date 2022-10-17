@@ -11,8 +11,8 @@ import io.xh.hoist.log.LogLevel
 import io.xh.hoist.RestController
 import io.xh.hoist.security.Access
 
-@Access(['HOIST_ADMIN'])
-class LogLevelAdminController extends RestController {
+@Access(['HOIST_ADMIN_READER'])
+class LogLevelAdminController extends AdminRestController {
 
     static restTarget = LogLevel
     def logLevelService

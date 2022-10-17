@@ -38,32 +38,47 @@ class AccessInterceptor {
         }
         
         Class clazz = controllerClass.clazz
+        String actionNm = actionName ?: controllerClass.defaultAction
+
+        Access accessOnAction = clazz.getMethod(actionNm).getAnnotation(Access)
+        if (accessOnAction) {
+            HoistUser user = identityService.getUser()
+            if (user.hasAllRoles(accessOnAction.value())) {
+                return true
+            } else {
+                return handleUnauthorized()
+            }
+        }
+
         AccessAll accessAll = clazz.getAnnotation(AccessAll)
         if (accessAll) {
             return true
         }
 
-        Access access = clazz.getAnnotation(Access)
-        if (access) {
+        Access accessOnCtlr = clazz.getAnnotation(Access)
+        if (accessOnCtlr) {
             HoistUser user = identityService.getUser()
-            if (user.hasAllRoles(access.value())) {
+            if (user.hasAllRoles(accessOnCtlr.value())) {
                 return true
             }
         }
 
+        return handleUnauthorized()
+    }
+
+    //------------------------
+    // Implementation
+    //------------------------
+    private boolean handleUnauthorized() {
         def username = identityService.username ?: 'UNKNOWN',
             ex = new NotAuthorizedException("""
-                    You do not have the application role(s) required to access this content. 
+                    You do not have the application role(s) required. 
                     Currently logged in as: $username.
             """)
         exceptionRenderer.handleException(ex, request, response, identityService)
         return false
     }
 
-
-    //------------------------
-    // Implementation
-    //------------------------
     private boolean isWebSocketHandshake() {
         def upgradeHeader = request?.getHeader('upgrade')
         return upgradeHeader == 'websocket'

@@ -10,7 +10,7 @@ package io.xh.hoist.admin
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
 
-@Access(['HOIST_ADMIN'])
+@Access(['HOIST_ADMIN_READER'])
 class MemoryMonitorAdminController extends BaseController {
 
     def memoryMonitoringService
@@ -19,10 +19,12 @@ class MemoryMonitorAdminController extends BaseController {
         renderJSON(memoryMonitoringService.snapshots)
     }
 
+    @Access(['HOIST_ADMIN'])
     def takeSnapshot() {
         renderJSON(memoryMonitoringService.takeSnapshot())
     }
 
+    @Access(['HOIST_ADMIN'])
     def requestGc() {
         renderJSON(memoryMonitoringService.requestGc())
     }

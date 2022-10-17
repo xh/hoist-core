@@ -3,11 +3,15 @@
 !/.idea/scopes/
 !/.idea/copyright/
 *.iml
+.settings
+.classpath
+.project
 
 # Gradle / Build
 .gradle/
 build/
 out/
+bin/
 
 # OS generated files
 .DS_Store

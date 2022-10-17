@@ -18,7 +18,7 @@ import static io.xh.hoist.util.DateTimeUtils.parseLocalDate
 import static java.lang.Integer.parseInt
 
 
-@Access(['HOIST_ADMIN'])
+@Access(['HOIST_ADMIN_READER'])
 class ClientErrorAdminController extends BaseController {
 
     static int DEFAULT_MAX_ROWS = 25000

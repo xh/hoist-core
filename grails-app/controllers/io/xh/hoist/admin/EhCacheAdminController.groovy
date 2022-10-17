@@ -11,7 +11,7 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
 import net.sf.ehcache.CacheManager
 
-@Access(['HOIST_ADMIN'])
+@Access(['HOIST_ADMIN_READER'])
 class EhCacheAdminController extends BaseController {
 
     def listCaches() {
@@ -34,12 +34,14 @@ class EhCacheAdminController extends BaseController {
         renderJSON(caches)
     }
 
+    @Access(['HOIST_ADMIN'])
     def clearAllCaches() {
         def caches = cacheManager.cacheNames
         caches.each {clearCache(it)}
         renderJSON(success: true)
     }
 
+    @Access(['HOIST_ADMIN'])
     def clearCaches() {
         def caches = params.names instanceof String ? [params.names] : params.names
         caches.each {clearCache(it)}

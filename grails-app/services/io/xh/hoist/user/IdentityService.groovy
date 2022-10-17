@@ -90,7 +90,7 @@ class IdentityService extends BaseService {
         if (!request) {
             throw new RuntimeException('Cannot impersonate when outside the context of a request')
         }
-        if (!authUser.isHoistAdmin) {
+        if (!authUser.hasImpersonatorRole) {
             throw new RuntimeException("User '$authUser.username' does not have permissions to impersonate")
         }
         if (!targetUser?.active) {
@@ -128,7 +128,14 @@ class IdentityService extends BaseService {
      */
     List<HoistUser> getImpersonationTargets() {
         checkImpersonationEnabled()
-        authUser.isHoistAdmin ? userService.list(true) : new ArrayList<HoistUser>()
+        def ret = authUser.hasImpersonatorRole ? userService.list(true) : new ArrayList<HoistUser>()
+        if (!authUser.isHoistAdmin) {
+            ret = ret.findAll {!it.isHoistAdmin}
+        }
+        if (!authUser.isHoistAdminReader) {
+            ret = ret.findAll {!it.isHoistAdminReader}
+        }
+        return ret
     }
 
     /**

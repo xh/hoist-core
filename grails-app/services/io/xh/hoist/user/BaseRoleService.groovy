@@ -56,9 +56,17 @@ abstract class BaseRoleService extends BaseService {
      * the Hoist framework does not depend on it.
      */
     Set<String> getRolesForUser(String username) {
-        return allRoleAssignments
+        List<String> roles = allRoleAssignments
             .findAll{role, users -> users.contains(username)}
             .keySet()
+            .toList()
+
+        if (roles.contains('HOIST_ADMIN')) {
+            roles.add('HOIST_ADMIN_READER')
+            roles.add('HOIST_IMPERSONATOR')
+        }
+
+        return roles as Set<String>
     }
 
     /**

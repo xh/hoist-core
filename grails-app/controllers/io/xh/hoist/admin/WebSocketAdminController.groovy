@@ -10,7 +10,7 @@ package io.xh.hoist.admin
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
 
-@Access(['HOIST_ADMIN'])
+@Access(['HOIST_ADMIN_READER'])
 class WebSocketAdminController extends BaseController {
 
     def webSocketService
@@ -19,6 +19,7 @@ class WebSocketAdminController extends BaseController {
         renderJSON(webSocketService.allChannels)
     }
 
+    @Access(['HOIST_ADMIN'])
     def pushToChannel(String channelKey, String topic, String message) {
         webSocketService.pushToChannel(channelKey, topic, message)
         renderJSON(success: true)

@@ -11,7 +11,7 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.BaseService
 import io.xh.hoist.security.Access
 
-@Access(['HOIST_ADMIN'])
+@Access(['HOIST_ADMIN_READER'])
 class ServiceAdminController extends BaseController {
 
     def listServices() {
@@ -19,6 +19,7 @@ class ServiceAdminController extends BaseController {
         renderJSON(ret)
     }
 
+    @Access(['HOIST_ADMIN'])
     def clearCaches() {
         def allServices = getServices(),
             services = params.names instanceof String ? [params.names] : params.names

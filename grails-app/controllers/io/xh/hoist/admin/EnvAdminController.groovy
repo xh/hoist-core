@@ -9,7 +9,7 @@ package io.xh.hoist.admin
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
 
-@Access(['HOIST_ADMIN'])
+@Access(['HOIST_ADMIN_READER'])
 class EnvAdminController extends BaseController {
 
     def index() {

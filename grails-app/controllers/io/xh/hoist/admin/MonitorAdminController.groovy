@@ -11,8 +11,8 @@ import io.xh.hoist.RestController
 import io.xh.hoist.monitor.Monitor
 import io.xh.hoist.security.Access
 
-@Access(['HOIST_ADMIN'])
-class MonitorAdminController extends RestController {
+@Access(['HOIST_ADMIN_READER'])
+class MonitorAdminController extends AdminRestController {
 
     def monitoringService
 
@@ -27,6 +27,7 @@ class MonitorAdminController extends RestController {
         submit.lastUpdatedBy = authUsername
     }
 
+    @Access(['HOIST_ADMIN'])
     def forceRunAllMonitors() {
         monitoringService.forceRun()
         renderJSON(success:true)

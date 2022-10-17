@@ -12,7 +12,7 @@ import io.xh.hoist.security.Access
 import io.xh.hoist.user.BaseRoleService
 import io.xh.hoist.user.BaseUserService
 
-@Access(['HOIST_ADMIN'])
+@Access(['HOIST_ADMIN_READER'])
 class UserAdminController extends BaseController {
 
     BaseUserService userService

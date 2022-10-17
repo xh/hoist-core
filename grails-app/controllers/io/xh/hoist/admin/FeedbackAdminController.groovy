@@ -11,8 +11,8 @@ import io.xh.hoist.RestController
 import io.xh.hoist.feedback.Feedback
 import io.xh.hoist.security.Access
 
-@Access(['HOIST_ADMIN'])
-class FeedbackAdminController extends RestController {
+@Access(['HOIST_ADMIN_READER'])
+class FeedbackAdminController extends AdminRestController {
     static restTarget = Feedback
     static trackChanges = false
 }

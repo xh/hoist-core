@@ -12,8 +12,8 @@ import io.xh.hoist.pref.UserPreference
 import io.xh.hoist.RestController
 import io.xh.hoist.security.Access
 
-@Access(['HOIST_ADMIN'])
-class UserPreferenceAdminController extends RestController {
+@Access(['HOIST_ADMIN_READER'])
+class UserPreferenceAdminController extends AdminRestController {
 
     static restTarget = UserPreference
     static trackChanges = true
