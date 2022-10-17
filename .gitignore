@@ -3,9 +3,9 @@
 !/.idea/scopes/
 !/.idea/copyright/
 *.iml
-.settings
-.classpath
-.project
+.settings/
+.classpath/
+.project/
 
 # Gradle / Build
 .gradle/
