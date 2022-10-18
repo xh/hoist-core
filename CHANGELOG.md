@@ -1,5 +1,19 @@
 # Changelog
 
+## 15.0.0 - SNAPSHOT
+
+### 🎁 New Features
+
+* New application permission role: `HOIST_ADMIN_READER`.
+* All Hoist Framework Admin tabs are now readable (read only) by users who have this new role: `HOIST_ADMIN_READER`.
+* Actions (edit, delete, etc) in the Hoist Framework Admin tabs are available only to users who have the `HOIST_ADMIN` role.
+* The `HOIST_ADMIN` role inherits the new `HOIST_ADMIN_READER` role.
+* The `HOIST_ADMIN_READER` role can be assigned to users in the `roles` soft-config.
+
+### 💥 Breaking Changes
+* Upgrading to Hoist-Core v15+ requires an upgrade of the JS client to Hoist-React v53+ 
+  to take advantage of the new `HOIST_ADMIN_READER` role.
+
 ## 14.3.1 - 2022-10-10
 
 ### ⚙️ Technical
