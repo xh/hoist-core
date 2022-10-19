@@ -50,10 +50,12 @@ abstract class BaseRoleService extends BaseService {
      *
      * Applications may wish to provide their own more efficient implementation as required,
      * e.g. by pre-indexing role assignments by username vs. constructing dynamically.
-     *
-     * Note that this default implementation does not validate that the username provided is in
+     * Also, note that this default implementation does not validate that the username provided is in
      * fact an active and enabled application user as per UserService. Apps may wish to do so -
      * the Hoist framework does not depend on it.
+     *
+     * Note that this method does implement some basic logic on built-in role inheritance.  Therefore any
+     * implementation overrides should typically call the super method.
      */
     Set<String> getRolesForUser(String username) {
         Set<String> roles = allRoleAssignments
