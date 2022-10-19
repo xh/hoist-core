@@ -8,11 +8,10 @@
 package io.xh.hoist.admin
 
 import io.xh.hoist.pref.Preference
-import io.xh.hoist.RestController
 import io.xh.hoist.security.Access
 
-@Access(['HOIST_ADMIN'])
-class PreferenceAdminController extends RestController {
+@Access(['HOIST_ADMIN_READER'])
+class PreferenceAdminController extends AdminRestController {
 
     static restTarget = Preference
     static trackChanges = true

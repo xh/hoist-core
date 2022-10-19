@@ -8,11 +8,10 @@
 package io.xh.hoist.admin
 
 import io.xh.hoist.jsonblob.JsonBlob
-import io.xh.hoist.RestController
 import io.xh.hoist.security.Access
 
-@Access(['HOIST_ADMIN'])
-class JsonBlobAdminController extends RestController {
+@Access(['HOIST_ADMIN_READER'])
+class JsonBlobAdminController extends AdminRestController {
     static restTarget = JsonBlob
     static trackChanges = true
 

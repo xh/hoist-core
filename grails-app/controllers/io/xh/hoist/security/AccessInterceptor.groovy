@@ -12,6 +12,7 @@ import io.xh.hoist.exception.ExceptionRenderer
 import io.xh.hoist.exception.NotAuthorizedException
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
+import java.lang.reflect.Method
 
 @CompileStatic
 class AccessInterceptor {
@@ -38,32 +39,39 @@ class AccessInterceptor {
         }
         
         Class clazz = controllerClass.clazz
-        AccessAll accessAll = clazz.getAnnotation(AccessAll)
-        if (accessAll) {
+        String actionNm = actionName ?: controllerClass.defaultAction
+        Method method = clazz.getMethod(actionNm)
+
+        def access = method.getAnnotation(Access) ?:
+                method.getAnnotation(AccessAll) ?:
+                clazz.getAnnotation(Access) as Access ?:
+                clazz.getAnnotation(AccessAll) as AccessAll
+
+        if (access instanceof Access) {
+            HoistUser user = identityService.getUser()
+            return user.hasAllRoles(access.value()) ? true : handleUnauthorized()
+        }
+
+        if (access instanceof AccessAll) {
             return true
         }
 
-        Access access = clazz.getAnnotation(Access)
-        if (access) {
-            HoistUser user = identityService.getUser()
-            if (user.hasAllRoles(access.value())) {
-                return true
-            }
-        }
+        return handleUnauthorized()
+    }
 
+    //------------------------
+    // Implementation
+    //------------------------
+    private boolean handleUnauthorized() {
         def username = identityService.username ?: 'UNKNOWN',
             ex = new NotAuthorizedException("""
-                    You do not have the application role(s) required to access this content. 
+                    You do not have the application role(s) required. 
                     Currently logged in as: $username.
             """)
         exceptionRenderer.handleException(ex, request, response, identityService)
         return false
     }
 
-
-    //------------------------
-    // Implementation
-    //------------------------
     private boolean isWebSocketHandshake() {
         def upgradeHeader = request?.getHeader('upgrade')
         return upgradeHeader == 'websocket'

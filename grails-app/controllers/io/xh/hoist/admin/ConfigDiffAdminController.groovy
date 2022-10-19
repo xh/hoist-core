@@ -13,7 +13,7 @@ import io.xh.hoist.config.AppConfig
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.security.Access
 
-@Access(['HOIST_ADMIN'])
+@Access(['HOIST_ADMIN_READER'])
 class ConfigDiffAdminController extends BaseController {
 
     def configDiffService
@@ -24,6 +24,7 @@ class ConfigDiffAdminController extends BaseController {
         renderJSON(data: data)
     }
 
+    @Access(['HOIST_ADMIN'])
     def applyRemoteValues() {
         def records = params.get('records')
         configDiffService.applyRemoteValues(JSONParser.parseArray(records))

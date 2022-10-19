@@ -12,14 +12,12 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
 import io.xh.hoist.track.TrackLog
 
-import java.time.LocalDate
-
 import static java.lang.Integer.parseInt
 import static io.xh.hoist.util.DateTimeUtils.appStartOfDay
 import static io.xh.hoist.util.DateTimeUtils.appEndOfDay
 import static io.xh.hoist.util.DateTimeUtils.parseLocalDate
 
-@Access(['HOIST_ADMIN'])
+@Access(['HOIST_ADMIN_READER'])
 class TrackLogAdminController extends BaseController {
 
     static int DEFAULT_MAX_ROWS = 25000

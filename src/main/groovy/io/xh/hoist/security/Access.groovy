@@ -19,7 +19,7 @@ import java.lang.annotation.Target
  * @see AccessInterceptor
  */
 @Inherited
-@Target([ElementType.TYPE])
+@Target([ElementType.METHOD, ElementType.TYPE])
 @Retention(RetentionPolicy.RUNTIME)
 @interface Access {
     String[] value() default []

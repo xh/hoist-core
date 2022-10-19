@@ -12,7 +12,7 @@ import io.xh.hoist.configuration.LogbackConfig
 import groovy.io.FileType
 import io.xh.hoist.security.Access
 
-@Access(['HOIST_ADMIN'])
+@Access(['HOIST_ADMIN_READER'])
 class LogViewerAdminController extends BaseController {
 
     def logArchiveService,
@@ -60,6 +60,7 @@ class LogViewerAdminController extends BaseController {
      * Deletes one or more files from the log directory.
      * @param filenames - (required)
      */
+    @Access(['HOIST_ADMIN'])
     def deleteFiles() {
         def filenames = params.list('filenames')
 
@@ -79,6 +80,7 @@ class LogViewerAdminController extends BaseController {
      * Run log archiving process immediately.
      * @param daysThreshold - (optional) min age in days of files to archive - null to use configured default.
      */
+    @Access(['HOIST_ADMIN'])
     def archiveLogs(Integer daysThreshold) {
         def ret = logArchiveService.archiveLogs(daysThreshold)
         renderJSON([archived: ret])

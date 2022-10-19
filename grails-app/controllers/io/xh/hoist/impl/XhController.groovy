@@ -65,6 +65,7 @@ class XhController extends BaseController {
 
     //------------------------
     // Admin Impersonation
+    // Protected internally by identity service.
     //------------------------
     def impersonationTargets() {
         def targets = identityService.impersonationTargets
