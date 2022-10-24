@@ -1,5 +1,11 @@
 # Changelog
 
+## 14.4.1 - 2022-10-24
+
+### 🐞 Bugfixes
+
+* Allow database connection info to viewed by users with role: `HOIST_ADMIN_READER` and higher.
+
 ## 14.4.0 - 2022-10-19
 
 ### 🎁 New Features
