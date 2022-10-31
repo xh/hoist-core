@@ -58,13 +58,13 @@ trait LogSupport {
      * @param c - closure to be run and timed.
      * @return result of executing c
      */
-    Object withInfo(Object msgs, Closure c)             {withInfoInternal(instanceLog, msgs, c)}
+    <T> T withInfo(Object msgs, Closure<T> c)   {withInfoInternal(instanceLog, msgs, c)}
 
     /** Log closure execution at DEBUG level */
-    Object withDebug(Object msgs, Closure c)            {withDebugInternal(instanceLog, msgs, c)}
+    <T> T withDebug(Object msgs, Closure<T> c)  {withDebugInternal(instanceLog, msgs, c)}
 
     /** Log closure execution at TRACE level */
-    Object withTrace(Object msgs, Closure c)            {withTraceInternal(instanceLog, msgs, c)}
+    <T> T withTrace(Object msgs, Closure<T> c)  {withTraceInternal(instanceLog, msgs, c)}
 
     //-------------------------------------------------------------
     // Support logging from base class logger
@@ -75,9 +75,9 @@ trait LogSupport {
     void logDebugInBase(Object... msgs)  {logDebugInternal((Logger) log, msgs)}
     void logWarnInBase(Object... msgs)   {logWarnInternal((Logger) log, msgs)}
     void logErrorInBase(Object... msgs)  {logErrorInternal((Logger) log, msgs)}
-    Object withInfoInBase(Object msgs, Closure c)      {withInfoInternal((Logger) log, msgs, c)}
-    Object withDebugInBase(Object msgs, Closure c)     {withDebugInternal((Logger) log, msgs, c)}
-    Object withTraceInBase(Object msgs, Closure c)     {withTraceInternal((Logger) log, msgs, c)}
+    <T> T withInfoInBase(Object msgs, Closure<T> c)     {withInfoInternal((Logger) log, msgs, c)}
+    <T> T withDebugInBase(Object msgs, Closure<T> c)    {withDebugInternal((Logger) log, msgs, c)}
+    <T> T withTraceInBase(Object msgs, Closure<T> c)    {withTraceInternal((Logger) log, msgs, c)}
 
     /**
      * Expose the logger used by the main instance methods on this class.
@@ -138,19 +138,19 @@ trait LogSupport {
         }
     }
 
-    private Object withInfoInternal(Logger log, Object msgs, Closure c) {
+    private <T> T withInfoInternal(Logger log, Object msgs, Closure<T> c) {
         log.infoEnabled ? loggedDo(log, INFO, msgs, c) : c.call()
     }
 
-    private Object withDebugInternal(Logger log, Object msgs, Closure c) {
+    private <T> T withDebugInternal(Logger log, Object msgs, Closure<T> c) {
         log.debugEnabled ? loggedDo(log, DEBUG,  msgs, c) : c.call()
     }
 
-    private Object withTraceInternal(Logger log, Object msgs, Closure c) {
+    private <T> T withTraceInternal(Logger log, Object msgs, Closure<T> c) {
         log.traceEnabled ? loggedDo(log, TRACE,  msgs, c) : c.call()
     }
 
-    private Object loggedDo(Logger log, Level level, Object msgs, Closure c) {
+    private <T> T loggedDo(Logger log, Level level, Object msgs, Closure<T> c) {
         def start = currentTimeMillis(),
             msgCol =  msgs instanceof List ? msgs.flatten() : [msgs],
             txt = delimitedTxt(msgCol),
