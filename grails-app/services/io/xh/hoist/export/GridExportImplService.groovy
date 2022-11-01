@@ -61,10 +61,10 @@ class GridExportImplService extends BaseService {
                     contentType: getContentType(params.type),
                     fileName   : getFileName(params.filename, params.type)
             ]
-        } as Map
+        }
     }
 
-    
+
     //------------------------
     // Implementation
     //------------------------

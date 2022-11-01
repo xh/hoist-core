@@ -1,5 +1,12 @@
 # Changelog
 
+## 15.0-SNAPSHOT - unreleased
+
+### ⚙️ Technical
+
+* Improved the signatures of `LogSupport` provided methods `withInfo` and similar to pass through
+  the return type of their closure argument.
+
 ## 14.4.1 - 2022-10-24
 
 ### 🐞 Bugfixes
@@ -10,23 +17,24 @@
 
 ### 🎁 New Features
 
-* New application permission role: `HOIST_ADMIN_READER`.  This permission is typically inherited by `HOIST_ADMIN`.
-* All Hoist Framework Admin tabs are now readable (read only) by users who have this new role: `HOIST_ADMIN_READER`.
-* Actions (edit, delete, etc) in the Hoist Framework Admin tabs are available only to users who have the `HOIST_ADMIN` role.
-* The `HOIST_ADMIN` role inherits the new `HOIST_ADMIN_READER` role.
-* The `HOIST_ADMIN_READER` role can be assigned to users in the `roles` soft-config.
-* To take advantage of the new `HOIST_ADMIN_READER` role in the client, upgrade to Hoist-React v53.
+* The Hoist Admin Console is now accessible in a read-only capacity to users assigned the
+  new `HOIST_ADMIN_READER` role.
+* The pre-existing `HOIST_ADMIN` role inherits this new role, and is still required to take any
+  actions that modify data.
+* Requires `hoist-react >= 53.0` for client-side support of this new readonly role.
 
 ## 14.3.1 - 2022-10-10
 
 ### ⚙️ Technical
 
-* Status monitor now prepends its generated message to any more specific message provided by app-level status check code
-  when the result is ERROR, FAIL, or WARN. Previously any app-specific messages were overridden entirely.
+* Status monitor now prepends its generated message to any more specific message provided by
+  app-level status check code when the result is ERROR, FAIL, or WARN. Previously any app-specific
+  messages were overridden entirely.
 
 ### 🐞 Bugfixes
 
-* Correct type specified for `notFoundValue` arg in `ConfigService.getLong()` and `getDouble()` method signatures.
+* Correct type specified for `notFoundValue` arg in `ConfigService.getLong()` and `getDouble()`
+  method signatures.
 
 ## 14.3.0 - 2022-09-23
 
@@ -61,18 +69,21 @@
 
 ## 14.1.0 - 2022-07-29
 
-⚠ Note - applications should add `logback.version=1.2.7` as a new line to their `gradle.properties` file to fix logback
-on a version that remains compatible with Hoist's Groovy-based configuration.
+⚠ Note - applications should add `logback.version=1.2.7` as a new line to their `gradle.properties`
+file to fix logback on a version that remains compatible with Hoist's Groovy-based configuration.
 
 ### ⚙️ Technical
 
-* `PrefService.getClientConfig()` has been optimized to reduce the number of database calls. Previously one select was
-  issued per non-local preference when the second-level query cache was cold for a given user. Now only a single select
-  is required.
-* `DateTimeUtils` app/server timezone conversion utils default to current day/date if called without arguments.
-* Standard JSON serialization/deserialization of newer Java date classes added with registration of the JSR310 module.
-* `LogSupport` methods `withInfo`, `withDebug`, and  `withTrace` will now output a pre-work "Starting" message whenever
-  logging is at level 'debug' or above. Previously level 'trace' was required.
+* `PrefService.getClientConfig()` has been optimized to reduce the number of database calls.
+  Previously one select was issued per non-local preference when the second-level query cache was
+  cold for a given user. Now only a single select is required.
+* `DateTimeUtils` app/server timezone conversion utils default to current day/date if called without
+  arguments.
+* Standard JSON serialization/deserialization of newer Java date classes added with registration of
+  the JSR310 module.
+* `LogSupport` methods `withInfo`, `withDebug`, and  `withTrace` will now output a pre-work "
+  Starting" message whenever logging is at level 'debug' or above. Previously level 'trace' was
+  required.
 * Additional logging added to `MemoryMonitoringService`.
 
 ### 📚 Libraries
@@ -114,7 +125,8 @@ on a version that remains compatible with Hoist's Groovy-based configuration.
 
 ### 🐞 Bug Fixes
 
-* Fixed a bug with impersonation not ending cleanly, causing the ex-impersonator's session to break upon server restart.
+* Fixed a bug with impersonation not ending cleanly, causing the ex-impersonator's session to break
+  upon server restart.
 * Fixed a bug in implementation of `clearCachesConfigs`
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v13.2.0...v13.2.1)
@@ -123,7 +135,8 @@ on a version that remains compatible with Hoist's Groovy-based configuration.
 
 ### 🎁 New Features
 
-* Admin log file listing includes size and last modified date, visible with optional upgrade to `hoist-react >= 48.0`.
+* Admin log file listing includes size and last modified date, visible with optional upgrade
+  to `hoist-react >= 48.0`.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v13.1.0...v13.2.0)
 
@@ -144,10 +157,11 @@ on a version that remains compatible with Hoist's Groovy-based configuration.
 
 ### ⚙️ Technical
 
-* LocalDates are now serialized in the more fully ISO standard 'YYYY-MM-DD' format, rather than 'YYYYMMDD'.  
-  Note that this is consistent with similar changes to LocalDate serialization in Hoist React v46. Although
-  this format will be accepted client-side by Hoist React v45+, applications that are parsing these strings
-  directly on the client may need to be updated accordingly.
+* `LocalDate`s are now serialized in the more fully ISO standard "YYYY-MM-DD" format, rather than
+  "YYYYMMDD". Note that this is consistent with similar changes to `LocalDate` serialization in
+  Hoist React v46.
+* Although this format will be accepted client-side by `hoist-react >= 45.0`, apps that are parsing
+  these strings directly on the client may need to be updated accordingly.
 
 ### 🐞 Bug Fixes
 
@@ -173,8 +187,8 @@ for the application-level changes to core configuration files and dependencies.
 * The method `subscribeWithSession` on `BaseService` has been removed. Use `subscribe` instead.
 * Application Tomcat Dockerfiles must be updated to use a new `xh-tomcat` base image on JDK 11/17.
 * Groovy Language:  `list` methods changed:
-    * `push()` now prepends an item to the start of the List. To append to the end of a list, use `add()`
-    * `pop()` now removes the initial item from the List. To remove the last item use `removeLast()`
+    * `push()` now prepends an item to the start of the List. To append to the end, use `add()`.
+    * `pop()` now removes the first item from the List. To remove the last item, use `removeLast()`.
 
 ### ⚙️ Technical
 
@@ -211,7 +225,7 @@ for the application-level changes to core configuration files and dependencies.
 
 ### 🐞 Bug Fixes
 
-* Fix to Regression in v11 preventing proper display of stacktraces in log
+* Fix to Regression in v11 preventing proper display of stacktraces in log.
 
 * [Commit Log](https://github.com/xh/hoist-core/compare/v11.0.2...v13.0.5)
 
@@ -219,7 +233,7 @@ for the application-level changes to core configuration files and dependencies.
 
 ### ⚙️ Technical
 
-* Minor tweak to allow nested lists and arrays in `LogSupport` statements. Improved documentation
+* Minor tweak to allow nested lists and arrays in `LogSupport` statements. Improved documentation.
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v11.0.1...v11.0.2)
 
@@ -1167,14 +1181,14 @@ value column:
 ##### For MySQL DB:
 
 ```
-ALTER TABLE `xh_config` ADD `value` LONGTEXT; 
+ALTER TABLE `xh_config` ADD `value` LONGTEXT;
 ALTER TABLE `xh_config` MODIFY `prod_value` LONGTEXT;
 ```
 
 ##### For MS SQL Server DB:
 
 ```
-ALTER TABLE xh_config 
+ALTER TABLE xh_config
 ADD value varchar(max) NULL
 ALTER COLUMN prod_value varchar(max)
 ```
@@ -1212,10 +1226,10 @@ Set value to not accept NULL and drop old columns:
 ##### For MySQL DB:
 
 ```
-ALTER TABLE `xh_config` 
+ALTER TABLE `xh_config`
   MODIFY `value` LONGTEXT NOT NULL;
 
-ALTER TABLE `xh_config` 
+ALTER TABLE `xh_config`
   DROP COLUMN `beta_value`, `stage_value`, `dev_value`, `prod_value`;
 ```
 
