@@ -1,11 +1,11 @@
 # Changelog
 
-## 15.0-SNAPSHOT - unreleased
+## 14.4.2 - 2022-11-14
 
 ### ⚙️ Technical
 
-* Improved the signatures of `LogSupport` provided methods `withInfo` and similar to pass through
-  the return type of their closure argument.
+* Improved the signatures of `LogSupport` methods `withInfo` (and similar) to pass through the
+  return type of their closure argument.
 
 ## 14.4.1 - 2022-10-24
 
