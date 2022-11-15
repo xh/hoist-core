@@ -68,7 +68,7 @@ abstract class BaseService implements IdentitySupport, LogSupport, DisposableBea
     final void initialize(Long timeout = 30 * SECONDS) {
         if (_initialized) return
         try {
-            withInfo("Initializing") {
+            withInfo([action:"Initializing"]) {
                 task {
                     init()
                 }.get(timeout, TimeUnit.MILLISECONDS)

@@ -23,6 +23,7 @@ import static ch.qos.logback.classic.Level.ERROR
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.WARN
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
+import io.xh.hoist.log.HumanReadableConverter;
 
 /**
  * This class supports the default logging configuration in Hoist.
@@ -40,20 +41,20 @@ class LogbackConfig {
      * Layout used for for logging to stdout
      * String or a Closure that produces a Layout
      */
-    static Object stdoutLayout = '%d{yyyy-MM-dd HH:mm:ss} | %c{0} [%p] | %m%n'
+    static Object stdoutLayout = '%d{yyyy-MM-dd HH:mm:ss} | %c{0} [%p] | %hrMsg%n'
 
     /**
      * Layout for logs created by dailyLog() function
      * String or a Closure that produces a Layout
      * This layout will be used by the built-in rolling daily log provided by hoist.
      */
-    static Object dailyLayout = '%d{HH:mm:ss} | %c{0} [%p] | %m%n'
+    static Object dailyLayout = '%d{HH:mm:ss} | %c{0} [%p] | %hrMsg%n'
 
     /**
      * Layout for logs created by monthlyLog() function
      * String or a Closure that produces a Layout
      */
-    static Object monthlyLayout = '%d{MM-dd HH:mm:ss} | %c{0} [%p] | %m%n'
+    static Object monthlyLayout = '%d{MM-dd HH:mm:ss} | %c{0} [%p] | %hrMsg%n'
 
     /**
      * Layout used for logging monitor results to a dedicated log.
@@ -65,7 +66,7 @@ class LogbackConfig {
      * Layout used for logging client-side tracking results to a dedicated log.
      * String or a Closure that produces a Layout
      */
-    static Object trackLayout = '%d{HH:mm:ss} | %m%n'
+    static Object trackLayout = '%d{HH:mm:ss} | %hrMsg%n'
 
 
     /**
@@ -89,6 +90,11 @@ class LogbackConfig {
             def appLogName = Utils.appCode,
                 trackLogName = "$appLogName-track",
                 monitorLogName = "$appLogName-monitor"
+
+            //----------------------------------
+            // Register Custom Conversion Specifiers
+            //----------------------------------
+            conversionRule("hrMsg", HumanReadableConverter)
 
             //----------------------------------
             // Appenders

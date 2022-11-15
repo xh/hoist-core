@@ -151,25 +151,40 @@ trait LogSupport {
     }
 
     private <T> T loggedDo(Logger log, Level level, Object msgs, Closure<T> c) {
-        def start = currentTimeMillis(),
-            msgCol =  msgs instanceof List ? msgs.flatten() : [msgs],
-            txt = delimitedTxt(msgCol),
-            ret
+        String txt
+        switch (msgs) {
+            case List:
+                txt = delimitedTxt(msgs.flatten())
+                break;
 
-        if (log.debugEnabled) {
-            logAtLevel(log, level, "$txt | started")
+            case String:
+            case GString: {
+                txt = delimitedTxt([[message: msgs]])
+                break;
+            }
+            case Map: {
+                txt = delimitedTxt([msgs])
+                break;
+            }
         }
 
+
+        if (log.debugEnabled) {
+            logAtLevel(log, level, "$txt | outcome=started")
+        }
+
+        def ret
+        def start = currentTimeMillis()
         try {
             ret = c.call()
         } catch (Exception e) {
             long elapsed = currentTimeMillis() - start
-            logAtLevel(log, level, "$txt | failed | ${elapsed}ms")
+            logAtLevel(log, level, "$txt | outcome=failed | elapsedMs=${elapsed}")
             throw e
         }
 
         long elapsed = currentTimeMillis() - start
-        logAtLevel(log, level, "$txt | completed | ${elapsed}ms")
+        logAtLevel(log, level, "$txt | outcome=completed | elapsedMs=${elapsed}")
 
         return ret
     }
@@ -192,9 +207,23 @@ trait LogSupport {
     private String delimitedTxt(List msgs) {
         def username = identityService?.username
         List<String> ret = msgs.collect {
-            it instanceof Throwable ? exceptionRenderer.summaryTextForThrowable(it) : it.toString()
+            it instanceof Throwable ? exceptionRenderer.summaryTextForThrowable(it) :
+                it instanceof Map ? kvTxt(it) :
+                    it.toString()
         }
-        if (username) ret.add(username)
+        if (username) ret.add("user=$username")
+        return ret.join(' | ')
+    }
+
+
+    private String kvTxt(Map msgs) {
+        List<String> ret = msgs.collect {k,v ->
+            v = v instanceof Throwable ? exceptionRenderer.summaryTextForThrowable(v) : v.toString()
+            if (v.contains(' ')) {
+                v = '"' + v + '"'
+            }
+            "$k=$v"
+        }
         return ret.join(' | ')
     }
 
