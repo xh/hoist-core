@@ -96,45 +96,95 @@ trait LogSupport {
     private void logInfoInternal(Logger log, Object[] msgs) {
         if (log.infoEnabled) {
             def msgCol = flatten(msgs),
-                txt = delimitedTxt(msgCol),
+                txt = isSingleString(msgCol) ? msgCol.first() : null,
                 t = log.traceEnabled ? getThrowable(msgCol) : null
-            t ? log.info(txt, t) : log.info(txt)
+
+            if (txt && t) {
+                log.info(txt, t)
+                return
+            }
+            if (txt) {
+                log.info(txt)
+                return
+            }
+
+            log.info('', msgCol)
         }
     }
 
     private void logTraceInternal(Logger log, Object[] msgs) {
         if (log.traceEnabled) {
             def msgCol = flatten(msgs),
-                txt = delimitedTxt(msgCol),
+                txt = isSingleString(msgCol) ? msgCol.first() : null,
                 t = getThrowable(msgCol)
-            t ? log.trace(txt, t) : log.trace(txt)
+
+            if (txt && t) {
+                log.trace(txt, t)
+                return
+            }
+            if (txt) {
+                log.trace(txt)
+                return
+            }
+
+            log.trace('', msgCol)
         }
     }
 
     private void logDebugInternal(Logger log, Object[] msgs) {
         if (log.debugEnabled) {
             def msgCol = flatten(msgs),
-                txt = delimitedTxt(msgCol),
+                txt = isSingleString(msgCol) ? msgCol.first() : null,
                 t = log.traceEnabled ? getThrowable(msgCol) : null
-            t ? log.debug(txt, t) : log.debug(txt)
+
+            if (txt && t) {
+                log.debug(txt, t)
+                return
+            }
+            if (txt) {
+                log.debug(txt)
+                return
+            }
+
+            log.debug('', msgCol)
         }
     }
 
     private void logWarnInternal(Logger log, Object[] msgs) {
         if (log.warnEnabled) {
             def msgCol = flatten(msgs),
-                txt = delimitedTxt(msgCol),
+                txt = isSingleString(msgCol) ? msgCol.first() : null,
                 t = log.traceEnabled ? getThrowable(msgCol) : null
-            t ? log.warn(txt, t) : log.warn(txt)
+
+            if (txt && t) {
+                log.warn(txt, t)
+                return
+            }
+            if (txt) {
+                log.warn(txt)
+                return
+            }
+
+            log.warn('', msgCol)
         }
     }
 
     private void logErrorInternal(Logger log, Object[] msgs) {
         if (log.errorEnabled) {
             def msgCol = flatten(msgs),
-                txt = delimitedTxt(msgCol),
+                txt = isSingleString(msgCol) ? msgCol.first() : null,
                 t = log.traceEnabled ? getThrowable(msgCol) : null
-            t ? log.error(txt, t) : log.error(txt)
+
+            if (txt && t) {
+                log.error(txt, t)
+                return
+            }
+            if (txt) {
+                log.error(txt)
+                return
+            }
+
+            log.error('', msgCol)
         }
     }
 
@@ -151,26 +201,13 @@ trait LogSupport {
     }
 
     private <T> T loggedDo(Logger log, Level level, Object msgs, Closure<T> c) {
-        String txt
-        switch (msgs) {
-            case List:
-                txt = delimitedTxt(msgs.flatten())
-                break;
 
-            case String:
-            case GString: {
-                txt = delimitedTxt([[message: msgs]])
-                break;
-            }
-            case Map: {
-                txt = delimitedTxt([msgs])
-                break;
-            }
-        }
-
+        msgs = flatten(msgs)
 
         if (log.debugEnabled) {
-            logAtLevel(log, level, "$txt | outcome=started")
+            def startMsgs = msgs.getClass().newInstance(msgs)
+            startMsgs << [outcome: 'started']
+            logAtLevel(log, level, startMsgs)
         }
 
         def ret
@@ -179,23 +216,25 @@ trait LogSupport {
             ret = c.call()
         } catch (Exception e) {
             long elapsed = currentTimeMillis() - start
-            logAtLevel(log, level, "$txt | outcome=failed | elapsedMs=${elapsed}")
+            msgs << [outcome: 'failed', elapsedMs: elapsed]
+            logAtLevel(log, level, msgs)
             throw e
         }
 
         long elapsed = currentTimeMillis() - start
-        logAtLevel(log, level, "$txt | outcome=completed | elapsedMs=${elapsed}")
+        msgs << [outcome: 'completed', elapsedMs: elapsed]
+        logAtLevel(log, level, msgs)
 
         return ret
     }
 
-    private void logAtLevel(Logger log, Level level, GString msg) {
+    private void logAtLevel(Logger log, Level level, Object msgs) {
         switch (level) {
-            case DEBUG: log.debug (msg); break
-            case INFO:  log.info (msg); break
-            case WARN:  log.warn (msg); break
-            case ERROR: log.error (msg); break
-            case TRACE: log.trace(msg); break
+            case DEBUG: log.debug ('', msgs); break
+            case INFO:  log.info ('', msgs); break
+            case WARN:  log.warn ('', msgs); break
+            case ERROR: log.error ('', msgs); break
+            case TRACE: log.trace('', msgs); break
         }
     }
 
@@ -204,30 +243,11 @@ trait LogSupport {
         return last instanceof Throwable ? last : null
     }
 
-    private String delimitedTxt(List msgs) {
-        def username = identityService?.username
-        List<String> ret = msgs.collect {
-            it instanceof Throwable ? exceptionRenderer.summaryTextForThrowable(it) :
-                it instanceof Map ? kvTxt(it) :
-                    it.toString()
-        }
-        if (username) ret.add("user=$username")
-        return ret.join(' | ')
-    }
-
-
-    private String kvTxt(Map msgs) {
-        List<String> ret = msgs.collect {k,v ->
-            v = v instanceof Throwable ? exceptionRenderer.summaryTextForThrowable(v) : v.toString()
-            if (v.contains(' ')) {
-                v = '"' + v + '"'
-            }
-            "$k=$v"
-        }
-        return ret.join(' | ')
-    }
-
     private List flatten(Object[] msgs) {
        Arrays.asList(msgs).flatten()
+    }
+
+    private boolean isSingleString(Object[] msgs) {
+        msgs.size() == 1 && (msgs[0] instanceof String || msgs[0] instanceof GString)
     }
 }

@@ -60,7 +60,7 @@ class LogbackConfig {
      * Layout used for logging monitor results to a dedicated log.
      * String or a Closure that produces a Layout
      */
-    static Object monitorLayout = '%d{HH:mm:ss} | %m%n'
+    static Object monitorLayout = '%d{HH:mm:ss} | %hrMsg%n'
 
     /**
      * Layout used for logging client-side tracking results to a dedicated log.
