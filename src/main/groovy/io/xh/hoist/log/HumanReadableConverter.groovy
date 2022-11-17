@@ -13,37 +13,35 @@ class HumanReadableConverter extends ClassicConverter {
               def msg = event.message
               def args = event.argumentArray
 
-              List<String> meta = args.collect { arg ->
+              List<String> ret = args.collect { arg ->
                   switch (arg) {
                       case List: return delimitedTxt(arg.flatten())
-                      case String:
-                      case GString: return delimitedTxt([arg])
-                      case Map: return delimitedTxt([arg])
+                      default: return delimitedTxt([arg])
                   }
-              }
+              }.flatten()
 
               if (msg) {
-                  meta << msg
+                  ret << msg
               }
-              return meta.join(' | ')
+              return ret.findAll().join(' | ')
           }
 
     //---------------------------------------------------------------------------
     // Implementation
     //---------------------------------------------------------------------------
-    private String delimitedTxt(List msgs) {
+    private List<String> delimitedTxt(List msgs) {
         def username = identityService?.username
         List<String> ret = msgs.collect {
             it instanceof Throwable ? exceptionRenderer.summaryTextForThrowable(it) :
                 it instanceof Map ? kvTxt(it) :
                     it.toString()
-        }
+        }.flatten()
         if (username) ret.add(username)
-        return ret.join(' | ')
+        return ret
     }
 
-    private String kvTxt(Map msgs) {
-        List<String> ret = msgs.collect {k,v ->
+    private List<String> kvTxt(Map msgs) {
+        return msgs.collect {k,v ->
             v = v instanceof Throwable ? exceptionRenderer.summaryTextForThrowable(v) : v.toString()
 
             if (v.isNumber()) {
@@ -57,7 +55,6 @@ class HumanReadableConverter extends ClassicConverter {
 
            return v
         }
-        return ret.findAll().join(' | ')
     }
 }
 
