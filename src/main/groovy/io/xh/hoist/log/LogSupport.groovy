@@ -15,8 +15,6 @@ import static ch.qos.logback.classic.Level.WARN
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.DEBUG
 import static ch.qos.logback.classic.Level.TRACE
-import static io.xh.hoist.util.Utils.exceptionRenderer
-import static io.xh.hoist.util.Utils.identityService
 import static java.lang.System.currentTimeMillis
 
 trait LogSupport {
