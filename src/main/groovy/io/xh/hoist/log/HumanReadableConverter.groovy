@@ -2,6 +2,7 @@ package io.xh.hoist.log
 
 import ch.qos.logback.classic.pattern.ClassicConverter
 import ch.qos.logback.classic.spi.ILoggingEvent
+import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.util.Utils.exceptionRenderer
 import static io.xh.hoist.util.Utils.identityService
@@ -12,6 +13,7 @@ class HumanReadableConverter extends ClassicConverter {
           public String convert(ILoggingEvent event) {
               def msg = event.message
               def args = event.argumentArray
+              def username = Utils.hasProperty('getIdentityService') ? identityService.username : null
 
               List<String> ret = args.collect { arg ->
                   switch (arg) {
@@ -23,6 +25,7 @@ class HumanReadableConverter extends ClassicConverter {
               if (msg) {
                   ret << msg
               }
+              if (username) ret.add(username)
               return ret.findAll().join(' | ')
           }
 
@@ -30,14 +33,11 @@ class HumanReadableConverter extends ClassicConverter {
     // Implementation
     //---------------------------------------------------------------------------
     private List<String> delimitedTxt(List msgs) {
-        def username = identityService?.username
-        List<String> ret = msgs.collect {
+        return msgs.collect {
             it instanceof Throwable ? exceptionRenderer.summaryTextForThrowable(it) :
                 it instanceof Map ? kvTxt(it) :
                     it.toString()
         }.flatten()
-        if (username) ret.add(username)
-        return ret
     }
 
     private List<String> kvTxt(Map msgs) {
