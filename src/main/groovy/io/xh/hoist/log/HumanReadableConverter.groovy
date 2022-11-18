@@ -2,7 +2,6 @@ package io.xh.hoist.log
 
 import ch.qos.logback.classic.pattern.ClassicConverter
 import ch.qos.logback.classic.spi.ILoggingEvent
-import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.util.Utils.exceptionRenderer
 import static io.xh.hoist.util.Utils.identityService
@@ -13,7 +12,8 @@ class HumanReadableConverter extends ClassicConverter {
           public String convert(ILoggingEvent event) {
               def msg = event.message
               def args = event.argumentArray
-              def username = Utils.hasProperty('getIdentityService') ? identityService.username : null
+              def username = null
+              try{username = identityService.username} catch(ignored) {}
 
               List<String> ret = args.collect { arg ->
                   switch (arg) {
@@ -58,9 +58,9 @@ class HumanReadableConverter extends ClassicConverter {
     }
 
     private safeErrorSummary(Throwable t) {
-        return Utils.hasProperty('getExceptionRenderer') ?
-            exceptionRenderer.summaryTextForThrowable(t) :
-            t.message
+        def ret = t.message
+        try{ret = exceptionRenderer.summaryTextForThrowable(t)} catch(ignored) {}
+        return ret
     }
 }
 

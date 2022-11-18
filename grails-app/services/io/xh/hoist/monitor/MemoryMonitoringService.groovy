@@ -111,18 +111,12 @@ class MemoryMonitoringService extends BaseService {
     }
 
     private Map logMessagesForSnapshot(Map snap) {
-        def totalHeap = snap.totalHeapMb,
-            maxHeap = snap.maxHeapMb,
-            usedHeap = snap.usedHeapMb,
-            freeHeap = snap.freeHeapMb,
-            usedPctTotal = snap.usedPctTotal
-
         return [
-            "TotalMB":totalHeap,
-            "MaxMB":maxHeap,
-            "UsedMB":usedHeap,
-            "FreeMB":freeHeap,
-            "%Used/Total":usedPctTotal
+            TotalMB: snap.totalHeapMb,
+            MaxMB: snap.maxHeapMb,
+            UsedMB: snap.usedHeapMb,
+            FreeMB: snap.freeHeapMb,
+            "%Used/Total": snap.usedPctTotal
         ]
     }
 

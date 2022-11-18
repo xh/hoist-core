@@ -203,8 +203,7 @@ trait LogSupport {
         msgs = flatten(msgs)
 
         if (log.debugEnabled) {
-            def startMsgs = msgs.getClass().newInstance(msgs)
-            startMsgs << [outcome: 'started']
+            def startMsgs = msgs + [status: "started"]
             logAtLevel(log, level, startMsgs)
         }
 
@@ -214,13 +213,13 @@ trait LogSupport {
             ret = c.call()
         } catch (Exception e) {
             long elapsed = currentTimeMillis() - start
-            msgs << [outcome: 'failed', elapsedMs: elapsed]
+            msgs << [status: "failed", elapsedMs: elapsed]
             logAtLevel(log, level, msgs)
             throw e
         }
 
         long elapsed = currentTimeMillis() - start
-        msgs << [outcome: 'completed', elapsedMs: elapsed]
+        msgs << [status: "completed", elapsedMs: elapsed]
         logAtLevel(log, level, msgs)
 
         return ret
