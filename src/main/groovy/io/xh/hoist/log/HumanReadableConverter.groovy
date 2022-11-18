@@ -34,7 +34,7 @@ class HumanReadableConverter extends ClassicConverter {
     //---------------------------------------------------------------------------
     private List<String> delimitedTxt(List msgs) {
         return msgs.collect {
-            it instanceof Throwable ? exceptionRenderer.summaryTextForThrowable(it) :
+            it instanceof Throwable ? safeErrorSummary(it) :
                 it instanceof Map ? kvTxt(it) :
                     it.toString()
         }.flatten()
@@ -42,7 +42,7 @@ class HumanReadableConverter extends ClassicConverter {
 
     private List<String> kvTxt(Map msgs) {
         return msgs.collect {k,v ->
-            v = v instanceof Throwable ? exceptionRenderer.summaryTextForThrowable(v) : v.toString()
+            v = v instanceof Throwable ? safeErrorSummary(v) : v.toString()
 
             if (v.isNumber()) {
                 if (k.startsWith('elapsed')) {
@@ -55,6 +55,12 @@ class HumanReadableConverter extends ClassicConverter {
 
            return v
         }
+    }
+
+    private safeErrorSummary(Throwable t) {
+        return Utils.hasProperty('getExceptionRenderer') ?
+            exceptionRenderer.summaryTextForThrowable(t) :
+            t.message
     }
 }
 
