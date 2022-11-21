@@ -19,6 +19,9 @@ import static java.lang.System.currentTimeMillis
 
 trait LogSupport {
 
+    static USE_LOG_SUPPORT = 'USE_XH_LOG_SUPPORT'
+    static USE_LOG_SUPPORT_WITH_STACKTRACE = 'USE_XH_LOG_SUPPORT_WITH_STACKTRACE'
+
     /**
      * Log at INFO level.
      *
@@ -93,96 +96,31 @@ trait LogSupport {
     //---------------------------------------------------------------------------
     private void logInfoInternal(Logger log, Object[] msgs) {
         if (log.infoEnabled) {
-            def msgCol = flatten(msgs),
-                txt = isSingleString(msgCol) ? msgCol.first() : null,
-                t = log.traceEnabled ? getThrowable(msgCol) : null
-
-            if (txt && t) {
-                log.info(txt, t)
-                return
-            }
-            if (txt) {
-                log.info(txt)
-                return
-            }
-
-            log.info('', msgCol)
+            log.info(getLsFlag(log), flatten(msgs))
         }
     }
 
     private void logTraceInternal(Logger log, Object[] msgs) {
         if (log.traceEnabled) {
-            def msgCol = flatten(msgs),
-                txt = isSingleString(msgCol) ? msgCol.first() : null,
-                t = getThrowable(msgCol)
-
-            if (txt && t) {
-                log.trace(txt, t)
-                return
-            }
-            if (txt) {
-                log.trace(txt)
-                return
-            }
-
-            log.trace('', msgCol)
+            log.trace(getLsFlag(log), flatten(msgs))
         }
     }
 
     private void logDebugInternal(Logger log, Object[] msgs) {
         if (log.debugEnabled) {
-            def msgCol = flatten(msgs),
-                txt = isSingleString(msgCol) ? msgCol.first() : null,
-                t = log.traceEnabled ? getThrowable(msgCol) : null
-
-            if (txt && t) {
-                log.debug(txt, t)
-                return
-            }
-            if (txt) {
-                log.debug(txt)
-                return
-            }
-
-            log.debug('', msgCol)
+            log.debug(getLsFlag(log), flatten(msgs))
         }
     }
 
     private void logWarnInternal(Logger log, Object[] msgs) {
         if (log.warnEnabled) {
-            def msgCol = flatten(msgs),
-                txt = isSingleString(msgCol) ? msgCol.first() : null,
-                t = log.traceEnabled ? getThrowable(msgCol) : null
-
-            if (txt && t) {
-                log.warn(txt, t)
-                return
-            }
-            if (txt) {
-                log.warn(txt)
-                return
-            }
-
-            log.warn('', msgCol)
+            log.warn(getLsFlag(log), flatten(msgs))
         }
     }
 
     private void logErrorInternal(Logger log, Object[] msgs) {
         if (log.errorEnabled) {
-            def msgCol = flatten(msgs),
-                txt = isSingleString(msgCol) ? msgCol.first() : null,
-                t = log.traceEnabled ? getThrowable(msgCol) : null
-
-            if (txt && t) {
-                log.error(txt, t)
-                return
-            }
-            if (txt) {
-                log.error(txt)
-                return
-            }
-
-            log.error('', msgCol)
+            log.warn(getLsFlag(log), flatten(msgs))
         }
     }
 
@@ -227,24 +165,19 @@ trait LogSupport {
 
     private void logAtLevel(Logger log, Level level, Object msgs) {
         switch (level) {
-            case DEBUG: log.debug ('', msgs); break
-            case INFO:  log.info ('', msgs); break
-            case WARN:  log.warn ('', msgs); break
-            case ERROR: log.error ('', msgs); break
-            case TRACE: log.trace('', msgs); break
+            case DEBUG: log.debug (USE_LOG_SUPPORT, msgs); break
+            case INFO:  log.info (USE_LOG_SUPPORT, msgs); break
+            case WARN:  log.warn (USE_LOG_SUPPORT, msgs); break
+            case ERROR: log.error (USE_LOG_SUPPORT, msgs); break
+            case TRACE: log.trace(USE_LOG_SUPPORT, msgs); break
         }
-    }
-
-    private Throwable getThrowable(List msgs) {
-        def last = msgs.last()
-        return last instanceof Throwable ? last : null
     }
 
     private List flatten(Object[] msgs) {
        Arrays.asList(msgs).flatten()
     }
 
-    private boolean isSingleString(Object[] msgs) {
-        msgs.size() == 1 && (msgs[0] instanceof String || msgs[0] instanceof GString)
+    private String getLsFlag(Logger log) {
+        log.traceEnabled ? USE_LOG_SUPPORT_WITH_STACKTRACE : USE_LOG_SUPPORT_WITH_STACKTRACE
     }
 }

@@ -11,6 +11,11 @@ class HumanReadableConverter extends ClassicConverter {
           @Override
           public String convert(ILoggingEvent event) {
               def msg = event.message
+
+              if (!msg.startsWith('USE_XH_LOG_SUPPORT')) {
+                  return event.formattedMessage
+              }
+
               def args = event.argumentArray
               def username = null
               try{username = identityService.username} catch(ignored) {}
