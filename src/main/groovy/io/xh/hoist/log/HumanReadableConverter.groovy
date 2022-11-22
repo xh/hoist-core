@@ -2,6 +2,7 @@ package io.xh.hoist.log
 
 import ch.qos.logback.classic.pattern.ClassicConverter
 import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.classic.spi.ThrowableProxy
 
 import static io.xh.hoist.util.Utils.exceptionRenderer
 import static io.xh.hoist.util.Utils.identityService
@@ -16,22 +17,28 @@ class HumanReadableConverter extends ClassicConverter {
                   return event.formattedMessage
               }
 
-              def args = event.argumentArray
+              def args = event.argumentArray.flatten()
+
+              String tStack = ''
+              if (msg == 'USE_XH_LOG_SUPPORT_WITH_STACKTRACE') {
+                  Throwable t = getThrowable(args)
+                  if (t) {
+                      args.removeLast()
+                      String indent = '           '
+                      tStack = '\n' + indent + new ThrowableProxy(t)
+                          .stackTraceElementProxyArray
+                          .collect {it.getSTEAsString()}
+                          .join('\n' + indent)
+                  }
+              }
+
+              List<String> processed = args.collect { delimitedTxt(flatten(it)) }.flatten()
+
               def username = null
               try{username = identityService.username} catch(ignored) {}
+              if (username) processed << username
 
-              List<String> ret = args.collect { arg ->
-                  switch (arg) {
-                      case List: return delimitedTxt(arg.flatten())
-                      default: return delimitedTxt([arg])
-                  }
-              }.flatten()
-
-              if (msg) {
-                  ret << msg
-              }
-              if (username) ret.add(username)
-              return ret.findAll().join(' | ')
+              return processed.findAll().join(' | ') + tStack
           }
 
     //---------------------------------------------------------------------------
@@ -66,6 +73,15 @@ class HumanReadableConverter extends ClassicConverter {
         def ret = t.message
         try{ret = exceptionRenderer.summaryTextForThrowable(t)} catch(ignored) {}
         return ret
+    }
+
+    private Throwable getThrowable(List msgs) {
+        def last = msgs.last()
+        return last instanceof Throwable ? last : null
+    }
+
+    private List flatten(Object[] msgs) {
+        Arrays.asList(msgs).flatten()
     }
 }
 
