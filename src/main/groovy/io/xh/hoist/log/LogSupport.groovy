@@ -178,6 +178,6 @@ trait LogSupport {
     }
 
     private String getLsFlag(Logger log) {
-        log.traceEnabled ? USE_LOG_SUPPORT_WITH_STACKTRACE : USE_LOG_SUPPORT_WITH_STACKTRACE
+        log.traceEnabled ? USE_LOG_SUPPORT_WITH_STACKTRACE : USE_LOG_SUPPORT
     }
 }
