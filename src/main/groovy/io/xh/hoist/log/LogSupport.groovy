@@ -120,7 +120,7 @@ trait LogSupport {
 
     private void logErrorInternal(Logger log, Object[] msgs) {
         if (log.errorEnabled) {
-            log.warn(getLsFlag(log), flatten(msgs))
+            log.error(getLsFlag(log), flatten(msgs))
         }
     }
 
