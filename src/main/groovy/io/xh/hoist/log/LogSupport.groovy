@@ -175,20 +175,17 @@ trait LogSupport {
     }
 
     private enhanceMsgs(msgs) {
-        // asList needed to sometimes convert msgs from Object
-        // flatten needed here to convert from fixed list to flexible, appendable list
         msgs = Arrays.asList(msgs).flatten()
 
         def username = identityService?.username
-        if (username) {
-            Map mp = [user: username]
-            if (msgs.last() instanceof Throwable) {
-                msgs.add(msgs.size() - 1, mp)
-            } else {
-                msgs << mp
-            }
-        }
+        if (!username) return msgs
 
+        Map mp = [user: username]
+        if (msgs.last() instanceof Throwable) {
+            msgs.add(msgs.size() - 1, mp)
+        } else {
+            msgs << mp
+        }
         return msgs
     }
 
