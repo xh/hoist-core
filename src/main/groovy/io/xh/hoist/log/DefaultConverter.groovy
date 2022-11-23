@@ -5,15 +5,14 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.spi.ThrowableProxy
 
 import static io.xh.hoist.util.Utils.exceptionRenderer
-import static io.xh.hoist.util.Utils.identityService
 
-class HumanReadableConverter extends ClassicConverter {
+class DefaultConverter extends ClassicConverter {
 
           @Override
           public String convert(ILoggingEvent event) {
               def msg = event.message
 
-              if (!msg.startsWith('USE_XH_LOG_SUPPORT')) {
+              if (!msg?.startsWith('USE_XH_LOG_SUPPORT')) {
                   return event.formattedMessage
               }
 
@@ -32,11 +31,7 @@ class HumanReadableConverter extends ClassicConverter {
                   }
               }
 
-              List<String> processed = args.collect { delimitedTxt(flatten(it)) }.flatten()
-
-              def username = null
-              try{username = identityService.username} catch(ignored) {}
-              if (username) processed << username
+              List<String> processed = args.collect { delimitedTxt(it) }.flatten()
 
               return processed.findAll().join(' | ') + tStack
           }
@@ -44,12 +39,11 @@ class HumanReadableConverter extends ClassicConverter {
     //---------------------------------------------------------------------------
     // Implementation
     //---------------------------------------------------------------------------
-    private List<String> delimitedTxt(List msgs) {
-        return msgs.collect {
-            it instanceof Throwable ? safeErrorSummary(it) :
-                it instanceof Map ? kvTxt(it) :
-                    it.toString()
-        }.flatten()
+    private List<String> delimitedTxt(Object obj) {
+        if (!obj) return []
+        if (obj instanceof Throwable) return [safeErrorSummary(obj)]
+        if (obj instanceof Map) return kvTxt(obj)
+        return [obj.toString()]
     }
 
     private List<String> kvTxt(Map msgs) {
@@ -78,10 +72,6 @@ class HumanReadableConverter extends ClassicConverter {
     private Throwable getThrowable(List msgs) {
         def last = msgs.last()
         return last instanceof Throwable ? last : null
-    }
-
-    private List flatten(Object[] msgs) {
-        Arrays.asList(msgs).flatten()
     }
 }
 

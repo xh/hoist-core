@@ -15,6 +15,7 @@ import static ch.qos.logback.classic.Level.WARN
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.DEBUG
 import static ch.qos.logback.classic.Level.TRACE
+import static io.xh.hoist.util.Utils.getIdentityService
 import static java.lang.System.currentTimeMillis
 
 trait LogSupport {
@@ -96,31 +97,31 @@ trait LogSupport {
     //---------------------------------------------------------------------------
     private void logInfoInternal(Logger log, Object[] msgs) {
         if (log.infoEnabled) {
-            log.info(getLsFlag(log), flatten(msgs))
+            log.info(getLsFlag(log), enhanceMsgs(msgs))
         }
     }
 
     private void logTraceInternal(Logger log, Object[] msgs) {
         if (log.traceEnabled) {
-            log.trace(getLsFlag(log), flatten(msgs))
+            log.trace(getLsFlag(log), enhanceMsgs(msgs))
         }
     }
 
     private void logDebugInternal(Logger log, Object[] msgs) {
         if (log.debugEnabled) {
-            log.debug(getLsFlag(log), flatten(msgs))
+            log.debug(getLsFlag(log), enhanceMsgs(msgs))
         }
     }
 
     private void logWarnInternal(Logger log, Object[] msgs) {
         if (log.warnEnabled) {
-            log.warn(getLsFlag(log), flatten(msgs))
+            log.warn(getLsFlag(log), enhanceMsgs(msgs))
         }
     }
 
     private void logErrorInternal(Logger log, Object[] msgs) {
         if (log.errorEnabled) {
-            log.error(getLsFlag(log), flatten(msgs))
+            log.error(getLsFlag(log), enhanceMsgs(msgs))
         }
     }
 
@@ -138,10 +139,10 @@ trait LogSupport {
 
     private <T> T loggedDo(Logger log, Level level, Object msgs, Closure<T> c) {
 
-        msgs = flatten(msgs)
+        msgs = enhanceMsgs(msgs)
 
         if (log.debugEnabled) {
-            def startMsgs = msgs + [status: "started"]
+            def startMsgs = msgs + [status: 'started']
             logAtLevel(log, level, startMsgs)
         }
 
@@ -151,30 +152,44 @@ trait LogSupport {
             ret = c.call()
         } catch (Exception e) {
             long elapsed = currentTimeMillis() - start
-            msgs << [status: "failed", elapsedMs: elapsed]
+            msgs << [status: 'failed', elapsedMs: elapsed]
             logAtLevel(log, level, msgs)
             throw e
         }
 
         long elapsed = currentTimeMillis() - start
-        msgs << [status: "completed", elapsedMs: elapsed]
+        msgs << [status: 'completed', elapsedMs: elapsed]
         logAtLevel(log, level, msgs)
 
         return ret
     }
 
-    private void logAtLevel(Logger log, Level level, Object msgs) {
+    private void logAtLevel(Logger log, Level level, Object[] msgs) {
         switch (level) {
-            case DEBUG: log.debug (USE_LOG_SUPPORT, msgs); break
-            case INFO:  log.info (USE_LOG_SUPPORT, msgs); break
-            case WARN:  log.warn (USE_LOG_SUPPORT, msgs); break
-            case ERROR: log.error (USE_LOG_SUPPORT, msgs); break
-            case TRACE: log.trace(USE_LOG_SUPPORT, msgs); break
+            case DEBUG: log.debug (getLsFlag(log), msgs); break
+            case INFO:  log.info (getLsFlag(log), msgs); break
+            case WARN:  log.warn (getLsFlag(log), msgs); break
+            case ERROR: log.error (getLsFlag(log), msgs); break
+            case TRACE: log.trace(getLsFlag(log), msgs); break
         }
     }
 
-    private List flatten(Object[] msgs) {
-       Arrays.asList(msgs).flatten()
+    private enhanceMsgs(msgs) {
+        // asList needed to sometimes convert msgs from Object
+        // flatten needed here to convert from fixed list to flexible, appendable list
+        msgs = Arrays.asList(msgs).flatten()
+
+        def username = identityService?.username
+        if (username) {
+            Map mp = [user: username]
+            if (msgs.last() instanceof Throwable) {
+                msgs.add(msgs.size() - 1, mp)
+            } else {
+                msgs << mp
+            }
+        }
+
+        return msgs
     }
 
     private String getLsFlag(Logger log) {

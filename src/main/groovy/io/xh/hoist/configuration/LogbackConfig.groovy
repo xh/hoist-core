@@ -23,7 +23,7 @@ import static ch.qos.logback.classic.Level.ERROR
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.WARN
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
-import io.xh.hoist.log.HumanReadableConverter;
+import io.xh.hoist.log.DefaultConverter;
 
 /**
  * This class supports the default logging configuration in Hoist.
@@ -41,32 +41,32 @@ class LogbackConfig {
      * Layout used for for logging to stdout
      * String or a Closure that produces a Layout
      */
-    static Object stdoutLayout = '%d{yyyy-MM-dd HH:mm:ss} | %c{0} [%p] | %hrMsg%n'
+    static Object stdoutLayout = '%d{yyyy-MM-dd HH:mm:ss} | %c{0} [%p] | %defaultMsg%n'
 
     /**
      * Layout for logs created by dailyLog() function
      * String or a Closure that produces a Layout
      * This layout will be used by the built-in rolling daily log provided by hoist.
      */
-    static Object dailyLayout = '%d{HH:mm:ss} | %c{0} [%p] | %hrMsg%n'
+    static Object dailyLayout = '%d{HH:mm:ss} | %c{0} [%p] | %defaultMsg%n'
 
     /**
      * Layout for logs created by monthlyLog() function
      * String or a Closure that produces a Layout
      */
-    static Object monthlyLayout = '%d{MM-dd HH:mm:ss} | %c{0} [%p] | %hrMsg%n'
+    static Object monthlyLayout = '%d{MM-dd HH:mm:ss} | %c{0} [%p] | %defaultMsg%n'
 
     /**
      * Layout used for logging monitor results to a dedicated log.
      * String or a Closure that produces a Layout
      */
-    static Object monitorLayout = '%d{HH:mm:ss} | %hrMsg%n'
+    static Object monitorLayout = '%d{HH:mm:ss} | %defaultMsg%n'
 
     /**
      * Layout used for logging client-side tracking results to a dedicated log.
      * String or a Closure that produces a Layout
      */
-    static Object trackLayout = '%d{HH:mm:ss} | %hrMsg%n'
+    static Object trackLayout = '%d{HH:mm:ss} | %defaultMsg%n'
 
 
     /**
@@ -94,7 +94,7 @@ class LogbackConfig {
             //----------------------------------
             // Register Custom Conversion Specifiers
             //----------------------------------
-            conversionRule("hrMsg", HumanReadableConverter)
+            conversionRule("defaultMsg", DefaultConverter)
 
             //----------------------------------
             // Appenders
