@@ -6,6 +6,30 @@ import ch.qos.logback.classic.spi.ThrowableProxy
 
 import static io.xh.hoist.util.Utils.exceptionRenderer
 
+/**
+ * Converter to output log messages in a human readable layout.
+ * This converter is Hoist-Core's default converter for messages going to stdout
+ * and to Hoist-Core's rolled log files.
+ *
+ * It is referenced in layout strings with the key `%defaultMsg`.
+ *
+ * "Human Readable" is, admittedly, a subjective qualification.
+ * In this case, it means that:
+ * - Arguments passed to log support will be pipe | separated.
+ * - Maps with string values will not print their keys, the assumption being that the human will
+ *   be able to infer the significance of the bare string values from context,
+ *   ie: (status: 'completed' becomes 'completed')
+ * - Maps with numeric values will preserve their keys, ie: (UsedMB: 300 becomes 'UsedMB=300'),
+ *   since the context of numeric values is typically harder to infer.
+ *   An exception for mapped numeric values is made for elapsedMs=3000, which is converted to
+ *   simply 3000ms and put at the end of the log msg.
+ * - Lists of Strings or Numbers will be rendered pipe | separated.
+ *
+ * Developers wishing to output log entries with a different layout can create their own converter and
+ * override the layout strings in Hoist-Core's @class LogbackConfig with their own layout strings in
+ * their application's /grails-app/conf/logback.groovy file.
+ *
+ */
 class DefaultConverter extends ClassicConverter {
 
           @Override
