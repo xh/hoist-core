@@ -56,7 +56,7 @@ trait LogSupport {
      * If the configured logging level is TRACE, an additional line will be written BEFORE the
      * closure is started, providing a finer-grained view on when logged routines start and end.
      *
-     * @param msgs - one or more objects that can be converted into strings.
+     * @param msgs - one object (typically String, Map, or List) that can be converted into strings.
      * @param c - closure to be run and timed.
      * @return result of executing c
      */
@@ -174,7 +174,12 @@ trait LogSupport {
         }
     }
 
-    private enhanceMsgs(msgs) {
+    /**
+     * Add username k/v pair at right index of returned list.
+     *
+     * @param msgs - String, Map, Object[], or List
+     */
+    private List enhanceMsgs(msgs) {
         msgs = Arrays.asList(msgs).flatten()
 
         def username = identityService?.username
