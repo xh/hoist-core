@@ -1,5 +1,21 @@
 # Changelog
 
+## 15.0-SNAPSHOT
+
+### 🎁 New Features
+
+* `LogSupport` is now more flexible:  Strings, Lists, and Maps passed to `LogSupport` for eventual
+  output as log entries are now passed to the Logback converters for formatting.  This allows
+  application developers to write custom converters for their app that format the log entries
+  as appropriate for each of the app's log destinations: `stdout`, `files`, etc.
+* As part of this change, Hoist's `DefaultConverter`, intended for easy reading by humans,
+  will remove keys from Maps sent to the logs if the keys start with an `underscore`.
+  **For Example:** `[_status: 'completed', rows: 100]` logs as `'completed' | rows=100`
+* But, app developers can write a custom converter for their app's output to `stdout` that preserves all keys,
+  even those starting with `underscore`.  An example of such a converter is `TokenizedExampleConverter`
+  in XH.IO's [Toolbox project](https://github.com/xh/toolbox).
+
+
 ## 14.4.2 - 2022-11-14
 
 ### ⚙️ Technical
