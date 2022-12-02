@@ -142,7 +142,7 @@ trait LogSupport {
         msgs = enhanceMsgs(msgs)
 
         if (log.debugEnabled) {
-            def startMsgs = msgs + [status: 'started']
+            def startMsgs = msgs + [_status: 'started']
             logAtLevel(log, level, startMsgs)
         }
 
@@ -152,13 +152,13 @@ trait LogSupport {
             ret = c.call()
         } catch (Exception e) {
             long elapsed = currentTimeMillis() - start
-            msgs << [status: 'failed', elapsedMs: elapsed]
+            msgs << [_status: 'failed', _elapsedMs: elapsed]
             logAtLevel(log, level, msgs)
             throw e
         }
 
         long elapsed = currentTimeMillis() - start
-        msgs << [status: 'completed', elapsedMs: elapsed]
+        msgs << [_status: 'completed', _elapsedMs: elapsed]
         logAtLevel(log, level, msgs)
 
         return ret
@@ -185,7 +185,7 @@ trait LogSupport {
         def username = identityService?.username
         if (!username) return msgs
 
-        Map mp = [user: username]
+        Map mp = [_user: username]
         if (msgs.last() instanceof Throwable) {
             msgs.add(msgs.size() - 1, mp)
         } else {

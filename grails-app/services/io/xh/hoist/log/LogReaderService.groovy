@@ -34,11 +34,11 @@ class LogReaderService extends BaseService {
         }
 
         return withDebug([
-            message: 'Reading log file',
-            filename: filename,
+            _msg: 'Reading log file',
+            _filename: filename,
             startLine: startLine,
             maxLines: maxLines,
-            pattern:pattern
+            pattern: pattern
         ]) {
             doRead(filename, startLine, maxLines, pattern)
         }

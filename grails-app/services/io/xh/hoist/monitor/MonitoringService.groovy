@@ -165,14 +165,14 @@ class MonitoringService extends BaseService implements EventPublisher {
             def status = result.status,
                 metric = result.metric
 
-            logInfo("monitorCode=$code", "status=$status", "metric=$metric")
+            logInfo([monitorCode: code, status: status, metric: metric])
         }
 
         def failsCount = results.count {it.value.status == FAIL},
             warnsCount = results.count {it.value.status == WARN},
             okCount = results.count {it.value.status == OK}
 
-        logInfo("fails=$failsCount", "warns=$warnsCount", "okays=$okCount")
+        logInfo([fails: failsCount, warns: warnsCount, okays: okCount])
     }
 
     private void onNotifyTimer() {

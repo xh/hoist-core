@@ -7,23 +7,21 @@ import ch.qos.logback.classic.spi.ThrowableProxy
 import static io.xh.hoist.util.Utils.exceptionRenderer
 
 /**
- * Converter to output log messages in a human readable layout.
+ * Logback Layout Converter to output log messages in a human readable layout.
  * This converter is Hoist-Core's default converter for messages going to stdout
  * and to Hoist-Core's rolled log files.
  *
- * It is referenced in layout strings with the key `%defaultMsg`.
+ * It is referenced in layout strings with the key `%m`, `%msg`, or `%message`,
+ * overriding the same Logback keys.
  *
  * "Human Readable" is, admittedly, a subjective qualification.
  * In this case, it means that:
  * - Arguments passed to log support will be pipe | separated.
- * - Maps with string values will not print their keys, the assumption being that the human will
- *   be able to infer the significance of the bare string values from context,
- *   ie: (status: 'completed' becomes 'completed')
- * - Maps with numeric values will preserve their keys, ie: (UsedMB: 300 becomes 'UsedMB=300'),
- *   since the context of numeric values is typically harder to infer.
- *   An exception for mapped numeric values is made for elapsedMs=3000, which is converted to
- *   simply 3000ms and put at the end of the log msg.
- * - Lists of Strings or Numbers will be rendered pipe | separated.
+ * - For Map arguments, keys that start with an underscore _ will not be printed.
+ *     ie: [_status: 'completed'] becomes 'completed'
+ *   The '_elapsedMs' key is special: it is converted to the suffix 'ms'
+ *     ie: [_elapsedMs: 3000] becomes '3000ms'
+ * - Lists will be rendered pipe | separated.
  *
  * Developers wishing to output log entries with a different layout can create their own converter and
  * override the layout strings in Hoist-Core's @class LogbackConfig with their own layout strings in
@@ -57,7 +55,7 @@ class DefaultConverter extends ClassicConverter {
 
               List<String> processed = args.collect { delimitedTxt(it) }.flatten()
 
-              return processed.findAll().join(' | ') + tStack
+              return processed.join(' | ') + tStack
           }
 
     //---------------------------------------------------------------------------
@@ -71,19 +69,18 @@ class DefaultConverter extends ClassicConverter {
     }
 
     private List<String> kvTxt(Map msgs) {
-        return msgs.collect {k,v ->
+        return msgs.collect {k, v ->
             v = v instanceof Throwable ? safeErrorSummary(v) : v.toString()
 
-            if (v.isNumber()) {
-                if (k.startsWith('elapsed')) {
-                    k = k.replace('elapsed', '').toLowerCase()
-                    v = "$v$k"
-                } else {
-                    v = "$k=$v"
-                }
+            if (k.startsWith('_elapsedMs')) {
+                return "${v}ms"
             }
 
-           return v
+            if (k.startsWith('_')) {
+                return v
+            }
+
+            return "$k=$v"
         }
     }
 

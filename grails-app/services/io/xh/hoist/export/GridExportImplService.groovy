@@ -56,8 +56,8 @@ class GridExportImplService extends BaseService {
      */
     Map getBytesForRender(Map params) {
         withDebug([
-            message: 'Generating Export',
-            filename: params.filename,
+            _msg: 'Generating Export',
+            _filename: params.filename,
             rows: params.rows.size(),
             cols: params.meta.size()
         ]) {

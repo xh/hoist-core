@@ -95,7 +95,13 @@ class TrackService extends BaseService implements EventPublisher {
                 String name = tl.username
                 if (tl.impersonating) name += " (as ${tl.impersonating})"
 
-                Map msgParts = [user: name, category:  tl.category, message: tl.msg, elapsedMs: tl.elapsed]
+                Map msgParts = [
+                    _user: name,
+                    _category: tl.category,
+                    _msg: tl.msg,
+                    _elapsedMs: tl.elapsed
+                ].findAll {it.value != null}
+
                 logInfo(msgParts)
             }
         }
