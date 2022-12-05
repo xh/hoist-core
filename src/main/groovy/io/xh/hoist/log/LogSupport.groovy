@@ -20,20 +20,19 @@ import static java.lang.System.currentTimeMillis
 
 trait LogSupport {
 
-    static USE_LOG_SUPPORT = 'USE_XH_LOG_SUPPORT'
-    static USE_LOG_SUPPORT_WITH_STACKTRACE = 'USE_XH_LOG_SUPPORT_WITH_STACKTRACE'
-
     /**
      * Log at INFO level.
      *
      * If an exception is provided, basic summary info about it will be appended. If effective
      * logging level is TRACE, a stacktrace will be included as well. This aims to avoid logs being
-     * spammed by recurring / lengthy stacktraces, while still providing a clear indication that an
-     * error occurred plus access to stacktraces when troubleshooting an ongoing situation.
+     * spammed by recurring / lengthy stack traces, while still providing a clear indication that an
+     * error occurred plus access to stack traces when troubleshooting an ongoing situation.
      *
      * @param msgs - one or more objects that can be converted into strings
      */
-    void logInfo(Object... msgs) {logInfoInternal(instanceLog, msgs)}
+    void logInfo(Object... msgs) {
+        logInfoInternal(instanceLog, msgs)
+    }
 
     /** Log at TRACE level.*/
     void logTrace(Object... msgs) {logTraceInternal(instanceLog, msgs)}
@@ -97,31 +96,31 @@ trait LogSupport {
     //---------------------------------------------------------------------------
     private void logInfoInternal(Logger log, Object[] msgs) {
         if (log.infoEnabled) {
-            log.info(getLsFlag(log), enhanceMsgs(msgs))
+            log.info(createMarker(log, msgs), null)
         }
     }
 
     private void logTraceInternal(Logger log, Object[] msgs) {
         if (log.traceEnabled) {
-            log.trace(getLsFlag(log), enhanceMsgs(msgs))
+            log.trace(createMarker(log, msgs), null)
         }
     }
 
     private void logDebugInternal(Logger log, Object[] msgs) {
         if (log.debugEnabled) {
-            log.debug(getLsFlag(log), enhanceMsgs(msgs))
+            log.debug(createMarker(log, msgs), null)
         }
     }
 
     private void logWarnInternal(Logger log, Object[] msgs) {
         if (log.warnEnabled) {
-            log.warn(getLsFlag(log), enhanceMsgs(msgs))
+            log.warn(createMarker(log, msgs), null)
         }
     }
 
     private void logErrorInternal(Logger log, Object[] msgs) {
         if (log.errorEnabled) {
-            log.error(getLsFlag(log), enhanceMsgs(msgs))
+            log.error(createMarker(log, msgs), null)
         }
     }
 
@@ -138,12 +137,11 @@ trait LogSupport {
     }
 
     private <T> T loggedDo(Logger log, Level level, Object msgs, Closure<T> c) {
-
-        msgs = enhanceMsgs(msgs)
+        Map meta = getMeta() ?: [:];
 
         if (log.debugEnabled) {
-            def startMsgs = msgs + [_status: 'started']
-            logAtLevel(log, level, startMsgs)
+            def startMsgs = meta << [_status: 'started']
+            logAtLevel(log, level, startMsgs, meta)
         }
 
         def ret
@@ -152,49 +150,43 @@ trait LogSupport {
             ret = c.call()
         } catch (Exception e) {
             long elapsed = currentTimeMillis() - start
-            msgs << [_status: 'failed', _elapsedMs: elapsed]
-            logAtLevel(log, level, msgs)
+            meta << [_status: 'failed', _elapsedMs: elapsed]
+            logAtLevel(log, level, msgs, meta)
             throw e
         }
 
         long elapsed = currentTimeMillis() - start
-        msgs << [_status: 'completed', _elapsedMs: elapsed]
-        logAtLevel(log, level, msgs)
+        meta << [_status: 'completed', _elapsedMs: elapsed]
+        logAtLevel(log, level, msgs, meta)
 
         return ret
     }
 
-    private void logAtLevel(Logger log, Level level, Object[] msgs) {
+    private void logAtLevel(Logger log, Level level, Object msgs, Map meta) {
         switch (level) {
-            case DEBUG: log.debug (getLsFlag(log), msgs); break
-            case INFO:  log.info (getLsFlag(log), msgs); break
-            case WARN:  log.warn (getLsFlag(log), msgs); break
-            case ERROR: log.error (getLsFlag(log), msgs); break
-            case TRACE: log.trace(getLsFlag(log), msgs); break
+            case DEBUG: log.debug(createMarker(log, msgs, meta), null); break
+            case INFO:  log.info(createMarker(log, msgs, meta), null); break
+            case WARN:  log.warn(createMarker(log, msgs, meta), null); break
+            case ERROR: log.error(createMarker(log, msgs, meta), null); break
+            case TRACE: log.trace(createMarker(log, msgs, meta), null); break
         }
     }
 
-    /**
-     * Add username k/v pair at right index of returned list.
-     *
-     * @param msgs - String, Map, Object[], or List
-     */
-    private List enhanceMsgs(msgs) {
-        msgs = Arrays.asList(msgs).flatten()
-
+    private Map getMeta() {
         def username = identityService?.username
-        if (!username) return msgs
-
-        Map mp = [_user: username]
-        if (msgs.last() instanceof Throwable) {
-            msgs.add(msgs.size() - 1, mp)
-        } else {
-            msgs << mp
-        }
-        return msgs
+        return username ? [_user: username] : null
     }
 
-    private String getLsFlag(Logger log) {
-        log.traceEnabled ? USE_LOG_SUPPORT_WITH_STACKTRACE : USE_LOG_SUPPORT
+    private LogSupportMarker createMarker(Logger log, Object[] messages, Map meta = getMeta()) {
+        List msgs = Arrays.asList(messages).flatten()
+        if (meta) {
+            if (msgs.last() instanceof Throwable) {
+                msgs.add(msgs.size() - 1, meta)
+            } else {
+                msgs.add(meta)
+            }
+        }
+
+        return new LogSupportMarker(log, msgs)
     }
 }

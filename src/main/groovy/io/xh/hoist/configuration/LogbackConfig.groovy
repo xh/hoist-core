@@ -23,7 +23,7 @@ import static ch.qos.logback.classic.Level.ERROR
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.WARN
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
-import io.xh.hoist.log.DefaultConverter;
+import io.xh.hoist.log.LogSupportConverter;
 
 /**
  * This class supports the default logging configuration in Hoist.
@@ -94,9 +94,9 @@ class LogbackConfig {
             //----------------------------------
             // Register Hoist-Core's Conversion Specifiers
             //----------------------------------
-            conversionRule("m", DefaultConverter)
-            conversionRule("msg", DefaultConverter)
-            conversionRule("message", DefaultConverter)
+            conversionRule("m", LogSupportConverter)
+            conversionRule("msg", LogSupportConverter)
+            conversionRule("message", LogSupportConverter)
 
             //----------------------------------
             // Appenders
