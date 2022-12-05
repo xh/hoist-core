@@ -57,15 +57,14 @@ class MemoryMonitoringService extends BaseService {
             _snapshots.remove(oldest)
         }
 
-        def msg = logMessagesForSnapshot(newSnap)
         if (newSnap.usedPctTotal > 90) {
-            logWarn(msg)
+            logWarn(newSnap)
             logWarn("MEMORY USAGE ABOVE 90%")
         } else if (intervalElapsed(1 * HOURS, _lastInfoLogged)) {
-            logInfo(msg)
+            logInfo(newSnap)
             _lastInfoLogged = new Date()
         } else {
-            logDebug(msg)
+            logDebug(newSnap)
         }
 
         return newSnap
@@ -108,17 +107,6 @@ class MemoryMonitoringService extends BaseService {
             usedPctTotal: round((used * 100) / total),
             totalPctMax: round((total * 100) / max)
         ]
-    }
-
-    private List logMessagesForSnapshot(Map snap) {
-        def totalHeap = snap.totalHeapMb,
-            maxHeap = snap.maxHeapMb,
-            usedHeap = snap.usedHeapMb,
-            freeHeap = snap.freeHeapMb,
-            usedPctTotal = snap.usedPctTotal
-
-        return ["Total=${totalHeap}MB", "Max=${maxHeap}MB", "Used=${usedHeap}MB", "Free=${freeHeap}MB",
-                "Used/Total=${usedPctTotal}%"]
     }
 
     void clearCaches() {

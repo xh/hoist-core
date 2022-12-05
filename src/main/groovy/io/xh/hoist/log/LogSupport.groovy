@@ -15,8 +15,7 @@ import static ch.qos.logback.classic.Level.WARN
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.DEBUG
 import static ch.qos.logback.classic.Level.TRACE
-import static io.xh.hoist.util.Utils.exceptionRenderer
-import static io.xh.hoist.util.Utils.identityService
+import static io.xh.hoist.util.Utils.getIdentityService
 import static java.lang.System.currentTimeMillis
 
 trait LogSupport {
@@ -54,7 +53,7 @@ trait LogSupport {
      * If the configured logging level is TRACE, an additional line will be written BEFORE the
      * closure is started, providing a finer-grained view on when logged routines start and end.
      *
-     * @param msgs - one or more objects that can be converted into strings.
+     * @param msgs - one object (typically String, Map, or List) that can be converted into strings.
      * @param c - closure to be run and timed.
      * @return result of executing c
      */
@@ -95,46 +94,31 @@ trait LogSupport {
     //---------------------------------------------------------------------------
     private void logInfoInternal(Logger log, Object[] msgs) {
         if (log.infoEnabled) {
-            def msgCol = flatten(msgs),
-                txt = delimitedTxt(msgCol),
-                t = log.traceEnabled ? getThrowable(msgCol) : null
-            t ? log.info(txt, t) : log.info(txt)
+            log.info(createMarker(log, msgs), null)
         }
     }
 
     private void logTraceInternal(Logger log, Object[] msgs) {
         if (log.traceEnabled) {
-            def msgCol = flatten(msgs),
-                txt = delimitedTxt(msgCol),
-                t = getThrowable(msgCol)
-            t ? log.trace(txt, t) : log.trace(txt)
+            log.trace(createMarker(log, msgs), null)
         }
     }
 
     private void logDebugInternal(Logger log, Object[] msgs) {
         if (log.debugEnabled) {
-            def msgCol = flatten(msgs),
-                txt = delimitedTxt(msgCol),
-                t = log.traceEnabled ? getThrowable(msgCol) : null
-            t ? log.debug(txt, t) : log.debug(txt)
+            log.debug(createMarker(log, msgs), null)
         }
     }
 
     private void logWarnInternal(Logger log, Object[] msgs) {
         if (log.warnEnabled) {
-            def msgCol = flatten(msgs),
-                txt = delimitedTxt(msgCol),
-                t = log.traceEnabled ? getThrowable(msgCol) : null
-            t ? log.warn(txt, t) : log.warn(txt)
+            log.warn(createMarker(log, msgs), null)
         }
     }
 
     private void logErrorInternal(Logger log, Object[] msgs) {
         if (log.errorEnabled) {
-            def msgCol = flatten(msgs),
-                txt = delimitedTxt(msgCol),
-                t = log.traceEnabled ? getThrowable(msgCol) : null
-            t ? log.error(txt, t) : log.error(txt)
+            log.error(createMarker(log, msgs), null)
         }
     }
 
@@ -151,54 +135,56 @@ trait LogSupport {
     }
 
     private <T> T loggedDo(Logger log, Level level, Object msgs, Closure<T> c) {
-        def start = currentTimeMillis(),
-            msgCol =  msgs instanceof List ? msgs.flatten() : [msgs],
-            txt = delimitedTxt(msgCol),
-            ret
+        Map meta = getMeta() ?: [:];
 
         if (log.debugEnabled) {
-            logAtLevel(log, level, "$txt | started")
+            meta << [_status: 'started']
+            logAtLevel(log, level, msgs, meta)
         }
 
+        def ret
+        def start = currentTimeMillis()
         try {
             ret = c.call()
         } catch (Exception e) {
             long elapsed = currentTimeMillis() - start
-            logAtLevel(log, level, "$txt | failed | ${elapsed}ms")
+            meta << [_status: 'failed', _elapsedMs: elapsed]
+            logAtLevel(log, level, msgs, meta)
             throw e
         }
 
         long elapsed = currentTimeMillis() - start
-        logAtLevel(log, level, "$txt | completed | ${elapsed}ms")
+        meta << [_status: 'completed', _elapsedMs: elapsed]
+        logAtLevel(log, level, msgs, meta)
 
         return ret
     }
 
-    private void logAtLevel(Logger log, Level level, GString msg) {
+    private void logAtLevel(Logger log, Level level, Object msgs, Map meta) {
         switch (level) {
-            case DEBUG: log.debug (msg); break
-            case INFO:  log.info (msg); break
-            case WARN:  log.warn (msg); break
-            case ERROR: log.error (msg); break
-            case TRACE: log.trace(msg); break
+            case DEBUG: log.debug(createMarker(log, msgs, meta), null); break
+            case INFO:  log.info(createMarker(log, msgs, meta), null); break
+            case WARN:  log.warn(createMarker(log, msgs, meta), null); break
+            case ERROR: log.error(createMarker(log, msgs, meta), null); break
+            case TRACE: log.trace(createMarker(log, msgs, meta), null); break
         }
     }
 
-    private Throwable getThrowable(List msgs) {
-        def last = msgs.last()
-        return last instanceof Throwable ? last : null
-    }
-
-    private String delimitedTxt(List msgs) {
+    private Map getMeta() {
         def username = identityService?.username
-        List<String> ret = msgs.collect {
-            it instanceof Throwable ? exceptionRenderer.summaryTextForThrowable(it) : it.toString()
-        }
-        if (username) ret.add(username)
-        return ret.join(' | ')
+        return username ? [_user: username] : null
     }
 
-    private List flatten(Object[] msgs) {
-       Arrays.asList(msgs).flatten()
+    private LogSupportMarker createMarker(Logger log, Object messages, Map meta = getMeta()) {
+        List msgs = Arrays.asList(messages).flatten()
+        if (meta) {
+            if (msgs.last() instanceof Throwable) {
+                msgs.add(msgs.size() - 1, meta)
+            } else {
+                msgs.add(meta)
+            }
+        }
+
+        return new LogSupportMarker(log, msgs)
     }
 }

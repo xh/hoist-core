@@ -82,7 +82,7 @@ class TrackService extends BaseService implements EventPublisher {
         // Save with additional try/catch to alert on persistence failures within this async block.
         task {
             TrackLog.withTransaction {
-                def tl = new TrackLog(values)
+                TrackLog tl = new TrackLog(values)
 
                 if (getInstanceConfig('disableTrackLog') != 'true') {
                     try {
@@ -92,12 +92,17 @@ class TrackService extends BaseService implements EventPublisher {
                     }
                 }
 
-                def elapsedStr = tl.elapsed != null ? tl.elapsed + 'ms' : null,
-                    name = tl.username
+                String name = tl.username
                 if (tl.impersonating) name += " (as ${tl.impersonating})"
 
-                def msgParts = [name, tl.category, tl.msg, elapsedStr]
-                logInfo(msgParts.findAll())
+                Map msgParts = [
+                    _user: name,
+                    _category: tl.category,
+                    _msg: tl.msg,
+                    _elapsedMs: tl.elapsed
+                ].findAll {it.value != null}
+
+                logInfo(msgParts)
             }
         }
     }

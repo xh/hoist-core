@@ -33,7 +33,13 @@ class LogReaderService extends BaseService {
             throw new RuntimeException("Log Viewer disabled. See 'xhEnableLogViewer' config.")
         }
 
-        return withDebug(['Reading log file', filename, "startLine:$startLine", "maxLines:$maxLines", "pattern:$pattern"]) {
+        return withDebug([
+            _msg: 'Reading log file',
+            _filename: filename,
+            startLine: startLine,
+            maxLines: maxLines,
+            pattern: pattern
+        ]) {
             doRead(filename, startLine, maxLines, pattern)
         }
     }

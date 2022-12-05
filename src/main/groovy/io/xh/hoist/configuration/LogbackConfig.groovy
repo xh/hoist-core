@@ -23,6 +23,7 @@ import static ch.qos.logback.classic.Level.ERROR
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.WARN
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
+import io.xh.hoist.log.LogSupportConverter;
 
 /**
  * This class supports the default logging configuration in Hoist.
@@ -40,32 +41,32 @@ class LogbackConfig {
      * Layout used for for logging to stdout
      * String or a Closure that produces a Layout
      */
-    static Object stdoutLayout = '%d{yyyy-MM-dd HH:mm:ss} | %c{0} [%p] | %m%n'
+    static Object stdoutLayout = '%d{yyyy-MM-dd HH:mm:ss.SSS} | %c{0} [%p] | %m%n'
 
     /**
      * Layout for logs created by dailyLog() function
      * String or a Closure that produces a Layout
      * This layout will be used by the built-in rolling daily log provided by hoist.
      */
-    static Object dailyLayout = '%d{HH:mm:ss} | %c{0} [%p] | %m%n'
+    static Object dailyLayout = '%d{HH:mm:ss.SSS} | %c{0} [%p] | %m%n'
 
     /**
      * Layout for logs created by monthlyLog() function
      * String or a Closure that produces a Layout
      */
-    static Object monthlyLayout = '%d{MM-dd HH:mm:ss} | %c{0} [%p] | %m%n'
+    static Object monthlyLayout = '%d{MM-dd HH:mm:ss.SSS} | %c{0} [%p] | %m%n'
 
     /**
      * Layout used for logging monitor results to a dedicated log.
      * String or a Closure that produces a Layout
      */
-    static Object monitorLayout = '%d{HH:mm:ss} | %m%n'
+    static Object monitorLayout = '%d{HH:mm:ss.SSS} | %m%n'
 
     /**
      * Layout used for logging client-side tracking results to a dedicated log.
      * String or a Closure that produces a Layout
      */
-    static Object trackLayout = '%d{HH:mm:ss} | %m%n'
+    static Object trackLayout = '%d{HH:mm:ss.SSS} | %m%n'
 
 
     /**
@@ -89,6 +90,13 @@ class LogbackConfig {
             def appLogName = Utils.appCode,
                 trackLogName = "$appLogName-track",
                 monitorLogName = "$appLogName-monitor"
+
+            //----------------------------------
+            // Register Hoist-Core's Conversion Specifiers
+            //----------------------------------
+            conversionRule("m", LogSupportConverter)
+            conversionRule("msg", LogSupportConverter)
+            conversionRule("message", LogSupportConverter)
 
             //----------------------------------
             // Appenders

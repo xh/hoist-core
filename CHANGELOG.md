@@ -1,5 +1,26 @@
 # Changelog
 
+## 15.0-SNAPSHOT
+
+### 🎁 New Features
+
+Version 15 includes changes to support more flexible logging of structured data:
+
+* The bulk of Hoist conventions around log formatting have been moved from `LogSupport` to a new
+ log converter -- `LogSupportConverter`.  This allows applications to more easily and fully
+ customize their log formats by specifying custom converters.
+* `LogSupport` should still be the main entry point for most application logging.  This class
+  provides the support for enhanced meta data-handling as well as some important APIs -
+  e.g. `withDebug()` and `withInfo()`.
+* Applications are now encouraged to provide `LogSupport` methods with data in `Map` form.  Provided
+  converters will serialize these maps as appropriate for target logs.
+* Hoist's `LogSupportConverter` is intended for easy reading by humans, allows specifying
+  keys that should disappear in the final output with an `_` prefix.  This is useful for keys that
+  are obvious, e.g. `[_status: 'completed', rows: 100]` logs as `'completed' | rows=100`.
+* Alternatively, applications may now specify custom converters that preserve all keys and are
+  more appropriate for automatic processing (e.g. splunk). An example of such a converter is
+  `CustomLogSupportConverter` which can be found in the [Toolbox project](https://github.com/xh/toolbox).
+
 ## 14.4.2 - 2022-11-14
 
 ### ⚙️ Technical
