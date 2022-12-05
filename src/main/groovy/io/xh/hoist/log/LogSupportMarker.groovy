@@ -21,8 +21,10 @@ class LogSupportMarker implements Marker {
      * List of messages to be logged.  May contain Maps, or sublists, in the case of structured
      * data.  It is the responsibility of the converter to serialize these appropriately.
      */
-    List messages
-    Logger logger
+    final List messages
+
+    /** Logger sending this message. */
+    final Logger logger
 
     LogSupportMarker(Logger logger, List messages) {
         this.logger = logger

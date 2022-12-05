@@ -25,14 +25,12 @@ trait LogSupport {
      *
      * If an exception is provided, basic summary info about it will be appended. If effective
      * logging level is TRACE, a stacktrace will be included as well. This aims to avoid logs being
-     * spammed by recurring / lengthy stack traces, while still providing a clear indication that an
-     * error occurred plus access to stack traces when troubleshooting an ongoing situation.
+     * spammed by recurring / lengthy stacktraces, while still providing a clear indication that an
+     * error occurred plus access to stacktraces when troubleshooting an ongoing situation.
      *
      * @param msgs - one or more objects that can be converted into strings
      */
-    void logInfo(Object... msgs) {
-        logInfoInternal(instanceLog, msgs)
-    }
+    void logInfo(Object... msgs) {logInfoInternal(instanceLog, msgs)}
 
     /** Log at TRACE level.*/
     void logTrace(Object... msgs) {logTraceInternal(instanceLog, msgs)}
