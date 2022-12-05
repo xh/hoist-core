@@ -1,5 +1,7 @@
 # Changelog
 
+## 16.0-SNAPSHOT - unreleased
+
 ## 15.0.0 - 2022-12-5
 
 ### 🎁 New Features
