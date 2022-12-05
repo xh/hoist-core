@@ -138,8 +138,8 @@ trait LogSupport {
         Map meta = getMeta() ?: [:];
 
         if (log.debugEnabled) {
-            def startMsgs = meta << [_status: 'started']
-            logAtLevel(log, level, startMsgs, meta)
+            meta << [_status: 'started']
+            logAtLevel(log, level, msgs, meta)
         }
 
         def ret
@@ -175,7 +175,7 @@ trait LogSupport {
         return username ? [_user: username] : null
     }
 
-    private LogSupportMarker createMarker(Logger log, Object[] messages, Map meta = getMeta()) {
+    private LogSupportMarker createMarker(Logger log, Object messages, Map meta = getMeta()) {
         List msgs = Arrays.asList(messages).flatten()
         if (meta) {
             if (msgs.last() instanceof Throwable) {
