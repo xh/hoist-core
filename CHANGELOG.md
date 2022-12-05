@@ -1,6 +1,6 @@
 # Changelog
 
-## 15.0-SNAPSHOT
+## 15.0.0 - 2022-12-5
 
 ### 🎁 New Features
 
@@ -20,6 +20,7 @@ Version 15 includes changes to support more flexible logging of structured data:
 * Alternatively, applications may now specify custom converters that preserve all keys and are
   more appropriate for automatic processing (e.g. splunk). An example of such a converter is
   `CustomLogSupportConverter` which can be found in the [Toolbox project](https://github.com/xh/toolbox).
+* By default, Hoist now also logs the time in millis when a log message occurred.
 
 ## 14.4.2 - 2022-11-14
 
