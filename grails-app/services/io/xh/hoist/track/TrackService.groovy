@@ -48,6 +48,11 @@ class TrackService extends BaseService implements EventPublisher {
      *      category {String}       - optional, grouping category. Defaults to 'Default'
      *      data {Object}           - optional, object with related data to be serialized as JSON
      *      username {String}       - optional, defaults to currently authenticated user.
+     *                                Use this if track will be called in an asynchronous process
+     *                                that will not have otherwise preserved the username
+     *      impersonating {String}  - optional, defaults to username if impersonating, null if not.
+     *                                Use this if track will be called in an asynchronous process
+     *                                that will not have otherwise preserved the impersonating name
      *      severity {String}       - optional, defaults to 'INFO'.
      *      elapsed {int}           - optional, time associated with action in millis
      */
@@ -67,6 +72,7 @@ class TrackService extends BaseService implements EventPublisher {
         def userAgent = currentRequest?.getHeader('User-Agent'),
             values = [
                 username: params.username ?: authUsername,
+                impersonating: params.impersonating ?: (identityService.isImpersonating() ? username : null),
                 category: params.category ?: 'Default',
                 msg: params.msg,
                 userAgent: userAgent,
@@ -74,8 +80,7 @@ class TrackService extends BaseService implements EventPublisher {
                 device: getDevice(userAgent),
                 data: params.data ? serialize(params.data) : null,
                 elapsed: params.elapsed,
-                severity: params.severity ?: 'INFO',
-                impersonating: identityService.impersonating ? username : null
+                severity: params.severity ?: 'INFO'
             ]
 
         // Execute asynchronously after we get info from request, don't block application thread.
