@@ -11,8 +11,8 @@ import grails.plugins.GrailsPlugin
 import grails.util.GrailsUtil
 import grails.util.Holders
 import io.xh.hoist.BaseService
-import io.xh.hoist.util.DateTimeUtils
 import io.xh.hoist.util.Utils
+
 
 /**
  * Service with metadata describing the runtime environment of Hoist and this application.
@@ -68,6 +68,7 @@ class EnvironmentService extends BaseService {
                 appTimeZone:            appTz.toZoneId().id,
                 appTimeZoneOffset:      appTz.getOffset(now),
                 webSocketsEnabled:      webSocketService.enabled,
+                instanceName:           clusterService.instanceName + (isMaster ? ' (Master)' : '')
         ]
 
         hoistGrailsPlugins.each {it ->

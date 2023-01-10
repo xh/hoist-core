@@ -71,7 +71,9 @@ class LogArchiveService extends BaseService {
     // Implementation
     //------------------------
     private void onTimer() {
-        archiveLogs((Integer) config.archiveAfterDays)
+        if (this.isMaster) {
+            archiveLogs((Integer) config.archiveAfterDays)
+        }
     }
 
     private File getLogPath() {

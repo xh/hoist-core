@@ -7,6 +7,7 @@
 
 package io.xh.hoist.util
 
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.json.JSONParser
 import grails.util.Environment
 import grails.util.Holders
@@ -86,6 +87,10 @@ class Utils {
 
     static ConfigService getConfigService() {
         return (ConfigService) appContext.configService
+    }
+
+    static ClusterService getClusterService() {
+        return (ClusterService) appContext.clusterService
     }
 
     static PrefService getPrefService() {

@@ -9,11 +9,13 @@ package io.xh.hoist
 import grails.util.Holders
 import io.xh.hoist.util.Utils
 
+import static io.xh.hoist.BaseService.parallelInit
 import static java.lang.Runtime.runtime
 
 class BootStrap {
 
-    def logLevelService
+    def logLevelService,
+        clusterService
 
     def init = {servletContext ->
         logStartupMsg()
@@ -21,8 +23,9 @@ class BootStrap {
         ensureRequiredPrefsCreated()
 
         def services = Utils.xhServices.findAll {it.class.canonicalName.startsWith('io.xh.hoist')}
-        BaseService.parallelInit([logLevelService])
-        BaseService.parallelInit(services)
+        parallelInit([logLevelService])
+        parallelInit(clusterService)
+        parallelInit(services)
     }
 
     def destroy = {}

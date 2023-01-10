@@ -47,7 +47,7 @@ dependencies {
     api "org.grails.plugins:hibernate5"
     api "org.grails.plugins:events"
     api "org.grails.plugins:mail:3.0.0"
-    
+
     runtimeOnly "org.glassfish.web:el-impl:2.2.1-b05"
     runtimeOnly "javax.xml.bind:jaxb-api:2.3.1"
 
@@ -75,6 +75,8 @@ dependencies {
     api 'org.jasypt:jasypt:1.9.3'
     api "commons-io:commons-io:2.8.0"
     api "org.owasp.encoder:encoder:1.2.3"
+
+    api "com.hazelcast:hazelcast:5.2.1"
 }
 
 

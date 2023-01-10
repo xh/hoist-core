@@ -8,6 +8,7 @@
 package io.xh.hoist.alertbanner
 
 import io.xh.hoist.BaseService
+import io.xh.hoist.cache.Cache
 import io.xh.hoist.json.JSONParser
 
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
@@ -30,22 +31,27 @@ class AlertBannerService extends BaseService {
     private final static String blobOwner = 'xhAlertBannerService';
 
     private final emptyAlert = [active: false]
-    private Map cachedBanner = emptyAlert
+    private Cache<String, Map> cache
 
     void init() {
+        cache = new Cache(name: 'cachedBanner', svc: this, expireTime: 2 * MINUTES, replicate: true)
         super.init()
-        createTimer(
-                runFn: this.&refreshCachedBanner,
-                interval: 2 * MINUTES,
-                runImmediatelyAndBlock: true
-        )
     }
 
     /**
      * Main public entry point for clients.
      */
     Map getAlertBanner() {
-        cachedBanner
+        return cache.getOrCreate('value') {
+            def conf = configService.getMap('xhAlertBannerConfig', [:])
+            if (conf.enabled) {
+                def spec = getAlertSpec()
+                if (spec.active && (!spec.expires || spec.expires > currentTimeMillis())) {
+                    return spec
+                }
+            }
+            return emptyAlert
+        }
     }
 
     //--------------------
@@ -66,30 +72,14 @@ class AlertBannerService extends BaseService {
         } else {
             svc.create([type: blobType, name: blobName, value: value], blobOwner)
         }
-        refreshCachedBanner()
+        cache.clear()
     }
 
     //----------------------------
     // Implementation
     //-----------------------------
-    private Map readFromSpec() {
-        def conf = configService.getMap('xhAlertBannerConfig', [:])
-        if (conf.enabled) {
-            def spec = getAlertSpec()
-            if (spec.active && (!spec.expires || spec.expires > currentTimeMillis())) {
-                return spec
-            }
-        }
-        return emptyAlert
-    }
-
-    private void refreshCachedBanner() {
-        cachedBanner = readFromSpec()
-        logDebug("Refreshing Alert Banner state: " + cachedBanner.toMapString())
-    }
-
     void clearCaches() {
         super.clearCaches()
-        refreshCachedBanner()
+        cache.clear()
     }
 }

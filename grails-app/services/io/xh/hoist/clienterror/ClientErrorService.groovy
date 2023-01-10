@@ -12,8 +12,6 @@ import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 
-import java.util.concurrent.ConcurrentHashMap
-
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
 import static io.xh.hoist.util.Utils.getCurrentRequest
@@ -35,13 +33,14 @@ class ClientErrorService extends BaseService implements EventPublisher {
     def clientErrorEmailService,
         configService
 
-    private Map<String, Map> errors = new ConcurrentHashMap()
+    private Map<String, Map> errors
 
     private int getMaxErrors()      {configService.getMap('xhClientErrorConfig').maxErrors as int}
     private int getAlertInterval()  {configService.getMap('xhClientErrorConfig').intervalMins * MINUTES}
 
     void init() {
         super.init()
+        errors = clusterService.getMap('clientErrors')
         createTimer(
                 interval: { alertInterval },
                 delay: 15 * SECONDS
@@ -90,13 +89,14 @@ class ClientErrorService extends BaseService implements EventPublisher {
     //---------------------------------------------------------
     @Transactional
     void onTimer() {
-       if (!errors) return
 
-        // swap out buffer
+        // Master should drain buffer periodically...
+       if (!isMaster || !errors) return
+
         def maxErrors = getMaxErrors(),
             errs = errors.values().take(maxErrors),
             count = errs.size()
-        errors = new ConcurrentHashMap()
+        errors.clear()
 
         withDebug("Processing $count Client Errors") {
             clientErrorEmailService.sendMail(errs, count == maxErrors)

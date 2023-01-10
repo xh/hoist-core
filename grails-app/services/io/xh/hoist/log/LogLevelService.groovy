@@ -25,7 +25,9 @@ class LogLevelService extends BaseService {
     }
 
     private void onTimer() {
-        calculateAdjustments()
+        if (this.isMaster) {
+            calculateAdjustments()
+        }
     }
 
     // -------------------------------------------------------------------------------

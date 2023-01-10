@@ -9,6 +9,7 @@ package io.xh.hoist.cache
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
+import io.xh.hoist.util.Utils
 
 import java.util.concurrent.ConcurrentHashMap
 
@@ -19,7 +20,7 @@ import static java.lang.System.currentTimeMillis
 @CompileStatic
 class Cache<K,V> {
 
-    private final ConcurrentHashMap<K, Entry<V>> _map = new ConcurrentHashMap()
+    private final Map<K, Entry<V>> _map
     private Date _lastCull
 
     public final String name              //   name for status logging disambiguation [default anon]
@@ -27,6 +28,7 @@ class Cache<K,V> {
     public final Closure expireFn
     public final Long expireTime
     public final Closure timestampFn
+    public final boolean replicate
 
     Cache(Map options) {
         name = (String) options.name ?: 'anon'
@@ -34,8 +36,14 @@ class Cache<K,V> {
         expireTime = (Long) options.expireTime
         expireFn = (Closure) options.expireFn
         timestampFn = (Closure) options.timestampFn
+        replicate = (boolean) options.replicate
 
         if (!svc) throw new RuntimeException("Missing required argument 'svc' for Cache")
+        if (replicate && !name) {
+            throw new RuntimeException("Cannot create a replicated cache without a unique name")
+        }
+
+        _map = replicate ? Utils.clusterService.getReplicatedMap(name) : new ConcurrentHashMap()
     }
 
     V get(K key) {

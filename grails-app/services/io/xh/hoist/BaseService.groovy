@@ -7,11 +7,13 @@
 
 package io.xh.hoist
 
+import com.hazelcast.topic.Message
 import grails.async.Promises
 import grails.events.bus.EventBusAware
 import grails.util.GrailsClassUtils
 import groovy.transform.CompileDynamic
 import groovy.util.logging.Slf4j
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.exception.ExceptionRenderer
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.IdentitySupport
@@ -33,6 +35,8 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
 abstract class BaseService implements IdentitySupport, LogSupport, DisposableBean, EventBusAware {
 
     IdentityService identityService
+    ClusterService clusterService
+
     ExceptionRenderer exceptionRenderer
     protected boolean _initialized = false
     private boolean _destroyed = false
@@ -118,6 +122,35 @@ abstract class BaseService implements IdentitySupport, LogSupport, DisposableBea
         }
     }
 
+    //------------------
+    // Cluster Support
+    //------------------
+    /** Is this instance the master instance */
+    protected boolean getIsMaster() {
+        clusterService.isMaster
+    }
+
+    /**
+     * Managed Subscription to a Hazelcast topic.
+     *
+     * This method will catch (and log) any exceptions thrown by its handler closure.
+     *
+     * This subscription also avoids firing handlers on destroyed services. This is important in a
+     * hot-reloading scenario where multiple instances of singleton services may be created.
+     */
+    protected void subscribeToTopic(String topicName, Closure c) {
+        def topic = clusterService.getTopic(topicName)
+        topic.addMessageListener {Message m ->
+            if (destroyed) return
+            try {
+                logDebug("Receiving event '$topicName'")
+                c.call(m)
+            } catch (Exception e) {
+                logError("Exception handling event '$topicName'", e)
+            }
+        }
+    }
+
     //-----------------------------------
     // Core template methods for override
     //-----------------------------------
@@ -163,9 +196,10 @@ abstract class BaseService implements IdentitySupport, LogSupport, DisposableBea
         }
 
         if (deps) {
-            subscribe('xhConfigChanged') {Map ev ->
-                if (deps.contains(ev.key)) {
-                    logInfo("Clearing caches due to config change", ev.key)
+            subscribeToTopic('xhConfigChanged') {Message<Map> msg ->
+                def key = msg.messageObject.key
+                if (deps.contains(key)) {
+                    logInfo("Clearing caches due to config change", key)
                     clearCaches()
                 }
             }
