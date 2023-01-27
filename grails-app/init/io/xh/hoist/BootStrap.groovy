@@ -24,7 +24,7 @@ class BootStrap {
 
         def services = Utils.xhServices.findAll {it.class.canonicalName.startsWith('io.xh.hoist')}
         parallelInit([logLevelService])
-        parallelInit(clusterService)
+        parallelInit([clusterService])
         parallelInit(services)
     }
 

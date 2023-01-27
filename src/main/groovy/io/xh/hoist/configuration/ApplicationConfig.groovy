@@ -89,14 +89,35 @@ class ApplicationConfig {
                 }
             }
 
+            hazelcast {
+                jcache {
+                    provider {
+                        type = 'member'
+                    }
+                }
+            }
+
             hibernate {
+                javax {
+                    cache {
+                        provider = 'com.hazelcast.cache.impl.HazelcastServerCachingProvider'
+                     }
+                    persistence {
+                        sharedCache {
+                            mode = 'ENABLE_SELECTIVE'
+                        }
+                    }
+                }
                 cache {
                     use_second_level_cache = true
                     queries = true
                     use_query_cache = true
-                    region.factory_class = 'org.hibernate.cache.ehcache.SingletonEhCacheRegionFactory'
+                    generate_statistics = true
+                    region {
+                        factory_class =  'org.hibernate.cache.jcache.JCacheRegionFactory'
+                    }
                 }
-                show_sql = false
+                show_sql = true
             }
         }
     }

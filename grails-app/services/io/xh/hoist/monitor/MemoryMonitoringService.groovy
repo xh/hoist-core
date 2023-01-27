@@ -7,15 +7,20 @@
 
 package io.xh.hoist.monitor
 
+import com.hazelcast.cluster.Member
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Timer
+import io.xh.hoist.util.Utils
 
+import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Future
 
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.HOURS
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static java.lang.Runtime.getRuntime
+import static java.lang.System.currentTimeMillis
 
 /**
  * Service to sample and return simple statistics on heap (memory) usage from the JVM runtime.
@@ -39,8 +44,9 @@ class MemoryMonitoringService extends BaseService {
      * Returns a map of previous JVM memory usage snapshots, keyed by ms timestamp of snapshot.
      */
     Map getSnapshots() {
-        return _snapshots
+        _snapshots
     }
+
 
     /**
      * Take a snapshot of JVM memory usage, store in this service's in-memory history, and return.
@@ -48,13 +54,13 @@ class MemoryMonitoringService extends BaseService {
     Map takeSnapshot() {
         def newSnap = getStats()
 
-        _snapshots[System.currentTimeMillis()] = newSnap
+        snapshots[currentTimeMillis()] = newSnap
 
         // Don't allow snapshot history to grow endlessly - cap @ 1440 samples, i.e. 24 hours of
         // history if left at default config interval of one snap/minute.
-        if (_snapshots.size() > 1440) {
-            def oldest = _snapshots.keys().toList().min()
-            _snapshots.remove(oldest)
+        if (snapshots.size() > 1440) {
+            def oldest = snapshots.keys().toList().min()
+            snapshots.remove(oldest)
         }
 
         if (newSnap.usedPctTotal > 90) {
@@ -75,7 +81,7 @@ class MemoryMonitoringService extends BaseService {
      */
     Map requestGc() {
         def before = takeSnapshot(),
-            start = System.currentTimeMillis()
+            start = currentTimeMillis()
 
         System.gc()
 
@@ -83,7 +89,7 @@ class MemoryMonitoringService extends BaseService {
         return [
             before: before,
             after: after,
-            elapsedMs: System.currentTimeMillis() - start
+            elapsedMs: currentTimeMillis() - start
         ]
     }
 

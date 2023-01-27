@@ -7,7 +7,6 @@
 
 package io.xh.hoist.track
 
-import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 
@@ -31,7 +30,7 @@ import static io.xh.hoist.util.Utils.getCurrentRequest
  * with an instance config value of `disableTrackLog: true`.
  */
 @CompileStatic
-class TrackService extends BaseService implements EventPublisher {
+class TrackService extends BaseService {
 
     /**
      * Create a new track log entry. Username, browser info, and datetime will be set automatically.

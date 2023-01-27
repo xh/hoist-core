@@ -43,7 +43,9 @@ class Cache<K,V> {
             throw new RuntimeException("Cannot create a replicated cache without a unique name")
         }
 
-        _map = replicate ? Utils.clusterService.getReplicatedMap(name) : new ConcurrentHashMap()
+        _map = replicate ?
+            Utils.clusterService.<K, Entry<V>>getReplicatedMap(name) :
+            new ConcurrentHashMap<K, Entry<V>>()
     }
 
     V get(K key) {

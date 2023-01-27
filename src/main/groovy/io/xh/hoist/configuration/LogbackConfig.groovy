@@ -22,6 +22,7 @@ import static ch.qos.logback.classic.Level.OFF
 import static ch.qos.logback.classic.Level.ERROR
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.WARN
+import static ch.qos.logback.classic.Level.DEBUG
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 import io.xh.hoist.log.LogSupportConverter;
 
@@ -123,10 +124,11 @@ class LogbackConfig {
             logger('io.xh.hoist.monitor.MonitoringService', INFO, [monitorLogName, 'stdout'], false)
             logger('io.xh.hoist.track.TrackService', INFO, [trackLogName, 'stdout'], false)
 
+            logger('com.hazelcast', INFO)
+            logger('org.hibernate', INFO)
+
             // Quiet noisy loggers
-            logger('org.hibernate', ERROR)
             logger('org.springframework', ERROR)
-            logger('net.sf.ehcache', ERROR)
 
             // Turn off built-in global grails stacktrace logger.  It can easily swamp logs!
             // If needed, it can be (carefully) re-enabled by in admin console.

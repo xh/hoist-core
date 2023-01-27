@@ -2,60 +2,58 @@ package io.xh.hoist.cluster
 
 import com.hazelcast.cluster.Cluster
 import com.hazelcast.cluster.Member
+import com.hazelcast.config.CacheSimpleConfig
 import com.hazelcast.core.Hazelcast
 import com.hazelcast.config.Config
 import com.hazelcast.core.HazelcastInstance
+import com.hazelcast.core.IExecutorService
 import com.hazelcast.map.IMap
 import com.hazelcast.replicatedmap.ReplicatedMap
 import com.hazelcast.topic.ITopic
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 
+import java.util.concurrent.Callable
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Lock
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 
 class ClusterService extends BaseService {
 
-    private HazelcastInstance instance
+    static HazelcastInstance instance = createInstance()
 
     void init() {
-        withInfo('Joined cluster') {
-            def config = createClusterConfig()
-            instance = Hazelcast.newHazelcastInstance(config)
-            def clusterSize = instance.cluster.members.size()
-
-            logInfo(
-                "Joined cluster [${config.clusterName}] as [${config.instanceName}].  " +
-                "${clusterSize -1} other member(s) present."
-            )
-
-            createTimer(
-                name: 'electMaster',
-                runFn: this.&electMaster,
-                interval: 30 * SECONDS,
-                delay: 15 * SECONDS
-            )
-        }
+        createTimer(
+            name: 'electMaster',
+            runFn: this.&electMaster,
+            interval: 30 * SECONDS,
+            delay: 15 * SECONDS
+        )
         super.init()
     }
 
     //----------------------
     // Basic Introspection
     //----------------------
-    String getMasterName() {
-        instance.getCPSubsystem().getAtomicReference('masterName').get()
-    }
-
     String getInstanceName() {
         instance.config.instanceName
+    }
+
+    Cluster getCluster() {
+        instance.cluster
+    }
+
+    String getMasterName() {
+        instance.getCPSubsystem().getAtomicReference('masterName').get()
     }
 
     boolean getIsMaster() {
         masterName == instanceName
     }
 
-    List<Map> getInstances() {
+    List<Map> getMembers() {
         def masterName = getMasterName()
         cluster.members.collect { Member member ->
             def name = member.getAttribute('instanceName')
@@ -70,7 +68,7 @@ class ClusterService extends BaseService {
     //------------------------
     // Distributed Resources
     //------------------------
-    ReplicatedMap getReplicatedMap(String id) {
+    <K, V> ReplicatedMap<K, V> getReplicatedMap(String id) {
         instance.getReplicatedMap(id)
     }
 
@@ -80,6 +78,21 @@ class ClusterService extends BaseService {
 
     ITopic getTopic(String id) {
         instance.getTopic(id)
+    }
+
+    //------------------------
+    // Distributed execution
+    //------------------------
+    IExecutorService getExecutorService() {
+        return instance.getExecutorService('default')
+    }
+
+    void executeOnAllMembers(Runnable r) {
+        executorService.executeOnAllMembers(r)
+    }
+
+    <T> Map<Member, Future<T>> submitToAllMembers(Callable<T> c) {
+        executorService.submitToAllMembers(c)
     }
 
     //------------------------------------
@@ -113,24 +126,27 @@ class ClusterService extends BaseService {
         instance.CPSubsystem.getAtomicReference('masterName').set(s)
     }
 
-    private Cluster getCluster() {
-        instance.cluster
+    private static HazelcastInstance createInstance() {
+        def config = createClusterConfig()
+        return Hazelcast.newHazelcastInstance(config)
     }
 
     private static Config createClusterConfig() {
-        def instanceName = 'instance' + UUID.randomUUID().toString().take(8),
-            clusterName = Utils.appName + '_' + Utils.appEnvironment + '_' + Utils.appVersion,
-            config = new Config()
+        def clusterName = Utils.appName + '_' + Utils.appEnvironment + '_' + Utils.appVersion,
+            instanceName = UUID.randomUUID().toString().take(8)
 
-        // Core configs
+        // The built-in xml.file in the app reads these.  It is used by hibernate 2nd-level cache
+        // config and for any app specific settings. Set to ensure we have only one cluster/instance
+        System.setProperty('io.xh.hoist.hzClusterName', clusterName)
+        System.setProperty('io.xh.hoist.hzInstanceName', instanceName)
+
+        def config = new Config()
         config.instanceName = instanceName
         config.clusterName = clusterName
-        config.memberAttributeConfig.setAttribute('instanceName', instanceName)
 
-        // network config
-        def networkConfig = config.networkConfig,
-            join = networkConfig.join
-        join.multicastConfig.enabled = true
+        // Additional configs
+        config.memberAttributeConfig.setAttribute('instanceName', instanceName)
+        config.networkConfig.join.multicastConfig.enabled = true
 
         return config
     }
