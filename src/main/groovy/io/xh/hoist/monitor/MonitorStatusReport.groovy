@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.monitor
@@ -26,10 +26,10 @@ class MonitorStatusReport {
             title = "${Utils.appName}: ",
             msgParts = []
 
-        if (!warnsCount && !failsCount) msgParts.push('All clear')
-        if (failsCount) msgParts.push("$failsCount Failures")
-        if (warnsCount) msgParts.push("$warnsCount Warnings")
-        if (okCount) msgParts.push("$okCount OK")
+        if (!warnsCount && !failsCount) msgParts.add('All clear')
+        if (failsCount) msgParts.add("$failsCount Failures")
+        if (warnsCount) msgParts.add("$warnsCount Warnings")
+        if (okCount) msgParts.add("$okCount OK")
 
         title += msgParts.join(' | ')
         title

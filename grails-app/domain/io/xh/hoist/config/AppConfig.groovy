@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.config
@@ -13,6 +13,8 @@ import io.xh.hoist.util.Utils
 import org.jasypt.util.password.ConfigurablePasswordEncryptor
 import org.jasypt.util.text.BasicTextEncryptor
 import org.jasypt.util.text.TextEncryptor
+
+import static grails.async.Promises.task
 
 class AppConfig implements JSONFormat {
 
@@ -88,7 +90,18 @@ class AppConfig implements JSONFormat {
     }
 
     def beforeInsert() {encryptIfPwd(true)}
-    def beforeUpdate() {encryptIfPwd(false)}
+    def beforeUpdate() {
+        encryptIfPwd(false)
+
+        // Note:  Use beforeUpdate instead of afterUpdate, because easier to identify. This is post validation
+        // notify is called in a new thread and with a delay to make sure the change has had the time to propagate
+        if (hasChanged('value')) {
+            task {
+                Thread.sleep(500)
+                Utils.configService.fireConfigChanged(this)
+            }
+        }
+    }
 
     private encryptIfPwd(boolean isInsert) {
         if (valueType == 'pwd' && (hasChanged('value') || isInsert)) {

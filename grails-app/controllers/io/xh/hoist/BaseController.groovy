@@ -2,12 +2,13 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist
 
-
+import grails.async.Promise
+import grails.async.web.WebPromises
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.xh.hoist.exception.ExceptionRenderer
@@ -15,10 +16,11 @@ import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
+import io.xh.hoist.user.IdentitySupport
 
 @Slf4j
 @CompileStatic
-abstract class BaseController implements LogSupport {
+abstract class BaseController implements IdentitySupport, LogSupport {
 
     IdentityService identityService
     ExceptionRenderer exceptionRenderer
@@ -28,14 +30,19 @@ abstract class BaseController implements LogSupport {
         render (JSONSerializer.serialize(o))
     }
 
-    protected HoistUser getUser() {
-        identityService.user
+    protected Promise runAsync(Closure c) {
+        WebPromises.task {
+            c.call()
+        }.onError { Throwable t ->
+            exceptionRenderer.handleException(t, request, response, this)
+        }
     }
 
-    protected String getUsername() {
-        identityService.username
-    }
-    
+    HoistUser getUser()         {identityService.user}
+    String getUsername()        {identityService.username}
+    HoistUser getAuthUser()     {identityService.authUser}
+    String getAuthUsername()    {identityService.authUsername}
+
     //-------------------
     // Implementation
     //-------------------

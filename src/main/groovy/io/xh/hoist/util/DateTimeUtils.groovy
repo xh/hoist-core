@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.util
@@ -11,6 +11,9 @@ import groovy.transform.CompileStatic
 
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
+
+import static java.time.format.DateTimeFormatter.BASIC_ISO_DATE
 
 @CompileStatic
 class DateTimeUtils {
@@ -41,31 +44,48 @@ class DateTimeUtils {
         return Utils.environmentService.appTimeZone
     }
 
+    static ZoneId getAppZoneId() {
+        return appTimeZone.toZoneId()
+    }
+
     static TimeZone getServerTimeZone() {
         return Utils.environmentService.serverTimeZone
     }
 
-    static LocalDate appDay(Date dt) {
-        dt.toInstant().atZone(appTimeZone.toZoneId()).toLocalDate()
+    static ZoneId getServerZoneId() {
+        return serverTimeZone.toZoneId()
     }
 
-    static LocalDate serverDay(Date dt) {
-        dt.toInstant().atZone(serverTimeZone.toZoneId()).toLocalDate()
+    static LocalDate appDay(Date forDate = null) {
+        forDate ? forDate.toInstant().atZone(appZoneId).toLocalDate() : LocalDate.now(appZoneId)
     }
 
-    static Date appStartOfDay(LocalDate localDate) {
-        Date.from(localDate.atStartOfDay().atZone(appTimeZone.toZoneId()).toInstant())
+    static LocalDate serverDay(Date forDate = null) {
+        forDate ? forDate.toInstant().atZone(serverZoneId).toLocalDate() : LocalDate.now(serverZoneId)
     }
 
-    static Date serverStartOfDay(LocalDate localDate) {
-        Date.from(localDate.atStartOfDay().atZone(serverTimeZone.toZoneId()).toInstant())
+    static Date appStartOfDay(LocalDate localDate = LocalDate.now(appZoneId)) {
+        Date.from(localDate.atStartOfDay().atZone(appZoneId).toInstant())
     }
 
-    static Date appEndOfDay(LocalDate localDate) {
-        Date.from(localDate.atTime(LocalTime.MAX).atZone(appTimeZone.toZoneId()).toInstant())
+    static Date serverStartOfDay(LocalDate localDate = LocalDate.now(serverZoneId)) {
+        Date.from(localDate.atStartOfDay().atZone(serverZoneId).toInstant())
     }
 
-    static Date serverEndOfDay(LocalDate localDate) {
-        Date.from(localDate.atTime(LocalTime.MAX).atZone(serverTimeZone.toZoneId()).toInstant())
+    static Date appEndOfDay(LocalDate localDate = LocalDate.now(appZoneId)) {
+        Date.from(localDate.atTime(LocalTime.MAX).atZone(appZoneId).toInstant())
+    }
+
+    static Date serverEndOfDay(LocalDate localDate = LocalDate.now(serverZoneId)) {
+        Date.from(localDate.atTime(LocalTime.MAX).atZone(serverZoneId).toInstant())
+    }
+
+    /**
+     * Parse a local date
+     * @param s - Valid date in 'YYYYMMDD' or 'YYYY-MM-DD' format.
+     */
+    static LocalDate parseLocalDate(String s) {
+        if (!s) return null
+        return LocalDate.parse(s.replace('-', ''), BASIC_ISO_DATE)
     }
 }

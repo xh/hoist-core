@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 package io.xh.hoist.log
 
@@ -14,7 +14,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
-import static io.xh.hoist.log.LogUtils.logRootPath
+import static io.xh.hoist.configuration.LogbackConfig.logRootPath
 import static io.xh.hoist.util.DateTimeUtils.DAYS
 import static java.io.File.separator
 
@@ -29,12 +29,11 @@ class LogArchiveService extends BaseService {
 
     void init() {
         createTimer(interval: 1 * DAYS)
-        super.init()
     }
 
     List<String> archiveLogs(Integer daysThreshold) {
         if (!config.archiveFolder) {
-            log.warn("Log archiving disabled due to incomplete / disabled xhLogArchiveConfig entry")
+            logWarn("Log archiving disabled due to incomplete / disabled xhLogArchiveConfig entry")
             return []
         }
 

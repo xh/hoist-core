@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.monitor
@@ -39,6 +39,12 @@ class MonitorResult implements JSONFormat {
 
     Map getParams() {
         monitor.params ? JSONParser.parseObject(monitor.params) : [:]
+    }
+
+    /** Combines the given string with 'message', separated by formatting */
+    void prependMessage(String prependStr) {
+        // Space character before the newlines is for fallback formatting in `hoist-react <= v51.0.0`
+        message = prependStr + (message ? " \n\n$message" : '')
     }
 
     String getMinsInStatus () {

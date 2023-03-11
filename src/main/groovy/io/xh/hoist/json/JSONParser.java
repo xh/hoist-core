@@ -2,25 +2,44 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.json;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS;
+import static com.fasterxml.jackson.databind.DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
+
 /**
  * Hoist wrapper around the Jackson library for JSON parsing into java objects.
  */
 public class JSONParser {
 
-    private static ObjectMapper mapper = new ObjectMapper();
+    private static ObjectMapper mapper;
+    private static ObjectMapper validateMapper;
+
+    static {
+        SimpleModule javaTimeModule = new JavaTimeModule();
+
+        mapper = new ObjectMapper()
+                .registerModule(javaTimeModule)
+                .disable(READ_DATE_TIMESTAMPS_AS_NANOSECONDS);
+
+        validateMapper = new ObjectMapper()
+                .registerModule(javaTimeModule)
+                .disable(READ_DATE_TIMESTAMPS_AS_NANOSECONDS)
+                .enable(FAIL_ON_TRAILING_TOKENS);
+    }
 
     /**
      * Parse a String representing a JSON Object to a java representation.
@@ -61,5 +80,18 @@ public class JSONParser {
         if (s == null || s.isEmpty()) return null;
         s = s.trim();
         return s.startsWith("[") ? parseArray(s) : parseObject(s);
+    }
+
+    /**
+     * Return true if a String represents valid JSON
+     */
+    public static boolean validate(String s) {
+        if (s == null) return true;
+        try {
+            validateMapper.readTree(s);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 package io.xh.hoist
 
@@ -13,12 +13,15 @@ import static java.lang.Runtime.runtime
 
 class BootStrap {
 
+    def logLevelService
+
     def init = {servletContext ->
         logStartupMsg()
         ensureRequiredConfigsCreated()
         ensureRequiredPrefsCreated()
 
         def services = Utils.xhServices.findAll {it.class.canonicalName.startsWith('io.xh.hoist')}
+        BaseService.parallelInit([logLevelService])
         BaseService.parallelInit(services)
     }
 
@@ -49,12 +52,12 @@ class BootStrap {
 
     private void ensureRequiredConfigsCreated() {
         Utils.configService.ensureRequiredConfigsCreated([
-            xhAboutMenuConfigs: [
+            xhAlertBannerConfig: [
                 valueType: 'json',
-                defaultValue: [],
+                defaultValue: [enabled: true, interval: 30],
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'AppConfigs to display in the client app About panel. Enter as a list of object of the form {"key": "configName", "label": "Display Name"}.'
+                note: 'Configures support for showing an app-wide alert banner.\n\nAdmins configure and activate alert banners from the Hoist Admin console. To generally enable this system, set "enabled" to true and "interval" to a positive value (in seconds) to control how often connected apps check for a new alert.'
             ],
             xhAppInstances: [
                 valueType: 'json',
@@ -89,6 +92,12 @@ class BootStrap {
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Map of clientAppCodes to intervals (in seconds) on which the client-side AutoRefreshService should fire. Note the xhAutoRefreshEnabled preference must also be true for the client service to activate.'
+            ],
+            xhClientErrorConfig: [
+                valueType: 'json',
+                defaultValue: [intervalMins: 2, maxErrors: 25],
+                groupName: 'xh.io',
+                note: 'Configures handling of client error reports. Errors are queued when received and processed every [intervalMins]. If more than [maxErrors] arrive within an interval, further reports are dropped to avoid storms of errors from multiple clients.'
             ],
             xhEmailDefaultDomain: [
                 valueType: 'string',
@@ -221,6 +230,12 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Set to true prevent IdleService from suspending the application due to inactivity.'
             ],
+            xhLastReadChangelog: [
+                type: 'string',
+                defaultValue: '0.0.0',
+                groupName: 'xh.io',
+                note: 'The most recent changelog entry version viewed by the user - read/written by XH.changelogService.'
+            ],
             xhShowVersionBar: [
                 type: 'string',
                 defaultValue: 'auto',
@@ -235,10 +250,10 @@ class BootStrap {
             ],
             xhTheme: [
                 type: 'string',
-                defaultValue: 'light',
+                defaultValue: 'system',
                 local: true,
                 groupName: 'xh.io',
-                note: 'Visual theme for the client application - "light" or "dark".'
+                note: 'Visual theme for the client application - "light", "dark", or "system".'
             ]
         ])
     }

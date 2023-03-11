@@ -7,16 +7,16 @@
 // see http://logback.qos.ch/manual/groovy.html
 //
 // For more info on the Hoist-related conventions, see
-// LogUtils.groovy.
+// LogbackConfig
 //------------------------------------------------------------
 
 // 1) Change Hoist's built-in Layouts
 // Example here changes monitor logging to include the day in its date format
 // Do *before* initConfig() below
-LogUtils.dailyLayout = '%d{yyyy-MM-dd HH:mm:ss} | %c{0} [%p] | %m%n'
+LogbackConfig.dailyLayout = '%d{yyyy-MM-dd HH:mm:ss} | %c{0} [%p] | %m%n'
 
 //  Set up default Hoist Logging conventions
-LogUtils.initConfig(this)
+LogbackConfig.defaultConfig(this)
 
 // 2) Change default logging levels - ROOT default is 'warn'
 logger('com.mycompany', INFO)
@@ -24,7 +24,7 @@ logger('com.mycompany.mychattyservice', ERROR)
 
 // 3) Setup dedicated logs and route specific java packages to them.
 // Example here sets up a monthly rolling log for order related activity.
-LogUtils.monthlyLog(name: 'order-tracking', script: this)
+LogbackConfig.monthlyLog(name: 'order-tracking', script: this)
 logger('com.mycompany.orders.orderservice', INFO, ['order-tracking'])
 
 
@@ -40,7 +40,7 @@ logger('com.mycompany.orders.orderservice', INFO, ['order-tracking'])
 //    ret.timestampFormat = 'yyyy-MM-dd HH:mm:ss.SSS'
 //    return ret
 // }
-// LogUtils.monthlyLog(name: 'json-log', layout: jsonLayout,  script: this)
+// LogbackConfig.monthlyLog(name: 'json-log', layout: jsonLayout,  script: this)
 // logger('com.mycompany.foo', INFO, ['json-log'])
 
 

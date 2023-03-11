@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.admin
@@ -11,7 +11,7 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.BaseService
 import io.xh.hoist.security.Access
 
-@Access(['HOIST_ADMIN'])
+@Access(['HOIST_ADMIN_READER'])
 class ServiceAdminController extends BaseController {
 
     def listServices() {
@@ -19,6 +19,7 @@ class ServiceAdminController extends BaseController {
         renderJSON(ret)
     }
 
+    @Access(['HOIST_ADMIN'])
     def clearCaches() {
         def allServices = getServices(),
             services = params.names instanceof String ? [params.names] : params.names
@@ -27,7 +28,7 @@ class ServiceAdminController extends BaseController {
             def svc = allServices[it]
             if (svc) {
                 svc.clearCaches()
-                log.info("Cleared service cache: $it")
+                logInfo('Cleared service cache', it)
             }
 
         }

@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.json.serializer;
@@ -27,6 +27,6 @@ public class LocalDateSerializer extends StdSerializer<LocalDate> {
 
     @Override
     public void serialize(LocalDate value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
-        jgen.writeString(value.format(DateTimeFormatter.BASIC_ISO_DATE));
+        jgen.writeString(value.format(DateTimeFormatter.ISO_LOCAL_DATE));
     }
 }

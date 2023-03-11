@@ -2,12 +2,14 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.pref
 
 import grails.compiler.GrailsCompileStatic
+import grails.gorm.transactions.Transactional
+import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService
 
 import static io.xh.hoist.json.JSONSerializer.serialize
@@ -80,39 +82,40 @@ class PrefService extends BaseService {
         setUserPreference(key, value, null, username)
     }
 
+    @Transactional
     void unsetPreference(String key, String username = username) {
         def defaultPref = Preference.findByName(key)
         UserPreference.findByPreferenceAndUsername(defaultPref, username)?.delete(flush: true)
     }
 
+    @Transactional
     void clearPreferences(String username = username) {
-        UserPreference.findAllByUsername(username).each {
-            UserPreference userPref = (UserPreference) it
-            userPref.delete()
-        }
+        getUserPrefs(username).each { it.delete() }
     }
 
+    @ReadOnly
     Map getClientConfig() {
-        def username = username,
+        def userPrefs = getUserPrefsByPrefId(username),
             ret = [:]
 
-        Preference.list().each {
-            def name = it.name
+        Preference.list().each { pref ->
+            def name = pref.name
             try {
-                ret[name] = formatForClient(it, username)
+                ret[name] = formatForClient(pref, userPrefs[pref.id])
             } catch (Exception e) {
-                logErrorCompact("Exception while getting client preference: '$name'", e)
+                logError("Exception while getting client preference: '$name'", e)
             }
         }
 
         return ret
     }
 
+    @ReadOnly
     Map getLimitedClientConfig(List keys) {
-        def username = username
+        def userPrefs = getUserPrefsByPrefId(username)
         Preference.findAllByNameInList(keys).collectEntries {
             Preference pref = (Preference) it
-            [pref.name, formatForClient(pref, username)]
+            [pref.name, formatForClient(pref, userPrefs[pref.id])]
         }
     }
 
@@ -125,16 +128,17 @@ class PrefService extends BaseService {
      *
      * @param requiredPrefs - map of prefName to map of [type, defaultValue, local, note]
      */
+    @Transactional
     void ensureRequiredPrefsCreated(Map<String, Map> requiredPrefs) {
         def currPrefs = Preference.list(),
             created = 0
 
-        requiredPrefs.each {prefName, prefDefaults ->
-            def currPref = currPrefs.find {it.name == prefName},
+        requiredPrefs.each { prefName, prefDefaults ->
+            def currPref = currPrefs.find { it.name == prefName },
                 valType = prefDefaults.type,
                 defaultVal = prefDefaults.defaultValue,
                 local = prefDefaults.local ?: false,
-                // Mismatch on notes <> note vs. AppConfig - stuck with singular "note" for the API to this method
+            // Mismatch on notes <> note vs. AppConfig - stuck with singular "note" for the API to this method
                 notes = prefDefaults.note ?: ''
 
             if (!currPref) {
@@ -150,16 +154,23 @@ class PrefService extends BaseService {
                     lastUpdatedBy: 'hoist-bootstrap'
                 ).save()
 
-                log.warn("Required preference ${prefName} missing and created with default value | verify default is appropriate for this application")
+                logWarn(
+                        "Required preference $prefName missing and created with default value",
+                        'verify default is appropriate for this application'
+                )
                 created++
             } else {
                 if (currPref.type != valType) {
-                    log.error("Unexpected value type for required preference ${prefName} | expected ${valType} got ${currPref.type} | review and fix!")
+                    logError(
+                            "Unexpected value type for required preference $prefName",
+                            "expected $valType got ${currPref.type}",
+                            'review and fix!'
+                    )
                 }
             }
         }
 
-        log.debug("Validated presense of ${requiredPrefs.size()} required configs | created ${created}")
+        logDebug("Validated presense of ${requiredPrefs.size()} required configs", "created $created")
     }
 
     boolean isUnset(String key, String username = username) {
@@ -170,18 +181,31 @@ class PrefService extends BaseService {
     //-------------------------
     // Implementation
     //-------------------------
+    @ReadOnly
+    private List<UserPreference> getUserPrefs(String username) {
+        UserPreference.findAllByUsername(username, [cache: true])
+    }
+
+    private Map<Long, UserPreference> getUserPrefsByPrefId(String username) {
+        getUserPrefs(username).collectEntries { [it.preferenceId, it] }
+    }
+
     private Object getUserPreference(String key, String type, String username) {
         def defaultPref = getDefaultPreference(key, type)
         return getUserPreference(defaultPref, username)
     }
 
+    @ReadOnly
     private Object getUserPreference(Preference defaultPref, String username) {
-
         def userPref = UserPreference.findByPreferenceAndUsername(defaultPref, username, [cache: true])
+        return getUserPreference(defaultPref, userPref)
+    }
 
+    private Object getUserPreference(Preference defaultPref, UserPreference userPref) {
         return userPref ? userPref.externalUserValue(jsonAsObject: true) : defaultPref.externalDefaultValue(jsonAsObject: true)
     }
 
+    @Transactional
     private void setUserPreference(String key, String value, String type, String username) {
         def defaultPref = getDefaultPreference(key, type)
 
@@ -192,30 +216,30 @@ class PrefService extends BaseService {
         }
 
         userPref.userValue = value
-        userPref.lastUpdatedBy = username
+        userPref.lastUpdatedBy = authUsername
         userPref.save()
     }
 
+    @ReadOnly
     private Preference getDefaultPreference(String key, String type) {
-        def p = Preference.findByName(key, [cache: true])
+        def pref = Preference.findByName(key, [cache: true])
 
-        if (!p) {
+        if (!pref) {
             throw new RuntimeException('Preference not found: ' + key)
         }
-        if (type && p.type != type) {
+
+        if (type && pref.type != type) {
             throw new RuntimeException('Unexpected type for preference: ' + key)
         }
 
-        return p
+        return pref
     }
 
-    private Map formatForClient(Preference defaultPref, String username) {
-        def ret = [type: defaultPref.type] as Map<String, Object>
-
-        // prefs serialized with merged user/default value
-        ret.value = getUserPreference(defaultPref, username)
-        ret.defaultValue = defaultPref.externalDefaultValue(jsonAsObject: true)
-
-        return ret
+    private Map formatForClient(Preference defaultPref, UserPreference userPref) {
+        return [
+            type: defaultPref.type,
+            value: getUserPreference(defaultPref, userPref),
+            defaultValue: defaultPref.externalDefaultValue(jsonAsObject: true)
+        ]
     }
 }

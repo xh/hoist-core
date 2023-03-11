@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.json;
@@ -11,13 +11,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import static com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS;
+
 import groovy.lang.GString;
 import io.xh.hoist.json.serializer.*;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import static java.util.Arrays.asList;
@@ -40,17 +41,20 @@ public class JSONSerializer {
     private static List<Module> registeredModules = new ArrayList<>();
 
     static {
-        SimpleModule module = new SimpleModule();
-        module.addSerializer(LocalDate.class, new LocalDateSerializer())
-                .addSerializer(Date.class, new DateSerializer())
-                .addSerializer(Instant.class, new InstantSerializer())
-                .addSerializer(GString.class, new GStringSerializer())
+        // JSR 310 standard
+        SimpleModule javaTimeModule = new JavaTimeModule();
+
+        // Hoist Conventional JSON Formats
+        SimpleModule hoistModule = new SimpleModule();
+        hoistModule.addSerializer(GString.class, new GStringSerializer())
                 .addSerializer(JSONFormatCached.class, new JSONFormatCachedSerializer())
                 .addSerializer(JSONFormat.class, new JSONFormatSerializer())
                 .addSerializer(Double.class, new DoubleSerializer())
                 .addSerializer(Float.class, new FloatSerializer());
-        
-        registerModules(module);
+        // ... plus one overwrite of JSR 310 standard
+        hoistModule.addSerializer(LocalDate.class, new LocalDateSerializer());
+
+        registerModules(javaTimeModule, hoistModule);
     }
 
     /**
@@ -77,6 +81,7 @@ public class JSONSerializer {
     public static void registerModules(Module  ...modules) {
         registeredModules.addAll(asList(modules));
         ObjectMapper newMapper = new ObjectMapper();
+        newMapper.disable(WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS);
         newMapper.registerModules(registeredModules);
         mapper = newMapper;
     }

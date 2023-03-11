@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.user
@@ -12,8 +12,7 @@ import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.security.BaseAuthenticationService
 import io.xh.hoist.track.TrackService
-import org.grails.web.servlet.mvc.GrailsWebRequest
-import org.springframework.web.context.request.RequestContextHolder
+import static io.xh.hoist.util.Utils.getCurrentRequest
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpSession
@@ -41,55 +40,35 @@ class IdentityService extends BaseService {
     TrackService trackService
     ConfigService configService
 
-    /**
-     * Return the current active user. Note that this is the 'apparent' user, used for most
-     * application level purposes. In the case of an active impersonation session this will be
-     * different from the authenticated user.
-     *
-     * If called outside the context of a request, this getter will return null.
-     */
+    //------------------------------------
+    // Implementation of IdentitySupport
+    //-------------------------------------
     HoistUser getUser() {
-        getApparentUser()
+        findApparentUser(currentRequest)
     }
 
-    /**
-     * Return the current active username. Note that this is the 'apparent' user, used for most
-     * application level purposes. In the case of an active impersonation session this will be
-     * different from the authenticated user.
-     *
-     * If called outside the context of a request, this getter will return null.
-     */
     String getUsername() {
-        HttpSession session = getSessionIfExists(getRequest())
-        return session ? session[APPARENT_USER_KEY] : null
+        HttpSession session = getSessionIfExists(currentRequest)
+        session ? session[APPARENT_USER_KEY] : null
     }
 
-
-    /**
-     *  The 'apparent' user, used for most application level purposes.
-     *
-     *  If called outside the context of a request, this getter will return null.
-     */
-    HoistUser getApparentUser(HttpServletRequest request = getRequest()) {
-        return findHoistUserViaSessionKey(request, APPARENT_USER_KEY)
+    HoistUser getAuthUser() {
+        findAuthUser(currentRequest)
     }
 
-    /**
-     *  The 'authorized' user as verified by AuthenticationService.
-     *
-     *  If called outside the context of a request, this getter will return null.
-     */
-    HoistUser getAuthUser(HttpServletRequest request = getRequest()) {
-        return findHoistUserViaSessionKey(request, AUTH_USER_KEY)
+    String getAuthUsername() {
+        HttpSession session = getSessionIfExists(currentRequest)
+        session ? session[AUTH_USER_KEY] : null
     }
+
 
     /**
      * Is the authorized user currently impersonating someone else?
      */
     boolean isImpersonating() {
-        def request = getRequest(),
-            apparentUser = getApparentUser(request),
-            authUser = getAuthUser(request)
+        def request = currentRequest,
+            apparentUser = findApparentUser(request),
+            authUser = findAuthUser(request)
 
         return apparentUser != authUser
     }
@@ -103,9 +82,9 @@ class IdentityService extends BaseService {
      * @param username - the user to impersonate
      */
     HoistUser impersonate(String username) {
-        def request = getRequest(),
+        def request = currentRequest,
             targetUser = userService.find(username),
-            authUser = getAuthUser(request)
+            authUser = findAuthUser(request)
 
         checkImpersonationEnabled()
         if (!request) {
@@ -124,7 +103,7 @@ class IdentityService extends BaseService {
         request.session[APPARENT_USER_KEY] = targetUser.username
 
         trackImpersonate('Started impersonation', [target: targetUser.username])
-        log.info("User '$authUser.username' has started impersonating user '$targetUser.username'")
+        logInfo("User '$authUser.username' has started impersonating user '$targetUser.username'")
 
         return targetUser
     }
@@ -133,14 +112,14 @@ class IdentityService extends BaseService {
      * End the active impersonation session, if any, reverting to the current user browsing the app as themselves.
      */
     void endImpersonate() {
-        def request = getRequest(),
-            apparentUser = getApparentUser(request),
-            authUser = getAuthUser(request)
+        def request = currentRequest,
+            apparentUser = findApparentUser(request),
+            authUser = findAuthUser(request)
 
         if (apparentUser != authUser) {
             trackImpersonate("Stopped impersonation", [target: apparentUser.username])
-            log.info("User '$authUser.username' has stopped impersonating user '$apparentUser.username'")
-            request.session[APPARENT_USER_KEY] = authUser
+            logInfo("User '$authUser.username' has stopped impersonating user '$apparentUser.username'")
+            request.session[APPARENT_USER_KEY] = authUser.username
         }
     }
 
@@ -149,7 +128,7 @@ class IdentityService extends BaseService {
      */
     List<HoistUser> getImpersonationTargets() {
         checkImpersonationEnabled()
-        getAuthUser().isHoistAdmin ? userService.list(true) : new ArrayList<HoistUser>()
+        authUser.isHoistAdmin ? userService.list(true) : new ArrayList<HoistUser>()
     }
 
     /**
@@ -157,9 +136,9 @@ class IdentityService extends BaseService {
      * Used by client-side web app for identity management.
      */
     Map getClientConfig() {
-        def request = getRequest(),
-            apparentUser = getApparentUser(request),
-            authUser = getAuthUser(request)
+        def request = currentRequest,
+            apparentUser = findApparentUser(request),
+            authUser = findAuthUser(request)
 
         return (authUser != apparentUser) ?
             [
@@ -179,7 +158,7 @@ class IdentityService extends BaseService {
      * Note SSO-based implementations of authenticationService will always return false.
      */
     boolean login(String username, String password) {
-        return authenticationService.login(request, username, password)
+        authenticationService.login(currentRequest, username, password)
     }
 
     /**
@@ -188,7 +167,7 @@ class IdentityService extends BaseService {
      */
     boolean logout() {
         if (authenticationService.logout()) {
-            def session = getSessionIfExists()
+            def session = getSessionIfExists(currentRequest)
             if (session) session[APPARENT_USER_KEY] = session[AUTH_USER_KEY] = null
             return true
         }
@@ -205,6 +184,14 @@ class IdentityService extends BaseService {
         session[APPARENT_USER_KEY] = session[AUTH_USER_KEY] = user.username
     }
 
+    HoistUser findApparentUser(HttpServletRequest request) {
+        findHoistUserViaSessionKey(request, APPARENT_USER_KEY)
+    }
+
+    HoistUser findAuthUser(HttpServletRequest request) {
+        findHoistUserViaSessionKey(request, AUTH_USER_KEY)
+    }
+
     //----------------------
     // Implementation
     //----------------------
@@ -212,15 +199,6 @@ class IdentityService extends BaseService {
         if (!configService.getBool('xhEnableImpersonation')) {
             throw new RuntimeException('Impersonation is disabled for this app.')
         }
-    }
-
-    private HttpServletRequest getRequest() {
-        def attr = RequestContextHolder.requestAttributes
-
-        // If we are not in the context of a request (e.g. service timer) this will return null.
-        return (attr && attr instanceof GrailsWebRequest) ?
-                ((GrailsWebRequest)attr).request:
-                null
     }
 
     private void trackImpersonate(String msg, Map data) {
@@ -235,11 +213,11 @@ class IdentityService extends BaseService {
     private HoistUser findHoistUserViaSessionKey(HttpServletRequest request, String key) {
         HttpSession session = getSessionIfExists(request)
         String username = session ? session[key] : null
-        return username ? userService.find(username) : null
+        username ? userService.find(username) : null
     }
 
-    private HttpSession getSessionIfExists(HttpServletRequest request = getRequest()) {
-        return request?.getSession(false)  // Do *not* create session for simple, early checks (avoid DOS attack)
+    private HttpSession getSessionIfExists(HttpServletRequest request) {
+        request?.getSession(false)  // Do *not* create session for simple, early checks (avoid DOS attack)
     }
 
 }

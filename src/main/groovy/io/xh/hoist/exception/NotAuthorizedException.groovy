@@ -2,12 +2,12 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.exception
 
-import static org.apache.http.HttpStatus.SC_FORBIDDEN
+import static org.apache.hc.core5.http.HttpStatus.SC_FORBIDDEN
 
 /**
  * Exception for use when the authenticated user does not have access to the resource in question.

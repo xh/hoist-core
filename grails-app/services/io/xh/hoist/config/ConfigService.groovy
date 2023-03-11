@@ -2,16 +2,16 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.config
 
 import grails.compiler.GrailsCompileStatic
-import grails.events.annotation.Subscriber
+import grails.gorm.transactions.Transactional
+import grails.gorm.transactions.ReadOnly
 import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
-import org.grails.datastore.mapping.engine.event.PreUpdateEvent
 import grails.events.*
 
 import static io.xh.hoist.json.JSONSerializer.serializePretty
@@ -32,11 +32,11 @@ class ConfigService extends BaseService implements EventPublisher {
         return (Integer) getInternalByName(name, 'int', notFoundValue)
     }
 
-    Long getLong(String name, Integer notFoundValue=null) {
+    Long getLong(String name, Long notFoundValue=null) {
         return (Long) getInternalByName(name, 'long', notFoundValue)
     }
 
-    Double getDouble(String name, Integer notFoundValue=null) {
+    Double getDouble(String name, Double notFoundValue=null) {
         return (Double) getInternalByName(name, 'double', notFoundValue)
     }
 
@@ -56,6 +56,7 @@ class ConfigService extends BaseService implements EventPublisher {
         return (String) getInternalByName(name, 'pwd', notFoundValue)
     }
 
+    @ReadOnly
     Map getClientConfig() {
         def ret = [:]
 
@@ -63,9 +64,9 @@ class ConfigService extends BaseService implements EventPublisher {
             AppConfig config = (AppConfig) it
             def name = config.name
             try {
-                ret[name] = config.externalValue(obscurePassword: true, jsonAsObject: true);
+                ret[name] = config.externalValue(obscurePassword: true, jsonAsObject: true)
             } catch (Exception e) {
-                logErrorCompact("Exception while getting client config: '$name'", e)
+                logError("Exception while getting client config: '$name'", e)
             }
         }
 
@@ -103,12 +104,13 @@ class ConfigService extends BaseService implements EventPublisher {
      * supplied default values if not found. Called for xh.io configs by Hoist Core Bootstrap.
      * @param reqConfigs - map of configName to map of [valueType, defaultValue, clientVisible, groupName]
      */
+    @Transactional
     void ensureRequiredConfigsCreated(Map<String, Map> reqConfigs) {
         def currConfigs = AppConfig.list(),
             created = 0
 
-        reqConfigs.each{confName, confDefaults ->
-            def currConfig = currConfigs.find{it.name == confName},
+        reqConfigs.each { confName, confDefaults ->
+            def currConfig = currConfigs.find { it.name == confName },
                 valType = confDefaults.valueType,
                 defaultVal = confDefaults.defaultValue,
                 clientVisible = confDefaults.clientVisible ?: false,
@@ -119,34 +121,49 @@ class ConfigService extends BaseService implements EventPublisher {
                 if (valType == 'json') defaultVal = serializePretty(defaultVal)
 
                 new AppConfig(
-                    name: confName,
-                    valueType: valType,
-                    value: defaultVal,
-                    groupName: confDefaults.groupName ?: 'Default',
-                    clientVisible: clientVisible,
-                    lastUpdatedBy: 'hoist-bootstrap',
-                    note: note
+                        name: confName,
+                        valueType: valType,
+                        value: defaultVal,
+                        groupName: confDefaults.groupName ?: 'Default',
+                        clientVisible: clientVisible,
+                        lastUpdatedBy: 'hoist-bootstrap',
+                        note: note
                 ).save()
 
-                log.warn("Required config ${confName} missing and created with default value | verify default is appropriate for this application")
+                logWarn(
+                        "Required config $confName missing and created with default value",
+                        'verify default is appropriate for this application'
+                )
                 created++
             } else {
                 if (currConfig.valueType != valType) {
-                    log.error("Unexpected value type for required config ${confName} | expected ${valType} got ${currConfig.valueType} | review and fix!")
+                    logError(
+                            "Unexpected value type for required config $confName",
+                            "expected $valType got ${currConfig.valueType}",
+                            'review and fix!'
+                    )
                 }
                 if (currConfig.clientVisible != clientVisible) {
-                    log.error("Unexpected clientVisible for required config ${confName} | expected ${clientVisible} got ${currConfig.clientVisible} | review and fix!")
+                    logError(
+                            "Unexpected clientVisible for required config $confName",
+                            "expected $clientVisible got ${currConfig.clientVisible}",
+                            'review and fix!'
+                    )
                 }
             }
         }
 
-        log.debug("Validated presense of ${reqConfigs.size()} required configs | created ${created}")
+        logDebug("Validated presense of ${reqConfigs.size()} required configs", "created ${created}")
     }
 
+    void fireConfigChanged(AppConfig obj) {
+        notify('xhConfigChanged', [key: obj.name, value: obj.externalValue()])
+    }
 
     //-------------------
     //  Implementation
     //-------------------
+    @ReadOnly
     private Object getInternalByName(String name, String valueType, Object notFoundValue) {
         AppConfig c = AppConfig.findByName(name, [cache: true])
 
@@ -159,28 +176,4 @@ class ConfigService extends BaseService implements EventPublisher {
         }
         return c.externalValue(decryptPassword: true, jsonAsObject: true)
     }
-
-    //------------------------------------------------------------------------------
-    // Listen to Changes to AppConfig object to generate 'xhConfigChanged'
-    //
-    // Note:  Use beforeUpdate instead of afterUpdate, because easier to identify
-    // what changed (rare extra event for aborted updates preferable to complexity)
-    //------------------------------------------------------------------------------
-    @Subscriber
-    void beforeUpdate(PreUpdateEvent event) {
-        if (!(event.entityObject instanceof AppConfig)) return
-
-        def obj = (AppConfig) event.entityObject,
-            changed = obj.hasChanged('value'),
-            newVal = obj.externalValue()
-
-        if (changed) {
-            // notify is called in a new thread and with a delay to make sure the newVal has had the time to propagate
-            asyncTask {
-                Thread.sleep(500)
-                notify('xhConfigChanged', [key: obj.name, value: newVal])
-            }
-        }
-    }
-
 }

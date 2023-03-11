@@ -2,33 +2,37 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.admin
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.log.LogUtils
+import io.xh.hoist.configuration.LogbackConfig
 import groovy.io.FileType
 import io.xh.hoist.security.Access
 
-@Access(['HOIST_ADMIN'])
+@Access(['HOIST_ADMIN_READER'])
 class LogViewerAdminController extends BaseController {
 
     def logArchiveService,
         logReaderService
 
     def listFiles() {
-        def baseDir = new File(LogUtils.logRootPath),
+        def baseDir = new File(LogbackConfig.logRootPath),
             basePath = baseDir.toPath(),
             files = []
 
-        baseDir.eachFileRecurse FileType.FILES, {
+        baseDir.eachFileRecurse(FileType.FILES) {
             def matches = it.name ==~ /.*\.log/
-            if (matches) files << basePath.relativize(it.toPath())
+            if (matches) files << it
         }
 
-        def ret = files.collect { [filename: it.toString()] }
+        def ret = files.collect { [
+                filename: basePath.relativize(it.toPath()).toString(),
+                size: it.size(),
+                lastModified: it.lastModified()
+        ]}
         renderJSON(success:true, files:ret)
     }
 
@@ -43,19 +47,29 @@ class LogViewerAdminController extends BaseController {
         }
     }
 
+    def download(String filename) {
+        def file = logReaderService.get(filename)
+        render(
+                file: file,
+                fileName: filename,
+                contentType: 'application/octet-stream'
+        )
+    }
+
     /**
      * Deletes one or more files from the log directory.
      * @param filenames - (required)
      */
+    @Access(['HOIST_ADMIN'])
     def deleteFiles() {
         def filenames = params.list('filenames')
 
         filenames.each {String filename ->
-            def fileToDelete = new File(LogUtils.logRootPath, filename),
+            def fileToDelete = new File(LogbackConfig.logRootPath, filename),
                 fileDeleted = fileToDelete.delete()
 
             if (!fileDeleted) {
-                log.warn("Failed to delete log: '$filename'.  User may not have permissions.")
+                logWarn("Failed to delete log: '$filename'.  User may not have permissions.")
             }
         }
 
@@ -66,6 +80,7 @@ class LogViewerAdminController extends BaseController {
      * Run log archiving process immediately.
      * @param daysThreshold - (optional) min age in days of files to archive - null to use configured default.
      */
+    @Access(['HOIST_ADMIN'])
     def archiveLogs(Integer daysThreshold) {
         def ret = logArchiveService.archiveLogs(daysThreshold)
         renderJSON([archived: ret])

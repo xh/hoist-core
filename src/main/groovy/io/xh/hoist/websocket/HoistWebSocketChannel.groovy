@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.websocket
@@ -22,7 +22,6 @@ import java.time.Instant
 
 import static io.xh.hoist.util.Utils.configService
 import static io.xh.hoist.util.Utils.userService
-import static io.xh.hoist.util.Utils.withNewSession
 
 /**
  * Managed wrapper around a raw WebSocketSession:
@@ -48,7 +47,7 @@ class HoistWebSocketChannel implements LogSupport, JSONFormat {
         Map conf = getConfig()
         def sendTimeLimit = (int) conf.sendTimeLimitMs,
             bufferSizeLimit = (int) conf.bufferSizeLimitBytes
-        log.debug("Creating managed socket session: sendTimeLimit: $sendTimeLimit, bufferSizeLimit: $bufferSizeLimit")
+        logDebug("Creating managed socket session", [sendTimeLimit: sendTimeLimit, bufferSizeLimit: bufferSizeLimit])
         session = new ConcurrentWebSocketSessionDecorator(webSocketSession, sendTimeLimit, bufferSizeLimit)
         authUsername = getAuthUsernameFromSession()
         apparentUsername = getApparentUsernameFromSession()
@@ -69,7 +68,7 @@ class HoistWebSocketChannel implements LogSupport, JSONFormat {
             sentMessageCount++
             lastSentTime = Instant.now()
         } catch (Exception e) {
-            logErrorCompact("Failed to send message to $key", e)
+            logError("Failed to send message to $key", e)
         }
     }
 
@@ -94,9 +93,7 @@ class HoistWebSocketChannel implements LogSupport, JSONFormat {
     }
 
     private Map getConfig() {
-        return (Map) withNewSession {
-            configService.getMap('xhWebSocketConfig')
-        }
+        return configService.getMap('xhWebSocketConfig')
     }
 
     Map formatForJSON() {

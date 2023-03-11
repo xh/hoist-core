@@ -2,12 +2,13 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.websocket
 
 import grails.async.Promises
+import grails.core.GrailsApplication
 import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
@@ -45,6 +46,7 @@ import java.util.concurrent.ConcurrentHashMap
 @CompileStatic
 class WebSocketService extends BaseService implements EventPublisher {
 
+    GrailsApplication grailsApplication
     IdentityService identityService
 
     static final String HEARTBEAT_TOPIC = 'xhHeartbeat'
@@ -54,6 +56,10 @@ class WebSocketService extends BaseService implements EventPublisher {
     static final String MSG_RECEIVED_EVENT = 'xhWebSocketMessageReceived'
 
     private Map<WebSocketSession, HoistWebSocketChannel> _channels = new ConcurrentHashMap<>()
+
+    boolean isEnabled() {
+        return grailsApplication.config.getProperty('hoist.enableWebSockets', Boolean)
+    }
 
     /**
      * Push a message to a connected client, as identified by its channel key. Requests to send to
@@ -108,14 +114,14 @@ class WebSocketService extends BaseService implements EventPublisher {
         def channel = _channels[session] = new HoistWebSocketChannel(session)
         sendMessage(channel, REG_SUCCESS_TOPIC, [channelKey: channel.key])
         notify(CHANNEL_OPENED_EVENT, channel)
-        log.debug("Registered session | ${channel.key}")
+        logDebug("Registered session", channel.key)
     }
 
     void unregisterSession(WebSocketSession session, CloseStatus closeStatus) {
         def channel = _channels.remove(session)
         if (channel) {
             notify(CHANNEL_CLOSED_EVENT, channel)
-            log.debug("Closed session | ${channel.key} | ${closeStatus.toString()}")
+            logDebug("Closed session", channel.key, closeStatus)
         }
     }
 
@@ -124,7 +130,7 @@ class WebSocketService extends BaseService implements EventPublisher {
         if (!channel) return
 
         channel.noteMessageReceived()
-        log.debug("Message received | ${channel.key} | ${message.payload}")
+        logDebug("Message received", channel.key, message.payload)
         def msgJSON = deserialize(message)
 
         if (msgJSON.topic == HEARTBEAT_TOPIC) {

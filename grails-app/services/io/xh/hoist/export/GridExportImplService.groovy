@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.export
@@ -24,6 +24,8 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook
 import org.openxmlformats.schemas.spreadsheetml.x2006.main.*
 
 import java.awt.Color
+import java.awt.GraphicsEnvironment
+import java.time.LocalDate
 
 /**
  * Service to export row data to Excel or CSV.
@@ -39,23 +41,43 @@ class GridExportImplService extends BaseService {
 
     def configService
 
+    void init() {
+        if (instanceLog.debugEnabled) {
+            GraphicsEnvironment ge = GraphicsEnvironment.localGraphicsEnvironment
+            logDebug(
+                'Fonts available for Excel Column Sizing',
+                ge.allFonts*.name.toString()
+            )
+        }
+    }
+
     /**
      * Return map suitable for rendering file with grails controller render() method
      */
     Map getBytesForRender(Map params) {
-        withDebug(['Generating Export', params.filename, params.rows.size() + " rows", params.meta.size() + " cols"]) {
+        withDebug([
+            _msg: 'Generating Export',
+            _filename: params.filename,
+            rows: params.rows.size(),
+            cols: params.meta.size()
+        ]) {
             return [
                     file       : getFileData(params.type, params.rows, params.meta),
                     contentType: getContentType(params.type),
                     fileName   : getFileName(params.filename, params.type)
             ]
-        } as Map
+        }
     }
 
-    
+
     //------------------------
     // Implementation
     //------------------------
+    // FieldType from Field.js in Hoist-React
+    private final static def FieldType = [AUTO: 'auto', BOOL: 'bool', DATE: 'date', INT: 'int', LOCAL_DATE: 'localDate', NUMBER: 'number', STRING: 'string'].asImmutable()
+    // ExcelFormat from ExcelFormat.js in Hoist-React
+    private final static def ExcelFormat = [LONG_TEXT: 'Text'].asImmutable()
+
     private byte[] getFileData(String type, List rows, List meta) {
         switch(type) {
             case 'excel':
@@ -175,15 +197,18 @@ class GridExportImplService extends BaseService {
                 Map metadata = meta[colIndex]
                 Cell cell = row.createCell(colIndex)
 
-                // Collect cell value and cell format
-                def value, format
+                // Collect cell value, cell format, and cell type
+                def value, format, type
                 if (data instanceof Map) {
                     value = data?.value
-                    format = data?.format
+                    format = data?.format ?: metadata.format
+                    type = data?.type ?: metadata.type
                 } else {
                     value = data
                     format = metadata.format
+                    type = metadata.type
                 }
+
                 value = value?.toString()
 
                 // Set cell data format (skipping column headers)
@@ -202,22 +227,28 @@ class GridExportImplService extends BaseService {
                     // Column headers and empty values ignore metadata
                     cell.setCellValue(value)
                 } else {
-                    // Set cell value from type
+                    // Set cell value using type (FieldType from Field.js), otherwise default to text
                     try {
-                        if (metadata.type == 'date') {
-                            value = Date.parse('yyyy-MM-dd', value)
-                        } else if (metadata.type == 'datetime') {
+                        if (type == FieldType.DATE) {
+                            // Note that the format string for SimpleDateFormat (called here using Groovy's
+                            // DateUtilStaticExtension) is slightly different from js and excel date formatting
                             value = Date.parse('yyyy-MM-dd HH:mm:ss', value)
-                        } else if (metadata.type == 'int' || (!metadata.type && value.isInteger())) {
-                            value = value.toInteger()
-                        } else if (metadata.type == 'double' || (!metadata.type && value.isDouble())) {
+                        } else if (type == FieldType.LOCAL_DATE) {
+                            // Defaults to ISO local date format, which is 'yyyy-MM-dd'
+                            value = LocalDate.parse(value)
+                        } else if (type == FieldType.INT) {
+                            value = value.toLong()
+                        } else if (type == FieldType.NUMBER) {
                             value = value.toDouble()
+                        } else if (type == FieldType.BOOL) {
+                            value = value.toBoolean()
                         }
                     } catch (Exception ex) {
-                        log.trace("Error parsing value ${value} for declared type ${metadata.type} | ${ex.message}")
+                        if (valueParseFailures < 100) {
+                            logTrace("Error parsing value $value for declared type ${type} and format ${format}", ex.message)
+                        }
                         valueParseFailures++
                     }
-
                     cell.setCellValue(value)
                 }
 
@@ -230,7 +261,7 @@ class GridExportImplService extends BaseService {
 
             if (depth > prevDepth) {
                 // Open new group
-                pendingGroups.push([start: i, depth: depth])
+                pendingGroups.add([start: i, depth: depth])
             }
 
             while (pendingGroups) {
@@ -238,12 +269,12 @@ class GridExportImplService extends BaseService {
                 def group = pendingGroups.last()
                 if (group.depth <= nextDepth) break
                 group.end = i
-                completedGroups << pendingGroups.pop()
+                completedGroups << pendingGroups.removeLast()
             }
         }
 
         if (valueParseFailures) {
-            log.warn("Errors encountered during parsing for grid export - failed to parse ${valueParseFailures} cell values.")
+            logWarn("Errors encountered during parsing for grid export - failed to parse $valueParseFailures cell values.")
         }
 
         if (asTable && completedGroups.size()) {
@@ -278,9 +309,9 @@ class GridExportImplService extends BaseService {
 
     private XSSFCellStyle registerCellStyleForFormat(wb, format, colorGroup) {
         XSSFCellStyle style = wb.createCellStyle()
-        if (format == 'Text') style.setWrapText(true)
+        if (format == ExcelFormat.LONG_TEXT) style.setWrapText(true)
         style.setVerticalAlignment(VerticalAlignment.CENTER)
-        style.setDataFormat(wb.createDataFormat().getFormat(format))
+        style.setDataFormat(wb.createDataFormat().getFormat(format.toString()))
 
         // If rendering grouped data into a table, set background color based on depth.
         // Note the confusing use of `ForegroundColor` to set background color below. This is because

@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.log
@@ -16,6 +16,8 @@ class LogLevel implements JSONFormat {
     String level
     String getDefaultLevel() {logLevelService.getDefaultLevel(name)}
     String getEffectiveLevel() {logLevelService.getEffectiveLevel(name)}
+    Date lastUpdated
+    String lastUpdatedBy
 
     public static List<String> LEVELS = ['Trace', 'Debug', 'Info', 'Warn', 'Error', 'Inherit', 'Off']
 
@@ -28,6 +30,7 @@ class LogLevel implements JSONFormat {
     static constraints = {
         name(unique: true, nullable: false, blank: false)
         level(nullable: true, maxSize: 20, inList: LogLevel.LEVELS)
+        lastUpdatedBy(nullable: true, maxSize: 50)
     }
 
     Map formatForJSON() {
@@ -36,7 +39,9 @@ class LogLevel implements JSONFormat {
                 name: name,
                 level: level,
                 defaultLevel: defaultLevel,
-                effectiveLevel: effectiveLevel
+                effectiveLevel: effectiveLevel,
+                lastUpdated: lastUpdated,
+                lastUpdatedBy: lastUpdatedBy
         ]
     }
 

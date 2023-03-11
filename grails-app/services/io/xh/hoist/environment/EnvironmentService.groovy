@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.environment
@@ -11,6 +11,7 @@ import grails.plugins.GrailsPlugin
 import grails.util.GrailsUtil
 import grails.util.Holders
 import io.xh.hoist.BaseService
+import io.xh.hoist.util.DateTimeUtils
 import io.xh.hoist.util.Utils
 
 /**
@@ -19,7 +20,8 @@ import io.xh.hoist.util.Utils
  */
 class EnvironmentService extends BaseService {
 
-    def configService
+    def configService,
+        webSocketService
 
     private TimeZone _appTimeZone
 
@@ -64,15 +66,16 @@ class EnvironmentService extends BaseService {
                 serverTimeZone:         serverTz.toZoneId().id,
                 serverTimeZoneOffset:   serverTz.getOffset(now),
                 appTimeZone:            appTz.toZoneId().id,
-                appTimeZoneOffset:      appTz.getOffset(now)
+                appTimeZoneOffset:      appTz.getOffset(now),
+                webSocketsEnabled:      webSocketService.enabled,
         ]
 
         hoistGrailsPlugins.each {it ->
             ret[it.name + 'Version'] = it.version
         }
 
-        def user = identityService.getAuthUser()
-        if (user?.isHoistAdmin) {
+        def user = authUser
+        if (user?.isHoistAdminReader) {
             def dataSource = Utils.dataSource
             ret.databaseConnectionString = dataSource.url
             ret.databaseUser = dataSource.username

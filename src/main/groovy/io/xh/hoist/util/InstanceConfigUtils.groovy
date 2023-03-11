@@ -2,12 +2,14 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 package io.xh.hoist.util
 
 import io.xh.hoist.AppEnvironment
 import org.yaml.snakeyaml.Yaml
+
+import static io.xh.hoist.util.Utils.isLocalDevelopment
 
 
 /**
@@ -95,9 +97,18 @@ class InstanceConfigUtils {
         // Populate environment, popping it off the map if provided via config. Priority as documented above.
         def optEnvString = System.getProperty('io.xh.hoist.environment'),
             confEnvString = ret.remove('environment'),
-            envString = optEnvString ?: (confEnvString ?: 'Development')
+            envString = optEnvString ?: confEnvString,
+            env = AppEnvironment.parse(envString)
 
-        _appEnvironment = AppEnvironment.parse(envString) ?: AppEnvironment.DEVELOPMENT
+        if (!env) {
+            if (isLocalDevelopment) {
+                env = AppEnvironment.DEVELOPMENT
+            } else {
+                throw new RuntimeException("Cannot identify Hoist environment: '$envString'")
+            }
+        }
+
+        _appEnvironment = env
 
         return ret
     }

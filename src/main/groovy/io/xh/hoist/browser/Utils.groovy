@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.browser
@@ -18,7 +18,9 @@ class Utils {
     
     private static Map<String, Browser> BROWSERS_MATCHERS = [
             'Firefox': FIREFOX, // Firefox must come before "; rv" to prevent identification as IE
-            'Edge': EDGE,
+            'EdgiOS': EDGE,     // iOS Edge
+            'EdgA': EDGE,       // Android Edge
+            'Edg': EDGE,        // Desktop Edge
             '; rv': IE,         // IE 11 specific useragent pattern
             'MSIE': IE,
             'Opera': OPERA,     // Opera must come before Chrome and Safari to prevent false positives
@@ -29,7 +31,9 @@ class Utils {
     ]
 
     private static Map<String, Map<String,String>> BROWSER_VERSION_MATCHERS = [
-            'Edge': [start: 'Edge/', end: null],
+            'EdgiOS': [start: 'EdgiOS/', end: ' '],
+            'EdgA': [start: 'EdgA/', end: null],
+            'Edg': [start: 'Edg/', end: null],
             '; rv': [start: '; rv:', end: ')'],
             'MSIE': [start: 'MSIE ', end: ';'],
             'Opera': [start: 'Opera/', end: null], // Opera must come before Chrome and Safari to prevent false positives

@@ -2,17 +2,16 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.admin
 
 import io.xh.hoist.jsonblob.JsonBlob
-import io.xh.hoist.RestController
 import io.xh.hoist.security.Access
 
-@Access(['HOIST_ADMIN'])
-class JsonBlobAdminController extends RestController {
+@Access(['HOIST_ADMIN_READER'])
+class JsonBlobAdminController extends AdminRestController {
     static restTarget = JsonBlob
     static trackChanges = true
 
@@ -31,6 +30,6 @@ class JsonBlobAdminController extends RestController {
         } else if (submit.archived == false) {
             submit.archivedDate = 0
         }
-        submit.lastUpdatedBy = username
+        submit.lastUpdatedBy = authUsername
     }
 }

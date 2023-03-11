@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.admin
@@ -11,7 +11,7 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
 import net.sf.ehcache.CacheManager
 
-@Access(['HOIST_ADMIN'])
+@Access(['HOIST_ADMIN_READER'])
 class EhCacheAdminController extends BaseController {
 
     def listCaches() {
@@ -28,18 +28,20 @@ class EhCacheAdminController extends BaseController {
                         evictionPolicy: cache.memoryStoreEvictionPolicy.name,
                         status: cache.status.toString()
                 ]
-            }    
+            }
         }
 
         renderJSON(caches)
     }
 
+    @Access(['HOIST_ADMIN'])
     def clearAllCaches() {
         def caches = cacheManager.cacheNames
         caches.each {clearCache(it)}
         renderJSON(success: true)
     }
 
+    @Access(['HOIST_ADMIN'])
     def clearCaches() {
         def caches = params.names instanceof String ? [params.names] : params.names
         caches.each {clearCache(it)}
@@ -56,7 +58,7 @@ class EhCacheAdminController extends BaseController {
 
     private void clearCache(String name) {
         cacheManager.clearAllStartingWith(name)
-        log.info('Cleared hibernate cache: ' + name)
+        logInfo('Cleared hibernate cache: ' + name)
     }
-    
+
 }

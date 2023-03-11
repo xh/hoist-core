@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.cache
@@ -57,8 +57,8 @@ class Cache<K,V> {
         _map.put(key, new Entry(obj))
     }
 
-    V getOrCreate(K key, Closure c) {
-        def ret = get(key)
+    V getOrCreate(K key, Closure<V> c) {
+        V ret = get(key)
         if (!ret) {
             ret = c(key)
             put(key, ret)
@@ -79,7 +79,7 @@ class Cache<K,V> {
         _map.clear()
     }
 
-    
+
     //------------------------
     // Implementation
     //------------------------
@@ -104,15 +104,15 @@ class Cache<K,V> {
             _lastCull = new Date()
             Set cullKeys = new HashSet()
             _map.each {k, v ->
-                if (shouldExpire(v)) cullKeys << k
+                if (shouldExpire(v)) cullKeys.add(k)
             }
 
             if (cullKeys.size()) {
-                svc.instanceLog.debug("Cache '$name' culling ${cullKeys.size()} out of ${_map.size()} entries")
+                svc.logDebug("Cache '$name' culling ${cullKeys.size()} out of ${_map.size()} entries")
             }
 
             cullKeys.each {_map.remove(it)}
         }
     }
-    
+
 }

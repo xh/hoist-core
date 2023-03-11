@@ -2,16 +2,18 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist
 
+import grails.gorm.transactions.Transactional
 import grails.validation.ValidationException
 import groovy.util.logging.Slf4j
 import io.xh.hoist.json.JSONParser
 
 @Slf4j
+@Transactional
 abstract class RestController extends BaseController {
 
     def trackService
@@ -69,9 +71,9 @@ abstract class RestController extends BaseController {
                 failCount++
                 if (e instanceof ValidationException) {
                     e = new io.xh.hoist.exception.ValidationException(e)
-                    log.debug("Validation exception updating ${obj}", e)
+                    logDebug("Validation exception updating ${obj}", e)
                 } else {
-                    logErrorCompact(instanceLog, "Unexpected exception updating ${obj}", e)
+                    logError("Unexpected exception updating ${obj}", e)
                 }
             }
         }

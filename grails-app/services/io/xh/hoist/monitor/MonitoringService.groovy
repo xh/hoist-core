@@ -2,19 +2,20 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.monitor
 
 import grails.async.Promises
 import grails.events.EventPublisher
+import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Timer
-import io.xh.hoist.async.AsyncSupport
 
 import java.util.concurrent.ConcurrentHashMap
 
+import static grails.async.Promises.task
 import static io.xh.hoist.monitor.MonitorStatus.*
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
@@ -31,7 +32,7 @@ import static java.lang.System.currentTimeMillis
  *
  * If enabled via config, this service will also write monitor run results to a dedicated log file.
  */
-class MonitoringService extends BaseService implements AsyncSupport, EventPublisher {
+class MonitoringService extends BaseService implements EventPublisher {
 
     def configService,
         monitorResultService
@@ -54,14 +55,13 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
                 interval: {notifyInterval},
                 runFn: this.&onNotifyTimer
         )
-
-        super.init()
     }
 
     void forceRun() {
         _monitorTimer.forceRun()
     }
 
+    @ReadOnly
     Map<String, MonitorResult> getResults() {
         Monitor.list().collectEntries {
             def result = _results[it.code] ?: monitorResultService.unknownMonitorResult(it)
@@ -73,12 +73,13 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
     //------------------------
     // Implementation
     //------------------------
+    @ReadOnly
     private void runAllMonitors() {
         withDebug('Running monitors') {
             def timeout = getTimeoutSeconds()
 
             def tasks = Monitor.list().collect { m ->
-                asyncTask { monitorResultService.runMonitor(m, timeout) }
+                task { monitorResultService.runMonitor(m, timeout) }
             }
 
             Map newResults = Promises
@@ -160,18 +161,18 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
     }
 
     private void logResults() {
-        results.each {code, result ->
+        results.each { code, result ->
             def status = result.status,
                 metric = result.metric
 
-            log.info("monitorCode=${code} | status=${status} | metric=${metric}")
+            logInfo([monitorCode: code, status: status, metric: metric])
         }
 
         def failsCount = results.count {it.value.status == FAIL},
             warnsCount = results.count {it.value.status == WARN},
             okCount = results.count {it.value.status == OK}
 
-        log.info("fails=${failsCount} | warns=${warnsCount} | okays=${okCount}")
+        logInfo([fails: failsCount, warns: warnsCount, okays: okCount])
     }
 
     private void onNotifyTimer() {
@@ -181,7 +182,7 @@ class MonitoringService extends BaseService implements AsyncSupport, EventPublis
 
         if (timeThresholdMet) {
             def report = generateStatusReport()
-            log.debug("Emitting monitor status report: ${report.title}")
+            logDebug("Emitting monitor status report: ${report.title}")
             notify('xhMonitorStatusReport', report)
             _lastNotified = now
         }

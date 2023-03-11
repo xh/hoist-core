@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.exception
@@ -18,8 +18,9 @@ import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 import java.util.concurrent.ExecutionException
 
-import static org.apache.http.HttpStatus.SC_BAD_REQUEST
-import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
+import static org.apache.hc.core5.http.HttpStatus.SC_BAD_REQUEST
+import static org.apache.hc.core5.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
+
 
 /**
  * This class provides the default server-side exception handling in Hoist.
@@ -79,14 +80,14 @@ class ExceptionRenderer {
     }
 
     protected void logException(Throwable t, LogSupport logSupport) {
-        if (shouldLogDebugCompact(t)) {
-            logSupport.logDebugCompact(null, t)
+        if (shouldlogDebug(t)) {
+            logSupport.logDebug(null, t)
         } else {
-            logSupport.logErrorCompact(null, t)
+            logSupport.logError(null, t)
         }
     }
 
-    protected boolean shouldLogDebugCompact(Throwable t) {
+    protected boolean shouldlogDebug(Throwable t) {
         return t instanceof RoutineException
     }
 

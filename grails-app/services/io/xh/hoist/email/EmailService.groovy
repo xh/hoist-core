@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 package io.xh.hoist.email
 
@@ -49,12 +49,24 @@ class EmailService extends BaseService {
             throwError = args.throwError
 
         try {
+            def override = parseMailConfig('xhEmailOverride'),
+                filter = parseMailConfig('xhEmailFilter')
+
             def originalTo = args.to,
                 sender = args.from ? formatAddresses(args.from)[0] : parseMailConfig('xhEmailDefaultSender')[0],
                 doLog = args.containsKey('doLog') ? args.doLog : true,
                 logIdentifier = args.logIdentifier ?: args.subject
 
             logMsg = "$sender -> ${originalTo.take(100)} | ${logIdentifier.take(70)}"
+
+            if (Utils.isLocalDevelopment && !override && !filter) {
+                logInfo(
+                        'No emails sent',
+                        'emailing from local development requires an active xhEmailOverride or xhEmailFilter config',
+                        logMsg
+                )
+                return
+            }
 
             def toRecipients = filterAddresses(formatAddresses(args.to)),
                 ccRecipients = args.cc ? filterAddresses(formatAddresses(args.cc)) : null,
@@ -64,15 +76,14 @@ class EmailService extends BaseService {
                 isAsync = args.containsKey('async') ? args.async : false
 
             if (!toRecipients) {
-                log.debug("No valid recipients found after filtering | ${logMsg}")
+                logDebug('No emails sent', 'no valid recipients found after filtering', logMsg)
                 return
             }
 
-            def overrideEmail = parseMailConfig('xhEmailOverride')
-            if (overrideEmail) {
-                toRecipients = overrideEmail
+            if (override) {
+                toRecipients = override
                 ccRecipients = null
-                subj += " [for $originalTo]"
+                subj += " (for $originalTo)"
                 logMsg += " | redirected to $toRecipients"
             }
 
@@ -83,7 +94,7 @@ class EmailService extends BaseService {
                 if (ccRecipients) {
                     cc ccRecipients.toArray()
                 }
-                subject subj.take(70)
+                subject subj.take(255)
 
                 if (args.containsKey('html')) {
                     html args.html as String
@@ -99,10 +110,11 @@ class EmailService extends BaseService {
             }
 
             if (doLog) {
-                log.info("Sent mail | $logMsg")
+                def recipCount = toRecipients.size() + (ccRecipients?.size() ?: 0)
+                logInfo('Sent mail', "$recipCount actual recipients", logMsg)
             }
         } catch (Exception e) {
-            logErrorCompact("Error sending email $logMsg", e)
+            logError('Error sending email', logMsg, e)
             if (throwError) throw e
         }
     }
@@ -149,6 +161,6 @@ class EmailService extends BaseService {
             email.contains('@') ? email : (email + domain)
         }
     }
-    
+
 }
 

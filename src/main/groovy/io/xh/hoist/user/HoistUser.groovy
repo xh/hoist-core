@@ -2,12 +2,11 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.user
 
-import groovy.transform.CompileStatic
 import io.xh.hoist.json.JSONFormat
 import static io.xh.hoist.util.Utils.configService
 import static io.xh.hoist.util.Utils.roleService
@@ -15,7 +14,6 @@ import static io.xh.hoist.util.Utils.roleService
 /**
  * Core user properties required for Hoist.
  */
-@CompileStatic
 trait HoistUser implements JSONFormat {
 
     static boolean validateUsername(String username) {
@@ -23,6 +21,7 @@ trait HoistUser implements JSONFormat {
     }
 
     static String HOIST_ADMIN_ROLE = 'HOIST_ADMIN'
+    static String HOIST_ADMIN_READER_ROLE = 'HOIST_ADMIN_READER'
 
     abstract boolean isActive()
     abstract String getEmail()
@@ -60,6 +59,9 @@ trait HoistUser implements JSONFormat {
         return hasRole(HOIST_ADMIN_ROLE)
     }
 
+    boolean getIsHoistAdminReader() {
+        return hasRole(HOIST_ADMIN_READER_ROLE)
+    }
     /**
      * Gates are a lighter-weight concept, similar to roles, but sourced here from soft-config
      * and intended to restrict access to features under development or pending review.

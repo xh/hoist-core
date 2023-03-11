@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.track
@@ -10,12 +10,13 @@ package io.xh.hoist.track
 import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
-import org.grails.web.util.WebUtils
 
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
 import static io.xh.hoist.json.JSONSerializer.serialize
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
+import static grails.async.Promises.task
+import static io.xh.hoist.util.Utils.getCurrentRequest
 
 /**
  * Service for tracking user activity within the application. This service provides a server-side
@@ -42,13 +43,24 @@ class TrackService extends BaseService implements EventPublisher {
 
     /**
      * Create a new track log entry. Username, browser info, and datetime will be set automatically.
-     * @param params [String category, String msg, Map data, Integer elapsed, String severity]
+     *   @param args
+     *      msg {String}            - required, identifier of action being tracked
+     *      category {String}       - optional, grouping category. Defaults to 'Default'
+     *      data {Object}           - optional, object with related data to be serialized as JSON
+     *      username {String}       - optional, defaults to currently authenticated user.
+     *                                Use this if track will be called in an asynchronous process
+     *                                that will not have otherwise preserved the username
+     *      impersonating {String}  - optional, defaults to username if impersonating, null if not.
+     *                                Use this if track will be called in an asynchronous process
+     *                                that will not have otherwise preserved the impersonating name
+     *      severity {String}       - optional, defaults to 'INFO'.
+     *      elapsed {int}           - optional, time associated with action in millis
      */
-    void track(Map params) {
+    void track(Map args) {
         try {
-            createTrackLog(params)
+            createTrackLog(args)
         } catch (Exception e) {
-            logErrorCompact('Exception writing track log', e)
+            logError('Exception writing track log', e)
         }
     }
 
@@ -57,12 +69,10 @@ class TrackService extends BaseService implements EventPublisher {
     // Implementation
     //-------------------------
     private void createTrackLog(Map params) {
-        def request = WebUtils.retrieveGrailsWebRequest().currentRequest,
-            userAgent = request?.getHeader('User-Agent'),
-            idSvc = identityService,
-            authUsername = idSvc.getAuthUser().username,
+        def userAgent = currentRequest?.getHeader('User-Agent'),
             values = [
-                username: authUsername,
+                username: params.username ?: authUsername,
+                impersonating: params.impersonating ?: (identityService.isImpersonating() ? username : null),
                 category: params.category ?: 'Default',
                 msg: params.msg,
                 userAgent: userAgent,
@@ -70,30 +80,35 @@ class TrackService extends BaseService implements EventPublisher {
                 device: getDevice(userAgent),
                 data: params.data ? serialize(params.data) : null,
                 elapsed: params.elapsed,
-                severity: params.severity ?: 'INFO',
-                impersonating: idSvc.isImpersonating() ? username : null
+                severity: params.severity ?: 'INFO'
             ]
 
         // Execute asynchronously after we get info from request, don't block application thread.
         // Save with additional try/catch to alert on persistence failures within this async block.
-        asyncTask {
-            def tl = new TrackLog(values)
+        task {
+            TrackLog.withTransaction {
+                TrackLog tl = new TrackLog(values)
 
-            if (getInstanceConfig('disableTrackLog') != 'true') {
-                try {
-                    tl.save()
-                } catch (Exception e) {
-                    logErrorCompact('Exception writing track log', e)
+                if (getInstanceConfig('disableTrackLog') != 'true') {
+                    try {
+                        tl.save()
+                    } catch (Exception e) {
+                        logError('Exception writing track log', e)
+                    }
                 }
+
+                String name = tl.username
+                if (tl.impersonating) name += " (as ${tl.impersonating})"
+
+                Map msgParts = [
+                    _user: name,
+                    _category: tl.category,
+                    _msg: tl.msg,
+                    _elapsedMs: tl.elapsed
+                ].findAll {it.value != null}
+
+                logInfo(msgParts)
             }
-
-            def elapsedStr = tl.elapsed != null ? tl.elapsed + 'ms' : null,
-                name = tl.username
-            if (tl.impersonating) name += " (as ${tl.impersonating})"
-
-            def msgParts = [name, tl.category, tl.msg, elapsedStr]
-            log.info(msgParts.findAll().join(' | '))
         }
     }
-
 }

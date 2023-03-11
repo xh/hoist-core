@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.security
@@ -19,7 +19,7 @@ import java.lang.annotation.Target
  * @see AccessInterceptor
  */
 @Inherited
-@Target([ElementType.TYPE])
+@Target([ElementType.METHOD, ElementType.TYPE])
 @Retention(RetentionPolicy.RUNTIME)
 @interface Access {
     String[] value() default []

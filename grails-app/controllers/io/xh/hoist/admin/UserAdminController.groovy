@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.admin
@@ -12,7 +12,7 @@ import io.xh.hoist.security.Access
 import io.xh.hoist.user.BaseRoleService
 import io.xh.hoist.user.BaseUserService
 
-@Access(['HOIST_ADMIN'])
+@Access(['HOIST_ADMIN_READER'])
 class UserAdminController extends BaseController {
 
     BaseUserService userService

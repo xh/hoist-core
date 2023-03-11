@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2021 Extremely Heavy Industries Inc.
+ * Copyright © 2022 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.feedback
@@ -15,11 +15,9 @@ class FeedbackEmailService extends BaseService {
     def emailService
 
     void init() {
-        subscribeWithSession('xhFeedbackReceived', this.&emailFeedback)
-        super.init()
+        subscribe('xhFeedbackReceived', this.&emailFeedback)
     }
 
-    
     //------------------------
     // Implementation
     //------------------------

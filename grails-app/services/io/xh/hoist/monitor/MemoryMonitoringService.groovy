@@ -1,3 +1,10 @@
+/*
+ * This file belongs to Hoist, an application development toolkit
+ * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
+ *
+ * Copyright © 2022 Extremely Heavy Industries Inc.
+ */
+
 package io.xh.hoist.monitor
 
 import io.xh.hoist.BaseService
@@ -6,6 +13,8 @@ import io.xh.hoist.util.Timer
 import java.util.concurrent.ConcurrentHashMap
 
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static io.xh.hoist.util.DateTimeUtils.HOURS
+import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static java.lang.Runtime.getRuntime
 
 /**
@@ -16,6 +25,7 @@ class MemoryMonitoringService extends BaseService {
 
     private Map<Long, Map> _snapshots = new ConcurrentHashMap()
     private Timer _snapshotTimer
+    private Date _lastInfoLogged
 
     void init() {
         _snapshotTimer = createTimer(
@@ -37,13 +47,24 @@ class MemoryMonitoringService extends BaseService {
      */
     Map takeSnapshot() {
         def newSnap = getStats()
-        _snapshots.put(System.currentTimeMillis(), newSnap)
+
+        _snapshots[System.currentTimeMillis()] = newSnap
 
         // Don't allow snapshot history to grow endlessly - cap @ 1440 samples, i.e. 24 hours of
         // history if left at default config interval of one snap/minute.
         if (_snapshots.size() > 1440) {
             def oldest = _snapshots.keys().toList().min()
             _snapshots.remove(oldest)
+        }
+
+        if (newSnap.usedPctTotal > 90) {
+            logWarn(newSnap)
+            logWarn("MEMORY USAGE ABOVE 90%")
+        } else if (intervalElapsed(1 * HOURS, _lastInfoLogged)) {
+            logInfo(newSnap)
+            _lastInfoLogged = new Date()
+        } else {
+            logDebug(newSnap)
         }
 
         return newSnap
