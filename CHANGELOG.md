@@ -2,6 +2,9 @@
 
 ## 16.0-SNAPSHOT - unreleased
 
+* "Local" Preference support in `PreferenceService` is no longer supported.  Applications should use
+  `LocalStorageService` instead.
+
 ## 15.0.0 - 2022-12-5
 
 ### 🎁 New Features
