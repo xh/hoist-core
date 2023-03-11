@@ -226,7 +226,6 @@ class BootStrap {
             xhIdleDetectionDisabled: [
                 type: 'bool',
                 defaultValue: false,
-                local: true,
                 groupName: 'xh.io',
                 note: 'Set to true prevent IdleService from suspending the application due to inactivity.'
             ],
@@ -251,7 +250,6 @@ class BootStrap {
             xhTheme: [
                 type: 'string',
                 defaultValue: 'system',
-                local: true,
                 groupName: 'xh.io',
                 note: 'Visual theme for the client application - "light", "dark", or "system".'
             ]

@@ -149,7 +149,6 @@ class PrefService extends BaseService {
                     type: valType,
                     defaultValue: defaultVal,
                     groupName: prefDefaults.groupName ?: 'Default',
-                    local: local,
                     notes: notes,
                     lastUpdatedBy: 'hoist-bootstrap'
                 ).save()
@@ -173,6 +172,7 @@ class PrefService extends BaseService {
         logDebug("Validated presense of ${requiredPrefs.size()} required configs", "created $created")
     }
 
+    @ReadOnly
     boolean isUnset(String key, String username = username) {
         def defaultPref = getDefaultPreference(key, null)
         return !UserPreference.findByPreferenceAndUsername(defaultPref, username, [cache: true])

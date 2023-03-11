@@ -8,7 +8,6 @@
 package io.xh.hoist.impl
 
 import groovy.transform.CompileStatic
-import groovy.util.logging.Slf4j
 import io.xh.hoist.BaseController
 import io.xh.hoist.alertbanner.AlertBannerService
 import io.xh.hoist.config.ConfigService
@@ -30,7 +29,6 @@ import static io.xh.hoist.json.JSONParser.parseObject
 
 @AccessAll
 @CompileStatic
-@Slf4j
 class XhController extends BaseController {
 
     AlertBannerService alertBannerService
@@ -154,7 +152,7 @@ class XhController extends BaseController {
                     prefService.setPreference(key, value.toString())
                 }
             } catch (e) {
-                logErrorCompact("Failed to recover pref '$key' for user '$username'", e)
+                logError("Failed to recover pref '$key'", e)
             }
         }
         renderJSON(success: true)
