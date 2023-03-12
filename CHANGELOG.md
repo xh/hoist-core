@@ -2,8 +2,20 @@
 
 ## 16.0-SNAPSHOT - unreleased
 
-* "Local" Preference support in `PreferenceService` is no longer supported.  Applications should use
-  `LocalStorageService` instead.
+### 🐞 Bugfixes
+
+* Client Error timestamps will now correctly reflect the exact time the error was received on the
+  server rather than the time the error was bulk processed by the server.
+
+
+### 💥 Breaking Changes
+
+* "Local" Preference support in `PreferenceService` is no longer provided. Preferences marked
+as local will be treated as regular preferences. It is recommended that applications upgrading to
+hoist-core v16 simultaneously upgrade to hoist-react v56, which will automatically convert existing
+local preference values to the server.  Alternatively, consider using LocalStorage for user
+persistence.  See hoist-react changelog for more details.
+
 
 ## 15.0.0 - 2022-12-5
 

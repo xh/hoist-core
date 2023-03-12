@@ -31,6 +31,9 @@ class ClientError implements JSONFormat {
         error type: 'text'
         msg type: 'text'
         dateCreated index: 'idx_xh_client_error_date_created'
+
+        // We will manually set dateCreated in ErrorService, which is bulk generating these
+        autoTimestamp false
     }
 
     static constraints = {

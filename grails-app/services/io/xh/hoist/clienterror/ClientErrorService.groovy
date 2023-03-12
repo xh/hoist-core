@@ -103,6 +103,7 @@ class ClientErrorService extends BaseService implements EventPublisher {
 
             errs.each {
                 def ce = new ClientError(it)
+                ce.dateCreated = it.dateCreated
                 ce.save(flush: true)
                 notify('xhClientErrorReceived', ce)
             }
