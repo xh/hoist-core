@@ -5,6 +5,14 @@
 * "Local" Preference support in `PreferenceService` is no longer supported.  Applications should use
   `LocalStorageService` instead.
 
+### ⚙️ Breaking Changes
+* v16 restores the use of the standard grails version of logback (v1.2.11).  Hoist had been
+pinned on an earlier version of logback due to dropped support of groovy based configuration.
+This support is now restored via plugin. This change will require renaming the
+`conf/logback.groovy` file in your application to `conf/logback-config.groovy`.  It also may
+require minor adjustments to the syntax of imports in this file.  See the `logback-config.groovy`
+in toolbox for an example.
+
 ## 15.0.0 - 2022-12-5
 
 ### 🎁 New Features
