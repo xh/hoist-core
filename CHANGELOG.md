@@ -2,6 +2,11 @@
 
 ## 16.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* `EmailService.sendEmail()` now supports the `attachments` argument, for attaching one or more
+files to the email.
+
 ### 🐞 Bugfixes
 
 * Client Error timestamps will now correctly reflect the exact time the error was received on the
