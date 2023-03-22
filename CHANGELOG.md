@@ -5,22 +5,27 @@
 ### 🎁 New Features
 
 * `EmailService.sendEmail()` now supports the `attachments` argument, for attaching one or more
-files to the email.
+  files to the email.
+
+### 💥 Breaking Changes
+
+* Removed support for "local" preferences - any existing prefs previously marked as local will now
+  work like all others, with their values persisted on the server.
+    * Apps upgrading to this Core release should simultaneously upgrade to Hoist React v56, which
+      will automatically post any existing local preference *values* to the server.
+    * Alternatively, update client-side code to use browser local storage for persisting user state
+      that should remain tightly bound to a particular computer.
+* Grails has been updated to `5.3.2`. While this change did not itself introduce any breaking
+  changes, applications should update their Grails version within `gradle.properties` to match.
 
 ### 🐞 Bugfixes
 
 * Client Error timestamps will now correctly reflect the exact time the error was received on the
   server rather than the time the error was bulk processed by the server.
 
+### 📚 Libraries
 
-### 💥 Breaking Changes
-
-* "Local" Preference support in `PreferenceService` is no longer provided. Preferences marked
-as local will be treated as regular preferences. It is recommended that applications upgrading to
-hoist-core v16 simultaneously upgrade to hoist-react v56, which will automatically convert existing
-local preference values to the server.  Alternatively, consider using LocalStorage for user
-persistence.  See hoist-react changelog for more details.
-
+* grails `5.2.1 -> 5.3.2`
 
 ## 15.0.0 - 2022-12-5
 
@@ -29,19 +34,20 @@ persistence.  See hoist-react changelog for more details.
 Version 15 includes changes to support more flexible logging of structured data:
 
 * The bulk of Hoist conventions around log formatting have been moved from `LogSupport` to a new
- log converter -- `LogSupportConverter`.  This allows applications to more easily and fully
- customize their log formats by specifying custom converters.
-* `LogSupport` should still be the main entry point for most application logging.  This class
+  log converter -- `LogSupportConverter`. This allows applications to more easily and fully
+  customize their log formats by specifying custom converters.
+* `LogSupport` should still be the main entry point for most application logging. This class
   provides the support for enhanced meta data-handling as well as some important APIs -
   e.g. `withDebug()` and `withInfo()`.
-* Applications are now encouraged to provide `LogSupport` methods with data in `Map` form.  Provided
+* Applications are now encouraged to provide `LogSupport` methods with data in `Map` form. Provided
   converters will serialize these maps as appropriate for target logs.
 * Hoist's `LogSupportConverter` is intended for easy reading by humans, allows specifying
-  keys that should disappear in the final output with an `_` prefix.  This is useful for keys that
+  keys that should disappear in the final output with an `_` prefix. This is useful for keys that
   are obvious, e.g. `[_status: 'completed', rows: 100]` logs as `'completed' | rows=100`.
 * Alternatively, applications may now specify custom converters that preserve all keys and are
   more appropriate for automatic processing (e.g. splunk). An example of such a converter is
-  `CustomLogSupportConverter` which can be found in the [Toolbox project](https://github.com/xh/toolbox).
+  `CustomLogSupportConverter` which can be found in
+  the [Toolbox project](https://github.com/xh/toolbox).
 * By default, Hoist now also logs the time in millis when a log message occurred.
 
 ## 14.4.2 - 2022-11-14
