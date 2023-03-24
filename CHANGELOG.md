@@ -6,6 +6,13 @@
 
 * `EmailService.sendEmail()` now supports the `attachments` argument, for attaching one or more
   files to the email.
+* A new `xhActivityTrackingConfig` soft-configuration entry will be automatically created to control
+  the behavior of built-in Activity Tracking (via `TrackService`).
+    * Most notably, the size of any `data` objects included with track log entries will be
+      constrained by this config, primarily to constrain memory usage when querying and serializing
+      large numbers of log entries for the Admin Console.
+    * Any track requests with data objects exceeding this length will be persisted, but without the
+      requested data.
 
 ### 💥 Breaking Changes
 
