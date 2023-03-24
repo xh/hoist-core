@@ -11,24 +11,31 @@ import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
 import io.xh.hoist.track.TrackLog
+import io.xh.hoist.track.TrackService
 
+import static io.xh.hoist.util.DateTimeUtils.*
 import static java.lang.Integer.parseInt
-import static io.xh.hoist.util.DateTimeUtils.appStartOfDay
-import static io.xh.hoist.util.DateTimeUtils.appEndOfDay
-import static io.xh.hoist.util.DateTimeUtils.parseLocalDate
 
 @Access(['HOIST_ADMIN_READER'])
 class TrackLogAdminController extends BaseController {
 
-    static int DEFAULT_MAX_ROWS = 25000
-
-    def trackService
+    TrackService trackService
 
     @ReadOnly
     def index() {
+        if (!trackService.enabled) {
+            renderJSON([])
+        }
+
         def startDay = parseLocalDate(params.startDay),
-            endDay = parseLocalDate(params.endDay),
-            maxRows = params.maxRows ? parseInt(params.maxRows) : DEFAULT_MAX_ROWS
+            endDay = parseLocalDate(params.endDay)
+
+        // NOTE that querying + serializing large numbers of TrackLogs below requires a significant
+        // allocation of memory. Be mindful if customizing maxRow-related configs above defaults!
+        def conf = trackService.conf,
+            maxDefault = conf.maxRows.default as Integer,
+            maxLimit = conf.maxRows.limit as Integer,
+            maxRows = [(params.maxRows ? parseInt(params.maxRows) : maxDefault), maxLimit].min()
 
         def results = TrackLog.findAll(max: maxRows, sort: 'dateCreated', order: 'desc') {
             if (startDay)           dateCreated >= appStartOfDay(startDay)

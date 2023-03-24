@@ -87,8 +87,12 @@ class XhController extends BaseController {
     // Tracking
     //------------------------
     def track(String category, String msg, String data, int elapsed, String severity) {
-        ensureClientUsernameMatchesSession()
+        if (!trackService.enabled) {
+            renderJSON(success: false, error: 'Activity Tracking disabled via config')
+            return
+        }
 
+        ensureClientUsernameMatchesSession()
         trackService.track(
             category: safeStr(category),
             msg: safeStr(msg),

@@ -52,6 +52,17 @@ class BootStrap {
 
     private void ensureRequiredConfigsCreated() {
         Utils.configService.ensureRequiredConfigsCreated([
+            xhActivityTrackingConfig: [
+                valueType: 'json',
+                defaultValue: [
+                    enabled: true,
+                    maxDataLength: 2000,
+                    maxRows: [default: 10000, limit: 25000, options: [1000, 5000, 10000, 25000]]
+                ],
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'Configures built-in Activity Tracking via TrackService.'
+            ],
             xhAlertBannerConfig: [
                 valueType: 'json',
                 defaultValue: [enabled: true, interval: 30],
