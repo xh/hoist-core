@@ -1,6 +1,9 @@
 # Changelog
 
-## 17.0-SNAPSHOT - unreleased
+## 16.0.1 - 2023-03-29
+
+### 🐞 Bugfixes
+* Fixed a regression with 404 errors being incorrectly handled and not serialized as JSON.
 
 ## 16.0.0 - 2023-03-24
 
