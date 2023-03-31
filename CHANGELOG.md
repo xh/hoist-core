@@ -2,11 +2,17 @@
 
 ## 17.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
 
+* Added new `io.xh.hoist.data.filter` package, with basic implementations of data-filtering classes
+  and utils mirroring their TypeScript equivalents within Hoist React.
+    * Note these new classes are currently incubating, do not yet implement all features of their
+      client-side equivalents, and may be subject to near-term API changes.
 
 ## 16.0.1 - 2023-03-29
 
 ### 🐞 Bugfixes
+
 * Fixed a regression with 404 errors being incorrectly handled and not serialized as JSON.
 
 ## 16.0.0 - 2023-03-24
