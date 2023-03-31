@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist
@@ -110,7 +110,7 @@ abstract class RestController extends BaseController {
         renderJSON(success:successCount, fail:failCount)
     }
 
-    
+
     //--------------------------------
     // Template Methods for Override
     //--------------------------------
@@ -165,5 +165,5 @@ abstract class RestController extends BaseController {
     protected boolean getTrackChangesVal() {
         return this.class.trackChanges
     }
-    
+
 }

@@ -663,7 +663,7 @@ As of this release, Hoist is [now licensed](LICENSE.md) under the popular and pe
 We are making this change to align Hoist's licensing with our ongoing commitment to openness,
 transparency and ease-of-use, and to clarify and emphasize the suitability of Hoist for use within a
 wide variety of enterprise software projects. For any questions regarding this change, please
-[contact us](https://xh.io/contact/).
+[contact us](https://xh.io/).
 
 ### 🎁 New Features
 
@@ -1370,8 +1370,8 @@ exposing them to the application as a map.
 
 ------------------------------------------
 
-Copyright © 2022 Extremely Heavy Industries Inc. - all rights reserved
+Copyright © 2023 Extremely Heavy Industries Inc. - all rights reserved
 
 ------------------------------------------
 
-📫☎️🌎 info@xh.io | https://xh.io/contact
+📫☎️🌎 info@xh.io | https://xh.io

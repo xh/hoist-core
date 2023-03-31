@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 package io.xh.hoist.monitor
 
@@ -22,7 +22,7 @@ class MonitoringEmailService extends BaseService {
     void init() {
         subscribe('xhMonitorStatusReport', this.&emailReport)
     }
-    
+
     //------------------------
     // Implementation
     //------------------------
@@ -50,5 +50,5 @@ class MonitoringEmailService extends BaseService {
             "+ $it.name | ${it.message ? it.message + ' | ' : ''}Minutes in [${it.status}]: ${it.minsInStatus}"
         }.join('<br>')
     }
-    
+
 }
