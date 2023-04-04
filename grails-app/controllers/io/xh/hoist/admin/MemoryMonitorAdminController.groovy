@@ -29,4 +29,9 @@ class MemoryMonitorAdminController extends BaseController {
         renderJSON(memoryMonitoringService.requestGc())
     }
 
+    @Access(['HOIST_ADMIN'])
+    def dumpHeap() {
+        memoryMonitoringService.dumpHeap()
+        renderJSON(success: true)
+    }
 }
