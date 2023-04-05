@@ -30,8 +30,8 @@ class MemoryMonitorAdminController extends BaseController {
     }
 
     @Access(['HOIST_ADMIN'])
-    def dumpHeap() {
-        memoryMonitoringService.dumpHeap()
+    def dumpHeap(String filename) {
+        memoryMonitoringService.dumpHeap(filename)
         renderJSON(success: true)
     }
 }

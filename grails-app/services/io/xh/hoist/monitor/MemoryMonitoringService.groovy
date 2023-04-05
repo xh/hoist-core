@@ -50,8 +50,10 @@ class MemoryMonitoringService extends BaseService {
     /**
      * Dump the heap to a file for analysis.
      */
-    void dumpHeap() {
-        def filename = "heapdump_${currentTimeMillis()}.hprof"
+    void dumpHeap(String filename) {
+        if (!filename.endsWith('.hprof')) {
+            filename += '.hprof'
+        }
         withInfo('Dumping Heap') {
             HotSpotDiagnosticMXBean mxBean = ManagementFactory.getPlatformMXBean(HotSpotDiagnosticMXBean.class)
             mxBean.dumpHeap(filename, true)
@@ -121,7 +123,7 @@ class MemoryMonitoringService extends BaseService {
             freeHeapMb: roundTo2DP(free / mb),
             usedPctTotal: roundTo2DP((used * 100) / total),
             usedPctMax: roundTo2DP((used * 100) / max),
-            gc: getGCStats()
+            *: getGCStats()
         ]
     }
 
