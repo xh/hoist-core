@@ -63,6 +63,17 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Configures built-in Activity Tracking via TrackService.'
             ],
+            xhMemoryMonitoringConfig: [
+                valueType: 'json',
+                defaultValue: [
+                    enabled: true,
+                    snapshotInterval: 60,
+                    heapDumpDir: './'
+                ],
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'Configures built-in Memory Monitoring.'
+            ],
             xhAlertBannerConfig: [
                 valueType: 'json',
                 defaultValue: [enabled: true, interval: 30],
@@ -188,11 +199,16 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Configures automatic cleanup and archiving of log files. Files older than "archiveAfterDays" will be moved into zipped bundles within the specified "archiveFolder".'
             ],
-            xhMemoryMonitorIntervalSecs: [
-                valueType: 'int',
-                defaultValue: 60,
+            xhMemoryMonitoringConfig: [
+                valueType: 'json',
+                defaultValue: [
+                    enabled: true,
+                    snapshotInterval: 60,
+                    heapDumpDir: './'
+                ],
+                clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Interval in seconds on which the Hoist MemoryMonitoringService should sample current JVM Heap usage.'
+                note: 'Configures built-in Memory Monitoring.'
             ],
             xhMonitorConfig: [
                 valueType: 'json',

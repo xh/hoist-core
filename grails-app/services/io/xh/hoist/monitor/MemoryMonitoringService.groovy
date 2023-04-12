@@ -7,15 +7,20 @@
 
 package io.xh.hoist.monitor
 
+import com.sun.management.HotSpotDiagnosticMXBean
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Timer
 
+import java.lang.management.GarbageCollectorMXBean
+import java.lang.management.ManagementFactory
 import java.util.concurrent.ConcurrentHashMap
 
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.HOURS
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
+import static io.xh.hoist.util.Utils.startupTime
 import static java.lang.Runtime.getRuntime
+import static java.lang.System.currentTimeMillis
 
 /**
  * Service to sample and return simple statistics on heap (memory) usage from the JVM runtime.
@@ -27,10 +32,11 @@ class MemoryMonitoringService extends BaseService {
     private Timer _snapshotTimer
     private Date _lastInfoLogged
 
+    def configService
+
     void init() {
         _snapshotTimer = createTimer(
-            interval: 'xhMemoryMonitorIntervalSecs',
-            intervalUnits: SECONDS,
+            interval: {config.enabled ? config.snapshotInterval * SECONDS: -1},
             runFn: this.&takeSnapshot
         )
     }
@@ -43,21 +49,44 @@ class MemoryMonitoringService extends BaseService {
     }
 
     /**
+     * Dump the heap to a file for analysis.
+     */
+    void dumpHeap(String filename) {
+        String heapDumpDir = config.heapDumpDir
+        if (!heapDumpDir) {
+            throw new RuntimeException(
+                "Unable to dump heap. Please specify value for 'xhMemoryMonitor.heapDumpDir'"
+            )
+        }
+        if (!heapDumpDir.endsWith(File.separator)) {
+            heapDumpDir += File.separator
+        }
+        filename = heapDumpDir + filename
+        if (!filename.endsWith('.hprof')) {
+            filename += '.hprof'
+        }
+        withInfo(['Dumping Heap', [filename: filename]]) {
+            HotSpotDiagnosticMXBean mxBean = ManagementFactory.getPlatformMXBean(HotSpotDiagnosticMXBean.class)
+            mxBean.dumpHeap(filename, true)
+        }
+    }
+
+    /**
      * Take a snapshot of JVM memory usage, store in this service's in-memory history, and return.
      */
     Map takeSnapshot() {
         def newSnap = getStats()
 
-        _snapshots[System.currentTimeMillis()] = newSnap
+        _snapshots[newSnap.timestamp] = newSnap
 
         // Don't allow snapshot history to grow endlessly - cap @ 1440 samples, i.e. 24 hours of
         // history if left at default config interval of one snap/minute.
         if (_snapshots.size() > 1440) {
-            def oldest = _snapshots.keys().toList().min()
-            _snapshots.remove(oldest)
+            def oldest = _snapshots.min {it.key}
+            _snapshots.remove(oldest.value)
         }
 
-        if (newSnap.usedPctTotal > 90) {
+        if (newSnap.usedPctMax > 90) {
             logWarn(newSnap)
             logWarn("MEMORY USAGE ABOVE 90%")
         } else if (intervalElapsed(1 * HOURS, _lastInfoLogged)) {
@@ -74,16 +103,13 @@ class MemoryMonitoringService extends BaseService {
      * Request an immediate garbage collection, with before and after usage snapshots.
      */
     Map requestGc() {
-        def before = takeSnapshot(),
-            start = System.currentTimeMillis()
-
+        def before = takeSnapshot()
         System.gc()
-
         def after = takeSnapshot()
         return [
             before: before,
             after: after,
-            elapsedMs: System.currentTimeMillis() - start
+            elapsedMs: after.timestamp - before.timestamp
         ]
     }
 
@@ -93,20 +119,60 @@ class MemoryMonitoringService extends BaseService {
     //------------------------
     private Map getStats() {
         def mb = 1024 * 1024,
+            timestamp = currentTimeMillis(),
+            gcStats = getGCStats(timestamp),
             total = runtime.totalMemory(),
             free = runtime.freeMemory(),
-            used = total - free,
             max = runtime.maxMemory(),
-            round = {it -> Math.round(it * 100) / 100}
+            used = total - free
 
         return [
-            totalHeapMb: round(total / mb),
-            maxHeapMb: round(max / mb),
-            usedHeapMb: round(used / mb),
-            freeHeapMb: round(free / mb),
-            usedPctTotal: round((used * 100) / total),
-            totalPctMax: round((total * 100) / max)
+            timestamp: timestamp,
+            totalHeapMb: roundTo2DP(total / mb),
+            maxHeapMb: roundTo2DP(max / mb),
+            usedHeapMb: roundTo2DP(used / mb),
+            freeHeapMb: roundTo2DP(free / mb),
+            usedPctTotal: roundTo2DP((used * 100) / total),
+            usedPctMax: roundTo2DP((used * 100) / max),
+            *:gcStats
         ]
+    }
+
+    private Map getGCStats(Long timestamp) {
+        long totalCollectionTime = 0,
+            totalCollectionCount = 0
+        for (GarbageCollectorMXBean bean : ManagementFactory.getGarbageCollectorMXBeans()) {
+            totalCollectionTime += bean.collectionTime
+            totalCollectionCount += bean.collectionCount
+        }
+
+        // Convert to delta's from last snapshot, if there is one.
+        def last = _snapshots.max {it.key}?.value
+
+        long collectionCount = totalCollectionCount - (last ? last.totalCollectionCount : 0),
+            collectionTime = totalCollectionTime - (last ? last.totalCollectionTime : 0),
+            elapsedTime = timestamp - (last ? last.timestamp : startupTime.toInstant().toEpochMilli())
+
+        def avgCollectionTime = collectionCount ? Math.round(collectionTime/collectionCount) : 0
+
+        def pctCollectionTime = elapsedTime ? roundTo2DP((collectionTime*100)/elapsedTime) : null
+
+        return [
+            totalCollectionTime: totalCollectionTime,
+            totalCollectionCount: totalCollectionCount,
+            collectionTime: collectionTime,
+            collectionCount: collectionCount,
+            avgCollectionTime: avgCollectionTime,
+            pctCollectionTime: pctCollectionTime
+        ]
+    }
+
+    private Map getConfig() {
+        return configService.getMap('xhMemoryMonitoringConfig')
+    }
+
+    private double roundTo2DP(v) {
+        return Math.round(v * 100) / 100
     }
 
     void clearCaches() {

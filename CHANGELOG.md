@@ -1,8 +1,10 @@
 # Changelog
 
 ## 17.0-SNAPSHOT - unreleased
-
-
+* Enhance MemoryMonitoringService.
+    - Produce and use more appropriate usage metric (used/max)
+    - Produce GC statistics
+    - Support for taking a heap dump
 
 ## 16.0.1 - 2023-03-29
 
