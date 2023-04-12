@@ -52,11 +52,14 @@ class MemoryMonitoringService extends BaseService {
      * Dump the heap to a file for analysis.
      */
     void dumpHeap(String filename) {
-        def heapDumpDir = config.heapDumpDir
-        if (heapDumpDir == null) {
+        String heapDumpDir = config.heapDumpDir
+        if (!heapDumpDir) {
             throw new RuntimeException(
                 "Unable to dump heap. Please specify value for 'xhMemoryMonitor.heapDumpDir'"
             )
+        }
+        if (!heapDumpDir.endsWith(File.separator)) {
+            heapDumpDir += File.separator
         }
         filename = heapDumpDir + filename
         if (!filename.endsWith('.hprof')) {
@@ -114,7 +117,7 @@ class MemoryMonitoringService extends BaseService {
     //------------------------
     // Implementation
     //------------------------
-    private Map getStats(Map lastStats) {
+    private Map getStats() {
         def mb = 1024 * 1024,
             timestamp = currentTimeMillis(),
             gcStats = getGCStats(timestamp),
