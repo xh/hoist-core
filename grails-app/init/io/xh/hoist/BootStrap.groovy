@@ -63,17 +63,6 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Configures built-in Activity Tracking via TrackService.'
             ],
-            xhMemoryMonitoringConfig: [
-                valueType: 'json',
-                defaultValue: [
-                    enabled: true,
-                    snapshotInterval: 60,
-                    heapDumpDir: './'
-                ],
-                clientVisible: true,
-                groupName: 'xh.io',
-                note: 'Configures built-in Memory Monitoring.'
-            ],
             xhAlertBannerConfig: [
                 valueType: 'json',
                 defaultValue: [enabled: true, interval: 30],
@@ -204,7 +193,7 @@ class BootStrap {
                 defaultValue: [
                     enabled: true,
                     snapshotInterval: 60,
-                    heapDumpDir: './'
+                    heapDumpDir: null
                 ],
                 clientVisible: true,
                 groupName: 'xh.io',
