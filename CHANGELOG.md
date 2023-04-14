@@ -1,6 +1,6 @@
 # Changelog
 
-## 16.1.1 - 2023-04-14
+## 16.1.0 - 2023-04-14
 * Enhance MemoryMonitoringService.
     - Produce and use more appropriate usage metric (used/max)
     - Produce GC statistics
