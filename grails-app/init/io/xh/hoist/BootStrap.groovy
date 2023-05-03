@@ -188,11 +188,16 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Configures automatic cleanup and archiving of log files. Files older than "archiveAfterDays" will be moved into zipped bundles within the specified "archiveFolder".'
             ],
-            xhMemoryMonitorIntervalSecs: [
-                valueType: 'int',
-                defaultValue: 60,
+            xhMemoryMonitoringConfig: [
+                valueType: 'json',
+                defaultValue: [
+                    enabled: true,
+                    snapshotInterval: 60,
+                    heapDumpDir: null
+                ],
+                clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Interval in seconds on which the Hoist MemoryMonitoringService should sample current JVM Heap usage.'
+                note: 'Configures built-in Memory Monitoring.'
             ],
             xhMonitorConfig: [
                 valueType: 'json',
