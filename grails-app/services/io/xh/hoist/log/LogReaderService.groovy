@@ -14,6 +14,7 @@ import io.xh.hoist.configuration.LogbackConfig
 import io.xh.hoist.exception.RoutineRuntimeException
 import org.apache.commons.io.input.ReversedLinesFileReader
 import static java.lang.System.currentTimeMillis
+import java.util.regex.Pattern
 
 @CompileStatic
 class LogReaderService extends BaseService {
@@ -28,7 +29,7 @@ class LogReaderService extends BaseService {
      * @param pattern - (optional) only lines matching pattern will be returned
      * @return - List of elements of the form [linenumber, text] for the requested lines
      */
-    List readFile(String filename, Integer startLine, Integer maxLines, String pattern) {
+    List readFile(String filename, Integer startLine, Integer maxLines, String pattern, Boolean caseSensitive) {
         if (!configService.getBool('xhEnableLogViewer')) {
             throw new RuntimeException("Log Viewer disabled. See 'xhEnableLogViewer' config.")
         }
@@ -38,9 +39,10 @@ class LogReaderService extends BaseService {
             _filename: filename,
             startLine: startLine,
             maxLines: maxLines,
-            pattern: pattern
+            pattern: pattern,
+            caseSensitive: caseSensitive
         ]) {
-            doRead(filename, startLine, maxLines, pattern)
+            doRead(filename, startLine, maxLines, pattern, caseSensitive)
         }
     }
 
@@ -57,8 +59,10 @@ class LogReaderService extends BaseService {
     //------------------------
     // Implementation
     //------------------------
-    private List doRead(String filename, Integer startLine, Integer maxLines, String pattern) {
+    private List doRead(String filename, Integer startLine, Integer maxLines, String pattern, Boolean caseSensitive) {
         maxLines = maxLines ?: 10000
+
+        withDebug({ caseSensitive: 'in doread, caseSensitive: '+caseSensitive }){}
 
         def tail = !startLine || startLine <= 0,
             ret = new ArrayList(maxLines),
@@ -68,6 +72,9 @@ class LogReaderService extends BaseService {
 
         long maxEndTime = currentTimeMillis() + configService.getLong('xhLogSearchTimeoutMs', 5000)
 
+        if (!caseSensitive)
+            pattern = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE)
+
         Closeable closeable
         try {
             if (tail) {
@@ -76,7 +83,7 @@ class LogReaderService extends BaseService {
                 long lineNumber = getFileLength(file, maxEndTime)
                 for (String line = reader.readLine(); line != null && ret.size() < maxLines; line = reader.readLine()) {
                     throwOnTimeout(maxEndTime)
-                    if (!pattern || line.toLowerCase() =~ pattern.toLowerCase()) {
+                    if (!pattern || line =~ pattern) {
                         ret << [lineNumber, line]
                     }
                     lineNumber--
