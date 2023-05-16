@@ -62,8 +62,6 @@ class LogReaderService extends BaseService {
     private List doRead(String filename, Integer startLine, Integer maxLines, String pattern, Boolean caseSensitive) {
         maxLines = maxLines ?: 10000
 
-        withDebug({ caseSensitive: 'in doread, caseSensitive: '+caseSensitive }){}
-
         def tail = !startLine || startLine <= 0,
             ret = new ArrayList(maxLines),
             file = new File(LogbackConfig.logRootPath, filename)
@@ -72,6 +70,7 @@ class LogReaderService extends BaseService {
 
         long maxEndTime = currentTimeMillis() + configService.getLong('xhLogSearchTimeoutMs', 5000)
 
+        pattern = Pattern.compile(pattern);
         if (!caseSensitive)
             pattern = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE)
 
@@ -83,7 +82,7 @@ class LogReaderService extends BaseService {
                 long lineNumber = getFileLength(file, maxEndTime)
                 for (String line = reader.readLine(); line != null && ret.size() < maxLines; line = reader.readLine()) {
                     throwOnTimeout(maxEndTime)
-                    if (!pattern || line =~ pattern) {
+                    if (!pattern || (line =~ pattern).find()) {
                         ret << [lineNumber, line]
                     }
                     lineNumber--
