@@ -133,4 +133,3 @@ class LogReaderService extends BaseService {
         }
     }
 }
-
