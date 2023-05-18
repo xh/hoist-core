@@ -36,11 +36,11 @@ class LogViewerAdminController extends BaseController {
         renderJSON(success:true, files:ret)
     }
 
-    def getFile(String filename, Integer startLine, Integer maxLines, String pattern) {
+    def getFile(String filename, Integer startLine, Integer maxLines, String pattern, Boolean caseSensitive) {
         // Catch any exceptions and render clean failure - the admin client auto-polls for log file
         // updates, and we don't want to spam the logs with a repeated stacktrace.
         try {
-            def content = logReaderService.readFile(filename, startLine, maxLines, pattern)
+            def content = logReaderService.readFile(filename, startLine, maxLines, pattern, caseSensitive)
             renderJSON(success: true, filename: filename, content: content)
         } catch (Exception e) {
             renderJSON(success: false, filename: filename, content: [], exception: e.message)

@@ -1,5 +1,11 @@
 # Changelog
 
+## 16.2.0-SNAPSHOT - unreleased
+
+### 🎁 New Features
+
+* Add support for the `caseSensitive` flag in log filtering endpoint.
+
 ## 16.1.0 - 2023-04-14
 * Enhance MemoryMonitoringService.
     - Produce and use more appropriate usage metric (used/max)
