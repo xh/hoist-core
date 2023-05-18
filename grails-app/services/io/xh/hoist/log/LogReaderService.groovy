@@ -80,7 +80,7 @@ class LogReaderService extends BaseService {
                 long lineNumber = getFileLength(file, maxEndTime)
                 for (String line = reader.readLine(); line != null && ret.size() < maxLines; line = reader.readLine()) {
                     throwOnTimeout(maxEndTime)
-                    if (!pattern || (line =~ compiledPattern).find()) {
+                    if (!pattern || line =~ compiledPattern) {
                         ret << [lineNumber, line]
                     }
                     lineNumber--
