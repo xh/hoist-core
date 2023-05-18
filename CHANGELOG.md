@@ -4,8 +4,7 @@
 
 ### 🎁 New Features
 
-* Add and handle the `caseSensitive` argument by creating a CASE_INSENSITIVE `Pattern` when false in
-  `LogReaderService.doRead()`.
+* Add support for the `caseSensitive` flag in log filtering endpoint.
 
 ## 16.1.0 - 2023-04-14
 * Enhance MemoryMonitoringService.
