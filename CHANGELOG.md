@@ -5,6 +5,8 @@
 ### 🎁 New Features
 
 * Add support for the `caseSensitive` flag in log filtering endpoint.
+* Add support for environment-specific banners.  Useful for applications where
+`beta` and `production` environments share a database.
 
 ## 16.1.0 - 2023-04-14
 * Enhance MemoryMonitoringService.
