@@ -12,6 +12,7 @@ import io.xh.hoist.json.JSONParser
 
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static java.lang.System.currentTimeMillis
+import static io.xh.hoist.util.Utils.getAppEnvironment
 
 /**
  * Provide support for application alert banners.
@@ -25,8 +26,8 @@ class AlertBannerService extends BaseService {
     def configService,
         jsonBlobService
 
+    private final static String blobName = "xhAlertBanner_$appEnvironment";
     private final static String blobType = 'xhAlertBanner';
-    private final static String blobName = 'xhAlertBanner';
     private final static String blobOwner = 'xhAlertBannerService';
 
     private final emptyAlert = [active: false]
