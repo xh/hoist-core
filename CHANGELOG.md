@@ -4,9 +4,13 @@
 
 ### 🎁 New Features
 
-* Add support for the `caseSensitive` flag in log filtering endpoint.
+* Added support for the `caseSensitive` flag in log filtering endpoint.
+* Added new `DateTimeUtils.ensureServerTimeZoneIs()` utility method to validate that the server is
+  set to run in a given timezone. Applications requiring a specific timezone can call this method in
+  their `Bootstrap.groovy` file to ensure that the server is configured correctly.
 
 ## 16.1.0 - 2023-04-14
+
 * Enhance MemoryMonitoringService.
     - Produce and use more appropriate usage metric (used/max)
     - Produce GC statistics
@@ -15,6 +19,7 @@
 ## 16.0.1 - 2023-03-29
 
 ### 🐞 Bugfixes
+
 * Fixed a regression with 404 errors being incorrectly handled and not serialized as JSON.
 
 ## 16.0.0 - 2023-03-24
