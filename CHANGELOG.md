@@ -5,6 +5,10 @@
 ### 🎁 New Features
 
 * Add support for the `caseSensitive` flag in log filtering endpoint.
+* Add `h2Config` method to `RuntimeConfig` class to give apps the option of starting
+  up with an H2 in memory DB.  This is intended for projects in their earliest,
+  "just checked out, first run" stage, when a developer wants to get started before
+  having set up a MySQL or SQL server database.
 
 ## 16.1.0 - 2023-04-14
 * Enhance MemoryMonitoringService.
