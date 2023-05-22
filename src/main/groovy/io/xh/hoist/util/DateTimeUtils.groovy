@@ -59,7 +59,8 @@ class DateTimeUtils {
     /**
      * Validate that the JVM is running in an expected/required TimeZone - will throw an exception
      * if the server is not running in the requested zone (or if the requested zone is invalid).
-     * Use within an application's `Bootstrap.groovy` to ensure the server is configured correctly.
+     * Call from an application's `Bootstrap.groovy` when a particular timezone is required (e.g.
+     * to match the timezone of the app's database server).
      */
     static void ensureServerTimeZoneIs(String zoneId) {
         def reqZone = ZoneId.of(zoneId)
