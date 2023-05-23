@@ -5,10 +5,18 @@
 ### 🎁 New Features
 
 * Add support for the `caseSensitive` flag in log filtering endpoint.
+* Add `h2Config` method to `RuntimeConfig` class to give apps the option of starting
+  up with an H2 in memory DB.  This is intended for projects in their earliest,
+  "just checked out, first run" stage, when a developer wants to get started before
+  having set up a MySQL or SQL server database.
 * Add support for environment-specific banners.  Useful for applications where
-`beta` and `production` environments share a database.
+  `beta` and `production` environments share a database.
+* Added new `DateTimeUtils.ensureServerTimeZoneIs()` utility method to validate that the server is
+  set to run in a given timezone. Applications requiring a specific timezone can call this method in
+  their `Bootstrap.groovy` file to ensure that the server is configured correctly.
 
 ## 16.1.0 - 2023-04-14
+
 * Enhance MemoryMonitoringService.
     - Produce and use more appropriate usage metric (used/max)
     - Produce GC statistics
@@ -17,6 +25,7 @@
 ## 16.0.1 - 2023-03-29
 
 ### 🐞 Bugfixes
+
 * Fixed a regression with 404 errors being incorrectly handled and not serialized as JSON.
 
 ## 16.0.0 - 2023-03-24

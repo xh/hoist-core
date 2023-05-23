@@ -7,6 +7,7 @@
 package io.xh.hoist
 
 import grails.util.Holders
+import io.xh.hoist.util.DateTimeUtils
 import io.xh.hoist.util.Utils
 
 import static java.lang.Runtime.runtime
@@ -46,6 +47,7 @@ class BootStrap {
           Extremely Heavy - http://xh.io
             + ${runtime.availableProcessors()} available processors
             + ${String.format('%,d', (runtime.maxMemory() / 1000000).toLong())}mb available memory
+            + ${DateTimeUtils.serverZoneId} is the default timezone
 \n
         """)
     }
