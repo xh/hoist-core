@@ -56,6 +56,19 @@ class DateTimeUtils {
         return serverTimeZone.toZoneId()
     }
 
+    /**
+     * Validate that the JVM is running in an expected/required TimeZone - will throw an exception
+     * if the server is not running in the requested zone (or if the requested zone is invalid).
+     * Call from an application's `Bootstrap.groovy` when a particular timezone is required (e.g.
+     * to match the timezone of the app's database server).
+     */
+    static void ensureServerTimeZoneIs(String zoneId) {
+        def reqZone = ZoneId.of(zoneId)
+        if (serverZoneId != reqZone) {
+            throw new IllegalStateException("Server TimeZone is ${serverZoneId}, not ${reqZone} - please set JVM arg '-Duser.timezone=${reqZone}'")
+        }
+    }
+
     static LocalDate appDay(Date forDate = null) {
         forDate ? forDate.toInstant().atZone(appZoneId).toLocalDate() : LocalDate.now(appZoneId)
     }
