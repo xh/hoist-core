@@ -4,7 +4,11 @@
 
 ### 🎁 New Features
 
-* Added support for the `caseSensitive` flag in log filtering endpoint.
+* Add support for the `caseSensitive` flag in log filtering endpoint.
+* Add `h2Config` method to `RuntimeConfig` class to give apps the option of starting
+  up with an H2 in memory DB.  This is intended for projects in their earliest,
+  "just checked out, first run" stage, when a developer wants to get started before
+  having set up a MySQL or SQL server database.
 * Added new `DateTimeUtils.ensureServerTimeZoneIs()` utility method to validate that the server is
   set to run in a given timezone. Applications requiring a specific timezone can call this method in
   their `Bootstrap.groovy` file to ensure that the server is configured correctly.
