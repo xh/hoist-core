@@ -8,7 +8,10 @@
 package io.xh.hoist.alertbanner
 
 import io.xh.hoist.BaseService
+import io.xh.hoist.config.ConfigService
 import io.xh.hoist.json.JSONParser
+import io.xh.hoist.jsonblob.JsonBlobService
+import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static java.lang.System.currentTimeMillis
@@ -17,16 +20,16 @@ import static io.xh.hoist.util.Utils.getAppEnvironment
 /**
  * Provide support for application alert banners.
  *
- * This class uses a single json blob for its underlying state.
- * The published alert state will be updated when updated by admin, and also
- * updated on a timer in order to catch banner expiry, and any changes to DB.
+ * This class uses a single {@link io.xh.hoist.jsonblob.JsonBlob} to persist its state.
+ * The published alert state is updated via the Hoist Admin console and is regularly refreshed
+ * on a timer to catch banner expiry.
  */
 class AlertBannerService extends BaseService {
 
-    def configService,
-        jsonBlobService
+    ConfigService configService
+    JsonBlobService jsonBlobService
 
-    private final static String blobName = "xhAlertBanner_$appEnvironment";
+    private final static String blobName = Utils.isProduction ? 'xhAlertBanner' : "xhAlertBanner_$appEnvironment";
     private final static String blobType = 'xhAlertBanner';
     private final static String blobOwner = 'xhAlertBannerService';
 
@@ -42,9 +45,6 @@ class AlertBannerService extends BaseService {
         )
     }
 
-    /**
-     * Main public entry point for clients.
-     */
     Map getAlertBanner() {
         cachedBanner
     }

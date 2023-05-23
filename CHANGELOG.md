@@ -4,12 +4,13 @@
 
 ### 🎁 New Features
 
-* Add support for the `caseSensitive` flag in log filtering endpoint.
-* Add `h2Config` method to `RuntimeConfig` class to give apps the option of starting up with an H2
+* Added support for the `caseSensitive` flag in log filtering endpoint.
+* Added `h2Config` method to `RuntimeConfig` class to give apps the option of starting up with an H2
   in-memory DB. This is intended for projects in their earliest, "just checked out, first run"
   stage, when a developer wants to get started before having set up an external database.
-* Add support for environment-specific banners. Useful for e.g. apps where `Beta` and `Production`
-  environments share a database.
+* Updated `AlertBannerService` to append the environment name when creating/updating the `JsonBlob`
+  used to persist banner state in a non-production environment. This better supports apps where
+  e.g. `Beta` and `Production` environments share a database, but should display distinct banners.
 * Added new `DateTimeUtils.ensureServerTimeZoneIs()` utility method to validate that the server is
   set to run in a given timezone. Applications requiring a specific timezone can call this method in
   their `Bootstrap.groovy` file to ensure that the server is configured correctly.
