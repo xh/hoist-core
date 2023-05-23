@@ -17,14 +17,26 @@ import static io.xh.hoist.util.Utils.withDelegate
  */
 class RuntimeConfig {
 
+    /**
+     * All apps should call this from runtime.groovy
+     * to setup necessary default configurations
+     * @param script
+     */
     static void defaultConfig(Script script) {
         withDelegate(script) {
             grails.serverURL = getInstanceConfig('serverURL')
         }
     }
 
-    // Used only in development
-    // when instanceConfig setting `useH2` is true
+    /**
+     * Call this from runtime.groovy
+     * to setup an in memory H2 DB instead of
+     * a MySQL or SQL Server DB.  This H2 DB option
+     * is intended only for early stages of development,
+     * before a production ready DB has been set up.
+     *
+     * @param script
+     */
     static void h2Config(Script script) {
         withDelegate(script) {
             dataSource {
