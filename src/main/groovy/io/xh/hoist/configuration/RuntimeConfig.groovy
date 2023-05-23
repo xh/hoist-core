@@ -20,7 +20,6 @@ class RuntimeConfig {
     /**
      * All apps should call this from runtime.groovy
      * to setup necessary default configurations
-     * @param script
      */
     static void defaultConfig(Script script) {
         withDelegate(script) {
@@ -34,8 +33,6 @@ class RuntimeConfig {
      * a MySQL or SQL Server DB.  This H2 DB option
      * is intended only for early stages of development,
      * before a production ready DB has been set up.
-     *
-     * @param script
      */
     static void h2Config(Script script) {
         withDelegate(script) {
