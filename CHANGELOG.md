@@ -15,7 +15,7 @@
   a default value of "UTC". This config is now read at startup to validate that the server is
   running in the expected zone, and will throw a fatal exception if it is invalid or does not match
   the zone reported by Java.
-    * ⚠ **Note** - if your deployment environment has been customized to run in a zone other that
+    * ⚠ **Note** - if your deployment environment has been customized to run in a zone other than
       UTC, please add the new config entry with the desired zone prior to upgrading to this release
       of Hoist Core.
 
