@@ -13,6 +13,10 @@
   set to run in a given timezone. Applications requiring a specific timezone can call this method in
   their `Bootstrap.groovy` file to ensure that the server is configured correctly.
 
+### 🐞 Bugfixes
+
+* Fixed a regression preventing the culling of snapshots in the memory monitoring service.
+
 ## 16.1.0 - 2023-04-14
 
 * Enhance MemoryMonitoringService.
