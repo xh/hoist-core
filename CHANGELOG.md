@@ -11,9 +11,13 @@
 * Updated `AlertBannerService` to append the environment name when creating/updating the `JsonBlob`
   used to persist banner state in a non-production environment. This better supports apps where
   e.g. `Beta` and `Production` environments share a database, but should display distinct banners.
-* Added new `DateTimeUtils.ensureServerTimeZoneIs()` utility method to validate that the server is
-  set to run in a given timezone. Applications requiring a specific timezone can call this method in
-  their `Bootstrap.groovy` file to ensure that the server is configured correctly.
+* Added new routine in `Bootstrap` to auto-create a new `xhExpectedServerTimeZone` app config with
+  a default value of "UTC". This config is now read at startup to validate that the server is
+  running in the expected zone, and will throw a fatal exception if it is invalid or does not match
+  the zone reported by Java.
+    * ⚠ **Note** - if your deployment environment has been customized to run in a zone other that
+      UTC, please add the new config entry with the desired zone prior to upgrading to this release
+      of Hoist Core.
 
 ## 16.1.0 - 2023-04-14
 

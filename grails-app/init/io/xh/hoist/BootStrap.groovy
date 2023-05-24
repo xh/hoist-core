@@ -7,9 +7,11 @@
 package io.xh.hoist
 
 import grails.util.Holders
-import io.xh.hoist.util.DateTimeUtils
 import io.xh.hoist.util.Utils
 
+import java.time.ZoneId
+
+import static io.xh.hoist.util.DateTimeUtils.serverZoneId
 import static java.lang.Runtime.runtime
 
 class BootStrap {
@@ -20,6 +22,8 @@ class BootStrap {
         logStartupMsg()
         ensureRequiredConfigsCreated()
         ensureRequiredPrefsCreated()
+
+        ensureExpectedServerTimeZone()
 
         def services = Utils.xhServices.findAll {it.class.canonicalName.startsWith('io.xh.hoist')}
         BaseService.parallelInit([logLevelService])
@@ -44,10 +48,10 @@ class BootStrap {
   \\/_/\\/_/   \\/_____/   \\/_/   \\/_____/     \\/_/
 \n
           Hoist v${hoist.version} - ${Utils.getAppEnvironment()}
-          Extremely Heavy - http://xh.io
+          Extremely Heavy - https://xh.io
             + ${runtime.availableProcessors()} available processors
             + ${String.format('%,d', (runtime.maxMemory() / 1000000).toLong())}mb available memory
-            + ${DateTimeUtils.serverZoneId} is the default timezone
+            + JVM TimeZone is ${serverZoneId}
 \n
         """)
     }
@@ -81,7 +85,7 @@ class BootStrap {
             ],
             xhAppTimeZone: [
                 valueType: 'string',
-                defaultValue: 'GMT',
+                defaultValue: 'UTC',
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Official TimeZone for this application - e.g. the zone of the head office. Used to format/parse business related dates that need to be considered and displayed consistently at all locations. Set to a valid Java TimeZone ID.'
@@ -163,6 +167,12 @@ class BootStrap {
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'True to enable the monitor tab included with the Hoist Admin console and the associated server-side jobs'
+            ],
+            xhExpectedServerTimeZone: [
+                valueType: 'string',
+                defaultValue: 'UTC',
+                groupName: 'xh.io',
+                note: 'Expected time zone of the server-side JVM - set to a valid Java TimeZone ID. NOTE: this config is checked at startup to ensure the server is running in the expected zone and will throw a fatal exception if it is invalid or does not match the zone reported by Java.\n\nChanging this config has no effect on a running server, and will not itself change the default Zone of the JVM.\n\nIf you REALLY do not want this behavior, a value of "*" will suppress this check.'
             ],
             xhExportConfig: [
                 valueType: 'json',
@@ -272,6 +282,28 @@ class BootStrap {
                 note: 'Visual theme for the client application - "light", "dark", or "system".'
             ]
         ])
+    }
+
+    /**
+     * Validates that the JVM TimeZone matches the value specified by the `xhExpectedServerTimeZone`
+     * application config. This is intended to ensure that the JVM is running in the expected Zone,
+     * typically set to the same Zone as the app's primary database. Note this config is auto-
+     * created above with a value of UTC.
+     */
+    private void ensureExpectedServerTimeZone() {
+        def confZone = Utils.configService.getString('xhExpectedServerTimeZone')
+        if (confZone == '*') return
+
+        ZoneId confZoneId
+        try {
+            confZoneId = ZoneId.of(confZone)
+        } catch (ignored) {
+            throw new IllegalStateException("Invalid xhExpectedServerTimeZone config: '$confZone' not a valid ZoneId.")
+        }
+
+        if (confZoneId != serverZoneId) {
+            throw new IllegalStateException("JVM TimeZone of '${serverZoneId}' does not match value of '${confZoneId}' required by xhExpectedServerTimeZone config. Set JVM arg '-Duser.timezone=${confZoneId}' to change the JVM Zone, or update the config value in the database.")
+        }
     }
 
 }

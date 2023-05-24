@@ -11,7 +11,6 @@ import grails.plugins.GrailsPlugin
 import grails.util.GrailsUtil
 import grails.util.Holders
 import io.xh.hoist.BaseService
-import io.xh.hoist.util.DateTimeUtils
 import io.xh.hoist.util.Utils
 
 /**
@@ -89,12 +88,14 @@ class EnvironmentService extends BaseService {
     // Implementation
     //---------------------
     private TimeZone calcAppTimeZone() {
-        def id = configService.getString('xhAppTimeZone', 'GMT'),
-            availableIDs = TimeZone.availableIDs
-        if (!availableIDs.contains(id)) {
-            log.error("xhAppTimeZone '$id' not recognized - will fall back to GMT.")
+        def defaultZone = 'UTC',
+            configZoneId = configService.getString('xhAppTimeZone', defaultZone)
+
+        if (!TimeZone.availableIDs.contains(configZoneId)) {
+            log.error("Invalid xhAppTimeZone config: '$configZoneId' not a valid ZoneId - will fall back to $defaultZone.")
         }
-        return TimeZone.getTimeZone(id)
+
+        return TimeZone.getTimeZone(configZoneId)
     }
 
     private Collection<GrailsPlugin> getHoistGrailsPlugins() {
