@@ -79,11 +79,11 @@ class MemoryMonitoringService extends BaseService {
 
         _snapshots[newSnap.timestamp] = newSnap
 
-        // Don't allow snapshot history to grow endlessly - cap @ 1440 samples, i.e. 24 hours of
-        // history if left at default config interval of one snap/minute.
-        if (_snapshots.size() > 1440) {
+        // Don't allow snapshot history to grow endlessly -
+        // default cap @ 1440 samples, i.e. 24 hours * 60 snaps/hour
+        if (_snapshots.size() > (config.maxSnapshots ?: 1440)) {
             def oldest = _snapshots.min {it.key}
-            _snapshots.remove(oldest.value)
+            _snapshots.remove(oldest.key)
         }
 
         if (newSnap.usedPctMax > 90) {

@@ -19,6 +19,10 @@
       UTC, please add the new config entry with the desired zone prior to upgrading to this release
       of Hoist Core.
 
+### 🐞 Bugfixes
+
+* Fixed a regression preventing the culling of snapshots in the memory monitoring service.
+
 ## 16.1.0 - 2023-04-14
 
 * Enhance MemoryMonitoringService.

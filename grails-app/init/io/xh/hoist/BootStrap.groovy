@@ -205,6 +205,7 @@ class BootStrap {
                 defaultValue: [
                     enabled: true,
                     snapshotInterval: 60,
+                    maxSnapshots: 1440,
                     heapDumpDir: null
                 ],
                 clientVisible: true,
