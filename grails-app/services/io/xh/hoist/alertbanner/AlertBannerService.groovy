@@ -70,6 +70,21 @@ class AlertBannerService extends BaseService {
         refreshCachedBanner()
     }
 
+//    Map getAlertPreset() {
+//
+//    }
+//
+    void setAlertPreset(Map value) {
+        def svc = jsonBlobService,
+            blob = svc.list(blobType, blobOwner).find { it.name == blobName }
+        if (blob) {
+            svc.update(blob.token, [value: value].blobOwner)
+        } else {
+            svc.create([type: blobType, name: blobName, value: value], blobOwner)
+        }
+        refreshCachedBanner()
+    }
+
     //----------------------------
     // Implementation
     //-----------------------------
