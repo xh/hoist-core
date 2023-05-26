@@ -170,7 +170,7 @@ class BootStrap {
             ],
             xhExpectedServerTimeZone: [
                 valueType: 'string',
-                defaultValue: 'UTC',
+                defaultValue: '*',
                 groupName: 'xh.io',
                 note: 'Expected time zone of the server-side JVM - set to a valid Java TimeZone ID. NOTE: this config is checked at startup to ensure the server is running in the expected zone and will throw a fatal exception if it is invalid or does not match the zone reported by Java.\n\nChanging this config has no effect on a running server, and will not itself change the default Zone of the JVM.\n\nIf you REALLY do not want this behavior, a value of "*" will suppress this check.'
             ],
@@ -288,12 +288,18 @@ class BootStrap {
     /**
      * Validates that the JVM TimeZone matches the value specified by the `xhExpectedServerTimeZone`
      * application config. This is intended to ensure that the JVM is running in the expected Zone,
-     * typically set to the same Zone as the app's primary database. Note this config is auto-
-     * created above with a value of UTC.
+     * typically set to the same Zone as the app's primary database.
      */
     private void ensureExpectedServerTimeZone() {
         def confZone = Utils.configService.getString('xhExpectedServerTimeZone')
-        if (confZone == '*') return
+        if (confZone == '*') {
+            log.warn(
+                "WARNING - a timezone has not yet been specified for this application's server.  " +
+                "This can lead to bugs and data corruption in development and production.  " +
+                "Please specify your expected timezone in the `xhExpectedServerTimeZone` config."
+            )
+            return
+        }
 
         ZoneId confZoneId
         try {
