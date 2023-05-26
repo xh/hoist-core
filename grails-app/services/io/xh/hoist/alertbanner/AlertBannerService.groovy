@@ -33,8 +33,14 @@ class AlertBannerService extends BaseService {
     private final static String blobType = 'xhAlertBanner';
     private final static String blobOwner = 'xhAlertBannerService';
 
+    private final static String presetsBlobName = Utils.isProduction ? 'xhAlertBannerPresets' : "xhAlterBannerPresets_$appEnvironment";
+    private final static String presetsBlobType = 'xhAlertBannerPresets';
+
     private final emptyAlert = [active: false]
     private Map cachedBanner = emptyAlert
+
+    private final emptyPresets = [active: false]
+    private Map cachedPresets = emptyPresets
 
     void init() {
         super.init()
@@ -60,6 +66,7 @@ class AlertBannerService extends BaseService {
     }
 
     void setAlertSpec(Map value) {
+        withDebug('in sAS'){}
         def svc = jsonBlobService,
             blob = svc.list(blobType, blobOwner).find { it.name == blobName }
         if (blob) {
@@ -70,20 +77,24 @@ class AlertBannerService extends BaseService {
         refreshCachedBanner()
     }
 
-//    Map getAlertPreset() {
-//
-//    }
-//
-    void setAlertPreset(Map value) {
+    List getAlertPresets() {
         def svc = jsonBlobService,
-            blob = svc.list(blobType, blobOwner).find { it.name == blobName }
-        if (blob) {
-            svc.update(blob.token, [value: value].blobOwner)
-        } else {
-            svc.create([type: blobType, name: blobName, value: value], blobOwner)
-        }
-        refreshCachedBanner()
+            presetsBlob = svc.list(presetsBlobType, blobOwner).find { it.name == presetsBlobName }
+
+        presetsBlob ? JSONParser.parseArray(presetsBlob.value) : []
     }
+
+    void setAlertPresets(Map value) {
+        def svc = jsonBlobService,
+            blob = svc.list(presetsBlobType, blobOwner).find { it.name == presetsBlobName }
+        if (blob) {
+            svc.update(blob.token, [value: value], blobOwner)
+        } else {
+            svc.create([type: presetsBlobType, name: presetsBlobName, value: value], blobOwner)
+        }
+//        refreshCachedBanner()
+    }
+
 
     //----------------------------
     // Implementation
