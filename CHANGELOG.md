@@ -1,6 +1,6 @@
 # Changelog
 
-## 16.2.0 - unreleased
+## 16.2.0 - 2023-05-26
 
 ### 🎁 New Features
 
