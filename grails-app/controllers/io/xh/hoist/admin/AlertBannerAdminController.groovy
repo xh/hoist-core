@@ -33,8 +33,9 @@ class AlertBannerAdminController extends BaseController {
     }
 
     @Access(['HOIST_ADMIN'])
-    def setAlertPresets(String value) {
-        alertBannerService.setAlertPresets(parseObject(value))
+    def setAlertPresets() {
+        alertBannerService.setAlertPresets(request.getJSON() as List)
         renderJSON(success: true)
+
     }
 }

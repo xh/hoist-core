@@ -33,8 +33,7 @@ class AlertBannerService extends BaseService {
     private final static String blobType = 'xhAlertBanner';
     private final static String blobOwner = 'xhAlertBannerService';
 
-    private final static String presetsBlobName = Utils.isProduction ? 'xhAlertBannerPresets' : "xhAlterBannerPresets_$appEnvironment";
-    private final static String presetsBlobType = 'xhAlertBannerPresets';
+    private final static String presetsBlobName = 'xhAlertBannerPresets';
 
     private final emptyAlert = [active: false]
     private Map cachedBanner = emptyAlert
@@ -79,20 +78,19 @@ class AlertBannerService extends BaseService {
 
     List getAlertPresets() {
         def svc = jsonBlobService,
-            presetsBlob = svc.list(presetsBlobType, blobOwner).find { it.name == presetsBlobName }
+            presetsBlob = svc.list(blobType, blobOwner).find { it.name == presetsBlobName }
 
         presetsBlob ? JSONParser.parseArray(presetsBlob.value) : []
     }
 
-    void setAlertPresets(Map value) {
+    void setAlertPresets(List presets) {
         def svc = jsonBlobService,
-            blob = svc.list(presetsBlobType, blobOwner).find { it.name == presetsBlobName }
+            blob = svc.list(blobType, blobOwner).find { it.name == presetsBlobName }
         if (blob) {
-            svc.update(blob.token, [value: value], blobOwner)
+            svc.update(blob.token, [value: presets], blobOwner)
         } else {
-            svc.create([type: presetsBlobType, name: presetsBlobName, value: value], blobOwner)
+            svc.create([type: blobType, name: presetsBlobName, value: presets], blobOwner)
         }
-//        refreshCachedBanner()
     }
 
 
