@@ -65,7 +65,6 @@ class AlertBannerService extends BaseService {
     }
 
     void setAlertSpec(Map value) {
-        withDebug('in sAS'){}
         def svc = jsonBlobService,
             blob = svc.list(blobType, blobOwner).find { it.name == blobName }
         if (blob) {
