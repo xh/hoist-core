@@ -28,8 +28,7 @@ class AlertBannerAdminController extends BaseController {
     @Access(['HOIST_ADMIN'])
     def setAlertSpec(String value) {
         alertBannerService.setAlertSpec(parseObject(value))
-//        renderJSON(success: true)
-        renderJSON(value)
+        renderJSON(success: true)
     }
 
     @Access(['HOIST_ADMIN'])
