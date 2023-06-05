@@ -2,6 +2,10 @@
 
 ## 16.3.0 - unreleased
 
+### 🎁 New Features
+
+* Added dedicated admin endpoint for Admin alert banner presets.
+
 ## 16.2.0 - 2023-05-26
 
 ### 🎁 New Features
@@ -545,7 +549,7 @@ for the application-level changes to core configuration files and dependencies.
 
 ### ⚙️ Technical
 
-* Minor enhancements to `JSONBlobService` API.
+* Minor enhancements to `JsonBlobService` API.
 
 ### 📚 Libraries
 
