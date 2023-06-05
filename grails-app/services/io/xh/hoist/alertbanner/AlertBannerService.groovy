@@ -38,9 +38,6 @@ class AlertBannerService extends BaseService {
     private final emptyAlert = [active: false]
     private Map cachedBanner = emptyAlert
 
-    private final emptyPresets = [active: false]
-    private Map cachedPresets = emptyPresets
-
     void init() {
         super.init()
         createTimer(
