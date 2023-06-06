@@ -12,6 +12,7 @@ import grails.async.web.WebPromises
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.xh.hoist.exception.ExceptionRenderer
+import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser
@@ -25,9 +26,37 @@ abstract class BaseController implements IdentitySupport, LogSupport {
     IdentityService identityService
     ExceptionRenderer exceptionRenderer
 
+    /**
+     * Render an object to JSON.
+     *
+     * Favor this method over the direct use of grails `render` method in order
+     * to utilize the customizable jackson-based serialization exposed by Hoist.
+     *
+     * @param o - object to be serialized.
+     */
     protected void renderJSON(Object o){
         response.setContentType('application/json; charset=UTF-8')
         render (JSONSerializer.serialize(o))
+    }
+
+    /**
+     * Parse JSON submitted in the body of the request.
+     *
+     * Favor this method over the direct use of grails' request.getJSON() in order
+     * to utilize the customizable jackson-based parsing provided by Hoist.
+     */
+    protected List parseJSONArray() {
+        JSONParser.parseArray(request.inputStream)
+    }
+
+    /**
+     * Parse JSON submitted in the body of the request.
+     *
+     * Favor this method over the direct use of grails' request.getJSON() in order
+     * to utilize the customizable jackson-based parsing provided by Hoist.
+     */
+    protected Map parseJSONObject() {
+        JSONParser.parseObject(request.inputStream)
     }
 
     protected Promise runAsync(Closure c) {
