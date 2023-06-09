@@ -22,7 +22,7 @@ abstract class RestController extends BaseController {
     static restTarget = null // Implementations set to value of GORM domain class they are editing.
 
     def create() {
-        def data = JSONParser.parseObject(request.inputStream).data
+        def data = parseJSONObject().data
         preprocessSubmit(data)
 
         def obj = restTargetVal.newInstance(data)
@@ -38,7 +38,7 @@ abstract class RestController extends BaseController {
     }
 
     def update() {
-        def data = JSONParser.parseObject(request.inputStream).data
+        def data = parseJSONObject().data
         preprocessSubmit(data)
 
         def obj = restTargetVal.get(data.id)
@@ -53,7 +53,7 @@ abstract class RestController extends BaseController {
     }
 
     def bulkUpdate() {
-        def body = JSONParser.parseObject(request.inputStream),
+        def body = parseJSONObject(),
             ids = body.ids,
             newParams = body.newParams,
             successCount = 0,
