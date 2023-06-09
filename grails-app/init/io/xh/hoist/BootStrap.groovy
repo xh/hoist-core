@@ -16,7 +16,9 @@ import static java.lang.Runtime.runtime
 
 class BootStrap {
 
-    def logLevelService
+    def logLevelService,
+        configService,
+        prefService
 
     def init = {servletContext ->
         logStartupMsg()
@@ -47,7 +49,7 @@ class BootStrap {
  \\ \\_\\ \\_\\  \\ \\_____\\  \\ \\_\\  \\/\\_____\\    \\ \\_\\
   \\/_/\\/_/   \\/_____/   \\/_/   \\/_____/     \\/_/
 \n
-          Hoist v${hoist.version} - ${Utils.getAppEnvironment()}
+          Hoist v${hoist.version} - ${Utils.appEnvironment}
           Extremely Heavy - https://xh.io
             + ${runtime.availableProcessors()} available processors
             + ${String.format('%,d', (runtime.maxMemory() / 1000000).toLong())}mb available memory
@@ -57,7 +59,7 @@ class BootStrap {
     }
 
     private void ensureRequiredConfigsCreated() {
-        Utils.configService.ensureRequiredConfigsCreated([
+        configService.ensureRequiredConfigsCreated([
             xhActivityTrackingConfig: [
                 valueType: 'json',
                 defaultValue: [
@@ -245,7 +247,7 @@ class BootStrap {
     }
 
     private void ensureRequiredPrefsCreated() {
-        Utils.prefService.ensureRequiredPrefsCreated([
+        prefService.ensureRequiredPrefsCreated([
             xhAutoRefreshEnabled: [
                 type: 'bool',
                 defaultValue: true,
@@ -291,7 +293,7 @@ class BootStrap {
      * typically set to the same Zone as the app's primary database.
      */
     private void ensureExpectedServerTimeZone() {
-        def confZone = Utils.configService.getString('xhExpectedServerTimeZone')
+        def confZone = configService.getString('xhExpectedServerTimeZone')
         if (confZone == '*') {
             log.warn(
                 "WARNING - a timezone has not yet been specified for this application's server.  " +
