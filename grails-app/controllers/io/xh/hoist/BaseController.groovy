@@ -1,3 +1,4 @@
+
 /*
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
@@ -45,8 +46,8 @@ abstract class BaseController implements IdentitySupport, LogSupport {
      * Favor this method over the direct use of grails' request.getJSON() in order
      * to utilize the customizable jackson-based parsing provided by Hoist.
      */
-    protected List parseJSONArray() {
-        JSONParser.parseArray(request.inputStream)
+    protected Map parseRequestJSON() {
+        JSONParser.parseObject(request.inputStream)
     }
 
     /**
@@ -55,8 +56,8 @@ abstract class BaseController implements IdentitySupport, LogSupport {
      * Favor this method over the direct use of grails' request.getJSON() in order
      * to utilize the customizable jackson-based parsing provided by Hoist.
      */
-    protected Map parseJSONObject() {
-        JSONParser.parseObject(request.inputStream)
+    protected List parseRequestJSONArray() {
+        JSONParser.parseArray(request.inputStream)
     }
 
     protected Promise runAsync(Closure c) {

@@ -20,7 +20,7 @@
 * Added new routine in `Bootstrap` to auto-create a new `xhExpectedServerTimeZone` app config.
   This config is now read at startup to validate that the server is running in the expected zone,
   and will throw a fatal exception if it is invalid or does not match the zone reported by Java.
-* Added new methods `parseJsonObject` and `parseJsonArray` to `BaseController`.
+* Added new methods `parseRequestJSON` and `parseRequestJSONArray` to `BaseController`.
 
 ### 🐞 Bugfixes
 
