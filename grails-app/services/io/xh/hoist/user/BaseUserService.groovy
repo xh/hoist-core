@@ -21,6 +21,20 @@ import io.xh.hoist.BaseService
  */
 @CompileStatic
 abstract class BaseUserService extends BaseService {
+    /** Return a user, or null if user not found. */
     abstract HoistUser find(String username)
+
+    /**
+     * Return all users,
+     * @param activeOnly - true to return "active" users only.
+     */
     abstract List<HoistUser> list(boolean activeOnly)
+
+    /**
+     * Return the users that a given user can impersonate.
+     * @param authUser
+     */
+    List<HoistUser> impersonationTargetsForUser(HoistUser authUser) {
+        authUser.canImpersonate ? list(true) : []
+    }
 }
