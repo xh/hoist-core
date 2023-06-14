@@ -154,7 +154,7 @@ class BootStrap {
                 defaultValue: false,
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'True to allow Hoist Admins to impersonate other users.'
+                note: 'True to enable identity impersonation by authorized users.'
             ],
             xhEnableLogViewer: [
                 valueType: 'bool',
