@@ -71,7 +71,7 @@ class XhController extends BaseController {
     //------------------------
     def impersonationTargets() {
         def targets = userService.impersonationTargetsForUser(authUser)
-        renderJSON(targets.collect{username: it.username})
+        renderJSON(targets.collect{[username: it.username]})
     }
 
     def impersonate(String username) {
