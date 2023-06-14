@@ -19,6 +19,7 @@ import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
 import io.xh.hoist.user.IdentitySupport
+import org.owasp.encoder.Encode
 
 @Slf4j
 @CompileStatic
@@ -45,9 +46,13 @@ abstract class BaseController implements IdentitySupport, LogSupport {
      *
      * Favor this method over the direct use of grails' request.getJSON() in order
      * to utilize the customizable jackson-based parsing provided by Hoist.
+     *
+     * @param  options.safeEncode, boolean.  True to run input through OWASP encoder before parsing.
      */
-    protected Map parseRequestJSON() {
-        JSONParser.parseObject(request.inputStream)
+    protected Map parseRequestJSON(Map options = [:]) {
+        options.safeEncode ?
+            JSONParser.parseObject(safeEncode(request.inputStream.toString())) :
+            JSONParser.parseObject(request.inputStream)
     }
 
     /**
@@ -55,9 +60,22 @@ abstract class BaseController implements IdentitySupport, LogSupport {
      *
      * Favor this method over the direct use of grails' request.getJSON() in order
      * to utilize the customizable jackson-based parsing provided by Hoist.
+     *
+     * @param  options.safeEncode, boolean.  True to run input through OWASP encoder before parsing.
      */
-    protected List parseRequestJSONArray() {
-        JSONParser.parseArray(request.inputStream)
+    protected List parseRequestJSONArray(Map options = [:]) {
+        options.safeEncode ?
+            JSONParser.parseArray(safeEncode(request.inputStream.getText())) :
+            JSONParser.parseArray(request.inputStream)
+    }
+
+    /**
+     * Run user-provided string input through an OWASP-provided encoder to escape tags. Note the
+     * use of `forHtmlContent()` encodes only `&<>` and in particular leaves quotes un-escaped to
+     * support JSON strings.
+     */
+    protected String safeEncode(String input) {
+        return input ? Encode.forHtmlContent(input) : input
     }
 
     protected Promise runAsync(Closure c) {
@@ -67,6 +85,9 @@ abstract class BaseController implements IdentitySupport, LogSupport {
             exceptionRenderer.handleException(t, request, response, this)
         }
     }
+
+
+
 
     HoistUser getUser()         {identityService.user}
     String getUsername()        {identityService.username}
