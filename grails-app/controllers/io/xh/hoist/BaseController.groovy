@@ -51,7 +51,7 @@ abstract class BaseController implements IdentitySupport, LogSupport {
      */
     protected Map parseRequestJSON(Map options = [:]) {
         options.safeEncode ?
-            JSONParser.parseObject(safeEncode(request.inputStream.toString())) :
+            JSONParser.parseObject(safeEncode(request.inputStream.text)) :
             JSONParser.parseObject(request.inputStream)
     }
 
@@ -65,7 +65,7 @@ abstract class BaseController implements IdentitySupport, LogSupport {
      */
     protected List parseRequestJSONArray(Map options = [:]) {
         options.safeEncode ?
-            JSONParser.parseArray(safeEncode(request.inputStream.getText())) :
+            JSONParser.parseArray(safeEncode(request.inputStream.text)) :
             JSONParser.parseArray(request.inputStream)
     }
 
