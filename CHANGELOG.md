@@ -6,6 +6,12 @@
 
 * Added dedicated admin endpoint for Admin alert banner presets.
 
+* New template method `BaseUserService.impersonationTargetsForUser()` supports
+finer-grained control of what users a given user can impersonate.
+
+* Transition to new 'HOIST_IMPERSONATOR' role for defining who has the base level permission
+to impersonate.
+
 ## 16.2.0 - 2023-05-26
 
 ### 🎁 New Features

@@ -22,6 +22,7 @@ import io.xh.hoist.pref.PrefService
 import io.xh.hoist.security.AccessAll
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.environment.EnvironmentService
+import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.util.Utils
 import org.owasp.encoder.Encode
 
@@ -40,6 +41,7 @@ class XhController extends BaseController {
     PrefService prefService
     TrackService trackService
     EnvironmentService environmentService
+    BaseUserService userService
 
     //------------------------
     // Identity / Auth
@@ -68,7 +70,7 @@ class XhController extends BaseController {
     // Protected internally by identity service.
     //------------------------
     def impersonationTargets() {
-        def targets = identityService.impersonationTargets
+        def targets = userService.impersonationTargetsForUser(authUser)
         renderJSON(targets.collect{[username: it.username]})
     }
 

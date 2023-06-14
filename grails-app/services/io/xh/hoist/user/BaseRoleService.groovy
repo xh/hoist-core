@@ -65,6 +65,7 @@ abstract class BaseRoleService extends BaseService {
 
         if (roles.contains('HOIST_ADMIN')) {
             roles.add('HOIST_ADMIN_READER')
+            roles.add('HOIST_IMPERSONATOR')
         }
 
         return roles
