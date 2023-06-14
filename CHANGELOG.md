@@ -67,6 +67,18 @@ to impersonate.
       will automatically post any existing local preference *values* to the server.
     * Alternatively, update client-side code to use browser local storage for persisting user state
       that should remain tightly bound to a particular computer.
+    * Update the schema to set `xh_preference` table's `local` column to allow nulls. If this is
+      not done, a Hibernate error (`local` column cannot be null) will be thrown when an admin
+      tries to add a new preference to the app.
+        ```sql
+        alter table xh_preference alter column local bit null
+        ```
+    * Once they are sure no rollback is needed, apps can safely delete the `xh_preference` table's
+      `local` column.
+      ```sql
+      alter table xh_preference drop column local
+      ```
+
 * Grails has been updated to `5.3.2`. While this change did not itself introduce any breaking
   changes, applications should update their Grails version within `gradle.properties` to match.
 
