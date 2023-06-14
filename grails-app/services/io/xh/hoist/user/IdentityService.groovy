@@ -100,7 +100,7 @@ class IdentityService extends BaseService {
 
         def targetUser = userService.impersonationTargetsForUser(authUser).find {it.username == username}
         if (!targetUser) {
-            throw new RuntimeException("'$authUser.username' does not have permissions to impersonate '$username'")
+            throw new RuntimeException("'$authUser' does not have permissions to impersonate '$username'")
         }
 
         // first explicitly end any existing impersonation session -- important for tracking.
