@@ -24,7 +24,6 @@ import io.xh.hoist.track.TrackService
 import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.util.Utils
-import org.owasp.encoder.Encode
 
 import static io.xh.hoist.json.JSONParser.parseObject
 
@@ -96,11 +95,11 @@ class XhController extends BaseController {
 
         ensureClientUsernameMatchesSession()
         trackService.track(
-            category: safeStr(category),
-            msg: safeStr(msg),
-            data: data ? JSONParser.parseObjectOrArray(safeStr(data)) : null,
+            category: safeEncode(category),
+            msg: safeEncode(msg),
+            data: data ? JSONParser.parseObjectOrArray(safeEncode(data)) : null,
             elapsed: elapsed,
-            severity: safeStr(severity)
+            severity: safeEncode(severity)
         )
 
         renderJSON(success: true)
@@ -234,10 +233,10 @@ class XhController extends BaseController {
     def submitError(String msg, String error, String appVersion, String url, boolean userAlerted) {
         ensureClientUsernameMatchesSession()
         clientErrorService.submit(
-            safeStr(msg),
-            safeStr(error),
-            safeStr(appVersion),
-            safeStr(url),
+            safeEncode(msg),
+            safeEncode(error),
+            safeEncode(appVersion),
+            safeEncode(url),
             userAlerted
         )
         renderJSON(success: true)
@@ -249,8 +248,8 @@ class XhController extends BaseController {
     def submitFeedback(String msg, String appVersion) {
         ensureClientUsernameMatchesSession()
         feedbackService.submit(
-            safeStr(msg),
-            safeStr(appVersion)
+            safeEncode(msg),
+            safeEncode(appVersion)
         )
         renderJSON(success: true)
     }
@@ -306,14 +305,4 @@ class XhController extends BaseController {
             throw new SessionMismatchException("The reported clientUsername does not match current session user.")
         }
     }
-
-    /**
-     * Run user-provided string input through an OWASP-provided encoder to escape tags. Note the
-     * use of `forHtmlContent()` encodes only `&<>` and in particular leaves quotes un-escaped to
-     * support JSON strings.
-     */
-    private String safeStr(String input) {
-        return input ? Encode.forHtmlContent(input) : input
-    }
-
 }

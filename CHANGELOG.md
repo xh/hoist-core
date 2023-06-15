@@ -12,6 +12,9 @@ finer-grained control of what users a given user can impersonate.
 * Transition to new 'HOIST_IMPERSONATOR' role for defining who has the base level permission
 to impersonate.
 
+### ⚙️ Technical
+* Add built-in support for OWASP encoding user submitted strings to `BaseController`.
+
 ## 16.2.0 - 2023-05-26
 
 ### 🎁 New Features
