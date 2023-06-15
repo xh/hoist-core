@@ -62,14 +62,11 @@ class LogViewerAdminController extends BaseController {
             available = availableFiles
 
         filenames.each {String filename ->
-            if (!available[filename]) throwUnavailable()
+            def toDelete = available[filename]
+            if (!toDelete) throwUnavailable()
 
-            def fileToDelete = new File(LogbackConfig.logRootPath, filename),
-                fileDeleted = fileToDelete.delete()
-
-            if (!fileDeleted) {
-                logWarn("Failed to delete log: '$filename'.  User may not have permissions.")
-            }
+            def deleted = toDelete.delete()
+            if (!deleted) logWarn("Failed to delete log: '$filename'.")
         }
 
         renderJSON(success:true)
