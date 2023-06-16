@@ -48,7 +48,7 @@ trait HoistUser implements JSONFormat {
         return roleService.getRolesForUser(username)
     }
 
-    boolean hasRole(String role)  {
+    boolean hasRole(String role) {
         return roles.contains(role)
     }
 

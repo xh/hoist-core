@@ -48,8 +48,6 @@ abstract class BaseRoleService extends BaseService {
     /**
      * Return all roles assigned to a given user(name).
      *
-     * Applications may wish to provide their own more efficient implementation as required,
-     * e.g. by pre-indexing role assignments by username vs. constructing dynamically.
      * Also, note that this default implementation does not validate that the username provided is in
      * fact an active and enabled application user as per UserService. Apps may wish to do so -
      * the Hoist framework does not depend on it.
@@ -58,28 +56,26 @@ abstract class BaseRoleService extends BaseService {
      * implementation overrides should typically call the super method.
      */
     Set<String> getRolesForUser(String username) {
-        Set<String> roles = allRoleAssignments
-            .findAll{role, users -> users.contains(username)}
-            .keySet()
-            .toSet()
-
-        if (roles.contains('HOIST_ADMIN')) {
-            roles.add('HOIST_ADMIN_READER')
-            roles.add('HOIST_IMPERSONATOR')
+        Set<String> ret = new HashSet()
+        allRoleAssignments.each { role, users ->
+            if (users.contains(username)) ret.add(role)
         }
-
-        return roles
+        if (ret.contains('HOIST_ADMIN')) {
+            ret.add('HOIST_ADMIN_READER')
+            ret.add('HOIST_IMPERSONATOR')
+        }
+        return ret
     }
 
+
     /**
-     * Return all users with a given role, as a simple list of usernames.
+     * Return all users with a given role, as a simple set of usernames.
      *
      * Note that this default implementation does not validate that the usernames returned are in
      * fact active and enabled application users as per UserService. Apps may wish to do so -
      * the Hoist framework does not depend on it.
      */
     Set<String> getUsersForRole(String role) {
-        return allRoleAssignments[role] ?: new HashSet<String>()  // TODO - how to use emptySet here?
+        return allRoleAssignments[role] ?: Collections.EMPTY_SET
     }
-
 }
