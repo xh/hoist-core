@@ -4,32 +4,42 @@
 
 ### 🎁 New Features
 
-* Added dedicated admin endpoint for Admin alert banner presets.
-
-* New template method `BaseUserService.impersonationTargetsForUser()` supports
-finer-grained control of what users a given user can impersonate.
-
-* Transition to new 'HOIST_IMPERSONATOR' role for defining who has the base level permission
-to impersonate.
-
-### ⚙️ Technical
-* Add built-in support for OWASP encoding user submitted strings to `BaseController`.
+* Added support for saving alert banner presets (requires `hoist-react >= 57.0.0` to use this new
+  functionality, but backwards compatible with earlier hoist-react releases).
+* Defined new `HOIST_IMPERSONATOR` role to control access to Hoist's user-impersonation feature.
+    * This new role is inherited by `HOIST_ADMIN` (the role previously required) by default,
+      although applications can override `BaseUserService.getRolesForUser()` to customize.
+    * Applications that have already overridden this method will need to re-implement this role
+      inheritance, or assign the new role to appropriate users directly.
+* Exposed new `BaseUserService.impersonationTargetsForUser()` template method to allow apps to
+  customize the list of users that an admin can impersonate.
+* Added support for OWASP-encoding user submitted strings to `BaseController` via a
+  new `safeEncode()` method and a new `safeEncode` option to `parseRequestJSON()`
+  and `parseRequestJSONArray()`.
+    * Apps are encouraged to run any user-provided inputs through this method to prevent XSS
+      attacks.
 
 ## 16.2.0 - 2023-05-26
 
 ### 🎁 New Features
 
-* Added support for the `caseSensitive` flag in log filtering endpoint.
+* Added new `BaseController` methods `parseRequestJSON()` and `parseRequestJSONArray()`.
+    * These methods are the recommended way to parse JSON from a request body - they will use
+      Hoist's optimized, Jackson-based `JSONParser`.
+* Created new `xhExpectedServerTimeZone` app config, now read at startup to validate that the server
+  is running in a particular, application-configured time zone.
+    * Default value of `*` will skip validation but log a warning that no zone is configured.
+    * If a zone is configured, Hoist will throw a fatal exception if it does not match the zone
+      reported by Java.
+    * Most applications should ensure that this config and the runtime JVM are set to the same time
+      zone as their primary database.
 * Added `h2Config` method to `RuntimeConfig` class to give apps the option of starting up with an H2
   in-memory DB. This is intended for projects in their earliest, "just checked out, first run"
   stage, when a developer wants to get started before having set up an external database.
 * Updated `AlertBannerService` to append the environment name when creating/updating the `JsonBlob`
   used to persist banner state in a non-production environment. This better supports apps where
   e.g. `Beta` and `Production` environments share a database, but should display distinct banners.
-* Added new routine in `Bootstrap` to auto-create a new `xhExpectedServerTimeZone` app config.
-  This config is now read at startup to validate that the server is running in the expected zone,
-  and will throw a fatal exception if it is invalid or does not match the zone reported by Java.
-* Added new methods `parseRequestJSON` and `parseRequestJSONArray` to `BaseController`.
+* Added support for the `caseSensitive` flag in log filtering endpoint.
 
 ### 🐞 Bugfixes
 
@@ -38,9 +48,9 @@ to impersonate.
 ## 16.1.0 - 2023-04-14
 
 * Enhance MemoryMonitoringService.
-    - Produce and use more appropriate usage metric (used/max)
-    - Produce GC statistics
-    - Support for taking a heap dump
+    * Produce and use more appropriate usage metric (used/max)
+    * Produce GC statistics
+    * Support for taking a heap dump
 
 ## 16.0.1 - 2023-03-29
 
