@@ -49,17 +49,19 @@ class TrackService extends BaseService implements EventPublisher {
     /**
      * Create a new track log entry. Username, browser info, and datetime will be set automatically.
      *   @param args
-     *      msg {String}            - required, identifier of action being tracked
-     *      category {String}       - optional, grouping category. Defaults to 'Default'
-     *      data {Object}           - optional, object with related data to be serialized as JSON
-     *      username {String}       - optional, defaults to currently authenticated user.
-     *                                Use this if track will be called in an asynchronous process
-     *                                that will not have otherwise preserved the username
-     *      impersonating {String}  - optional, defaults to username if impersonating, null if not.
-     *                                Use this if track will be called in an asynchronous process
-     *                                that will not have otherwise preserved the impersonating name
-     *      severity {String}       - optional, defaults to 'INFO'.
-     *      elapsed {int}           - optional, time associated with action in millis
+     *      msg {String}                - required, identifier of action being tracked
+     *      category {String}           - optional, grouping category. Defaults to 'Default'
+     *      data {Object}               - optional, object with related data to be serialized as JSON
+     *      logData {boolean|String[]}  - optional, true or list of keys to log values from data.
+     *                                  Defaults to value in `xhActivityTrackingConfig` or false.
+     *      username {String}           - optional, defaults to currently authenticated user.
+     *                                  Use this if track will be called in an asynchronous process
+     *                                  that will not have otherwise preserved the username
+     *      impersonating {String}      - optional, defaults to username if impersonating, null if not.
+     *                                   Use this if track will be called in an asynchronous process
+     *                                  that will not have otherwise preserved the impersonating name
+     *      severity {String}           - optional, defaults to 'INFO'.
+     *      elapsed {int}               - optional, time associated with action in millis
      */
     void track(Map args) {
         try {
@@ -108,6 +110,13 @@ class TrackService extends BaseService implements EventPublisher {
             data: data
         ]
 
+        def logData = params.logData != null
+            ? params.logData
+            : conf.logData != null
+            ? conf.logData
+            : false
+
+
         // Execute asynchronously after we get info from request, don't block application thread.
         // Save with additional try/catch to alert on persistence failures within this async block.
         task {
@@ -132,9 +141,18 @@ class TrackService extends BaseService implements EventPublisher {
                     _elapsedMs: tl.elapsed
                 ].findAll {it.value != null}
 
+                if (logData && data) {
+                    // Log primitive values that pass filter for keys
+                    Map dataParts = params.data as Map
+                    dataParts = dataParts.findAll { k, v ->
+                        (logData === true || (logData as List).contains(k)) &&
+                            !(v instanceof Map || v instanceof List)
+                    }
+                    msgParts << dataParts
+                }
+
                 logInfo(msgParts)
             }
         }
     }
-
 }

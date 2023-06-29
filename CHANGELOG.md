@@ -2,6 +2,8 @@
 
 ## 17.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+* Added new option `logData` to provide support for logging application data in TrackService.
 
 ## 16.3.0 - 2023-06-20
 
