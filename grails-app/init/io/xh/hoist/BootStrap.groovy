@@ -64,6 +64,7 @@ class BootStrap {
                 valueType: 'json',
                 defaultValue: [
                     enabled: true,
+                    logData: false,
                     maxDataLength: 2000,
                     maxRows: [default: 10000, limit: 25000, options: [1000, 5000, 10000, 25000]]
                 ],
