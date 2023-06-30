@@ -110,19 +110,13 @@ class TrackService extends BaseService implements EventPublisher {
             data: data
         ]
 
-        def logData = params.logData != null
-            ? params.logData
-            : conf.logData != null
-            ? conf.logData
-            : false
-
-
         // Execute asynchronously after we get info from request, don't block application thread.
         // Save with additional try/catch to alert on persistence failures within this async block.
         task {
             TrackLog.withTransaction {
-                TrackLog tl = new TrackLog(values)
 
+                // 1) Save in DB
+                TrackLog tl = new TrackLog(values)
                 if (getInstanceConfig('disableTrackLog') != 'true') {
                     try {
                         tl.save()
@@ -131,24 +125,34 @@ class TrackService extends BaseService implements EventPublisher {
                     }
                 }
 
+                // 2) Logging
+                // 2a) Log Core info
                 String name = tl.username
                 if (tl.impersonating) name += " (as ${tl.impersonating})"
-
                 Map msgParts = [
-                    _user: name,
-                    _category: tl.category,
-                    _msg: tl.msg,
+                    _user     : name,
+                    _category : tl.category,
+                    _msg      : tl.msg,
                     _elapsedMs: tl.elapsed
-                ].findAll {it.value != null}
+                ].findAll { it.value != null }
 
-                if (logData && data) {
-                    // Log primitive values that pass filter for keys
-                    Map dataParts = params.data as Map
-                    dataParts = dataParts.findAll { k, v ->
-                        (logData === true || (logData as List).contains(k)) &&
-                            !(v instanceof Map || v instanceof List)
+                // 2b) Log app data, if configured
+                if (data && (params.data instanceof Map)) {
+
+                    def logData = params.logData != null
+                        ? params.logData
+                        : conf.logData != null
+                        ? conf.logData
+                        : false
+
+                    if (logData) {
+                        Map dataParts = params.data as Map
+                        dataParts = dataParts.findAll { k, v ->
+                            (logData === true || (logData as List).contains(k)) &&
+                                !(v instanceof Map || v instanceof List)
+                        }
+                        msgParts << dataParts
                     }
-                    msgParts << dataParts
                 }
 
                 logInfo(msgParts)
