@@ -219,11 +219,11 @@ class XhController extends BaseController {
     }
 
     def version() {
-        def shouldUpdate = configService.getBool('xhAppVersionCheckEnabled')
-        renderJSON (
+        def options = configService.getMap('xhAppVersionCheck', [:])
+        renderJSON(
+            *: options,
             appVersion: Utils.appVersion,
-            appBuild: Utils.appBuild,
-            shouldUpdate: shouldUpdate
+            appBuild: Utils.appBuild
         )
     }
 

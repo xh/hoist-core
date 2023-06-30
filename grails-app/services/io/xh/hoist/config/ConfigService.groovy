@@ -156,6 +156,19 @@ class ConfigService extends BaseService implements EventPublisher {
         logDebug("Validated presense of ${reqConfigs.size()} required configs", "created ${created}")
     }
 
+    /**
+     * Document and warn on usage of a deprecated config.
+     * @param name - Name of config
+     * @param version - Version when this config will no longer be supported or this warning should be removed.
+     * @param msg - Additional message. Can contain suggestions for alternatives.
+     */
+    void configDeprecated(String name, String version = null, String msg = null) {
+        if (!AppConfig.findByName(name)) return
+        version = version ?: 'a future release'
+        msg = msg ? " ${msg}" : ''
+        logWarn("The use of config '${name}' has been deprecated and will be removed in ${version}.${msg}")
+    }
+
     void fireConfigChanged(AppConfig obj) {
         notify('xhConfigChanged', [key: obj.name, value: obj.externalValue()])
     }

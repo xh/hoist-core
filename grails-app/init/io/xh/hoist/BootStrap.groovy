@@ -59,6 +59,8 @@ class BootStrap {
     }
 
     private void ensureRequiredConfigsCreated() {
+        configService.configDeprecated('xhAppVersionCheckEnabled', 'v16.4.0', "Use 'xhAppVersionCheck' instead.")
+
         configService.ensureRequiredConfigsCreated([
             xhActivityTrackingConfig: [
                 valueType: 'json',
@@ -92,11 +94,17 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Official TimeZone for this application - e.g. the zone of the head office. Used to format/parse business related dates that need to be considered and displayed consistently at all locations. Set to a valid Java TimeZone ID.'
             ],
-            xhAppVersionCheckEnabled: [
-                valueType: 'bool',
-                defaultValue: true,
+            xhAppVersionCheck: [
+                valueType: 'json',
+                defaultValue: [
+                    shouldUpdate: configService.getBool('xhAppVersionCheckEnabled'),
+                    shouldRequireRefresh: false
+                ],
                 groupName: 'xh.io',
-                note: 'True to show an update prompt banner when the server reports to the client that a new version is available. Can be set to false to temporarily avoid an upgrade prompt (e.g. while validating a deploy). Use xhAppVersionCheckSecs to completely disable this feature.'
+                note: 'Controls application behaviour when the server reports to the client that a new version is available. Supports the following options:\n\n' +
+                    '+ `shouldUpdate`: True to show an update prompt banner. Can be set to false to temporarily avoid an upgrade prompt (e.g. while validating a deploy).\n' +
+                    '+ `shouldRequireRefresh`: True to force clients to refresh immediately. Supersedes `shouldUpdate`. To be used when an updated server is known to be incompatible with a previously deployed client.\n\n' +
+                    'Use xhAppVersionCheckSecs to completely disable this feature.'
             ],
             xhAppVersionCheckSecs: [
                 valueType: 'int',

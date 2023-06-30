@@ -2,6 +2,12 @@
 
 ## 17.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Deprecated config `xhAppVersionCheckEnabled` in favor of object based `xhAppVersionCheck`. Apps
+  will seamlessly migrate the existing value to this new config's `shouldUpdate` flag. The new
+  config also supports a `shouldRequireRefresh` flag, which will force users to refresh their
+  clients upon detecting a version update.
 
 ## 16.3.0 - 2023-06-20
 
