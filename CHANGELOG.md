@@ -3,7 +3,11 @@
 ## 17.0-SNAPSHOT - unreleased
 
 ### 🎁 New Features
-* Added new option `logData` to provide support for logging application data in TrackService.
+
+* Added new `logData` option to `TrackService.track()` - allows applications to request that
+  key/value pairs provided within the `data` block of a track statement be logged along with the
+  standard output. Client-side support for this feature on a per-call basis added
+  in `hoist-react >= 57.1`, can also be defaulted within the `xhActivityTrackingConfig` app config.
 
 ## 16.3.0 - 2023-06-20
 

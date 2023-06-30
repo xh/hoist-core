@@ -53,13 +53,15 @@ class TrackService extends BaseService implements EventPublisher {
      *      category {String}           - optional, grouping category. Defaults to 'Default'
      *      data {Object}               - optional, object with related data to be serialized as JSON
      *      logData {boolean|String[]}  - optional, true or list of keys to log values from data.
-     *                                  Defaults to value in `xhActivityTrackingConfig` or false.
+     *                                    Defaults to value in `xhActivityTrackingConfig` or false.
+     *                                    Note that only primitive values will be logged (nested objects
+     *                                    or lists will be ignored, even if their key is specified).
      *      username {String}           - optional, defaults to currently authenticated user.
-     *                                  Use this if track will be called in an asynchronous process
-     *                                  that will not have otherwise preserved the username
+     *                                    Use this if track will be called in an asynchronous process,
+     *                                    outside of a request, where username not otherwise available.
      *      impersonating {String}      - optional, defaults to username if impersonating, null if not.
-     *                                   Use this if track will be called in an asynchronous process
-     *                                  that will not have otherwise preserved the impersonating name
+     *                                    Use this if track will be called in an asynchronous process,
+     *                                    outside of a request, where impersonator info not otherwise available.
      *      severity {String}           - optional, defaults to 'INFO'.
      *      elapsed {int}               - optional, time associated with action in millis
      */
@@ -126,7 +128,7 @@ class TrackService extends BaseService implements EventPublisher {
                 }
 
                 // 2) Logging
-                // 2a) Log Core info
+                // 2a) Log core info,
                 String name = tl.username
                 if (tl.impersonating) name += " (as ${tl.impersonating})"
                 Map msgParts = [
@@ -136,7 +138,7 @@ class TrackService extends BaseService implements EventPublisher {
                     _elapsedMs: tl.elapsed
                 ].findAll { it.value != null }
 
-                // 2b) Log app data, if configured
+                // 2b) Log app data, if requested/configured.
                 if (data && (params.data instanceof Map)) {
 
                     def logData = params.logData != null
