@@ -59,8 +59,6 @@ class BootStrap {
     }
 
     private void ensureRequiredConfigsCreated() {
-        configService.configDeprecated('xhAppVersionCheckEnabled', 'v16.4.0', "Use 'xhAppVersionCheck' instead.")
-
         configService.ensureRequiredConfigsCreated([
             xhActivityTrackingConfig: [
                 valueType: 'json',
@@ -97,21 +95,16 @@ class BootStrap {
             xhAppVersionCheck: [
                 valueType: 'json',
                 defaultValue: [
-                    shouldUpdate: configService.getBool('xhAppVersionCheckEnabled'),
+                    interval: configService.getInt('xhAppVersionCheckSecs', 30),
+                    shouldUpdate: configService.getBool('xhAppVersionCheckEnabled', true),
                     shouldRequireRefresh: false
                 ],
-                groupName: 'xh.io',
-                note: 'Controls application behaviour when the server reports to the client that a new version is available. Supports the following options:\n\n' +
-                    '+ `shouldUpdate`: True to show an update prompt banner. Can be set to false to temporarily avoid an upgrade prompt (e.g. while validating a deploy).\n' +
-                    '+ `shouldRequireRefresh`: True to force clients to refresh immediately. Supersedes `shouldUpdate`. To be used when an updated server is known to be incompatible with a previously deployed client.\n\n' +
-                    'Use xhAppVersionCheckSecs to completely disable this feature.'
-            ],
-            xhAppVersionCheckSecs: [
-                valueType: 'int',
-                defaultValue: 30,
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Frequency with which the version of the app should be checked. Value of -1 disables version checking.'
+                note: 'Controls application behaviour when the server reports to the client that a new version is available. Supports the following options:\n\n' +
+                    '+ `interval`: Frequency (in seconds) with which the version of the app should be checked. Value of -1 disables version checking.\n' +
+                    '+ `shouldUpdate`: True to show an update prompt banner. Can be set to false to temporarily avoid an upgrade prompt (e.g. while validating a deploy).\n' +
+                    '+ `shouldRequireRefresh`: True to force clients to refresh immediately. Supersedes `shouldUpdate`. To be used when an updated server is known to be incompatible with a previously deployed client.\n\n'
             ],
             xhAutoRefreshIntervals: [
                 valueType: 'json',
