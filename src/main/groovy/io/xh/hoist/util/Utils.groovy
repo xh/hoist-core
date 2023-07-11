@@ -151,6 +151,14 @@ class Utils {
         JSONParser.validate(val)
     }
 
+    /** String parsing for a boolean. */
+    static Boolean parseBooleanStrict(String s) {
+        if (s == null) return null
+        if (s.equalsIgnoreCase('true')) return true
+        if (s.equalsIgnoreCase('false')) return false
+        throw new RuntimeException('Unable to parse boolean value')
+    }
+
     /**
      * Return all singleton instances of io.xh.BaseService in the application
      */
