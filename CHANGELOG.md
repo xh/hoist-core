@@ -1,6 +1,10 @@
 # Changelog
 
-## 17.0-SNAPSHOT - unreleased
+## 16.4.1 - 2023-07-13
+
+### 🐞 Bugfixes
+* Make impersonation service more robust for applications with dynamic/lazy user generation.
+* Additional validation of parameters to '/userAdmin/users' endpoint.
 
 ## 16.4.0 - 2023-07-07
 
