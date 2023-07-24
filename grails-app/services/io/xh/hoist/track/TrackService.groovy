@@ -131,12 +131,12 @@ class TrackService extends BaseService implements EventPublisher {
                 // 2a) Log core info,
                 String name = tl.username
                 if (tl.impersonating) name += " (as ${tl.impersonating})"
-                Map msgParts = [
+                Map<String, Object> msgParts = [
                     _user     : name,
                     _category : tl.category,
                     _msg      : tl.msg,
                     _elapsedMs: tl.elapsed
-                ].findAll { it.value != null }
+                ].findAll { it.value != null } as Map<String, Object>
 
                 // 2b) Log app data, if requested/configured.
                 if (data && (params.data instanceof Map)) {
@@ -148,12 +148,12 @@ class TrackService extends BaseService implements EventPublisher {
                         : false
 
                     if (logData) {
-                        Map dataParts = params.data as Map
+                        Map<String, Object> dataParts = params.data as Map<String, Object>
                         dataParts = dataParts.findAll { k, v ->
                             (logData === true || (logData as List).contains(k)) &&
                                 !(v instanceof Map || v instanceof List)
                         }
-                        msgParts << dataParts
+                        msgParts.putAll(dataParts)
                     }
                 }
 
