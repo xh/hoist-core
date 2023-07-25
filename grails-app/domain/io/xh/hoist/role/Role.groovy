@@ -34,7 +34,7 @@ class Role implements JSONFormat {
             name: name,
             groupName: groupName,
             notes: notes,
-            inherits: inherits.collect {it.name },
+            inherits: inherits.collect {[id: it.id, name: it.name] },
             assignedUsers: users,
             allUsers:  allUsers,
             directoryGroups: directoryGroups,
