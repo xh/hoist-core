@@ -7,6 +7,7 @@
 package io.xh.hoist
 
 import grails.util.Holders
+import io.xh.hoist.role.Role
 import io.xh.hoist.util.Utils
 
 import java.time.ZoneId
@@ -40,7 +41,6 @@ class BootStrap {
     //------------------------
     private void logStartupMsg() {
         def hoist = Holders.currentPluginManager().getGrailsPlugin('hoist-core')
-
         log.info("""
 \n
  __  __     ______     __     ______     ______
