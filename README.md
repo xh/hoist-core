@@ -413,6 +413,9 @@ Hibernate plugin is *disabled* in this file.
   `-XX:HotswapAgent=fatjar`, `-XX:+AllowEnhancedClassRedefinition`,
     and `-javaagent:/etc/hoist/groovyReset.jar`
 
+Note that hot swapping is not currently enabled for grails plugins being developed in
+wrapper projects.
+
 ### Readme TODOs
 
 🚧 The sections below are planned near-term additions to this readme, covering
