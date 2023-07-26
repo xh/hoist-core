@@ -145,7 +145,7 @@ and ease-of-use, and to clarify and emphasize the suitability of Hoist for use w
 of enterprise software projects. Note, however, that we cannot at this time commit to any particular
 support or contribution model outside of our consulting work. But if you are interested in Hoist
 and/or think it might be helpful for a project, please don't hesitate to
-[contact us](https://xh.io/contact)!
+[contact us](https://xh.io)!
 
 ## Core Features - Additional Details
 
@@ -412,6 +412,6 @@ additional features and services provided by the framework.
 🙏 Thanks for your patience, and for reading this far!
 
 ------------------------------------------
-📫☎️🌎 info@xh.io | https://xh.io/contact
+📫☎️🌎 info@xh.io | https://xh.io
 
-Copyright © 2022 Extremely Heavy Industries Inc.
+Copyright © 2023 Extremely Heavy Industries Inc.

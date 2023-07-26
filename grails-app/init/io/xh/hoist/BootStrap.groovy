@@ -2,23 +2,30 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 package io.xh.hoist
 
 import grails.util.Holders
 import io.xh.hoist.util.Utils
 
+import java.time.ZoneId
+
+import static io.xh.hoist.util.DateTimeUtils.serverZoneId
 import static java.lang.Runtime.runtime
 
 class BootStrap {
 
-    def logLevelService
+    def logLevelService,
+        configService,
+        prefService
 
     def init = {servletContext ->
         logStartupMsg()
         ensureRequiredConfigsCreated()
         ensureRequiredPrefsCreated()
+
+        ensureExpectedServerTimeZone()
 
         def services = Utils.xhServices.findAll {it.class.canonicalName.startsWith('io.xh.hoist')}
         BaseService.parallelInit([logLevelService])
@@ -42,16 +49,29 @@ class BootStrap {
  \\ \\_\\ \\_\\  \\ \\_____\\  \\ \\_\\  \\/\\_____\\    \\ \\_\\
   \\/_/\\/_/   \\/_____/   \\/_/   \\/_____/     \\/_/
 \n
-          Hoist v${hoist.version} - ${Utils.getAppEnvironment()}
-          Extremely Heavy - http://xh.io
+          Hoist v${hoist.version} - ${Utils.appEnvironment}
+          Extremely Heavy - https://xh.io
             + ${runtime.availableProcessors()} available processors
             + ${String.format('%,d', (runtime.maxMemory() / 1000000).toLong())}mb available memory
+            + JVM TimeZone is ${serverZoneId}
 \n
         """)
     }
 
     private void ensureRequiredConfigsCreated() {
-        Utils.configService.ensureRequiredConfigsCreated([
+        configService.ensureRequiredConfigsCreated([
+            xhActivityTrackingConfig: [
+                valueType: 'json',
+                defaultValue: [
+                    enabled: true,
+                    logData: false,
+                    maxDataLength: 2000,
+                    maxRows: [default: 10000, limit: 25000, options: [1000, 5000, 10000, 25000]]
+                ],
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'Configures built-in Activity Tracking via TrackService.'
+            ],
             xhAlertBannerConfig: [
                 valueType: 'json',
                 defaultValue: [enabled: true, interval: 30],
@@ -68,23 +88,25 @@ class BootStrap {
             ],
             xhAppTimeZone: [
                 valueType: 'string',
-                defaultValue: 'GMT',
+                defaultValue: 'UTC',
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Official TimeZone for this application - e.g. the zone of the head office. Used to format/parse business related dates that need to be considered and displayed consistently at all locations. Set to a valid Java TimeZone ID.'
             ],
-            xhAppVersionCheckEnabled: [
-                valueType: 'bool',
-                defaultValue: true,
-                groupName: 'xh.io',
-                note: 'True to show an update prompt banner when the server reports to the client that a new version is available. Can be set to false to temporarily avoid an upgrade prompt (e.g. while validating a deploy). Use xhAppVersionCheckSecs to completely disable this feature.'
-            ],
-            xhAppVersionCheckSecs: [
-                valueType: 'int',
-                defaultValue: 30,
+            xhAppVersionCheck: [
+                valueType: 'json',
+                defaultValue: [
+                    interval: configService.getInt('xhAppVersionCheckSecs', 30),
+                    mode: configService.getBool('xhAppVersionCheckEnabled', true) ? 'promptReload' : 'silent'
+                ],
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Frequency with which the version of the app should be checked. Value of -1 disables version checking.'
+                note: 'Controls application behaviour when the server reports to the client that a new version is available. Supports the following options:\n\n' +
+                    '• `interval`: Frequency (in seconds) with which the version of the app should be checked. Value of -1 disables version checking.\n' +
+                    '• `mode`: Action taken by client upon a new version becoming available. Supports the following options:\n' +
+                    '\t+ `forceReload`: Force clients to refresh immediately. To be used when an updated server is known to be incompatible with a previously deployed client.\n' +
+                    '\t+ `promptReload`: Show an update prompt banner, allowing users to refresh when convenient.\n' +
+                    '\t+ `silent`: No action taken.'
             ],
             xhAutoRefreshIntervals: [
                 valueType: 'json',
@@ -135,7 +157,7 @@ class BootStrap {
                 defaultValue: false,
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'True to allow Hoist Admins to impersonate other users.'
+                note: 'True to enable identity impersonation by authorized users.'
             ],
             xhEnableLogViewer: [
                 valueType: 'bool',
@@ -150,6 +172,12 @@ class BootStrap {
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'True to enable the monitor tab included with the Hoist Admin console and the associated server-side jobs'
+            ],
+            xhExpectedServerTimeZone: [
+                valueType: 'string',
+                defaultValue: '*',
+                groupName: 'xh.io',
+                note: 'Expected time zone of the server-side JVM - set to a valid Java TimeZone ID. NOTE: this config is checked at startup to ensure the server is running in the expected zone and will throw a fatal exception if it is invalid or does not match the zone reported by Java.\n\nChanging this config has no effect on a running server, and will not itself change the default Zone of the JVM.\n\nIf you REALLY do not want this behavior, a value of "*" will suppress this check.'
             ],
             xhExportConfig: [
                 valueType: 'json',
@@ -177,11 +205,17 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Configures automatic cleanup and archiving of log files. Files older than "archiveAfterDays" will be moved into zipped bundles within the specified "archiveFolder".'
             ],
-            xhMemoryMonitorIntervalSecs: [
-                valueType: 'int',
-                defaultValue: 60,
+            xhMemoryMonitoringConfig: [
+                valueType: 'json',
+                defaultValue: [
+                    enabled: true,
+                    snapshotInterval: 60,
+                    maxSnapshots: 1440,
+                    heapDumpDir: null
+                ],
+                clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Interval in seconds on which the Hoist MemoryMonitoringService should sample current JVM Heap usage.'
+                note: 'Configures built-in Memory Monitoring.'
             ],
             xhMonitorConfig: [
                 valueType: 'json',
@@ -216,7 +250,7 @@ class BootStrap {
     }
 
     private void ensureRequiredPrefsCreated() {
-        Utils.prefService.ensureRequiredPrefsCreated([
+        prefService.ensureRequiredPrefsCreated([
             xhAutoRefreshEnabled: [
                 type: 'bool',
                 defaultValue: true,
@@ -254,6 +288,34 @@ class BootStrap {
                 note: 'Visual theme for the client application - "light", "dark", or "system".'
             ]
         ])
+    }
+
+    /**
+     * Validates that the JVM TimeZone matches the value specified by the `xhExpectedServerTimeZone`
+     * application config. This is intended to ensure that the JVM is running in the expected Zone,
+     * typically set to the same Zone as the app's primary database.
+     */
+    private void ensureExpectedServerTimeZone() {
+        def confZone = configService.getString('xhExpectedServerTimeZone')
+        if (confZone == '*') {
+            log.warn(
+                "WARNING - a timezone has not yet been specified for this application's server.  " +
+                "This can lead to bugs and data corruption in development and production.  " +
+                "Please specify your expected timezone in the `xhExpectedServerTimeZone` config."
+            )
+            return
+        }
+
+        ZoneId confZoneId
+        try {
+            confZoneId = ZoneId.of(confZone)
+        } catch (ignored) {
+            throw new IllegalStateException("Invalid xhExpectedServerTimeZone config: '$confZone' not a valid ZoneId.")
+        }
+
+        if (confZoneId != serverZoneId) {
+            throw new IllegalStateException("JVM TimeZone of '${serverZoneId}' does not match value of '${confZoneId}' required by xhExpectedServerTimeZone config. Set JVM arg '-Duser.timezone=${confZoneId}' to change the JVM Zone, or update the config value in the database.")
+        }
     }
 
 }

@@ -1,9 +1,128 @@
 # Changelog
 
-## 16.0-SNAPSHOT - unreleased
+## 17.0-SNAPSHOT - unreleased
 
-* "Local" Preference support in `PreferenceService` is no longer supported.  Applications should use
-  `LocalStorageService` instead.
+## 16.4.1 - 2023-07-13
+
+### 🐞 Bugfixes
+* Make impersonation service more robust for applications with dynamic/lazy user generation.
+* Additional validation of parameters to '/userAdmin/users' endpoint.
+
+## 16.4.0 - 2023-07-07
+
+### 🎁 New Features
+
+* Added new `logData` option to `TrackService.track()` - allows applications to request that
+  key/value pairs provided within the `data` block of a track statement be logged along with the
+  standard output. Client-side support for this feature on a per-call basis added
+  in `hoist-react >= 57.1`, can also be defaulted within the `xhActivityTrackingConfig` app config.
+* Deprecated config `xhAppVersionCheckEnabled` in favor of object based `xhAppVersionCheck`. Apps will
+  seamlessly migrate the existing value to this new config's `mode` flag.  This supports the new
+  `forceRefresh` mode introduced in hoist-react v58.
+
+## 16.3.0 - 2023-06-20
+
+### 🎁 New Features
+
+* Added support for saving alert banner presets (requires `hoist-react >= 57.0.0` to use this new
+  functionality, but backwards compatible with earlier hoist-react releases).
+* Defined new `HOIST_IMPERSONATOR` role to control access to Hoist's user-impersonation feature.
+    * This new role is inherited by `HOIST_ADMIN` (the role previously required) by default,
+      although applications can override `BaseUserService.getRolesForUser()` to customize.
+    * Applications that have already overridden this method will need to re-implement this role
+      inheritance, or assign the new role to appropriate users directly.
+* Exposed new `BaseUserService.impersonationTargetsForUser()` template method to allow apps to
+  customize the list of users that an admin can impersonate.
+* Added support for OWASP-encoding user submitted strings to `BaseController` via a
+  new `safeEncode()` method and a new `safeEncode` option to `parseRequestJSON()`
+  and `parseRequestJSONArray()`.
+    * Apps are encouraged to run any user-provided inputs through this method to prevent XSS
+      attacks.
+
+## 16.2.0 - 2023-05-26
+
+### 🎁 New Features
+
+* Added new `BaseController` methods `parseRequestJSON()` and `parseRequestJSONArray()`.
+    * These methods are the recommended way to parse JSON from a request body - they will use
+      Hoist's optimized, Jackson-based `JSONParser`.
+* Created new `xhExpectedServerTimeZone` app config, now read at startup to validate that the server
+  is running in a particular, application-configured time zone.
+    * Default value of `*` will skip validation but log a warning that no zone is configured.
+    * If a zone is configured, Hoist will throw a fatal exception if it does not match the zone
+      reported by Java.
+    * Most applications should ensure that this config and the runtime JVM are set to the same time
+      zone as their primary database.
+* Added `h2Config` method to `RuntimeConfig` class to give apps the option of starting up with an H2
+  in-memory DB. This is intended for projects in their earliest, "just checked out, first run"
+  stage, when a developer wants to get started before having set up an external database.
+* Updated `AlertBannerService` to append the environment name when creating/updating the `JsonBlob`
+  used to persist banner state in a non-production environment. This better supports apps where
+  e.g. `Beta` and `Production` environments share a database, but should display distinct banners.
+* Added support for the `caseSensitive` flag in log filtering endpoint.
+
+### 🐞 Bugfixes
+
+* Fixed a regression preventing the culling of snapshots in the memory monitoring service.
+
+## 16.1.0 - 2023-04-14
+
+* Enhance MemoryMonitoringService.
+    * Produce and use more appropriate usage metric (used/max)
+    * Produce GC statistics
+    * Support for taking a heap dump
+
+## 16.0.1 - 2023-03-29
+
+### 🐞 Bugfixes
+
+* Fixed a regression with 404 errors being incorrectly handled and not serialized as JSON.
+
+## 16.0.0 - 2023-03-24
+
+### 🎁 New Features
+
+* `EmailService.sendEmail()` now supports the `attachments` argument, for attaching one or more
+  files to the email.
+* A new `xhActivityTrackingConfig` soft-configuration entry will be automatically created to control
+  the behavior of built-in Activity Tracking (via `TrackService`).
+    * Most notably, the size of any `data` objects included with track log entries will be
+      constrained by this config, primarily to constrain memory usage when querying and serializing
+      large numbers of log entries for the Admin Console.
+    * Any track requests with data objects exceeding this length will be persisted, but without the
+      requested data.
+
+### 💥 Breaking Changes
+
+* Removed support for "local" preferences - any existing prefs previously marked as local will now
+  work like all others, with their values persisted on the server.
+    * Apps upgrading to this Core release should simultaneously upgrade to Hoist React v56, which
+      will automatically post any existing local preference *values* to the server.
+    * Alternatively, update client-side code to use browser local storage for persisting user state
+      that should remain tightly bound to a particular computer.
+    * Update the schema to set `xh_preference` table's `local` column to allow nulls. If this is
+      not done, a Hibernate error (`local` column cannot be null) will be thrown when an admin
+      tries to add a new preference to the app.
+        ```sql
+        alter table xh_preference alter column local bit null
+        ```
+    * Once they are sure no rollback is needed, apps can safely delete the `xh_preference` table's
+      `local` column.
+      ```sql
+      alter table xh_preference drop column local
+      ```
+
+* Grails has been updated to `5.3.2`. While this change did not itself introduce any breaking
+  changes, applications should update their Grails version within `gradle.properties` to match.
+
+### 🐞 Bugfixes
+
+* Client Error timestamps will now correctly reflect the exact time the error was received on the
+  server rather than the time the error was bulk processed by the server.
+
+### 📚 Libraries
+
+* grails `5.2.1 -> 5.3.2`
 
 ### ⚙️ Breaking Changes
 * v16 restores the use of the standard grails version of logback (v1.2.11).  Hoist had been
@@ -20,19 +139,20 @@ in toolbox for an example.
 Version 15 includes changes to support more flexible logging of structured data:
 
 * The bulk of Hoist conventions around log formatting have been moved from `LogSupport` to a new
- log converter -- `LogSupportConverter`.  This allows applications to more easily and fully
- customize their log formats by specifying custom converters.
-* `LogSupport` should still be the main entry point for most application logging.  This class
+  log converter -- `LogSupportConverter`. This allows applications to more easily and fully
+  customize their log formats by specifying custom converters.
+* `LogSupport` should still be the main entry point for most application logging. This class
   provides the support for enhanced meta data-handling as well as some important APIs -
   e.g. `withDebug()` and `withInfo()`.
-* Applications are now encouraged to provide `LogSupport` methods with data in `Map` form.  Provided
+* Applications are now encouraged to provide `LogSupport` methods with data in `Map` form. Provided
   converters will serialize these maps as appropriate for target logs.
 * Hoist's `LogSupportConverter` is intended for easy reading by humans, allows specifying
-  keys that should disappear in the final output with an `_` prefix.  This is useful for keys that
+  keys that should disappear in the final output with an `_` prefix. This is useful for keys that
   are obvious, e.g. `[_status: 'completed', rows: 100]` logs as `'completed' | rows=100`.
 * Alternatively, applications may now specify custom converters that preserve all keys and are
   more appropriate for automatic processing (e.g. splunk). An example of such a converter is
-  `CustomLogSupportConverter` which can be found in the [Toolbox project](https://github.com/xh/toolbox).
+  `CustomLogSupportConverter` which can be found in
+  the [Toolbox project](https://github.com/xh/toolbox).
 * By default, Hoist now also logs the time in millis when a log message occurred.
 
 ## 14.4.2 - 2022-11-14
@@ -489,7 +609,7 @@ for the application-level changes to core configuration files and dependencies.
 
 ### ⚙️ Technical
 
-* Minor enhancements to `JSONBlobService` API.
+* Minor enhancements to `JsonBlobService` API.
 
 ### 📚 Libraries
 
@@ -632,7 +752,7 @@ As of this release, Hoist is [now licensed](LICENSE.md) under the popular and pe
 We are making this change to align Hoist's licensing with our ongoing commitment to openness,
 transparency and ease-of-use, and to clarify and emphasize the suitability of Hoist for use within a
 wide variety of enterprise software projects. For any questions regarding this change, please
-[contact us](https://xh.io/contact/).
+[contact us](https://xh.io/).
 
 ### 🎁 New Features
 
@@ -1339,8 +1459,8 @@ exposing them to the application as a map.
 
 ------------------------------------------
 
-Copyright © 2022 Extremely Heavy Industries Inc. - all rights reserved
+Copyright © 2023 Extremely Heavy Industries Inc. - all rights reserved
 
 ------------------------------------------
 
-📫☎️🌎 info@xh.io | https://xh.io/contact
+📫☎️🌎 info@xh.io | https://xh.io

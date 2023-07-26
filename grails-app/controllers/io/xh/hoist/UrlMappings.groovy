@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist
@@ -10,7 +10,7 @@ package io.xh.hoist
 class UrlMappings {
 
     static mappings = {
-        
+
         //------------------------
         // Default Grails Conventions
         //------------------------
@@ -18,7 +18,7 @@ class UrlMappings {
         "/$controller/$action?/$id?(.$format)?"{}
 
         "404" (controller: 'xh', action: 'notFound')
-        
+
         //------------------------
         // Rest Support
         //------------------------
@@ -29,14 +29,14 @@ class UrlMappings {
             action = [POST: 'create', GET: 'read', PUT: 'update', DELETE: 'delete']
         }
 
-        
+
         //------------------------
         // Proxy Support
         //------------------------
         "/proxy/$name/$url**"{
             controller = 'proxyImpl'
         }
-        
+
     }
-    
+
 }

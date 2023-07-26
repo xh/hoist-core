@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.security
@@ -34,11 +34,12 @@ class AccessInterceptor {
         }
 
         // Ignore improperly mapped requests -- these will be handled via url 404 mapping
-        if (!controllerClass) {
+        Class clazz = controllerClass?.clazz
+        if (!clazz) {
             return true
         }
-        
-        Class clazz = controllerClass.clazz
+
+
         String actionNm = actionName ?: controllerClass.defaultAction
         Method method = clazz.getMethod(actionNm)
 
@@ -65,7 +66,7 @@ class AccessInterceptor {
     private boolean handleUnauthorized() {
         def username = identityService.username ?: 'UNKNOWN',
             ex = new NotAuthorizedException("""
-                    You do not have the application role(s) required. 
+                    You do not have the application role(s) required.
                     Currently logged in as: $username.
             """)
         exceptionRenderer.handleException(ex, request, response, identityService)
