@@ -9,8 +9,6 @@ It should be fully compatible with Java 11 and Java 17.
  agent. See the readme for more information.
 
 ### ⚙️ Technical
-* LogBack has been upgraded to the latest version and is no longer pinned on the `1.2.7` version.
-
 * The implementation of the `LogSupport` trait has been simplified, such that it no longer requires
   an @SLF4J annotation, or `log` property to be provided.   Undocumented and problematic methods
  `logXXXInBase` were removed.
