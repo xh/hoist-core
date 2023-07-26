@@ -1,6 +1,26 @@
 # Changelog
 
 ## 17.0-SNAPSHOT - unreleased
+This release upgrades Hoist to the latest 6.0.0 version of Grails and upgrades related libraries.
+It should be fully compatible with Java 11 and Java 17.
+
+### 🎁 New Features
+* This version of Hoist restores the ability to do development-time reloading via the java hotswap
+ agent. See the readme for more information.
+
+### ⚙️ Technical
+* LogBack has been upgraded to the latest version and is no longer pinned on the `1.2.7` version.
+
+* The implementation of the `LogSupport` trait has been simplified, such that it no longer requires
+  an @SLF4J annotation, or `log` property to be provided.   Undocumented and problematic methods
+ `logXXXInBase` were removed.
+
+
+### 📚 Libraries
+
+* grails `5.3.2 -> 6.0.0`
+* gorm `7.3.2` -> `8.0.0`
+* groovy `3.0.9` -> `3.0.11`
 
 ## 16.4.1 - 2023-07-13
 
