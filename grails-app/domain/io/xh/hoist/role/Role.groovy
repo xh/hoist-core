@@ -45,7 +45,10 @@ class Role implements JSONFormat {
 
 //    rename allUsers elsewhere (maybe don't call this getAllUsers -- don't make properties that are expensive?)
     Set<String> getAllUsers() {
-       return this.users + this.inherits.collect { it.allUsers }
+        Set<String> assignedUsers = this.users
+        List<String> inheritedUsers = this.inherits.collect{it.allUsers}.flatten()
+
+        return (assignedUsers?:[]) + (inheritedUsers?:[])
     }
 
 }
