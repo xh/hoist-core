@@ -76,6 +76,7 @@ dependencies {
     api 'org.jasypt:jasypt:1.9.3'
     api "commons-io:commons-io:2.8.0"
     api "org.owasp.encoder:encoder:1.2.3"
+    implementation 'io.github.virtualdogbert:logback-groovy-config:1.0'
 }
 
 
