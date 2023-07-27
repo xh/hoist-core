@@ -36,7 +36,7 @@ class Role implements JSONFormat {
             notes: notes,
             inherits: inherits.collect {it.name },
             assignedUsers: users,
-            allUsers:  allUsers,
+            allUsers:  allUsers.unique {it.user},
             directoryGroups: directoryGroups,
             lastUpdated: lastUpdated,
             lastUpdatedBy: lastUpdatedBy,
@@ -44,9 +44,10 @@ class Role implements JSONFormat {
     }
 
 //    rename allUsers elsewhere (maybe don't call this getAllUsers -- don't make properties that are expensive?)
-    Set<String> getAllUsers() {
-        Set<String> assignedUsers = this.users
-        List<String> inheritedUsers = this.inherits.collect{it.allUsers}.flatten()
+//    TODO: make this this keeps the (lowest? / highest?) inheritor of a role...
+    List<Map<String, String>> getAllUsers() {
+        List<Map<String, String>> assignedUsers = this.users.collect{['user': it, 'reason': this.name]}
+        List<Map<String, String>> inheritedUsers = this.inherits.collect{it.allUsers}.flatten()
 
         return (assignedUsers?:[]) + (inheritedUsers?:[])
     }
