@@ -21,9 +21,8 @@ import io.xh.hoist.user.IdentityService
 import io.xh.hoist.user.IdentitySupport
 import org.owasp.encoder.Encode
 
-@Slf4j
 @CompileStatic
-abstract class BaseController implements IdentitySupport, LogSupport {
+abstract class BaseController implements LogSupport, IdentitySupport {
 
     IdentityService identityService
     ExceptionRenderer exceptionRenderer

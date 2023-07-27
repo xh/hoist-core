@@ -62,8 +62,8 @@ dependencies {
     api("org.quartz-scheduler:quartz:2.3.2") {exclude group: 'slf4j-api', module: 'c3p0'}
     api 'org.grails.plugins:quartz:2.0.13'
 
-    api "org.hibernate:hibernate-core:5.6.10.Final"
-    api "org.hibernate:hibernate-ehcache:5.6.10.Final"
+    api "org.hibernate:hibernate-core:5.6.11.Final"
+    api "org.hibernate:hibernate-ehcache:5.6.11.Final"
     api "net.sf.ehcache:ehcache:2.10.9.2"
 
     api "org.apache.poi:poi:4.1.2"

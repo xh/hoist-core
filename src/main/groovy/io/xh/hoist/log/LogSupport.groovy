@@ -9,6 +9,7 @@ package io.xh.hoist.log
 
 import ch.qos.logback.classic.Level
 import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import static ch.qos.logback.classic.Level.ERROR
 import static ch.qos.logback.classic.Level.WARN
@@ -19,6 +20,8 @@ import static io.xh.hoist.util.Utils.getIdentityService
 import static java.lang.System.currentTimeMillis
 
 trait LogSupport {
+
+    private Logger _instanceLog
 
     /**
      * Log at INFO level.
@@ -65,28 +68,15 @@ trait LogSupport {
     /** Log closure execution at TRACE level */
     <T> T withTrace(Object msgs, Closure<T> c)  {withTraceInternal(instanceLog, msgs, c)}
 
-    //-------------------------------------------------------------
-    // Support logging from base class logger
-    // Currently undocumented, pending better understanding of need
-    //--------------------------------------------------------------
-    void logInfoInBase(Object... msgs)   {logInfoInternal((Logger) log, msgs)}
-    void logTraceInBase(Object... msgs)  {logTraceInternal((Logger) log, msgs)}
-    void logDebugInBase(Object... msgs)  {logDebugInternal((Logger) log, msgs)}
-    void logWarnInBase(Object... msgs)   {logWarnInternal((Logger) log, msgs)}
-    void logErrorInBase(Object... msgs)  {logErrorInternal((Logger) log, msgs)}
-    <T> T withInfoInBase(Object msgs, Closure<T> c)     {withInfoInternal((Logger) log, msgs, c)}
-    <T> T withDebugInBase(Object msgs, Closure<T> c)    {withDebugInternal((Logger) log, msgs, c)}
-    <T> T withTraceInBase(Object msgs, Closure<T> c)    {withTraceInternal((Logger) log, msgs, c)}
-
     /**
      * Expose the logger used by the main instance methods on this class.
-     * The default implementation of this is the SLFJ `log` property on the concrete
-     * instance (subclass).
+     * The default implementation of this is a Logger associated with the package name
+     * of the concrete instance class.
      *
      * May be overridden to apply logging to a different class.
      */
     Logger getInstanceLog() {
-        log
+        _instanceLog = _instanceLog ?: LoggerFactory.getLogger(this.class)
     }
 
     //---------------------------------------------------------------------------
