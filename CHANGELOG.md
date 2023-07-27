@@ -1,5 +1,7 @@
 # Changelog
 
+## 18.0.0-SNAPSHOT - unreleased
+
 ## 17.0.0 - 2023-07-27
 This release upgrades Hoist to the latest 6.0.0 version of Grails and upgrades related libraries.
 It should be fully compatible with Java 11 and Java 17.
