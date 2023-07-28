@@ -1,5 +1,6 @@
 package io.xh.hoist.admin
 
+import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.role.Role
 import io.xh.hoist.security.Access
 
@@ -16,4 +17,10 @@ class RolesAdminController extends AdminRestController {
 //            groupNames: Role.list().collect{it.groupName}.unique().sort()
 //        )
 //    }
+    @ReadOnly
+    def allCurrentRoles() {
+        renderJSON(
+            Role.list().collect{it.name}
+        )
+    }
 }
