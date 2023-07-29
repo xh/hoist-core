@@ -28,7 +28,7 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
  * Standard superclass for all Hoist and Application-level services.
  * Provides template methods for service lifecycle / state management plus support for user lookups.
  */
-abstract class BaseService implements IdentitySupport, LogSupport, DisposableBean {
+abstract class BaseService extends LogSupport implements IdentitySupport, DisposableBean {
 
     IdentityService identityService
     ExceptionRenderer exceptionRenderer
