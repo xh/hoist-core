@@ -8,10 +8,9 @@
 package io.xh.hoist
 
 import grails.async.Promises
-import grails.events.bus.EventBusAware
+import io.xh.hoist.util.Utils
 import grails.util.GrailsClassUtils
 import groovy.transform.CompileDynamic
-import groovy.util.logging.Slf4j
 import io.xh.hoist.exception.ExceptionRenderer
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.IdentitySupport
@@ -29,7 +28,7 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
  * Standard superclass for all Hoist and Application-level services.
  * Provides template methods for service lifecycle / state management plus support for user lookups.
  */
-abstract class BaseService implements IdentitySupport, LogSupport, DisposableBean, EventBusAware {
+abstract class BaseService implements IdentitySupport, LogSupport, DisposableBean {
 
     IdentityService identityService
     ExceptionRenderer exceptionRenderer
@@ -106,7 +105,7 @@ abstract class BaseService implements IdentitySupport, LogSupport, DisposableBea
      * hot-reloading scenario where multiple instances of singleton services may be created.
      */
     protected void subscribe(String eventName, Closure c) {
-        eventBus.subscribe(eventName) {Object... args ->
+       Utils.appContext.eventBus.subscribe(eventName) {Object... args ->
             if (destroyed) return
             try {
                 logDebug("Receiving event '$eventName'")
