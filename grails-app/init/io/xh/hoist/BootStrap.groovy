@@ -101,12 +101,12 @@ class BootStrap {
                 ],
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Controls application behaviour when the server reports to the client that a new version is available. Supports the following options:\n\n' +
-                    '• `interval`: Frequency (in seconds) with which the version of the app should be checked. Value of -1 disables version checking.\n' +
-                    '• `mode`: Action taken by client upon a new version becoming available. Supports the following options:\n' +
-                    '\t+ `forceReload`: Force clients to refresh immediately. To be used when an updated server is known to be incompatible with a previously deployed client.\n' +
-                    '\t+ `promptReload`: Show an update prompt banner, allowing users to refresh when convenient.\n' +
-                    '\t+ `silent`: No action taken.'
+                note: "Controls application behaviour when the server reports to the client that a new version is available. Supports the following options:\n\n" +
+                    "• 'interval': Frequency (in seconds) with which the version of the app should be checked. Value of -1 disables version checking.\n" +
+                    "• 'mode': Action taken by client upon a new version becoming available. Supports the following options:\n" +
+                    "\t+ 'forceReload`: Force clients to refresh immediately. To be used when an updated server is known to be incompatible with a previously deployed client.\n" +
+                    "\t+ 'promptReload': Show an update prompt banner, allowing users to refresh when convenient.\n" +
+                    "\t+ 'silent': No action taken."
             ],
             xhAutoRefreshIntervals: [
                 valueType: 'json',
