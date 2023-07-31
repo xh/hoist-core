@@ -1,5 +1,11 @@
 # Changelog
 
+## 16.4.2 - 2023-07-31
+
+### 🐞 Bugfixes
+* Make default notes in default config safer for all DBs by removing smart quotes.
+* Additional validation of parameters to '/userAdmin/users' endpoint.
+
 ## 16.4.1 - 2023-07-13
 
 ### 🐞 Bugfixes
