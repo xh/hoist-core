@@ -72,6 +72,15 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Configures built-in Activity Tracking via TrackService.'
             ],
+            xhAdminRoleController: [
+                groupName: 'xh.io',
+                valueType: 'string',
+                defaultValue: 'DISABLED',
+                clientVisible: true,
+                note: 'Set to "DISABLED" to hide the admin roles panel, '
+                + '"READ" for a read-only view, and "WRITE" to fully enable '
+                + 'role configuration within Toolbox.'
+            ],
             xhAlertBannerConfig: [
                 valueType: 'json',
                 defaultValue: [enabled: true, interval: 30],
