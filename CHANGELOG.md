@@ -1,5 +1,10 @@
 # Changelog
 
+## 16.4.3 - 2023-08-02
+
+### 🐞 Bugfixes
+* Remove one remaining smart quote to make default notes in default config safer for all DBs.
+
 ## 16.4.2 - 2023-07-31
 
 ### 🐞 Bugfixes
