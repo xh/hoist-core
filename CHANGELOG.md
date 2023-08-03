@@ -1,5 +1,10 @@
 # Changelog
 
+## 16.4.4 - 2023-08-03
+
+### 🐞 Bugfixes
+* Replace bullet points with hyphens in default `xhAppVersionCheck` config.
+
 ## 16.4.3 - 2023-08-02
 
 ### 🐞 Bugfixes
