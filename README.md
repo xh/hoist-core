@@ -406,12 +406,10 @@ how to setup.
 Please note that the following is needed for running in this mode.  **See the toolbox application
 for an example of this setup.**
 - A specialized hotswap jvm (see links above for setup, available for java11 and java17)
-- The file `src/resources/hotswap-agent.properties` in your application.  Be sure that the
-Hibernate plugin is *disabled* in this file.
-- The file `etc/hoist/groovyReset.jar` on your local machine.
+- The file `groovyReset.jar` in your project or dependencies
 - The following JVM arguments when starting your application:
   `-XX:HotswapAgent=fatjar`, `-XX:+AllowEnhancedClassRedefinition`,
-    and `-javaagent:/etc/hoist/groovyReset.jar`
+    and `-javaagent:absolute-path-to-groovyReset.jar`
 
 Note that hot swapping is not currently enabled for grails plugins being developed in
 wrapper projects.
