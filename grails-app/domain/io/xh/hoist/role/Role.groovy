@@ -30,13 +30,13 @@ class Role implements JSONFormat {
 
     Map formatForJSON() {
         return [
-            id:id,
+            roleId:id,
             name: name,
             groupName: groupName,
             notes: notes,
             inherits: inherits.collect {it.name },
             assignedUsers: users,
-            allUsers:  allUsers.unique {it.user},
+            allUsers:  allUsers,
             directoryGroups: directoryGroups,
             lastUpdated: lastUpdated,
             lastUpdatedBy: lastUpdatedBy,
@@ -49,7 +49,7 @@ class Role implements JSONFormat {
         List<Map<String, String>> assignedUsers = this.users.collect{['user': it, 'reason': this.name]}
         List<Map<String, String>> inheritedUsers = this.inherits.collect{it.allUsers}.flatten()
 
-        return (assignedUsers?:[]) + (inheritedUsers?:[])
+        return ((assignedUsers?:[]) + (inheritedUsers?:[])).unique {it.user}
     }
 
 }
