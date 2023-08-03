@@ -31,7 +31,7 @@ import static io.xh.hoist.util.Utils.userService
  */
 @Slf4j
 @CompileStatic
-class HoistWebSocketChannel implements LogSupport, JSONFormat {
+class HoistWebSocketChannel extends LogSupport implements JSONFormat {
 
     final WebSocketSession session
     final String authUsername

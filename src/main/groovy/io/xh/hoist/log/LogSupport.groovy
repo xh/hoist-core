@@ -19,7 +19,7 @@ import static ch.qos.logback.classic.Level.TRACE
 import static io.xh.hoist.util.Utils.getIdentityService
 import static java.lang.System.currentTimeMillis
 
-trait LogSupport {
+abstract class LogSupport {
 
     private Logger _instanceLog
 
