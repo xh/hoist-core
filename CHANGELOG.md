@@ -1,11 +1,9 @@
 # Changelog
 
-## 17.1.0 - 2023-08-03
+## 17.1.0 - 2023-08-04
 
-### 💥 Breaking Changes
-* The implementation of the `LogSupport` has been changed from a `trait` to an `abstract class`.
-This change allows continued support for joint java/groovy compilation in the latest version of
-groovy. Applications implementing `LogSupport` directly will need to use the `extends` keyword.
+### ⚙️ Technical
+* Additional improvements to support hot-reloading.
 
 ## 17.0.0 - 2023-07-27
 This release upgrades Hoist to the latest 6.0.0 version of Grails and upgrades related libraries.

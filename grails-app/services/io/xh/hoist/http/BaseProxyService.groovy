@@ -23,12 +23,10 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
 import org.apache.hc.core5.http.NameValuePair
 import org.apache.hc.core5.http.io.entity.StringEntity
 import org.apache.hc.core5.http.message.BasicNameValuePair
-import groovy.util.logging.Slf4j
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
-@Slf4j
 @CompileStatic
 abstract class BaseProxyService extends BaseService {
 

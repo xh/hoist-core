@@ -19,9 +19,11 @@ import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
 import io.xh.hoist.user.IdentitySupport
 import org.owasp.encoder.Encode
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 @CompileStatic
-abstract class BaseController extends LogSupport implements IdentitySupport {
+abstract class BaseController implements LogSupport, IdentitySupport {
 
     IdentityService identityService
     ExceptionRenderer exceptionRenderer
@@ -95,4 +97,8 @@ abstract class BaseController extends LogSupport implements IdentitySupport {
     void handleException(Exception ex) {
         exceptionRenderer.handleException(ex, request, response, this)
     }
+
+    // Provide cached logger to LogSupport for possible performance benefit
+    private final Logger _log = LoggerFactory.getLogger(this.class)
+    Logger getInstanceLog() { _log }
 }

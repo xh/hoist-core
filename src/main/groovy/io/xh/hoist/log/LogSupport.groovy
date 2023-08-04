@@ -19,9 +19,7 @@ import static ch.qos.logback.classic.Level.TRACE
 import static io.xh.hoist.util.Utils.getIdentityService
 import static java.lang.System.currentTimeMillis
 
-abstract class LogSupport {
-
-    private Logger _instanceLog
+trait LogSupport {
 
     /**
      * Log at INFO level.
@@ -70,13 +68,14 @@ abstract class LogSupport {
 
     /**
      * Expose the logger used by the main instance methods on this class.
-     * The default implementation of this is a Logger associated with the package name
-     * of the concrete instance class.
+     * The default implementation of this method will lookup the Logger associated with the
+     * package name of the concrete instance class.  This is a cached lookup and should be
+     * sufficiently fast for most applications.
      *
-     * May be overridden to apply logging to a different class.
+     * Override to apply logging to a different logger, or to provide a cached implementation.
      */
     Logger getInstanceLog() {
-        _instanceLog = _instanceLog ?: LoggerFactory.getLogger(this.class)
+        LoggerFactory.getLogger(this.class)
     }
 
     //---------------------------------------------------------------------------

@@ -17,6 +17,8 @@ import io.xh.hoist.user.IdentitySupport
 import io.xh.hoist.util.Timer
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.DisposableBean
 
 import java.util.concurrent.TimeUnit
@@ -28,7 +30,7 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
  * Standard superclass for all Hoist and Application-level services.
  * Provides template methods for service lifecycle / state management plus support for user lookups.
  */
-abstract class BaseService extends LogSupport implements IdentitySupport, DisposableBean {
+abstract class BaseService implements LogSupport, IdentitySupport, DisposableBean {
 
     IdentityService identityService
     ExceptionRenderer exceptionRenderer
@@ -169,5 +171,9 @@ abstract class BaseService extends LogSupport implements IdentitySupport, Dispos
             }
         }
     }
+
+    // Provide cached logger to LogSupport for possible performance benefit
+    private final Logger _log = LoggerFactory.getLogger(this.class)
+    Logger getInstanceLog() { _log }
 
 }
