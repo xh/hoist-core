@@ -9,10 +9,8 @@ package io.xh.hoist
 
 import grails.gorm.transactions.Transactional
 import grails.validation.ValidationException
-import groovy.util.logging.Slf4j
 import io.xh.hoist.json.JSONParser
 
-@Slf4j
 @Transactional
 abstract class RestController extends BaseController {
 

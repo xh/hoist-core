@@ -26,6 +26,8 @@ import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.json.JSONParser.parseObject
+import static io.xh.hoist.json.JSONParser.parseObjectOrArray
+import static java.lang.Boolean.parseBoolean
 
 @AccessAll
 @CompileStatic
@@ -87,21 +89,16 @@ class XhController extends BaseController {
     //------------------------
     // Tracking
     //------------------------
-    def track(String category, String msg, String data, int elapsed, String severity) {
-        if (!trackService.enabled) {
-            renderJSON(success: false, error: 'Activity Tracking disabled via config')
-            return
-        }
-
+    def track(String category, String msg, String data, String logData, int elapsed, String severity) {
         ensureClientUsernameMatchesSession()
         trackService.track(
             category: safeEncode(category),
             msg: safeEncode(msg),
-            data: data ? JSONParser.parseObjectOrArray(safeEncode(data)) : null,
+            data: data ? parseObjectOrArray(safeEncode(data)) : null,
+            logData: logData == 'true' || logData == 'false' ? parseBoolean(logData) : logData?.split(','),
             elapsed: elapsed,
             severity: safeEncode(severity)
         )
-
         renderJSON(success: true)
     }
 
@@ -219,11 +216,11 @@ class XhController extends BaseController {
     }
 
     def version() {
-        def shouldUpdate = configService.getBool('xhAppVersionCheckEnabled')
-        renderJSON (
+        def options = configService.getMap('xhAppVersionCheck', [:])
+        renderJSON(
+            *: options,
             appVersion: Utils.appVersion,
-            appBuild: Utils.appBuild,
-            shouldUpdate: shouldUpdate
+            appBuild: Utils.appBuild
         )
     }
 

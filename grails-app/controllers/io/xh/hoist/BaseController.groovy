@@ -11,7 +11,6 @@ package io.xh.hoist
 import grails.async.Promise
 import grails.async.web.WebPromises
 import groovy.transform.CompileStatic
-import groovy.util.logging.Slf4j
 import io.xh.hoist.exception.ExceptionRenderer
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONSerializer
@@ -20,10 +19,11 @@ import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
 import io.xh.hoist.user.IdentitySupport
 import org.owasp.encoder.Encode
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
-@Slf4j
 @CompileStatic
-abstract class BaseController implements IdentitySupport, LogSupport {
+abstract class BaseController implements LogSupport, IdentitySupport {
 
     IdentityService identityService
     ExceptionRenderer exceptionRenderer
@@ -97,4 +97,8 @@ abstract class BaseController implements IdentitySupport, LogSupport {
     void handleException(Exception ex) {
         exceptionRenderer.handleException(ex, request, response, this)
     }
+
+    // Provide cached logger to LogSupport for possible performance benefit
+    private final Logger _log = LoggerFactory.getLogger(this.class)
+    Logger getInstanceLog() { _log }
 }

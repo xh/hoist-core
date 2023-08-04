@@ -1,7 +1,46 @@
 # Changelog
 
-## 17.0-SNAPSHOT - unreleased
+## 17.1.0 - 2023-08-04
 
+### ⚙️ Technical
+* Additional improvements to support hot-reloading.
+
+## 17.0.0 - 2023-07-27
+This release upgrades Hoist to the latest 6.0.0 version of Grails and upgrades related libraries.
+It should be fully compatible with Java 11 and Java 17.
+
+### 🎁 New Features
+* This version of Hoist restores the ability to do development-time reloading via the java hotswap
+ agent. See the readme for more information.
+
+### ⚙️ Technical
+* The implementation of the `LogSupport` trait has been simplified, such that it no longer requires
+  an @SLF4J annotation, or `log` property to be provided.   Undocumented and problematic methods
+ `logXXXInBase` were removed.
+
+### 📚 Libraries
+
+* grails `5.3.2 -> 6.0.0`
+* gorm `7.3.2` -> `8.0.0`
+* groovy `3.0.9` -> `3.0.11`
+
+## 16.4.1 - 2023-07-13
+
+### 🐞 Bugfixes
+* Make impersonation service more robust for applications with dynamic/lazy user generation.
+* Additional validation of parameters to '/userAdmin/users' endpoint.
+
+## 16.4.0 - 2023-07-07
+
+### 🎁 New Features
+
+* Added new `logData` option to `TrackService.track()` - allows applications to request that
+  key/value pairs provided within the `data` block of a track statement be logged along with the
+  standard output. Client-side support for this feature on a per-call basis added
+  in `hoist-react >= 57.1`, can also be defaulted within the `xhActivityTrackingConfig` app config.
+* Deprecated config `xhAppVersionCheckEnabled` in favor of object based `xhAppVersionCheck`. Apps will
+  seamlessly migrate the existing value to this new config's `mode` flag.  This supports the new
+  `forceRefresh` mode introduced in hoist-react v58.
 
 ## 16.3.0 - 2023-06-20
 

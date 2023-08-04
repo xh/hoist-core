@@ -32,7 +32,6 @@ import static org.apache.hc.core5.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
  * These two contexts capture the overwhelming majority of code execution in a Hoist server.
  */
 @CompileStatic
-@Slf4j
 class ExceptionRenderer {
 
     /**

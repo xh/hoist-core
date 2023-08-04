@@ -8,11 +8,9 @@
 package io.xh.hoist.admin
 
 import grails.gorm.transactions.Transactional
-import groovy.util.logging.Slf4j
 import io.xh.hoist.RestController
 import io.xh.hoist.security.Access
 
-@Slf4j
 @Transactional
 @Access(['HOIST_ADMIN_READER'])
 abstract class AdminRestController extends RestController{

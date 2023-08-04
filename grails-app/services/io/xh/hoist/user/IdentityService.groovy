@@ -98,8 +98,12 @@ class IdentityService extends BaseService {
             throw new RuntimeException('User not found or user not authorized for impersonation.')
         }
 
-        def targetUser = userService.impersonationTargetsForUser(authUser).find { it.username == username }
+        def targetUser = userService.find(username)
         if (!targetUser) {
+            throw new RuntimeException("User '$username' not found")
+        }
+
+        if (!userService.impersonationTargetsForUser(authUser).contains(targetUser)) {
             throw new RuntimeException("'$authUser' is not authorized to impersonate '$username'")
         }
 
