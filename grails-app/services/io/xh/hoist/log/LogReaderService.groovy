@@ -10,9 +10,10 @@ package io.xh.hoist.log
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.configuration.LogbackConfig
 import io.xh.hoist.exception.RoutineRuntimeException
 import org.apache.commons.io.input.ReversedLinesFileReader
+import java.nio.file.Paths
+import static io.xh.hoist.configuration.LogbackConfig.logRootPath
 import static java.lang.System.currentTimeMillis
 import java.util.regex.Pattern
 
@@ -34,11 +35,6 @@ class LogReaderService extends BaseService {
             throw new RuntimeException("Log Viewer disabled. See 'xhEnableLogViewer' config.")
         }
 
-        def logRootPath = LogbackConfig.logRootPath
-
-        // DEBUG
-        logDebug("tomcat, ${logRootPath}")
-
         return withDebug([
             _msg: 'Reading log file',
             _filename: filename,
@@ -46,7 +42,7 @@ class LogReaderService extends BaseService {
             maxLines: maxLines,
             pattern: pattern,
             caseSensitive: caseSensitive,
-            logRootPath: logRootPath
+            logRootPath: getLogPath().absolutePath
         ]) {
             doRead(filename, startLine, maxLines, pattern, caseSensitive)
         }
@@ -57,10 +53,13 @@ class LogReaderService extends BaseService {
      * Fetch the raw contents of a log file for direct download.
      */
     File get(String filename) {
-        def ret = new File(LogbackConfig.logRootPath, filename)
-        logDebug("LOGROOTPATH: ${LogbackConfig.logRootPath}")
+        def ret = new File(logRootPath, filename)
         if (!ret.exists()) throw new FileNotFoundException()
         return ret
+    }
+
+    File getLogPath() {
+        return new File(Paths.get(logRootPath).toString())
     }
 
     //------------------------
@@ -71,7 +70,7 @@ class LogReaderService extends BaseService {
 
         def tail = !startLine || startLine <= 0,
             ret = new ArrayList(maxLines),
-            file = new File(LogbackConfig.logRootPath, filename)
+            file = new File(logRootPath, filename)
 
         if (!file.exists()) throw new FileNotFoundException()
 
@@ -111,10 +110,6 @@ class LogReaderService extends BaseService {
                     lineNumber++
                 }
             }
-
-            // DEBUG
-//            logDebug('LRP doRead', LogbackConfig.logRootPath)
-//            ret << LogbackConfig.logRootPath
 
             return ret
 

@@ -14,7 +14,6 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
-import static io.xh.hoist.configuration.LogbackConfig.logRootPath
 import static io.xh.hoist.util.DateTimeUtils.DAYS
 import static java.io.File.separator
 
@@ -25,7 +24,8 @@ import static java.io.File.separator
  */
 class LogArchiveService extends BaseService {
 
-    def configService
+    def configService,
+        logReaderService
 
     void init() {
         createTimer(interval: 1 * DAYS)
@@ -37,7 +37,7 @@ class LogArchiveService extends BaseService {
             return []
         }
 
-        File logPath = getLogPath()
+        File logPath = logReaderService.getLogPath()
         List archivedFilenames = []
 
         daysThreshold = daysThreshold ?: config.archiveAfterDays
@@ -72,10 +72,6 @@ class LogArchiveService extends BaseService {
     //------------------------
     private void onTimer() {
         archiveLogs((Integer) config.archiveAfterDays)
-    }
-
-    private File getLogPath() {
-        return new File(Paths.get(logRootPath).toString())
     }
 
     private File getArchivePath(String logPath, String category) {
