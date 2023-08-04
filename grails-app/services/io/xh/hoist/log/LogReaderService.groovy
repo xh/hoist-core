@@ -34,13 +34,19 @@ class LogReaderService extends BaseService {
             throw new RuntimeException("Log Viewer disabled. See 'xhEnableLogViewer' config.")
         }
 
+        def logRootPath = LogbackConfig.logRootPath
+
+        // DEBUG
+        logDebug("tomcat, ${logRootPath}")
+
         return withDebug([
             _msg: 'Reading log file',
             _filename: filename,
             startLine: startLine,
             maxLines: maxLines,
             pattern: pattern,
-            caseSensitive: caseSensitive
+            caseSensitive: caseSensitive,
+            logRootPath: logRootPath
         ]) {
             doRead(filename, startLine, maxLines, pattern, caseSensitive)
         }
@@ -52,6 +58,7 @@ class LogReaderService extends BaseService {
      */
     File get(String filename) {
         def ret = new File(LogbackConfig.logRootPath, filename)
+        logDebug("LOGROOTPATH: ${LogbackConfig.logRootPath}")
         if (!ret.exists()) throw new FileNotFoundException()
         return ret
     }
@@ -104,6 +111,10 @@ class LogReaderService extends BaseService {
                     lineNumber++
                 }
             }
+
+            // DEBUG
+//            logDebug('LRP doRead', LogbackConfig.logRootPath)
+//            ret << LogbackConfig.logRootPath
 
             return ret
 

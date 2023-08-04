@@ -145,7 +145,7 @@ class LogbackConfig {
     static String getLogRootPath() {
         if (!_logRootPath) {
             def customPath = System.getProperty('io.xh.hoist.log.path') ?: getInstanceConfig('logPath')
-
+            customPath = this.getClass().getResource('gradle.properties')
             if (customPath) {
                 _logRootPath = customPath
             } else {
