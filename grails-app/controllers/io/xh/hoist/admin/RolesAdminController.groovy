@@ -11,33 +11,24 @@ class RolesAdminController extends BaseController {
     static restTarget = Role
     static trackChanges = true
 
-
-//    def lookupData() {
-//        renderJSON (
-//            groupNames: Role.list().collect{it.groupName}.unique().sort()
-//        )
-//    }
     @ReadOnly
     def index() {
         renderJSON(
             Role.findAll(sort: 'name', order: 'asc').collect{[
-                roleId: it.id,
                 name: it.name,
                 groupName: it.groupName,
                 lastUpdated: it.lastUpdated,
                 lastUpdatedBy: it.lastUpdatedBy,
-                assignedUserCount: it.users.size(),
-                // do we want to calculate the below size? potentially expensive
-                allUserCount: it.allUsers.size()
             ]}
         )
     }
 
     @ReadOnly
     def roleDetails() {
-        def roleId = params.get('roleId')
+        def roleName = params.get('roleName')
         renderJSON(
-            Role.get(roleId)
+            // TODO: need to handle the case where this doesn't get...
+            Role.get(roleName)
         )
     }
 
