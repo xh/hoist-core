@@ -18,7 +18,7 @@ class LogViewerAdminController extends BaseController {
     def logArchiveService,
         logReaderService
 
-    def listFileInfo() {
+    def listFiles() {
         def logRootPath = logReaderService.getLogPath().absolutePath
         def ret = availableFiles.collect {
             [
