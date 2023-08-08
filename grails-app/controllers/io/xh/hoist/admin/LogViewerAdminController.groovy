@@ -19,14 +19,15 @@ class LogViewerAdminController extends BaseController {
         logReaderService
 
     def listFiles() {
-        def ret = availableFiles.collect {
+        def logRootPath = logReaderService.logDir.absolutePath,
+            files = availableFiles.collect {
             [
                 filename    : it.key,
                 size        : it.value.size(),
                 lastModified: it.value.lastModified()
             ]
         }
-        renderJSON(success: true, files: ret)
+        renderJSON(files: files, logRootPath: logRootPath)
     }
 
     def getFile(String filename, Integer startLine, Integer maxLines, String pattern, Boolean caseSensitive) {

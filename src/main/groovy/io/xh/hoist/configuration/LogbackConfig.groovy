@@ -136,7 +136,6 @@ class LogbackConfig {
         }
     }
 
-
     /**
      * Return the logging directory path - [tomcatHome]/logs/[appName]-logs by default.
      * Apps can specify a custom directory via a `-Dio.xh.hoist.log.path` JavaOpt or a
@@ -145,7 +144,6 @@ class LogbackConfig {
     static String getLogRootPath() {
         if (!_logRootPath) {
             def customPath = System.getProperty('io.xh.hoist.log.path') ?: getInstanceConfig('logPath')
-
             if (customPath) {
                 _logRootPath = customPath
             } else {
