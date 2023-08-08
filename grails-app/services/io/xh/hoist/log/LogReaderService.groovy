@@ -41,8 +41,7 @@ class LogReaderService extends BaseService {
             startLine: startLine,
             maxLines: maxLines,
             pattern: pattern,
-            caseSensitive: caseSensitive,
-            logRootPath: getLogPath().absolutePath
+            caseSensitive: caseSensitive
         ]) {
             doRead(filename, startLine, maxLines, pattern, caseSensitive)
         }
@@ -58,7 +57,7 @@ class LogReaderService extends BaseService {
         return ret
     }
 
-    File getLogPath() {
+    File getLogDir() {
         return new File(Paths.get(logRootPath).toString())
     }
 
