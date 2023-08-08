@@ -1,6 +1,6 @@
 # Changelog
 
-## 17.1.0 - 2023-08-04
+## 17.1.0 - 2023-08-08
 
 ### ⚙️ Technical
 * Additional improvements to support hot-reloading.
