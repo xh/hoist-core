@@ -33,12 +33,12 @@ class Role implements JSONFormat {
             name: name,
             groupName: groupName,
             notes: notes,
-            inherits: children.collect {it.name },
-            assignedUsers: users,
+            inheritedRoles: allInheritedRoles,
             allUsers:  allUsers,
             directoryGroups: directoryGroups,
             lastUpdated: lastUpdated,
             lastUpdatedBy: lastUpdatedBy,
+            color: color
         ]
     }
 
@@ -54,13 +54,29 @@ class Role implements JSONFormat {
             it.userReasons
         }
 
-        // each user's "reason" should be the roll closest to `this`
+        // each user's "reason" should be the role closest to `this`
         users.unique{it.user}
+    }
+
+    List<Map<String, String>> getAllInheritedRoles() {
+        def parents = roleBFS {it.children}
+        def roleReasons = parents.collectMany{
+            it.parentReasons
+        }
+
+        // each role's "reason" should be the role closest to `this`
+        roleReasons.unique{it.role}
     }
 
     List<Map<String, String>> getUserReasons() {
         this.users.collect{
             ['user': it, 'reason': this.name]
+        }
+    }
+
+    List<Map<String, String>> getParentReasons() {
+        this.children.collect{
+            ['role': it.name, 'reason': this.name, 'color': it.color]
         }
     }
 
@@ -79,4 +95,12 @@ class Role implements JSONFormat {
         }
         return explored.toList()
     }
+
+    String getColor() {
+        def gen = new Random()
+        gen.setSeed(Long.valueOf(this.name.hashCode()))
+        return "hsl(${Math.abs(gen.nextInt() % 360)}, 80%, 70%)"
+    }
+
+
 }

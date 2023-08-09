@@ -4,9 +4,13 @@ import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseController
 import io.xh.hoist.role.Role
 import io.xh.hoist.security.Access
+import io.xh.hoist.user.BaseUserService
+import io.xh.toolbox.user.RoleService
 
 @Access(['HOIST_ADMIN_READER'])
 class RolesAdminController extends BaseController {
+    RoleService roleService
+
 //    TODO: this needs to update when the underlying does
     static restTarget = Role
     static trackChanges = true
@@ -37,5 +41,17 @@ class RolesAdminController extends BaseController {
         renderJSON(
             Role.list().collect{it.name}
         )
+    }
+
+    @ReadOnly
+    def effectiveChanges() {
+        def changeType = params.get('changeType')
+        println("changeType = " + changeType)
+        if (changeType == "delete") {
+            def roleName = params.get('roleName') as String
+            println("roleName = " + roleName)
+            return renderJSON(roleService.getImpactDelete(roleName))
+        }
+        renderJSON("hi")
     }
 }

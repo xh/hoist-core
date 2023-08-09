@@ -83,8 +83,19 @@ class RoleService extends BaseRoleService {
             name: 'SUPER ROLE',
             groupName: 'tests',
             // this testing role can inherit all existing roles..
+            notes: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
             children: Role.list(),
             users: ["test_user_for_super_role@test.com"],
+            lastUpdatedBy: "xh_role_service__init-script",
+        ).save(flush: true)
+        println("CREATING (TEST) SUPER-DUPER ROLE")
+        def superDuperRole = new Role(
+            name: 'SUPER-DUPER ROLE',
+            groupName: 'tests',
+            // this testing role can inherit all existing roles..
+            notes: "Lorem ipsum dolor sit amet",
+            children: superRole,
+            users: ["test_user_for_super-duper_role@test.com"],
             lastUpdatedBy: "xh_role_service__init-script",
         ).save(flush: true)
         println("CREATING (TEST) CHILD ROLE")
@@ -92,6 +103,8 @@ class RoleService extends BaseRoleService {
             name: 'CHILD ROLE',
             groupName: 'tests',
             // this testing role can inherit all existing roles..
+            notes: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus sagittis nibh vel scelerisque viverra. Fusce turpis libero, auctor at orci et, rutrum volutpat urna. Sed ut urna urna. Vivamus ac sem dui. Pellentesque in est erat. Nulla porttitor quam ligula, quis fermentum orci tincidunt sit amet. Ut sed iaculis nunc, sit amet condimentum metus.\n" +
+                "Proin viverra lobortis luctus. In lectus neque, porttitor eu dictum a, gravida venenatis diam. Nunc accumsan tortor vel magna sodales hendrerit. Pellentesque id sem a leo consectetur aliquam. Aenean rutrum ac purus sit amet auctor. Nam et felis eleifend, ultricies nulla sit amet, tempus nunc. Curabitur porta a leo quis eleifend. Fusce lobortis facilisis hendrerit. Aliquam porta blandit vulputate. Donec hendrerit molestie suscipit. Vestibulum sagittis nisl ante, in ultricies urna venenatis sed. Etiam hendrerit porttitor malesuada. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Proin dapibus ultrices lorem.",
             users: ["test_user_for_child_role@test.com"],
             lastUpdatedBy: "xh_role_service__init-script",
         ).save(flush: true)
@@ -106,4 +119,13 @@ class RoleService extends BaseRoleService {
         confRoles.collectMany {it.value }
     }
 
+    Map<String, Integer> getImpactDelete(String roleName) {
+        def role = Role.get(roleName)
+        def actingUsers = role.allUsers.collect{it.name}
+        def inheritedRoles = role.allInheritedRoles.collect{it.role}
+        [
+            userCount: actingUsers.size(),
+            inheritedRolesCount: inheritedRoles.size()
+        ]
+    }
 }
