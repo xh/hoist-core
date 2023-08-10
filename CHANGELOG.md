@@ -11,7 +11,7 @@ It should be fully compatible with Java 11 and Java 17.
 
 ### 🎁 New Features
 * This version of Hoist restores the ability to do development-time reloading via the java hotswap
- agent. See the readme for more information.
+ agent. [See the readme](https://github.com/xh/hoist-core/blob/develop/README.md#hot-reloading) for more information.
 
 ### ⚙️ Technical
 * The implementation of the `LogSupport` trait has been simplified, such that it no longer requires
