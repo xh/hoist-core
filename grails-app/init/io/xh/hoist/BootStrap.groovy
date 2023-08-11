@@ -121,6 +121,18 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Configures handling of client error reports. Errors are queued when received and processed every [intervalMins]. If more than [maxErrors] arrive within an interval, further reports are dropped to avoid storms of errors from multiple clients.'
             ],
+            xhConnPoolMonitoringConfig: [
+                valueType: 'json',
+                defaultValue: [
+                    enabled: true,
+                    snapshotInterval: 60,
+                    maxSnapshots: 1440,
+                    writeToLog: false
+                ],
+                clientVisible: false,
+                groupName: 'xh.io',
+                note: 'Configures built-in JDBC connection pool monitoring.'
+            ],
             xhEmailDefaultDomain: [
                 valueType: 'string',
                 defaultValue: 'xh.io',
@@ -215,7 +227,7 @@ class BootStrap {
                 ],
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Configures built-in Memory Monitoring.'
+                note: 'Configures built-in memory usage and GC monitoring.'
             ],
             xhMonitorConfig: [
                 valueType: 'json',
