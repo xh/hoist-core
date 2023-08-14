@@ -2,9 +2,9 @@ package io.xh.hoist.admin
 
 import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseController
+import io.xh.hoist.json.JSONParser
 import io.xh.hoist.role.Role
 import io.xh.hoist.security.Access
-import io.xh.hoist.user.BaseUserService
 import io.xh.toolbox.user.RoleService
 
 @Access(['HOIST_ADMIN_READER'])
@@ -23,6 +23,7 @@ class RolesAdminController extends BaseController {
                 groupName: it.groupName,
                 lastUpdated: it.lastUpdated,
                 lastUpdatedBy: it.lastUpdatedBy,
+                notes: it.notes,
             ]}
         )
     }
@@ -37,21 +38,28 @@ class RolesAdminController extends BaseController {
     }
 
     @ReadOnly
-    def allCurrentRoles() {
+    def allGroups() {
         renderJSON(
-            Role.list().collect{it.name}
+            Role.list().collect{it.groupName}.unique()
         )
     }
 
     @ReadOnly
-    def effectiveChanges() {
+    def cascadeImpact() {
         def changeType = params.get('changeType')
         println("changeType = " + changeType)
         if (changeType == "delete") {
-            def roleName = params.get('roleName') as String
+            String roleName = params.get('roleName')
             println("roleName = " + roleName)
-            return renderJSON(roleService.getImpactDelete(roleName))
+            return renderJSON(Role.get(roleName).getImpactDelete())
+        } else if (changeType == "edit") {
+            String roleName = params.get('roleName')
+            List<String> users = JSONParser.parseArray(params.get('users'))
+            List<String> inheritedRoles = JSONParser.parseArray(params.get('inheritedRoles'))
+
+            return renderJSON((Role.get(roleName).getImpactEdit(roleName, users, inheritedRoles)))
         }
-        renderJSON("hi")
+        // don't care about groupName or notes
+        renderJSON("no cascade impact observed")
     }
 }

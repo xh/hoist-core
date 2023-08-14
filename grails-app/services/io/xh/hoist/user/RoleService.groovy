@@ -29,7 +29,24 @@ class RoleService extends BaseRoleService {
             return acc
         }
     }
-
+    /**
+     * This is used as a "pre-"migration script, responsible for loading the role configs stored
+     * (now) temporarily as JSON config objects into the database, using the GORM `Role` domain
+     * object. This function clears all roles from the database, reads from the config (adding
+     * the associated roles) and then adds a few more roles for demoing and testing functionality.
+     *
+     * In all, this should leave 6 role objects in the database, with the following inheritance
+     * chain:
+     *
+     *              super-duper
+     *                  |
+     *          ----- super -----
+     *         /        |        \
+     *        /  /--- admin ---\  \
+     *      reader           impersonator
+     *                            |
+     *                        child role
+     */
     private cleanDatabaseAndInitFromConfig() {
         println("STARTING INIT")
         Role.list().each {
@@ -45,7 +62,6 @@ class RoleService extends BaseRoleService {
 
         def confRoles = configService.getMap('roles')
         confRoles.each { role, users ->
-            println("CREATING ROLE: " + role)
             def r = new Role(
                 name: role,
                 groupName: 'xh_config',
@@ -57,7 +73,6 @@ class RoleService extends BaseRoleService {
         }
 
         // All users are granted a READER_ROLE as per class doc comment.
-        println("GRANT READER ROLE")
         def appReader = Role.findOrCreateWhere(
             name: READER_ROLE,
             groupName: 'xh_config',
@@ -66,7 +81,6 @@ class RoleService extends BaseRoleService {
         appReader.save(flush: true)
 
         // support hoist impersonation, by making it inherited by HOIST_ADMINS
-        println("GIVE ADMIN IMPERSONATION")
         def hoistAdmin = Role.findByName(ADMIN_ROLE)
         def hoistImpersonator = new Role(
             name: IMPERSONATOR_ROLE,
@@ -78,7 +92,6 @@ class RoleService extends BaseRoleService {
         hoistAdmin.save(failOnError: true, flush: true)
 
         // create test roles with more complex inheritance
-        println("CREATING (TEST) SUPER ROLE")
         def superRole = new Role(
             name: 'SUPER ROLE',
             groupName: 'tests',
@@ -88,7 +101,6 @@ class RoleService extends BaseRoleService {
             users: ["test_user_for_super_role@test.com"],
             lastUpdatedBy: "xh_role_service__init-script",
         ).save(flush: true)
-        println("CREATING (TEST) SUPER-DUPER ROLE")
         def superDuperRole = new Role(
             name: 'SUPER-DUPER ROLE',
             groupName: 'tests',
@@ -98,7 +110,6 @@ class RoleService extends BaseRoleService {
             users: ["test_user_for_super-duper_role@test.com"],
             lastUpdatedBy: "xh_role_service__init-script",
         ).save(flush: true)
-        println("CREATING (TEST) CHILD ROLE")
         def childRole = new Role(
             name: 'CHILD ROLE',
             groupName: 'tests',
@@ -111,21 +122,11 @@ class RoleService extends BaseRoleService {
         hoistImpersonator.addToChildren(childRole)
         hoistImpersonator.save(flush: true)
 
-        println("TOTAL ROLES: " + Role.list().collect{it.name})
+        println("CREATED ROLES: " + Role.list().collect{it.name})
     }
 
     private List<String> getAllUsersTemporary() {
         def confRoles = configService.getMap('roles')
         confRoles.collectMany {it.value }
-    }
-
-    Map<String, Integer> getImpactDelete(String roleName) {
-        def role = Role.get(roleName)
-        def actingUsers = role.allUsers.collect{it.name}
-        def inheritedRoles = role.allInheritedRoles.collect{it.role}
-        [
-            userCount: actingUsers.size(),
-            inheritedRolesCount: inheritedRoles.size()
-        ]
     }
 }

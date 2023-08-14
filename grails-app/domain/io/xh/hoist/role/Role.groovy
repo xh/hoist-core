@@ -33,12 +33,11 @@ class Role implements JSONFormat {
             name: name,
             groupName: groupName,
             notes: notes,
-            inheritedRoles: allInheritedRoles,
-            allUsers:  allUsers,
+            inheritedRoles: allChildrenRolesWithReasons,
+            allUsers:  allUsersWithReasons,
             directoryGroups: directoryGroups,
             lastUpdated: lastUpdated,
             lastUpdatedBy: lastUpdatedBy,
-            color: color
         ]
     }
 
@@ -46,37 +45,55 @@ class Role implements JSONFormat {
         return Role.list().findAll{it.children.contains(this)}
     }
 
-//    rename allUsers elsewhere (maybe don't call this getAllUsers -- don't make properties that are expensive?)
-    // just get the corresponding roles first, calculate users after
-    List<Map<String, String>> getAllUsers() {
-        def roles = [this] + roleBFS {it.findParents()}
-        def users = roles.collectMany{
-            it.userReasons
+    List<String> getAllUsers() {
+        def parents = [this] + roleBFS {it.findParents()}
+        def users = parents.collectMany{
+            it.users
         }
 
-        // each user's "reason" should be the role closest to `this`
+        // each user's "reason" should be the role closest to `this` (or maybe consider
+        // returning them all? re:conversation with Anselm about looking at "reasons" when
+        // trying to absolve someone of a role...)
+        users.unique()
+    }
+
+//    rename allUsers elsewhere (maybe don't call this getAllUsers -- don't make properties that are expensive?)
+    // just get the corresponding roles first, calculate users after
+    List<Map<String, String>> getAllUsersWithReasons() {
+        def parents = [this] + roleBFS {it.findParents()}
+        def users = parents.collectMany{
+            it.userReasons()
+        }
+
+        // each user's "reason" should be the role closest to `this` (see above note)
         users.unique{it.user}
     }
 
-    List<Map<String, String>> getAllInheritedRoles() {
-        def parents = roleBFS {it.children}
-        def roleReasons = parents.collectMany{
-            it.parentReasons
-        }
-
-        // each role's "reason" should be the role closest to `this`
-        roleReasons.unique{it.role}
+    List<Role> getAllChildrenRoles() {
+        roleBFS {it.children}.unique()
     }
 
-    List<Map<String, String>> getUserReasons() {
+    List<Map<String, String>> getAllChildrenRolesWithReasons() {
+        def children =  roleBFS {it.children}
+
+        children.collectMany{
+            it.childReasons()
+        }.unique{it.role}
+    }
+
+    List<Role> getAllParentRoles() {
+        roleBFS {it.findParents()}.unique()
+    }
+
+    List<Map<String, String>> userReasons() {
         this.users.collect{
             ['user': it, 'reason': this.name]
         }
     }
 
-    List<Map<String, String>> getParentReasons() {
+    List<Map<String, String>> childReasons() {
         this.children.collect{
-            ['role': it.name, 'reason': this.name, 'color': it.color]
+            ['role': it.name, 'reason': this.name]
         }
     }
 
@@ -96,11 +113,31 @@ class Role implements JSONFormat {
         return explored.toList()
     }
 
-    String getColor() {
-        def gen = new Random()
-        gen.setSeed(Long.valueOf(this.name.hashCode()))
-        return "hsl(${Math.abs(gen.nextInt() % 360)}, 80%, 70%)"
+    Map<String, Object> getImpactDelete() {
+        def actingUsers = this.allUsers
+        def inheritedRoles = this.allParentRoles
+
+        [
+            this: true,
+            userCount: actingUsers.size(),
+            inheritedRolesCount: inheritedRoles.size()
+        ]
     }
 
+    Map<String, Object> getImpactEdit(String newRoleName, List<String> newUsers, List<String> newInheritedRoles) {
+        def currentUsers = this.users
+        def currentInheritedRoles = this.children
 
+        Set<Role> inheritedRolesChange = (currentInheritedRoles + newInheritedRoles) - (currentInheritedRoles.intersect(newInheritedRoles))
+        Set<String> usersChange = (currentUsers + newUsers) - (currentUsers.intersect(newUsers))
+        List<String> cascadeUsersChange = inheritedRolesChange.collectMany {it.allUsers}
+
+        [
+            this: this.name == newRoleName,
+            // userCount needs to be the change in users, plus the cascade of changed inheritance...
+            inheritedRoles: inheritedRolesChange.size(),
+            userCount: (usersChange + cascadeUsersChange).toSet().size()
+
+        ]
+    }
 }
