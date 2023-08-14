@@ -9,7 +9,6 @@ package io.xh.hoist.monitor
 
 import io.xh.hoist.BaseService
 import io.xh.hoist.exception.DataNotAvailableException
-import io.xh.hoist.util.Timer
 import org.apache.tomcat.jdbc.pool.DataSource as PooledDataSource
 import org.apache.tomcat.jdbc.pool.PoolConfiguration
 import org.springframework.boot.jdbc.DataSourceUnwrapper
@@ -26,29 +25,30 @@ import static java.lang.System.currentTimeMillis
  */
 class ConnectionPoolMonitoringService extends BaseService {
 
-    private Map<Long, Map> _snapshots = new ConcurrentHashMap()
-    private Timer _snapshotTimer
+    def configService,
+        dataSource
 
-    def configService
-    def dataSource
+    private Map<Long, Map> _snapshots = new ConcurrentHashMap()
+    private PooledDataSource _pooledDataSource
+    private boolean unwrapAttempted = false
 
     void init() {
-        _snapshotTimer = createTimer(
+        createTimer(
             interval: {enabled ? config.snapshotInterval * SECONDS: -1},
             runFn: this.&takeSnapshot
         )
     }
 
     boolean isEnabled() {
-        return config.enabled && pooledDataSource != null
+        return config.enabled && pooledDataSource
     }
 
-    /** @returns connection pool config properties, typically specified in Runtime.groovy. */
+    /** Connection pool config properties, typically specified in Runtime.groovy. */
     PoolConfiguration getPoolConfiguration() {
         return pooledDataSource?.poolProperties
     }
 
-    /** @returns map of previous pool usage snapshots, keyed by ms timestamp of snapshot. */
+    /** Map of previous pool usage snapshots, keyed by ms timestamp of snapshot. */
     Map getSnapshots() {
         return _snapshots
     }
@@ -81,7 +81,7 @@ class ConnectionPoolMonitoringService extends BaseService {
     Map resetStats() {
         ensureEnabled()
         pooledDataSource.pool.resetStats()
-        this.takeSnapshot()
+        takeSnapshot()
     }
 
 
@@ -105,9 +105,6 @@ class ConnectionPoolMonitoringService extends BaseService {
             releasedIdle: ds.releasedIdleCount
         ]
     }
-
-    private PooledDataSource _pooledDataSource
-    private boolean unwrapAttempted = false
 
     private PooledDataSource getPooledDataSource() {
         if (!_pooledDataSource && !unwrapAttempted) {
