@@ -1,6 +1,7 @@
 package io.xh.hoist.admin
 
 import grails.gorm.transactions.ReadOnly
+import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseController
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.role.Role
@@ -47,10 +48,8 @@ class RolesAdminController extends BaseController {
     @ReadOnly
     def cascadeImpact() {
         def changeType = params.get('changeType')
-        println("changeType = " + changeType)
         if (changeType == "delete") {
             String roleName = params.get('roleName')
-            println("roleName = " + roleName)
             return renderJSON(Role.get(roleName).getImpactDelete())
         } else if (changeType == "edit") {
             String roleName = params.get('roleName')
@@ -61,5 +60,53 @@ class RolesAdminController extends BaseController {
         }
         // don't care about groupName or notes
         renderJSON("no cascade impact observed")
+    }
+
+    @Transactional
+    def deleteRole() {
+        def mostRecentRoleUpdate = Role.createCriteria().get {
+            projections {
+                max "lastUpdated"
+            }
+        }.getTime()
+        if ((params.get('timestamp') as Long) < mostRecentRoleUpdate) {
+            return renderJSON("could not delete role, stale impact warning")
+        }
+        String roleName = params.get('roleName')
+        Role role = Role.get(roleName)
+
+        role.children.clear()
+        role.findParents().collect {
+            it.removeFromChildren(role)
+        }
+        role.save(flush:true)
+        role.delete(flush:true)
+    }
+
+    @Transactional
+    def updateRole() {
+        def mostRecentRoleUpdate = Role.createCriteria().get {
+            projections {
+                max "lastUpdated"
+            }
+        }.getTime()
+        if ((params.get('timestamp') as Long) < mostRecentRoleUpdate) {
+            return renderJSON("could not update role, stale impact warning")
+        }
+
+        String roleName = params.get('roleName')
+        Role role = Role.get(roleName)
+
+        String groupName = params.get('groupName')
+        String notes = params.get('notes')
+        List<String> users = JSONParser.parseArray(params.get('users'))
+        List<String> inheritedRoles = JSONParser.parseArray(params.get('inheritedRoles'))
+
+        role.groupName = groupName
+        role.notes = notes
+        role.users = users
+        role.children = inheritedRoles
+
+        role.save(flush:true)
     }
 }

@@ -114,28 +114,34 @@ class Role implements JSONFormat {
     }
 
     Map<String, Object> getImpactDelete() {
+        // check for a bug here? when deleting super-duper role..
         def actingUsers = this.allUsers
         def inheritedRoles = this.allParentRoles
 
         [
             this: true,
+            timestamp: new Date(),
             userCount: actingUsers.size(),
             inheritedRolesCount: inheritedRoles.size()
         ]
     }
 
-    Map<String, Object> getImpactEdit(String newRoleName, List<String> newUsers, List<String> newInheritedRoles) {
+    Map<String, Object> getImpactEdit(String newRoleName, List<String> newUsers, List<String> newInheritedRoleNames) {
+        def newInheritedRoles = newInheritedRoleNames.collect{ Role.get(it)}
+
         def currentUsers = this.users
         def currentInheritedRoles = this.children
 
+        // this logic assumes that all roles set exist... but they may not (need to think about how to handle)
         Set<Role> inheritedRolesChange = (currentInheritedRoles + newInheritedRoles) - (currentInheritedRoles.intersect(newInheritedRoles))
-        Set<String> usersChange = (currentUsers + newUsers) - (currentUsers.intersect(newUsers))
+        List<String> usersChange = ((currentUsers + newUsers) - (currentUsers.intersect(newUsers))).toList()
         List<String> cascadeUsersChange = inheritedRolesChange.collectMany {it.allUsers}
 
         [
             this: this.name == newRoleName,
+            timestamp: new Date(),
+            inheritedRolesCount: inheritedRolesChange.size(),
             // userCount needs to be the change in users, plus the cascade of changed inheritance...
-            inheritedRoles: inheritedRolesChange.size(),
             userCount: (usersChange + cascadeUsersChange).toSet().size()
 
         ]
