@@ -1,5 +1,7 @@
 # Changelog
 
+## 18.0-SNAPSHOT - unreleased
+
 ## 17.2.0 - 2023-08-17
 
 ### 🎁 New Features
