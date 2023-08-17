@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.feedback
@@ -24,7 +24,7 @@ class FeedbackEmailService extends BaseService {
     private void emailFeedback(Feedback fb) {
         def to = emailService.parseMailConfig('xhEmailSupport'),
             subject = "${Utils.appName} feedback"
-        
+
         if (to) {
             emailService.sendEmail(async: true, to: to, subject: subject, html: formatHtml(fb))
         }
@@ -44,5 +44,5 @@ class FeedbackEmailService extends BaseService {
 
         return [msgText, metaText].findAll{it}.join('<br/><br/>')
     }
-    
+
 }

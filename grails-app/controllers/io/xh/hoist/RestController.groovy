@@ -2,17 +2,15 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist
 
 import grails.gorm.transactions.Transactional
 import grails.validation.ValidationException
-import groovy.util.logging.Slf4j
 import io.xh.hoist.json.JSONParser
 
-@Slf4j
 @Transactional
 abstract class RestController extends BaseController {
 
@@ -22,7 +20,7 @@ abstract class RestController extends BaseController {
     static restTarget = null // Implementations set to value of GORM domain class they are editing.
 
     def create() {
-        def data = JSONParser.parseObject(request.inputStream).data
+        def data = parseRequestJSON().data
         preprocessSubmit(data)
 
         def obj = restTargetVal.newInstance(data)
@@ -38,7 +36,7 @@ abstract class RestController extends BaseController {
     }
 
     def update() {
-        def data = JSONParser.parseObject(request.inputStream).data
+        def data = parseRequestJSON().data
         preprocessSubmit(data)
 
         def obj = restTargetVal.get(data.id)
@@ -53,7 +51,7 @@ abstract class RestController extends BaseController {
     }
 
     def bulkUpdate() {
-        def body = JSONParser.parseObject(request.inputStream),
+        def body = parseRequestJSON(),
             ids = body.ids,
             newParams = body.newParams,
             successCount = 0,
@@ -110,7 +108,7 @@ abstract class RestController extends BaseController {
         renderJSON(success:successCount, fail:failCount)
     }
 
-    
+
     //--------------------------------
     // Template Methods for Override
     //--------------------------------
@@ -165,5 +163,5 @@ abstract class RestController extends BaseController {
     protected boolean getTrackChangesVal() {
         return this.class.trackChanges
     }
-    
+
 }

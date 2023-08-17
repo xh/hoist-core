@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.admin
@@ -19,28 +19,24 @@ class LogViewerAdminController extends BaseController {
         logReaderService
 
     def listFiles() {
-        def baseDir = new File(LogbackConfig.logRootPath),
-            basePath = baseDir.toPath(),
-            files = []
-
-        baseDir.eachFileRecurse(FileType.FILES) {
-            def matches = it.name ==~ /.*\.log/
-            if (matches) files << it
+        def logRootPath = logReaderService.logDir.absolutePath,
+            files = availableFiles.collect {
+            [
+                filename    : it.key,
+                size        : it.value.size(),
+                lastModified: it.value.lastModified()
+            ]
         }
-
-        def ret = files.collect { [
-                filename: basePath.relativize(it.toPath()).toString(),
-                size: it.size(),
-                lastModified: it.lastModified()
-        ]}
-        renderJSON(success:true, files:ret)
+        renderJSON(files: files, logRootPath: logRootPath)
     }
 
-    def getFile(String filename, Integer startLine, Integer maxLines, String pattern) {
+    def getFile(String filename, Integer startLine, Integer maxLines, String pattern, Boolean caseSensitive) {
+        if (!availableFiles[filename]) throwUnavailable()
+
         // Catch any exceptions and render clean failure - the admin client auto-polls for log file
         // updates, and we don't want to spam the logs with a repeated stacktrace.
         try {
-            def content = logReaderService.readFile(filename, startLine, maxLines, pattern)
+            def content = logReaderService.readFile(filename, startLine, maxLines, pattern, caseSensitive)
             renderJSON(success: true, filename: filename, content: content)
         } catch (Exception e) {
             renderJSON(success: false, filename: filename, content: [], exception: e.message)
@@ -48,6 +44,7 @@ class LogViewerAdminController extends BaseController {
     }
 
     def download(String filename) {
+        if (!availableFiles[filename]) throwUnavailable()
         def file = logReaderService.get(filename)
         render(
                 file: file,
@@ -62,15 +59,15 @@ class LogViewerAdminController extends BaseController {
      */
     @Access(['HOIST_ADMIN'])
     def deleteFiles() {
-        def filenames = params.list('filenames')
+        def filenames = params.list('filenames'),
+            available = availableFiles
 
         filenames.each {String filename ->
-            def fileToDelete = new File(LogbackConfig.logRootPath, filename),
-                fileDeleted = fileToDelete.delete()
+            def toDelete = available[filename]
+            if (!toDelete) throwUnavailable()
 
-            if (!fileDeleted) {
-                logWarn("Failed to delete log: '$filename'.  User may not have permissions.")
-            }
+            def deleted = toDelete.delete()
+            if (!deleted) logWarn("Failed to delete log: '$filename'.")
         }
 
         renderJSON(success:true)
@@ -86,4 +83,26 @@ class LogViewerAdminController extends BaseController {
         renderJSON([archived: ret])
     }
 
+
+    //----------------
+    // Implementation
+    //----------------
+    private Map<String, File> getAvailableFiles() {
+        def baseDir = new File(LogbackConfig.logRootPath),
+            basePath = baseDir.toPath(),
+            files = []
+
+        baseDir.eachFileRecurse(FileType.FILES) {
+            def matches = it.name ==~ /.*\.log/
+            if (matches) files << it
+        }
+
+        files.collectEntries { File f ->
+            [basePath.relativize(f.toPath()).toString(), f]
+        }
+    }
+
+    private static throwUnavailable() {
+        throw new RuntimeException('Filename not valid or available')
+    }
 }

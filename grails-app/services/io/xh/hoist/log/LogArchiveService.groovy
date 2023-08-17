@@ -2,19 +2,17 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 package io.xh.hoist.log
 
 import groovy.io.FileType
 import io.xh.hoist.BaseService
 
-import java.nio.file.Paths
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
-import static io.xh.hoist.configuration.LogbackConfig.logRootPath
 import static io.xh.hoist.util.DateTimeUtils.DAYS
 import static java.io.File.separator
 
@@ -25,7 +23,8 @@ import static java.io.File.separator
  */
 class LogArchiveService extends BaseService {
 
-    def configService
+    def configService,
+        logReaderService
 
     void init() {
         createTimer(interval: 1 * DAYS)
@@ -37,22 +36,22 @@ class LogArchiveService extends BaseService {
             return []
         }
 
-        File logPath = getLogPath()
+        File logDir = logReaderService.logDir
         List archivedFilenames = []
 
         daysThreshold = daysThreshold ?: config.archiveAfterDays
 
-        List<File> oldLogs = getOldLogFiles(logPath, daysThreshold)
+        List<File> oldLogs = getOldLogFiles(logDir, daysThreshold)
         withInfo("Archiving ${oldLogs.size()} log(s) older than ${daysThreshold} days.") {
             Map logsByCategory = mapLogsByCategory(oldLogs)
 
             logsByCategory.each {String category, List<File> logFiles ->
-                File archivePath = getArchivePath(logPath.absolutePath, category)
-                if (!archivePath.exists()) archivePath.mkdirs()
+                File archiveDir = getArchiveDir(logDir.absolutePath, category)
+                if (!archiveDir.exists()) archiveDir.mkdirs()
 
                 Map logsByMonth = mapLogsByMonth(logFiles)
                 logsByMonth.each {String month, files ->
-                    ZipOutputStream zipStream = getZipStream(archivePath.absolutePath, month)
+                    ZipOutputStream zipStream = getZipStream(archiveDir.absolutePath, month)
                     files.each {File file ->
                         writeFileToZip(zipStream, file)
                         file.delete()
@@ -76,11 +75,7 @@ class LogArchiveService extends BaseService {
         }
     }
 
-    private File getLogPath() {
-        return new File(Paths.get(logRootPath).toString())
-    }
-
-    private File getArchivePath(String logPath, String category) {
+    private File getArchiveDir(String logPath, String category) {
         return new File(logPath + separator + config.archiveFolder + separator + category)
     }
 

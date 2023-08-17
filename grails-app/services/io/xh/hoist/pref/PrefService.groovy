@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.pref
@@ -149,7 +149,6 @@ class PrefService extends BaseService {
                     type: valType,
                     defaultValue: defaultVal,
                     groupName: prefDefaults.groupName ?: 'Default',
-                    local: local,
                     notes: notes,
                     lastUpdatedBy: 'hoist-bootstrap'
                 ).save()
@@ -171,6 +170,12 @@ class PrefService extends BaseService {
         }
 
         logDebug("Validated presense of ${requiredPrefs.size()} required configs", "created $created")
+    }
+
+    @ReadOnly
+    boolean isUnset(String key, String username = username) {
+        def defaultPref = getDefaultPreference(key, null)
+        return !UserPreference.findByPreferenceAndUsername(defaultPref, username, [cache: true])
     }
 
     //-------------------------
@@ -197,20 +202,12 @@ class PrefService extends BaseService {
     }
 
     private Object getUserPreference(Preference defaultPref, UserPreference userPref) {
-        if (defaultPref.local) {
-            throw new RuntimeException("Preference ${defaultPref.name} marked as local - user value cannot be read on server.")
-        }
-
         return userPref ? userPref.externalUserValue(jsonAsObject: true) : defaultPref.externalDefaultValue(jsonAsObject: true)
     }
 
     @Transactional
     private void setUserPreference(String key, String value, String type, String username) {
         def defaultPref = getDefaultPreference(key, type)
-
-        if (defaultPref.local) {
-            throw new RuntimeException("Preference ${key} marked as local - user value cannot be set on server.")
-        }
 
         def userPref = UserPreference.findByPreferenceAndUsername(defaultPref, username, [cache: true])
 
@@ -239,18 +236,10 @@ class PrefService extends BaseService {
     }
 
     private Map formatForClient(Preference defaultPref, UserPreference userPref) {
-        def ret = [local: defaultPref.local, type: defaultPref.type] as Map<String, Object>
-
-        if (defaultPref.local) {
-            // Local prefs serialized with default value only - client checks for local user value
-            ret.value = null
-            ret.defaultValue = defaultPref.externalDefaultValue(jsonAsObject: true)
-        } else {
-            // Server-side prefs serialized with merged user/default value
-            ret.value = getUserPreference(defaultPref, userPref)
-            ret.defaultValue = defaultPref.externalDefaultValue(jsonAsObject: true)
-        }
-
-        return ret
+        return [
+            type: defaultPref.type,
+            value: getUserPreference(defaultPref, userPref),
+            defaultValue: defaultPref.externalDefaultValue(jsonAsObject: true)
+        ]
     }
 }

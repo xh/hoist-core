@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.impl
@@ -22,10 +22,12 @@ import io.xh.hoist.pref.PrefService
 import io.xh.hoist.security.AccessAll
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.environment.EnvironmentService
+import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.util.Utils
-import org.owasp.encoder.Encode
 
 import static io.xh.hoist.json.JSONParser.parseObject
+import static io.xh.hoist.json.JSONParser.parseObjectOrArray
+import static java.lang.Boolean.parseBoolean
 
 @AccessAll
 @CompileStatic
@@ -40,6 +42,7 @@ class XhController extends BaseController {
     PrefService prefService
     TrackService trackService
     EnvironmentService environmentService
+    BaseUserService userService
 
     //------------------------
     // Identity / Auth
@@ -68,7 +71,7 @@ class XhController extends BaseController {
     // Protected internally by identity service.
     //------------------------
     def impersonationTargets() {
-        def targets = identityService.impersonationTargets
+        def targets = userService.impersonationTargetsForUser(authUser)
         renderJSON(targets.collect{[username: it.username]})
     }
 
@@ -86,17 +89,16 @@ class XhController extends BaseController {
     //------------------------
     // Tracking
     //------------------------
-    def track(String category, String msg, String data, int elapsed, String severity) {
+    def track(String category, String msg, String data, String logData, int elapsed, String severity) {
         ensureClientUsernameMatchesSession()
-
         trackService.track(
-            category: safeStr(category),
-            msg: safeStr(msg),
-            data: data ? JSONParser.parseObjectOrArray(safeStr(data)) : null,
+            category: safeEncode(category),
+            msg: safeEncode(msg),
+            data: data ? parseObjectOrArray(safeEncode(data)) : null,
+            logData: logData == 'true' || logData == 'false' ? parseBoolean(logData) : logData?.split(','),
             elapsed: elapsed,
-            severity: safeStr(severity)
+            severity: safeEncode(severity)
         )
-
         renderJSON(success: true)
     }
 
@@ -135,6 +137,27 @@ class XhController extends BaseController {
         def ret = prefService.getLimitedClientConfig(prefs.keySet() as List)
 
         renderJSON(preferences: ret)
+    }
+
+    def migrateLocalPrefs(String updates) {
+        ensureClientUsernameMatchesSession()
+        Map prefs = JSONParser.parseObject(updates)
+        prefs.each { k, value ->
+            String key = k.toString()
+            try {
+                if (!prefService.isUnset(key)) return
+                if (value instanceof Map) {
+                    prefService.setMap(key, value)
+                } else if (value instanceof List) {
+                    prefService.setList(key, value)
+                } else {
+                    prefService.setPreference(key, value.toString())
+                }
+            } catch (e) {
+                logError("Failed to recover pref '$key'", e)
+            }
+        }
+        renderJSON(success: true)
     }
 
     def clearPrefs() {
@@ -193,11 +216,11 @@ class XhController extends BaseController {
     }
 
     def version() {
-        def shouldUpdate = configService.getBool('xhAppVersionCheckEnabled')
-        renderJSON (
+        def options = configService.getMap('xhAppVersionCheck', [:])
+        renderJSON(
+            *: options,
             appVersion: Utils.appVersion,
-            appBuild: Utils.appBuild,
-            shouldUpdate: shouldUpdate
+            appBuild: Utils.appBuild
         )
     }
 
@@ -207,10 +230,10 @@ class XhController extends BaseController {
     def submitError(String msg, String error, String appVersion, String url, boolean userAlerted) {
         ensureClientUsernameMatchesSession()
         clientErrorService.submit(
-            safeStr(msg),
-            safeStr(error),
-            safeStr(appVersion),
-            safeStr(url),
+            safeEncode(msg),
+            safeEncode(error),
+            safeEncode(appVersion),
+            safeEncode(url),
             userAlerted
         )
         renderJSON(success: true)
@@ -222,8 +245,8 @@ class XhController extends BaseController {
     def submitFeedback(String msg, String appVersion) {
         ensureClientUsernameMatchesSession()
         feedbackService.submit(
-            safeStr(msg),
-            safeStr(appVersion)
+            safeEncode(msg),
+            safeEncode(appVersion)
         )
         renderJSON(success: true)
     }
@@ -279,14 +302,4 @@ class XhController extends BaseController {
             throw new SessionMismatchException("The reported clientUsername does not match current session user.")
         }
     }
-
-    /**
-     * Run user-provided string input through an OWASP-provided encoder to escape tags. Note the
-     * use of `forHtmlContent()` encodes only `&<>` and in particular leaves quotes un-escaped to
-     * support JSON strings.
-     */
-    private String safeStr(String input) {
-        return input ? Encode.forHtmlContent(input) : input
-    }
-
 }

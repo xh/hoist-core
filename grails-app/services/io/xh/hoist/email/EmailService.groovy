@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 package io.xh.hoist.email
 
@@ -43,6 +43,13 @@ class EmailService extends BaseService {
      *      html {String}           - html message
      *      view                    - gsp file path
      *      model                   - model to be applied to the view
+     *
+     * To attach file(s) to the email, include:
+     *
+     *      attachments {Map or List<Map>}
+     *             fileName {String}
+     *             contentType {String}
+     *             contentSource {byte[] or File or InputStreamSource}
      */
     void sendEmail(Map args) {
         def logMsg = "",
@@ -73,7 +80,13 @@ class EmailService extends BaseService {
                 env = Utils.appEnvironment.displayName.toUpperCase(),
                 envString = Utils.isProduction ? '' : " [$env]",
                 subj = args.subject + envString,
-                isAsync = args.containsKey('async') ? args.async : false
+                isAsync = args.containsKey('async') ? args.async : false,
+                isMultipart = args.containsKey('attachments') ,
+                attachments = []
+
+            if (isMultipart) {
+                attachments = args.attachments instanceof Map ? [args.attachments] : args.attachments
+            }
 
             if (!toRecipients) {
                 logDebug('No emails sent', 'no valid recipients found after filtering', logMsg)
@@ -88,6 +101,7 @@ class EmailService extends BaseService {
             }
 
             sendMail {
+                multipart isMultipart
                 async isAsync
                 from sender
                 to toRecipients.toArray()
@@ -107,6 +121,9 @@ class EmailService extends BaseService {
                     )
                 }
 
+                attachments.each { Map f ->
+                    attach f.fileName as String, f.contentType as String, f.contentSource
+                }
             }
 
             if (doLog) {

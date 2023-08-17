@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.pref
@@ -19,7 +19,6 @@ class Preference implements JSONFormat {
     String type = 'string'
     String defaultValue
     String notes
-    Boolean local
     String lastUpdatedBy
     Date lastUpdated
     String groupName = 'Default'
@@ -82,7 +81,6 @@ class Preference implements JSONFormat {
                 type: type,
                 defaultValue: externalDefaultValue(),
                 notes: notes,
-                local: local,
                 lastUpdatedBy: lastUpdatedBy,
                 lastUpdated: lastUpdated
         ]

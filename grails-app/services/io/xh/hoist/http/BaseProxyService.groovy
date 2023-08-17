@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.http
@@ -23,12 +23,10 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
 import org.apache.hc.core5.http.NameValuePair
 import org.apache.hc.core5.http.io.entity.StringEntity
 import org.apache.hc.core5.http.message.BasicNameValuePair
-import groovy.util.logging.Slf4j
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
-@Slf4j
 @CompileStatic
 abstract class BaseProxyService extends BaseService {
 
@@ -134,5 +132,5 @@ abstract class BaseProxyService extends BaseService {
         _sourceClient = null
         super.clearCaches()
     }
-    
+
 }

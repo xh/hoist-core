@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.util
@@ -154,6 +154,13 @@ class Utils {
      */
     static boolean isJSON(String val) {
         JSONParser.validate(val)
+    }
+
+    /** String parsing for a boolean. */
+    static Boolean parseBooleanStrict(String s) {
+        if ('true'.equalsIgnoreCase(s)) return true
+        if ('false'.equalsIgnoreCase(s)) return false
+        throw new RuntimeException('Unable to parse boolean value')
     }
 
     /**

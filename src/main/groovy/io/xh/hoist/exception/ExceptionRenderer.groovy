@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.exception
@@ -32,7 +32,6 @@ import static org.apache.hc.core5.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
  * These two contexts capture the overwhelming majority of code execution in a Hoist server.
  */
 @CompileStatic
-@Slf4j
 class ExceptionRenderer {
 
     /**

@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.config
@@ -63,7 +63,7 @@ class AppConfig implements JSONFormat {
 
         return true
     }
-    
+
     Object externalValue(Map opts = [:]) {
         if (value == null) return null
         switch ( valueType ) {

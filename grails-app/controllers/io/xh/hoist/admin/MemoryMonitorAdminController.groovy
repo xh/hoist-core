@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2022 Extremely Heavy Industries Inc.
+ * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.admin
@@ -47,11 +47,17 @@ class MemoryMonitorAdminController extends BaseController {
     }
 
     @Access(['HOIST_ADMIN'])
+    def dumpHeap(String filename) {
+        memoryMonitoringService.dumpHeap(filename)
+        renderJSON(success: true)
+    }
+
+
+    @Access(['HOIST_ADMIN'])
     def requestClusterGc() {
         renderJSON(clusterService.executeOnAllMembers(new RequestMemberGc()))
         renderJSON(success: true)
     }
-
 
     //-----------------
     // Cluster tasks
@@ -74,4 +80,3 @@ class MemoryMonitorAdminController extends BaseController {
         }
     }
 }
-
