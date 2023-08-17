@@ -117,7 +117,7 @@ class ApplicationConfig {
                         factory_class =  'org.hibernate.cache.jcache.JCacheRegionFactory'
                     }
                 }
-                show_sql = true
+                show_sql = false
             }
         }
     }

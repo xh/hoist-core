@@ -14,7 +14,6 @@ import com.hazelcast.core.Hazelcast
 import org.hibernate.SessionFactory
 import com.hazelcast.config.Config
 
-import javax.cache.Caching
 
 @Access(['HOIST_ADMIN_READER'])
 class HzCacheAdminController extends BaseController {

@@ -2,7 +2,6 @@ package io.xh.hoist.cluster
 
 import com.hazelcast.cluster.Cluster
 import com.hazelcast.cluster.Member
-import com.hazelcast.config.CacheSimpleConfig
 import com.hazelcast.core.Hazelcast
 import com.hazelcast.config.Config
 import com.hazelcast.core.HazelcastInstance
@@ -14,7 +13,6 @@ import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 
 import java.util.concurrent.Callable
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Lock
