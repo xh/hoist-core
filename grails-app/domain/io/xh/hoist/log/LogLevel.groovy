@@ -10,6 +10,8 @@ package io.xh.hoist.log
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.util.Utils
 
+import static grails.async.Promises.task
+
 class LogLevel implements JSONFormat {
 
     String name
@@ -58,4 +60,13 @@ class LogLevel implements JSONFormat {
     }
 
     private getLogLevelService() { Utils.appContext.logLevelService }
+
+    private noteLogLevelChanged() {
+        // called in a new thread and with a delay to make sure the change has had the time to propagate
+        task {
+            Thread.sleep(500)
+            logLevelService.noteLogLevelChanged()
+        }
+    }
+
 }

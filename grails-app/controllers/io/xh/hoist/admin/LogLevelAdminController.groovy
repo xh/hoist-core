@@ -14,6 +14,7 @@ import io.xh.hoist.security.Access
 class LogLevelAdminController extends AdminRestController {
 
     static restTarget = LogLevel
+    def logLevelService
 
     protected void preprocessSubmit(Map submit) {
         if (submit.level == 'None') {
@@ -26,4 +27,20 @@ class LogLevelAdminController extends AdminRestController {
         def levels =  ['None'] + LogLevel.LEVELS
         renderJSON (levels: levels)
     }
+
+    protected void doCreate(Object obj, Object data) {
+        super.doCreate(obj, data)
+        logLevelService.calculateAdjustments()
+    }
+
+    protected void doUpdate(Object obj, Object data) {
+        super.doUpdate(obj, data)
+        logLevelService.calculateAdjustments()
+    }
+
+    protected void doDelete(Object obj) {
+        super.doDelete(obj)
+        logLevelService.calculateAdjustments()
+    }
+
 }

@@ -7,49 +7,65 @@
 
 package io.xh.hoist.admin.cluster
 
-import io.xh.hoist.BaseController
+import io.xh.hoist.cluster.ClusterTask
 import io.xh.hoist.configuration.LogbackConfig
 import groovy.io.FileType
 import io.xh.hoist.security.Access
 
+import static io.xh.hoist.util.Utils.getAppContext
+
 @Access(['HOIST_ADMIN_READER'])
 class LogViewerAdminController extends BaseClusterController {
 
-    def logArchiveService,
-        logReaderService
-
     def listFiles() {
-        def logRootPath = logReaderService.logDir.absolutePath,
-            files = availableFiles.collect {
-            [
-                filename    : it.key,
-                size        : it.value.size(),
-                lastModified: it.value.lastModified()
-            ]
+        runOnMember(new ListFiles())
+    }
+    static class ListFiles extends ClusterTask {
+        def doCall() {
+            def logRootPath = appContext.logReaderService.logDir.absolutePath,
+                files = availableFiles.collect {
+                    [
+                        filename    : it.key,
+                        size        : it.value.size(),
+                        lastModified: it.value.lastModified()
+                    ]
+                }
+            return [files: files, logRootPath: logRootPath]
         }
-        renderJSON(files: files, logRootPath: logRootPath)
     }
 
-    def getFile(String filename, Integer startLine, Integer maxLines, String pattern, Boolean caseSensitive) {
-        if (!availableFiles[filename]) throwUnavailable()
 
-        // Catch any exceptions and render clean failure - the admin client auto-polls for log file
-        // updates, and we don't want to spam the logs with a repeated stacktrace.
-        try {
-            def content = logReaderService.readFile(filename, startLine, maxLines, pattern, caseSensitive)
-            renderJSON(success: true, filename: filename, content: content)
-        } catch (Exception e) {
-            renderJSON(success: false, filename: filename, content: [], exception: e.message)
+    def getFile(String filename, Integer startLine, Integer maxLines, String pattern, Boolean caseSensitive) {
+        runOnMember(new GetFile(filename: filename, startLine: startLine, maxLines: maxLines, pattern: pattern, caseSensitive: caseSensitive))
+    }
+    static class GetFile extends ClusterTask {
+        String filename
+        Integer startLine
+        Integer maxLines
+        String pattern
+        Boolean caseSensitive
+
+        def doCall() {
+            if (!availableFiles[filename]) throwUnavailable()
+
+            // Catch any exceptions and render clean failure - the admin client auto-polls for log file
+            // updates, and we don't want to spam the logs with a repeated stacktrace.
+            try {
+                def content = appContext.logReaderService.readFile(filename, startLine, maxLines, pattern, caseSensitive)
+                return [success: true, filename: filename, content: content]
+            } catch (Exception e) {
+                return [success: false, filename: filename, content: [], exception: e.message]
+            }
         }
     }
 
     def download(String filename) {
         if (!availableFiles[filename]) throwUnavailable()
-        def file = logReaderService.get(filename)
+        def file = appContext.logReaderService.get(filename)
         render(
-                file: file,
-                fileName: filename,
-                contentType: 'application/octet-stream'
+            file: file,
+            fileName: filename,
+            contentType: 'application/octet-stream'
         )
     }
 
@@ -59,18 +75,22 @@ class LogViewerAdminController extends BaseClusterController {
      */
     @Access(['HOIST_ADMIN'])
     def deleteFiles() {
-        def filenames = params.list('filenames'),
-            available = availableFiles
+        runOnMember(new DeleteFiles(filenames: params.list('filenames')))
+    }
+    static class DeleteFiles extends ClusterTask {
+        List filenames
+        def doCall() {
+            def available = availableFiles
 
-        filenames.each {String filename ->
-            def toDelete = available[filename]
-            if (!toDelete) throwUnavailable()
+            filenames.each { String filename ->
+                def toDelete = available[filename]
+                if (!toDelete) throwUnavailable()
 
-            def deleted = toDelete.delete()
-            if (!deleted) logWarn("Failed to delete log: '$filename'.")
+                def deleted = toDelete.delete()
+                if (!deleted) logWarn("Failed to delete log: '$filename'.")
+            }
+            [success: true]
         }
-
-        renderJSON(success:true)
     }
 
     /**
@@ -79,15 +99,21 @@ class LogViewerAdminController extends BaseClusterController {
      */
     @Access(['HOIST_ADMIN'])
     def archiveLogs(Integer daysThreshold) {
-        def ret = logArchiveService.archiveLogs(daysThreshold)
-        renderJSON([archived: ret])
+        runOnMember(new ArchiveLogs(daysThreshold: daysThreshold))
     }
+    static class ArchiveLogs extends ClusterTask {
+        Integer daysThreshold
 
+        def doCall() {
+            def ret = appContext.logArchiveService.archiveLogs(daysThreshold)
+            return [archived: ret]
+        }
+    }
 
     //----------------
     // Implementation
     //----------------
-    private Map<String, File> getAvailableFiles() {
+    static Map<String, File> getAvailableFiles() {
         def baseDir = new File(LogbackConfig.logRootPath),
             basePath = baseDir.toPath(),
             files = []
@@ -102,7 +128,7 @@ class LogViewerAdminController extends BaseClusterController {
         }
     }
 
-    private static throwUnavailable() {
+    static void throwUnavailable() {
         throw new RuntimeException('Filename not valid or available')
     }
 }
