@@ -58,7 +58,8 @@ class ClusterService extends BaseService {
             return [
                 name    : name,
                 address : member.address.toString(),
-                isMaster: masterName == name
+                isMaster: masterName == name,
+                isLocal: member.localMember()
             ]
         }
     }
@@ -85,13 +86,18 @@ class ClusterService extends BaseService {
         return instance.getExecutorService('default')
     }
 
-    void executeOnAllMembers(Runnable r) {
-        executorService.executeOnAllMembers(r)
+    <T> Future<T> submitToMember(Callable<T> c, String name) {
+        executorService.submitToMember(c, getMember(name))
     }
 
-    <T> Map<Member, Future<T>> submitToAllMembers(Callable<T> c) {
-        executorService.submitToAllMembers(c)
+    <T> Map<String, Future<T>> submitToAllMembers(Callable<T> c) {
+        executorService
+            .submitToAllMembers(c)
+            .collectEntries { Member member, Future<T> result ->
+                [member.getAttribute('instanceName'), result]
+            }
     }
+
 
     //------------------------------------
     // Implementation
@@ -119,6 +125,13 @@ class ClusterService extends BaseService {
             }
         }
     }
+
+    private Member getMember(String name) {
+        def ret = cluster.members.find { it.getAttribute('instanceName') == name }
+        if (!ret) throw new RuntimeException("Unable to find cluster member $name")
+        return ret
+    }
+
 
     private void setMasterName(String s) {
         instance.CPSubsystem.getAtomicReference('masterName').set(s)

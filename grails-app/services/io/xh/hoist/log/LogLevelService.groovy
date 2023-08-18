@@ -12,7 +12,11 @@ import io.xh.hoist.BaseService
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.Level
+import io.xh.hoist.config.AppConfig
+import io.xh.hoist.util.Utils
 import org.slf4j.LoggerFactory
+
+import java.util.concurrent.Callable
 
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 
@@ -77,6 +81,16 @@ class LogLevelService extends BaseService {
     String getEffectiveLevel(String logName) {
         def logger = getLogger(logName)
         return logger.effectiveLevel.toString().toLowerCase().capitalize()
+    }
+
+    void noteLogLevelChanged() {
+        clusterService.submitToAllMembers (new CalculateAdjustments())
+    }
+    static class CalculateAdjustments implements Callable, Serializable {
+        Map call() {
+            Utils.appContext.logLevelService.calculateAdjustments()
+            return [success: true]
+        }
     }
 
     //------------------------

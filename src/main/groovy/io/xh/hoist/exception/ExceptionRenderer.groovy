@@ -9,7 +9,7 @@ package io.xh.hoist.exception
 
 import grails.util.GrailsUtil
 import groovy.transform.CompileStatic
-import groovy.util.logging.Slf4j
+import io.xh.hoist.cluster.ClusterResponse
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
@@ -45,6 +45,13 @@ class ExceptionRenderer {
         response.setContentType('application/json')
         response.writer.write(toJSON(t))
         response.flushBuffer()
+    }
+
+    ClusterResponse handleClusterTaskException(Throwable t, LogSupport logSupport) {
+        t = preprocess(t)
+        logException(t, logSupport)
+
+        return new ClusterResponse(status: getHttpStatus(t), result: toJSON(t))
     }
 
     /**

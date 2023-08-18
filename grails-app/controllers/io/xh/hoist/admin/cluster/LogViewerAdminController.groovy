@@ -5,7 +5,7 @@
  * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.admin
+package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
 import io.xh.hoist.configuration.LogbackConfig
@@ -13,7 +13,7 @@ import groovy.io.FileType
 import io.xh.hoist.security.Access
 
 @Access(['HOIST_ADMIN_READER'])
-class LogViewerAdminController extends BaseController {
+class LogViewerAdminController extends BaseClusterController {
 
     def logArchiveService,
         logReaderService

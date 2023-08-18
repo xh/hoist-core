@@ -14,8 +14,10 @@ class LogLevel implements JSONFormat {
 
     String name
     String level
-    String getDefaultLevel() {logLevelService.getDefaultLevel(name)}
-    String getEffectiveLevel() {logLevelService.getEffectiveLevel(name)}
+
+    String getDefaultLevel() { logLevelService.getDefaultLevel(name) }
+
+    String getEffectiveLevel() { logLevelService.getEffectiveLevel(name) }
     Date lastUpdated
     String lastUpdatedBy
 
@@ -33,18 +35,27 @@ class LogLevel implements JSONFormat {
         lastUpdatedBy(nullable: true, maxSize: 50)
     }
 
+    def afterUpdate() {
+        logLevelService.noteLogLevelChanged()
+    }
+    def afterDelete() {
+        logLevelService.noteLogLevelChanged()
+    }
+    def afterInsert() {
+        logLevelService.noteLogLevelChanged()
+    }
+
     Map formatForJSON() {
         return [
-                id: id,
-                name: name,
-                level: level,
-                defaultLevel: defaultLevel,
-                effectiveLevel: effectiveLevel,
-                lastUpdated: lastUpdated,
-                lastUpdatedBy: lastUpdatedBy
+            id            : id,
+            name          : name,
+            level         : level,
+            defaultLevel  : defaultLevel,
+            effectiveLevel: effectiveLevel,
+            lastUpdated   : lastUpdated,
+            lastUpdatedBy : lastUpdatedBy
         ]
     }
 
     private getLogLevelService() { Utils.appContext.logLevelService }
-
 }

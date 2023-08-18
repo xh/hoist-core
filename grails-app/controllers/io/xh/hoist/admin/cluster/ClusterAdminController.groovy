@@ -4,19 +4,17 @@
  *
  * Copyright © 2023 Extremely Heavy Industries Inc.
  */
-package io.xh.hoist.admin
 
-import io.xh.hoist.BaseController
+package io.xh.hoist.admin.cluster
+
+
 import io.xh.hoist.security.Access
 
 @Access(['HOIST_ADMIN_READER'])
-class EnvAdminController extends BaseController {
+class ClusterAdminController extends BaseClusterController {
 
-    def index() {
-        renderJSON([
-            environment: System.getenv(),
-            properties: System.getProperties()
-        ])
+    def listInstances() {
+        def ret = clusterService.getMembers()
+        renderJSON(ret)
     }
-
 }

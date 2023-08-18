@@ -4,9 +4,9 @@
  *
  * Copyright © 2022 Extremely Heavy Industries Inc.
  */
-package io.xh.hoist.admin
+package io.xh.hoist.admin.cluster
 
-import io.xh.hoist.BaseController
+
 import io.xh.hoist.security.Access
 import io.xh.hoist.util.Utils
 
@@ -16,21 +16,19 @@ import com.hazelcast.config.Config
 
 
 @Access(['HOIST_ADMIN_READER'])
-class HzCacheAdminController extends BaseController {
+class HzCacheAdminController extends BaseClusterController {
 
-    def clusterService
-
-    def cacheDiagnostics() {
+    def listCaches() {
         def cacheManager = clusterService.instance.cacheManager,
             config = clusterService.instance.config,
-            ret = listCaches().collect { c ->
+            ret = listCachesInternal().collect { c ->
                 def name = c.name,
                     cacheConfig = config.getCacheConfig(name),
                     cache = cacheManager.getCache(name),
                     size = cache.size()
                 [
-                    name      : name,
-                    localCacheStatistics: size
+                    name: name,
+                    size: size
                     //evictionConfig: cacheConfig.evictionConfig.toString(),
                     //expiryPolicy: cacheConfig.expiryPolicyFactoryConfig.toString()
                 ]
@@ -78,7 +76,7 @@ class HzCacheAdminController extends BaseController {
             .collect {appContext.getBean(it)}
     }
 
-    private List<Map> listCaches() {
+    private List<Map> listCachesInternal() {
         factories.collectMany {factory ->
             def stats = factory.statistics
 
