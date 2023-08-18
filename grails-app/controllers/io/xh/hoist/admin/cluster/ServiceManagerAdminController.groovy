@@ -9,7 +9,6 @@ package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.cluster.ClusterTask
 import io.xh.hoist.security.Access
-import java.util.concurrent.Callable
 
 import static io.xh.hoist.util.Utils.appContext
 

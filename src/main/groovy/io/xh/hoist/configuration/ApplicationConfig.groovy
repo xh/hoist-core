@@ -101,7 +101,8 @@ class ApplicationConfig {
                 javax {
                     cache {
                         provider = 'com.hazelcast.cache.impl.HazelcastServerCachingProvider'
-                     }
+                        url = 'hazelcast.xml'
+                    }
                     persistence {
                         sharedCache {
                             mode = 'ENABLE_SELECTIVE'

@@ -44,13 +44,6 @@ class HzCacheAdminController extends BaseClusterController {
         renderJSON(success: true)
     }
 
-    @Access(['HOIST_ADMIN'])
-    def clearGormCaches(String domainClassName) {
-        List<String> cacheNames = listCaches().findAll {it.name.startsWith(domainClass.name)}*.name
-        clearCaches(cacheNames)
-        renderJSON(success: true)
-    }
-
     //------------------------------
     // Implementation
     //------------------------------
