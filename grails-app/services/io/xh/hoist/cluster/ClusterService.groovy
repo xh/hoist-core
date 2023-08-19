@@ -17,6 +17,7 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Lock
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static io.xh.hoist.util.Utils.appContext
 
 class ClusterService extends BaseService {
 
@@ -51,18 +52,31 @@ class ClusterService extends BaseService {
         masterName == instanceName
     }
 
-    List<Map> getMembers() {
-        def masterName = getMasterName()
-        cluster.members.collect { Member member ->
-            def name = member.getAttribute('instanceName')
-            return [
-                name    : name,
-                address : member.address.toString(),
-                isMaster: masterName == name,
-                isLocal: member.localMember()
-            ]
+    Map getLocalStats() {
+        return new HashMap(
+            name             :  instanceName,
+            address          :  cluster.localMember.address.toString(),
+            isMaster         :  isMaster,
+            memory           :  appContext.memoryMonitoringService.latestSnapshot,
+            connectionPool   :  appContext.connectionPoolMonitoringService.latestSnapshot,
+            wsConnections    :  appContext.webSocketService.allChannels.size(),
+            startupTime      :  Utils.startupTime
+        )
+    }
+
+    Collection<Map> getAllStats() {
+        submitToAllMembers(new GetLocalStatsTask())
+            .collect {name, value -> [
+                *:value.get(),
+                isLocal: name == instanceName
+            ]}
+    }
+    static class GetLocalStatsTask implements Callable, Serializable {
+        def call() {
+            return appContext.clusterService.localStats
         }
     }
+
 
     //------------------------
     // Distributed Resources

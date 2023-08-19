@@ -46,6 +46,10 @@ class MemoryMonitoringService extends BaseService {
         return _snapshots
     }
 
+    Map getLatestSnapshot() {
+        return _snapshots?.max {it.key}.value
+    }
+
     /**
      * Dump the heap to a file for analysis.
      */

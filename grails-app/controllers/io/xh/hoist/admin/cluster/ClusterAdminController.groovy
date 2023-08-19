@@ -7,14 +7,12 @@
 
 package io.xh.hoist.admin.cluster
 
-
 import io.xh.hoist.security.Access
 
 @Access(['HOIST_ADMIN_READER'])
 class ClusterAdminController extends BaseClusterController {
 
-    def listInstances() {
-        def ret = clusterService.getMembers()
-        renderJSON(ret)
+    def allInstances() {
+        renderJSON(clusterService.allStats)
     }
 }

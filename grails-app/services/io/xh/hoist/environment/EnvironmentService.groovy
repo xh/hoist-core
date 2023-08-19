@@ -68,7 +68,7 @@ class EnvironmentService extends BaseService {
                 appTimeZone:            appTz.toZoneId().id,
                 appTimeZoneOffset:      appTz.getOffset(now),
                 webSocketsEnabled:      webSocketService.enabled,
-                instanceName:           clusterService.instanceName + (isMaster ? ' (Master)' : '')
+                instanceName:           clusterService.instanceName
         ]
 
         hoistGrailsPlugins.each {it ->
