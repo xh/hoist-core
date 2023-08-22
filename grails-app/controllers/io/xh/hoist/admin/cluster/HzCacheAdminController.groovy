@@ -13,12 +13,19 @@ import io.xh.hoist.util.Utils
 import com.hazelcast.core.Hazelcast
 import org.hibernate.SessionFactory
 import com.hazelcast.config.Config
+import javax.cache.CacheManager
 
 
 @Access(['HOIST_ADMIN_READER'])
 class HzCacheAdminController extends BaseClusterController {
 
     def listCaches() {
+        CacheManager cm = CacheManager.newInstance([])
+        cm.cacheNames.each {
+            logInfo(it)
+        }
+
+        //logInfo(.toList().toString())
         def cacheManager = clusterService.instance.cacheManager,
             config = clusterService.instance.config,
             ret = listCachesInternal().collect { c ->
@@ -26,6 +33,7 @@ class HzCacheAdminController extends BaseClusterController {
                     cacheConfig = config.getCacheConfig(name),
                     cache = cacheManager.getCache(name),
                     size = cache.size()
+                logInfo(cache.localCacheStatistics?.toString())
                 [
                     name: name,
                     size: size
