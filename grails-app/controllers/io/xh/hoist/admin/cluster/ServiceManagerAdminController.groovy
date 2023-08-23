@@ -26,8 +26,9 @@ class ServiceManagerAdminController extends BaseClusterController {
 
     @Access(['HOIST_ADMIN'])
     def clearCaches() {
-        def names = params.names instanceof String ? [params.names] : params.names
-        runOnAllMembers(new ClearCaches(names: names))
+        def names = params.names instanceof String ? [params.names] : params.names,
+            task = new ClearCaches(names: names)
+        params.instance ? runOnMember(task) : runOnAllMembers(task)
     }
     static class ClearCaches extends ClusterTask {
         List<String> names

@@ -26,7 +26,7 @@ class MemoryMonitorAdminController extends BaseClusterController {
 
     @Access(['HOIST_ADMIN'])
     def takeSnapshot() {
-        renderJSON(runOnMember(new TakeSnapshot()))
+        runOnMember(new TakeSnapshot())
     }
     static class TakeSnapshot extends ClusterTask {
         def doCall() {
