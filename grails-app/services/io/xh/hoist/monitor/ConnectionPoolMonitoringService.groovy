@@ -132,5 +132,6 @@ class ConnectionPoolMonitoringService extends BaseService {
 
     void clearCaches() {
         this._snapshots.clear()
+        super.clearCaches()
     }
 }

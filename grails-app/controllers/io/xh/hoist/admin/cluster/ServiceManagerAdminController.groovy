@@ -20,7 +20,7 @@ class ServiceManagerAdminController extends BaseClusterController {
     }
     static class ListServices extends ClusterTask {
         def doCall() {
-            appContext.serviceManagerService.services.collect { [name: it.key] }
+            appContext.serviceManagerService.listServices()
         }
     }
 

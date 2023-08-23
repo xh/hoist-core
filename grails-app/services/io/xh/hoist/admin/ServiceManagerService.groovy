@@ -13,19 +13,30 @@ class ServiceManagerService extends BaseService {
 
     def grailsApplication
 
-    Map<String, BaseService> getServices() {
-        return grailsApplication.mainContext.getBeansOfType(BaseService.class, false, false)
+    Collection<Map> listServices() {
+        getServicesInternal().collect { name, svc ->
+            return [
+                name: name,
+                initializedDate: svc.initializedDate,
+                lastCachesCleared: svc.lastCachesCleared,
+                stats: svc.stats
+            ]
+        }
     }
 
-    void clearCaches(List<String> serviceNames) {
-        def allServices = getServices()
+    void clearCaches(List<String> names) {
+        def allServices = getServicesInternal()
 
-        serviceNames.each {
+        names.each {
             def svc = allServices[it]
             if (svc) {
                 svc.clearCaches()
                 logInfo('Cleared service cache', it)
             }
         }
+    }
+
+    private Map<String, BaseService> getServicesInternal() {
+        return grailsApplication.mainContext.getBeansOfType(BaseService.class, false, false)
     }
 }

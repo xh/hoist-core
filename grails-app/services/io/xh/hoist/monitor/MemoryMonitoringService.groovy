@@ -179,5 +179,6 @@ class MemoryMonitoringService extends BaseService {
 
     void clearCaches() {
         _snapshots.clear()
+        super.clearCaches()
     }
 }

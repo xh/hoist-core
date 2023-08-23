@@ -23,6 +23,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.DisposableBean
 
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 import static grails.async.Promises.task
@@ -36,9 +37,13 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
     IdentityService identityService
     ClusterService clusterService
+    public final ConcurrentHashMap stats = [:]
 
     ExceptionRenderer exceptionRenderer
-    protected boolean _initialized = false
+
+    Date initializedDate = null
+    Date lastCachesCleared = null
+
     private boolean _destroyed = false
 
     private final List<Timer> _timers = []
@@ -70,14 +75,14 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * @param timeout - maximum time to wait for each service to init (in ms).
      */
     final void initialize(Long timeout = 30 * SECONDS) {
-        if (_initialized) return
+        if (initializedDate) return
         try {
             withInfo("Initializing") {
                 task {
                     init()
                 }.get(timeout, TimeUnit.MILLISECONDS)
                 setupClearCachesConfigs()
-                _initialized = true
+                initializedDate = new Date();
             }
         } catch (Throwable t) {
             exceptionRenderer.handleException(t, this)
@@ -164,7 +169,9 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * resetting other stateful service objects such as HttpClients. The Hoist admin client provides a UI to call
      * this method on all BaseServices within a running application as an operational / troubleshooting tool.
      */
-    void clearCaches() {}
+    void clearCaches() {
+        lastCachesCleared = new Date()
+    }
 
     /**
      * Cleanup or release any service resources - e.g. cancel any timers.
@@ -180,7 +187,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     //--------------------
     // Implemented methods
     //--------------------
-    boolean isInitialized() {_initialized}
+    boolean isInitialized() {!!initializedDate}
     boolean isDestroyed()   {_destroyed}
 
     HoistUser getUser()         {identityService.user}
