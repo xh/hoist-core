@@ -2,6 +2,7 @@ package io.xh.hoist.cluster
 
 import com.hazelcast.cluster.Cluster
 import com.hazelcast.cluster.Member
+import com.hazelcast.core.DistributedObject
 import com.hazelcast.core.Hazelcast
 import com.hazelcast.config.Config
 import com.hazelcast.core.HazelcastInstance
@@ -23,9 +24,9 @@ class ClusterService extends BaseService {
 
     static HazelcastInstance instance = createInstance()
 
-    Set mapIds = new ConcurrentHashMap().newKeySet()
-    Set replicatedMapIds = new ConcurrentHashMap().newKeySet()
-    Set topicIds = new ConcurrentHashMap().newKeySet()
+    private Set mapIds = new ConcurrentHashMap().newKeySet()
+    private Set replicatedMapIds = new ConcurrentHashMap().newKeySet()
+    private Set topicIds = new ConcurrentHashMap().newKeySet()
 
     void init() {
         createTimer(
@@ -74,6 +75,16 @@ class ClusterService extends BaseService {
     ITopic getTopic(String id) {
         def ret = instance.getTopic(id)
         topicIds.add(id);
+        return ret
+    }
+
+    Collection<DistributedObject> listObjects() {
+        def svc = clusterService,
+            ret = []
+
+        svc.replicatedMapIds.each {ret << svc.getReplicatedMap(it)}
+        svc.mapIds.each {ret << svc.getMap(it)}
+        svc.topicIds.each {ret << svc.getTopic(it)}
         return ret
     }
 

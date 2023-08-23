@@ -1,9 +1,11 @@
 package io.xh.hoist.cluster
 
-import com.hazelcast.cache.impl.CacheProxy
 import com.hazelcast.map.IMap
+import com.hazelcast.map.LocalMapStats
+import com.hazelcast.replicatedmap.LocalReplicatedMapStats
 import com.hazelcast.replicatedmap.ReplicatedMap
 import com.hazelcast.topic.ITopic
+import com.hazelcast.topic.LocalTopicStats
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 
@@ -38,32 +40,70 @@ class ClusterAdminService extends BaseService {
         }
     }
 
-    Collection<Map> getObjectStats() {
-        def svc = clusterService,
-            ret = []
+    Collection<Map> listObjects() {
+        clusterService.listObjects().collect {obj ->
+            def ret = [
+                name      : obj.getName(),
+                objectType: 'Unknown',
+                stats     : [:],
+                size      : null
+            ]
 
-        svc.replicatedMapIds.each {
-            ReplicatedMap map = svc.getReplicatedMap(it)
-            ret << [id: 'repMap_' + it, name: map.getName(), size: map.size(), objectType: 'Replicated Map', stats: null]
+            switch (obj) {
+                case ReplicatedMap:
+                    LocalReplicatedMapStats stats = obj.getReplicatedMapStats()
+                    ret << [
+                        objectType: 'Replicated Map',
+                        size      : obj.size(),
+                        stats     : [
+                            ownedEntryCount: stats.ownedEntryCount,
+                            heapCost      : stats.heapCost,
+                            hits          : stats.hits,
+                            lastUpdateTime: stats.lastUpdateTime,
+                            lastAccessTime: stats.lastAccessTime
+                        ]
+                    ]
+                    break
+                case IMap:
+                    LocalMapStats stats = obj.getLocalMapStats()
+                    ret << [
+                        objectType: 'Distributed Map',
+                        size      : obj.size(),
+                        stats     : [
+                            ownedEntryCount: stats.ownedEntryCount,
+                            heapCost       : stats.heapCost,
+                            hits           : stats.hits,
+                            lastUpdateTime : stats.lastUpdateTime,
+                            lastAccessTime  : stats.lastAccessTime
+                        ]
+                    ]
+                    break
+                case ITopic:
+                    LocalTopicStats stats = obj.getLocalTopicStats()
+                    ret << [
+                        objectType: 'Topic',
+                        stats     : [
+                            publishOperationCount: stats.publishOperationCount,
+                            receiveOperationCount: stats.receiveOperationCount,
+                            creationTime         : stats.creationTime
+                        ]
+                    ]
+                    break
+            }
+            return ret
         }
+    }
 
-        svc.mapIds.each {
-            IMap map = svc.getMap(it)
-            ret << [id: 'map_' + it, name: map.getName(), size: map.size(), objectType: 'Map', stats: null]
-        }
-
-        svc.topicIds.each {
-            ITopic t = svc.getTopic(it)
-            ret << [id: 'topic_' + it, name: t.getName(), size: null, objectType: 'Topic', stats: null]
-        }
-
-        clusterService.instance.distributedObjects.findAll().each {
-            if (it instanceof CacheProxy) {
-                def name = it.getName()
-                ret << [id: 'hibernate_' + name, name: name, size: it.size(), objectType: 'Hibernate Cache', stats: null]
+    void clearObjects(List<String> names) {
+        def all = clusterService.listObjects()
+        names.each { name ->
+            def obj = all.find { it.getName() == name }
+            if (obj instanceof ReplicatedMap || obj instanceof IMap) {
+                obj.clear()
+                logInfo('Cleared Object ' + name)
+            } else {
+                logWarn('Cannot clear object' + name)
             }
         }
-
-        return ret
     }
 }

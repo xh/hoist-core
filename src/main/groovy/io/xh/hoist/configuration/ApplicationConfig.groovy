@@ -95,9 +95,9 @@ class ApplicationConfig {
                         type = 'member'
                     }
                 }
+                client.statistics.enabled = true
             }
-
-            hibernate {
+           hibernate {
                 javax {
                     cache {
                         provider = 'com.hazelcast.cache.impl.HazelcastServerCachingProvider'

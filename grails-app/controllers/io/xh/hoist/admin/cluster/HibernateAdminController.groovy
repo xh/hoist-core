@@ -13,27 +13,27 @@ import static io.xh.hoist.util.Utils.appContext
 
 
 @Access(['HOIST_ADMIN_READER'])
-class HzObjectAdminController extends BaseClusterController {
+class HibernateAdminController extends BaseClusterController {
 
-    def listObjects() {
-        runOnMember(new ListObjects())
+    def listCaches() {
+        runOnMember(new ListCaches())
     }
-    static class ListObjects extends ClusterTask {
+    static class ListCaches extends ClusterTask {
         def doCall() {
-            appContext.clusterAdminService.listObjects()
+            appContext.hibernateAdminService.listCaches()
         }
     }
 
     @Access(['HOIST_ADMIN'])
-    def clearObjects() {
+    def clearCaches() {
         def names = params.names instanceof String ? [params.names] : params.names
-        runOnMember(new ClearObjects(names: names))
+        runOnMember(new ClearCaches(names: names))
     }
-    static class ClearObjects extends ClusterTask {
+    static class ClearCaches extends ClusterTask {
         List<String> names
 
         def doCall() {
-            appContext.clusterAdminService.clearObjects(names)
+            appContext.hibernateAdminService.clearCaches(names)
             return [success: true]
         }
     }
