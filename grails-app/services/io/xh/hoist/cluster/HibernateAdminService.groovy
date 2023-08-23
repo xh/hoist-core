@@ -36,12 +36,14 @@ class HibernateAdminService extends BaseService {
     }
 
     void clearCaches(List<String> names) {
-        def caches = listCaches().findAll {names.contains(it.name)}
+        def caches = listCachesInternal().findAll {names.contains(it.name)}
         caches.each { c ->
             def factory = c.factory as SessionFactory,
                 cache = factory.cache
 
-            logWarn('To Be Implemented' + c.name)
+            try {cache.evictEntityRegion(c.name)}     catch (e) {}
+            try {cache.evictCollectionRegion(c.name)} catch (e) {}
+            try {cache.evictQueryRegion(c.name)}      catch (e) {}
         }
     }
 
