@@ -12,7 +12,9 @@ import io.xh.hoist.security.Access
 @Access(['HOIST_ADMIN_READER'])
 class ClusterAdminController extends BaseClusterController {
 
+    def clusterAdminService
+
     def allInstances() {
-        renderJSON(clusterService.allStats)
+        renderJSON(clusterAdminService.allStats)
     }
 }

@@ -13,15 +13,19 @@ import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 
 import java.util.concurrent.Callable
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Lock
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
-import static io.xh.hoist.util.Utils.appContext
 
 class ClusterService extends BaseService {
 
     static HazelcastInstance instance = createInstance()
+
+    Set mapIds = new ConcurrentHashMap().newKeySet()
+    Set replicatedMapIds = new ConcurrentHashMap().newKeySet()
+    Set topicIds = new ConcurrentHashMap().newKeySet()
 
     void init() {
         createTimer(
@@ -52,45 +56,25 @@ class ClusterService extends BaseService {
         masterName == instanceName
     }
 
-    Map getLocalStats() {
-        return new HashMap(
-            name             :  instanceName,
-            address          :  cluster.localMember.address.toString(),
-            isMaster         :  isMaster,
-            memory           :  appContext.memoryMonitoringService.latestSnapshot,
-            connectionPool   :  appContext.connectionPoolMonitoringService.latestSnapshot,
-            wsConnections    :  appContext.webSocketService.allChannels.size(),
-            startupTime      :  Utils.startupTime
-        )
-    }
-
-    Collection<Map> getAllStats() {
-        submitToAllMembers(new GetLocalStatsTask())
-            .collect {name, value -> [
-                *:value.get(),
-                isLocal: name == instanceName
-            ]}
-    }
-    static class GetLocalStatsTask implements Callable, Serializable {
-        def call() {
-            return appContext.clusterService.localStats
-        }
-    }
-
-
     //------------------------
     // Distributed Resources
     //------------------------
     <K, V> ReplicatedMap<K, V> getReplicatedMap(String id) {
-        instance.getReplicatedMap(id)
+        def ret = instance.getReplicatedMap(id)
+        replicatedMapIds.add(id);
+        return ret
     }
 
     IMap getMap(String id) {
-        instance.getMap(id)
+        def ret = instance.getMap(id)
+        mapIds.add(id);
+        return ret
     }
 
     ITopic getTopic(String id) {
-        instance.getTopic(id)
+        def ret = instance.getTopic(id)
+        topicIds.add(id);
+        return ret
     }
 
     //------------------------
@@ -145,7 +129,6 @@ class ClusterService extends BaseService {
         if (!ret) throw new RuntimeException("Unable to find cluster member $name")
         return ret
     }
-
 
     private void setMasterName(String s) {
         instance.CPSubsystem.getAtomicReference('masterName').set(s)
