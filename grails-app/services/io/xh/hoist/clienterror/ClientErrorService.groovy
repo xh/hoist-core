@@ -41,7 +41,7 @@ class ClientErrorService extends BaseService implements EventPublisher {
 
     void init() {
         super.init()
-        errors = clusterService.getMap('clientErrors')
+        errors = clusterService.getMap('xhClientErrors')
         createTimer(
                 interval: { alertInterval },
                 delay: 15 * SECONDS
