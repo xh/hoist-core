@@ -12,6 +12,8 @@ import io.xh.hoist.configuration.LogbackConfig
 import groovy.io.FileType
 import io.xh.hoist.security.Access
 
+import java.util.concurrent.Callable
+
 import static io.xh.hoist.util.Utils.getAppContext
 
 @Access(['HOIST_ADMIN_READER'])
@@ -60,14 +62,27 @@ class LogViewerAdminController extends BaseClusterController {
     }
 
     def download(String filename) {
-        if (!availableFiles[filename]) throwUnavailable()
-        def file = appContext.logReaderService.get(filename)
+        String instance = params.instance
+        def task = new Download(filename: filename)
+        File file = instance == clusterService.instanceName ?
+            task.call() :
+            clusterService.submitToMember(task, instance).get()
         render(
             file: file,
             fileName: filename,
             contentType: 'application/octet-stream'
         )
     }
+
+    static class Download implements Callable, Serializable {
+        String filename
+
+        def call() {
+            if (!availableFiles[filename]) throwUnavailable()
+            return appContext.logReaderService.get(filename)
+        }
+    }
+
 
     /**
      * Deletes one or more files from the log directory.
