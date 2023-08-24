@@ -67,6 +67,7 @@ class Utils {
         return Metadata.current.getProperty('info.xh.appBuild', String).orElse(null)
     }
 
+
     /**
      * Hoist AppEnvironment of the current deployment, distinct from Grails environment.
      */

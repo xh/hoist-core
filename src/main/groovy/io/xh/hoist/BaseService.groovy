@@ -37,7 +37,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
     IdentityService identityService
     ClusterService clusterService
-    public final ConcurrentHashMap stats = [:]
 
     ExceptionRenderer exceptionRenderer
 
@@ -87,6 +86,13 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         } catch (Throwable t) {
             exceptionRenderer.handleException(t, this)
         }
+    }
+
+    /**
+     * Return administrative stats for this UI.
+     */
+    Map getStats() {
+        return Collections.emptyMap()
     }
 
 

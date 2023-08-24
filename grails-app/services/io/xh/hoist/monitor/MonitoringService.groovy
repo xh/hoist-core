@@ -176,6 +176,7 @@ class MonitoringService extends BaseService implements EventPublisher {
     }
 
     private void onNotifyTimer() {
+        if (!isMaster) return
         if (!_alertMode || !_lastNotified) return
         def now = currentTimeMillis(),
             timeThresholdMet = now > _lastNotified + monitorConfig.monitorRepeatNotifyMins * MINUTES
@@ -189,6 +190,7 @@ class MonitoringService extends BaseService implements EventPublisher {
     }
 
     private void onMonitorTimer() {
+        if (!isMaster) return
         runAllMonitors()
     }
 
@@ -215,8 +217,10 @@ class MonitoringService extends BaseService implements EventPublisher {
 
     void clearCaches() {
         super.clearCaches()
-        _results.clear()
-        _problems.clear()
+        if (isMaster) {
+            _results.clear()
+            _problems.clear()
+        }
         if (monitorInterval > 0) {
             _monitorTimer.forceRun()
         }

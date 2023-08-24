@@ -16,6 +16,7 @@ import static ch.qos.logback.classic.Level.WARN
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.DEBUG
 import static ch.qos.logback.classic.Level.TRACE
+import static io.xh.hoist.util.Utils.getClusterService
 import static io.xh.hoist.util.Utils.getIdentityService
 import static java.lang.System.currentTimeMillis
 
@@ -160,8 +161,12 @@ trait LogSupport {
     }
 
     private Map getMeta() {
-        def username = identityService?.username
-        return username ? [_user: username] : null
+        def username = identityService?.username,
+            instance = clusterService?.instanceName,
+            ret = [:]
+        if (username) ret._user = username
+        if (instance) ret._instance = instance
+        return ret
     }
 
     private LogSupportMarker createMarker(Logger log, Object messages, Map meta = getMeta()) {

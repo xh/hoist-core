@@ -1,5 +1,7 @@
 package io.xh.hoist.cluster
 
+import com.hazelcast.collection.ISet
+import com.hazelcast.collection.LocalSetStats
 import com.hazelcast.map.IMap
 import com.hazelcast.map.LocalMapStats
 import com.hazelcast.replicatedmap.LocalReplicatedMapStats
@@ -15,7 +17,7 @@ import static io.xh.hoist.util.Utils.appContext
 
 class ClusterAdminService extends BaseService {
 
-    Map getLocalStats() {
+    Map getStats() {
         return new HashMap(
             name             :  clusterService.instanceName,
             address          :  clusterService.cluster.localMember.address.toString(),
@@ -36,7 +38,7 @@ class ClusterAdminService extends BaseService {
     }
     static class GetLocalStatsTask implements Callable, Serializable {
         def call() {
-            return appContext.clusterAdminService.localStats
+            return appContext.clusterAdminService.stats
         }
     }
 
@@ -57,10 +59,10 @@ class ClusterAdminService extends BaseService {
                         size      : obj.size(),
                         stats     : [
                             ownedEntryCount: stats.ownedEntryCount,
-                            heapCost      : stats.heapCost,
-                            hits          : stats.hits,
-                            lastUpdateTime: stats.lastUpdateTime,
-                            lastAccessTime: stats.lastAccessTime
+                            heapCost       : stats.heapCost,
+                            hits           : stats.hits,
+                            lastUpdateTime : stats.lastUpdateTime,
+                            lastAccessTime : stats.lastAccessTime
                         ]
                     ]
                     break
@@ -74,7 +76,18 @@ class ClusterAdminService extends BaseService {
                             heapCost       : stats.heapCost,
                             hits           : stats.hits,
                             lastUpdateTime : stats.lastUpdateTime,
-                            lastAccessTime  : stats.lastAccessTime
+                            lastAccessTime: stats.lastAccessTime
+                        ]
+                    ]
+                    break
+                case ISet:
+                    LocalSetStats stats = obj.getLocalSetStats()
+                    ret << [
+                        objectType: 'Set',
+                        size: obj.size(),
+                        stats     : [
+                            lastUpdateTime       : stats.lastUpdateTime,
+                            lastAccessTime       : stats.lastAccessTime
                         ]
                     ]
                     break

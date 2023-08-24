@@ -61,7 +61,7 @@ class ConnectionPoolMonitoringService extends BaseService {
     Map takeSnapshot() {
         ensureEnabled()
 
-        def newSnap = getStats()
+        def newSnap = getSnap()
         _snapshots[newSnap.timestamp] = newSnap
 
         // Don't allow snapshot history to grow endlessly -
@@ -88,11 +88,14 @@ class ConnectionPoolMonitoringService extends BaseService {
         takeSnapshot()
     }
 
+    Map getStats() {
+        return latestSnapshot
+    }
 
     //------------------------
     // Implementation
     //------------------------
-    private Map getStats() {
+    private Map getSnap() {
         def ds = pooledDataSource
         return [
             timestamp: currentTimeMillis(),

@@ -23,6 +23,9 @@ class EmailService extends BaseService {
     def configService
     def groovyPageRenderer
 
+    private Date lastSentDate = null
+    private Date emailsSent = null
+
     /**
      * Send email as specified by args param.
      * Application environment will be appended to subject unless environment is Production.
@@ -124,6 +127,7 @@ class EmailService extends BaseService {
                 attachments.each { Map f ->
                     attach f.fileName as String, f.contentType as String, f.contentSource
                 }
+
             }
 
             if (doLog) {
@@ -156,6 +160,17 @@ class EmailService extends BaseService {
         return s == 'none' ? null : formatAddresses(s)
     }
 
+    Map getStats() {
+        return [
+            config: [
+                xhEmailOverride: configService.getString('xhEmailOverride'),
+                xhEmailFilter: configService.getString('xhEmailFilter'),
+                xhEmailDefaultSender: configService.getString('xhEmailDefaultSender'),
+            ],
+            emailsSent: emailsSent,
+            lastSentDate: lastSentDate
+        ]
+    }
 
     //------------------------
     // Implementation

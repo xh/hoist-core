@@ -2,6 +2,7 @@ package io.xh.hoist.cluster
 
 import com.hazelcast.cluster.Cluster
 import com.hazelcast.cluster.Member
+import com.hazelcast.collection.ISet
 import com.hazelcast.core.DistributedObject
 import com.hazelcast.core.Hazelcast
 import com.hazelcast.config.Config
@@ -25,6 +26,7 @@ class ClusterService extends BaseService {
     static HazelcastInstance instance = createInstance()
 
     private Set mapIds = new ConcurrentHashMap().newKeySet()
+    private Set setIds = new ConcurrentHashMap().newKeySet()
     private Set replicatedMapIds = new ConcurrentHashMap().newKeySet()
     private Set topicIds = new ConcurrentHashMap().newKeySet()
 
@@ -33,7 +35,7 @@ class ClusterService extends BaseService {
             name: 'electMaster',
             runFn: this.&electMaster,
             interval: 30 * SECONDS,
-            delay: 15 * SECONDS
+            runImmediatelyAndBlock: true
         )
         super.init()
     }
@@ -72,6 +74,13 @@ class ClusterService extends BaseService {
         return ret
     }
 
+    ISet getSet(String id) {
+        def ret = instance.getSet(id)
+        setIds.add(id);
+        return ret
+    }
+
+
     ITopic getTopic(String id) {
         def ret = instance.getTopic(id)
         topicIds.add(id);
@@ -82,9 +91,10 @@ class ClusterService extends BaseService {
         def svc = clusterService,
             ret = []
 
-        svc.replicatedMapIds.each {ret << svc.getReplicatedMap(it)}
-        svc.mapIds.each {ret << svc.getMap(it)}
-        svc.topicIds.each {ret << svc.getTopic(it)}
+        svc.replicatedMapIds.each { ret << svc.getReplicatedMap(it) }
+        svc.mapIds.each { ret << svc.getMap(it) }
+        svc.setIds.each { ret << svc.getSet(it) }
+        svc.topicIds.each { ret << svc.getTopic(it) }
         return ret
     }
 
@@ -117,7 +127,7 @@ class ClusterService extends BaseService {
             try {
                 def members = cluster.members,
                     masterName = getMasterName(),
-                    master = masterName ? members.find {it.getAttribute('instanceName') == masterName} : null,
+                    master = masterName ? members.find { it.getAttribute('instanceName') == masterName } : null,
                     first = members ? members.iterator().next() : null
 
                 // Master not found, or needs to replaced.  Do so!

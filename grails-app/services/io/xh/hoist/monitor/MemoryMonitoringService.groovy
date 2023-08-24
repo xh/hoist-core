@@ -77,7 +77,7 @@ class MemoryMonitoringService extends BaseService {
      * Take a snapshot of JVM memory usage, store in this service's in-memory history, and return.
      */
     Map takeSnapshot() {
-        def newSnap = getStats()
+        def newSnap = getSnap()
 
         _snapshots[newSnap.timestamp] = newSnap
 
@@ -115,11 +115,13 @@ class MemoryMonitoringService extends BaseService {
         ]
     }
 
-
+    Map getStats() {
+        return latestSnapshot
+    }
     //------------------------
     // Implementation
     //------------------------
-    private Map getStats() {
+    private Map getSnap() {
         def mb = 1024 * 1024,
             timestamp = currentTimeMillis(),
             gcStats = getGCStats(timestamp),
