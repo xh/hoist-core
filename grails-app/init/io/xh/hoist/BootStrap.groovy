@@ -201,6 +201,13 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Configures exporting data to Excel.'
             ],
+            xhFlags: [
+                valueType: 'json',
+                defaultValue: [:],
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'Flags for experimental features.'
+            ],
             xhIdleConfig: [
                 valueType: 'json',
                 defaultValue: [timeout: -1, appTimeouts: [:]],
