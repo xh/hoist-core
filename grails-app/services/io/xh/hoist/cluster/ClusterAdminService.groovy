@@ -4,6 +4,7 @@ import com.hazelcast.collection.ISet
 import com.hazelcast.collection.LocalSetStats
 import com.hazelcast.map.IMap
 import com.hazelcast.map.LocalMapStats
+import com.hazelcast.nearcache.NearCacheStats
 import com.hazelcast.replicatedmap.LocalReplicatedMapStats
 import com.hazelcast.replicatedmap.ReplicatedMap
 import com.hazelcast.topic.ITopic
@@ -60,7 +61,8 @@ class ClusterAdminService extends BaseService {
                         stats     : [
                             ownedEntryCount: stats.ownedEntryCount,
                             heapCost       : stats.heapCost,
-                            hits           : stats.hits,
+                            gets           : stats.getOperationCount,
+                            puts           : stats.putOperationCount,
                             lastUpdateTime : stats.lastUpdateTime,
                             lastAccessTime : stats.lastAccessTime
                         ]
@@ -74,7 +76,10 @@ class ClusterAdminService extends BaseService {
                         stats     : [
                             ownedEntryCount: stats.ownedEntryCount,
                             heapCost       : stats.heapCost,
-                            hits           : stats.hits,
+                            gets           : stats.getOperationCount,
+                            sets           : stats.setOperationCount,
+                            puts           : stats.putOperationCount,
+                            nearCache     : getNearCacheStats(stats.nearCacheStats),
                             lastUpdateTime : stats.lastUpdateTime,
                             lastAccessTime: stats.lastAccessTime
                         ]
@@ -105,6 +110,17 @@ class ClusterAdminService extends BaseService {
             }
             return ret
         }
+    }
+
+    private Map getNearCacheStats(NearCacheStats stats) {
+        if (!stats) return null
+        [
+            ownedEntryCount    : stats.ownedEntryCount,
+            lastPersistenceTime: stats.lastPersistenceTime,
+            hits               : stats.hits,
+            misses             : stats.misses,
+            ratio              : stats.ratio.round(2)
+        ]
     }
 
     void clearObjects(List<String> names) {
