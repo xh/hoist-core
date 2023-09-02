@@ -1,6 +1,8 @@
 # Changelog
 
-## 18.0-SNAPSHOT
+## 18.0-SNAPSHOT - unreleased
+
+## 17.2.0 - 2023-08-17
 
 ### 🎁 New Features
 
@@ -34,6 +36,21 @@ It should be fully compatible with Java 11 and Java 17.
 * grails `5.3.2 -> 6.0.0`
 * gorm `7.3.2` -> `8.0.0`
 * groovy `3.0.9` -> `3.0.11`
+
+## 16.4.4 - 2023-08-03
+
+### 🐞 Bugfixes
+* Replace bullet points with hyphens in default `xhAppVersionCheck` config.
+
+## 16.4.3 - 2023-08-02
+
+### 🐞 Bugfixes
+* Remove one remaining smart quote to make default notes in default config safer for all DBs.
+
+## 16.4.2 - 2023-07-31
+
+### 🐞 Bugfixes
+* Make default notes in default config safer for all DBs by removing smart quotes.
 
 ## 16.4.1 - 2023-07-13
 
