@@ -2,6 +2,28 @@
 
 ## 18.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Hoist Core v18 provides support for running multi-instance clusters of Hoist application servers.
+Cluster management is provided by the use of Hazelcast (www.hazelcast.com), an open-source library
+providing embedded java support for inter-server communication, co-ordination, and data sharing.
+See the new `ClusterService.groovy` service, which provides the clustering implementation and main
+API entry point for accessing the cluster.
+  ** Applications upgrading to v18 will need to provide a cluster configuration file at
+     `src/resources/hazelcast.xml`.  See toolbox for an example of this file.
+  ** Applications that intend to run with more than one server *must* enable sticky sessions when
+     routing clients to servers.  This is critical for the correct operation of authentication
+     and web socket communications.
+  ** Many applications will *not* need to implement additional changes beyond the above to
+     run with multi-instances; Hoist will setup the cluster, elect a master instance,  provide
+     cluster-aware hibernate caching and logging, and ensure cross-server consistency for its own
+     APIs.
+  ** However, complex applications -- especially applications with state, workflow, or business
+     logic -- should take care to ensure the app is safe to run in multi-instance mode. Distributed
+     data structures (e.g. Hazelcast  Maps) should be used as needed, as well as limiting certain
+     actions to the "master" server.  See toolbox, or Hoist for help.
+  ** `hoist-react >= 60.0` is required.
+
 ## 17.2.0 - 2023-08-17
 
 ### 🎁 New Features
