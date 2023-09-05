@@ -10,7 +10,7 @@ package io.xh.hoist.monitor
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.util.Utils
 
-class Monitor implements JSONFormat {
+class Monitor implements JSONFormat, Serializable {
 
     String code
     String name

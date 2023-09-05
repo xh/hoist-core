@@ -37,14 +37,16 @@ class MonitoringService extends BaseService implements EventPublisher {
     def configService,
         monitorResultService
 
-    private Map<String, MonitorResult> _results = new ConcurrentHashMap()
-    private Map<String, Map> _problems = new ConcurrentHashMap()
+    private Map<String, MonitorResult> _results
+    private Map<String, Map> _problems
     private Timer _monitorTimer
     private Timer _notifyTimer
     private boolean _alertMode = false
     private Long _lastNotified
 
     void init() {
+        _results = clusterService.getReplicatedMap('xhMonitorResults')
+        _problems = clusterService.getReplicatedMap('xhMonitorProblems')
         _monitorTimer = createTimer(
                 interval: {monitorInterval},
                 delay: startupDelay,
@@ -87,7 +89,8 @@ class MonitoringService extends BaseService implements EventPublisher {
                     .collectEntries(new ConcurrentHashMap()) { [it.code, it] }
 
             markLastStatus(newResults, _results)
-            _results = newResults
+            _results.clear()
+            _results.putAll(newResults)
             if (monitorConfig.writeToMonitorLog != false) logResults()
             evaluateProblems()
         }
@@ -220,9 +223,9 @@ class MonitoringService extends BaseService implements EventPublisher {
         if (isMaster) {
             _results.clear()
             _problems.clear()
-        }
-        if (monitorInterval > 0) {
-            _monitorTimer.forceRun()
+            if (monitorInterval > 0) {
+                _monitorTimer.forceRun()
+            }
         }
     }
 }

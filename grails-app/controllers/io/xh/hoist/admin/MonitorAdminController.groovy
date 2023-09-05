@@ -13,8 +13,6 @@ import io.xh.hoist.security.Access
 @Access(['HOIST_ADMIN_READER'])
 class MonitorAdminController extends AdminRestController {
 
-    def monitoringService
-
     static restTarget = Monitor
     static trackChanges = true
 
@@ -25,15 +23,4 @@ class MonitorAdminController extends AdminRestController {
     protected void preprocessSubmit(Map submit) {
         submit.lastUpdatedBy = authUsername
     }
-
-    @Access(['HOIST_ADMIN'])
-    def forceRunAllMonitors() {
-        monitoringService.forceRun()
-        renderJSON(success:true)
-    }
-
-    def results() {
-        renderJSON(monitoringService.getResults())
-    }
-
 }
