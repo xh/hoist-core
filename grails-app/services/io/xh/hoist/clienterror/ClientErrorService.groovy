@@ -44,7 +44,8 @@ class ClientErrorService extends BaseService implements EventPublisher {
         errors = clusterService.getMap('xhClientErrors')
         createTimer(
                 interval: { alertInterval },
-                delay: 15 * SECONDS
+                delay: 15 * SECONDS,
+                masterOnly: true
         )
     }
 
@@ -90,9 +91,7 @@ class ClientErrorService extends BaseService implements EventPublisher {
     //---------------------------------------------------------
     @Transactional
     void onTimer() {
-
-        // Master should drain buffer periodically...
-       if (!isMaster || !errors) return
+        if (!errors) return
 
         def maxErrors = getMaxErrors(),
             errs = errors.values().take(maxErrors),

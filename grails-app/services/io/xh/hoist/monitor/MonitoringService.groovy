@@ -13,8 +13,6 @@ import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Timer
 
-import java.util.concurrent.ConcurrentHashMap
-
 import static grails.async.Promises.task
 import static io.xh.hoist.monitor.MonitorStatus.*
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
@@ -39,10 +37,11 @@ class MonitoringService extends BaseService implements EventPublisher {
 
     private Map<String, MonitorResult> _results
     private Map<String, Map> _problems
-    private Timer _monitorTimer
-    private Timer _notifyTimer
     private boolean _alertMode = false
     private Long _lastNotified
+
+    private Timer _monitorTimer
+    private Timer _notifyTimer
 
     void init() {
         _results = clusterService.getReplicatedMap('xhMonitorResults')
@@ -50,12 +49,14 @@ class MonitoringService extends BaseService implements EventPublisher {
         _monitorTimer = createTimer(
                 interval: {monitorInterval},
                 delay: startupDelay,
-                runFn: this.&onMonitorTimer
+                runFn: this.&onMonitorTimer,
+                masterOnly: true
         )
 
         _notifyTimer = createTimer (
                 interval: {notifyInterval},
-                runFn: this.&onNotifyTimer
+                runFn: this.&onNotifyTimer,
+                masterOnly: true
         )
     }
 
@@ -179,7 +180,6 @@ class MonitoringService extends BaseService implements EventPublisher {
     }
 
     private void onNotifyTimer() {
-        if (!isMaster) return
         if (!_alertMode || !_lastNotified) return
         def now = currentTimeMillis(),
             timeThresholdMet = now > _lastNotified + monitorConfig.monitorRepeatNotifyMins * MINUTES
@@ -193,7 +193,6 @@ class MonitoringService extends BaseService implements EventPublisher {
     }
 
     private void onMonitorTimer() {
-        if (!isMaster) return
         runAllMonitors()
     }
 

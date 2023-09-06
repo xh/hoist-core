@@ -25,10 +25,10 @@ class ClusterService extends BaseService {
 
     static HazelcastInstance instance = createInstance()
 
-    private Set mapIds = new ConcurrentHashMap().newKeySet()
-    private Set setIds = new ConcurrentHashMap().newKeySet()
-    private Set replicatedMapIds = new ConcurrentHashMap().newKeySet()
-    private Set topicIds = new ConcurrentHashMap().newKeySet()
+    Set mapIds = new ConcurrentHashMap().newKeySet()
+    Set setIds = new ConcurrentHashMap().newKeySet()
+    Set replicatedMapIds = new ConcurrentHashMap().newKeySet()
+    Set topicIds = new ConcurrentHashMap().newKeySet()
 
     void init() {
         createTimer(

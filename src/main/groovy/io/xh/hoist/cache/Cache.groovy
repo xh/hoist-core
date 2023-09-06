@@ -39,13 +39,16 @@ class Cache<K,V> {
         replicate = (boolean) options.replicate
 
         if (!svc) throw new RuntimeException("Missing required argument 'svc' for Cache")
-        if (replicate && !name) {
-            throw new RuntimeException("Cannot create a replicated cache without a unique name")
+        if (replicate) {
+            def svc = Utils.clusterService,
+                cacheName = options.name ? 'cache_' + options.name : null
+            if (!cacheName || svc.replicatedMapIds.contains(cacheName)) {
+                throw new RuntimeException("Cannot create a replicated cache without a unique name")
+            }
+            _map = svc.<K, Entry<V>>getReplicatedMap(cacheName)
+        } else {
+            _map = new ConcurrentHashMap<K, Entry<V>>()
         }
-
-        _map = replicate ?
-            Utils.clusterService.<K, Entry<V>>getReplicatedMap(name) :
-            new ConcurrentHashMap<K, Entry<V>>()
     }
 
     V get(K key) {

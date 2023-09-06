@@ -71,6 +71,9 @@ class Timer {
     /** Block on an immediate initial run?  Default is false. */
     final boolean runImmediatelyAndBlock
 
+    /**  Only run job when clustered instance is the master server?  Default is false */
+    final boolean masterOnly
+
     /** Date last run completed. */
     Date getLastRun() {
         _lastRun
@@ -106,6 +109,7 @@ class Timer {
     Timer(Map config) {
         owner = config.owner
         runFn = config.runFn
+        masterOnly = config.masterOnly ?: false
         runImmediatelyAndBlock = config.runImmediatelyAndBlock ?: false
 
         interval = parseDynamicValue(config.interval)
@@ -165,6 +169,8 @@ class Timer {
     // Implementation
     //------------------------
     private void doRun() {
+        if (masterOnly && !Utils.clusterService.isMaster) return
+
         _isRunning = true
         Throwable throwable = null
         Future future = null
