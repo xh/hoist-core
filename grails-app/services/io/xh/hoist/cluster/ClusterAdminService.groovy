@@ -31,7 +31,7 @@ class ClusterAdminService extends BaseService {
     }
 
     Collection<Map> getAllStats() {
-        clusterService.submitToAllMembers(new GetLocalStatsTask())
+        clusterService.submitToAllInstances(new GetLocalStatsTask())
             .collect {name, value -> [
                 *:value.get(),
                 isLocal: name == clusterService.instanceName

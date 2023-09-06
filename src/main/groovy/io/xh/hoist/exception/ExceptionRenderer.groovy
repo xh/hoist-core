@@ -47,7 +47,7 @@ class ExceptionRenderer {
         response.flushBuffer()
     }
 
-    ClusterResponse handleClusterTaskException(Throwable t, LogSupport logSupport) {
+    ClusterResponse handleClusterRequestException(Throwable t, LogSupport logSupport) {
         t = preprocess(t)
         logException(t, logSupport)
 

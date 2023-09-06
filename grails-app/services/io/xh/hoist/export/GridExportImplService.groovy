@@ -41,8 +41,8 @@ class GridExportImplService extends BaseService {
 
     def configService
 
-    private Date lastExportDate = new Date()
-    private int exportCount = 0;
+    private Date lastExportDate = null
+    private Long exportCount = 0
 
     void init() {
         if (instanceLog.debugEnabled) {

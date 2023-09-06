@@ -24,7 +24,7 @@ class EmailService extends BaseService {
     def groovyPageRenderer
 
     private Date lastSentDate = null
-    private Date emailsSent = null
+    private Long emailsSent = 0
 
     /**
      * Send email as specified by args param.
@@ -127,8 +127,9 @@ class EmailService extends BaseService {
                 attachments.each { Map f ->
                     attach f.fileName as String, f.contentType as String, f.contentSource
                 }
-
             }
+            emailsSent++
+            lastSentDate = new Date()
 
             if (doLog) {
                 def recipCount = toRecipients.size() + (ccRecipients?.size() ?: 0)

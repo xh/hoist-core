@@ -7,30 +7,28 @@
 
 package io.xh.hoist.admin.cluster
 
-import io.xh.hoist.cluster.ClusterTask
+import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.security.Access
-
-import java.util.concurrent.Callable
 
 import static io.xh.hoist.util.Utils.getAppContext
 
 @Access(['HOIST_ADMIN_READER'])
 class WebSocketAdminController extends BaseClusterController {
 
-    def allChannels() {
-        runOnMember(new AllChannels())
+    def allChannels(String instance) {
+        runOnInstance(new AllChannels(), instance)
     }
-    static class AllChannels extends ClusterTask {
+    static class AllChannels extends ClusterRequest {
         def doCall() {
             appContext.webSocketService.allChannels
         }
     }
 
     @Access(['HOIST_ADMIN'])
-    def pushToChannel(String channelKey, String topic, String message) {
-        runOnMember(new PushToChannel(channelKey: channelKey, topic: topic, message: message))
+    def pushToChannel(String channelKey, String topic, String message, String instance) {
+        runOnInstance(new PushToChannel(channelKey: channelKey, topic: topic, message: message), instance)
     }
-    static class PushToChannel extends ClusterTask {
+    static class PushToChannel extends ClusterRequest {
         String channelKey
         String topic
         String message

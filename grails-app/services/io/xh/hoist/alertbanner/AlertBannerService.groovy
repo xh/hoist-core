@@ -111,11 +111,6 @@ class AlertBannerService extends BaseService {
         return emptyAlert
     }
 
-    private void refreshCachedBanner() {
-        cachedBanner = readFromSpec()
-        logDebug("Refreshing Alert Banner state: " + cachedBanner.toMapString())
-    }
-
     void clearCaches() {
         super.clearCaches()
         cache.clear()

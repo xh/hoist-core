@@ -8,14 +8,14 @@ import java.util.concurrent.Callable
 
 import static io.xh.hoist.json.JSONSerializer.serialize
 
-abstract class ClusterTask implements Callable<ClusterResponse>, Serializable, LogSupport {
+abstract class ClusterRequest implements Callable<ClusterResponse>, Serializable, LogSupport {
 
     ClusterResponse call() {
         try {
             def result = doCall()
             return new ClusterResponse(status: HttpStatus.SC_OK, result: serialize(result))
         } catch (Throwable t) {
-            return Utils.appContext.exceptionRenderer.handleClusterTaskException(t, this)
+            return Utils.appContext.exceptionRenderer.handleClusterRequestException(t, this)
         }
     }
 

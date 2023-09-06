@@ -6,17 +6,18 @@
  */
 package io.xh.hoist.admin.cluster
 
-import io.xh.hoist.cluster.ClusterTask
+
+import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.security.Access
 
 
 @Access(['HOIST_ADMIN_READER'])
 class EnvAdminController extends BaseClusterController {
 
-    def index() {
-        runOnMember(new Index())
+    def index(String instance) {
+        runOnInstance(new Index(), instance)
     }
-    static class Index extends ClusterTask {
+    static class Index extends ClusterRequest {
         def doCall() {
             [
                 environment: System.getenv(),

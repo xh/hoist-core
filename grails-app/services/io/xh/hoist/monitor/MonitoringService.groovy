@@ -86,7 +86,7 @@ class MonitoringService extends BaseService implements EventPublisher {
 
             Map newResults = Promises
                     .waitAll(tasks)
-                    .collectEntries(new ConcurrentHashMap()) { [it.code, it] }
+                    .collectEntries{ [it.code, it] }
 
             markLastStatus(newResults, _results)
             _results.clear()

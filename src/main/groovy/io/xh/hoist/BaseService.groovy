@@ -23,7 +23,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.DisposableBean
 
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 import static grails.async.Promises.task
@@ -89,7 +88,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     }
 
     /**
-     * Return administrative stats for this UI.
+     * Return administrative stats for this service.
      */
     Map getStats() {
         return Collections.emptyMap()

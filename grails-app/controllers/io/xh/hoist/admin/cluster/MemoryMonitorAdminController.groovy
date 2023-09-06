@@ -7,7 +7,8 @@
 
 package io.xh.hoist.admin.cluster
 
-import io.xh.hoist.cluster.ClusterTask
+
+import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.security.Access
 
 import static io.xh.hoist.util.Utils.appContext
@@ -15,20 +16,20 @@ import static io.xh.hoist.util.Utils.appContext
 @Access(['HOIST_ADMIN_READER'])
 class MemoryMonitorAdminController extends BaseClusterController {
 
-    def snapshots() {
-        runOnMember(new Snapshots())
+    def snapshots(String instance) {
+        runOnInstance(new Snapshots(), instance)
     }
-    static class Snapshots extends ClusterTask {
+    static class Snapshots extends ClusterRequest {
         def doCall() {
             appContext.memoryMonitoringService.snapshots
         }
     }
 
     @Access(['HOIST_ADMIN'])
-    def takeSnapshot() {
-        runOnMember(new TakeSnapshot())
+    def takeSnapshot(String instance) {
+        runOnInstance(new TakeSnapshot(), instance)
     }
-    static class TakeSnapshot extends ClusterTask {
+    static class TakeSnapshot extends ClusterRequest {
         def doCall() {
             appContext.memoryMonitoringService.takeSnapshot()
         }
@@ -36,10 +37,10 @@ class MemoryMonitorAdminController extends BaseClusterController {
 
 
     @Access(['HOIST_ADMIN'])
-    def requestGc() {
-        runOnMember(new RequestGc())
+    def requestGc(String instance) {
+        runOnInstance(new RequestGc(), instance)
     }
-    static class RequestGc extends ClusterTask {
+    static class RequestGc extends ClusterRequest {
         def doCall() {
             appContext.memoryMonitoringService.requestGc()
         }
@@ -47,10 +48,10 @@ class MemoryMonitorAdminController extends BaseClusterController {
 
 
     @Access(['HOIST_ADMIN'])
-    def dumpHeap(String filename) {
-        runOnMember(new DumpHeap(filename: filename))
+    def dumpHeap(String filename, String instance) {
+        runOnInstance(new DumpHeap(filename: filename), instance)
     }
-    static class DumpHeap extends ClusterTask {
+    static class DumpHeap extends ClusterRequest {
         String filename
 
         def doCall() {

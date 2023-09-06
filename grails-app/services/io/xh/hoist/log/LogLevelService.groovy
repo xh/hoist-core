@@ -12,7 +12,6 @@ import io.xh.hoist.BaseService
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.Level
-import io.xh.hoist.config.AppConfig
 import io.xh.hoist.util.Utils
 import org.slf4j.LoggerFactory
 
@@ -84,7 +83,7 @@ class LogLevelService extends BaseService {
     }
 
     void noteLogLevelChanged() {
-        clusterService.submitToAllMembers (new CalculateAdjustments())
+        clusterService.submitToAllInstances (new CalculateAdjustments())
     }
     static class CalculateAdjustments implements Callable, Serializable {
         Map call() {

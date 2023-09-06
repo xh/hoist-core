@@ -7,7 +7,7 @@
 
 package io.xh.hoist.admin.cluster
 
-import io.xh.hoist.cluster.ClusterTask
+import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.security.Access
 
 import static io.xh.hoist.util.Utils.getAppContext
@@ -25,7 +25,7 @@ class MonitorResultsAdminController extends BaseClusterController {
     def forceRunAllMonitors() {
         runOnMaster(new ForceRunAllMonitors())
     }
-    static class ForceRunAllMonitors extends ClusterTask {
+    static class ForceRunAllMonitors extends ClusterRequest {
         def doCall() {
             appContext.monitoringService.forceRun()
         }

@@ -7,7 +7,8 @@
 
 package io.xh.hoist.admin.cluster
 
-import io.xh.hoist.cluster.ClusterTask
+
+import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.configuration.LogbackConfig
 import groovy.io.FileType
 import io.xh.hoist.security.Access
@@ -19,10 +20,10 @@ import static io.xh.hoist.util.Utils.getAppContext
 @Access(['HOIST_ADMIN_READER'])
 class LogViewerAdminController extends BaseClusterController {
 
-    def listFiles() {
-        runOnMember(new ListFiles())
+    def listFiles(String instance) {
+        runOnInstance(new ListFiles(), instance)
     }
-    static class ListFiles extends ClusterTask {
+    static class ListFiles extends ClusterRequest {
         def doCall() {
             def logRootPath = appContext.logReaderService.logDir.absolutePath,
                 files = availableFiles.collect {
@@ -37,10 +38,20 @@ class LogViewerAdminController extends BaseClusterController {
     }
 
 
-    def getFile(String filename, Integer startLine, Integer maxLines, String pattern, Boolean caseSensitive) {
-        runOnMember(new GetFile(filename: filename, startLine: startLine, maxLines: maxLines, pattern: pattern, caseSensitive: caseSensitive))
+    def getFile(
+        String filename,
+        Integer startLine,
+        Integer maxLines,
+        String pattern,
+        Boolean caseSensitive,
+        String instance
+    ) {
+        runOnInstance(
+            new GetFile(filename: filename, startLine: startLine, maxLines: maxLines, pattern: pattern, caseSensitive: caseSensitive),
+            instance
+        )
     }
-    static class GetFile extends ClusterTask {
+    static class GetFile extends ClusterRequest {
         String filename
         Integer startLine
         Integer maxLines
@@ -61,12 +72,11 @@ class LogViewerAdminController extends BaseClusterController {
         }
     }
 
-    def download(String filename) {
-        String instance = params.instance
+    def download(String filename, String instance) {
         def task = new Download(filename: filename)
         File file = instance == clusterService.instanceName ?
             task.call() :
-            clusterService.submitToMember(task, instance).get()
+            clusterService.submitToInstance(task, instance).get()
         render(
             file: file,
             fileName: filename,
@@ -89,10 +99,10 @@ class LogViewerAdminController extends BaseClusterController {
      * @param filenames - (required)
      */
     @Access(['HOIST_ADMIN'])
-    def deleteFiles() {
-        runOnMember(new DeleteFiles(filenames: params.list('filenames')))
+    def deleteFiles(String instance) {
+        runOnInstance(new DeleteFiles(filenames: params.list('filenames')), instance)
     }
-    static class DeleteFiles extends ClusterTask {
+    static class DeleteFiles extends ClusterRequest {
         List filenames
         def doCall() {
             def available = availableFiles
@@ -113,10 +123,10 @@ class LogViewerAdminController extends BaseClusterController {
      * @param daysThreshold - (optional) min age in days of files to archive - null to use configured default.
      */
     @Access(['HOIST_ADMIN'])
-    def archiveLogs(Integer daysThreshold) {
-        runOnMember(new ArchiveLogs(daysThreshold: daysThreshold))
+    def archiveLogs(Integer daysThreshold, String instance) {
+        runOnInstance(new ArchiveLogs(daysThreshold: daysThreshold), instance)
     }
-    static class ArchiveLogs extends ClusterTask {
+    static class ArchiveLogs extends ClusterRequest {
         Integer daysThreshold
 
         def doCall() {

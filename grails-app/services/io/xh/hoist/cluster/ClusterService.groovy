@@ -65,19 +65,19 @@ class ClusterService extends BaseService {
     <K, V> ReplicatedMap<K, V> getReplicatedMap(String id) {
         def ret = instance.getReplicatedMap(id)
         replicatedMapIds.add(id);
-        return ret
+        ret
     }
 
-    IMap getMap(String id) {
+    <K, V> IMap<K, V> getMap(String id) {
         def ret = instance.getMap(id)
         mapIds.add(id);
-        return ret
+        ret
     }
 
-    ISet getSet(String id) {
+    <V> ISet<V> getSet(String id) {
         def ret = instance.getSet(id)
         setIds.add(id);
-        return ret
+        ret
     }
 
 
@@ -105,11 +105,11 @@ class ClusterService extends BaseService {
         return instance.getExecutorService('default')
     }
 
-    <T> Future<T> submitToMember(Callable<T> c, String name) {
-        executorService.submitToMember(c, getMember(name))
+    <T> Future<T> submitToInstance(Callable<T> c, String instanceName) {
+        executorService.submitToMember(c, getMember(instanceName))
     }
 
-    <T> Map<String, Future<T>> submitToAllMembers(Callable<T> c) {
+    <T> Map<String, Future<T>> submitToAllInstances(Callable<T> c) {
         executorService
             .submitToAllMembers(c)
             .collectEntries { Member member, Future<T> result ->
@@ -131,6 +131,7 @@ class ClusterService extends BaseService {
                     first = members ? members.iterator().next() : null
 
                 // Master not found, or needs to replaced.  Do so!
+                // Use first (oldest) rather than ourselves to make election deterministic
                 if (!master) {
                     def newMasterName = first.getAttribute('instanceName')
                     setMasterName(newMasterName)
@@ -145,9 +146,9 @@ class ClusterService extends BaseService {
         }
     }
 
-    private Member getMember(String name) {
-        def ret = cluster.members.find { it.getAttribute('instanceName') == name }
-        if (!ret) throw new RuntimeException("Unable to find cluster member $name")
+    private Member getMember(String instanceName) {
+        def ret = cluster.members.find { it.getAttribute('instanceName') == instanceName }
+        if (!ret) throw new RuntimeException("Unable to find cluster instance $instanceName")
         return ret
     }
 
@@ -161,7 +162,7 @@ class ClusterService extends BaseService {
     }
 
     private static Config createClusterConfig() {
-        def clusterName = Utils.appName + '_' + Utils.appEnvironment + '_' + Utils.appVersion,
+        def clusterName = Utils.appCode + '_' + Utils.appEnvironment + '_' + Utils.appVersion,
             instanceName = UUID.randomUUID().toString().take(8)
 
         // The built-in xml.file in the app reads these.  It is used by hibernate 2nd-level cache

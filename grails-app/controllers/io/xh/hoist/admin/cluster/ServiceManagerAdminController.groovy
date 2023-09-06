@@ -4,10 +4,9 @@
  *
  * Copyright © 2023 Extremely Heavy Industries Inc.
  */
-
 package io.xh.hoist.admin.cluster
 
-import io.xh.hoist.cluster.ClusterTask
+import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.security.Access
 
 import static io.xh.hoist.util.Utils.appContext
@@ -15,22 +14,21 @@ import static io.xh.hoist.util.Utils.appContext
 @Access(['HOIST_ADMIN_READER'])
 class ServiceManagerAdminController extends BaseClusterController {
 
-    def listServices() {
-        runOnMember(new ListServices())
+    def listServices(String instance) {
+        runOnInstance(new ListServices(), instance)
     }
-    static class ListServices extends ClusterTask {
+    static class ListServices extends ClusterRequest {
         def doCall() {
             appContext.serviceManagerService.listServices()
         }
     }
 
     @Access(['HOIST_ADMIN'])
-    def clearCaches() {
-        def names = params.names instanceof String ? [params.names] : params.names,
-            task = new ClearCaches(names: names)
-        params.instance ? runOnMember(task) : runOnAllMembers(task)
+    def clearCaches(String instance) {
+        def task = new ClearCaches(names: params.list('names'))
+        instance ? runOnInstance(task, instance) : runOnAllInstances(task)
     }
-    static class ClearCaches extends ClusterTask {
+    static class ClearCaches extends ClusterRequest {
         List<String> names
 
         def doCall() {
