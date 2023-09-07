@@ -15,7 +15,11 @@ class FeedbackEmailService extends BaseService {
     def emailService
 
     void init() {
-        subscribe('xhFeedbackReceived', this.&emailFeedback)
+        subscribeToTopic(
+            topic: 'xhFeedbackReceived',
+            onMessage: this.&emailFeedback,
+            masterOnly: true
+        )
     }
 
     //------------------------

@@ -7,9 +7,9 @@
 
 package io.xh.hoist
 
+import com.hazelcast.topic.ITopic
 import com.hazelcast.topic.Message
 import grails.async.Promises
-import io.xh.hoist.util.Utils
 import grails.util.GrailsClassUtils
 import groovy.transform.CompileDynamic
 import io.xh.hoist.cluster.ClusterService
@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit
 
 import static grails.async.Promises.task
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static io.xh.hoist.util.Utils.appContext
 
 /**
  * Standard superclass for all Hoist and Application-level services.
@@ -113,6 +114,9 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     /**
      * Managed Subscription to a Grails Event.
      *
+     * NOTE:  Use this method to subscribe to local Grails events on the given server
+     * instance only.  To subscribe to cluster-wide topics, use 'subscribeToTopic' instead.
+     *
      * This method will catch (and log) any exceptions thrown by its handler closure.
      * This is important because the core grails EventBus.subscribe() will silently swallow
      * exceptions, and stop processing subsequent handlers.
@@ -121,7 +125,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * hot-reloading scenario where multiple instances of singleton services may be created.
      */
     protected void subscribe(String eventName, Closure c) {
-       Utils.appContext.eventBus.subscribe(eventName) {Object... args ->
+       appContext.eventBus.subscribe(eventName) {Object... args ->
             if (destroyed) return
             try {
                 logDebug("Receiving event '$eventName'")
@@ -132,33 +136,51 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         }
     }
 
-    //------------------
-    // Cluster Support
-    //------------------
-    /** Is this instance the master instance */
-    protected boolean getIsMaster() {
-        clusterService.isMaster
+    /**
+     * Get a topic for publishing messages in the cluster
+     */
+    <M> ITopic<M> getTopic(String topicName) {
+        clusterService.getTopic(topicName)
     }
 
     /**
-     * Managed Subscription to a Hazelcast topic.
+     *
+     * Managed Subscription to a cluster topic.
+     *
+     * NOTE:  Use this method to subscribe to cluster-wide topics. To subscribe to local
+     * Grails events on this instance only, use subscribe instead.
      *
      * This method will catch (and log) any exceptions thrown by its handler closure.
      *
      * This subscription also avoids firing handlers on destroyed services. This is important in a
      * hot-reloading scenario where multiple instances of singleton services may be created.
      */
-    protected void subscribeToTopic(String topicName, Closure c) {
-        def topic = clusterService.getTopic(topicName)
-        topic.addMessageListener {Message m ->
-            if (destroyed) return
+    protected void subscribeToTopic(Map config) {
+        def topic = config.topic as String,
+            onMessage = config.onMessage as Closure,
+            masterOnly = config.masterOnly as Boolean
+
+
+        getTopic(topic).addMessageListener { Message m ->
+            if (destroyed || (masterOnly && !isMaster)) return
             try {
-                logDebug("Receiving event '$topicName'")
-                c.call(m)
+                logDebug("Receiving message on topic '$topic'")
+                onMessage.call(m)
             } catch (Exception e) {
-                logError("Exception handling event '$topicName'", e)
+                logError("Exception handling message on topic '$topic'", e)
             }
         }
+    }
+
+
+
+
+    //------------------
+    // Cluster Support
+    //------------------
+    /** Is this instance the master instance */
+    protected boolean getIsMaster() {
+        clusterService.isMaster
     }
 
     //-----------------------------------
@@ -208,13 +230,16 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         }
 
         if (deps) {
-            subscribeToTopic('xhConfigChanged') {Message<Map> msg ->
-                def key = msg.messageObject.key
-                if (deps.contains(key)) {
-                    logInfo("Clearing caches due to config change", key)
-                    clearCaches()
+            subscribeToTopic(
+                topic: 'xhConfigChanged',
+                onMessage: { Message<Map> msg ->
+                    def key = msg.messageObject.key
+                    if (deps.contains(key)) {
+                        logInfo("Clearing caches due to config change", key)
+                        clearCaches()
+                    }
                 }
-            }
+            )
         }
     }
 

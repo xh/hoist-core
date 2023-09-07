@@ -25,6 +25,7 @@ class ClusterService extends BaseService {
 
     static HazelcastInstance instance = createInstance()
 
+    // Lists of distributed data structured accessed on this server.
     Set mapIds = new ConcurrentHashMap().newKeySet()
     Set setIds = new ConcurrentHashMap().newKeySet()
     Set replicatedMapIds = new ConcurrentHashMap().newKeySet()
@@ -81,10 +82,10 @@ class ClusterService extends BaseService {
     }
 
 
-    ITopic getTopic(String id) {
+    <M> ITopic<M> getTopic(String id) {
         def ret = instance.getTopic(id)
         topicIds.add(id);
-        return ret
+        ret
     }
 
     Collection<DistributedObject> listObjects() {
@@ -95,7 +96,7 @@ class ClusterService extends BaseService {
         svc.mapIds.each { ret << svc.getMap(it) }
         svc.setIds.each { ret << svc.getSet(it) }
         svc.topicIds.each { ret << svc.getTopic(it) }
-        return ret
+        ret
     }
 
     //------------------------

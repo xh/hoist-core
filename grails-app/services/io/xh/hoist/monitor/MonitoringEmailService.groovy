@@ -20,7 +20,11 @@ class MonitoringEmailService extends BaseService {
     def emailService
 
     void init() {
-        subscribe('xhMonitorStatusReport', this.&emailReport)
+        subscribeToTopic(
+            topic: 'xhMonitorStatusReport',
+            onMessage: this.&emailReport,
+            masterOnly: true
+        )
     }
 
     //------------------------

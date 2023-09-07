@@ -8,7 +8,6 @@
 package io.xh.hoist.monitor
 
 import grails.async.Promises
-import grails.events.EventPublisher
 import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Timer
@@ -30,22 +29,26 @@ import static java.lang.System.currentTimeMillis
  *
  * If enabled via config, this service will also write monitor run results to a dedicated log file.
  */
-class MonitoringService extends BaseService implements EventPublisher {
+class MonitoringService extends BaseService {
 
     def configService,
         monitorResultService
 
+    // Shared state for all servers to read
     private Map<String, MonitorResult> _results
+
+    // Notification state for master to read only
     private Map<String, Map> _problems
-    private boolean _alertMode = false
-    private Long _lastNotified
+    private Map<String, Serializable> _notifyState
 
     private Timer _monitorTimer
     private Timer _notifyTimer
 
     void init() {
         _results = clusterService.getReplicatedMap('xhMonitorResults')
-        _problems = clusterService.getReplicatedMap('xhMonitorProblems')
+        _problems = clusterService.getMap('xhMonitorProblems')
+        _notifyState = clusterService.getMap('xhMonitorNotifyState')
+
         _monitorTimer = createTimer(
                 interval: {monitorInterval},
                 delay: startupDelay,
@@ -112,14 +115,14 @@ class MonitoringService extends BaseService implements EventPublisher {
     }
 
     private void evaluateProblems() {
-        Map<String, MonitorResult> flaggedResults = results.findAll {it.value.status >= WARN}
+        Map<String, MonitorResult> flaggedResults = results.findAll { it.value.status >= WARN }
 
         // 0) Remove all problems that are no longer problems
-        def removes = _problems.keySet().findAll {!flaggedResults[it]}
-        removes.each {_problems.remove(it)}
+        def removes = _problems.keySet().findAll { !flaggedResults[it] }
+        removes.each { _problems.remove(it) }
 
         // 1) (Re)Mark all existing problems
-        flaggedResults.each {code, result ->
+        flaggedResults.each { code, result ->
             def problem = _problems[code]
             if (!problem) {
                 problem = _problems[code] = [result: result, cyclesAsFail: 0, cyclesAsWarn: 0]
@@ -134,22 +137,23 @@ class MonitoringService extends BaseService implements EventPublisher {
         }
 
         // 2) Handle alert mode transition -- notify immediately
+        // Note that we may get an extra transition if new master introduced in alerting
         def currAlertMode = calcAlertMode()
-        if (currAlertMode != _alertMode) {
-            _alertMode = currAlertMode
+        if (currAlertMode != _notifyState['alertMode']) {
+            _notifyState['alertMode'] = currAlertMode
             notifyAlertModeChange()
         }
     }
 
     private void notifyAlertModeChange() {
         if (!isDevelopmentMode()) {
-            notify('xhMonitorStatusReport', generateStatusReport())
-            _lastNotified = currentTimeMillis()
+            getTopic('xhMonitorStatusReport').publishAsync(generateStatusReport())
+            _notifyState['lastNotified'] = currentTimeMillis()
         }
     }
 
     private boolean calcAlertMode() {
-        if (_alertMode && _problems) return true
+        if (_notifyState['alertMode'] && _problems) return true
 
         def failThreshold = monitorConfig.failNotifyThreshold,
             warnThreshold = monitorConfig.warnNotifyThreshold
@@ -180,15 +184,17 @@ class MonitoringService extends BaseService implements EventPublisher {
     }
 
     private void onNotifyTimer() {
-        if (!_alertMode || !_lastNotified) return
+        def lastNotified = _notifyState['lastNotified'],
+            alertMode = _notifyState['alertMode']
+        if (!alertMode || !lastNotified) return
         def now = currentTimeMillis(),
-            timeThresholdMet = now > _lastNotified + monitorConfig.monitorRepeatNotifyMins * MINUTES
+            timeThresholdMet = now > lastNotified + monitorConfig.monitorRepeatNotifyMins * MINUTES
 
         if (timeThresholdMet) {
             def report = generateStatusReport()
             logDebug("Emitting monitor status report: ${report.title}")
-            notify('xhMonitorStatusReport', report)
-            _lastNotified = now
+            getTopic('xhMonitorStatusReport').publishAsync(report)
+            _notifyState['lastNotified'] = currentTimeMillis()
         }
     }
 

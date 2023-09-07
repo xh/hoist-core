@@ -29,7 +29,7 @@ import static java.lang.System.currentTimeMillis
  * this prevents us from ever overwhelming the server due to client issues,
  * and also allows us to produce a digest form of the email.
  */
-class ClientErrorService extends BaseService implements EventPublisher {
+class ClientErrorService extends BaseService {
 
     def clientErrorEmailService,
         configService
@@ -102,12 +102,14 @@ class ClientErrorService extends BaseService implements EventPublisher {
             withDebug("Processing $count Client Errors") {
                 clientErrorEmailService.sendMail(errs, count == maxErrors)
 
-                errs.each {
+                def errors = errs.each {
                     def ce = new ClientError(it)
                     ce.dateCreated = it.dateCreated
                     ce.save(flush: true)
-                    notify('xhClientErrorReceived', ce)
                 }
+                clusterService
+                    .getTopic('xhClientErrorReceived')
+                    .publishAllAsync(errors)
             }
         }
     }
