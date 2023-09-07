@@ -112,6 +112,11 @@ class ClusterAdminService extends BaseService {
         }
     }
 
+
+
+    //--------------------
+    // Implementation
+    //--------------------
     private Map getNearCacheStats(NearCacheStats stats) {
         if (!stats) return null
         [
