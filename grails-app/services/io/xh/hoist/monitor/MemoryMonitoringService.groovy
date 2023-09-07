@@ -115,7 +115,7 @@ class MemoryMonitoringService extends BaseService {
         ]
     }
 
-    Map getStats() {
+    Map getAdminStats() {
         return latestSnapshot
     }
     //------------------------

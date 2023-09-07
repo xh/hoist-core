@@ -19,7 +19,7 @@ class ServiceManagerService extends BaseService {
                 name: name,
                 initializedDate: svc.initializedDate,
                 lastCachesCleared: svc.lastCachesCleared,
-                stats: svc.stats
+                stats: svc.adminStats
             ]
         }
     }

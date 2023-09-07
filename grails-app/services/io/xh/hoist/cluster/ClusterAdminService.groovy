@@ -18,7 +18,7 @@ import static io.xh.hoist.util.Utils.appContext
 
 class ClusterAdminService extends BaseService {
 
-    Map getStats() {
+    Map getAdminStats() {
         return new HashMap(
             name             :  clusterService.instanceName,
             address          :  clusterService.cluster.localMember.address.toString(),
@@ -39,7 +39,7 @@ class ClusterAdminService extends BaseService {
     }
     static class GetLocalStatsTask implements Callable, Serializable {
         def call() {
-            return appContext.clusterAdminService.stats
+            return appContext.clusterAdminService.adminStats
         }
     }
 

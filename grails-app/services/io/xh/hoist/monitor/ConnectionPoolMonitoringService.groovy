@@ -88,7 +88,7 @@ class ConnectionPoolMonitoringService extends BaseService {
         takeSnapshot()
     }
 
-    Map getStats() {
+    Map getAdminStats() {
         return latestSnapshot
     }
 

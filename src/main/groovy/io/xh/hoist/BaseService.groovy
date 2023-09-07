@@ -91,7 +91,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     /**
      * Return administrative stats for this service.
      */
-    Map getStats() {
+    Map getAdminStats() {
         return Collections.emptyMap()
     }
 

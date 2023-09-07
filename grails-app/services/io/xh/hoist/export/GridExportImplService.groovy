@@ -368,7 +368,7 @@ class GridExportImplService extends BaseService {
     }
 
 
-    Map getStats() {
+    Map getAdminStats() {
         return [
             config: config,
             exportCount: exportCount,

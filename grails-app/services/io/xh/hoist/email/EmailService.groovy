@@ -161,7 +161,7 @@ class EmailService extends BaseService {
         return s == 'none' ? null : formatAddresses(s)
     }
 
-    Map getStats() {
+    Map getAdminStats() {
         return [
             config: [
                 xhEmailOverride: configService.getString('xhEmailOverride'),
