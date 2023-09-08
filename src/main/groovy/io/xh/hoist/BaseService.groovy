@@ -165,7 +165,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
             if (destroyed || (masterOnly && !isMaster)) return
             try {
                 logDebug("Receiving message on topic '$topic'")
-                if (c.maximumNumberOfParameters == 1) {
+                if (onMessage.maximumNumberOfParameters == 1) {
                     onMessage.call(m.messageObject)
                 } else {
                     onMessage.call(m.messageObject, m)
@@ -175,8 +175,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
             }
         }
     }
-
-
 
 
     //------------------

@@ -36,7 +36,7 @@ class ClusterAdminController extends BaseClusterController {
     }
     static class ShutdownInstance extends ClusterRequest {
         Map doCall() {
-            Utils.clusterService.shutdown()
+            Utils.clusterService.shutdownInstance()
             [success: true]
         }
     }

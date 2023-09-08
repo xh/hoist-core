@@ -102,8 +102,8 @@ class ClusterService extends BaseService {
     /**
      * Shutdown this instance.
      */
-    void shutdown() {
-        hzInstance.shutdown()
+    void shutdownInstance() {
+        System.exit(0)
     }
 
 

@@ -102,7 +102,7 @@ class ClientErrorService extends BaseService {
             withDebug("Processing $count Client Errors") {
                 clientErrorEmailService.sendMail(errs, count == maxErrors)
 
-                def errors = errs.each {
+                def errors = errs.collect {
                     def ce = new ClientError(it)
                     ce.dateCreated = it.dateCreated
                     ce.save(flush: true)
