@@ -21,8 +21,8 @@ class ClusterAdminService extends BaseService {
     Map getAdminStats() {
         return new HashMap(
             name             :  clusterService.instanceName,
-            address          :  clusterService.cluster.localMember.address.toString(),
-            isMaster         :  isMaster,
+            address          :  clusterService.localMember.address.toString(),
+            isMaster         :  clusterService.isMaster,
             memory           :  appContext.memoryMonitoringService.latestSnapshot,
             connectionPool   :  appContext.connectionPoolMonitoringService.latestSnapshot,
             wsConnections    :  appContext.webSocketService.allChannels.size(),

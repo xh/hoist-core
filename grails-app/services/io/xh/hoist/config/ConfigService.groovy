@@ -158,7 +158,7 @@ class ConfigService extends BaseService {
 
     void fireConfigChanged(AppConfig obj) {
         def topic = clusterService.getTopic('xhConfigChanged')
-        topic.publish([key: obj.name, value: obj.externalValue()])
+        topic.publishAsync([key: obj.name, value: obj.externalValue()])
     }
 
     //-------------------

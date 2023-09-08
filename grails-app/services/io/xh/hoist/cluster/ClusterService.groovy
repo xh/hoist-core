@@ -2,6 +2,8 @@ package io.xh.hoist.cluster
 
 import com.hazelcast.cluster.Cluster
 import com.hazelcast.cluster.Member
+import com.hazelcast.cluster.MembershipEvent
+import com.hazelcast.cluster.MembershipListener
 import com.hazelcast.collection.ISet
 import com.hazelcast.core.DistributedObject
 import com.hazelcast.core.Hazelcast
@@ -17,73 +19,118 @@ import io.xh.hoist.util.Utils
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.locks.Lock
-import static io.xh.hoist.util.DateTimeUtils.SECONDS
 
 class ClusterService extends BaseService {
 
-    static HazelcastInstance instance = createInstance()
+    /**
+     * Name of Hazelcast cluster.
+     *
+     * This value identifies the cluster to attach to, create and is unique to this
+     * application, version, and environment.
+     */
+    static final String clusterName
 
+    /**
+     * Name of this instance.
+     *
+     * A randomly chosen unique identifier.
+     */
+    static final String instanceName
+
+    /**
+     * The underlying embedded Hazelcast instance.
+     * Use for accessing the native Hazelcast APIs.
+     */
+    static final HazelcastInstance hzInstance
+
+    static {
+        // Create this statically due to how Hazelcast inits and processes its xml file early.
+        clusterName = Utils.appCode + '_' + Utils.appEnvironment + '_' + Utils.appVersion
+        instanceName = UUID.randomUUID().toString().take(8)
+        hzInstance = createInstance()
+    }
+
+    //--------------------------------------------------------------
     // Lists of distributed data structured accessed on this server.
+    //---------------------------------------------------------------
     Set mapIds = new ConcurrentHashMap().newKeySet()
     Set setIds = new ConcurrentHashMap().newKeySet()
     Set replicatedMapIds = new ConcurrentHashMap().newKeySet()
     Set topicIds = new ConcurrentHashMap().newKeySet()
 
+    private boolean _isMaster = false
+
+
+    /**
+     * The Hazelcast member representing the 'master' instance.
+     *
+     * Apps typically use the master instance to execute any run-once logic on the cluster.
+     *
+     * We use a simple master definition documented by Hazelcast: The oldest member.
+     * See https://docs.hazelcast.org/docs/4.0/javadoc/com/hazelcast/cluster/Cluster.html#getMembers
+     */
+    Member getMaster() {
+        cluster.members.iterator().next()
+    }
+
+    /** The instance name of the master server.*/
+    String getMasterName() {
+        master.getAttribute('instanceName')
+    }
+
+    /** Is the local instance the master instance? */
+    boolean getIsMaster() {
+        // Cache until we ensure our implementation lightweight enough -- also supports logging.
+        return _isMaster
+    }
+
+    /** The Hazelcast member representing this instance. */
+    Member getLocalMember() {
+        return cluster.localMember
+    }
+
     void init() {
-        createTimer(
-            name: 'electMaster',
-            runFn: this.&electMaster,
-            interval: 30 * SECONDS,
-            runImmediatelyAndBlock: true
-        )
+        adjustMasterStatus()
+        cluster.addMembershipListener([
+            memberAdded: {MembershipEvent e -> adjustMasterStatus(e.members)},
+            memberRemoved: {MembershipEvent e-> adjustMasterStatus(e.members)}
+        ] as MembershipListener)
+
         super.init()
     }
 
-    //----------------------
-    // Basic Introspection
-    //----------------------
-    String getInstanceName() {
-        instance.config.instanceName
+    /**
+     * Shutdown this instance.
+     */
+    void shutdown() {
+        hzInstance.shutdown()
     }
 
-    Cluster getCluster() {
-        instance.cluster
-    }
-
-    String getMasterName() {
-        instance.getCPSubsystem().getAtomicReference('masterName').get()
-    }
-
-    boolean getIsMaster() {
-        masterName == instanceName
-    }
 
     //------------------------
     // Distributed Resources
     //------------------------
     <K, V> ReplicatedMap<K, V> getReplicatedMap(String id) {
-        def ret = instance.getReplicatedMap(id)
+        def ret = hzInstance.getReplicatedMap(id)
         replicatedMapIds.add(id);
         ret
     }
 
     <K, V> IMap<K, V> getMap(String id) {
-        def ret = instance.getMap(id)
+        def ret = hzInstance.getMap(id)
         mapIds.add(id);
         ret
     }
 
     <V> ISet<V> getSet(String id) {
-        def ret = instance.getSet(id)
+        def ret = hzInstance.getSet(id)
         setIds.add(id);
         ret
     }
 
 
     <M> ITopic<M> getTopic(String id) {
-        def ret = instance.getTopic(id)
+        def ret = hzInstance.getTopic(id)
         topicIds.add(id);
         ret
     }
@@ -103,7 +150,7 @@ class ClusterService extends BaseService {
     // Distributed execution
     //------------------------
     IExecutorService getExecutorService() {
-        return instance.getExecutorService('default')
+        return hzInstance.getExecutorService('default')
     }
 
     <T> Future<T> submitToInstance(Callable<T> c, String instanceName) {
@@ -122,28 +169,20 @@ class ClusterService extends BaseService {
     //------------------------------------
     // Implementation
     //------------------------------------
-    private void electMaster() {
-        Lock l = instance.CPSubsystem.getLock('masterElection')
-        if (l.tryLock(1, TimeUnit.SECONDS)) {
-            try {
-                def members = cluster.members,
-                    masterName = getMasterName(),
-                    master = masterName ? members.find { it.getAttribute('instanceName') == masterName } : null,
-                    first = members ? members.iterator().next() : null
+    private Cluster getCluster() {
+        hzInstance.cluster
+    }
 
-                // Master not found, or needs to replaced.  Do so!
-                // Use first (oldest) rather than ourselves to make election deterministic
-                if (!master) {
-                    def newMasterName = first.getAttribute('instanceName')
-                    setMasterName(newMasterName)
-                    logInfo("A new Master has been elected. All hail [$newMasterName].")
-                } else {
-                    logDebug("Master has been reconfirmed [$masterName].")
-                }
-
-            } finally {
-                l.unlock()
-            }
+    private void adjustMasterStatus(Set<Member> members = cluster.members) {
+        // Accept members explicitly to avoid race conditions when responding to MembershipEvents
+        // (see https://docs.hazelcast.org/docs/4.0/javadoc/com/hazelcast/cluster/MembershipEvent.html)
+        // Not sure if we ever abdicate, could network failures cause master to leave and rejoin cluster?
+        def newIsMaster = members.iterator().next().localMember()
+        if (_isMaster != newIsMaster) {
+            _isMaster = newIsMaster
+            _isMaster ?
+                logInfo("I have assumed the role of Master. All hail me, '$instanceName'") :
+                logInfo('I have abdicated the role of Master.')
         }
     }
 
@@ -153,19 +192,7 @@ class ClusterService extends BaseService {
         return ret
     }
 
-    private void setMasterName(String s) {
-        instance.CPSubsystem.getAtomicReference('masterName').set(s)
-    }
-
     private static HazelcastInstance createInstance() {
-        def config = createClusterConfig()
-        return Hazelcast.newHazelcastInstance(config)
-    }
-
-    private static Config createClusterConfig() {
-        def clusterName = Utils.appCode + '_' + Utils.appEnvironment + '_' + Utils.appVersion,
-            instanceName = UUID.randomUUID().toString().take(8)
-
         // The built-in xml.file in the app reads these.  It is used by hibernate 2nd-level cache
         // config and for any app specific settings. Set to ensure we have only one cluster/instance
         System.setProperty('io.xh.hoist.hzClusterName', clusterName)
@@ -179,6 +206,6 @@ class ClusterService extends BaseService {
         config.memberAttributeConfig.setAttribute('instanceName', instanceName)
         config.networkConfig.join.multicastConfig.enabled = true
 
-        return config
+        return Hazelcast.newHazelcastInstance(config)
     }
 }

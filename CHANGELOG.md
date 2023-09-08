@@ -24,6 +24,13 @@ API entry point for accessing the cluster.
      actions to the "master" server.  See toolbox, or Hoist for help.
   ** `hoist-react >= 60.0` is required.
 
+### Breaking Changes
+* The following server-side Hoist events are now implemented as cluster-wide Hazelcast messages
+rather than single-server Grails events:
+    ** 'xhFeedbackReceived', 'xhClientErrorReceived', 'xhConfigChanged', and 'xhMonitorStatusReport'
+Any applications that are listening to these events with `BaseService.subscribe` should instead use
+the new cluster aware method `BaseService.subscribeToTopic`.
+
 ## 17.2.0 - 2023-08-17
 
 ### 🎁 New Features

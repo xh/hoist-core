@@ -7,7 +7,7 @@ import org.hibernate.SessionFactory
 class HibernateAdminService extends BaseService {
 
     Collection<Map> listCaches() {
-        def cacheManager = clusterService.instance.cacheManager
+        def cacheManager = clusterService.hzInstance.cacheManager
         listCachesInternal().collect { c ->
             def cache = cacheManager.getCache(c.name)
             [

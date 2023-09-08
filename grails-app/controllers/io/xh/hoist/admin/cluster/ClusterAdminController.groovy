@@ -9,6 +9,7 @@ package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.security.Access
+import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 
@@ -25,7 +26,7 @@ class ClusterAdminController extends BaseClusterController {
     @Access(['HOIST_ADMIN'])
     def shutdownInstance(String instance) {
         trackService.track(
-            msg: "Initiated Instance Shutdown",
+            msg: 'Initiated Instance Shutdown',
             severity: 'WARN',
             data: [instance: instance]
         )
@@ -35,7 +36,7 @@ class ClusterAdminController extends BaseClusterController {
     }
     static class ShutdownInstance extends ClusterRequest {
         Map doCall() {
-            System.exit(0)
+            Utils.clusterService.shutdown()
             [success: true]
         }
     }

@@ -165,7 +165,11 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
             if (destroyed || (masterOnly && !isMaster)) return
             try {
                 logDebug("Receiving message on topic '$topic'")
-                onMessage.call(m)
+                if (c.maximumNumberOfParameters == 1) {
+                    onMessage.call(m.messageObject)
+                } else {
+                    onMessage.call(m.messageObject, m)
+                }
             } catch (Exception e) {
                 logError("Exception handling message on topic '$topic'", e)
             }
@@ -232,8 +236,8 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         if (deps) {
             subscribeToTopic(
                 topic: 'xhConfigChanged',
-                onMessage: { Message<Map> msg ->
-                    def key = msg.messageObject.key
+                onMessage: { Map msg ->
+                    def key = msg.key
                     if (deps.contains(key)) {
                         logInfo("Clearing caches due to config change", key)
                         clearCaches()
