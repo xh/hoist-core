@@ -16,6 +16,7 @@ import com.hazelcast.topic.ITopic
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 
+import javax.management.InstanceNotFoundException
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Future
@@ -188,7 +189,7 @@ class ClusterService extends BaseService {
 
     private Member getMember(String instanceName) {
         def ret = cluster.members.find { it.getAttribute('instanceName') == instanceName }
-        if (!ret) throw new RuntimeException("Unable to find cluster instance $instanceName")
+        if (!ret) throw new InstanceNotFoundException("Unable to find cluster instance $instanceName")
         return ret
     }
 

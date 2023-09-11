@@ -13,6 +13,10 @@ import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 
+import static grails.async.Promises.task
+
+import static java.lang.Thread.sleep
+
 @Access(['HOIST_ADMIN_READER'])
 class ClusterAdminController extends BaseClusterController {
 
@@ -31,12 +35,17 @@ class ClusterAdminController extends BaseClusterController {
             data: [instance: instance]
         )
         logWarn('Initiated Instance Shutdown', [instance: instance])
-        Thread.sleep(2 * SECONDS)
         runOnInstance(new ShutdownInstance(), instance)
+        // Wait enough to let async call below complete
+        sleep(5 * SECONDS)
     }
     static class ShutdownInstance extends ClusterRequest {
         Map doCall() {
-            Utils.clusterService.shutdownInstance()
+            // Run async to allow this call to successfully return.
+            task {
+                sleep(1 * SECONDS)
+                Utils.clusterService.shutdownInstance()
+            }
             [success: true]
         }
     }
