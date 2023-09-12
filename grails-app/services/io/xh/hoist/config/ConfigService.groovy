@@ -113,40 +113,41 @@ class ConfigService extends BaseService implements EventPublisher {
             def currConfig = currConfigs.find { it.name == confName },
                 valType = confDefaults.valueType,
                 defaultVal = confDefaults.defaultValue,
-                clientVisible = confDefaults.clientVisible ?: false
+                clientVisible = confDefaults.clientVisible ?: false,
+                note = confDefaults.note ?: ''
 
             if (!currConfig) {
 
                 if (valType == 'json') defaultVal = serializePretty(defaultVal)
 
-                createConfig(
-                        name: confName,
-                        valueType: valType,
-                        value: defaultVal,
-                        groupName: confDefaults.groupName ?: 'Default',
-                        clientVisible: clientVisible,
-                        lastUpdatedBy: 'hoist-bootstrap',
-                        note: confDefaults.note
-                )
+                new AppConfig(
+                    name: confName,
+                    valueType: valType,
+                    value: defaultVal,
+                    groupName: confDefaults.groupName ?: 'Default',
+                    clientVisible: clientVisible,
+                    lastUpdatedBy: 'hoist-bootstrap',
+                    note: note
+                ).save()
 
                 logWarn(
-                        "Required config $confName missing and created with default value",
-                        'verify default is appropriate for this application'
+                    "Required config $confName missing and created with default value",
+                    'verify default is appropriate for this application'
                 )
                 created++
             } else {
                 if (currConfig.valueType != valType) {
                     logError(
-                            "Unexpected value type for required config $confName",
-                            "expected $valType got ${currConfig.valueType}",
-                            'review and fix!'
+                        "Unexpected value type for required config $confName",
+                        "expected $valType got ${currConfig.valueType}",
+                        'review and fix!'
                     )
                 }
                 if (currConfig.clientVisible != clientVisible) {
                     logError(
-                            "Unexpected clientVisible for required config $confName",
-                            "expected $clientVisible got ${currConfig.clientVisible}",
-                            'review and fix!'
+                        "Unexpected clientVisible for required config $confName",
+                        "expected $clientVisible got ${currConfig.clientVisible}",
+                        'review and fix!'
                     )
                 }
             }
@@ -156,53 +157,22 @@ class ConfigService extends BaseService implements EventPublisher {
     }
 
     /**
-     * Creates a new config.
-     * @param config
-     * @param name OR config.name
-     * @param valueType OR config.valueType
-     * @param value OR config.value
-     * @param config.clientVisible - defaults to false
-     * @param config.note - defaults to ''
-     * @param config.groupName - defaults to 'Default'
-     * @param config.lastUpdatedBy - defaults to 'hoist-config-service'
-     */
-    @Transactional
-    AppConfig createConfig(Map config, String name = config.name, String valueType = config.valueType, Object value = config.value) {
-        def clientVisible = config.clientVisible as Boolean ?: false,
-            note = config.note as String ?: '',
-            groupName = config.groupName ?: 'Default',
-            lastUpdatedBy = config.lastUpdatedBy ?: 'hoist-config-service',
-            currConfig = AppConfig.findByName(name, [cache: true])
-
-        if (currConfig == null) {
-            throw new RuntimeException('Configuration already exists: ' + name)
-        }
-
-        if (valueType == 'json') value = serializePretty(value)
-        new AppConfig(
-            name         : name,
-            valueType    : valueType,
-            value        : value,
-            groupName    : groupName,
-            clientVisible: clientVisible,
-            lastUpdatedBy: lastUpdatedBy,
-            note         : note
-        ).save(flush: true)
-    }
-
-    /**
      * Updates an existing config.
-     * @param config
-     * @param name OR config.name
-     * @param value OR config.value
-     * @param config.valueType
-     * @param config.clientVisible
-     * @param config.note
-     * @param config.groupName
-     * @param config.lastUpdatedBy - defaults to 'hoist-config-service'
+     *
+     * Arguments can be provided by position, name, position and name, or map:
+     *      - updateConfig('xhExampleConfig', 'Example value')
+     *      - updateConfig(name: 'xhExampleConfig', note: 'This is an example config.', value: 'Example value')
+     *      - updateConfig('xhExampleConfig', note: 'This is an example config.', 'Example value')
+     *      - updateConfig([name: 'xhExampleConfig', note: 'This is an example config.', value: 'Example value'])
+     *
+     * @param name OR params.name
+     * @param value OR params.value
+     * @param params.note
+     * @param params.lastUpdatedBy - defaults to authUsername or 'hoist-config-service'
+     * @returns - the updated AppConfig
      */
     @Transactional
-    AppConfig updateConfig(Map config, String name = config.name, Object value = config.value) {
+    AppConfig updateConfig(Map params, String name = params.name as String, Object value = params.value) {
         def currConfig = AppConfig.findByName(name, [cache: true])
 
         if (currConfig == null) {
@@ -210,12 +180,9 @@ class ConfigService extends BaseService implements EventPublisher {
         }
 
         [
-            valueType    : config.valueType as String,
             value        : value,
-            clientVisible: config.clientVisible as Boolean,
-            note         : config.note as String,
-            groupName    : config.groupName,
-            lastUpdatedBy: config.lastUpdatedBy ?: 'hoist-config-service'
+            note         : params.note as String,
+            lastUpdatedBy: params.lastUpdatedBy as String ?: authUsername ?: 'hoist-config-service'
         ].each { k, v ->
             // Update the provided fields - leave other fields alone
             if(v != null) {
@@ -224,6 +191,11 @@ class ConfigService extends BaseService implements EventPublisher {
         }
 
         currConfig.save(flush: true)
+    }
+
+    /** Overload of the method to support the 'no named arguments' case. */
+    AppConfig updateConfig(String name, Object value) {
+        updateConfig([:], name, value)
     }
 
     void fireConfigChanged(AppConfig obj) {
