@@ -113,22 +113,21 @@ class ConfigService extends BaseService implements EventPublisher {
             def currConfig = currConfigs.find { it.name == confName },
                 valType = confDefaults.valueType,
                 defaultVal = confDefaults.defaultValue,
-                clientVisible = confDefaults.clientVisible ?: false,
-                note = confDefaults.note ?: ''
+                clientVisible = confDefaults.clientVisible ?: false
 
             if (!currConfig) {
 
                 if (valType == 'json') defaultVal = serializePretty(defaultVal)
 
-                new AppConfig(
+                createConfig(
                         name: confName,
                         valueType: valType,
                         value: defaultVal,
                         groupName: confDefaults.groupName ?: 'Default',
                         clientVisible: clientVisible,
                         lastUpdatedBy: 'hoist-bootstrap',
-                        note: note
-                ).save()
+                        note: confDefaults.note
+                )
 
                 logWarn(
                         "Required config $confName missing and created with default value",
@@ -154,6 +153,77 @@ class ConfigService extends BaseService implements EventPublisher {
         }
 
         logDebug("Validated presense of ${reqConfigs.size()} required configs", "created ${created}")
+    }
+
+    /**
+     * Creates a new config.
+     * @param config
+     * @param name OR config.name
+     * @param valueType OR config.valueType
+     * @param value OR config.value
+     * @param config.clientVisible - defaults to false
+     * @param config.note - defaults to ''
+     * @param config.groupName - defaults to 'Default'
+     * @param config.lastUpdatedBy - defaults to 'hoist-config-service'
+     */
+    @Transactional
+    AppConfig createConfig(Map config, String name = config.name, String valueType = config.valueType, Object value = config.value) {
+        def clientVisible = config.clientVisible as Boolean ?: false,
+            note = config.note as String ?: '',
+            groupName = config.groupName ?: 'Default',
+            lastUpdatedBy = config.lastUpdatedBy ?: 'hoist-config-service',
+            currConfig = AppConfig.findByName(name, [cache: true])
+
+        if (currConfig == null) {
+            throw new RuntimeException('Configuration already exists: ' + name)
+        }
+
+        if (valueType == 'json') value = serializePretty(value)
+        new AppConfig(
+            name         : name,
+            valueType    : valueType,
+            value        : value,
+            groupName    : groupName,
+            clientVisible: clientVisible,
+            lastUpdatedBy: lastUpdatedBy,
+            note         : note
+        ).save(flush: true)
+    }
+
+    /**
+     * Updates an existing config.
+     * @param config
+     * @param name OR config.name
+     * @param value OR config.value
+     * @param config.valueType
+     * @param config.clientVisible
+     * @param config.note
+     * @param config.groupName
+     * @param config.lastUpdatedBy - defaults to 'hoist-config-service'
+     */
+    @Transactional
+    AppConfig updateConfig(Map config, String name = config.name, Object value = config.value) {
+        def currConfig = AppConfig.findByName(name, [cache: true])
+
+        if (currConfig == null) {
+            throw new RuntimeException('No key for configuration found: ' + name)
+        }
+
+        [
+            valueType    : config.valueType as String,
+            value        : value,
+            clientVisible: config.clientVisible as Boolean,
+            note         : config.note as String,
+            groupName    : config.groupName,
+            lastUpdatedBy: config.lastUpdatedBy ?: 'hoist-config-service'
+        ].each { k, v ->
+            // Update the provided fields - leave other fields alone
+            if(v != null) {
+                currConfig[k] = v
+            }
+        }
+
+        currConfig.save(flush: true)
     }
 
     void fireConfigChanged(AppConfig obj) {
