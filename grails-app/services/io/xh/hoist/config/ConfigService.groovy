@@ -8,14 +8,13 @@
 package io.xh.hoist.config
 
 import grails.compiler.GrailsCompileStatic
-import grails.gorm.transactions.Transactional
+import grails.events.EventPublisher
 import grails.gorm.transactions.ReadOnly
+import grails.gorm.transactions.Transactional
 import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
-import grails.events.*
 
 import static io.xh.hoist.json.JSONSerializer.serializePretty
-
 
 /**
  * Service to return soft-configured variables.
@@ -24,35 +23,35 @@ import static io.xh.hoist.json.JSONSerializer.serializePretty
 @GrailsCompileStatic
 class ConfigService extends BaseService implements EventPublisher {
 
-    String getString(String name, String notFoundValue=null) {
+    String getString(String name, String notFoundValue = null) {
         return (String) getInternalByName(name, 'string', notFoundValue)
     }
 
-    Integer getInt(String name, Integer notFoundValue=null) {
+    Integer getInt(String name, Integer notFoundValue = null) {
         return (Integer) getInternalByName(name, 'int', notFoundValue)
     }
 
-    Long getLong(String name, Long notFoundValue=null) {
+    Long getLong(String name, Long notFoundValue = null) {
         return (Long) getInternalByName(name, 'long', notFoundValue)
     }
 
-    Double getDouble(String name, Double notFoundValue=null) {
+    Double getDouble(String name, Double notFoundValue = null) {
         return (Double) getInternalByName(name, 'double', notFoundValue)
     }
 
-    Boolean getBool(String name, Boolean notFoundValue=null) {
+    Boolean getBool(String name, Boolean notFoundValue = null) {
         return (Boolean) getInternalByName(name, 'bool', notFoundValue)
     }
 
-    Map getMap(String name, Map notFoundValue=null) {
+    Map getMap(String name, Map notFoundValue = null) {
         return (Map) getInternalByName(name, 'json', notFoundValue)
     }
 
-    List getList(String name, List notFoundValue=null) {
+    List getList(String name, List notFoundValue = null) {
         return (List) getInternalByName(name, 'json', notFoundValue)
     }
 
-    String getPwd(String name, String notFoundValue=null) {
+    String getPwd(String name, String notFoundValue = null) {
         return (String) getInternalByName(name, 'pwd', notFoundValue)
     }
 
@@ -185,7 +184,7 @@ class ConfigService extends BaseService implements EventPublisher {
             lastUpdatedBy: params.lastUpdatedBy as String ?: authUsername ?: 'hoist-config-service'
         ].each { k, v ->
             // Update the provided fields - leave other fields alone
-            if(v != null) {
+            if (v != null) {
                 currConfig[k] = v
             }
         }
