@@ -175,7 +175,7 @@ class ConfigService extends BaseService implements EventPublisher {
         def currConfig = AppConfig.findByName(name, [cache: true])
 
         if (currConfig == null) {
-            throw new RuntimeException('No key for configuration found: ' + name)
+            throw new RuntimeException("No config found with name: [$name]")
         }
 
         [
@@ -210,10 +210,10 @@ class ConfigService extends BaseService implements EventPublisher {
 
         if (c == null) {
             if (notFoundValue != null) return notFoundValue
-            throw new RuntimeException('No key for configuration found: ' + name)
+            throw new RuntimeException("No config found with name: [$name]")
         }
         if (valueType != c.valueType) {
-            throw new RuntimeException('Unexpected type for key: ' + name)
+            throw new RuntimeException("Unexpected type for config: [$name] | config is ${c.valueType} | expected ${valueType}")
         }
         return c.externalValue(decryptPassword: true, jsonAsObject: true)
     }
