@@ -98,6 +98,25 @@ class ConfigService extends BaseService implements EventPublisher {
     }
 
     /**
+     * Updates the value of an existing config.
+     */
+    @Transactional
+    AppConfig setValue(String name, Object value, String lastUpdatedBy = authUsername ?: 'hoist-config-service' ) {
+        def currConfig = AppConfig.findByName(name, [cache: true])
+
+        if (currConfig == null) {
+            throw new RuntimeException("No config found with name: [$name]")
+        }
+
+        if (currConfig.valueType == 'json' && !(value instanceof String)) value = serializePretty(value)
+
+        currConfig.value = value as String
+        currConfig.lastUpdatedBy = lastUpdatedBy
+
+        currConfig.save(flush: true)
+    }
+
+    /**
      * Check a list of core configurations required for Hoist/application operation - ensuring that these configs are
      * present and that their valueTypes and clientVisible flags are are as expected. Will create missing configs with
      * supplied default values if not found. Called for xh.io configs by Hoist Core Bootstrap.
@@ -153,48 +172,6 @@ class ConfigService extends BaseService implements EventPublisher {
         }
 
         logDebug("Validated presense of ${reqConfigs.size()} required configs", "created ${created}")
-    }
-
-    /**
-     * Updates an existing config.
-     *
-     * Arguments can be provided by position, name, position and name, or map:
-     *      - updateConfig('xhExampleConfig', 'Example value')
-     *      - updateConfig(name: 'xhExampleConfig', note: 'This is an example config.', value: 'Example value')
-     *      - updateConfig('xhExampleConfig', note: 'This is an example config.', 'Example value')
-     *      - updateConfig([name: 'xhExampleConfig', note: 'This is an example config.', value: 'Example value'])
-     *
-     * @param name OR params.name
-     * @param value OR params.value
-     * @param params.note
-     * @param params.lastUpdatedBy - defaults to authUsername or 'hoist-config-service'
-     * @returns - the updated AppConfig
-     */
-    @Transactional
-    AppConfig updateConfig(Map params, String name = params.name as String, Object value = params.value) {
-        def currConfig = AppConfig.findByName(name, [cache: true])
-
-        if (currConfig == null) {
-            throw new RuntimeException("No config found with name: [$name]")
-        }
-
-        [
-            value        : value,
-            note         : params.note as String,
-            lastUpdatedBy: params.lastUpdatedBy as String ?: authUsername ?: 'hoist-config-service'
-        ].each { k, v ->
-            // Update the provided fields - leave other fields alone
-            if (v != null) {
-                currConfig[k] = v
-            }
-        }
-
-        currConfig.save(flush: true)
-    }
-
-    /** Overload of the method to support the 'no named arguments' case. */
-    AppConfig updateConfig(String name, Object value) {
-        updateConfig([:], name, value)
     }
 
     void fireConfigChanged(AppConfig obj) {
