@@ -7,10 +7,9 @@
 
 package io.xh.hoist.admin.cluster
 
-
+import groovy.io.FileType
 import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.configuration.LogbackConfig
-import groovy.io.FileType
 import io.xh.hoist.security.Access
 
 import java.util.concurrent.Callable
@@ -23,6 +22,7 @@ class LogViewerAdminController extends BaseClusterController {
     def listFiles(String instance) {
         runOnInstance(new ListFiles(), instance)
     }
+
     static class ListFiles extends ClusterRequest {
         def doCall() {
             def logRootPath = appContext.logReaderService.logDir.absolutePath,
@@ -51,6 +51,7 @@ class LogViewerAdminController extends BaseClusterController {
             instance
         )
     }
+
     static class GetFile extends ClusterRequest {
         String filename
         Integer startLine
@@ -84,10 +85,10 @@ class LogViewerAdminController extends BaseClusterController {
         )
     }
 
-    static class Download implements Callable, Serializable {
+    static class Download implements Callable<File>, Serializable {
         String filename
 
-        def call() {
+        File call() {
             if (!availableFiles[filename]) throwUnavailable()
             return appContext.logReaderService.get(filename)
         }
@@ -102,12 +103,14 @@ class LogViewerAdminController extends BaseClusterController {
     def deleteFiles(String instance) {
         runOnInstance(new DeleteFiles(filenames: params.list('filenames')), instance)
     }
+
     static class DeleteFiles extends ClusterRequest {
-        List filenames
+        List<String> filenames
+
         def doCall() {
             def available = availableFiles
 
-            filenames.each { String filename ->
+            filenames.each { filename ->
                 def toDelete = available[filename]
                 if (!toDelete) throwUnavailable()
 
@@ -126,6 +129,7 @@ class LogViewerAdminController extends BaseClusterController {
     def archiveLogs(Integer daysThreshold, String instance) {
         runOnInstance(new ArchiveLogs(daysThreshold: daysThreshold), instance)
     }
+
     static class ArchiveLogs extends ClusterRequest {
         Integer daysThreshold
 
@@ -140,9 +144,9 @@ class LogViewerAdminController extends BaseClusterController {
     //----------------
     static Map<String, File> getAvailableFiles() {
         def baseDir = new File(LogbackConfig.logRootPath),
-            basePath = baseDir.toPath(),
-            files = []
+            basePath = baseDir.toPath()
 
+        List<File> files = []
         baseDir.eachFileRecurse(FileType.FILES) {
             def matches = it.name ==~ /.*\.log/
             if (matches) files << it

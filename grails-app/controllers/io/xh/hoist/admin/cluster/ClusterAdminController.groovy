@@ -30,8 +30,10 @@ class ClusterAdminController extends BaseClusterController {
     @Access(['HOIST_ADMIN'])
     def shutdownInstance(String instance) {
         trackService.track(
+            category: 'Cluster Admin',
             msg: 'Initiated Instance Shutdown',
             severity: 'WARN',
+            logData: true,
             data: [instance: instance]
         )
         logWarn('Initiated Instance Shutdown', [instance: instance])

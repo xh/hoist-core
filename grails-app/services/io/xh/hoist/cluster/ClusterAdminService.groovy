@@ -134,9 +134,9 @@ class ClusterAdminService extends BaseService {
             def obj = all.find { it.getName() == name }
             if (obj instanceof ReplicatedMap || obj instanceof IMap) {
                 obj.clear()
-                logInfo('Cleared Object', name)
+                logInfo("Cleared ${obj instanceof ReplicatedMap ? 'ReplicatedMap' : 'IMap'}", name)
             } else {
-                logWarn('Cannot clear object', name)
+                logWarn('Cannot clear object - unsupported type', name)
             }
         }
     }

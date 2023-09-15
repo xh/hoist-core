@@ -16,12 +16,12 @@ class LogLevel implements JSONFormat {
 
     String name
     String level
+    Date lastUpdated
+    String lastUpdatedBy
 
     String getDefaultLevel() { logLevelService.getDefaultLevel(name) }
 
     String getEffectiveLevel() { logLevelService.getEffectiveLevel(name) }
-    Date lastUpdated
-    String lastUpdatedBy
 
     public static List<String> LEVELS = ['Trace', 'Debug', 'Info', 'Warn', 'Error', 'Inherit', 'Off']
 
@@ -40,9 +40,11 @@ class LogLevel implements JSONFormat {
     def afterUpdate() {
         logLevelService.noteLogLevelChanged()
     }
+
     def afterDelete() {
         logLevelService.noteLogLevelChanged()
     }
+
     def afterInsert() {
         logLevelService.noteLogLevelChanged()
     }
