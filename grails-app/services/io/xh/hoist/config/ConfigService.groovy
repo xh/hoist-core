@@ -8,14 +8,13 @@
 package io.xh.hoist.config
 
 import grails.compiler.GrailsCompileStatic
-import grails.gorm.transactions.Transactional
+import grails.events.EventPublisher
 import grails.gorm.transactions.ReadOnly
+import grails.gorm.transactions.Transactional
 import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
-import grails.events.*
 
 import static io.xh.hoist.json.JSONSerializer.serializePretty
-
 
 /**
  * Service to return soft-configured variables.
@@ -24,35 +23,35 @@ import static io.xh.hoist.json.JSONSerializer.serializePretty
 @GrailsCompileStatic
 class ConfigService extends BaseService {
 
-    String getString(String name, String notFoundValue=null) {
+    String getString(String name, String notFoundValue = null) {
         return (String) getInternalByName(name, 'string', notFoundValue)
     }
 
-    Integer getInt(String name, Integer notFoundValue=null) {
+    Integer getInt(String name, Integer notFoundValue = null) {
         return (Integer) getInternalByName(name, 'int', notFoundValue)
     }
 
-    Long getLong(String name, Long notFoundValue=null) {
+    Long getLong(String name, Long notFoundValue = null) {
         return (Long) getInternalByName(name, 'long', notFoundValue)
     }
 
-    Double getDouble(String name, Double notFoundValue=null) {
+    Double getDouble(String name, Double notFoundValue = null) {
         return (Double) getInternalByName(name, 'double', notFoundValue)
     }
 
-    Boolean getBool(String name, Boolean notFoundValue=null) {
+    Boolean getBool(String name, Boolean notFoundValue = null) {
         return (Boolean) getInternalByName(name, 'bool', notFoundValue)
     }
 
-    Map getMap(String name, Map notFoundValue=null) {
+    Map getMap(String name, Map notFoundValue = null) {
         return (Map) getInternalByName(name, 'json', notFoundValue)
     }
 
-    List getList(String name, List notFoundValue=null) {
+    List getList(String name, List notFoundValue = null) {
         return (List) getInternalByName(name, 'json', notFoundValue)
     }
 
-    String getPwd(String name, String notFoundValue=null) {
+    String getPwd(String name, String notFoundValue = null) {
         return (String) getInternalByName(name, 'pwd', notFoundValue)
     }
 
@@ -99,6 +98,25 @@ class ConfigService extends BaseService {
     }
 
     /**
+     * Updates the value of an existing config.
+     */
+    @Transactional
+    AppConfig setValue(String name, Object value, String lastUpdatedBy = authUsername ?: 'hoist-config-service' ) {
+        def currConfig = AppConfig.findByName(name, [cache: true])
+
+        if (currConfig == null) {
+            throw new RuntimeException("No config found with name: [$name]")
+        }
+
+        if (currConfig.valueType == 'json' && !(value instanceof String)) value = serializePretty(value)
+
+        currConfig.value = value as String
+        currConfig.lastUpdatedBy = lastUpdatedBy
+
+        currConfig.save(flush: true)
+    }
+
+    /**
      * Check a list of core configurations required for Hoist/application operation - ensuring that these configs are
      * present and that their valueTypes and clientVisible flags are are as expected. Will create missing configs with
      * supplied default values if not found. Called for xh.io configs by Hoist Core Bootstrap.
@@ -121,33 +139,33 @@ class ConfigService extends BaseService {
                 if (valType == 'json') defaultVal = serializePretty(defaultVal)
 
                 new AppConfig(
-                        name: confName,
-                        valueType: valType,
-                        value: defaultVal,
-                        groupName: confDefaults.groupName ?: 'Default',
-                        clientVisible: clientVisible,
-                        lastUpdatedBy: 'hoist-bootstrap',
-                        note: note
+                    name: confName,
+                    valueType: valType,
+                    value: defaultVal,
+                    groupName: confDefaults.groupName ?: 'Default',
+                    clientVisible: clientVisible,
+                    lastUpdatedBy: 'hoist-bootstrap',
+                    note: note
                 ).save()
 
                 logWarn(
-                        "Required config $confName missing and created with default value",
-                        'verify default is appropriate for this application'
+                    "Required config $confName missing and created with default value",
+                    'verify default is appropriate for this application'
                 )
                 created++
             } else {
                 if (currConfig.valueType != valType) {
                     logError(
-                            "Unexpected value type for required config $confName",
-                            "expected $valType got ${currConfig.valueType}",
-                            'review and fix!'
+                        "Unexpected value type for required config $confName",
+                        "expected $valType got ${currConfig.valueType}",
+                        'review and fix!'
                     )
                 }
                 if (currConfig.clientVisible != clientVisible) {
                     logError(
-                            "Unexpected clientVisible for required config $confName",
-                            "expected $clientVisible got ${currConfig.clientVisible}",
-                            'review and fix!'
+                        "Unexpected clientVisible for required config $confName",
+                        "expected $clientVisible got ${currConfig.clientVisible}",
+                        'review and fix!'
                     )
                 }
             }
@@ -170,10 +188,10 @@ class ConfigService extends BaseService {
 
         if (c == null) {
             if (notFoundValue != null) return notFoundValue
-            throw new RuntimeException('No key for configuration found: ' + name)
+            throw new RuntimeException("No config found with name: [$name]")
         }
         if (valueType != c.valueType) {
-            throw new RuntimeException('Unexpected type for key: ' + name)
+            throw new RuntimeException("Unexpected type for config: [$name] | config is ${c.valueType} | expected ${valueType}")
         }
         return c.externalValue(decryptPassword: true, jsonAsObject: true)
     }
