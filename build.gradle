@@ -76,7 +76,7 @@ dependencies {
     api "commons-io:commons-io:2.8.0"
     api "org.owasp.encoder:encoder:1.2.3"
 
-    api "com.hazelcast:hazelcast:5.3.0"
+    api "com.hazelcast:hazelcast:5.3.2"
 }
 
 
