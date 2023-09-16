@@ -5,38 +5,44 @@
 ### 🎁 New Features
 
 * Hoist Core v18 provides support for running multi-instance clusters of Hoist application servers.
-Cluster management is provided by the use of Hazelcast (www.hazelcast.com), an open-source library
-providing embedded java support for inter-server communication, co-ordination, and data sharing.
-See the new `ClusterService.groovy` service, which provides the clustering implementation and main
-API entry point for accessing the cluster.
+  Cluster management is provided by the use of Hazelcast (www.hazelcast.com), an open-source library
+  providing embedded java support for inter-server communication, co-ordination, and data sharing.
+  See the new `ClusterService.groovy` service, which provides the clustering implementation and main
+  API entry point for accessing the cluster.
   ** Applications upgrading to v18 will need to provide a cluster configuration file at
-     `src/resources/hazelcast.xml`.  See toolbox for an example of this file.
+  `src/resources/hazelcast.xml`.  See toolbox for an example of this file.
   ** Applications that intend to run with more than one server *must* enable sticky sessions when
-     routing clients to servers.  This is critical for the correct operation of authentication
-     and web socket communications.
+  routing clients to servers.  This is critical for the correct operation of authentication
+  and web socket communications.
   ** Many applications will *not* need to implement additional changes beyond the above to
-     run with multi-instances; Hoist will setup the cluster, elect a master instance,  provide
-     cluster-aware hibernate caching and logging, and ensure cross-server consistency for its own
-     APIs.
+  run with multi-instances; Hoist will setup the cluster, elect a master instance,  provide
+  cluster-aware hibernate caching and logging, and ensure cross-server consistency for its own
+  APIs.
   ** However, complex applications -- especially applications with state, workflow, or business
-     logic -- should take care to ensure the app is safe to run in multi-instance mode. Distributed
-     data structures (e.g. Hazelcast  Maps) should be used as needed, as well as limiting certain
-     actions to the "master" server.  See toolbox, or Hoist for help.
+  logic -- should take care to ensure the app is safe to run in multi-instance mode. Distributed
+  data structures (e.g. Hazelcast  Maps) should be used as needed, as well as limiting certain
+  actions to the "master" server.  See toolbox, or Hoist for help.
   ** `hoist-react >= 60.0` is required.
 
 ### Breaking Changes
 * The following server-side Hoist events are now implemented as cluster-wide Hazelcast messages
-rather than single-server Grails events:
-    ** 'xhFeedbackReceived', 'xhClientErrorReceived', 'xhConfigChanged', and 'xhMonitorStatusReport'
-Any applications that are listening to these events with `BaseService.subscribe` should instead use
-the new cluster aware method `BaseService.subscribeToTopic`.
+  rather than single-server Grails events:
+  ** 'xhFeedbackReceived', 'xhClientErrorReceived', 'xhConfigChanged', and 'xhMonitorStatusReport'
+  Any applications that are listening to these events with `BaseService.subscribe` should instead use
+  the new cluster aware method `BaseService.subscribeToTopic`.
+
+## 17.3.0 - 2023-09-18
+
+### ⚙️ Technical
+
+* New `ConfigService.setValue()` API supports programmatic updates to existing app configs.
 
 ## 17.2.0 - 2023-08-17
 
 ### 🎁 New Features
 
-* Lightweight monitoring collection of JDBC connection pool statistics, including counters for active vs idle
-  connections. Available via a new Admin Console tab for apps on `hoist-react >= 59.0`.
+* Lightweight monitoring collection of JDBC connection pool statistics, including counters for
+  active vs idle connections. Viewable in Hoist Admin Console for apps on `hoist-react >= 59.0`.
 
 ## 17.1.0 - 2023-08-08
 
@@ -52,7 +58,8 @@ It should be fully compatible with Java 11 and Java 17.
 ### 🎁 New Features
 
 * This version of Hoist restores the ability to do development-time reloading via the java hotswap
-  agent. [See the readme](https://github.com/xh/hoist-core/blob/develop/README.md#hot-reloading) for more information.
+  agent. [See the readme](https://github.com/xh/hoist-core/blob/develop/README.md#hot-reloading) for
+  more information.
 
 ### ⚙️ Technical
 
@@ -69,16 +76,19 @@ It should be fully compatible with Java 11 and Java 17.
 ## 16.4.4 - 2023-08-03
 
 ### 🐞 Bugfixes
+
 * Replace bullet points with hyphens in default `xhAppVersionCheck` config.
 
 ## 16.4.3 - 2023-08-02
 
 ### 🐞 Bugfixes
+
 * Remove one remaining smart quote to make default notes in default config safer for all DBs.
 
 ## 16.4.2 - 2023-07-31
 
 ### 🐞 Bugfixes
+
 * Make default notes in default config safer for all DBs by removing smart quotes.
 
 ## 16.4.1 - 2023-07-13
@@ -96,8 +106,8 @@ It should be fully compatible with Java 11 and Java 17.
   key/value pairs provided within the `data` block of a track statement be logged along with the
   standard output. Client-side support for this feature on a per-call basis added
   in `hoist-react >= 57.1`, can also be defaulted within the `xhActivityTrackingConfig` app config.
-* Deprecated config `xhAppVersionCheckEnabled` in favor of object based `xhAppVersionCheck`. Apps will
-  seamlessly migrate the existing value to this new config's `mode` flag. This supports the new
+* Deprecated config `xhAppVersionCheckEnabled` in favor of object based `xhAppVersionCheck`. Apps
+  will migrate the existing value to this new config's `mode` flag. This supports the new
   `forceRefresh` mode introduced in hoist-react v58.
 
 ## 16.3.0 - 2023-06-20

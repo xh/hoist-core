@@ -97,11 +97,9 @@ class ConfigService extends BaseService {
         ret
     }
 
-    /**
-     * Updates the value of an existing config.
-     */
+    /** Update the value of an existing config. */
     @Transactional
-    AppConfig setValue(String name, Object value, String lastUpdatedBy = authUsername ?: 'hoist-config-service' ) {
+    AppConfig setValue(String name, Object value, String lastUpdatedBy = authUsername ?: 'hoist-config-service') {
         def currConfig = AppConfig.findByName(name, [cache: true])
 
         if (currConfig == null) {
