@@ -9,7 +9,6 @@ package io.xh.hoist.monitor
 
 import com.sun.management.HotSpotDiagnosticMXBean
 import io.xh.hoist.BaseService
-import io.xh.hoist.util.Timer
 
 import java.lang.management.GarbageCollectorMXBean
 import java.lang.management.ManagementFactory
@@ -28,14 +27,13 @@ import static java.lang.System.currentTimeMillis
  */
 class MemoryMonitoringService extends BaseService {
 
-    private Map<Long, Map> _snapshots = new ConcurrentHashMap()
-    private Timer _snapshotTimer
-    private Date _lastInfoLogged
-
     def configService
 
+    private Map<Long, Map> _snapshots = new ConcurrentHashMap()
+    private Date _lastInfoLogged
+
     void init() {
-        _snapshotTimer = createTimer(
+        createTimer(
             interval: {config.enabled ? config.snapshotInterval * SECONDS: -1},
             runFn: this.&takeSnapshot
         )
@@ -176,6 +174,6 @@ class MemoryMonitoringService extends BaseService {
     }
 
     void clearCaches() {
-        this._snapshots.clear()
+        _snapshots.clear()
     }
 }
