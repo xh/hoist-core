@@ -54,7 +54,7 @@ class HibernateAdminService extends BaseService {
         def appContext = Utils.appContext
         def factories = appContext.getBeanDefinitionNames()
             .findAll { it.startsWith('sessionFactory') }
-            .collect { appContext.getBean(it) }
+            .collect { appContext.getBean(it) as SessionFactory }
 
         factories.collectMany { factory ->
             def stats = factory.statistics

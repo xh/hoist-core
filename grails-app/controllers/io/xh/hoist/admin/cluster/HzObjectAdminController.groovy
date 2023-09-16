@@ -18,6 +18,7 @@ class HzObjectAdminController extends BaseClusterController {
     def listObjects(String instance) {
         runOnInstance(new ListObjects(), instance)
     }
+
     static class ListObjects extends ClusterRequest {
         def doCall() {
             appContext.clusterAdminService.listObjects()
@@ -28,6 +29,7 @@ class HzObjectAdminController extends BaseClusterController {
     def clearObjects(String instance) {
         runOnInstance(new ClearObjects(names: params.list('names')), instance)
     }
+
     static class ClearObjects extends ClusterRequest {
         List<String> names
 

@@ -16,35 +16,43 @@ import java.util.concurrent.Callable
 
 import static io.xh.hoist.util.Utils.appContext
 
+/**
+ * Reports on all instances within the current Hazelcast cluster, including a general list of all
+ * live instances with summary stats/metrics for each + more detailed information on distributed
+ * objects as seen by all instances, or any particular instance.
+ */
 class ClusterAdminService extends BaseService {
 
     Map getAdminStats() {
-        return new HashMap(
-            name             :  clusterService.instanceName,
-            address          :  clusterService.localMember.address.toString(),
-            isMaster         :  clusterService.isMaster,
-            memory           :  appContext.memoryMonitoringService.latestSnapshot,
-            connectionPool   :  appContext.connectionPoolMonitoringService.latestSnapshot,
-            wsConnections    :  appContext.webSocketService.allChannels.size(),
-            startupTime      :  Utils.startupTime
-        )
+        return [
+            name          : clusterService.instanceName,
+            address       : clusterService.localMember.address.toString(),
+            isMaster      : clusterService.isMaster,
+            memory        : appContext.memoryMonitoringService.latestSnapshot,
+            connectionPool: appContext.connectionPoolMonitoringService.latestSnapshot,
+            wsConnections : appContext.webSocketService.allChannels.size(),
+            startupTime   : Utils.startupTime
+        ]
     }
 
-    Collection<Map> getAllStats() {
-        clusterService.submitToAllInstances(new GetLocalStatsTask())
-            .collect {name, value -> [
-                *:value.get(),
-                isLocal: name == clusterService.instanceName
-            ]}
-    }
-    static class GetLocalStatsTask implements Callable, Serializable {
+    static class AdminStatsTask implements Callable, Serializable {
         def call() {
             return appContext.clusterAdminService.adminStats
         }
     }
 
+    Collection<Map> getAllStats() {
+        clusterService.submitToAllInstances(new AdminStatsTask())
+            .collect { name, value ->
+                [
+                    *      : value.get(),
+                    isLocal: name == clusterService.instanceName
+                ]
+            }
+    }
+
     Collection<Map> listObjects() {
-        clusterService.listObjects().collect {obj ->
+        clusterService.listObjects().collect { obj ->
             def ret = [
                 name      : obj.getName(),
                 objectType: 'Unknown',
@@ -63,8 +71,9 @@ class ClusterAdminService extends BaseService {
                             heapCost       : stats.heapCost,
                             gets           : stats.getOperationCount,
                             puts           : stats.putOperationCount,
-                            lastUpdateTime : stats.lastUpdateTime,
-                            lastAccessTime : stats.lastAccessTime
+                            creationTime   : stats.creationTime,
+                            lastUpdateTime : stats.lastUpdateTime ?: null,
+                            lastAccessTime : stats.lastAccessTime ?: null
                         ]
                     ]
                     break
@@ -79,9 +88,10 @@ class ClusterAdminService extends BaseService {
                             gets           : stats.getOperationCount,
                             sets           : stats.setOperationCount,
                             puts           : stats.putOperationCount,
-                            nearCache     : getNearCacheStats(stats.nearCacheStats),
-                            lastUpdateTime : stats.lastUpdateTime,
-                            lastAccessTime: stats.lastAccessTime
+                            nearCache      : getNearCacheStats(stats.nearCacheStats),
+                            creationTime   : stats.creationTime,
+                            lastUpdateTime : stats.lastUpdateTime ?: null,
+                            lastAccessTime : stats.lastAccessTime ?: null
                         ]
                     ]
                     break
@@ -89,10 +99,11 @@ class ClusterAdminService extends BaseService {
                     LocalSetStats stats = obj.getLocalSetStats()
                     ret << [
                         objectType: 'Set',
-                        size: obj.size(),
+                        size      : obj.size(),
                         stats     : [
-                            lastUpdateTime       : stats.lastUpdateTime,
-                            lastAccessTime       : stats.lastAccessTime
+                            creationTime  : stats.creationTime,
+                            lastUpdateTime: stats.lastUpdateTime ?: null,
+                            lastAccessTime: stats.lastAccessTime ?: null
                         ]
                     ]
                     break
@@ -112,6 +123,18 @@ class ClusterAdminService extends BaseService {
         }
     }
 
+    void clearObjects(List<String> names) {
+        def all = clusterService.listObjects()
+        names.each { name ->
+            def obj = all.find { it.getName() == name }
+            if (obj instanceof ReplicatedMap || obj instanceof IMap) {
+                obj.clear()
+                logInfo("Cleared ${obj instanceof ReplicatedMap ? 'ReplicatedMap' : 'IMap'}", name)
+            } else {
+                logWarn('Cannot clear object - unsupported type', name)
+            }
+        }
+    }
 
 
     //--------------------
@@ -126,18 +149,5 @@ class ClusterAdminService extends BaseService {
             misses             : stats.misses,
             ratio              : stats.ratio.round(2)
         ]
-    }
-
-    void clearObjects(List<String> names) {
-        def all = clusterService.listObjects()
-        names.each { name ->
-            def obj = all.find { it.getName() == name }
-            if (obj instanceof ReplicatedMap || obj instanceof IMap) {
-                obj.clear()
-                logInfo("Cleared ${obj instanceof ReplicatedMap ? 'ReplicatedMap' : 'IMap'}", name)
-            } else {
-                logWarn('Cannot clear object - unsupported type', name)
-            }
-        }
     }
 }
