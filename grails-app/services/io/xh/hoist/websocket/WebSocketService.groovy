@@ -21,6 +21,10 @@ import org.springframework.web.socket.WebSocketSession
 
 import java.util.concurrent.ConcurrentHashMap
 
+import static grails.async.Promises.task
+import static grails.async.Promises.waitAll
+
+
 /**
  * Service to maintain and provide access to a collection of "channels", each representing a unique
  * Hoist client application connected to this server via a WebSocket. Can send and receive messages
@@ -77,20 +81,21 @@ class WebSocketService extends BaseService implements EventPublisher {
     /**
      * Push a message to a collection of channels. Requests to send to an unknown or disconnected
      * client will be silently dropped.
-     *
-     * TODO - return info on known/unknown channels to assist callers in culling dead subscriptions.
      */
     void pushToChannels(Collection<String> channelKeys, String topic, Object data) {
         if (!channelKeys) return
 
         def textMessage = serialize(topic, data),
-            channels = getChannelsForKeys(channelKeys),
-            tasks = channels.collect{channel ->
-                Promises.task{channel.sendMessage(textMessage)}
-            }
+            channels = getChannelsForKeys(channelKeys)
 
-        // Relies on channel.sendMessage to catch/timeout.
-        Promises.waitAll(tasks)
+        // The single channel case is extremely common, so avoid async overhead.
+        // Note that we are relying on channel.sendMessage to catch/timeout.
+        if (channels.size() == 1) {
+            channels.first().sendMessage(textMessage)
+        } else {
+            def tasks = channels.collect { c -> task { c.sendMessage(textMessage) } }
+            waitAll(tasks)
+        }
     }
 
     /**
