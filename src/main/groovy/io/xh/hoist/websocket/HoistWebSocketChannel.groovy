@@ -29,9 +29,8 @@ import static io.xh.hoist.util.Utils.userService
  *  - Looks up authorized/apparent HoistUsers from the session, accounting for admin impersonation.
  *  - Tracks basic metadata about connection status for display in the Hoist admin console.
  */
-@Slf4j
 @CompileStatic
-class HoistWebSocketChannel implements LogSupport, JSONFormat {
+class HoistWebSocketChannel implements JSONFormat, LogSupport {
 
     final WebSocketSession session
     final String authUsername

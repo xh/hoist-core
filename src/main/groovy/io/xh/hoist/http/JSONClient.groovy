@@ -27,7 +27,6 @@ import static org.apache.hc.core5.http.HttpStatus.SC_OK
  * This wrapper also provides additional customizations around exceptions. If a response returns
  * with an HTTP status code indicating an error (i.e. *not* 200-204), the execute method will throw.
  */
-@Slf4j
 @CompileStatic
 class JSONClient {
 

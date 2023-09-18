@@ -11,6 +11,7 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
 import io.xh.hoist.user.BaseRoleService
 import io.xh.hoist.user.BaseUserService
+import static io.xh.hoist.util.Utils.parseBooleanStrict
 
 @Access(['HOIST_ADMIN_READER'])
 class UserAdminController extends BaseController {
@@ -18,7 +19,8 @@ class UserAdminController extends BaseController {
     BaseUserService userService
     BaseRoleService roleService
 
-    def users(boolean activeOnly) {
+    def users() {
+        boolean activeOnly = parseBooleanStrict(params.activeOnly)
         renderJSON(userService.list(activeOnly))
     }
 

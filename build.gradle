@@ -1,11 +1,12 @@
 buildscript {
     repositories {
-        mavenLocal()
+        mavenCentral()
+        maven {url 'https://plugins.gradle.org/m2/'}
         maven {url 'https://repo.grails.org/grails/core'}
     }
     dependencies {
         classpath "org.grails:grails-gradle-plugin:$grailsGradlePluginVersion"
-        classpath "org.grails.plugins:hibernate5:7.3.0"
+        classpath "org.grails.plugins:hibernate5:$grailsHibernatePluginVersion"
     }
 }
 
@@ -17,7 +18,6 @@ apply plugin:'org.grails.grails-plugin'
 apply plugin:'java-library'
 
 repositories {
-    mavenLocal()
     mavenCentral()
     maven {url 'https://repo.grails.org/grails/core'}
 }
@@ -47,9 +47,10 @@ dependencies {
     api "org.grails.plugins:hibernate5"
     api "org.grails.plugins:events"
     api "org.grails.plugins:mail:3.0.0"
-    
+
     runtimeOnly "org.glassfish.web:el-impl:2.2.1-b05"
     runtimeOnly "javax.xml.bind:jaxb-api:2.3.1"
+    runtimeOnly "com.h2database:h2"
 
     //--------------------
     // Hoist Additions
@@ -61,8 +62,8 @@ dependencies {
     api("org.quartz-scheduler:quartz:2.3.2") {exclude group: 'slf4j-api', module: 'c3p0'}
     api 'org.grails.plugins:quartz:2.0.13'
 
-    api "org.hibernate:hibernate-core:5.6.10.Final"
-    api "org.hibernate:hibernate-ehcache:5.6.10.Final"
+    api "org.hibernate:hibernate-core:5.6.11.Final"
+    api "org.hibernate:hibernate-ehcache:5.6.11.Final"
     api "net.sf.ehcache:ehcache:2.10.9.2"
 
     api "org.apache.poi:poi:4.1.2"

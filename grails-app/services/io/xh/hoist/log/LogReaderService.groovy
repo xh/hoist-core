@@ -10,10 +10,12 @@ package io.xh.hoist.log
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.configuration.LogbackConfig
 import io.xh.hoist.exception.RoutineRuntimeException
 import org.apache.commons.io.input.ReversedLinesFileReader
+import java.nio.file.Paths
+import static io.xh.hoist.configuration.LogbackConfig.logRootPath
 import static java.lang.System.currentTimeMillis
+import java.util.regex.Pattern
 
 @CompileStatic
 class LogReaderService extends BaseService {
@@ -28,7 +30,7 @@ class LogReaderService extends BaseService {
      * @param pattern - (optional) only lines matching pattern will be returned
      * @return - List of elements of the form [linenumber, text] for the requested lines
      */
-    List readFile(String filename, Integer startLine, Integer maxLines, String pattern) {
+    List readFile(String filename, Integer startLine, Integer maxLines, String pattern, Boolean caseSensitive) {
         if (!configService.getBool('xhEnableLogViewer')) {
             throw new RuntimeException("Log Viewer disabled. See 'xhEnableLogViewer' config.")
         }
@@ -38,9 +40,10 @@ class LogReaderService extends BaseService {
             _filename: filename,
             startLine: startLine,
             maxLines: maxLines,
-            pattern: pattern
+            pattern: pattern,
+            caseSensitive: caseSensitive
         ]) {
-            doRead(filename, startLine, maxLines, pattern)
+            doRead(filename, startLine, maxLines, pattern, caseSensitive)
         }
     }
 
@@ -49,24 +52,30 @@ class LogReaderService extends BaseService {
      * Fetch the raw contents of a log file for direct download.
      */
     File get(String filename) {
-        def ret = new File(LogbackConfig.logRootPath, filename)
+        def ret = new File(logRootPath, filename)
         if (!ret.exists()) throw new FileNotFoundException()
         return ret
+    }
+
+    File getLogDir() {
+        return new File(Paths.get(logRootPath).toString())
     }
 
     //------------------------
     // Implementation
     //------------------------
-    private List doRead(String filename, Integer startLine, Integer maxLines, String pattern) {
+    private List doRead(String filename, Integer startLine, Integer maxLines, String pattern, Boolean caseSensitive) {
         maxLines = maxLines ?: 10000
 
         def tail = !startLine || startLine <= 0,
             ret = new ArrayList(maxLines),
-            file = new File(LogbackConfig.logRootPath, filename)
+            file = new File(logRootPath, filename)
 
         if (!file.exists()) throw new FileNotFoundException()
 
         long maxEndTime = currentTimeMillis() + configService.getLong('xhLogSearchTimeoutMs', 5000)
+
+        def compiledPattern = caseSensitive ? Pattern.compile(pattern) : Pattern.compile(pattern, Pattern.CASE_INSENSITIVE)
 
         Closeable closeable
         try {
@@ -76,7 +85,7 @@ class LogReaderService extends BaseService {
                 long lineNumber = getFileLength(file, maxEndTime)
                 for (String line = reader.readLine(); line != null && ret.size() < maxLines; line = reader.readLine()) {
                     throwOnTimeout(maxEndTime)
-                    if (!pattern || line.toLowerCase() =~ pattern.toLowerCase()) {
+                    if (!pattern || line =~ compiledPattern) {
                         ret << [lineNumber, line]
                     }
                     lineNumber--
@@ -129,4 +138,3 @@ class LogReaderService extends BaseService {
         }
     }
 }
-

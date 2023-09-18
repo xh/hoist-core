@@ -74,27 +74,37 @@ class IdentityService extends BaseService {
     }
 
     /**
-     * Begin an impersonation session - callable only when current (actual) user has the HOIST_ADMIN role.
+     * Begin an impersonation session.
+     *
      * During an impersonation session, all calls to getUser() will return the impersonated user and appear
      * as if that user is the one browsing the app. Permissions, preferences, and other user-specific settings
      * will be loaded for the impersonated user to facilitate app testing and troubleshooting.
      *
-     * @param username - the user to impersonate
+     * Note that this operation will fail if the user does not have the HOIST_IMPERSONATE role as
+     * well as authority to impersonate the target user. See
+     * BaseUserService.impersonationTargetsForUser for more information.
+     *
+     * @param username - the user to impersonate.
      */
     HoistUser impersonate(String username) {
-        def request = currentRequest,
-            targetUser = userService.find(username),
-            authUser = findAuthUser(request)
-
         checkImpersonationEnabled()
+        def request = currentRequest
         if (!request) {
             throw new RuntimeException('Cannot impersonate when outside the context of a request')
         }
-        if (!authUser.isHoistAdmin) {
-            throw new RuntimeException("User '$authUser.username' does not have permissions to impersonate")
+
+        def authUser = findAuthUser(request)
+        if (!authUser?.canImpersonate) {
+            throw new RuntimeException('User not found or user not authorized for impersonation.')
         }
-        if (!targetUser?.active) {
-            throw new RuntimeException("Cannot impersonate '$username' - no active user found")
+
+        def targetUser = userService.find(username)
+        if (!targetUser) {
+            throw new RuntimeException("User '$username' not found")
+        }
+
+        if (!userService.impersonationTargetsForUser(authUser).contains(targetUser)) {
+            throw new RuntimeException("'$authUser' is not authorized to impersonate '$username'")
         }
 
         // first explicitly end any existing impersonation session -- important for tracking.
@@ -121,14 +131,6 @@ class IdentityService extends BaseService {
             logInfo("User '$authUser.username' has stopped impersonating user '$apparentUser.username'")
             request.session[APPARENT_USER_KEY] = authUser.username
         }
-    }
-
-    /**
-     * Return a list of users available for impersonation.
-     */
-    List<HoistUser> getImpersonationTargets() {
-        checkImpersonationEnabled()
-        authUser.isHoistAdmin ? userService.list(true) : new ArrayList<HoistUser>()
     }
 
     /**

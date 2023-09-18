@@ -1,6 +1,6 @@
 # Changelog
 
-## 17.0-SNAPSHOT - unreleased
+## 18.0-SNAPSHOT - under development
 
 ### 🎁 New Features
 
@@ -9,11 +9,136 @@
     * Note these new classes are currently incubating, do not yet implement all features of their
       client-side equivalents, and may be subject to near-term API changes.
 
+## 17.3.0 - 2023-09-18
+
+### ⚙️ Technical
+
+* New `ConfigService.setValue()` API supports programmatic updates to existing app configs.
+
+## 17.2.0 - 2023-08-17
+
+### 🎁 New Features
+
+* Lightweight monitoring collection of JDBC connection pool statistics, including counters for
+  active vs idle connections. Viewable in Hoist Admin Console for apps on `hoist-react >= 59.0`.
+
+## 17.1.0 - 2023-08-08
+
+### ⚙️ Technical
+
+* Additional improvements to support hot-reloading.
+
+## 17.0.0 - 2023-07-27
+
+This release upgrades Hoist to the latest 6.0.0 version of Grails and upgrades related libraries.
+It should be fully compatible with Java 11 and Java 17.
+
+### 🎁 New Features
+
+* This version of Hoist restores the ability to do development-time reloading via the java hotswap
+  agent. [See the readme](https://github.com/xh/hoist-core/blob/develop/README.md#hot-reloading) for
+  more information.
+
+### ⚙️ Technical
+
+* The implementation of the `LogSupport` trait has been simplified, such that it no longer requires
+  an @SLF4J annotation, or `log` property to be provided. Undocumented and problematic methods
+  `logXXXInBase` were removed.
+
+### 📚 Libraries
+
+* grails `5.3.2 -> 6.0.0`
+* gorm `7.3.2` -> `8.0.0`
+* groovy `3.0.9` -> `3.0.11`
+
+## 16.4.4 - 2023-08-03
+
+### 🐞 Bugfixes
+
+* Replace bullet points with hyphens in default `xhAppVersionCheck` config.
+
+## 16.4.3 - 2023-08-02
+
+### 🐞 Bugfixes
+
+* Remove one remaining smart quote to make default notes in default config safer for all DBs.
+
+## 16.4.2 - 2023-07-31
+
+### 🐞 Bugfixes
+
+* Make default notes in default config safer for all DBs by removing smart quotes.
+
+## 16.4.1 - 2023-07-13
+
+### 🐞 Bugfixes
+
+* Make impersonation service more robust for applications with dynamic/lazy user generation.
+* Additional validation of parameters to '/userAdmin/users' endpoint.
+
+## 16.4.0 - 2023-07-07
+
+### 🎁 New Features
+
+* Added new `logData` option to `TrackService.track()` - allows applications to request that
+  key/value pairs provided within the `data` block of a track statement be logged along with the
+  standard output. Client-side support for this feature on a per-call basis added
+  in `hoist-react >= 57.1`, can also be defaulted within the `xhActivityTrackingConfig` app config.
+* Deprecated config `xhAppVersionCheckEnabled` in favor of object based `xhAppVersionCheck`. Apps
+  will migrate the existing value to this new config's `mode` flag. This supports the new
+  `forceRefresh` mode introduced in hoist-react v58.
+
+## 16.3.0 - 2023-06-20
+
+### 🎁 New Features
+
+* Added support for saving alert banner presets (requires `hoist-react >= 57.0.0` to use this new
+  functionality, but backwards compatible with earlier hoist-react releases).
+* Defined new `HOIST_IMPERSONATOR` role to control access to Hoist's user-impersonation feature.
+    * This new role is inherited by `HOIST_ADMIN` (the role previously required) by default,
+      although applications can override `BaseUserService.getRolesForUser()` to customize.
+    * Applications that have already overridden this method will need to re-implement this role
+      inheritance, or assign the new role to appropriate users directly.
+* Exposed new `BaseUserService.impersonationTargetsForUser()` template method to allow apps to
+  customize the list of users that an admin can impersonate.
+* Added support for OWASP-encoding user submitted strings to `BaseController` via a
+  new `safeEncode()` method and a new `safeEncode` option to `parseRequestJSON()`
+  and `parseRequestJSONArray()`.
+    * Apps are encouraged to run any user-provided inputs through this method to prevent XSS
+      attacks.
+
+## 16.2.0 - 2023-05-26
+
+### 🎁 New Features
+
+* Added new `BaseController` methods `parseRequestJSON()` and `parseRequestJSONArray()`.
+    * These methods are the recommended way to parse JSON from a request body - they will use
+      Hoist's optimized, Jackson-based `JSONParser`.
+* Created new `xhExpectedServerTimeZone` app config, now read at startup to validate that the server
+  is running in a particular, application-configured time zone.
+    * Default value of `*` will skip validation but log a warning that no zone is configured.
+    * If a zone is configured, Hoist will throw a fatal exception if it does not match the zone
+      reported by Java.
+    * Most applications should ensure that this config and the runtime JVM are set to the same time
+      zone as their primary database.
+* Added `h2Config` method to `RuntimeConfig` class to give apps the option of starting up with an H2
+  in-memory DB. This is intended for projects in their earliest, "just checked out, first run"
+  stage, when a developer wants to get started before having set up an external database.
+* Updated `AlertBannerService` to append the environment name when creating/updating the `JsonBlob`
+  used to persist banner state in a non-production environment. This better supports apps where
+  e.g. `Beta` and `Production` environments share a database, but should display distinct banners.
+* Added support for the `caseSensitive` flag in log filtering endpoint.
+
+### 🐞 Bugfixes
+
+* Fixed a regression preventing the culling of snapshots in the memory monitoring service.
+
 ## 16.1.0 - 2023-04-14
+
 * Enhance MemoryMonitoringService.
-    - Produce and use more appropriate usage metric (used/max)
-    - Produce GC statistics
-    - Support for taking a heap dump
+    * Produce and use more appropriate usage metric (used/max)
+    * Produce GC statistics
+    * Support for taking a heap dump
 
 ## 16.0.1 - 2023-03-29
 
@@ -43,6 +168,18 @@
       will automatically post any existing local preference *values* to the server.
     * Alternatively, update client-side code to use browser local storage for persisting user state
       that should remain tightly bound to a particular computer.
+    * Update the schema to set `xh_preference` table's `local` column to allow nulls. If this is
+      not done, a Hibernate error (`local` column cannot be null) will be thrown when an admin
+      tries to add a new preference to the app.
+        ```sql
+        alter table xh_preference alter column local bit null
+        ```
+    * Once they are sure no rollback is needed, apps can safely delete the `xh_preference` table's
+      `local` column.
+      ```sql
+      alter table xh_preference drop column local
+      ```
+
 * Grails has been updated to `5.3.2`. While this change did not itself introduce any breaking
   changes, applications should update their Grails version within `gradle.properties` to match.
 
@@ -532,7 +669,7 @@ for the application-level changes to core configuration files and dependencies.
 
 ### ⚙️ Technical
 
-* Minor enhancements to `JSONBlobService` API.
+* Minor enhancements to `JsonBlobService` API.
 
 ### 📚 Libraries
 
