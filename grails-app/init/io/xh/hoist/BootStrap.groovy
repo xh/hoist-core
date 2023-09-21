@@ -7,6 +7,7 @@
 package io.xh.hoist
 
 import grails.util.Holders
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.util.Utils
 
 import java.time.ZoneId
@@ -54,6 +55,8 @@ class BootStrap {
 \n
           Hoist v${hoist.version} - ${Utils.appEnvironment}
           Extremely Heavy - https://xh.io
+            + Cluster ${ClusterService.clusterName}
+            + Instance ${ClusterService.instanceName}
             + ${runtime.availableProcessors()} available processors
             + ${String.format('%,d', (runtime.maxMemory() / 1000000).toLong())}mb available memory
             + JVM TimeZone is ${serverZoneId}
