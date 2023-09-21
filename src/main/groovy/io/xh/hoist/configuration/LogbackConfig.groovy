@@ -15,6 +15,7 @@ import ch.qos.logback.core.encoder.Encoder
 import ch.qos.logback.core.encoder.LayoutWrappingEncoder
 import ch.qos.logback.core.rolling.RollingFileAppender
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.log.ClusterInstanceConverter
 import io.xh.hoist.util.Utils
 import java.nio.file.Paths
@@ -88,7 +89,7 @@ class LogbackConfig {
     static void defaultConfig(Script script) {
         withDelegate(script) {
 
-            def appLogName = Utils.appCode,
+            def appLogName = "${Utils.appCode}-${ClusterService.instanceName}",
                 trackLogName = "$appLogName-track",
                 monitorLogName = "$appLogName-monitor"
 
