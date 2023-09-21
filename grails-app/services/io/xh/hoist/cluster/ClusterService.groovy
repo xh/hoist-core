@@ -205,7 +205,6 @@ class ClusterService extends BaseService {
 
         // Additional configs
         config.memberAttributeConfig.setAttribute('instanceName', instanceName)
-        config.networkConfig.join.multicastConfig.enabled = true
 
         return Hazelcast.newHazelcastInstance(config)
     }
