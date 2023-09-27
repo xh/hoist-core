@@ -5,6 +5,10 @@ import com.hazelcast.cluster.Member
 import com.hazelcast.cluster.MembershipEvent
 import com.hazelcast.cluster.MembershipListener
 import com.hazelcast.collection.ISet
+import com.hazelcast.config.EvictionConfig
+import com.hazelcast.config.EvictionPolicy
+import com.hazelcast.config.MapConfig
+import com.hazelcast.config.MaxSizePolicy
 import com.hazelcast.core.DistributedObject
 import com.hazelcast.core.Hazelcast
 import com.hazelcast.config.Config
@@ -93,8 +97,8 @@ class ClusterService extends BaseService {
     void init() {
         adjustMasterStatus()
         cluster.addMembershipListener([
-            memberAdded: {MembershipEvent e -> adjustMasterStatus(e.members)},
-            memberRemoved: {MembershipEvent e-> adjustMasterStatus(e.members)}
+            memberAdded  : { MembershipEvent e -> adjustMasterStatus(e.members) },
+            memberRemoved: { MembershipEvent e -> adjustMasterStatus(e.members) }
         ] as MembershipListener)
 
         super.init()
@@ -194,18 +198,68 @@ class ClusterService extends BaseService {
     }
 
     private static HazelcastInstance createInstance() {
-        // The built-in xml.file in the app reads these.  It is used by hibernate 2nd-level cache
-        // config and for any app specific settings. Set to ensure we have only one cluster/instance
-        System.setProperty('io.xh.hoist.hzClusterName', clusterName)
-        System.setProperty('io.xh.hoist.hzInstanceName', instanceName)
-
         def config = new Config()
         config.instanceName = instanceName
         config.clusterName = clusterName
-
-        // Additional configs
         config.memberAttributeConfig.setAttribute('instanceName', instanceName)
+
+        getCacheConfigs().each {
+            config.addMapConfig(it)
+        }
+
+        config.networkConfig.join.multicastConfig.enabled = false
+        config.networkConfig.join.awsConfig.enabled = true
+        config.networkConfig.interfaces.enabled = true
+        config.networkConfig.interfaces.addInterface('172.30.*.*')
 
         return Hazelcast.newHazelcastInstance(config)
     }
+
+    private static List getCacheConfigs() {
+        return [
+            new MapConfig('default')
+                .setTimeToLiveSeconds(99)
+                .setMaxIdleSeconds(0)
+                .setStatisticsEnabled(true)
+                .setPerEntryStatsEnabled(true)
+                .setEvictionConfig(
+                    new EvictionConfig()
+                        .setEvictionPolicy(EvictionPolicy.LRU)
+                        .setMaxSizePolicy(MaxSizePolicy.PER_NODE)
+                        .setSize(10000)
+                ),
+
+            new MapConfig('org.hibernate.cache.StandardQueryCache')
+                .setTimeToLiveSeconds(86400)
+                .setStatisticsEnabled(true)
+                .setEvictionConfig(
+                    new EvictionConfig()
+                        .setEvictionPolicy(EvictionPolicy.LRU)
+                        .setMaxSizePolicy(MaxSizePolicy.PER_NODE)
+                        .setSize(5000)
+                ),
+
+            new MapConfig('org.hibernate.cache.UpdateTimestampsCache')
+                .setTimeToLiveSeconds(86400)
+                .setStatisticsEnabled(true)
+                .setEvictionConfig(
+                    new EvictionConfig()
+                        .setEvictionPolicy(EvictionPolicy.LRU)
+                        .setMaxSizePolicy(MaxSizePolicy.PER_NODE)
+                        .setSize(5000)
+                ),
+
+            new MapConfig('io.xh.hoist.track.TrackLog')
+                .setStatisticsEnabled(true)
+                .setEvictionConfig(
+                    new EvictionConfig()
+                        .setEvictionPolicy(EvictionPolicy.LRU)
+                        .setMaxSizePolicy(MaxSizePolicy.ENTRY_COUNT)
+                        .setSize(10000)
+                ),
+        ]
+    }
+
+
+
 }
