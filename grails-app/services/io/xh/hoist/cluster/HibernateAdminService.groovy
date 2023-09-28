@@ -1,5 +1,7 @@
 package io.xh.hoist.cluster
 
+import com.hazelcast.cache.CacheStatistics
+import com.hazelcast.cache.impl.CacheProxy
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 import org.hibernate.SessionFactory
@@ -7,32 +9,27 @@ import org.hibernate.SessionFactory
 class HibernateAdminService extends BaseService {
 
     Collection<Map> listCaches() {
-        def cacheManager = clusterService.hzInstance.cacheManager
-        listCachesInternal().collect { c ->
-            def cache = cacheManager.getCache(c.name)
-            [
-                name: c.name,
-                size: cache.size()
-            ]
-        }
 
-        //clusterService.instance.distributedObjects.each {
-        //    if (it instanceof CacheProxy) {
-        //        def name = it.getName()
-        //        CacheStatistics stats = it.getLocalCacheStatistics()
-        //        ret << [
-        //            name: name,
-        //            size: it.size(),
-        //            stats: [
-        //                ownedEntryCount: stats.ownedEntryCount,
-        //                hitPercentage: stats.cacheHitPercentage,
-        //                creationTime: stats.creationTime,
-        //                lastUpdateTime: stats.lastUpdateTime,
-        //                lasAccessTime: stats.lastAccessTime
-        //            ]
-        //        ]
-        //    }
-        //}
+        // Get the underlying cache objects
+        def caches = clusterService
+            .hzInstance
+            .distributedObjects
+            .findAll { it instanceof CacheProxy }
+            .collectEntries {
+                log.info('hi' + it.name)
+                [it.name, it]
+            }
+
+        listCachesInternal()
+            .collect {
+                log.info(it.name)
+                caches[it.name]
+            }
+            .findAll()
+            .collect {CacheProxy c -> [
+                name: c.name,
+                size: c.size()
+            ]}
     }
 
     void clearCaches(List<String> names) {
@@ -61,7 +58,9 @@ class HibernateAdminService extends BaseService {
 
             stats.secondLevelCacheRegionNames
                 .findAll { !it.contains('org.hibernate') }
-                .collect { [name: it, factory: factory] }
+                .collect {
+                    [name: it, factory: factory]
+                }
         }
     }
 }

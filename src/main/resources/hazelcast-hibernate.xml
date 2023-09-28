@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    NOTE: This file is only used to ensure that Hibernate will use the local
+    hazelcast member for its hibernate caches.  To customize any hazelcast caches,
+    including those for Hibernate, see ClusterService (for Hoist) or
+    Cluster.groovy (for applications).
+-->
+<hazelcast xmlns="http://www.hazelcast.com/schema/config"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://www.hazelcast.com/schema/config
+           http://www.hazelcast.com/schema/config/hazelcast-config-5.1.xsd">
+
+    <instance-name>${io.xh.hoist.hzInstanceName} </instance-name>
+</hazelcast>

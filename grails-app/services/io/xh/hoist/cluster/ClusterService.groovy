@@ -199,18 +199,21 @@ class ClusterService extends BaseService {
 
     private static HazelcastInstance createInstance() {
         def config = new Config()
+
+        // Specify core identity of the instance.
+        // Place as system property for the hibernate.xml to pickup.
         config.instanceName = instanceName
         config.clusterName = clusterName
         config.memberAttributeConfig.setAttribute('instanceName', instanceName)
+        System.setProperty('io.xh.hoist.hzInstanceName', instanceName)
 
-        getCacheConfigs().each {
-            config.addMapConfig(it)
-        }
+        // Start with default cache and network configurations
+        getCacheConfigs().each {config.addMapConfig(it)}
+        config.networkConfig.join.multicastConfig.enabled = true
 
-        config.networkConfig.join.multicastConfig.enabled = false
-        config.networkConfig.join.awsConfig.enabled = true
-        config.networkConfig.interfaces.enabled = true
-        config.networkConfig.interfaces.addInterface('172.30.*.*')
+        // ... and apply application configurations
+        def clazz = Class.forName(Utils.appPackage + ".Cluster")
+        clazz.getMethod('configure', Config)?.invoke(null, config)
 
         return Hazelcast.newHazelcastInstance(config)
     }

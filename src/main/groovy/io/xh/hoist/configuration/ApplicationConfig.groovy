@@ -101,6 +101,7 @@ class ApplicationConfig {
                 javax {
                     cache {
                         provider = 'com.hazelcast.cache.impl.HazelcastServerCachingProvider'
+                        uri = 'hazelcast-hibernate.xml'
                     }
                     persistence {
                         sharedCache {
