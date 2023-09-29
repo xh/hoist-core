@@ -28,6 +28,7 @@ class ClusterAdminService extends BaseService {
             name          : clusterService.instanceName,
             address       : clusterService.localMember.address.toString(),
             isMaster      : clusterService.isMaster,
+            isReady       : clusterService.isReady,
             memory        : appContext.memoryMonitoringService.latestSnapshot,
             connectionPool: appContext.connectionPoolMonitoringService.latestSnapshot,
             wsConnections : appContext.webSocketService.allChannels.size(),
@@ -43,11 +44,16 @@ class ClusterAdminService extends BaseService {
 
     Collection<Map> getAllStats() {
         clusterService.submitToAllInstances(new AdminStatsTask())
-            .collect { name, value ->
-                [
-                    *      : value.get(),
-                    isLocal: name == clusterService.instanceName
-                ]
+            .collect { name, result ->
+               def ret = [
+                   name: name,
+                   isLocal: name == clusterService.instanceName,
+                   isReady: false
+               ]
+                if (result.value) {
+                    ret << result.value
+                }
+                return ret
             }
     }
 

@@ -77,7 +77,7 @@ class LogViewerAdminController extends BaseClusterController {
         def task = new Download(filename: filename)
         File file = instance == clusterService.instanceName ?
             task.call() :
-            clusterService.submitToInstance(task, instance).get()
+            clusterService.submitToInstance(task, instance)
         render(
             file: file,
             fileName: filename,

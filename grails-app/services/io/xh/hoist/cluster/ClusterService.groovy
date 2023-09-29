@@ -18,14 +18,16 @@ import com.hazelcast.replicatedmap.ReplicatedMap
 import com.hazelcast.topic.ITopic
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
+import org.springframework.boot.context.event.ApplicationReadyEvent
+import org.springframework.context.ApplicationListener
 
 import javax.management.InstanceNotFoundException
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
 
-class ClusterService extends BaseService {
+class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent> {
+
 
     /**
      * Name of Hazelcast cluster.
@@ -48,6 +50,7 @@ class ClusterService extends BaseService {
      */
     static final HazelcastInstance hzInstance
 
+
     static {
         // Create this statically due to how Hazelcast inits and processes its xml file early.
         clusterName = Utils.appCode + '_' + Utils.appEnvironment + '_' + Utils.appVersion
@@ -65,6 +68,12 @@ class ClusterService extends BaseService {
 
     private boolean _isMaster = false
 
+
+
+    /**
+     * Is this instance ready for requests?
+     */
+    boolean isReady = false
 
     /**
      * The Hazelcast member representing the 'master' instance.
@@ -158,15 +167,21 @@ class ClusterService extends BaseService {
         return hzInstance.getExecutorService('default')
     }
 
-    <T> Future<T> submitToInstance(Callable<T> c, String instanceName) {
-        executorService.submitToMember(c, getMember(instanceName))
+    <T> T submitToInstance(Callable<T> c, String instanceName) {
+        executorService.submitToMember(c, getMember(instanceName)).get()
     }
 
-    <T> Map<String, Future<T>> submitToAllInstances(Callable<T> c) {
+    <T> Map<String, Map> submitToAllInstances(Callable<T> c) {
         executorService
             .submitToAllMembers(c)
-            .collectEntries { Member member, Future<T> result ->
-                [member.getAttribute('instanceName'), result]
+            .collectEntries { Member member, Future<T> f ->
+                def value, failure
+                try {
+                    value = f.get()
+                } catch (Exception e) {
+                    failure = e
+                }
+                [member.getAttribute('instanceName'), [value: value, failure: failure]]
             }
     }
 
@@ -246,5 +261,9 @@ class ClusterService extends BaseService {
         ret.evictionConfig.size = 5000
         closure?.call(ret)
         return ret
+    }
+
+    void onApplicationEvent(ApplicationReadyEvent event) {
+       isReady = true
     }
 }

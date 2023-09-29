@@ -18,7 +18,7 @@ abstract class BaseClusterController extends BaseController {
     protected void runOnInstance(ClusterRequest task, String instance) {
         ClusterResponse ret = instance == clusterService.instanceName ?
             task.call() :
-            clusterService.submitToInstance(task, instance).get()
+            clusterService.submitToInstance(task, instance)
 
         response.setContentType('application/json; charset=UTF-8')
         response.setStatus(ret.status)
@@ -32,7 +32,6 @@ abstract class BaseClusterController extends BaseController {
     protected void runOnAllInstances(ClusterRequest task) {
         def ret = clusterService
             .submitToAllInstances(task)
-            .collectEntries { [it.key, it.value.get()] }
         renderJSON(ret)
     }
 }
