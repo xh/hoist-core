@@ -1,6 +1,5 @@
 package io.xh.hoist.cluster
 
-import com.hazelcast.cache.CacheStatistics
 import com.hazelcast.cache.impl.CacheProxy
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
@@ -10,30 +9,28 @@ class HibernateAdminService extends BaseService {
 
     Collection<Map> listCaches() {
 
-        // Get the underlying cache objects
-        def caches = clusterService
-            .hzInstance
-            .distributedObjects
-            .findAll { it instanceof CacheProxy }
-            .collectEntries {
-                log.info('hi' + it.name)
-                [it.name, it]
-            }
-
-        listCachesInternal()
-            .collect {
-                log.info(it.name)
-                caches[it.name]
-            }
+        def hzCaches = getHzCaches()
+        listHibernateCaches()
+            .collect {hzCaches[it.name]}
             .findAll()
-            .collect {CacheProxy c -> [
-                name: c.name,
-                size: c.size()
-            ]}
+            .collect {CacheProxy c ->
+                def evictionConfig = c.cacheConfig.evictionConfig
+                return [
+                    name: c.name,
+                    size: c.size(),
+                    stats: [
+                        evictionConfig: [
+                            size: evictionConfig.size,
+                            maxSizePolicy: evictionConfig.maxSizePolicy,
+                            evictionPolicy: evictionConfig.evictionPolicy
+                        ]
+                    ]
+                ]
+            }
     }
 
     void clearCaches(List<String> names) {
-        def caches = listCachesInternal().findAll {names.contains(it.name)}
+        def caches = listHibernateCaches().findAll {names.contains(it.name)}
         caches.each { c ->
             def factory = c.factory as SessionFactory,
                 cache = factory.cache
@@ -47,7 +44,7 @@ class HibernateAdminService extends BaseService {
     //------------------------------
     // Implementation
     //------------------------------
-    private List<Map> listCachesInternal() {
+    private List<Map> listHibernateCaches() {
         def appContext = Utils.appContext
         def factories = appContext.getBeanDefinitionNames()
             .findAll { it.startsWith('sessionFactory') }
@@ -62,5 +59,13 @@ class HibernateAdminService extends BaseService {
                     [name: it, factory: factory]
                 }
         }
+    }
+
+    private Map<String, CacheProxy> getHzCaches() {
+        clusterService
+            .hzInstance
+            .distributedObjects
+            .findAll { it instanceof CacheProxy }
+            .collectEntries { [it.name, it] }
     }
 }

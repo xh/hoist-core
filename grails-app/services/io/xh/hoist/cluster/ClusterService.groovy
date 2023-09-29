@@ -211,9 +211,9 @@ class ClusterService extends BaseService {
         getCacheConfigs().each {config.addMapConfig(it)}
         config.networkConfig.join.multicastConfig.enabled = true
 
-        // ... and apply application configurations
+        // ... and optionally apply application configurations
         def clazz = Class.forName(Utils.appPackage + ".Cluster")
-        clazz.getMethod('configure', Config)?.invoke(null, config)
+        clazz?.getMethod('configure', Config)?.invoke(null, config)
 
         return Hazelcast.newHazelcastInstance(config)
     }
