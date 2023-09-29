@@ -5,9 +5,8 @@ import com.hazelcast.cluster.Member
 import com.hazelcast.cluster.MembershipEvent
 import com.hazelcast.cluster.MembershipListener
 import com.hazelcast.collection.ISet
-import com.hazelcast.config.EvictionConfig
+import com.hazelcast.config.CacheSimpleConfig
 import com.hazelcast.config.EvictionPolicy
-import com.hazelcast.config.MapConfig
 import com.hazelcast.config.MaxSizePolicy
 import com.hazelcast.core.DistributedObject
 import com.hazelcast.core.Hazelcast
@@ -24,6 +23,7 @@ import javax.management.InstanceNotFoundException
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 
 class ClusterService extends BaseService {
 
@@ -208,7 +208,7 @@ class ClusterService extends BaseService {
         System.setProperty('io.xh.hoist.hzInstanceName', instanceName)
 
         // Start with default cache and network configurations
-        getCacheConfigs().each {config.addMapConfig(it)}
+        getCacheConfigs().each {config.addCacheConfig(it)}
         config.networkConfig.join.multicastConfig.enabled = true
 
         // ... and optionally apply application configurations
@@ -218,51 +218,33 @@ class ClusterService extends BaseService {
         return Hazelcast.newHazelcastInstance(config)
     }
 
-    private static List getCacheConfigs() {
-        return [
-            new MapConfig('default')
-                .setTimeToLiveSeconds(99)
-                .setMaxIdleSeconds(0)
-                .setStatisticsEnabled(true)
-                .setPerEntryStatsEnabled(true)
-                .setEvictionConfig(
-                    new EvictionConfig()
-                        .setEvictionPolicy(EvictionPolicy.LRU)
-                        .setMaxSizePolicy(MaxSizePolicy.PER_NODE)
-                        .setSize(10000)
-                ),
+    private static List<CacheSimpleConfig> getCacheConfigs() {
+        [
+            hibernateCache('io.xh.hoist.clienterror.ClientError'),
+            hibernateCache('io.xh.hoist.config.AppConfig'),
+            hibernateCache('io.xh.hoist.feedback.Feedback'),
+            hibernateCache('io.xh.hoist.jsonblob.JsonBlob'),
+            hibernateCache('io.xh.hoist.log.LogLevel'),
+            hibernateCache('io.xh.hoist.monitor.Monitor'),
+            hibernateCache('io.xh.hoist.pref.Preference'),
+            hibernateCache('io.xh.hoist.pref.UserPreference'),
+            hibernateCache('io.xh.hoist.track.TrackLog') {
+                it.evictionConfig.size = 10000
+            },
 
-            new MapConfig('org.hibernate.cache.StandardQueryCache')
-                .setTimeToLiveSeconds(86400)
-                .setStatisticsEnabled(true)
-                .setEvictionConfig(
-                    new EvictionConfig()
-                        .setEvictionPolicy(EvictionPolicy.LRU)
-                        .setMaxSizePolicy(MaxSizePolicy.PER_NODE)
-                        .setSize(5000)
-                ),
-
-            new MapConfig('org.hibernate.cache.UpdateTimestampsCache')
-                .setTimeToLiveSeconds(86400)
-                .setStatisticsEnabled(true)
-                .setEvictionConfig(
-                    new EvictionConfig()
-                        .setEvictionPolicy(EvictionPolicy.LRU)
-                        .setMaxSizePolicy(MaxSizePolicy.PER_NODE)
-                        .setSize(5000)
-                ),
-
-            new MapConfig('io.xh.hoist.track.TrackLog')
-                .setStatisticsEnabled(true)
-                .setEvictionConfig(
-                    new EvictionConfig()
-                        .setEvictionPolicy(EvictionPolicy.LRU)
-                        .setMaxSizePolicy(MaxSizePolicy.ENTRY_COUNT)
-                        .setSize(10000)
-                ),
+            hibernateCache('default-update-timestamps-region') { CacheSimpleConfig c ->
+                c.evictionConfig.size = 1000
+            }
         ]
     }
 
-
-
+    private static CacheSimpleConfig hibernateCache(String name, Closure closure = null) {
+        def ret = new CacheSimpleConfig(name)
+        ret.statisticsEnabled = true
+        ret.evictionConfig.maxSizePolicy = MaxSizePolicy.ENTRY_COUNT
+        ret.evictionConfig.evictionPolicy = EvictionPolicy.LRU
+        ret.evictionConfig.size = 5000
+        closure?.call(ret)
+        return ret
+    }
 }

@@ -14,15 +14,22 @@ class HibernateAdminService extends BaseService {
             .collect {hzCaches[it.name]}
             .findAll()
             .collect {CacheProxy c ->
-                def evictionConfig = c.cacheConfig.evictionConfig
+                def evictionConfig = c.cacheConfig.evictionConfig,
+                    cacheStats = c.localCacheStatistics
                 return [
                     name: c.name,
                     size: c.size(),
                     stats: [
-                        evictionConfig: [
+                        config: [
                             size: evictionConfig.size,
                             maxSizePolicy: evictionConfig.maxSizePolicy,
                             evictionPolicy: evictionConfig.evictionPolicy
+                        ],
+                        stats: [
+                            ownedEntryCount: cacheStats.ownedEntryCount,
+                            cacheHits: cacheStats.cacheHits,
+                            cacheHitPercentage: cacheStats.cacheHitPercentage?.round(0),
+                            lastUpdateTime: cacheStats.lastUpdateTime
                         ]
                     ]
                 ]
