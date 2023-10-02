@@ -227,7 +227,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         config.networkConfig.join.multicastConfig.enabled = true
 
         // ... and optionally apply application configurations
-        def clazz = Class.forName(Utils.appPackage + ".Cluster")
+        def clazz = Class.forName('ClusterConfig')
         clazz?.getMethod('configure', Config)?.invoke(null, config)
 
         return Hazelcast.newHazelcastInstance(config)

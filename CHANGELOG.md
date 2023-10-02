@@ -9,8 +9,8 @@
   providing embedded java support for inter-server communication, co-ordination, and data sharing.
   See the new `ClusterService.groovy` service, which provides the clustering implementation and main
   API entry point for accessing the cluster.
-  ** Applications upgrading to v18 will need to provide a cluster configuration class at
-  `init/Cluster.groovy`.  See toolbox for an example of this file.
+  ** Applications/client plugins upgrading to v18 will need to provide a cluster configuration class
+   with the name `ClusterConfig.groovy`.  See toolbox for an example of this file.
   ** Applications that intend to run with more than one server *must* enable sticky sessions when
   routing clients to servers.  This is critical for the correct operation of authentication
   and web socket communications.
