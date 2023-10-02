@@ -182,7 +182,7 @@ class Timer {
             isRunning  : isRunning,
             lastStartTime: _lastRunStarted,
             lastStats  : _lastRunStats
-        ].findAll {it != null}
+        ].findAll {it.value != null}
     }
 
 
@@ -218,13 +218,11 @@ class Timer {
         _lastRunStats = [
             startTime: _lastRunStarted,
             endTime: _lastRunCompleted,
-            elapsedMs: _lastRunCompleted.time - _lastRunStarted.time,
-            success: !throwable,
-            error: throwable ? exceptionRenderer.summaryTextForThrowable(throwable) : null
+            elapsedMs: _lastRunCompleted.time - _lastRunStarted.time
         ]
-
         if (throwable) {
             try {
+                _lastRunStats.error = exceptionRenderer.summaryTextForThrowable(throwable)
                 exceptionRenderer.handleException(throwable, owner)
             } catch (Throwable ignore) {}
         }
