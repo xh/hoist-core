@@ -162,12 +162,12 @@ class EmailService extends BaseService {
     }
 
     Map getAdminStats() {[
-        config: configService.getForAdminStats([
+        config: configService.getForAdminStats(
             'xhEmailOverride',
             'xhEmailFilter',
             'xhEmailDefaultSender',
             'xhEmailDefaultDomain'
-        ]),
+        ),
         emailsSent: emailsSent,
         lastSentDate: lastSentDate
     ]}

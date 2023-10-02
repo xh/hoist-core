@@ -14,7 +14,6 @@ import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.Level
 import io.xh.hoist.util.Utils
 import org.slf4j.LoggerFactory
-import io.xh.hoist.util.Timer
 
 import java.util.concurrent.Callable
 
@@ -23,10 +22,9 @@ import static io.xh.hoist.util.DateTimeUtils.MINUTES
 class LogLevelService extends BaseService {
 
     private List<LogLevelAdjustment> adjustments = []
-    private Timer timer
 
     void init() {
-        timer = createTimer(interval: 30 * MINUTES, runImmediatelyAndBlock: true)
+        createTimer(interval: 30 * MINUTES, runImmediatelyAndBlock: true)
     }
 
     private void onTimer() {
@@ -120,6 +118,6 @@ class LogLevelService extends BaseService {
     }
 
     Map getAdminStats() {[
-        timer: timer?.adminStats
+        timer: timers[0]?.adminStats
     ]}
 }

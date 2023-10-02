@@ -82,10 +82,10 @@ class ConfigService extends BaseService {
      * as specified by 'clientVisible'.  All passwords will be obscured, however.
      */
     @ReadOnly
-    Map getForAdminStats(List<String> names) {
-        AppConfig.findAllByNameInList(names, [cache: true]).collectEntries {
-            AppConfig config  = it as AppConfig
-            return [config.name, config.externalValue(obscurePassword: true, jsonAsObject: true)]
+    Map getForAdminStats(String... names) {
+        names.toList().collectEntries {
+            def config = AppConfig.findByName(it, [cache: true])
+            [it, config?.externalValue(obscurePassword: true, jsonAsObject: true)]
         }
     }
 

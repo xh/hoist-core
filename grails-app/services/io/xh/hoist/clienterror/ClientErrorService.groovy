@@ -19,7 +19,6 @@ import static io.xh.hoist.util.Utils.getCurrentRequest
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static java.lang.System.currentTimeMillis
-import io.xh.hoist.util.Timer
 
 /**
  * This class manages client error reports, saving them in the database and
@@ -35,17 +34,16 @@ class ClientErrorService extends BaseService {
         configService
 
     private Map<String, Map> errors
-    private Timer timer
     private int getMaxErrors()      {configService.getMap('xhClientErrorConfig').maxErrors as int}
     private int getAlertInterval()  {configService.getMap('xhClientErrorConfig').intervalMins * MINUTES}
 
     void init() {
         super.init()
         errors = clusterService.getMap('xhClientErrors')
-        timer = createTimer(
-                interval: { alertInterval },
-                delay: 15 * SECONDS,
-                masterOnly: true
+        createTimer(
+            interval: { alertInterval },
+            delay: 15 * SECONDS,
+            masterOnly: true
         )
     }
 
@@ -117,6 +115,6 @@ class ClientErrorService extends BaseService {
     Map getAdminStats() {[
         config: configService.getMap('xhClientErrorConfig'),
         pendingErrorCount: errors.size(),
-        timer: timer?.adminStats
+        timer: timers[0]?.adminStats
     ]}
 }

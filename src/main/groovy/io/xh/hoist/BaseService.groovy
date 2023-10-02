@@ -45,7 +45,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
     private boolean _destroyed = false
 
-    private final List<Timer> _timers = []
+    protected final List<Timer> timers = []
 
     /**
      * Initialize a collection of BaseServices in parallel.
@@ -107,7 +107,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
             args.runFn = this.&onTimer
         }
         def ret = new Timer(args)
-        _timers << ret
+        timers << ret
         return ret
     }
 
@@ -207,7 +207,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * Called by Spring on a clean shutdown of the application.
      */
     void destroy() {
-        _timers.each {
+        timers.each {
             it.cancel()
         }
         _destroyed = true

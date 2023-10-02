@@ -139,6 +139,6 @@ class LogReaderService extends BaseService {
     }
 
     Map getAdminStats() {[
-        config: configService.getForAdminStats(['xhEnableLogViewer', 'xhLogSearchTimeoutMs'])
+        config: configService.getForAdminStats('xhEnableLogViewer', 'xhLogSearchTimeoutMs')
     ]}
 }
