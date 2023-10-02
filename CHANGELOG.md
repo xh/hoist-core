@@ -22,7 +22,10 @@
   logic -- should take care to ensure the app is safe to run in multi-instance mode. Distributed
   data structures (e.g. Hazelcast  Maps) should be used as needed, as well as limiting certain
   actions to the "master" server.  See toolbox, or Hoist for help.
-  ** `hoist-react >= 60.0` is required.
+  ** `hoist-react >= 61.0` is required.
+* New support for reporting of service statistics for trobuleshooting/monitoring.  Implement
+`BaseService.getAdminStats()` to provide diagnostic metadata about the state of your service that
+will then be displayed in the admin client.
 
 ### Breaking Changes
 * The following server-side Hoist events are now implemented as cluster-wide Hazelcast messages
