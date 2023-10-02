@@ -159,7 +159,7 @@ class Timer {
      * Any subsequent calls to this method before this additional execution has completed will be ignored.
      */
     void forceRun() {
-        this.forceRun = true
+        forceRun = true
     }
 
     /**
@@ -168,8 +168,8 @@ class Timer {
      * This will prevent any additional executions of this timer.  In-progress executions will be unaffected.
      */
     void cancel() {
-        if (coreTimer) coreTimer.cancel()
-        if (configTimer) configTimer.cancel()
+        coreTimer?.cancel()
+        configTimer?.cancel()
     }
 
     /**
@@ -177,7 +177,6 @@ class Timer {
      */
     Map getAdminStats() {
         [
-            masterOnly : masterOnly,
             intervalMs : intervalMs,
             isRunning  : isRunning,
             lastStartTime: _lastRunStarted,
