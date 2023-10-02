@@ -18,6 +18,7 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.HOURS
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static io.xh.hoist.util.Utils.startupTime
+import io.xh.hoist.util.Timer
 import static java.lang.Runtime.getRuntime
 import static java.lang.System.currentTimeMillis
 
@@ -31,9 +32,10 @@ class MemoryMonitoringService extends BaseService {
 
     private Map<Long, Map> _snapshots = new ConcurrentHashMap()
     private Date _lastInfoLogged
+    private Timer timer
 
     void init() {
-        createTimer(
+        timer = createTimer(
             interval: {config.enabled ? config.snapshotInterval * SECONDS: -1},
             runFn: this.&takeSnapshot
         )
@@ -115,9 +117,6 @@ class MemoryMonitoringService extends BaseService {
         ]
     }
 
-    Map getAdminStats() {
-        return latestSnapshot
-    }
     //------------------------
     // Implementation
     //------------------------
@@ -183,4 +182,10 @@ class MemoryMonitoringService extends BaseService {
         _snapshots.clear()
         super.clearCaches()
     }
+
+    Map getAdminStats() {[
+        config: config,
+        latestSnapshot: latestSnapshot,
+        timer: timer?.adminStats
+    ]}
 }

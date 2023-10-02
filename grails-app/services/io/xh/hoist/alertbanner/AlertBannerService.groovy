@@ -96,12 +96,11 @@ class AlertBannerService extends BaseService {
         }
     }
 
-
     //----------------------------
     // Implementation
     //-----------------------------
     private Map readFromSpec() {
-        def conf = configService.getMap('xhAlertBannerConfig', [:])
+        def conf = configService.getMap('xhAlertBannerConfig')
         if (conf.enabled) {
             def spec = getAlertSpec()
             if (spec.active && (!spec.expires || spec.expires > currentTimeMillis())) {
@@ -115,4 +114,9 @@ class AlertBannerService extends BaseService {
         super.clearCaches()
         cache.clear()
     }
+
+    Map getAdminStats() {[
+        config: configService.getMap('xhAlertBannerConfig'),
+    ]}
+
 }

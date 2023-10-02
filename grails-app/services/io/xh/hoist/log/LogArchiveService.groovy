@@ -12,6 +12,7 @@ import io.xh.hoist.BaseService
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
+import io.xh.hoist.util.Timer
 
 import static io.xh.hoist.util.DateTimeUtils.DAYS
 import static java.io.File.separator
@@ -26,8 +27,10 @@ class LogArchiveService extends BaseService {
     def configService,
         logReaderService
 
+    private Timer timer
+
     void init() {
-        createTimer(interval: 1 * DAYS)
+        timer = createTimer(interval: 1 * DAYS)
     }
 
     List<String> archiveLogs(Integer daysThreshold) {
@@ -172,4 +175,8 @@ class LogArchiveService extends BaseService {
         return configService.getMap('xhLogArchiveConfig')
     }
 
+    Map getAdminStats() {[
+        config: config,
+        timer: timer?.adminStats
+    ]}
 }

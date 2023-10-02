@@ -49,4 +49,8 @@ class FeedbackEmailService extends BaseService {
         return [msgText, metaText].findAll{it}.join('<br/><br/>')
     }
 
+    Map getAdminStats() {[
+        config: [toAddress: emailService.parseMailConfig('xhEmailSupport')]
+    ]}
+
 }

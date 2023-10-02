@@ -8,7 +8,6 @@
 package io.xh.hoist.config
 
 import grails.compiler.GrailsCompileStatic
-import grails.events.EventPublisher
 import grails.gorm.transactions.ReadOnly
 import grails.gorm.transactions.Transactional
 import groovy.transform.CompileDynamic
@@ -55,6 +54,11 @@ class ConfigService extends BaseService {
         return (String) getInternalByName(name, 'pwd', notFoundValue)
     }
 
+
+    /**
+     * Return a map of all config values needed by client.
+     * All passwords will be obscured.
+     */
     @ReadOnly
     Map getClientConfig() {
         def ret = [:]
@@ -70,6 +74,19 @@ class ConfigService extends BaseService {
         }
 
         return ret
+    }
+
+    /**
+     * Return a map of specified config values, appropriate for display in admin client.
+     * Note this may include configs that are not typically sent to clients
+     * as specified by 'clientVisible'.  All passwords will be obscured, however.
+     */
+    @ReadOnly
+    Map getForAdminStats(List<String> names) {
+        AppConfig.findAllByNameInList(names, [cache: true]).collectEntries {
+            AppConfig config  = it as AppConfig
+            return [config.name, config.externalValue(obscurePassword: true, jsonAsObject: true)]
+        }
     }
 
     /**

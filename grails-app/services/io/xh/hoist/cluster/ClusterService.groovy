@@ -266,4 +266,13 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     void onApplicationEvent(ApplicationReadyEvent event) {
        isReady = true
     }
+
+    Map getAdminStats() {[
+        clusterId   : cluster.clusterState.id,
+        instanceName: instanceName,
+        masterName  : masterName,
+        isMaster    : isMaster,
+        members     : cluster.members.collect { it.getAttribute('instanceName') }
+    ]}
+
 }

@@ -12,6 +12,7 @@ import io.xh.hoist.exception.DataNotAvailableException
 import org.apache.tomcat.jdbc.pool.DataSource as PooledDataSource
 import org.apache.tomcat.jdbc.pool.PoolConfiguration
 import org.springframework.boot.jdbc.DataSourceUnwrapper
+import io.xh.hoist.util.Timer
 
 import javax.sql.DataSource
 import java.util.concurrent.ConcurrentHashMap
@@ -31,9 +32,10 @@ class ConnectionPoolMonitoringService extends BaseService {
     private Map<Long, Map> _snapshots = new ConcurrentHashMap()
     private PooledDataSource _pooledDataSource
     private boolean unwrapAttempted = false
+    private Timer timer
 
     void init() {
-        createTimer(
+        timer = createTimer(
             interval: {enabled ? config.snapshotInterval * SECONDS: -1},
             runFn: this.&takeSnapshot
         )
@@ -88,10 +90,6 @@ class ConnectionPoolMonitoringService extends BaseService {
         takeSnapshot()
     }
 
-    Map getAdminStats() {
-        return latestSnapshot
-    }
-
     //------------------------
     // Implementation
     //------------------------
@@ -137,4 +135,10 @@ class ConnectionPoolMonitoringService extends BaseService {
         this._snapshots.clear()
         super.clearCaches()
     }
+
+    Map getAdminStats() {[
+        config: config,
+        latestSnapshot: latestSnapshot,
+        timer: timer?.adminStats
+    ]}
 }

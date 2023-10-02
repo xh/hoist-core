@@ -55,4 +55,8 @@ class MonitoringEmailService extends BaseService {
         }.join('<br>')
     }
 
+    Map getAdminStats() {[
+        config: [toAddress: emailService.parseMailConfig('xhMonitorEmailRecipients')]
+    ]}
+
 }

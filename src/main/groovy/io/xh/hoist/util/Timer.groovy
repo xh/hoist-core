@@ -74,9 +74,15 @@ class Timer {
     /**  Only run job when clustered instance is the master server?  Default is false */
     final boolean masterOnly
 
+
+    /** Date last run started. */
+    Date getLastRunStarted() {
+        _lastRunStarted
+    }
+
     /** Date last run completed. */
-    Date getLastRun() {
-        _lastRun
+    Date getLastRunCompleted() {
+        _lastRunCompleted
     }
 
     /** Is `runFn` currently executing? */
@@ -92,7 +98,9 @@ class Timer {
     private Long coreIntervalMs
 
 
-    private Date _lastRun = null
+    private Date _lastRunCompleted = null
+    private Date _lastRunStarted = null
+    private Map _lastRunStats = null
     private boolean _isRunning = false
     private boolean forceRun  = false
     private java.util.Timer coreTimer
@@ -164,6 +172,19 @@ class Timer {
         if (configTimer) configTimer.cancel()
     }
 
+    /**
+     * Information about this time for admin purposes.
+     */
+    Map getAdminStats() {
+        [
+            masterOnly : masterOnly,
+            intervalMs : intervalMs,
+            isRunning  : isRunning,
+            lastStartTime: _lastRunStarted,
+            lastStats  : _lastRunStats
+        ].findAll {it != null}
+    }
+
 
     //------------------------
     // Implementation
@@ -172,6 +193,7 @@ class Timer {
         if (masterOnly && !Utils.clusterService.isMaster) return
 
         _isRunning = true
+        _lastRunStarted = new Date()
         Throwable throwable = null
         Future future = null
         try {
@@ -191,8 +213,15 @@ class Timer {
             throwable = t
         }
 
-        _lastRun = new Date()
+        _lastRunCompleted = new Date()
         _isRunning = false
+        _lastRunStats = [
+            startTime: _lastRunStarted,
+            endTime: _lastRunCompleted,
+            elapsedMs: _lastRunCompleted.time - _lastRunStarted.time,
+            success: !throwable,
+            error: throwable ? exceptionRenderer.summaryTextForThrowable(throwable) : null
+        ]
 
         if (throwable) {
             try {
@@ -252,7 +281,7 @@ class Timer {
     //-------------------------------------------------------------------------------------------
     private void onCoreTimer() {
         if (!isRunning) {
-            if ((intervalMs > 0 && intervalElapsed(intervalMs, lastRun)) || forceRun) {
+            if ((intervalMs > 0 && intervalElapsed(intervalMs, lastRunCompleted)) || forceRun) {
                 boolean wasForced = forceRun
                 doRun()
                 if (wasForced) forceRun = false

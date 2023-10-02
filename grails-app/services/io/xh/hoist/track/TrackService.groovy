@@ -160,4 +160,8 @@ class TrackService extends BaseService {
             }
         }
     }
+
+    Map getAdminStats() {[
+        config: conf
+    ]}
 }

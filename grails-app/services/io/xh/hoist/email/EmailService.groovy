@@ -161,17 +161,16 @@ class EmailService extends BaseService {
         return s == 'none' ? null : formatAddresses(s)
     }
 
-    Map getAdminStats() {
-        return [
-            config: [
-                xhEmailOverride: configService.getString('xhEmailOverride'),
-                xhEmailFilter: configService.getString('xhEmailFilter'),
-                xhEmailDefaultSender: configService.getString('xhEmailDefaultSender'),
-            ],
-            emailsSent: emailsSent,
-            lastSentDate: lastSentDate
-        ]
-    }
+    Map getAdminStats() {[
+        config: configService.getForAdminStats([
+            'xhEmailOverride',
+            'xhEmailFilter',
+            'xhEmailDefaultSender',
+            'xhEmailDefaultDomain'
+        ]),
+        emailsSent: emailsSent,
+        lastSentDate: lastSentDate
+    ]}
 
     //------------------------
     // Implementation
