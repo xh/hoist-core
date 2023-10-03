@@ -54,7 +54,7 @@ class ConnectionPoolMonitoringService extends BaseService {
     }
 
     Map getLatestSnapshot() {
-        return _snapshots?.max { it.key }.value
+        return _snapshots?.max { it.key }?.value
     }
 
     /** Take a snapshot of pool usage, add to in-memory history, and return. */

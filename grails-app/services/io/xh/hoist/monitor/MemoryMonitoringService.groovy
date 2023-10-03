@@ -47,7 +47,7 @@ class MemoryMonitoringService extends BaseService {
     }
 
     Map getLatestSnapshot() {
-        return _snapshots?.max {it.key}.value
+        return _snapshots?.max {it.key}?.value
     }
 
     /**
