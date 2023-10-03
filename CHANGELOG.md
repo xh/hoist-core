@@ -36,6 +36,9 @@ will then be displayed in the admin client.
   Any applications that are listening to these events with `BaseService.subscribe` should instead use
   the new cluster aware method `BaseService.subscribeToTopic`.
 
+### 📚 Libraries
+* hazelcast `5.3.2`
+
 ## 17.3.0 - 2023-09-18
 
 ### ⚙️ Technical
