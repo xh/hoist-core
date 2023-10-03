@@ -55,6 +55,9 @@ dependencies {
     //--------------------
     // Hoist Additions
     //--------------------
+
+    api "com.hazelcast:hazelcast"
+
     api "org.apache.tomcat:tomcat-jdbc"
     api "org.codehaus.groovy:groovy-dateutil:$groovyVersion"
 
@@ -75,8 +78,6 @@ dependencies {
     api 'org.jasypt:jasypt:1.9.3'
     api "commons-io:commons-io:2.8.0"
     api "org.owasp.encoder:encoder:1.2.3"
-
-    api "com.hazelcast:hazelcast:5.3.2"
 }
 
 
