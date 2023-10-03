@@ -45,13 +45,16 @@ class ClusterAdminService extends BaseService {
     Collection<Map> getAllStats() {
         clusterService.submitToAllInstances(new AdminStatsTask())
             .collect { name, result ->
-               def ret = [
-                   name: name,
-                   isLocal: name == clusterService.instanceName,
-                   isReady: false
-               ]
+                def ret = [
+                    name   : name,
+                    isLocal: name == clusterService.instanceName,
+                    isReady: false
+                ]
                 if (result.value) {
                     ret << result.value
+                }
+                if (result.failure) {
+                    logError("Failed loading data about cluster", result.failure)
                 }
                 return ret
             }
