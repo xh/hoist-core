@@ -52,10 +52,21 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
 
 
     static {
-        // Create this statically due to how Hazelcast inits and processes its xml file early.
+        // Create this statically so hibernate config can access it.
         clusterName = Utils.appCode + '_' + Utils.appEnvironment + '_' + Utils.appVersion
         instanceName = UUID.randomUUID().toString().take(8)
+        System.setProperty('io.xh.hoist.hzInstanceName', instanceName)
         hzInstance = createInstance()
+    }
+
+    void init() {
+        adjustMasterStatus()
+        cluster.addMembershipListener([
+            memberAdded  : { MembershipEvent e -> adjustMasterStatus(e.members) },
+            memberRemoved: { MembershipEvent e -> adjustMasterStatus(e.members) }
+        ] as MembershipListener)
+
+        super.init()
     }
 
     //--------------------------------------------------------------
@@ -101,16 +112,6 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     /** The Hazelcast member representing this instance. */
     Member getLocalMember() {
         return cluster.localMember
-    }
-
-    void init() {
-        adjustMasterStatus()
-        cluster.addMembershipListener([
-            memberAdded  : { MembershipEvent e -> adjustMasterStatus(e.members) },
-            memberRemoved: { MembershipEvent e -> adjustMasterStatus(e.members) }
-        ] as MembershipListener)
-
-        super.init()
     }
 
     /**
@@ -216,11 +217,9 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         def config = new Config()
 
         // Specify core identity of the instance.
-        // Place as system property for the hibernate.xml to pickup.
         config.instanceName = instanceName
         config.clusterName = clusterName
         config.memberAttributeConfig.setAttribute('instanceName', instanceName)
-        System.setProperty('io.xh.hoist.hzInstanceName', instanceName)
 
         // Start with default cache and network configurations
         getCacheConfigs().each {config.addCacheConfig(it)}
