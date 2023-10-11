@@ -214,6 +214,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     }
 
     private static HazelcastInstance createInstance() {
+        if (!Utils.appCode) return null
         def config = new Config()
 
         // Specify core identity of the instance.
