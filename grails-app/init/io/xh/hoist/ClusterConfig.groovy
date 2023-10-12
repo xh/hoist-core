@@ -60,7 +60,7 @@ class ClusterConfig {
      *
      * Override this method to configure additional caches.
      */
-    List<CacheSimpleConfig> createCacheConfigs() {
+    protected List<CacheSimpleConfig> createCacheConfigs() {
         [
             hibernateCache('default-update-timestamps-region') {
                 it.evictionConfig.size = 1000
@@ -91,7 +91,7 @@ class ClusterConfig {
      * Override this method to change the default configuration for all hibernate caches used by
      * this application.
      */
-    private CacheSimpleConfig hibernateCache(String name, Closure closure = null) {
+    protected CacheSimpleConfig hibernateCache(String name, Closure closure = null) {
         def ret = new CacheSimpleConfig(name)
         ret.statisticsEnabled = true
         ret.evictionConfig.maxSizePolicy = MaxSizePolicy.ENTRY_COUNT
