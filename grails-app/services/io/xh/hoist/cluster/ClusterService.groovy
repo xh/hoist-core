@@ -17,6 +17,7 @@ import com.hazelcast.map.IMap
 import com.hazelcast.replicatedmap.ReplicatedMap
 import com.hazelcast.topic.ITopic
 import io.xh.hoist.BaseService
+import io.xh.hoist.ClusterConfig
 import io.xh.hoist.util.Utils
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.ApplicationListener
@@ -27,7 +28,6 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Future
 
 class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent> {
-
 
     /**
      * Name of Hazelcast cluster.
@@ -50,13 +50,16 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      */
     static final HazelcastInstance hzInstance
 
-
     static {
-        // Create this statically so hibernate config can access it.
-        clusterName = Utils.appCode + '_' + Utils.appEnvironment + '_' + Utils.appVersion
-        instanceName = UUID.randomUUID().toString().take(8)
-        System.setProperty('io.xh.hoist.hzInstanceName', instanceName)
-        hzInstance = createInstance()
+
+        // Create hazelcast instance statically so hibernate can access it early in app lifecycle
+        if (Utils.appCode) {  // ... do not create during build
+            def config = createConfig()
+            clusterName = config.clusterName
+            instanceName = config.instanceName
+            hzInstance = Hazelcast.newHazelcastInstance(config)
+            System.setProperty('io.xh.hoist.hzInstanceName', instanceName)
+        }
     }
 
     void init() {
@@ -183,58 +186,14 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         return ret
     }
 
-    private static HazelcastInstance createInstance() {
-        if (!Utils.appCode) return null
-        def config = new Config()
-
-        // Specify core identity of the instance.
-        config.instanceName = instanceName
-        config.clusterName = clusterName
-        config.memberAttributeConfig.setAttribute('instanceName', instanceName)
-
-        // Start with default cache and network configurations
-        getCacheConfigs().each {config.addCacheConfig(it)}
-        config.networkConfig.join.multicastConfig.enabled = true
-
-        // ... and optionally apply application configurations
-        def clazz = Class.forName('ClusterConfig')
-        clazz?.getMethod('configure', Config)?.invoke(null, config)
-
-        return Hazelcast.newHazelcastInstance(config)
-    }
-
-    private static List<CacheSimpleConfig> getCacheConfigs() {
-        [
-            hibernateCache('io.xh.hoist.clienterror.ClientError'),
-            hibernateCache('io.xh.hoist.config.AppConfig'),
-            hibernateCache('io.xh.hoist.feedback.Feedback'),
-            hibernateCache('io.xh.hoist.jsonblob.JsonBlob'),
-            hibernateCache('io.xh.hoist.log.LogLevel'),
-            hibernateCache('io.xh.hoist.monitor.Monitor'),
-            hibernateCache('io.xh.hoist.pref.Preference'),
-            hibernateCache('io.xh.hoist.pref.UserPreference'),
-            hibernateCache('io.xh.hoist.track.TrackLog') {
-                it.evictionConfig.size = 10000
-            },
-
-            hibernateCache('default-update-timestamps-region') {
-                it.evictionConfig.size = 1000
-            },
-
-            hibernateCache('default-query-results-region') {
-                it.evictionConfig.size = 1000
-            }
-        ]
-    }
-
-    private static CacheSimpleConfig hibernateCache(String name, Closure closure = null) {
-        def ret = new CacheSimpleConfig(name)
-        ret.statisticsEnabled = true
-        ret.evictionConfig.maxSizePolicy = MaxSizePolicy.ENTRY_COUNT
-        ret.evictionConfig.evictionPolicy = EvictionPolicy.LRU
-        ret.evictionConfig.size = 5000
-        closure?.call(ret)
-        return ret
+    private static Config createConfig() {
+        def clazz
+        try {
+            clazz = Class.forName(Utils.packageName + '.ClusterConfig')
+        } catch (ClassNotFoundException e) {
+            clazz = Class.forName('io.xh.hoist.ClusterConfig')
+        }
+        return (clazz.getConstructor().newInstance() as ClusterConfig).createConfig()
     }
 
     void onApplicationEvent(ApplicationReadyEvent event) {
