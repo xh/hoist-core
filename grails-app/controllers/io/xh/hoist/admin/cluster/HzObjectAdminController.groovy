@@ -38,4 +38,16 @@ class HzObjectAdminController extends BaseClusterController {
             return [success: true]
         }
     }
+
+    @Access(['HOIST_ADMIN'])
+    def clearHibernateCaches(String instance) {
+        runOnInstance(new ClearHibernateCaches(), instance)
+    }
+
+    static class ClearHibernateCaches extends ClusterRequest {
+        def doCall() {
+            appContext.clusterAdminService.clearHibernateCaches()
+            return [success: true]
+        }
+    }
 }

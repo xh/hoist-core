@@ -69,16 +69,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         super.init()
     }
 
-    //--------------------------------------------------------------
-    // Lists of distributed data structured accessed on this server.
-    //---------------------------------------------------------------
-    Set mapIds = new ConcurrentHashMap().newKeySet()
-    Set setIds = new ConcurrentHashMap().newKeySet()
-    Set replicatedMapIds = new ConcurrentHashMap().newKeySet()
-    Set topicIds = new ConcurrentHashMap().newKeySet()
-
     private boolean _isMaster = false
-
 
 
     /**
@@ -121,44 +112,23 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         System.exit(0)
     }
 
-
     //------------------------
     // Distributed Resources
     //------------------------
     <K, V> ReplicatedMap<K, V> getReplicatedMap(String id) {
-        def ret = hzInstance.getReplicatedMap(id)
-        replicatedMapIds.add(id);
-        ret
+        hzInstance.getReplicatedMap(id)
     }
 
     <K, V> IMap<K, V> getMap(String id) {
-        def ret = hzInstance.getMap(id)
-        mapIds.add(id);
-        ret
+        hzInstance.getMap(id)
     }
 
     <V> ISet<V> getSet(String id) {
-        def ret = hzInstance.getSet(id)
-        setIds.add(id);
-        ret
+        hzInstance.getSet(id)
     }
-
 
     <M> ITopic<M> getTopic(String id) {
-        def ret = hzInstance.getTopic(id)
-        topicIds.add(id);
-        ret
-    }
-
-    Collection<DistributedObject> listObjects() {
-        def svc = clusterService,
-            ret = []
-
-        svc.replicatedMapIds.each { ret << svc.getReplicatedMap(it) }
-        svc.mapIds.each { ret << svc.getMap(it) }
-        svc.setIds.each { ret << svc.getSet(it) }
-        svc.topicIds.each { ret << svc.getTopic(it) }
-        ret
+        hzInstance.getTopic(id)
     }
 
     //------------------------
@@ -247,8 +217,12 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
                 it.evictionConfig.size = 10000
             },
 
-            hibernateCache('default-update-timestamps-region') { CacheSimpleConfig c ->
-                c.evictionConfig.size = 1000
+            hibernateCache('default-update-timestamps-region') {
+                it.evictionConfig.size = 1000
+            },
+
+            hibernateCache('default-query-results-region') {
+                it.evictionConfig.size = 1000
             }
         ]
     }

@@ -20,6 +20,8 @@ import static java.lang.System.currentTimeMillis
 @CompileStatic
 class Cache<K,V> {
 
+    private static final Set<String> _repMapIds = new HashSet()
+
     private final Map<K, Entry<V>> _map
     private Date _lastCull
 
@@ -42,12 +44,13 @@ class Cache<K,V> {
         if (replicate) {
             def svc = Utils.clusterService,
                 cacheName = options.name ? 'cache_' + options.name : null
-            if (!cacheName || svc.replicatedMapIds.contains(cacheName)) {
+            if (!cacheName || _repMapIds.contains(cacheName)) {
                 throw new RuntimeException("Cannot create a replicated cache without a unique name")
             }
-            _map = svc.<K, Entry<V>>getReplicatedMap(cacheName)
+            _repMapIds << cacheName
+            _map = svc.getReplicatedMap(cacheName)
         } else {
-            _map = new ConcurrentHashMap<K, Entry<V>>()
+            _map = new ConcurrentHashMap()
         }
     }
 
