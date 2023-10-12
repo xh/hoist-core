@@ -134,6 +134,10 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         hzInstance.getTopic(id)
     }
 
+    <T extends Serializable> SharedObject<T> getSharedObject(String id) {
+        new SharedObject<T>(id)
+    }
+
     //------------------------
     // Distributed execution
     //------------------------
