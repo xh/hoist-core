@@ -44,9 +44,9 @@ class ClusterConfig {
         def ret = new Config()
 
         // Specify core identity of the instance...
-        ret.instanceName = instanceName
-        ret.clusterName = clusterName
-        ret.memberAttributeConfig.setAttribute('instanceName', instanceName)
+        ret.instanceName = getInstanceName()
+        ret.clusterName = getClusterName()
+        ret.memberAttributeConfig.setAttribute('instanceName', ret.instanceName)
 
         // ...and add Hibernate caches and default networking
         createCacheConfigs().each { ret.addCacheConfig(it) }
