@@ -38,15 +38,15 @@ class LogLevel implements JSONFormat {
     }
 
     def afterUpdate() {
-        logLevelService.noteLogLevelChanged()
+        noteLogLevelChanged()
     }
 
     def afterDelete() {
-        logLevelService.noteLogLevelChanged()
+        noteLogLevelChanged()
     }
 
     def afterInsert() {
-        logLevelService.noteLogLevelChanged()
+        noteLogLevelChanged()
     }
 
     Map formatForJSON() {
