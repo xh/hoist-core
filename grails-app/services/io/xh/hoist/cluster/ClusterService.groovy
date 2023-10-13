@@ -195,7 +195,6 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         try {
             clazz = Class.forName(Utils.appPackage + '.ClusterConfig')
         } catch (ClassNotFoundException e) {
-            log.warn('Failed to find ClusterConfig for app, falling back to default.')
             clazz = Class.forName('io.xh.hoist.ClusterConfig')
         }
         return (clazz.getConstructor().newInstance() as ClusterConfig).createConfig()
