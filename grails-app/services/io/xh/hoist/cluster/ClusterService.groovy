@@ -5,10 +5,6 @@ import com.hazelcast.cluster.Member
 import com.hazelcast.cluster.MembershipEvent
 import com.hazelcast.cluster.MembershipListener
 import com.hazelcast.collection.ISet
-import com.hazelcast.config.CacheSimpleConfig
-import com.hazelcast.config.EvictionPolicy
-import com.hazelcast.config.MaxSizePolicy
-import com.hazelcast.core.DistributedObject
 import com.hazelcast.core.Hazelcast
 import com.hazelcast.config.Config
 import com.hazelcast.core.HazelcastInstance
@@ -24,7 +20,6 @@ import org.springframework.context.ApplicationListener
 
 import javax.management.InstanceNotFoundException
 import java.util.concurrent.Callable
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Future
 
 class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent> {

@@ -89,14 +89,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     }
 
     /**
-     * Return administrative stats for this service.
-     */
-    Map getAdminStats() {
-        return Collections.emptyMap()
-    }
-
-
-    /**
      * Create a new managed Timer bound to this service.
      * @param args - arguments appropriate for a Hoist Timer.
      */

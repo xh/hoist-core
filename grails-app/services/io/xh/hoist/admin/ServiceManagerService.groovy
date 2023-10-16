@@ -15,20 +15,17 @@ class ServiceManagerService extends BaseService {
 
     Collection<Map> listServices() {
         getServicesInternal().collect { name, svc ->
-            def stats
-            try {
-                stats = svc.adminStats
-            } catch (Exception e) {
-                logError('Error computing stats', e)
-            }
-
             return [
                 name: name,
                 initializedDate: svc.initializedDate,
                 lastCachesCleared: svc.lastCachesCleared,
-                stats: stats
+                hasStats: !!svc.metaClass.respondsTo(svc, 'getAdminStats')
             ]
         }
+    }
+
+    Map getStats(String name) {
+        grailsApplication.mainContext.getBean(name).adminStats
     }
 
     void clearCaches(List<String> names) {

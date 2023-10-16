@@ -23,6 +23,17 @@ class ServiceManagerAdminController extends BaseClusterController {
         }
     }
 
+    def getStats(String instance, String name) {
+        def task = new GetStats(name: name)
+        runOnInstance(task, instance)
+    }
+    static class GetStats extends ClusterRequest {
+        String name
+        def doCall() {
+            appContext.serviceManagerService.getStats(name)
+        }
+    }
+
     @Access(['HOIST_ADMIN'])
     def clearCaches(String instance) {
         def task = new ClearCaches(names: params.list('names'))
