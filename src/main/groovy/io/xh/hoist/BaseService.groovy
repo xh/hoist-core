@@ -81,10 +81,11 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
                     init()
                 }.get(timeout, TimeUnit.MILLISECONDS)
                 setupClearCachesConfigs()
-                initializedDate = new Date();
             }
         } catch (Throwable t) {
             exceptionRenderer.handleException(t, this)
+        } finally {
+            initializedDate = new Date();
         }
     }
 
