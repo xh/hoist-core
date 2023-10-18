@@ -20,7 +20,7 @@ class WebSocketAdminController extends BaseClusterController {
     }
     static class AllChannels extends ClusterRequest {
         def doCall() {
-            appContext.webSocketService.allChannels
+            appContext.webSocketService.allChannels*.formatForJSON()
         }
     }
 
