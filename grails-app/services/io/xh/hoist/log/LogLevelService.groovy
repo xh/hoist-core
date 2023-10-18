@@ -85,7 +85,7 @@ class LogLevelService extends BaseService {
         clusterService.submitToAllInstances (new CalculateAdjustments())
     }
     static class CalculateAdjustments extends ClusterRequest<Void> {
-        def doCall() {
+        Void doCall() {
             Utils.appContext.logLevelService.calculateAdjustments()
         }
     }
