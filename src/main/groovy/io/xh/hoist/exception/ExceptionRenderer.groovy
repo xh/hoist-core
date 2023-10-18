@@ -9,12 +9,10 @@ package io.xh.hoist.exception
 
 import grails.util.GrailsUtil
 import groovy.transform.CompileStatic
-import io.xh.hoist.cluster.ClusterResponse
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
 
-import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 import java.util.concurrent.ExecutionException
 
@@ -35,31 +33,32 @@ import static org.apache.hc.core5.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
 class ExceptionRenderer {
 
     /**
-     * Main entry point for request based code (e.g. controllers)
+     * Sanitizes, pre-processes, and logs unhandled exception.
+     *
+     * Used by BaseController, ClusterRequest, Timer, and AccessInterceptor to handle
+     * otherwise unhandled exception.
+     *
+     * @returns sanitized, processed exception, appropriate for serialization to client.
      */
-    void handleException(Throwable t, HttpServletRequest request, HttpServletResponse response, LogSupport logSupport) {
+    Throwable handleException(Throwable t, LogSupport logSupport, Object msg = null) {
         t = preprocess(t)
-        logException(t, logSupport)
+        if (msg) {
+            shouldlogDebug(t) ? logSupport.logDebug(msg, t) : logSupport.logError(msg, t)
+        } else {
+            shouldlogDebug(t) ? logSupport.logDebug(t) : logSupport.logError(t)
+        }
 
-        response.setStatus(getHttpStatus(t))
-        response.setContentType('application/json')
-        response.writer.write(toJSON(t))
-        response.flushBuffer()
-    }
-
-    ClusterResponse handleClusterRequestException(Throwable t, LogSupport logSupport) {
-        t = preprocess(t)
-        logException(t, logSupport)
-
-        return new ClusterResponse(status: getHttpStatus(t), result: toJSON(t))
+        return t
     }
 
     /**
-     * Main entry point for non-request based code (e.g. Timers)
+     * Render an Exception to the  Http Response.
      */
-    void handleException(Throwable t, LogSupport logSupport) {
-        t = preprocess(t)
-        logException(t, logSupport)
+    void renderException(Throwable t, HttpServletResponse response) {
+        response.setStatus(getHttpStatus(t))
+        response.setContentType('application/json')
+        response.writer.write(JSONSerializer.serialize(toJSON(t)))
+        response.flushBuffer()
     }
 
     /**
@@ -74,6 +73,17 @@ class ExceptionRenderer {
         summaryTextInternal(t, true)
     }
 
+    Object toJSON(Throwable t) {
+        t instanceof JSONFormat ?
+            t :
+            [
+                name     : t.class.simpleName,
+                message  : t.message,
+                cause    : t.cause?.message,
+                isRoutine: t instanceof RoutineException
+            ].findAll {it.value }
+    }
+
     //---------------------------------------------
     // Template methods.  For application override
     //---------------------------------------------
@@ -83,14 +93,6 @@ class ExceptionRenderer {
         }
         GrailsUtil.deepSanitize(t)
         return t
-    }
-
-    protected void logException(Throwable t, LogSupport logSupport) {
-        if (shouldlogDebug(t)) {
-            logSupport.logDebug(null, t)
-        } else {
-            logSupport.logError(null, t)
-        }
     }
 
     protected boolean shouldlogDebug(Throwable t) {
@@ -107,19 +109,6 @@ class ExceptionRenderer {
                 SC_BAD_REQUEST :
                 SC_INTERNAL_SERVER_ERROR
     }
-
-    protected String toJSON(Throwable t) {
-        def ret = t instanceof JSONFormat ?
-                t :
-                [
-                        name   : t.class.simpleName,
-                        message: t.message,
-                        cause  : t.cause?.message,
-                        isRoutine: t instanceof RoutineException
-                ].findAll {it.value}
-        return JSONSerializer.serialize(ret);
-    }
-
 
     //---------------------------
     // Implementation

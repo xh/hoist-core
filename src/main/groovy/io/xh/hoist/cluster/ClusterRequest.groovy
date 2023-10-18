@@ -1,25 +1,21 @@
 package io.xh.hoist.cluster
 
 import io.xh.hoist.log.LogSupport
-import io.xh.hoist.util.Utils
-import org.apache.hc.core5.http.HttpStatus
-
 import java.util.concurrent.Callable
+import static io.xh.hoist.util.Utils.appContext
 
-import static io.xh.hoist.json.JSONSerializer.serialize
+abstract class ClusterRequest<T> implements Callable<ClusterResponse<T>>, Serializable, LogSupport {
 
-abstract class ClusterRequest implements Callable<ClusterResponse>, Serializable, LogSupport {
-
-    ClusterResponse call() {
+    ClusterResponse<T> call() {
         try {
-            def result = doCall()
-            return new ClusterResponse(status: HttpStatus.SC_OK, result: serialize(result))
+            return new ClusterResponse(value: doCall())
         } catch (Throwable t) {
-            return Utils.appContext.exceptionRenderer.handleClusterRequestException(t, this)
+            t = appContext.exceptionRenderer.handleException(t, this, [_action: this.class.simpleName])
+            return new ClusterResponse(exception: t)
         }
     }
 
-    abstract Object doCall()
+    abstract T doCall()
 }
 
 

@@ -69,7 +69,8 @@ class AccessInterceptor {
                     You do not have the application role(s) required.
                     Currently logged in as: $username.
             """)
-        exceptionRenderer.handleException(ex, request, response, identityService)
+        def t = exceptionRenderer.handleException(ex, identityService, [_action: actionName])
+        exceptionRenderer.renderException(t, response)
         return false
     }
 

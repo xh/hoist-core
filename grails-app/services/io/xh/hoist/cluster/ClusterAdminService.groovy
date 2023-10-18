@@ -35,8 +35,8 @@ class ClusterAdminService extends BaseService {
         ]
     }
 
-    static class AdminStatsTask implements Callable, Serializable {
-        def call() {
+    static class AdminStatsTask extends ClusterRequest {
+        def doCall() {
             return appContext.clusterAdminService.adminStats
         }
     }
@@ -51,9 +51,6 @@ class ClusterAdminService extends BaseService {
                 ]
                 if (result.value) {
                     ret << result.value
-                }
-                if (result.failure) {
-                    logError("Failed loading data about cluster", result.failure)
                 }
                 return ret
             }

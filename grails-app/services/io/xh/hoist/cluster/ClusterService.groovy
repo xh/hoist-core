@@ -19,8 +19,6 @@ import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.ApplicationListener
 
 import javax.management.InstanceNotFoundException
-import java.util.concurrent.Callable
-import java.util.concurrent.Future
 
 class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent> {
 
@@ -140,24 +138,15 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         return hzInstance.getExecutorService('default')
     }
 
-    <T> T submitToInstance(Callable<T> c, String instanceName) {
+    <T> ClusterResponse<T> submitToInstance(ClusterRequest<T> c, String instanceName) {
         executorService.submitToMember(c, getMember(instanceName)).get()
     }
 
-    <T> Map<String, Map> submitToAllInstances(Callable<T> c) {
+    <T> Map<String, ClusterResponse<T>> submitToAllInstances(ClusterRequest<T> c) {
         executorService
             .submitToAllMembers(c)
-            .collectEntries { Member member, Future<T> f ->
-                def value, failure
-                try {
-                    value = f.get()
-                } catch (Exception e) {
-                    failure = e
-                }
-                [member.getAttribute('instanceName'), [value: value, failure: failure]]
-            }
+            .collectEntries { member, f -> [member.getAttribute('instanceName'), f.get()] }
     }
-
 
     //------------------------------------
     // Implementation

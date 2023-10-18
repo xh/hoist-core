@@ -12,8 +12,6 @@ import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.configuration.LogbackConfig
 import io.xh.hoist.security.Access
 
-import java.util.concurrent.Callable
-
 import static io.xh.hoist.util.Utils.getAppContext
 
 @Access(['HOIST_ADMIN_READER'])
@@ -47,7 +45,13 @@ class LogViewerAdminController extends BaseClusterController {
         String instance
     ) {
         runOnInstance(
-            new GetFile(filename: filename, startLine: startLine, maxLines: maxLines, pattern: pattern, caseSensitive: caseSensitive),
+            new GetFile(
+                filename: filename,
+                startLine: startLine,
+                maxLines: maxLines,
+                pattern: pattern,
+                caseSensitive: caseSensitive
+            ),
             instance
         )
     }
@@ -74,21 +78,26 @@ class LogViewerAdminController extends BaseClusterController {
     }
 
     def download(String filename, String instance) {
-        def task = new Download(filename: filename)
-        File file = instance == clusterService.instanceName ?
-            task.call() :
-            clusterService.submitToInstance(task, instance)
-        render(
-            file: file,
-            fileName: filename,
-            contentType: 'application/octet-stream'
-        )
+        def task = new Download(filename: filename),
+            ret = instance == clusterService.instanceName ?
+                task.call() :
+                clusterService.submitToInstance(task, instance)
+
+        if (ret.exception) {
+            exceptionRenderer.renderException(ret.exception, response)
+        } else {
+            render(
+                file: ret.value,
+                fileName: filename,
+                contentType: 'application/octet-stream'
+            )
+        }
     }
 
-    static class Download implements Callable<File>, Serializable {
+    static class Download extends ClusterRequest<File> {
         String filename
 
-        File call() {
+        File doCall() {
             if (!availableFiles[filename]) throwUnavailable()
             return appContext.logReaderService.get(filename)
         }

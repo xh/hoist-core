@@ -82,7 +82,7 @@ abstract class BaseController implements LogSupport, IdentitySupport {
         WebPromises.task {
             c.call()
         }.onError { Throwable t ->
-            exceptionRenderer.handleException(t, request, response, this)
+            handleThrowableInternal(t)
         }
     }
 
@@ -95,7 +95,12 @@ abstract class BaseController implements LogSupport, IdentitySupport {
     // Implementation
     //-------------------
     void handleException(Exception ex) {
-        exceptionRenderer.handleException(ex, request, response, this)
+        handleThrowableInternal(ex)
+    }
+
+    private void handleThrowableInternal(Throwable t) {
+        t = exceptionRenderer.handleException(t, this, [_action: actionName])
+        exceptionRenderer.renderException(t, response)
     }
 
     // Provide cached logger to LogSupport for possible performance benefit

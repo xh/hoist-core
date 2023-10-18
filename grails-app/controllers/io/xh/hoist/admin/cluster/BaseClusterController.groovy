@@ -8,7 +8,6 @@
 package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.cluster.ClusterResponse
 import io.xh.hoist.cluster.ClusterRequest
 
 abstract class BaseClusterController extends BaseController {
@@ -16,13 +15,17 @@ abstract class BaseClusterController extends BaseController {
     def clusterService
 
     protected void runOnInstance(ClusterRequest task, String instance) {
-        ClusterResponse ret = instance == clusterService.instanceName ?
-            task.call() :
-            clusterService.submitToInstance(task, instance)
 
-        response.setContentType('application/json; charset=UTF-8')
-        response.setStatus(ret.status)
-        render(ret.result)
+        // Avoid serialization/async overhead  for local call
+        def isLocal = instance == clusterService.instanceName,
+            ret = isLocal ? task.call() : clusterService.submitToInstance(task, instance)
+
+        // Cluster request logs any exceptions internally/remotely. Only want to *render* here
+        if (ret.exception) {
+            exceptionRenderer.renderException(ret.exception, response)
+        } else {
+            renderJSON(ret.value)
+        }
     }
 
     protected void runOnMaster(ClusterRequest task) {
@@ -30,8 +33,11 @@ abstract class BaseClusterController extends BaseController {
     }
 
     protected void runOnAllInstances(ClusterRequest task) {
-        def ret = clusterService
-            .submitToAllInstances(task)
+        // Cluster request logs any exceptions internally/remotely. Only want to *render* here
+        def resp = clusterService.submitToAllInstances(task),
+            ret = resp.collectEntries { k, v ->
+                [k, v.exception ? exceptionRenderer.toJSON(v.exception) : v]
+             }
         renderJSON(ret)
     }
 }

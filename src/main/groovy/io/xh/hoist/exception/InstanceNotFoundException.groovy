@@ -5,9 +5,9 @@
  * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.cluster
+package io.xh.hoist.exception
 
-class InstanceNotFoundException extends RuntimeException {
+class InstanceNotFoundException extends RoutineRuntimeException {
     InstanceNotFoundException(String s) {
         super(s)
     }

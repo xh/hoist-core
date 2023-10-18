@@ -35,6 +35,9 @@ will then be displayed in the admin client.
   ** 'xhFeedbackReceived', 'xhClientErrorReceived', 'xhConfigChanged', and 'xhMonitorStatusReport'
   Any applications that are listening to these events with `BaseService.subscribe` should instead use
   the new cluster aware method `BaseService.subscribeToTopic`.
+* The `ExceptionRenderer` API has been changed, and applications that were calling this class
+  directly may need to be modified.  This class is typically used by Hoist internally and this change
+  is not expected to be an issue for applications.
 
 ### 📚 Libraries
 * hazelcast `5.3.2`
