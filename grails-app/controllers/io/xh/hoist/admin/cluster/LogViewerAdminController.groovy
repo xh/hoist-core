@@ -79,19 +79,19 @@ class LogViewerAdminController extends BaseClusterController {
 
     def download(String filename, String instance) {
         def task = new Download(filename: filename),
-            ret = instance == clusterService.instanceName ?
-                task.call() :
-                clusterService.submitToInstance(task, instance)
+            ret = clusterService.submitToInstance(task, instance)
 
         if (ret.exception) {
-            exceptionRenderer.renderException(ret.exception, response)
-        } else {
-            render(
-                file: ret.value,
-                fileName: filename,
-                contentType: 'application/octet-stream'
-            )
+            // Just render exception, was already logged on target instance
+            xhExceptionHandler.handleException(exception: ret.exception, renderTo: response)
+            return
         }
+
+        render(
+            file: ret.value,
+            fileName: filename,
+            contentType: 'application/octet-stream'
+        )
     }
 
     static class Download extends ClusterRequest<File> {

@@ -8,7 +8,7 @@
 package io.xh.hoist.security
 
 import groovy.transform.CompileStatic
-import io.xh.hoist.exception.ExceptionRenderer
+import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.exception.NotAuthorizedException
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
@@ -18,7 +18,7 @@ import java.lang.reflect.Method
 class AccessInterceptor {
 
     IdentityService identityService
-    ExceptionRenderer exceptionRenderer
+    ExceptionHandler xhExceptionHandler
 
     AccessInterceptor() {
         matchAll()
@@ -69,8 +69,12 @@ class AccessInterceptor {
                     You do not have the application role(s) required.
                     Currently logged in as: $username.
             """)
-        def t = exceptionRenderer.handleException(ex, identityService, [_action: actionName])
-        exceptionRenderer.renderException(t, response)
+        xhExceptionHandler.handleException(
+            exception: ex,
+            logTo: identityService,
+            logMessage: [_action: actionName],
+            renderTo: response
+        )
         return false
     }
 

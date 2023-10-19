@@ -15,17 +15,13 @@ abstract class BaseClusterController extends BaseController {
     def clusterService
 
     protected void runOnInstance(ClusterRequest task, String instance) {
-
-        // Avoid serialization/async overhead  for local call
-        def isLocal = instance == clusterService.instanceName,
-            ret = isLocal ? task.call() : clusterService.submitToInstance(task, instance)
-
-        // Cluster request logs any exceptions internally/remotely. Only want to *render* here
+        def ret = clusterService.submitToInstance(task, instance)
         if (ret.exception) {
-            exceptionRenderer.renderException(ret.exception, response)
-        } else {
-            renderJSON(ret.value)
+            // Just render exception, was already logged on target instance
+            xhExceptionHandler.handleException(exception: ret.exception, renderTo: response)
+            return
         }
+        renderJSON(ret.value)
     }
 
     protected void runOnMaster(ClusterRequest task) {
@@ -33,11 +29,6 @@ abstract class BaseClusterController extends BaseController {
     }
 
     protected void runOnAllInstances(ClusterRequest task) {
-        // Cluster request logs any exceptions internally/remotely. Only want to *render* here
-        def resp = clusterService.submitToAllInstances(task),
-            ret = resp.collectEntries { k, v ->
-                [k, v.exception ? exceptionRenderer.toJSON(v.exception) : v]
-             }
-        renderJSON(ret)
+        renderJSON(clusterService.submitToAllInstances(task))
     }
 }

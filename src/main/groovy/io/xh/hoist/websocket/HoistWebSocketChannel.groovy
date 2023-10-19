@@ -8,7 +8,6 @@
 package io.xh.hoist.websocket
 
 import groovy.transform.CompileStatic
-import groovy.util.logging.Slf4j
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser

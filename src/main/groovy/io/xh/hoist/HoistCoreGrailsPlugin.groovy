@@ -8,9 +8,8 @@
 package io.xh.hoist
 
 import grails.plugins.Plugin
-import io.xh.hoist.exception.ExceptionRenderer
+import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.security.HoistSecurityFilter
-import io.xh.hoist.util.Utils
 import io.xh.hoist.websocket.HoistWebSocketConfigurer
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.core.Ordered
@@ -44,7 +43,7 @@ class HoistCoreGrailsPlugin extends Plugin {
                 hoistWebSocketConfigurer(HoistWebSocketConfigurer)
             }
 
-            exceptionRenderer(ExceptionRenderer)
+            xhExceptionHandler(ExceptionHandler)
         }
     }
 

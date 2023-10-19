@@ -13,7 +13,7 @@ import grails.async.Promises
 import grails.util.GrailsClassUtils
 import groovy.transform.CompileDynamic
 import io.xh.hoist.cluster.ClusterService
-import io.xh.hoist.exception.ExceptionRenderer
+import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.IdentitySupport
 import io.xh.hoist.util.Timer
@@ -38,7 +38,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     IdentityService identityService
     ClusterService clusterService
 
-    ExceptionRenderer exceptionRenderer
+    ExceptionHandler xhExceptionHandler
 
     Date initializedDate = null
     Date lastCachesCleared = null
@@ -83,7 +83,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
                 setupClearCachesConfigs()
             }
         } catch (Throwable t) {
-            exceptionRenderer.handleException(t, this)
+            xhExceptionHandler.handleException(exception: t, logTo: this)
         } finally {
             initializedDate = new Date();
         }

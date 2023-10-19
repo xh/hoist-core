@@ -17,6 +17,7 @@ import io.xh.hoist.ClusterConfig
 import io.xh.hoist.util.Utils
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.ApplicationListener
+import org.springframework.util.SerializationUtils
 
 import javax.management.InstanceNotFoundException
 
@@ -42,6 +43,15 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      * Use for accessing the native Hazelcast APIs.
      */
     static final HazelcastInstance hzInstance
+
+
+    /**
+     * Test all results of ClusterRequests for serialization.
+     *
+     * Set to true in dev environment with a single node when you would like to verify that all
+     * ClusterRequests can be effectively serialized across the cluster at runtime.
+     */
+    boolean testSerialization = false
 
     static {
 
@@ -138,14 +148,20 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         return hzInstance.getExecutorService('default')
     }
 
-    <T> ClusterResponse<T> submitToInstance(ClusterRequest<T> c, String instanceName) {
-        executorService.submitToMember(c, getMember(instanceName)).get()
+    <T> ClusterResponse<T> submitToInstance(ClusterRequest<T> c, String instance) {
+        def ret = executorService.submitToMember(c, getMember(instance)).get()
+
+        if (testSerialization) SerializationUtils.serialize(ret)
+        return ret
     }
 
     <T> Map<String, ClusterResponse<T>> submitToAllInstances(ClusterRequest<T> c) {
-        executorService
+        Map<String, ClusterResponse<T>> ret = executorService
             .submitToAllMembers(c)
             .collectEntries { member, f -> [member.getAttribute('instanceName'), f.get()] }
+
+        if (testSerialization) SerializationUtils.serialize(ret)
+        return ret
     }
 
     //------------------------------------

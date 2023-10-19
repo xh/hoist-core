@@ -16,7 +16,6 @@ import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.environment.EnvironmentService
-import io.xh.hoist.exception.ExceptionRenderer
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.user.BaseRoleService
 import io.xh.hoist.user.BaseUserService
@@ -112,10 +111,6 @@ class Utils {
 
     static BaseRoleService getRoleService() {
         return (BaseRoleService) appContext.roleService
-    }
-
-    static ExceptionRenderer getExceptionRenderer() {
-        return (ExceptionRenderer) appContext.exceptionRenderer
     }
 
     static WebSocketService getWebSocketService() {

@@ -9,7 +9,6 @@ package io.xh.hoist.exception
 
 import grails.util.GrailsUtil
 import groovy.transform.CompileStatic
-import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
 
@@ -30,35 +29,35 @@ import static org.apache.hc.core5.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
  * These two contexts capture the overwhelming majority of code execution in a Hoist server.
  */
 @CompileStatic
-class ExceptionRenderer {
+class ExceptionHandler {
 
     /**
-     * Sanitizes, pre-processes, and logs unhandled exception.
+     * Sanitizes, pre-processes, and logs exception.
      *
      * Used by BaseController, ClusterRequest, Timer, and AccessInterceptor to handle
      * otherwise unhandled exception.
-     *
-     * @returns sanitized, processed exception, appropriate for serialization to client.
      */
-    Throwable handleException(Throwable t, LogSupport logSupport, Object msg = null) {
+    void handleException(Map options) {
+        Throwable t = options.exception as Throwable
+        HttpServletResponse renderTo = options.renderTo as HttpServletResponse
+        LogSupport logTo = options.logTo as LogSupport
+        Object logMessage = options.logMessage
+
         t = preprocess(t)
-        if (msg) {
-            shouldlogDebug(t) ? logSupport.logDebug(msg, t) : logSupport.logError(msg, t)
-        } else {
-            shouldlogDebug(t) ? logSupport.logDebug(t) : logSupport.logError(t)
+        if (logTo) {
+            if (logMessage) {
+                shouldLogDebug(t) ? logTo.logDebug(logMessage, t) : logTo.logError(logMessage, t)
+            } else {
+                shouldLogDebug(t) ? logTo.logDebug(t) : logTo.logError(t)
+            }
         }
 
-        return t
-    }
-
-    /**
-     * Render an Exception to the  Http Response.
-     */
-    void renderException(Throwable t, HttpServletResponse response) {
-        response.setStatus(getHttpStatus(t))
-        response.setContentType('application/json')
-        response.writer.write(JSONSerializer.serialize(toJSON(t)))
-        response.flushBuffer()
+        if (renderTo) {
+            renderTo.setStatus(getHttpStatus(t))
+            renderTo.setContentType('application/json')
+            renderTo.writer.write(JSONSerializer.serialize(t))
+            renderTo.flushBuffer()
+        }
     }
 
     /**
@@ -73,17 +72,6 @@ class ExceptionRenderer {
         summaryTextInternal(t, true)
     }
 
-    Object toJSON(Throwable t) {
-        t instanceof JSONFormat ?
-            t :
-            [
-                name     : t.class.simpleName,
-                message  : t.message,
-                cause    : t.cause?.message,
-                isRoutine: t instanceof RoutineException
-            ].findAll {it.value }
-    }
-
     //---------------------------------------------
     // Template methods.  For application override
     //---------------------------------------------
@@ -95,12 +83,11 @@ class ExceptionRenderer {
         return t
     }
 
-    protected boolean shouldlogDebug(Throwable t) {
+    protected boolean shouldLogDebug(Throwable t) {
         return t instanceof RoutineException
     }
 
     protected int getHttpStatus(Throwable t) {
-
         if (t instanceof HttpException && !(t instanceof ExternalHttpException)) {
             return ((HttpException) t).statusCode
         }

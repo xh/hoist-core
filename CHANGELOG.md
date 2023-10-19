@@ -26,8 +26,10 @@
   actions to the "master" server.  See toolbox, or Hoist for help.
   ** `hoist-react >= 61.0` is required.
 * New support for reporting of service statistics for trobuleshooting/monitoring.  Implement
-`BaseService.getAdminStats()` to provide diagnostic metadata about the state of your service that
-will then be displayed in the admin client.
+ `BaseService.getAdminStats()` to provide diagnostic metadata about the state of your service that
+  will then be displayed in the admin client.
+* All `Throwable`s are now serialized to JSON by default using Hoist's standard customization of
+  Jackson.
 
 ### Breaking Changes
 * The following server-side Hoist events are now implemented as cluster-wide Hazelcast messages
@@ -35,9 +37,10 @@ will then be displayed in the admin client.
   ** 'xhFeedbackReceived', 'xhClientErrorReceived', 'xhConfigChanged', and 'xhMonitorStatusReport'
   Any applications that are listening to these events with `BaseService.subscribe` should instead use
   the new cluster aware method `BaseService.subscribeToTopic`.
-* The `ExceptionRenderer` API has been changed, and applications that were calling this class
-  directly may need to be modified.  This class is typically used by Hoist internally and this change
-  is not expected to be an issue for applications.
+* The `exceptionRenderer` singleton has been simplified and renamed as `xhExceptionHandler`. This
+  change was needed to better support cross-cluster exception handling. This object is used by
+  Hoist internally for catching uncaught exceptions and this change is not expected to impact
+  most applications.
 
 ### 📚 Libraries
 * hazelcast `5.3.2`

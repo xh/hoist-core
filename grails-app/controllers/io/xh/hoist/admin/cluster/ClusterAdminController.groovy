@@ -42,7 +42,7 @@ class ClusterAdminController extends BaseClusterController {
         sleep(5 * SECONDS)
     }
     static class ShutdownInstance extends ClusterRequest {
-        Map doCall() {
+        def doCall() {
             // Run async to allow this call to successfully return.
             task {
                 sleep(1 * SECONDS)
