@@ -6,7 +6,6 @@
  */
 package io.xh.hoist.admin.cluster
 
-
 import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.security.Access
 
@@ -20,10 +19,8 @@ class EnvAdminController extends BaseClusterController {
     static class Index extends ClusterRequest {
         def doCall() {
             [
-                environment: System.getenv(),
-                properties: System.properties.collectEntries {
-                   [it.key.toString(), it.value.toString()]
-                }
+                environment: new HashMap(System.getenv()),
+                properties: System.properties
             ]
         }
     }

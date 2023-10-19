@@ -17,11 +17,11 @@ import io.xh.hoist.ClusterConfig
 import io.xh.hoist.util.Utils
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.ApplicationListener
-import org.springframework.util.SerializationUtils
 
 import javax.management.InstanceNotFoundException
 
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
+import static org.apache.commons.lang3.SerializationUtils.roundtrip
 
 class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent> {
 
@@ -153,8 +153,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     <T> ClusterResponse<T> submitToInstance(ClusterRequest<T> c, String instance) {
         def ret = executorService.submitToMember(c, getMember(instance)).get()
 
-        if (testSerialization) SerializationUtils.serialize(ret)
-        return ret
+        return testSerialization ? roundtrip(ret) : ret
     }
 
     <T> Map<String, ClusterResponse<T>> submitToAllInstances(ClusterRequest<T> c) {
@@ -162,8 +161,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
             .submitToAllMembers(c)
             .collectEntries { member, f -> [member.getAttribute('instanceName'), f.get()] }
 
-        if (testSerialization) SerializationUtils.serialize(ret)
-        return ret
+        return testSerialization ? roundtrip(ret) : ret
     }
 
     //------------------------------------

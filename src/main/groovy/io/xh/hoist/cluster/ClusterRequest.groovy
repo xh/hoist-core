@@ -10,7 +10,7 @@ abstract class ClusterRequest<T> implements Callable<ClusterResponse<T>>, Serial
         try {
             return new ClusterResponse(value: doCall())
         } catch (Throwable t) {
-            t = appContext.xhExceptionHandler.handleException(
+            appContext.xhExceptionHandler.handleException(
                 exception: t,
                 logTo: this,
                 logMessage:  [_action: this.class.simpleName]
