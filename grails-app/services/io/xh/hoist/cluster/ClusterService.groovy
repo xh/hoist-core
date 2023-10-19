@@ -21,6 +21,8 @@ import org.springframework.util.SerializationUtils
 
 import javax.management.InstanceNotFoundException
 
+import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
+
 class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent> {
 
     /**
@@ -51,7 +53,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      * Set to true in dev environment with a single node when you would like to verify that all
      * ClusterRequests can be effectively serialized across the cluster at runtime.
      */
-    boolean testSerialization = false
+    private boolean testSerialization = getInstanceConfig('testClusterSerialization')
 
     static {
 

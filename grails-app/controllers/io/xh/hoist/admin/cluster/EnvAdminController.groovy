@@ -21,7 +21,9 @@ class EnvAdminController extends BaseClusterController {
         def doCall() {
             [
                 environment: System.getenv(),
-                properties: System.getProperties()
+                properties: System.properties.collectEntries {
+                   [it.key.toString(), it.value.toString()]
+                }
             ]
         }
     }
