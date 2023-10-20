@@ -60,7 +60,6 @@ class EnvironmentService extends BaseService {
                 appVersion:             Utils.appVersion,
                 appBuild:               Utils.appBuild,
                 appEnvironment:         Utils.appEnvironment.toString(),
-                startupTime:            Utils.startupTime,
                 grailsVersion:          GrailsUtil.grailsVersion,
                 javaVersion:            System.getProperty('java.version'),
                 serverTimeZone:         serverTz.toZoneId().id,

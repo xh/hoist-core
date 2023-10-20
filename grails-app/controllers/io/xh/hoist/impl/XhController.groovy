@@ -10,6 +10,7 @@ package io.xh.hoist.impl
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseController
 import io.xh.hoist.alertbanner.AlertBannerService
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.clienterror.ClientErrorService
 import io.xh.hoist.exception.NotFoundException
@@ -43,6 +44,7 @@ class XhController extends BaseController {
     TrackService trackService
     EnvironmentService environmentService
     BaseUserService userService
+    ClusterService clusterService
 
     //------------------------
     // Identity / Auth
@@ -219,6 +221,7 @@ class XhController extends BaseController {
         def options = configService.getMap('xhAppVersionCheck', [:])
         renderJSON(
             *: options,
+            instanceName: clusterService.instanceName,
             appVersion: Utils.appVersion,
             appBuild: Utils.appBuild
         )
