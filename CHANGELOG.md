@@ -1,5 +1,13 @@
 # Changelog
 
+## 18.0-SNAPSHOT - unreleased
+
+### 🐞 Bugfixes
+
+*  Workaround for GORM issue with unconstrained findAll() and list() breaking eager fetching.
+   See https://github.com/grails/gorm-hibernate5/issues/750
+
+
 ## 17.3.0 - 2023-09-18
 
 ### ⚙️ Technical
