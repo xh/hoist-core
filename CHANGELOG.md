@@ -2,6 +2,10 @@
 
 ## 18.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* Improvement to `BaseProxyService` to better handle exceptions during streaming.
+
 ### 🐞 Bugfixes
 
 *  Workaround for GORM issue with unconstrained findAll() and list() breaking eager fetching.
