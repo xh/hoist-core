@@ -1,16 +1,15 @@
 # Changelog
 
-## 18.0-SNAPSHOT - unreleased
+## 17.4.0 - 2023-11-08
 
 ### ⚙️ Technical
 
 * Improvement to `BaseProxyService` to better handle exceptions during streaming.
 
-### 🐞 Bugfixes
+### 🐞 Bug Fixes
 
-*  Workaround for GORM issue with unconstrained findAll() and list() breaking eager fetching.
-   See https://github.com/grails/gorm-hibernate5/issues/750
-
+* Workaround for GORM issue with unconstrained findAll() and list() breaking eager fetching.
+  See https://github.com/grails/gorm-hibernate5/issues/750.
 
 ## 17.3.0 - 2023-09-18
 
@@ -56,25 +55,25 @@ It should be fully compatible with Java 11 and Java 17.
 
 ## 16.4.4 - 2023-08-03
 
-### 🐞 Bugfixes
+### 🐞 Bug Fixes
 
 * Replace bullet points with hyphens in default `xhAppVersionCheck` config.
 
 ## 16.4.3 - 2023-08-02
 
-### 🐞 Bugfixes
+### 🐞 Bug Fixes
 
 * Remove one remaining smart quote to make default notes in default config safer for all DBs.
 
 ## 16.4.2 - 2023-07-31
 
-### 🐞 Bugfixes
+### 🐞 Bug Fixes
 
 * Make default notes in default config safer for all DBs by removing smart quotes.
 
 ## 16.4.1 - 2023-07-13
 
-### 🐞 Bugfixes
+### 🐞 Bug Fixes
 
 * Make impersonation service more robust for applications with dynamic/lazy user generation.
 * Additional validation of parameters to '/userAdmin/users' endpoint.
@@ -132,7 +131,7 @@ It should be fully compatible with Java 11 and Java 17.
   e.g. `Beta` and `Production` environments share a database, but should display distinct banners.
 * Added support for the `caseSensitive` flag in log filtering endpoint.
 
-### 🐞 Bugfixes
+### 🐞 Bug Fixes
 
 * Fixed a regression preventing the culling of snapshots in the memory monitoring service.
 
@@ -145,7 +144,7 @@ It should be fully compatible with Java 11 and Java 17.
 
 ## 16.0.1 - 2023-03-29
 
-### 🐞 Bugfixes
+### 🐞 Bug Fixes
 
 * Fixed a regression with 404 errors being incorrectly handled and not serialized as JSON.
 
@@ -186,7 +185,7 @@ It should be fully compatible with Java 11 and Java 17.
 * Grails has been updated to `5.3.2`. While this change did not itself introduce any breaking
   changes, applications should update their Grails version within `gradle.properties` to match.
 
-### 🐞 Bugfixes
+### 🐞 Bug Fixes
 
 * Client Error timestamps will now correctly reflect the exact time the error was received on the
   server rather than the time the error was bulk processed by the server.
@@ -227,7 +226,7 @@ Version 15 includes changes to support more flexible logging of structured data:
 
 ## 14.4.1 - 2022-10-24
 
-### 🐞 Bugfixes
+### 🐞 Bug Fixes
 
 * Allow database connection info to viewed by users with role: `HOIST_ADMIN_READER` and higher.
 
@@ -249,7 +248,7 @@ Version 15 includes changes to support more flexible logging of structured data:
   app-level status check code when the result is ERROR, FAIL, or WARN. Previously any app-specific
   messages were overridden entirely.
 
-### 🐞 Bugfixes
+### 🐞 Bug Fixes
 
 * Correct type specified for `notFoundValue` arg in `ConfigService.getLong()` and `getDouble()`
   method signatures.
@@ -260,7 +259,7 @@ Version 15 includes changes to support more flexible logging of structured data:
 
 ## 14.2.1 - 2022-09-06
 
-### 🐞 Bugfixes
+### 🐞 Bug Fixes
 
 * Fix to minor regression in client error emails.
 
@@ -1337,7 +1336,7 @@ ALTER TABLE xh_client_error
 
 ## v.3.0.4
 
-### 🐞 Bugfixes
+### 🐞 Bug Fixes
 
 * Removed plugin grails-x-frame-options-plugin. It will be put into the hoist-sencha project. It is
   only needed in hoist-sencha apps. Hoist-react apps will get this header set by nginx.
@@ -1466,7 +1465,7 @@ ALTER TABLE xh_config
 
 * None
 
-### 🐞 Bugfixes
+### 🐞 Bug Fixes
 
 * None
 
@@ -1489,7 +1488,7 @@ ALTER TABLE xh_config
 
 * None
 
-### 🐞 Bugfixes
+### 🐞 Bug Fixes
 
 * None
 
@@ -1514,7 +1513,7 @@ exposing them to the application as a map.
 * See the class-level doc comment for additional details. Use of InstanceUtils is _not_ required to
   take this release.
 
-### 🐞 Bugfixes
+### 🐞 Bug Fixes
 
 * Fix NPE breaking FeedbackService emailing. 8f07caf677dc0ed3a5ae6c8dd99dc59e2ffd8508
 * Make LogLevel adjustments synchronous, so they reflect immediately in Admin console UI.
