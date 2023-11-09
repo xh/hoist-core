@@ -5,6 +5,8 @@
 ### ⚙️ Technical
 
 * Improvement to `BaseProxyService` to better handle exceptions during streaming.
+* Optimization to `WebSocketService` to remove an extra layer of async task wrapping when pushing to
+  a single channel.
 
 ### 🐞 Bug Fixes
 
