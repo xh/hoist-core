@@ -47,7 +47,15 @@ class HoistCoreGrailsPlugin extends Plugin {
         }
     }
 
-    void doWithDynamicMethods() {}
+    void doWithDynamicMethods() {
+        // Workaround for issue with unconstrained findAll() and list().
+        // See https://github.com/grails/gorm-hibernate5/issues/750
+        grailsApplication.domainClasses.each {
+            def meta = it.metaClass.static
+            meta.list = meta.findAll = { delegate.findAll({}) }
+            meta.list = meta.findAll = { Map params -> delegate.findAll(params, {}) }
+        }
+    }
 
     void doWithApplicationContext() {}
 

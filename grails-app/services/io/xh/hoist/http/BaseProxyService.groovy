@@ -72,18 +72,20 @@ abstract class BaseProxyService extends BaseService {
         }
         installRequestHeaders(request, method)
 
-        CloseableHttpResponse sourceResponse
-        try {
-            CloseableHttpClient source = sourceClient
-            sourceResponse = source.execute(method)
+        try (CloseableHttpResponse sourceResponse = sourceClient.execute(method)) {
             response.setStatus(sourceResponse.code)
             installResponseHeaders(response, sourceResponse)
             sourceResponse.entity.writeTo(response.outputStream)
             response.flushBuffer()
         } catch (ClientAbortException ignored) {
             logDebug("Client has aborted request to [$endpoint] - ignoring")
-        } finally {
-            if (sourceResponse) sourceResponse.close()
+        } catch (Throwable t) {
+            // Log ...and rethrow exception for normal handling, if not too late
+            logError("Error occurred during proxy streaming of [$endpoint]", t)
+            if (!response.isCommitted()) {
+                response.reset()
+                throw t
+            }
         }
     }
 
