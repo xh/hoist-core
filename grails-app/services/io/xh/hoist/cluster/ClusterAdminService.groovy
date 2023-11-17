@@ -110,7 +110,6 @@ class ClusterAdminService extends BaseService {
                     lastAccessTime: stats.lastAccessTime ?: null,
                     stats         : [
                         ownedEntryCount: stats.ownedEntryCount,
-                        heapCost       : stats.heapCost,
                         hits           : stats.hits,
                         gets           : stats.getOperationCount,
                         puts           : stats.putOperationCount,
