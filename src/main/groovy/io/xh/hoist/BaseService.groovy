@@ -7,12 +7,17 @@
 
 package io.xh.hoist
 
+import com.hazelcast.collection.ISet
+import com.hazelcast.core.DistributedObject
+import com.hazelcast.map.IMap
+import com.hazelcast.replicatedmap.ReplicatedMap
 import com.hazelcast.topic.ITopic
 import com.hazelcast.topic.Message
 import grails.async.Promises
 import grails.util.GrailsClassUtils
 import groovy.transform.CompileDynamic
 import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.cluster.ReplicatedValue
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.IdentitySupport
@@ -89,6 +94,30 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         }
     }
 
+    //------------------------
+    // Distributed Resources
+    // Use static reference to ClusterService to allow access pre-init.
+    //------------------------
+    <K, V> IMap<K, V> hzMap(String id) {
+        ClusterService.hzInstance.getMap(hzName(id))
+    }
+
+    <V> ISet<V> hzSet(String id) {
+        ClusterService.hzInstance.getSet(hzName(id))
+    }
+
+    <K, V> ReplicatedMap<K, V> hzReplicatedMap(String id) {
+        ClusterService.hzInstance.getReplicatedMap(hzName(id))
+    }
+
+    <T> ReplicatedValue<T> hzReplicatedValue(String id) {
+        new ReplicatedValue<T>(id, repValuesMap)
+    }
+
+    <M> ITopic<M> getTopic(String id) {
+        ClusterService.hzInstance.getTopic(id)
+    }
+
     /**
      * Create a new managed Timer bound to this service.
      * @param args - arguments appropriate for a Hoist Timer.
@@ -129,12 +158,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         }
     }
 
-    /**
-     * Get a topic for publishing messages in the cluster
-     */
-    <M> ITopic<M> getTopic(String topicName) {
-        clusterService.getTopic(topicName)
-    }
 
     /**
      *
@@ -206,6 +229,15 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         _destroyed = true
     }
 
+    /**
+     * Return meta data about this service for troubleshooting and monitoring.
+     * This data will be exposed via the Hoist admin client.
+     *
+     * Note that information about service timers and distributed objects *need* not be
+     * included here and will be automatically included by the framework.
+     */
+    Map getAdminStats(){[:]}
+
     //--------------------
     // Implemented methods
     //--------------------
@@ -242,4 +274,16 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     private final Logger _log = LoggerFactory.getLogger(this.class)
     Logger getInstanceLog() { _log }
 
+
+    //------------------------
+    // Internal implementation
+    //------------------------
+    private String hzName(String key) {
+        this.class.simpleName + '_' + key
+    }
+
+    private ReplicatedMap _repValuesMap
+    private ReplicatedMap getRepValuesMap() {
+        _repValuesMap = _repValuesMap ?: hzReplicatedMap('repValues')
+    }
 }

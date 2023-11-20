@@ -5,6 +5,7 @@ import com.hazelcast.cluster.Member
 import com.hazelcast.cluster.MembershipEvent
 import com.hazelcast.cluster.MembershipListener
 import com.hazelcast.collection.ISet
+import com.hazelcast.core.DistributedObject
 import com.hazelcast.core.Hazelcast
 import com.hazelcast.config.Config
 import com.hazelcast.core.HazelcastInstance
@@ -45,7 +46,6 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      * Use for accessing the native Hazelcast APIs.
      */
     static final HazelcastInstance hzInstance
-
 
     /**
      * Test all results of ClusterRequests for serialization.
@@ -120,27 +120,11 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         System.exit(0)
     }
 
-    //------------------------
-    // Distributed Resources
-    //------------------------
-    <K, V> ReplicatedMap<K, V> getReplicatedMap(String id) {
-        hzInstance.getReplicatedMap(id)
-    }
-
-    <K, V> IMap<K, V> getMap(String id) {
-        hzInstance.getMap(id)
-    }
-
-    <V> ISet<V> getSet(String id) {
-        hzInstance.getSet(id)
-    }
-
-    <M> ITopic<M> getTopic(String id) {
-        hzInstance.getTopic(id)
-    }
-
-    <T extends Serializable> SharedObject<T> getSharedObject(String id) {
-        new SharedObject<T>(id)
+    /**
+     * The distributed objects available in the cluster
+     */
+    Collection<DistributedObject> getDistributedObjects() {
+        hzInstance.distributedObjects
     }
 
     //------------------------

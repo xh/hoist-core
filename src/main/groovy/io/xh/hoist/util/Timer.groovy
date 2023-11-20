@@ -19,7 +19,7 @@ import java.util.concurrent.TimeoutException
 
 import static io.xh.hoist.util.DateTimeUtils.*
 import static io.xh.hoist.util.Utils.configService
-import static io.xh.hoist.util.Utils.getExceptionRenderer
+import static io.xh.hoist.util.Utils.getExceptionHandler
 
 /**
  * Core Hoist Timer object.
@@ -31,9 +31,11 @@ class Timer {
 
      private static Long CONFIG_INTERVAL = 15 * SECONDS
 
+    /** Optional name for this timer (for logging purposes) **/
+    final String name
+
     /** Object using this timer (for logging purposes) **/
     final LogSupport owner
-
 
     /** Closure to run */
     final Closure runFn
@@ -115,11 +117,11 @@ class Timer {
      * created by services using the createTimer() method supplied by io.xh.hoist.BaseService.
      */
     Timer(Map config) {
+        name = config.name
         owner = config.owner
         runFn = config.runFn
         masterOnly = config.masterOnly ?: false
         runImmediatelyAndBlock = config.runImmediatelyAndBlock ?: false
-
         interval = parseDynamicValue(config.interval)
         timeout = parseDynamicValue(config.containsKey('timeout') ? config.timeout : 3 * MINUTES)
         delay = config.delay ?: false
@@ -177,6 +179,7 @@ class Timer {
      */
     Map getAdminStats() {
         [
+            name: name,
             intervalMs : intervalMs,
             isRunning  : isRunning,
             lastStartTime: _lastRunStarted,
@@ -221,8 +224,8 @@ class Timer {
         ]
         if (throwable) {
             try {
-                _lastRunStats.error = exceptionRenderer.summaryTextForThrowable(throwable)
-                exceptionRenderer.handleException(throwable, owner)
+                _lastRunStats.error = exceptionHandler.summaryTextForThrowable(throwable)
+                exceptionHandler.handleException(throwable, owner)
             } catch (Throwable ignore) {}
         }
     }

@@ -8,6 +8,7 @@
 package io.xh.hoist.util
 
 import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.json.JSONParser
 import grails.util.Environment
 import grails.util.Holders
@@ -119,6 +120,10 @@ class Utils {
 
     static ApplicationContext getAppContext() {
         return Holders.applicationContext
+    }
+
+    static ExceptionHandler getExceptionHandler() {
+        return (ExceptionHandler) appContext.xhExceptionHandler
     }
 
     /**

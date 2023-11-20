@@ -41,7 +41,7 @@ class AlertBannerService extends BaseService {
     private Cache<String, Map> cache
 
     void init() {
-        cache = new Cache(name: 'xhCachedBanner', svc: this, expireTime: 2 * MINUTES, replicate: true)
+        cache = new Cache(name: 'cachedBanner', svc: this, expireTime: 2 * MINUTES, replicate: true)
         super.init()
     }
 

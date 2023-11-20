@@ -7,6 +7,7 @@
 
 package io.xh.hoist.clienterror
 
+import com.hazelcast.map.IMap
 import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
@@ -33,13 +34,13 @@ class ClientErrorService extends BaseService {
     def clientErrorEmailService,
         configService
 
-    private Map<String, Map> errors
+    private IMap<String, Map> errors
     private int getMaxErrors()      {configService.getMap('xhClientErrorConfig').maxErrors as int}
     private int getAlertInterval()  {configService.getMap('xhClientErrorConfig').intervalMins * MINUTES}
 
     void init() {
         super.init()
-        errors = clusterService.getMap('xhClientErrors')
+        errors = hzMap('clientErrors')
         createTimer(
             interval: { alertInterval },
             delay: 15 * SECONDS,
@@ -105,9 +106,7 @@ class ClientErrorService extends BaseService {
                     ce.dateCreated = it.dateCreated
                     ce.save(flush: true)
                 }
-                clusterService
-                    .getTopic('xhClientErrorReceived')
-                    .publishAllAsync(errors)
+                getTopic('xhClientErrorReceived').publishAllAsync(errors)
             }
         }
     }

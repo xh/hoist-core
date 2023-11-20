@@ -10,6 +10,7 @@ package io.xh.hoist.monitor
 import grails.async.Promises
 import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService
+import io.xh.hoist.cluster.ReplicatedValue
 import io.xh.hoist.util.Timer
 
 import static grails.async.Promises.task
@@ -35,43 +36,42 @@ class MonitoringService extends BaseService {
         monitorResultService
 
     // Shared state for all servers to read
-    private Map<String, MonitorResult> _results
+    private ReplicatedValue<Map<String, MonitorResult>> _results = hzReplicatedValue('results')
 
     // Notification state for master to read only
-    private Map<String, Map> _problems
-    private Map<String, Serializable> _notifyState
+    private ReplicatedValue<Map<String, Map>> problems = hzReplicatedValue('problems')
+    private ReplicatedValue<Boolean> alertMode = hzReplicatedValue('alertMode')
+    private ReplicatedValue<Long> lastNotified = hzReplicatedValue('lastNotified')
 
-    private Timer _monitorTimer
-    private Timer _notifyTimer
+    private Timer monitorTimer
+    private Timer notifyTimer
 
     void init() {
-        _results = clusterService.getReplicatedMap('xhMonitorResults')
-        _problems = clusterService.getMap('xhMonitorProblems')
-        _notifyState = clusterService.getMap('xhMonitorNotifyState')
-
-        _monitorTimer = createTimer(
-                interval: {monitorInterval},
-                delay: startupDelay,
+        monitorTimer = createTimer(
+                masterOnly: true,
+                name: 'monitorTimer',
                 runFn: this.&onMonitorTimer,
-                masterOnly: true
+                interval: {monitorInterval},
+                delay: startupDelay
         )
 
-        _notifyTimer = createTimer (
-                interval: {notifyInterval},
+        notifyTimer = createTimer (
+                masterOnly: true,
+                name: 'notifyTimer',
                 runFn: this.&onNotifyTimer,
-                masterOnly: true
+                interval: {notifyInterval}
         )
     }
 
     void forceRun() {
-        _monitorTimer.forceRun()
+        monitorTimer.forceRun()
     }
 
     @ReadOnly
     Map<String, MonitorResult> getResults() {
+        def results = _results.get()
         Monitor.list().collectEntries {
-            def result = _results[it.code] ?: monitorResultService.unknownMonitorResult(it)
-            [it.code, result]
+            [it.code, results[it.code] ?: monitorResultService.unknownMonitorResult(it)]
         }
     }
 
@@ -88,13 +88,12 @@ class MonitoringService extends BaseService {
                 task { monitorResultService.runMonitor(m, timeout) }
             }
 
-            Map newResults = Promises
+            Map<String, MonitorResult> newResults = Promises
                     .waitAll(tasks)
                     .collectEntries{ [it.code, it] }
 
-            markLastStatus(newResults, _results)
-            _results.clear()
-            _results.putAll(newResults)
+            markLastStatus(newResults, _results.get())
+            _results.set(newResults)
             if (monitorConfig.writeToMonitorLog != false) logResults()
             evaluateProblems()
         }
@@ -118,14 +117,13 @@ class MonitoringService extends BaseService {
         Map<String, MonitorResult> flaggedResults = results.findAll { it.value.status >= WARN }
 
         // 0) Remove all problems that are no longer problems
-        def removes = _problems.keySet().findAll { !flaggedResults[it] }
-        removes.each { _problems.remove(it) }
+        def probs = problems.get().findAll {flaggedResults[it.key]}
 
         // 1) (Re)Mark all existing problems
         flaggedResults.each { code, result ->
-            def problem = _problems[code]
+            def problem = probs[code]
             if (!problem) {
-                problem = _problems[code] = [result: result, cyclesAsFail: 0, cyclesAsWarn: 0]
+                problem = probs[code] = [result: result, cyclesAsFail: 0, cyclesAsWarn: 0]
             }
 
             if (result.status == FAIL) {
@@ -135,12 +133,13 @@ class MonitoringService extends BaseService {
                 problem.cyclesAsWarn++
             }
         }
+        problems.set(probs)
 
         // 2) Handle alert mode transition -- notify immediately
         // Note that we may get an extra transition if new master introduced in alerting
         def currAlertMode = calcAlertMode()
-        if (currAlertMode != _notifyState['alertMode']) {
-            _notifyState['alertMode'] = currAlertMode
+        if (currAlertMode != alertMode.get()) {
+            alertMode.set(currAlertMode)
             notifyAlertModeChange()
         }
     }
@@ -148,17 +147,17 @@ class MonitoringService extends BaseService {
     private void notifyAlertModeChange() {
         if (!isDevelopmentMode()) {
             getTopic('xhMonitorStatusReport').publishAsync(generateStatusReport())
-            _notifyState['lastNotified'] = currentTimeMillis()
+            lastNotified.set(currentTimeMillis())
         }
     }
 
     private boolean calcAlertMode() {
-        if (_notifyState['alertMode'] && _problems) return true
+        if (alertMode.get() && problems.get()) return true
 
         def failThreshold = monitorConfig.failNotifyThreshold,
             warnThreshold = monitorConfig.warnNotifyThreshold
 
-        return _problems.values().any {
+        return problems.get().values().any {
             it.cyclesAsFail >= failThreshold || it.cyclesAsWarn >= warnThreshold
         }
     }
@@ -184,17 +183,15 @@ class MonitoringService extends BaseService {
     }
 
     private void onNotifyTimer() {
-        def lastNotified = _notifyState['lastNotified'],
-            alertMode = _notifyState['alertMode']
-        if (!alertMode || !lastNotified) return
+        if (!alertMode.get() || !lastNotified.get()) return
         def now = currentTimeMillis(),
-            timeThresholdMet = now > lastNotified + monitorConfig.monitorRepeatNotifyMins * MINUTES
+            timeThresholdMet = now > lastNotified.get() + monitorConfig.monitorRepeatNotifyMins * MINUTES
 
         if (timeThresholdMet) {
             def report = generateStatusReport()
             logDebug("Emitting monitor status report: ${report.title}")
             getTopic('xhMonitorStatusReport').publishAsync(report)
-            _notifyState['lastNotified'] = currentTimeMillis()
+            lastNotified.set(currentTimeMillis())
         }
     }
 
@@ -226,17 +223,15 @@ class MonitoringService extends BaseService {
     void clearCaches() {
         super.clearCaches()
         if (isMaster) {
-            _results.clear()
-            _problems.clear()
+            _results.set(null)
+            problems.set(null)
             if (monitorInterval > 0) {
-                _monitorTimer.forceRun()
+                monitorTimer.forceRun()
             }
         }
     }
 
     Map getAdminStats() {[
         config: configService.getForAdminStats('xhMonitoringEnabled', 'xhMonitorConfig'),
-        monitorTimer: _monitorTimer?.adminStats,
-        notifyTimer: _notifyTimer?.adminStats
     ]}
 }

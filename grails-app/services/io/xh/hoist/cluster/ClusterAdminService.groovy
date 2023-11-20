@@ -61,11 +61,11 @@ class ClusterAdminService extends BaseService {
             .hzInstance
             .distributedObjects
             .findAll { !(it instanceof ExecutorServiceProxy) }
-            .collect { getObjectData(it) }
+            .collect { getAdminStatsForObject(it) }
     }
 
     void clearObjects(List<String> names) {
-        def all = clusterService.hzInstance.distributedObjects
+        def all = clusterService.distributedObjects
         names.each { name ->
             def obj = all.find { it.getName() == name }
             if (obj instanceof ReplicatedMap ||
@@ -87,109 +87,84 @@ class ClusterAdminService extends BaseService {
             .each { appContext.getBean(it)?.cache.evictAllRegions() }
     }
 
-    //--------------------
-    // Implementation
-    //--------------------
-    private Map getObjectData(DistributedObject obj) {
-        def ret = [
-            name      : obj.getName(),
-            objectType: 'Unknown',
-            stats     : [:],
-            lastUpdateTime: null,
-            lastAccessTime: null,
-            size      : null
-        ]
-
+    Map getAdminStatsForObject(DistributedObject obj) {
         switch (obj) {
             case ReplicatedMap:
                 def stats = obj.getReplicatedMapStats()
-                ret << [
-                    objectType    : 'Replicated Map',
-                    size          : obj.size(),
-                    lastUpdateTime: stats.lastUpdateTime ?: null,
-                    lastAccessTime: stats.lastAccessTime ?: null,
-                    stats         : [
-                        ownedEntryCount: stats.ownedEntryCount,
-                        hits           : stats.hits,
-                        gets           : stats.getOperationCount,
-                        puts           : stats.putOperationCount,
-                        creationTime   : stats.creationTime
-                    ]
+                return [
+                    name           : obj.getName(),
+                    type           : 'Replicated Map',
+                    size           : obj.size(),
+                    lastUpdateTime : stats.lastUpdateTime ?: null,
+                    lastAccessTime : stats.lastAccessTime ?: null,
+
+                    hits           : stats.hits,
+                    gets           : stats.getOperationCount,
+                    puts           : stats.putOperationCount
                 ]
-                break
             case IMap:
                 def stats = obj.getLocalMapStats()
-                ret << [
-                    objectType    : 'Distributed Map',
-                    size          : obj.size(),
-                    lastUpdateTime: stats.lastUpdateTime ?: null,
-                    lastAccessTime: stats.lastAccessTime ?: null,
-                    stats         : [
-                        ownedEntryCount: stats.ownedEntryCount,
-                        heapCost       : stats.heapCost,
-                        hits           : stats.hits,
-                        gets           : stats.getOperationCount,
-                        sets           : stats.setOperationCount,
-                        puts           : stats.putOperationCount,
-                        nearCache      : getNearCacheStats(stats.nearCacheStats),
-                        creationTime   : stats.creationTime,
-                    ]
+                return [
+                    name           : obj.getName(),
+                    type           : 'Distributed Map',
+                    size           : obj.size(),
+                    lastUpdateTime : stats.lastUpdateTime ?: null,
+                    lastAccessTime : stats.lastAccessTime ?: null,
+
+                    ownedEntryCount: stats.ownedEntryCount,
+                    hits           : stats.hits,
+                    gets           : stats.getOperationCount,
+                    sets           : stats.setOperationCount,
+                    puts           : stats.putOperationCount,
+                    nearCache      : getNearCacheStats(stats.nearCacheStats),
                 ]
-                break
             case ISet:
                 def stats = obj.getLocalSetStats()
-                ret << [
-                    objectType    : 'Set',
+                return [
+                    name          : obj.getName(),
+                    type          : 'Set',
                     size          : obj.size(),
                     lastUpdateTime: stats.lastUpdateTime ?: null,
                     lastAccessTime: stats.lastAccessTime ?: null,
-                    stats         : [
-                        creationTime: stats.creationTime
-                    ]
                 ]
-                break
             case ITopic:
                 def stats = obj.getLocalTopicStats()
-                ret << [
-                    objectType: 'Topic',
-                    stats     : [
-                        publishOperationCount: stats.publishOperationCount,
-                        receiveOperationCount: stats.receiveOperationCount,
-                        creationTime         : stats.creationTime
-                    ]
+                return [
+                    name                 : obj.getName(),
+                    type                 : 'Topic',
+                    publishOperationCount: stats.publishOperationCount,
+                    receiveOperationCount: stats.receiveOperationCount
                 ]
-                break
             case CacheProxy:
                 def evictionConfig = obj.cacheConfig.evictionConfig,
                     stats = obj.localCacheStatistics
-                ret << [
-                    objectType    : 'Cache',
-                    size          : obj.size(),
-                    lastUpdateTime: stats.lastUpdateTime ?: null,
-                    lastAccessTime: stats.lastAccessTime ?: null,
-                    stats: [
-                        config            : [
-                            size          : evictionConfig.size,
-                            maxSizePolicy : evictionConfig.maxSizePolicy,
-                            evictionPolicy: evictionConfig.evictionPolicy
-                        ],
-                        ownedEntryCount   : stats.ownedEntryCount,
-                        cacheHits         : stats.cacheHits,
-                        cacheHitPercentage: stats.cacheHitPercentage?.round(0),
-                        creationTime      : stats.creationTime
+                return [
+                    name              : obj.getName(),
+                    type              : 'Cache',
+                    size              : obj.size(),
+                    lastUpdateTime    : stats.lastUpdateTime ?: null,
+                    lastAccessTime    : stats.lastAccessTime ?: null,
+
+                    ownedEntryCount   : stats.ownedEntryCount,
+                    cacheHits         : stats.cacheHits,
+                    cacheHitPercentage: stats.cacheHitPercentage?.round(0),
+                    config            : [
+                        size          : evictionConfig.size,
+                        maxSizePolicy : evictionConfig.maxSizePolicy,
+                        evictionPolicy: evictionConfig.evictionPolicy
                     ]
                 ]
-                break
             default:
-                ret << [
-                    stats: [
-                        className: obj.class.toString()
-                    ]
+                return [
+                    name     : obj.getName(),
+                    type: obj.class.toString()
                 ]
         }
-        return ret
     }
 
+    //--------------------
+    // Implementation
+    //--------------------
     private Map getNearCacheStats(NearCacheStats stats) {
         if (!stats) return null
         [

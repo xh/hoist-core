@@ -11,21 +11,37 @@ import io.xh.hoist.BaseService
 
 class ServiceManagerService extends BaseService {
 
-    def grailsApplication
+    def grailsApplication,
+        clusterAdminService
 
     Collection<Map> listServices() {
+
+
         getServicesInternal().collect { name, svc ->
             return [
                 name: name,
                 initializedDate: svc.initializedDate,
-                lastCachesCleared: svc.lastCachesCleared,
-                hasStats: !!svc.metaClass.respondsTo(svc, 'getAdminStats')
+                lastCachesCleared: svc.lastCachesCleared
             ]
         }
     }
 
     Map getStats(String name) {
-        grailsApplication.mainContext.getBean(name).adminStats
+        def svc = grailsApplication.mainContext.getBean(name),
+            prefix = svc.class.simpleName + '_',
+            timers = svc.timers*.adminStats,
+            distObjs = clusterService.distributedObjects
+                .findAll { it.getName().startsWith(prefix) }
+                .collect {clusterAdminService.getAdminStatsForObject(it)}
+
+        Map ret = svc.adminStats
+        if (timers || distObjs) {
+            ret = ret.clone()
+            if (distObjs) ret.distributedObjects = distObjs
+            if (timers) ret.timers = timers
+        }
+
+        return ret
     }
 
     void clearCaches(List<String> names) {

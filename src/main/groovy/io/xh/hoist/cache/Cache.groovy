@@ -19,9 +19,6 @@ import static java.lang.System.currentTimeMillis
 
 @CompileStatic
 class Cache<K,V> {
-
-    private static final Set<String> _repMapIds = new HashSet()
-
     private final Map<K, Entry<V>> _map
     private Date _lastCull
 
@@ -42,13 +39,10 @@ class Cache<K,V> {
 
         if (!svc) throw new RuntimeException("Missing required argument 'svc' for Cache")
         if (replicate) {
-            def svc = Utils.clusterService,
-                cacheName = options.name ? 'cache_' + options.name : null
-            if (!cacheName || _repMapIds.contains(cacheName)) {
+            if (name == 'anon') {
                 throw new RuntimeException("Cannot create a replicated cache without a unique name")
             }
-            _repMapIds << cacheName
-            _map = svc.getReplicatedMap(cacheName)
+            _map = svc.hzReplicatedMap(name)
         } else {
             _map = new ConcurrentHashMap()
         }
