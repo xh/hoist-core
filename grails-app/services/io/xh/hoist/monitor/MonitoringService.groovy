@@ -71,7 +71,7 @@ class MonitoringService extends BaseService {
     Map<String, MonitorResult> getResults() {
         def results = _results.get()
         Monitor.list().collectEntries {
-            [it.code, results[it.code] ?: monitorResultService.unknownMonitorResult(it)]
+            [it.code, results?[it.code] ?: monitorResultService.unknownMonitorResult(it)]
         }
     }
 
@@ -102,7 +102,7 @@ class MonitoringService extends BaseService {
     private void markLastStatus(Map<String, MonitorResult> newResults, Map<String, MonitorResult> oldResults) {
         def now = new Date()
         newResults.values().each {result ->
-            def oldResult = oldResults[result.code],
+            def oldResult = oldResults?[result.code],
                 lastStatus = oldResult ? oldResult.status : UNKNOWN,
                 statusChanged = lastStatus != result.status
 
@@ -117,7 +117,7 @@ class MonitoringService extends BaseService {
         Map<String, MonitorResult> flaggedResults = results.findAll { it.value.status >= WARN }
 
         // 0) Remove all problems that are no longer problems
-        def probs = problems.get().findAll {flaggedResults[it.key]}
+        def probs = problems.get()?.findAll {flaggedResults[it.key]} ?: [:]
 
         // 1) (Re)Mark all existing problems
         flaggedResults.each { code, result ->

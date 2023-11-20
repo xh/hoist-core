@@ -99,14 +99,13 @@ class ClientErrorService extends BaseService {
 
         if (getInstanceConfig('disableTrackLog') != 'true') {
             withDebug("Processing $count Client Errors") {
-                clientErrorEmailService.sendMail(errs, count == maxErrors)
-
                 def errors = errs.collect {
                     def ce = new ClientError(it)
                     ce.dateCreated = it.dateCreated
                     ce.save(flush: true)
                 }
                 getTopic('xhClientErrorReceived').publishAllAsync(errors)
+                clientErrorEmailService.sendMail(errs, count == maxErrors)
             }
         }
     }
