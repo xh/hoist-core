@@ -173,7 +173,6 @@ class LogArchiveService extends BaseService {
     }
 
     Map getAdminStats() {[
-        config: config,
-        timer: timers[0]?.adminStats
+        config: config
     ]}
 }

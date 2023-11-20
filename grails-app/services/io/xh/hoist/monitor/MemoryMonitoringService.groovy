@@ -184,6 +184,5 @@ class MemoryMonitoringService extends BaseService {
     Map getAdminStats() {[
         config: config,
         latestSnapshot: latestSnapshot,
-        timer: timers[0]?.adminStats
     ]}
 }

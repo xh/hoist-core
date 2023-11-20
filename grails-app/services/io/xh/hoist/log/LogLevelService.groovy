@@ -114,8 +114,4 @@ class LogLevelService extends BaseService {
         calculateAdjustments()
         super.clearCaches()
     }
-
-    Map getAdminStats() {[
-        timer: timers[0]?.adminStats
-    ]}
 }

@@ -11,8 +11,6 @@ import com.hazelcast.topic.ITopic
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 
-import java.util.concurrent.Callable
-
 import static io.xh.hoist.util.Utils.appContext
 
 /**
@@ -106,7 +104,7 @@ class ClusterAdminService extends BaseService {
                 def stats = obj.getLocalMapStats()
                 return [
                     name           : obj.getName(),
-                    type           : 'Distributed Map',
+                    type           : 'IMap',
                     size           : obj.size(),
                     lastUpdateTime : stats.lastUpdateTime ?: null,
                     lastAccessTime : stats.lastAccessTime ?: null,
