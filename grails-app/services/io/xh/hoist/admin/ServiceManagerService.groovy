@@ -28,7 +28,7 @@ class ServiceManagerService extends BaseService {
 
     Map getStats(String name) {
         def svc = grailsApplication.mainContext.getBean(name),
-            prefix = svc.class.simpleName + '_',
+            prefix = svc.class.name + '_',
             timers = svc.timers*.adminStats,
             distObjs = clusterService.distributedObjects
                 .findAll { it.getName().startsWith(prefix) }
