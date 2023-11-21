@@ -21,7 +21,7 @@ class Cache<K,V> {
     private final Map<K, Entry<V>> _map
     private Date _lastCull
 
-    public final String name              //   name for status logging disambiguation [default anon]
+    public final String name              //   name for status logging disambiguation
     public final BaseService svc          //   service using this cache (for logging purposes)
     public final Closure expireFn
     public final Long expireTime
@@ -29,7 +29,7 @@ class Cache<K,V> {
     public final boolean replicate
 
     Cache(Map options) {
-        name = (String) options.name ?: 'anon'
+        name = (String) options.name
         svc = (BaseService) options.svc
         expireTime = (Long) options.expireTime
         expireFn = (Closure) options.expireFn
@@ -38,7 +38,7 @@ class Cache<K,V> {
 
         if (!svc) throw new RuntimeException("Missing required argument 'svc' for Cache")
         if (replicate) {
-            if (name == 'anon') {
+            if (!name) {
                 throw new RuntimeException("Cannot create a replicated cache without a unique name")
             }
             _map = svc.getReplicatedMap(name)
@@ -117,7 +117,7 @@ class Cache<K,V> {
             }
 
             if (cullKeys.size()) {
-                svc.logDebug("Cache '$name' culling ${cullKeys.size()} out of ${_map.size()} entries")
+                svc.logDebug("Cache '${name?: "anon"}' culling ${cullKeys.size()} out of ${_map.size()} entries")
             }
 
             cullKeys.each {_map.remove(it)}
