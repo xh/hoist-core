@@ -1,112 +1,83 @@
 package io.xh.hoist.admin
 
-import grails.gorm.transactions.ReadOnly
 import grails.gorm.transactions.Transactional
-import io.xh.hoist.BaseController
-import io.xh.hoist.json.JSONParser
 import io.xh.hoist.role.Role
 import io.xh.hoist.security.Access
 import io.xh.toolbox.user.RoleService
 
 @Access(['HOIST_ADMIN_READER'])
-class RolesAdminController extends BaseController {
-    RoleService roleService
 
-//    TODO: this needs to update when the underlying does
+class RolesAdminController extends AdminRestController {
+    RoleService roleService
     static restTarget = Role
     static trackChanges = true
 
-    @ReadOnly
-    def index() {
-        renderJSON(
-            Role.findAll(sort: 'name', order: 'asc').collect{[
-                name: it.name,
-                groupName: it.groupName,
-                lastUpdated: it.lastUpdated,
-                lastUpdatedBy: it.lastUpdatedBy,
-                notes: it.notes,
-            ]}
-        )
-    }
-
-    @ReadOnly
-    def roleDetails() {
-        def roleName = params.get('roleName')
-        renderJSON(
-            // TODO: need to handle the case where this doesn't get...
-            Role.get(roleName)
-        )
-    }
-
-    @ReadOnly
-    def allGroups() {
-        renderJSON(
-            Role.list().collect{it.groupName}.unique()
-        )
-    }
-
-    @ReadOnly
-    def cascadeImpact() {
-        def changeType = params.get('changeType')
-        if (changeType == "delete") {
-            String roleName = params.get('roleName')
-            return renderJSON(Role.get(roleName).getImpactDelete())
-        } else if (changeType == "edit") {
-            String roleName = params.get('roleName')
-            List<String> users = JSONParser.parseArray(params.get('users'))
-            List<String> inheritedRoles = JSONParser.parseArray(params.get('inheritedRoles'))
-
-            return renderJSON((Role.get(roleName).getImpactEdit(roleName, users, inheritedRoles)))
-        }
-        // don't care about groupName or notes
-        renderJSON("no cascade impact observed")
+    protected void preprocessSubmit(Map submit) {
+        submit.id = submit.name
+        submit.lastUpdatedBy = authUsername
+        submit.remove('undeletable')
     }
 
     @Transactional
-    def deleteRole() {
-        def mostRecentRoleUpdate = Role.createCriteria().get {
-            projections {
-                max "lastUpdated"
-            }
-        }.getTime()
-        if ((params.get('timestamp') as Long) < mostRecentRoleUpdate) {
-            return renderJSON("could not delete role, stale impact warning")
+    @Access(['HOIST_ADMIN'])
+    delete() {
+        Role roleToDelete = Role.get(params.id)
+        if (roleToDelete.undeletable) {
+            throw new RuntimeException("${params.id} cannot be deleted.")
         }
-        String roleName = params.get('roleName')
-        Role role = Role.get(roleName)
-
-        role.children.clear()
-        role.findParents().collect {
-            it.removeFromChildren(role)
+        Role.list().each { role ->
+            role.inherits.remove(roleToDelete)
+            role.save(flush: true)
         }
-        role.save(flush:true)
-        role.delete(flush:true)
+        super.delete()
     }
 
-    @Transactional
-    def updateRole() {
-        def mostRecentRoleUpdate = Role.createCriteria().get {
-            projections {
-                max "lastUpdated"
-            }
-        }.getTime()
-        if ((params.get('timestamp') as Long) < mostRecentRoleUpdate) {
-            return renderJSON("could not update role, stale impact warning")
-        }
+    /**
+     * Get the impact of updating a role without actually committing the update
+     */
+    @Transactional(readOnly = true)
+    updateImpact() {
+        def data = parseRequestJSON().data
+        preprocessSubmit(data)
 
-        String roleName = params.get('roleName')
-        Role role = Role.get(roleName)
+        Role role = Role.get(data.id)
+        List<String> inheritedRoles = role.listAllInheritedRoles().collect { it.role }
+        Set<String> impactedUsers = role.listAllUsers().collect { it.name } as Set<String>,
+            impactedDirectoryGroups = role.listAllDirectoryGroups().collect { it.name } as Set<String>
 
-        String groupName = params.get('groupName')
-        String notes = params.get('notes')
-        List<String> users = JSONParser.parseArray(params.get('users'))
-        List<String> inheritedRoles = JSONParser.parseArray(params.get('inheritedRoles'))
+        bindData(role, data)
+        List<String> newInheritedRoles = role.listAllInheritedRoles().collect { it.role }
+        impactedUsers += role.listAllUsers().collect { it.name }
+        impactedDirectoryGroups += role.listAllDirectoryGroups().collect { it.name }
 
-        role.groupName = groupName
-        role.notes = notes
-        role.users = users
-        role.children = inheritedRoles
+        renderJSON(
+            addedRoles: newInheritedRoles - inheritedRoles,
+            removedRoles: inheritedRoles - newInheritedRoles,
+            impactedUserCount: impactedUsers.size(),
+            impactedDirectoryGroupCount: impactedDirectoryGroups.size()
+        )
+    }
 
-        role.save(flush:true)
+    /**
+     * Preview an updated role without actually committing the update
+     */
+    @Transactional(readOnly = true)
+    auditionUpdate() {
+        def data = parseRequestJSON().data
+        preprocessSubmit(data)
+        Role role = Role.get(data.id)
+        bindData(role, data)
+        renderJSON(success:true, data:role)
+    }
+
+    /**
+     * Preview a new role without actually creating it
+     */
+    @Transactional(readOnly = true)
+    auditionCreate() {
+        def data = parseRequestJSON().data
+        preprocessSubmit(data)
+        Role role = Role.newInstance(data)
+        renderJSON(success:true, data:role)
     }
 }

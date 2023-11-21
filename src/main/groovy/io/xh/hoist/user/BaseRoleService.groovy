@@ -9,6 +9,7 @@ package io.xh.hoist.user
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
+import io.xh.hoist.role.Role
 
 import static java.util.Collections.emptyMap
 
@@ -34,6 +35,10 @@ import static java.util.Collections.emptyMap
 @CompileStatic
 abstract class BaseRoleService extends BaseService {
 
+    Set<String> listUsersForDirectoryGroup(String directoryGroup) {
+        Collections.EMPTY_SET
+    }
+
     /**
      * Map of roles to assigned users.
      *
@@ -42,7 +47,16 @@ abstract class BaseRoleService extends BaseService {
      * HoistUser object.
      */
     Map<String, Set<String>> getAllRoleAssignments() {
-        return emptyMap()
+        Role.list().collectEntries { role ->
+            Set<String> users = new HashSet<String>()
+
+            users.addAll(role.listAllUsers().collect { it.name as String })
+            users.addAll(role.listAllDirectoryGroups().collect {
+                listUsersForDirectoryGroup(it.name as String)
+            }.flatten() as String[])
+
+            return [role.name, users]
+        }
     }
 
     /**
@@ -59,10 +73,6 @@ abstract class BaseRoleService extends BaseService {
         Set<String> ret = new HashSet()
         allRoleAssignments.each { role, users ->
             if (users.contains(username)) ret.add(role)
-        }
-        if (ret.contains('HOIST_ADMIN')) {
-            ret.add('HOIST_ADMIN_READER')
-            ret.add('HOIST_IMPERSONATOR')
         }
         return ret
     }

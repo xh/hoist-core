@@ -16,6 +16,7 @@ import static io.xh.hoist.util.Utils.configService
 class RoleService extends BaseRoleService {
 
     static String ADMIN_ROLE = 'HOIST_ADMIN'
+    static String ADMIN_READER_ROLE = 'HOIST_ADMIN_READER'
     static String READER_ROLE = 'APP_READER'
     static String IMPERSONATOR_ROLE = 'HOIST_IMPERSONATOR'
 
@@ -23,12 +24,6 @@ class RoleService extends BaseRoleService {
         cleanDatabaseAndInitFromConfig()
     }
 
-    Map<String, Set<String>> getAllRoleAssignments() {
-        return Role.list().inject(new HashMap<String, Set<String>>()) { Map<String, Set<String>> acc, it ->
-            acc[it.name] = it.users
-            return acc
-        }
-    }
     /**
      * This is used as a "pre-"migration script, responsible for loading the role configs stored
      * (now) temporarily as JSON config objects into the database, using the GORM `Role` domain
@@ -51,7 +46,7 @@ class RoleService extends BaseRoleService {
         println("STARTING INIT")
         Role.list().each {
             println("DELETING ROLE: " + it.name)
-            it.children.clear()
+            it.inherits.clear()
             it.save(flush: true)
         }
 
@@ -76,9 +71,16 @@ class RoleService extends BaseRoleService {
         def appReader = Role.findOrCreateWhere(
             name: READER_ROLE,
             groupName: 'xh_config',
+            lastUpdatedBy: "xh_role_service__init-script"
         )
         appReader.users = allUsersTemporary
         appReader.save(flush: true)
+
+        def adminReader = Role.findOrCreateWhere(
+            name: ADMIN_READER_ROLE,
+            groupName: 'xh_config',
+            lastUpdatedBy: "xh_role_service__init-script"
+        )
 
         // support hoist impersonation, by making it inherited by HOIST_ADMINS
         def hoistAdmin = Role.findByName(ADMIN_ROLE)
@@ -87,8 +89,9 @@ class RoleService extends BaseRoleService {
             groupName: 'xh_config',
             lastUpdatedBy: "xh_role_service__init-script",
         ).save(flush: true)
-        hoistAdmin.addToChildren(hoistImpersonator)
-        hoistAdmin.addToChildren(appReader)
+        hoistAdmin.addToInherits(hoistImpersonator)
+        hoistAdmin.addToInherits(appReader)
+        hoistAdmin.addToInherits(adminReader)
         hoistAdmin.save(failOnError: true, flush: true)
 
         // create test roles with more complex inheritance
@@ -119,7 +122,7 @@ class RoleService extends BaseRoleService {
             users: ["test_user_for_child_role@test.com"],
             lastUpdatedBy: "xh_role_service__init-script",
         ).save(flush: true)
-        hoistImpersonator.addToChildren(childRole)
+        hoistImpersonator.addToInherits(childRole)
         hoistImpersonator.save(flush: true)
 
         println("CREATED ROLES: " + Role.list().collect{it.name})
