@@ -21,11 +21,22 @@ class Cache<K,V> {
     private final Map<K, Entry<V>> _map
     private Date _lastCull
 
-    public final String name              //   name for status logging disambiguation
-    public final BaseService svc          //   service using this cache (for logging purposes)
+    /** Optional name for status logging disambiguation. */
+    public final String name
+
+    /** Service using this cache (for logging purposes). */
+    public final BaseService svc
+
+    /** Closure to determine if an entry should be expired. */
     public final Closure expireFn
+
+    /** Time after which an entry should be expired. */
     public final Long expireTime
+
+    /** Closure to determine the timestamp of an entry. */
     public final Closure timestampFn
+
+    /** Whether this cache should be replicated across a cluster. */
     public final boolean replicate
 
     Cache(Map options) {
