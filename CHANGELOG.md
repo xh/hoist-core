@@ -43,6 +43,8 @@
   most applications.
 
 ### 📚 Libraries
+* grails 6.0.1
+* gorm 8.0.1
 * hazelcast `5.3.2`
 
 ## 17.4.0 - 2023-11-09
