@@ -8,7 +8,6 @@
 package io.xh.hoist
 
 import com.hazelcast.collection.ISet
-import com.hazelcast.core.DistributedObject
 import com.hazelcast.map.IMap
 import com.hazelcast.replicatedmap.ReplicatedMap
 import com.hazelcast.topic.ITopic
@@ -94,23 +93,23 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         }
     }
 
-    //------------------------
+    //-----------------------------------------------------------------
     // Distributed Resources
     // Use static reference to ClusterService to allow access pre-init.
-    //------------------------
-    <K, V> IMap<K, V> hzMap(String id) {
+    //------------------------------------------------------------------
+    <K, V> IMap<K, V> getIMap(String id) {
         ClusterService.hzInstance.getMap(hzName(id))
     }
 
-    <V> ISet<V> hzSet(String id) {
+    <V> ISet<V> getISet(String id) {
         ClusterService.hzInstance.getSet(hzName(id))
     }
 
-    <K, V> ReplicatedMap<K, V> hzReplicatedMap(String id) {
+    <K, V> ReplicatedMap<K, V> getReplicatedMap(String id) {
         ClusterService.hzInstance.getReplicatedMap(hzName(id))
     }
 
-    <T> ReplicatedValue<T> hzReplicatedValue(String id) {
+    <T> ReplicatedValue<T> getReplicatedValue(String id) {
         new ReplicatedValue<T>(id, repValuesMap)
     }
 
@@ -284,6 +283,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
     private ReplicatedMap _repValuesMap
     private ReplicatedMap getRepValuesMap() {
-        _repValuesMap = _repValuesMap ?: hzReplicatedMap('repValues')
+        _repValuesMap = _repValuesMap ?: getReplicatedMap('replicatedValues')
     }
 }

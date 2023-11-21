@@ -2,7 +2,7 @@ package io.xh.hoist.cluster
 
 import io.xh.hoist.log.LogSupport
 import java.util.concurrent.Callable
-import static io.xh.hoist.util.Utils.appContext
+import static io.xh.hoist.util.Utils.getExceptionHandler
 
 abstract class ClusterRequest<T> implements Callable<ClusterResponse<T>>, Serializable, LogSupport {
 
@@ -10,7 +10,7 @@ abstract class ClusterRequest<T> implements Callable<ClusterResponse<T>>, Serial
         try {
             return new ClusterResponse(value: doCall())
         } catch (Throwable t) {
-            appContext.xhExceptionHandler.handleException(
+            exceptionHandler.handleException(
                 exception: t,
                 logTo: this,
                 logMessage:  [_action: this.class.simpleName]

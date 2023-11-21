@@ -9,7 +9,6 @@ package io.xh.hoist.cache
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
-import io.xh.hoist.util.Utils
 
 import java.util.concurrent.ConcurrentHashMap
 
@@ -42,7 +41,7 @@ class Cache<K,V> {
             if (name == 'anon') {
                 throw new RuntimeException("Cannot create a replicated cache without a unique name")
             }
-            _map = svc.hzReplicatedMap(name)
+            _map = svc.getReplicatedMap(name)
         } else {
             _map = new ConcurrentHashMap()
         }

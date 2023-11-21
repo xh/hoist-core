@@ -34,13 +34,12 @@ class ClientErrorService extends BaseService {
     def clientErrorEmailService,
         configService
 
-    private IMap<String, Map> errors
+    private IMap<String, Map> errors = getIMap('clientErrors')
     private int getMaxErrors()      {configService.getMap('xhClientErrorConfig').maxErrors as int}
     private int getAlertInterval()  {configService.getMap('xhClientErrorConfig').intervalMins * MINUTES}
 
     void init() {
         super.init()
-        errors = hzMap('clientErrors')
         createTimer(
             interval: { alertInterval },
             delay: 15 * SECONDS,

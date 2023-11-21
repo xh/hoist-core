@@ -36,12 +36,12 @@ class MonitoringService extends BaseService {
         monitorResultService
 
     // Shared state for all servers to read
-    private ReplicatedValue<Map<String, MonitorResult>> _results = hzReplicatedValue('results')
+    private ReplicatedValue<Map<String, MonitorResult>> _results = getReplicatedValue('results')
 
     // Notification state for master to read only
-    private ReplicatedValue<Map<String, Map>> problems = hzReplicatedValue('problems')
-    private ReplicatedValue<Boolean> alertMode = hzReplicatedValue('alertMode')
-    private ReplicatedValue<Long> lastNotified = hzReplicatedValue('lastNotified')
+    private ReplicatedValue<Map<String, Map>> problems = getReplicatedValue('problems')
+    private ReplicatedValue<Boolean> alertMode = getReplicatedValue('alertMode')
+    private ReplicatedValue<Long> lastNotified = getReplicatedValue('lastNotified')
 
     private Timer monitorTimer
     private Timer notifyTimer

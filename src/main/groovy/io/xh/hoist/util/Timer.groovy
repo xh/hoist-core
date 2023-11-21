@@ -225,8 +225,10 @@ class Timer {
         if (throwable) {
             try {
                 _lastRunStats.error = exceptionHandler.summaryTextForThrowable(throwable)
-                exceptionHandler.handleException(throwable, owner)
-            } catch (Throwable ignore) {}
+                exceptionHandler.handleException(exception: throwable, logTo: owner)
+            } catch (Throwable ignore) {
+                owner.logError('Failed to handle exception in Timer')
+            }
         }
     }
 
