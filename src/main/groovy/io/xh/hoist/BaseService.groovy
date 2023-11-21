@@ -278,7 +278,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     // Internal implementation
     //------------------------
     private String hzName(String key) {
-        this.class.simpleName + '_' + key
+        this.class.name + '_' + key
     }
 
     private ReplicatedMap _repValuesMap
