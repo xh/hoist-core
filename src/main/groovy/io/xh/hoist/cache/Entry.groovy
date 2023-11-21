@@ -10,7 +10,7 @@ package io.xh.hoist.cache
 import groovy.transform.CompileStatic
 
 @CompileStatic
-class Entry<V> {
+class Entry<V> implements Serializable {
 
     final V value
     final Long dateEntered = System.currentTimeMillis()

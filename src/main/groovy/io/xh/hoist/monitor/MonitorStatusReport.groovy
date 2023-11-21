@@ -11,7 +11,7 @@ import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.monitor.MonitorStatus.*
 
-class MonitorStatusReport {
+class MonitorStatusReport implements Serializable {
     List<MonitorResult> results
 
     MonitorStatus getStatus() {

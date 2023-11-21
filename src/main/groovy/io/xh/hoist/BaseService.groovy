@@ -7,11 +7,17 @@
 
 package io.xh.hoist
 
+import com.hazelcast.collection.ISet
+import com.hazelcast.map.IMap
+import com.hazelcast.replicatedmap.ReplicatedMap
+import com.hazelcast.topic.ITopic
+import com.hazelcast.topic.Message
 import grails.async.Promises
-import io.xh.hoist.util.Utils
 import grails.util.GrailsClassUtils
 import groovy.transform.CompileDynamic
-import io.xh.hoist.exception.ExceptionRenderer
+import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.cluster.ReplicatedValue
+import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.IdentitySupport
 import io.xh.hoist.util.Timer
@@ -25,6 +31,7 @@ import java.util.concurrent.TimeUnit
 
 import static grails.async.Promises.task
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static io.xh.hoist.util.Utils.appContext
 
 /**
  * Standard superclass for all Hoist and Application-level services.
@@ -35,11 +42,16 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
 abstract class BaseService implements LogSupport, IdentitySupport, DisposableBean {
 
     IdentityService identityService
-    ExceptionRenderer exceptionRenderer
-    protected boolean _initialized = false
+    ClusterService clusterService
+
+    ExceptionHandler xhExceptionHandler
+
+    Date initializedDate = null
+    Date lastCachesCleared = null
+
     private boolean _destroyed = false
 
-    private final List<Timer> _timers = []
+    protected final List<Timer> timers = []
 
     /**
      * Initialize a collection of BaseServices in parallel.
@@ -68,20 +80,44 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * @param timeout - maximum time to wait for each service to init (in ms).
      */
     final void initialize(Long timeout = 30 * SECONDS) {
-        if (_initialized) return
+        if (initializedDate) return
         try {
             withInfo("Initializing") {
                 task {
                     init()
                 }.get(timeout, TimeUnit.MILLISECONDS)
                 setupClearCachesConfigs()
-                _initialized = true
             }
         } catch (Throwable t) {
-            exceptionRenderer.handleException(t, this)
+            xhExceptionHandler.handleException(exception: t, logTo: this)
+        } finally {
+            initializedDate = new Date();
         }
     }
 
+    //-----------------------------------------------------------------
+    // Distributed Resources
+    // Use static reference to ClusterService to allow access pre-init.
+    //------------------------------------------------------------------
+    <K, V> IMap<K, V> getIMap(String id) {
+        ClusterService.hzInstance.getMap(hzName(id))
+    }
+
+    <V> ISet<V> getISet(String id) {
+        ClusterService.hzInstance.getSet(hzName(id))
+    }
+
+    <K, V> ReplicatedMap<K, V> getReplicatedMap(String id) {
+        ClusterService.hzInstance.getReplicatedMap(hzName(id))
+    }
+
+    <T> ReplicatedValue<T> getReplicatedValue(String id) {
+        new ReplicatedValue<T>(id, repValuesMap)
+    }
+
+    <M> ITopic<M> getTopic(String id) {
+        ClusterService.hzInstance.getTopic(id)
+    }
 
     /**
      * Create a new managed Timer bound to this service.
@@ -94,12 +130,15 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
             args.runFn = this.&onTimer
         }
         def ret = new Timer(args)
-        _timers << ret
+        timers << ret
         return ret
     }
 
     /**
      * Managed Subscription to a Grails Event.
+     *
+     * NOTE:  Use this method to subscribe to local Grails events on the given server
+     * instance only.  To subscribe to cluster-wide topics, use 'subscribeToTopic' instead.
      *
      * This method will catch (and log) any exceptions thrown by its handler closure.
      * This is important because the core grails EventBus.subscribe() will silently swallow
@@ -109,7 +148,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * hot-reloading scenario where multiple instances of singleton services may be created.
      */
     protected void subscribe(String eventName, Closure c) {
-       Utils.appContext.eventBus.subscribe(eventName) {Object... args ->
+       appContext.eventBus.subscribe(eventName) {Object... args ->
             if (destroyed) return
             try {
                 logDebug("Receiving event '$eventName'")
@@ -118,6 +157,49 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
                 logError("Exception handling event '$eventName'", e)
             }
         }
+    }
+
+
+    /**
+     *
+     * Managed Subscription to a cluster topic.
+     *
+     * NOTE:  Use this method to subscribe to cluster-wide topics. To subscribe to local
+     * Grails events on this instance only, use subscribe instead.
+     *
+     * This method will catch (and log) any exceptions thrown by its handler closure.
+     *
+     * This subscription also avoids firing handlers on destroyed services. This is important in a
+     * hot-reloading scenario where multiple instances of singleton services may be created.
+     */
+    protected void subscribeToTopic(Map config) {
+        def topic = config.topic as String,
+            onMessage = config.onMessage as Closure,
+            masterOnly = config.masterOnly as Boolean
+
+
+        getTopic(topic).addMessageListener { Message m ->
+            if (destroyed || (masterOnly && !isMaster)) return
+            try {
+                logDebug("Receiving message on topic '$topic'")
+                if (onMessage.maximumNumberOfParameters == 1) {
+                    onMessage.call(m.messageObject)
+                } else {
+                    onMessage.call(m.messageObject, m)
+                }
+            } catch (Exception e) {
+                logError("Exception handling message on topic '$topic'", e)
+            }
+        }
+    }
+
+
+    //------------------
+    // Cluster Support
+    //------------------
+    /** Is this instance the master instance */
+    protected boolean getIsMaster() {
+        clusterService.isMaster
     }
 
     //-----------------------------------
@@ -133,23 +215,34 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * resetting other stateful service objects such as HttpClients. The Hoist admin client provides a UI to call
      * this method on all BaseServices within a running application as an operational / troubleshooting tool.
      */
-    void clearCaches() {}
+    void clearCaches() {
+        lastCachesCleared = new Date()
+    }
 
     /**
      * Cleanup or release any service resources - e.g. cancel any timers.
      * Called by Spring on a clean shutdown of the application.
      */
     void destroy() {
-        _timers.each {
+        timers.each {
             it.cancel()
         }
         _destroyed = true
     }
 
+    /**
+     * Return meta data about this service for troubleshooting and monitoring.
+     * This data will be exposed via the Hoist admin client.
+     *
+     * Note that information about service timers and distributed objects *need* not be
+     * included here and will be automatically included by the framework.
+     */
+    Map getAdminStats(){[:]}
+
     //--------------------
     // Implemented methods
     //--------------------
-    boolean isInitialized() {_initialized}
+    boolean isInitialized() {!!initializedDate}
     boolean isDestroyed()   {_destroyed}
 
     HoistUser getUser()         {identityService.user}
@@ -165,12 +258,16 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         }
 
         if (deps) {
-            subscribe('xhConfigChanged') {Map ev ->
-                if (deps.contains(ev.key)) {
-                    logInfo("Clearing caches due to config change", ev.key)
-                    clearCaches()
+            subscribeToTopic(
+                topic: 'xhConfigChanged',
+                onMessage: { Map msg ->
+                    def key = msg.key
+                    if (deps.contains(key)) {
+                        logInfo("Clearing caches due to config change", key)
+                        clearCaches()
+                    }
                 }
-            }
+            )
         }
     }
 
@@ -178,4 +275,16 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     private final Logger _log = LoggerFactory.getLogger(this.class)
     Logger getInstanceLog() { _log }
 
+
+    //------------------------
+    // Internal implementation
+    //------------------------
+    private String hzName(String key) {
+        this.class.name + '_' + key
+    }
+
+    private ReplicatedMap _repValuesMap
+    private ReplicatedMap getRepValuesMap() {
+        _repValuesMap = _repValuesMap ?: getReplicatedMap('replicatedValues')
+    }
 }

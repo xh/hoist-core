@@ -10,12 +10,11 @@ package io.xh.hoist.feedback
 import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
-import grails.events.*
 import static io.xh.hoist.util.Utils.getCurrentRequest
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
 
-class FeedbackService extends BaseService implements EventPublisher {
+class FeedbackService extends BaseService {
 
     /**
      * Create a feedback entry. Username, browser + environment info, and datetime will be set automatically.
@@ -27,16 +26,16 @@ class FeedbackService extends BaseService implements EventPublisher {
         def request = currentRequest,
             userAgent = request?.getHeader('User-Agent'),
             values = [
-                    msg: message,
-                    username: authUsername ?: 'ANON',
-                    userAgent: userAgent,
-                    browser: getBrowser(userAgent),
-                    device: getDevice(userAgent),
-                    appVersion: appVersion ?: Utils.appVersion,
-                    appEnvironment: Utils.appEnvironment
+                msg           : message,
+                username      : authUsername ?: 'ANON',
+                userAgent     : userAgent,
+                browser       : getBrowser(userAgent),
+                device        : getDevice(userAgent),
+                appVersion    : appVersion ?: Utils.appVersion,
+                appEnvironment: Utils.appEnvironment
             ]
         def fb = new Feedback(values)
         fb.save(flush: true)
-        notify('xhFeedbackReceived', fb)
+        getTopic('xhFeedbackReceived').publishAsync(fb)
     }
 }

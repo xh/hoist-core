@@ -7,13 +7,11 @@
 
 package io.xh.hoist.browser
 
-import groovy.util.logging.Slf4j
 import static io.xh.hoist.browser.Browser.*
 import static io.xh.hoist.browser.Device.*
 
 import javax.servlet.http.HttpServletRequest
 
-@Slf4j
 class Utils {
 
     private static Map<String, Browser> BROWSERS_MATCHERS = [

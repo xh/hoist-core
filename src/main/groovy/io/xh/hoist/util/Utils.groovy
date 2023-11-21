@@ -7,6 +7,8 @@
 
 package io.xh.hoist.util
 
+import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.json.JSONParser
 import grails.util.Environment
 import grails.util.Holders
@@ -15,7 +17,6 @@ import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.environment.EnvironmentService
-import io.xh.hoist.exception.ExceptionRenderer
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.user.BaseRoleService
 import io.xh.hoist.user.BaseUserService
@@ -66,6 +67,7 @@ class Utils {
         return Metadata.current.getProperty('info.xh.appBuild', String).orElse(null)
     }
 
+
     /**
      * Hoist AppEnvironment of the current deployment, distinct from Grails environment.
      */
@@ -88,6 +90,10 @@ class Utils {
         return (ConfigService) appContext.configService
     }
 
+    static ClusterService getClusterService() {
+        return (ClusterService) appContext.clusterService
+    }
+
     static PrefService getPrefService() {
         return (PrefService) appContext.prefService
     }
@@ -108,16 +114,16 @@ class Utils {
         return (BaseRoleService) appContext.roleService
     }
 
-    static ExceptionRenderer getExceptionRenderer() {
-        return (ExceptionRenderer) appContext.exceptionRenderer
-    }
-
     static WebSocketService getWebSocketService() {
         return (WebSocketService) appContext.webSocketService
     }
 
     static ApplicationContext getAppContext() {
         return Holders.applicationContext
+    }
+
+    static ExceptionHandler getExceptionHandler() {
+        return (ExceptionHandler) appContext.xhExceptionHandler
     }
 
     /**

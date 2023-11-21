@@ -20,7 +20,11 @@ class MonitoringEmailService extends BaseService {
     def emailService
 
     void init() {
-        subscribe('xhMonitorStatusReport', this.&emailReport)
+        subscribeToTopic(
+            topic: 'xhMonitorStatusReport',
+            onMessage: this.&emailReport,
+            masterOnly: true
+        )
     }
 
     //------------------------
@@ -50,5 +54,9 @@ class MonitoringEmailService extends BaseService {
             "+ $it.name | ${it.message ? it.message + ' | ' : ''}Minutes in [${it.status}]: ${it.minsInStatus}"
         }.join('<br>')
     }
+
+    Map getAdminStats() {[
+        config: [toAddress: emailService.parseMailConfig('xhMonitorEmailRecipients')]
+    ]}
 
 }

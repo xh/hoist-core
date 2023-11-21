@@ -10,8 +10,7 @@ package io.xh.hoist.log
 import ch.qos.logback.classic.pattern.ClassicConverter
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.spi.ThrowableProxy
-
-import static io.xh.hoist.util.Utils.exceptionRenderer
+import static io.xh.hoist.util.Utils.getExceptionHandler
 
 /**
  * Layout Converter to output log messages in a human readable layout.
@@ -93,7 +92,7 @@ class LogSupportConverter extends ClassicConverter {
 
     protected String formatThrowable(Throwable t) {
         try {
-            return exceptionRenderer.summaryTextForThrowable(t)
+            return exceptionHandler.summaryTextForThrowable(t)
         } catch (Exception ignored) {
             return t.message
         }
