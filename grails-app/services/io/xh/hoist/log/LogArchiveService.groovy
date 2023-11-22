@@ -173,6 +173,6 @@ class LogArchiveService extends BaseService {
     }
 
     Map getAdminStats() {[
-        config: config
+        config: configForAdminStats('xhLogArchiveConfig')
     ]}
 }

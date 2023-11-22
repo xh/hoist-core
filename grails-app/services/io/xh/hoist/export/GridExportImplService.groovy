@@ -370,7 +370,7 @@ class GridExportImplService extends BaseService {
 
     Map getAdminStats() {
         return [
-            config: config,
+            config: configForAdminStats('xhExportConfig'),
             exportCount: exportCount,
             lastExportDate: lastExportDate
         ]

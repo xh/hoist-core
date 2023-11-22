@@ -135,7 +135,7 @@ class ConnectionPoolMonitoringService extends BaseService {
     }
 
     Map getAdminStats() {[
-        config: config,
+        config: configForAdminStats('xhConnPoolMonitoringConfig'),
         latestSnapshot: latestSnapshot
     ]}
 }

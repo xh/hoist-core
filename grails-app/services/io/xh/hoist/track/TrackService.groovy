@@ -80,7 +80,6 @@ class TrackService extends BaseService {
         return configService.getMap('xhActivityTrackingConfig')
     }
 
-
     //-------------------------
     // Implementation
     //-------------------------
@@ -162,6 +161,6 @@ class TrackService extends BaseService {
     }
 
     Map getAdminStats() {[
-        config: conf
+        config: configForAdminStats('xhActivityTrackingConfig')
     ]}
 }

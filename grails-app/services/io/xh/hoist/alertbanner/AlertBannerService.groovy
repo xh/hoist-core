@@ -116,7 +116,7 @@ class AlertBannerService extends BaseService {
     }
 
     Map getAdminStats() {[
-        config: configService.getMap('xhAlertBannerConfig')
+        config: configForAdminStats('xhAlertBannerConfig')
     ]}
 
 }

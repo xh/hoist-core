@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit
 import static grails.async.Promises.task
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.Utils.appContext
+import static io.xh.hoist.util.Utils.getConfigService
 
 /**
  * Standard superclass for all Hoist and Application-level services.
@@ -232,10 +233,18 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * Return meta data about this service for troubleshooting and monitoring.
      * This data will be exposed via the Hoist admin client.
      *
-     * Note that information about service timers and distributed objects *need* not be
+     * Note that information about service timers and distributed objects does not need to be
      * included here and will be automatically included by the framework.
      */
     Map getAdminStats(){[:]}
+
+    /**
+     * Return a map of specified config values, appropriate for including in
+     * implementations of getAdminStats().
+     */
+    protected Map configForAdminStats(String... names) {
+        getConfigService().getForAdminStats(names)
+    }
 
     //--------------------
     // Implemented methods

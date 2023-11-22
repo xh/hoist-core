@@ -83,7 +83,7 @@ class ConfigService extends BaseService {
      */
     @ReadOnly
     Map getForAdminStats(String... names) {
-        names.toList().collectEntries {
+        return names.toList().collectEntries {
             def config = AppConfig.findByName(it, [cache: true])
             [it, config?.externalValue(obscurePassword: true, jsonAsObject: true)]
         }

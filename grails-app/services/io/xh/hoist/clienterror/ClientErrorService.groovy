@@ -110,7 +110,7 @@ class ClientErrorService extends BaseService {
     }
 
     Map getAdminStats() {[
-        config: configService.getMap('xhClientErrorConfig'),
+        config: configForAdminStats('xhClientErrorConfig'),
         pendingErrorCount: errors.size()
     ]}
 }

@@ -232,6 +232,6 @@ class MonitoringService extends BaseService {
     }
 
     Map getAdminStats() {[
-        config: configService.getForAdminStats('xhMonitoringEnabled', 'xhMonitorConfig'),
+        config: configForAdminStats('xhMonitoringEnabled', 'xhMonitorConfig'),
     ]}
 }
