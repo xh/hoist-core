@@ -180,10 +180,11 @@ class Timer {
     Map getAdminStats() {
         [
             name: name,
-            intervalMs : intervalMs,
-            isRunning  : isRunning,
-            lastStartTime: _lastRunStarted,
-            lastStats  : _lastRunStats
+            masterOnly: masterOnly?: null,
+            intervalMs: intervalMs,
+            isRunning: isRunning,
+            startTime: isRunning ? _lastRunStarted: null,
+            last: _lastRunStats
         ].findAll {it.value != null}
     }
 

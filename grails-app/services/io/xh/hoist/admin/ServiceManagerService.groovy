@@ -38,7 +38,11 @@ class ServiceManagerService extends BaseService {
         if (timers || distObjs) {
             ret = ret.clone()
             if (distObjs) ret.distributedObjects = distObjs
-            if (timers) ret.timers = timers
+            if (timers.size() == 1) {
+                ret.timer = timers[0]
+            } else if (timers.size() > 1) {
+                ret.timers = timers
+            }
         }
 
         return ret
