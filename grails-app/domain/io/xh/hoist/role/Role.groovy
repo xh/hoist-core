@@ -6,10 +6,7 @@ class Role implements JSONFormat {
     String name
     String groupName = "default"
     String notes
-    static hasMany = [inherits: Role]
-
-    Set<String> users = []
-    Set<String> directoryGroups = []
+    static hasMany = [members: RoleMember]
 
     Date lastUpdated
     String lastUpdatedBy
@@ -20,9 +17,6 @@ class Role implements JSONFormat {
         table 'xh_roles'
         id name: 'name', generator: 'assigned', type: 'string'
         cache true
-        inherits joinTable: [name: 'xh_roles_members', key: 'role', column: 'inherits']
-        users joinTable: [name: 'xh_roles_members', key: 'role', column: 'user']
-        directoryGroups joinTable: [name: 'xh_roles_members', key: 'role', column: 'directory_group']
     }
 
     static constraints = {
@@ -33,49 +27,53 @@ class Role implements JSONFormat {
     }
 
     Map formatForJSON() {
-        List<String> inheritedBy = listInheritedBy(),
-            directlyInheritedBy = listDirectlyInheritedBy(),
-            allInheritedRoles = listAllInheritedRoles()
-
-        return [
+        [
             name: name,
             groupName: groupName,
             notes: notes,
-            inherits: inherits.collect { it.name },
-            allInheritedRoles: allInheritedRoles,
-            inheritanceMap: allInheritedRoles.collectEntries { [it.role, it.inheritedBy] },
-            inheritedBy: inheritedBy,
-            indirectlyInheritedBy: inheritedBy - directlyInheritedBy,
-            directlyInheritedBy: directlyInheritedBy,
-            allUsers: listAllUsers(),
-            allDirectoryGroups: listAllDirectoryGroups(),
-            allUserNames: users,
-            allDirectoryGroupNames: directoryGroups,
             users:  users,
             directoryGroups: directoryGroups,
+            roles: roles,
+            inheritedRoles: listInheritedRoles(),
+            effectiveUsers: listEffectiveUsers(),
+            effectiveDirectoryGroups: listEffectiveDirectoryGroups(),
+            effectiveRoles: listEffectiveRoles(),
             lastUpdated: lastUpdated,
             lastUpdatedBy: lastUpdatedBy,
             undeletable: undeletable
         ]
     }
 
+    List<String> getUsers() {
+        members.findAll { it.type == RoleMember.Type.USER }.collect { it.name }
+    }
+
+    List<String> getDirectoryGroups() {
+        members.findAll { it.type == RoleMember.Type.DIRECTORY_GROUP }.collect { it.name }
+    }
+
+    List<String> getRoles() {
+        members.findAll { it.type == RoleMember.Type.ROLE }.collect { it.name }
+    }
+
     /**
      * Use BFS to find all inherited roles with their "inheritedBy" reason, favoring closest
      */
-    List<Map> listAllInheritedRoles() {
+    List<Map> listInheritedRoles() {
         Set<Role> visitedRoles = [this]
         Queue<Role> rolesToVisit = [this] as Queue
         List<Map> ret = []
 
         while (!rolesToVisit.isEmpty()) {
             Role role = rolesToVisit.poll()
-            for (inheritedRole in role.inherits) {
-                if (visitedRoles.contains(inheritedRole)) continue
-
-                visitedRoles.add(inheritedRole)
-                rolesToVisit.offer(inheritedRole)
-                ret << [role: inheritedRole.name, inheritedBy: role.name]
-            }
+            list()
+                .findAll { it.roles.contains(role.name) }
+                .each { inheritedRole ->
+                    if (visitedRoles.contains(inheritedRole)) return
+                    visitedRoles.add(inheritedRole)
+                    rolesToVisit.offer(inheritedRole)
+                    ret << [role: inheritedRole.name, inheritedBy: role.name]
+                }
         }
         return ret
     }
@@ -83,15 +81,40 @@ class Role implements JSONFormat {
     /**
      * List users, each with a list of role-names justifying why they inherit this role
      */
-    List<Map> listAllUsers() {
+    List<Map> listEffectiveUsers() {
         listWithRoles { it.users }
     }
 
     /**
      * List directory groups, each with a list of role-names justifying why they inherit this role
      */
-    List<Map> listAllDirectoryGroups() {
+    List<Map> listEffectiveDirectoryGroups() {
         listWithRoles { it.directoryGroups }
+    }
+
+    /**
+     * List child roles, each with a list of role-names justifying why they inherit this role
+     */
+    List<Map> listEffectiveRoles() {
+        Set<Role> visitedRoles = [this]
+        Queue<Role> rolesToVisit = [this] as Queue
+        Map ret = [:]
+
+        while (!rolesToVisit.isEmpty()) {
+            Role role = rolesToVisit.poll()
+            role.roles.each { childRoleName ->
+                Role childRole = get(childRoleName)
+                if (visitedRoles.contains(childRole)) return
+                visitedRoles.add(childRole)
+                rolesToVisit.offer(childRole)
+                ret[childRoleName] = ret[childRoleName] ?: []
+                ret[childRoleName] << role.name
+            }
+        }
+
+        ret
+            .collect { name, roles -> [name: name, roles: (roles as List).sort()] }
+            .sort { it.name }
     }
 
     //------------------------
@@ -99,32 +122,14 @@ class Role implements JSONFormat {
     //------------------------
 
     /**
-     * List role names that directly inherit this role
-     */
-    private List<String> listDirectlyInheritedBy() {
-        list()
-            .findAll { it.inherits.find { it == this } }
-            .collect { it.name }
-    }
-
-    /**
-     * List role names that inherit this role, either directly or indirectly
-     */
-    private List<String> listInheritedBy() {
-        list()
-            .findAll { it != this && it.listAllInheritedRoles().find { it.role == name } }
-            .collect { it.name }
-    }
-
-    /**
      * Implementation for `getAllUsers` and `getAllDirectoryGroups`
      */
     private List<Map> listWithRoles(Closure<List> getListFn) {
         Map ret = getListFn(this).collectEntries { [it, [name]] }
-        listInheritedBy().each { ancestor ->
-            getListFn(get(ancestor)).each { entry ->
+        roles.each { childRoleName ->
+            getListFn(get(childRoleName)).each { entry ->
                 ret[entry] = ret[entry] ?: []
-                ret[entry] << ancestor
+                ret[entry] << childRoleName
             }
         }
         ret

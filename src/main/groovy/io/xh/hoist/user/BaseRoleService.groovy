@@ -11,8 +11,6 @@ import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.role.Role
 
-import static java.util.Collections.emptyMap
-
 /**
  * Abstract base service for maintaining a list of HoistUser <-> role assignments, where roles
  * are returned as simple strings and made available to both server and client code.
@@ -35,7 +33,7 @@ import static java.util.Collections.emptyMap
 @CompileStatic
 abstract class BaseRoleService extends BaseService {
 
-    Set<String> listUsersForDirectoryGroup(String directoryGroup) {
+    Set<String> listUsersForDirectoryGroup(String directoryGroup) { // TODO - make async
         Collections.EMPTY_SET
     }
 
@@ -50,8 +48,8 @@ abstract class BaseRoleService extends BaseService {
         Role.list().collectEntries { role ->
             Set<String> users = new HashSet<String>()
 
-            users.addAll(role.listAllUsers().collect { it.name as String })
-            users.addAll(role.listAllDirectoryGroups().collect {
+            users.addAll(role.listEffectiveUsers().collect { it.name as String })
+            users.addAll(role.listEffectiveDirectoryGroups().collect {
                 listUsersForDirectoryGroup(it.name as String)
             }.flatten() as String[])
 
