@@ -1,5 +1,12 @@
 # Changelog
 
+## 18.0-SNAPSHOT
+
+### ⚙️ Technical
+
+* Add `xh/echoHeaders` utility endpoint. Useful for verifying headers (e.g. `jespa_connection_id`)
+  that are installed by or must pass through multiple ingresses/load balancers.
+
 ## 17.4.0 - 2023-11-09
 
 ### ⚙️ Technical
