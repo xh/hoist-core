@@ -33,7 +33,7 @@ import io.xh.hoist.role.Role
 @CompileStatic
 abstract class BaseRoleService extends BaseService {
 
-    Set<String> listUsersForDirectoryGroup(String directoryGroup) { // TODO - make async
+    Set<String> listUsersForDirectoryGroup(String directoryGroup) { // TODO - make async?
         Collections.EMPTY_SET
     }
 
@@ -47,9 +47,9 @@ abstract class BaseRoleService extends BaseService {
     Map<String, Set<String>> getAllRoleAssignments() {
         Role.list().collectEntries { role ->
             Set<String> users = new HashSet<String>()
-
-            users.addAll(role.listEffectiveUsers().collect { it.name as String })
-            users.addAll(role.listEffectiveDirectoryGroups().collect {
+            List<RoleMemberAssociation> effectiveRoles = role.listEffectiveRoles()
+            users.addAll(role.listEffectiveUsers(effectiveRoles).collect { it.name as String })
+            users.addAll(role.listEffectiveDirectoryGroups(effectiveRoles).collect {
                 listUsersForDirectoryGroup(it.name as String)
             }.flatten() as String[])
 

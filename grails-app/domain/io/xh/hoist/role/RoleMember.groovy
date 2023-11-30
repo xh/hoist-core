@@ -11,8 +11,8 @@ class RoleMember {
     String name
     static belongsTo = [role: Role]
 
-    Date lastUpdated
-    String lastUpdatedBy
+    Date dateCreated
+    String createdBy
 
     static mapping = {
         table 'xh_roles_members'
@@ -21,10 +21,10 @@ class RoleMember {
 
     Map formatForJSON() {
         return [
-            type: type,
+            type: type.name(),
             name: name,
-            lastUpdated: lastUpdated,
-            lastUpdatedBy: lastUpdatedBy
+            dateCreated: dateCreated,
+            createdBy: createdBy
         ]
     }
 }

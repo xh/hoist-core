@@ -1,6 +1,8 @@
 package io.xh.hoist.role
 
 import io.xh.hoist.json.JSONFormat
+import io.xh.hoist.user.RoleAssociation
+import io.xh.hoist.user.RoleMemberAssociation
 
 class Role implements JSONFormat {
     String name
@@ -17,6 +19,7 @@ class Role implements JSONFormat {
         table 'xh_roles'
         id name: 'name', generator: 'assigned', type: 'string'
         cache true
+        members cascade: 'all-delete-orphan'
     }
 
     static constraints = {
@@ -27,6 +30,7 @@ class Role implements JSONFormat {
     }
 
     Map formatForJSON() {
+        List<RoleMemberAssociation> effectiveRoles = listEffectiveRoles()
         [
             name: name,
             groupName: groupName,
@@ -35,11 +39,12 @@ class Role implements JSONFormat {
             directoryGroups: directoryGroups,
             roles: roles,
             inheritedRoles: listInheritedRoles(),
-            effectiveUsers: listEffectiveUsers(),
-            effectiveDirectoryGroups: listEffectiveDirectoryGroups(),
-            effectiveRoles: listEffectiveRoles(),
+            effectiveUsers: listEffectiveUsers(effectiveRoles),
+            effectiveDirectoryGroups: listEffectiveDirectoryGroups(effectiveRoles),
+            effectiveRoles: effectiveRoles,
             lastUpdated: lastUpdated,
             lastUpdatedBy: lastUpdatedBy,
+            members: members.collect { it.formatForJSON() },
             undeletable: undeletable
         ]
     }
@@ -59,10 +64,10 @@ class Role implements JSONFormat {
     /**
      * Use BFS to find all inherited roles with their "inheritedBy" reason, favoring closest
      */
-    List<Map> listInheritedRoles() {
+    List<RoleAssociation> listInheritedRoles() {
         Set<Role> visitedRoles = [this]
         Queue<Role> rolesToVisit = [this] as Queue
-        List<Map> ret = []
+        List<RoleAssociation> ret = []
 
         while (!rolesToVisit.isEmpty()) {
             Role role = rolesToVisit.poll()
@@ -72,7 +77,7 @@ class Role implements JSONFormat {
                     if (visitedRoles.contains(inheritedRole)) return
                     visitedRoles.add(inheritedRole)
                     rolesToVisit.offer(inheritedRole)
-                    ret << [role: inheritedRole.name, inheritedBy: role.name]
+                    ret << new RoleAssociation([role: inheritedRole.name, inheritedBy: role.name])
                 }
         }
         return ret
@@ -81,21 +86,21 @@ class Role implements JSONFormat {
     /**
      * List users, each with a list of role-names justifying why they inherit this role
      */
-    List<Map> listEffectiveUsers() {
-        listWithRoles { it.users }
+    List<RoleMemberAssociation> listEffectiveUsers(List<RoleMemberAssociation> effectiveRoles) {
+        listWithRoles(effectiveRoles) { it.users }
     }
 
     /**
      * List directory groups, each with a list of role-names justifying why they inherit this role
      */
-    List<Map> listEffectiveDirectoryGroups() {
-        listWithRoles { it.directoryGroups }
+    List<RoleMemberAssociation> listEffectiveDirectoryGroups(List<RoleMemberAssociation> effectiveRoles) {
+        listWithRoles(effectiveRoles) { it.directoryGroups }
     }
 
     /**
      * List child roles, each with a list of role-names justifying why they inherit this role
      */
-    List<Map> listEffectiveRoles() {
+    List<RoleMemberAssociation> listEffectiveRoles() {
         Set<Role> visitedRoles = [this]
         Queue<Role> rolesToVisit = [this] as Queue
         Map ret = [:]
@@ -113,7 +118,9 @@ class Role implements JSONFormat {
         }
 
         ret
-            .collect { name, roles -> [name: name, roles: (roles as List).sort()] }
+            .collect { name, roles ->
+                new RoleMemberAssociation([name: name, roles: (roles as List).sort()])
+            }
             .sort { it.name }
     }
 
@@ -122,18 +129,24 @@ class Role implements JSONFormat {
     //------------------------
 
     /**
-     * Implementation for `getAllUsers` and `getAllDirectoryGroups`
+     * Implementation for `listEffectiveUsers` and `listEffectiveDirectoryGroups`
      */
-    private List<Map> listWithRoles(Closure<List> getListFn) {
+    private List<RoleMemberAssociation> listWithRoles(
+        List<RoleMemberAssociation> effectiveRoles,
+        Closure<List> getListFn
+    ) {
         Map ret = getListFn(this).collectEntries { [it, [name]] }
-        roles.each { childRoleName ->
+        effectiveRoles.each { effectiveRole ->
+            String childRoleName = effectiveRole.name
             getListFn(get(childRoleName)).each { entry ->
                 ret[entry] = ret[entry] ?: []
                 ret[entry] << childRoleName
             }
         }
         ret
-            .collect { name, roles -> [name: name, roles: (roles as List).sort()] }
+            .collect { name, roles ->
+                new RoleMemberAssociation([name: name, roles: (roles as List).sort()])
+            }
             .sort { it.name }
     }
 }

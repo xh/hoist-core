@@ -8,11 +8,9 @@ import io.xh.hoist.user.RoleService
 
 // TODO - add tracking of changes to roles
 
-@Access(['HOIST_ADMIN_READER'])
 class RolesAdminController extends BaseController {
     RoleService roleService
 
-    @Transactional
     @Access(['HOIST_ADMIN'])
     create() {
         Map roleSpec = parseRequestJSON().data as Map
@@ -20,13 +18,12 @@ class RolesAdminController extends BaseController {
         renderJSON(success:true, data:role)
     }
 
-    @Transactional
+    @Access(['HOIST_ADMIN_READER'])
     read() {
         List<Role> roles = roleService.read()
         renderJSON(success:true, data:roles)
     }
 
-    @Transactional
     @Access(['HOIST_ADMIN'])
     update() {
         Map roleSpec = parseRequestJSON().data as Map
@@ -34,9 +31,8 @@ class RolesAdminController extends BaseController {
         renderJSON(success:true, data:role)
     }
 
-    @Transactional
     @Access(['HOIST_ADMIN'])
-    delete(Map params) {
+    delete() {
         roleService.delete(params.id as Serializable)
         renderJSON(success:true)
     }
