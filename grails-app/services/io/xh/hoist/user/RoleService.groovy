@@ -53,6 +53,20 @@ class RoleService extends BaseRoleService {
         )
     }
 
+    @Override
+    Map<String, Set<String>> getAllRoleAssignments() {
+        Role.list().collectEntries { role ->
+            Set<String> users = new HashSet<String>()
+            List<RoleMemberAssociation> effectiveRoles = role.listEffectiveRoles()
+            users.addAll(role.listEffectiveUsers(effectiveRoles).collect { it.name })
+            users.addAll(role.listEffectiveDirectoryGroups(effectiveRoles).collect {
+                listUsersForDirectoryGroup(it.name)
+            }.flatten() as String[])
+
+            return [role.name, users]
+        }
+    }
+
     //------------------------
     // Implementation
     //------------------------

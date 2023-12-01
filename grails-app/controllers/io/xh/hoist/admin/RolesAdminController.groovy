@@ -6,8 +6,6 @@ import io.xh.hoist.role.Role
 import io.xh.hoist.security.Access
 import io.xh.hoist.user.RoleService
 
-// TODO - add tracking of changes to roles
-
 class RolesAdminController extends BaseController {
     RoleService roleService
 
