@@ -4,6 +4,7 @@ import grails.gorm.transactions.ReadOnly
 import grails.gorm.transactions.Transactional
 import io.xh.hoist.role.Role
 import io.xh.hoist.role.RoleMember
+import io.xh.hoist.track.TrackService
 
 /**
  * Every user in Toolbox is granted the base APP_READER role by default - this ensures that any
@@ -12,6 +13,8 @@ import io.xh.hoist.role.RoleMember
  * Other roles (HOIST_ADMIN) are sourced from a soft-configuration map of role -> username[].
  */
 class RoleService extends BaseRoleService {
+    TrackService trackService
+
     Role create(Map roleSpec) {
         createOrUpdate(roleSpec)
     }
@@ -34,12 +37,20 @@ class RoleService extends BaseRoleService {
             throw new RuntimeException("${id} cannot be deleted.")
         }
 
+        Map logData = roleToDelete.formatForJSON().asImmutable()
+
         RoleMember
             .list()
             .findAll { it.type == RoleMember.Type.ROLE && it.name == id }
             .each { it.role.removeFromMembers(it) }
 
         roleToDelete.delete(flush:true)
+
+        trackService.track(
+            msg: "Deleted role '${id}'",
+            category: 'Audit',
+            data: logData
+        )
     }
 
     //------------------------
@@ -67,17 +78,50 @@ class RoleService extends BaseRoleService {
             role = new Role(roleSpec)
         }
 
-        updateMembers(role, RoleMember.Type.USER, users)
-        updateMembers(role, RoleMember.Type.DIRECTORY_GROUP, directoryGroups)
-        updateMembers(role, RoleMember.Type.ROLE, roles)
+        RoleMemberChanges userChanges = updateMembers(role, RoleMember.Type.USER, users),
+            directoryGroupChanges = updateMembers(role, RoleMember.Type.DIRECTORY_GROUP, directoryGroups),
+            roleChanges = updateMembers(role, RoleMember.Type.ROLE, roles)
 
         role.setLastUpdatedBy(authUsername)
         role.save(flush: true)
 
+        if (update) {
+            trackService.track(
+                msg: "Edited role: '${roleSpec.name}'",
+                category: 'Audit',
+                data: [
+                    role: roleSpec.name,
+                    groupName: roleSpec.groupName,
+                    notes: roleSpec.notes,
+                    addedUsers: userChanges.added,
+                    removedUsers: userChanges.removed,
+                    addedDirectoryGroups: directoryGroupChanges.added,
+                    removedDirectoryGroups: directoryGroupChanges.removed,
+                    addedRoles: roleChanges.added,
+                    removedRoles: roleChanges.removed
+                ]
+            )
+        } else {
+            trackService.track(
+                msg: "Created role '${roleSpec.name}'",
+                category: 'Audit',
+                data: [
+                    role: roleSpec.name,
+                    groupName: roleSpec.groupName,
+                    notes: roleSpec.notes,
+                    users: userChanges.added,
+                    directoryGroups: directoryGroupChanges.added,
+                    roles: roleChanges.added
+                ]
+            )
+        }
+
         return role
     }
 
-    private void updateMembers(Role owner, RoleMember.Type type, List<String> members) {
+    private RoleMemberChanges updateMembers(Role owner, RoleMember.Type type, List<String> members) {
+        RoleMemberChanges changes = new RoleMemberChanges()
+
         List<RoleMember> existingMembers = RoleMember
             .list()
             .findAll { it.role == owner && it.type == type }
@@ -89,13 +133,17 @@ class RoleService extends BaseRoleService {
                     name: member,
                     createdBy: authUsername
                 ])
+                changes.added << member
             }
         }
 
         existingMembers.each { member ->
             if (!members.contains(member.name)) {
                 owner.removeFromMembers(member)
+                changes.removed << member.name
             }
         }
+
+        return changes
     }
 }
