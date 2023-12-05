@@ -105,7 +105,7 @@ class RoleService extends BaseRoleService {
                 category: 'Audit',
                 data: [
                     role: roleSpec.name,
-                    groupName: roleSpec.groupName,
+                    category: roleSpec.category,
                     notes: roleSpec.notes,
                     addedUsers: userChanges.added,
                     removedUsers: userChanges.removed,
@@ -121,7 +121,7 @@ class RoleService extends BaseRoleService {
                 category: 'Audit',
                 data: [
                     role: roleSpec.name,
-                    groupName: roleSpec.groupName,
+                    category: roleSpec.category,
                     notes: roleSpec.notes,
                     users: userChanges.added,
                     directoryGroups: directoryGroupChanges.added,
