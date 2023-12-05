@@ -2,14 +2,14 @@ package io.xh.hoist.user
 
 import io.xh.hoist.json.JSONFormat
 
-class RoleMemberAssociation implements JSONFormat {
+class EffectiveMember implements JSONFormat {
     String name
-    List<String> roles
+    List<String> sources = []
 
     Map formatForJSON() {
         [
             name: name,
-            roles: roles
+            sources: sources
         ]
     }
 }

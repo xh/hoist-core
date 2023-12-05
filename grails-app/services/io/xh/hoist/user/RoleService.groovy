@@ -47,7 +47,7 @@ class RoleService extends BaseRoleService {
         roleToDelete.delete(flush:true)
 
         trackService.track(
-            msg: "Deleted role '${id}'",
+            msg: "Deleted role: '${id}'",
             category: 'Audit',
             data: logData
         )
@@ -55,9 +55,9 @@ class RoleService extends BaseRoleService {
 
     @Override
     Map<String, Set<String>> getAllRoleAssignments() {
-        Role.list().collectEntries { role ->
+        read().collectEntries { role ->
             Set<String> users = new HashSet<String>()
-            List<RoleMemberAssociation> effectiveRoles = role.listEffectiveRoles()
+            List<EffectiveMember> effectiveRoles = role.listEffectiveRoles()
             users.addAll(role.listEffectiveUsers(effectiveRoles).collect { it.name })
             users.addAll(role.listEffectiveDirectoryGroups(effectiveRoles).collect {
                 listUsersForDirectoryGroup(it.name)
@@ -117,7 +117,7 @@ class RoleService extends BaseRoleService {
             )
         } else {
             trackService.track(
-                msg: "Created role '${roleSpec.name}'",
+                msg: "Created role: '${roleSpec.name}'",
                 category: 'Audit',
                 data: [
                     role: roleSpec.name,
