@@ -15,7 +15,7 @@ class RoleMember {
     String createdBy
 
     static mapping = {
-        table 'xh_roles_members'
+        table 'xh_role_member'
         cache true
     }
 

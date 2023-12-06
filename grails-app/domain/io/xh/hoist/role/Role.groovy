@@ -5,25 +5,23 @@ import io.xh.hoist.user.EffectiveMember
 
 class Role implements JSONFormat {
     String name
-    String category = "default"
+    String category
     String notes
-    boolean undeletable = false // hoistRequired ? required? frameworkRequired?
     Date lastUpdated
     String lastUpdatedBy
     static hasMany = [members: RoleMember]
 
     static mapping = {
-        table 'xh_roles'
+        table 'xh_role'
         id name: 'name', generator: 'assigned', type: 'string'
         cache true
-        members cascade: 'all-delete-orphan'
+        members cascade: 'all-delete-orphan', fetch: 'join', cache: true
     }
 
     static constraints = {
         category nullable: true, maxSize: 30, blank: false
         notes nullable: true, maxSize: 1200
-        lastUpdatedBy nullable: true, maxSize: 50
-        lastUpdated nullable: true
+        lastUpdatedBy maxSize: 50
     }
 
     Map formatForJSON() {
@@ -41,8 +39,7 @@ class Role implements JSONFormat {
             effectiveRoles: effectiveRoles,
             lastUpdated: lastUpdated,
             lastUpdatedBy: lastUpdatedBy,
-            members: members.collect { it.formatForJSON() },
-            undeletable: undeletable
+            members: members.collect { it.formatForJSON() }
         ]
     }
 
@@ -84,7 +81,7 @@ class Role implements JSONFormat {
         while (!rolesToVisit.isEmpty()) {
             Role role = rolesToVisit.poll()
             role.roles.each { memberName ->
-                ret[memberName].sources << role.name
+                ret[memberName].sourceRoles << role.name
                 if (!visitedRoles.contains(memberName)) {
                     visitedRoles.add(memberName)
                     rolesToVisit.offer(get(memberName))
@@ -109,7 +106,7 @@ class Role implements JSONFormat {
             allRoles
                 .findAll { it.roles.contains(role.name) }
                 .each { inheritedRole ->
-                    ret[inheritedRole.name].sources << role.name
+                    ret[inheritedRole.name].sourceRoles << role.name
                     if (!visitedRoles.contains(inheritedRole.name)) {
                         visitedRoles.add(inheritedRole.name)
                         rolesToVisit.offer(inheritedRole)
@@ -134,12 +131,12 @@ class Role implements JSONFormat {
         Map<String, EffectiveMember> ret = [:].withDefault { new EffectiveMember([name: it])}
 
         memberNamesFn(this).each { memberName ->
-            ret[memberName].sources << name
+            ret[memberName].sourceRoles << name
         }
         sourceRoles.each { sourceRole ->
             String sourceRoleName = sourceRole.name
             memberNamesFn(get(sourceRoleName)).each { memberName ->
-                ret[memberName].sources << sourceRoleName
+                ret[memberName].sourceRoles << sourceRoleName
             }
         }
 

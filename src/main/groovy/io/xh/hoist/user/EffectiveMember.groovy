@@ -4,12 +4,12 @@ import io.xh.hoist.json.JSONFormat
 
 class EffectiveMember implements JSONFormat {
     String name
-    List<String> sources = []
+    List<String> sourceRoles = []
 
     Map formatForJSON() {
         [
             name: name,
-            sources: sources
+            sourceRoles: sourceRoles
         ]
     }
 }

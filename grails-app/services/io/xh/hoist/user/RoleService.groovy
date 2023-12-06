@@ -32,11 +32,6 @@ class RoleService extends BaseRoleService {
     @Transactional
     void delete(Serializable id) {
         Role roleToDelete = Role.get(id)
-
-        if (roleToDelete.undeletable) {
-            throw new RuntimeException("${id} cannot be deleted.")
-        }
-
         Map logData = roleToDelete.formatForJSON().asImmutable()
 
         RoleMember
@@ -77,7 +72,6 @@ class RoleService extends BaseRoleService {
                      directoryGroups = roleSpec.directoryGroups as List<String>,
                      roles = roleSpec.roles as List<String>
 
-        roleSpec.remove('undeletable')
         roleSpec.remove('users')
         roleSpec.remove('directoryGroups')
         roleSpec.remove('roles')
