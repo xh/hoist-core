@@ -25,7 +25,7 @@ class Role implements JSONFormat {
     }
 
     Map formatForJSON() {
-        List<EffectiveMember> effectiveRoles = listEffectiveRoles()
+        Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers = listEffectiveMembers()
         [
             name: name,
             category: category,
@@ -34,17 +34,17 @@ class Role implements JSONFormat {
             directoryGroups: directoryGroups,
             roles: roles,
             inheritedRoles: listInheritedRoles(),
-            effectiveUsers: listEffectiveUsers(effectiveRoles),
-            effectiveDirectoryGroups: listEffectiveDirectoryGroups(effectiveRoles),
-            effectiveRoles: effectiveRoles,
+            effectiveUsers: effectiveMembers[RoleMember.Type.USER],
+            effectiveDirectoryGroups: effectiveMembers[RoleMember.Type.DIRECTORY_GROUP],
+            effectiveRoles: effectiveMembers[RoleMember.Type.ROLE],
             lastUpdated: lastUpdated,
             lastUpdatedBy: lastUpdatedBy,
             members: members.collect { it.formatForJSON() }
         ]
     }
 
-    List<String> getUsers() { //todo - consider deducing from effective members
-        members.findAll { it.type == RoleMember.Type.USER }.collect { it.name } // todo - findAllByType didn't work
+    List<String> getUsers() {
+        members.findAll { it.type == RoleMember.Type.USER }.collect { it.name }
     }
 
     List<String> getDirectoryGroups() {
@@ -55,24 +55,39 @@ class Role implements JSONFormat {
         members.findAll { it.type == RoleMember.Type.ROLE }.collect { it.name }
     }
 
+    Map<RoleMember.Type, List<EffectiveMember>> listEffectiveMembers() {
+        Map<RoleMember.Type, List<EffectiveMember>> ret = [:]
+        List<EffectiveMember> effectiveRoles = listEffectiveRoles()
+
+        ret.put(RoleMember.Type.USER, listEffectiveUsers(effectiveRoles))
+        ret.put(RoleMember.Type.DIRECTORY_GROUP, listEffectiveDirectoryGroups(effectiveRoles))
+        ret.put(RoleMember.Type.ROLE, effectiveRoles)
+
+        return ret
+    }
+
+    //------------------------
+    // Implementation
+    //------------------------
+
     /**
      * List users, each with a list of role-names justifying why they inherit this role
      */
-    List<EffectiveMember> listEffectiveUsers(List<EffectiveMember> effectiveRoles) {
+    private List<EffectiveMember> listEffectiveUsers(List<EffectiveMember> effectiveRoles) {
         collectEffectiveMembers(effectiveRoles) { it.users }
     }
 
     /**
      * List directory groups, each with a list of role-names justifying why they inherit this role
      */
-    List<EffectiveMember> listEffectiveDirectoryGroups(List<EffectiveMember> effectiveRoles) {
+    private List<EffectiveMember> listEffectiveDirectoryGroups(List<EffectiveMember> effectiveRoles) {
         collectEffectiveMembers(effectiveRoles) { it.directoryGroups }
     }
 
     /**
      * List effective members of this role with source associations
      */
-    List<EffectiveMember> listEffectiveRoles() {
+    private List<EffectiveMember> listEffectiveRoles() {
         Set<String> visitedRoles = [name]
         Queue<Role> rolesToVisit = new LinkedList<Role>()
         rolesToVisit.offer(this)
@@ -95,7 +110,7 @@ class Role implements JSONFormat {
     /**
      * Use BFS to find all roles for which this role is an effective member, with source association
      */
-    List<EffectiveMember> listInheritedRoles() {
+    private List<EffectiveMember> listInheritedRoles() {
         Set<String> visitedRoles = [name]
         Queue<Role> rolesToVisit = [this] as Queue
         List<Role> allRoles = list()
@@ -116,10 +131,6 @@ class Role implements JSONFormat {
 
         ret.values() as List<EffectiveMember>
     }
-
-    //------------------------
-    // Implementation
-    //------------------------
 
     /**
      * Implementation for `listEffectiveUsers` and `listEffectiveDirectoryGroups`

@@ -34,7 +34,7 @@ import static java.util.Collections.emptyMap
 @CompileStatic
 abstract class BaseRoleService extends BaseService {
 
-    Set<String> listUsersForDirectoryGroup(String directoryGroup) { // TODO - make async?
+    Set<String> listUsersForDirectoryGroup(String directoryGroup) { // TODO - discuss
         Collections.EMPTY_SET
     }
 
