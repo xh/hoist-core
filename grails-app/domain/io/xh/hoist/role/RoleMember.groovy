@@ -1,6 +1,8 @@
 package io.xh.hoist.role
 
-class RoleMember {
+import io.xh.hoist.json.JSONFormat
+
+class RoleMember implements JSONFormat {
     enum Type {
         USER,
         DIRECTORY_GROUP,

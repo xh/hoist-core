@@ -28,7 +28,6 @@ class EnvironmentService extends BaseService {
 
     void init() {
         _appTimeZone = calcAppTimeZone()
-        super.init();
     }
 
     /**

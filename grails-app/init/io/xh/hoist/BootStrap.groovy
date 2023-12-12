@@ -19,12 +19,14 @@ class BootStrap {
 
     def logLevelService,
         configService,
-        prefService
+        prefService,
+        roleAdminService
 
     def init = {servletContext ->
         logStartupMsg()
         ensureRequiredConfigsCreated()
         ensureRequiredPrefsCreated()
+        ensureRequiredRolesCreated()
 
         ensureExpectedServerTimeZone()
 
@@ -256,6 +258,16 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Email address to which status monitor alerts should be sent. Value "none" disables emailed alerts.'
             ],
+            xhRoleServiceConfig: [
+                valueType: 'json',
+                defaultValue: [
+                    enabled: true,
+                    refreshInterval: 30,
+                ],
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'Configures built-in role management.'
+            ],
             xhWebSocketConfig: [
                 valueType: 'json',
                 defaultValue: [
@@ -264,17 +276,6 @@ class BootStrap {
                 ],
                 groupName: 'xh.io',
                 note: 'Parameters for the managed WebSocket sessions created by Hoist.'
-            ],
-            xhRoleManagerConfig: [
-                groupName: 'xh.io',
-                valueType: 'json',
-                defaultValue: [
-                    enabled: false,
-                    canWrite: false,
-                ],
-                clientVisible: true,
-                note: 'Toggles the presence of the admin role control panel'
-                    + 'and its interaction with the underlying role service.'
             ]
         ])
     }
@@ -317,6 +318,35 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Visual theme for the client application - "light", "dark", or "system".'
             ]
+        ])
+    }
+
+    private void ensureRequiredRolesCreated() {
+        roleAdminService.ensureRequiredRolesCreated([
+            [
+                name: 'HOIST_ADMIN',
+                category: 'Admin',
+                notes: 'Hoist Admins have full access to all Hoist Admin tools and functionality.',
+                users: ['ADMIN_USER'],
+                directoryGroups: ['ADMIN_DIRECTORY_GROUP'],
+                roles: []
+            ],
+            [
+                name: 'HOIST_ADMIN_READER',
+                category: 'Admin',
+                notes: 'Hoist Admin Readers have read-only access to all Hoist Admin tools and functionality.',
+                users: [],
+                directoryGroups: [],
+                roles: ['HOIST_ADMIN']
+            ],
+            [
+                name: 'HOIST_IMPERSONATOR',
+                category: 'Admin',
+                notes: 'Hoist Impersonators can impersonate other users.',
+                users: [],
+                directoryGroups: [],
+                roles: ['HOIST_ADMIN']
+            ],
         ])
     }
 

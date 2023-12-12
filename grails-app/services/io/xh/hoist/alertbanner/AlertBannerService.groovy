@@ -39,7 +39,6 @@ class AlertBannerService extends BaseService {
     private Map cachedBanner = emptyAlert
 
     void init() {
-        super.init()
         createTimer(
                 runFn: this.&refreshCachedBanner,
                 interval: 2 * MINUTES,

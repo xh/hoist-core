@@ -3,6 +3,10 @@ package io.xh.hoist.role
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.user.EffectiveMember
 
+/**
+ * Backing domain class for Hoist's built-in role management. Methods on this class are used
+ * internally by Hoist and should not be called directly by application code.
+ */
 class Role implements JSONFormat {
     String name
     String category
@@ -25,7 +29,7 @@ class Role implements JSONFormat {
     }
 
     Map formatForJSON() {
-        Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers = listEffectiveMembers()
+        Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers = resolveEffectiveMembers()
         [
             name: name,
             category: category,
@@ -39,7 +43,7 @@ class Role implements JSONFormat {
             effectiveRoles: effectiveMembers[RoleMember.Type.ROLE],
             lastUpdated: lastUpdated,
             lastUpdatedBy: lastUpdatedBy,
-            members: members.collect { it.formatForJSON() }
+            members: members
         ]
     }
 
@@ -55,7 +59,7 @@ class Role implements JSONFormat {
         members.findAll { it.type == RoleMember.Type.ROLE }.collect { it.name }
     }
 
-    Map<RoleMember.Type, List<EffectiveMember>> listEffectiveMembers() {
+    Map<RoleMember.Type, List<EffectiveMember>> resolveEffectiveMembers() {
         Map<RoleMember.Type, List<EffectiveMember>> ret = [:]
         List<EffectiveMember> effectiveRoles = listEffectiveRoles()
 

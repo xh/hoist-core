@@ -1,66 +1,96 @@
-package io.xh.hoist.user
+package io.xh.hoist.admin
 
 import grails.gorm.transactions.ReadOnly
 import grails.gorm.transactions.Transactional
+import io.xh.hoist.BaseService
 import io.xh.hoist.role.Role
 import io.xh.hoist.role.RoleMember
 import io.xh.hoist.track.TrackService
+import io.xh.hoist.user.RoleMemberChanges
 
-/**
- * Every user in Toolbox is granted the base APP_READER role by default - this ensures that any
- * newly created users logging in via OAuth can immediately access the app.
- *
- * Other roles (HOIST_ADMIN) are sourced from a soft-configuration map of role -> username[].
- */
-class RoleService extends BaseRoleService {
+class RoleAdminService extends BaseService {
     TrackService trackService
-
-    Role create(Map roleSpec) {
-        createOrUpdate(roleSpec)
-    }
 
     @ReadOnly
     List<Role> read() {
         Role.list()
     }
 
+    Role create(Map roleSpec) {
+        createOrUpdate(roleSpec)
+    }
+
     Role update(Map roleSpec) {
         createOrUpdate(roleSpec, true)
     }
 
-
     @Transactional
-    void delete(Serializable id) {
+    void delete(String id) {
         Role roleToDelete = Role.get(id)
-        Map logData = roleToDelete.formatForJSON().asImmutable()
 
         RoleMember
-            .list()
-            .findAll { it.type == RoleMember.Type.ROLE && it.name == id }
+            .findAllByTypeAndName(RoleMember.Type.ROLE, id)
             .each { it.role.removeFromMembers(it) }
 
         roleToDelete.delete(flush:true)
 
         trackService.track(
             msg: "Deleted role: '${id}'",
-            category: 'Audit',
-            data: logData
+            category: 'Audit'
         )
     }
 
-    @Override
-    Map<String, Set<String>> getAllRoleAssignments() {
-        read().collectEntries { role ->
-            Set<String> users = new HashSet<String>()
-            Map<RoleMember.Type, List<EffectiveMember>> members = role.listEffectiveMembers()
 
-            users.addAll(members[RoleMember.Type.USER].collect { it.name })
-            users.addAll(members[RoleMember.Type.DIRECTORY_GROUP].collect {
-                listUsersForDirectoryGroup(it.name)
-            }.flatten() as String[])
+    /**
+     * Check a list of core roles required for Hoist/application operation - ensuring that these
+     * roles are present. Will create missing roles with supplied default values if not found.
+     *
+     * Called by Hoist Core Bootstrap.
+     *
+     * @param requiredRoles - List of maps of [name, category, notes, users, directoryGroups, roles]
+     */
+    @Transactional
+    void ensureRequiredRolesCreated(List<Map> requiredRoles) {
+        List<Role> currRoles = Role.list()
+        int created = 0
 
-            return [role.name, users]
+        requiredRoles.each { roleSpec ->
+            Role currRole = currRoles.find { it.name == roleSpec.name }
+            if (!currRole) {
+                Role createdRole = new Role(
+                    name: roleSpec.name,
+                    category: roleSpec.category ?: 'Default',
+                    notes: roleSpec.notes,
+                    lastUpdatedBy: 'hoist-bootstrap'
+                ).save()
+
+                roleSpec.users.each { user -> createdRole.addToMembers([
+                    type: RoleMember.Type.USER,
+                    name: user,
+                    createdBy: 'hoist-bootstrap'
+                ]) }
+
+                roleSpec.directoryGroups.each { directoryGroup -> createdRole.addToMembers([
+                    type: RoleMember.Type.DIRECTORY_GROUP,
+                    name: directoryGroup,
+                    createdBy: 'hoist-bootstrap'
+                ]) }
+
+                roleSpec.roles.each { role -> createdRole.addToMembers([
+                    type: RoleMember.Type.ROLE,
+                    name: role,
+                    createdBy: 'hoist-bootstrap'
+                ]) }
+
+                logWarn(
+                    "Required role $roleSpec.name missing and created with default value",
+                    'verify default is appropriate for this application'
+                )
+                created++
+            }
         }
+
+        logDebug("Validated presense of ${requiredRoles.size()} required roles", "created $created")
     }
 
     //------------------------
@@ -80,16 +110,15 @@ class RoleService extends BaseRoleService {
         Role role
 
         if (update) {
-            role = Role.get(roleSpec.name as Serializable)
-
+            role = Role.get(roleSpec.name as String)
             roleSpec.each { k, v -> role.setProperty(k as String, v) }
         } else {
             role = new Role(roleSpec)
         }
 
         RoleMemberChanges userChanges = updateMembers(role, RoleMember.Type.USER, users),
-            directoryGroupChanges = updateMembers(role, RoleMember.Type.DIRECTORY_GROUP, directoryGroups),
-            roleChanges = updateMembers(role, RoleMember.Type.ROLE, roles)
+                          directoryGroupChanges = updateMembers(role, RoleMember.Type.DIRECTORY_GROUP, directoryGroups),
+                          roleChanges = updateMembers(role, RoleMember.Type.ROLE, roles)
 
         role.setLastUpdatedBy(authUsername)
         role.save(flush: true)

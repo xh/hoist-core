@@ -7,10 +7,14 @@
 
 package io.xh.hoist.user
 
+import grails.gorm.transactions.ReadOnly
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
-
-import static java.util.Collections.emptyMap
+import io.xh.hoist.config.ConfigService
+import io.xh.hoist.role.RoleMember
+import io.xh.hoist.role.Role
+import io.xh.hoist.util.Timer
+import static io.xh.hoist.util.DateTimeUtils.SECONDS
 
 /**
  * Abstract base service for maintaining a list of HoistUser <-> role assignments, where roles
@@ -33,20 +37,31 @@ import static java.util.Collections.emptyMap
  */
 @CompileStatic
 abstract class BaseRoleService extends BaseService {
+    ConfigService configService
 
-    Set<String> listUsersForDirectoryGroup(String directoryGroup) { // TODO - discuss
-        Collections.EMPTY_SET
+    private Timer timer
+    private Map<String, Set<String>> _allRoleAssignments
+
+    void init() {
+        timer = createTimer(
+            interval: { config.refreshInterval as int * SECONDS },
+            runFn: this.&refreshRoleAssignments,
+            runImmediatelyAndBlock: true
+        )
     }
 
     /**
-     * Map of roles to assigned users.
+     * Return Map of roles to assigned users.
      *
-     * Applications should take care to provide an efficient / fast implementation as this can be
-     * queried multiple times when processing a request, and is deliberately not cached on the
-     * HoistUser object.
+     * By default, this method returns a cached copy of the role assignments, refreshed on a
+     * configurable interval.
+     *
+     * Applications may override this method to provide a custom implementation, but should take
+     * care to provide an efficient / fast implementation as this can be queried multiple times
+     * when processing a request, and is deliberately not cached on the HoistUser object.
      */
     Map<String, Set<String>> getAllRoleAssignments() {
-        return emptyMap()
+        _allRoleAssignments
     }
 
     /**
@@ -55,22 +70,18 @@ abstract class BaseRoleService extends BaseService {
      * Also, note that this default implementation does not validate that the username provided is in
      * fact an active and enabled application user as per UserService. Apps may wish to do so -
      * the Hoist framework does not depend on it.
-     *
-     * Note that this method does implement some basic logic on built-in role inheritance.  Therefore any
-     * implementation overrides should typically call the super method.
      */
     Set<String> getRolesForUser(String username) {
         Set<String> ret = new HashSet()
         allRoleAssignments.each { role, users ->
             if (users.contains(username)) ret.add(role)
         }
-        if (ret.contains('HOIST_ADMIN')) {
+        if (ret.contains('HOIST_ADMIN')) { // todo - discuss whether we should keep this.
             ret.add('HOIST_ADMIN_READER')
             ret.add('HOIST_IMPERSONATOR')
         }
         return ret
     }
-
 
     /**
      * Return all users with a given role, as a simple set of usernames.
@@ -81,5 +92,56 @@ abstract class BaseRoleService extends BaseService {
      */
     Set<String> getUsersForRole(String role) {
         return allRoleAssignments[role] ?: Collections.EMPTY_SET
+    }
+
+    /**
+     * Return Map of directory group names to assigned users. This lookup should be fast, as it
+     * will be called regularly by the default implementation of `generateRoleAssignments()`.
+     */
+    protected Map<String, Set<String>> listUsersForDirectoryGroups(Set<String> directoryGroups) {
+        Collections.EMPTY_MAP
+    }
+
+    /**
+     * Return Map of roles to assigned users. Return value is cached and refreshed on a configurable
+     * interval.
+     */
+    @ReadOnly
+    protected Map<String, Set<String>> generateRoleAssignments() {
+        List<Role> roles = Role.list()
+        Set<String> directoryGroups = new HashSet<String>()
+
+        roles.each { directoryGroups.addAll(it.directoryGroups) }
+
+        Map<String, Set<String>> usersForDirectoryGroups = listUsersForDirectoryGroups(directoryGroups)
+
+        roles.collectEntries { role ->
+            Set<String> users = new HashSet<String>()
+            Map<RoleMember.Type, List<EffectiveMember>> members = role.resolveEffectiveMembers()
+
+            members[RoleMember.Type.USER]
+                .each { users.add(it.name) }
+
+            members[RoleMember.Type.DIRECTORY_GROUP]
+                .each { users.addAll(usersForDirectoryGroups[it.name] ?: Collections.EMPTY_SET) }
+
+            return [role.name, users]
+        }
+    }
+
+    @Override
+    void clearCaches() {
+        timer.forceRun()
+        super.clearCaches()
+    }
+
+    protected void refreshRoleAssignments() {
+        withDebug('Refreshing role assignments') {
+            _allRoleAssignments = generateRoleAssignments()
+        }
+    }
+
+    private Map getConfig() {
+        return configService.getMap('xhRoleServiceConfig')
     }
 }
