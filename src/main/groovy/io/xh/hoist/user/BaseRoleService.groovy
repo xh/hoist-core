@@ -44,7 +44,7 @@ abstract class BaseRoleService extends BaseService {
 
     void init() {
         timer = createTimer(
-            interval: { config.refreshInterval as int * SECONDS },
+            interval: { config.enabled ? config.refreshInterval as int * SECONDS : -1 },
             runFn: this.&refreshRoleAssignments,
             runImmediatelyAndBlock: true
         )

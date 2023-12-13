@@ -64,19 +64,19 @@ class RoleAdminService extends BaseService {
                     lastUpdatedBy: 'hoist-bootstrap'
                 ).save()
 
-                roleSpec.users.each { user -> createdRole.addToMembers([
+                roleSpec.users?.each { user -> createdRole.addToMembers([
                     type: RoleMember.Type.USER,
                     name: user,
                     createdBy: 'hoist-bootstrap'
                 ]) }
 
-                roleSpec.directoryGroups.each { directoryGroup -> createdRole.addToMembers([
+                roleSpec.directoryGroups?.each { directoryGroup -> createdRole.addToMembers([
                     type: RoleMember.Type.DIRECTORY_GROUP,
                     name: directoryGroup,
                     createdBy: 'hoist-bootstrap'
                 ]) }
 
-                roleSpec.roles.each { role -> createdRole.addToMembers([
+                roleSpec.roles?.each { role -> createdRole.addToMembers([
                     type: RoleMember.Type.ROLE,
                     name: role,
                     createdBy: 'hoist-bootstrap'
