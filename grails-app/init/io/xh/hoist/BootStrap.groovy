@@ -262,6 +262,7 @@ class BootStrap {
                 valueType: 'json',
                 defaultValue: [
                     enabled: true,
+                    enableDirectoryGroups: true,
                     refreshInterval: 30,
                 ],
                 clientVisible: true,
@@ -327,26 +328,20 @@ class BootStrap {
                 name: 'HOIST_ADMIN',
                 category: 'Admin',
                 notes: 'Hoist Admins have full access to all Hoist Admin tools and functionality.',
-                users: ['ADMIN_USER'],
-                directoryGroups: ['ADMIN_DIRECTORY_GROUP'],
-                roles: []
+                users: ['ADMIN_USER']
             ],
             [
                 name: 'HOIST_ADMIN_READER',
                 category: 'Admin',
                 notes: 'Hoist Admin Readers have read-only access to all Hoist Admin tools and functionality.',
-                users: [],
-                directoryGroups: [],
                 roles: ['HOIST_ADMIN']
             ],
             [
                 name: 'HOIST_IMPERSONATOR',
                 category: 'Admin',
                 notes: 'Hoist Impersonators can impersonate other users.',
-                users: [],
-                directoryGroups: [],
                 roles: ['HOIST_ADMIN']
-            ],
+            ]
         ])
     }
 

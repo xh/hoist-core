@@ -29,21 +29,12 @@ class Role implements JSONFormat {
     }
 
     Map formatForJSON() {
-        Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers = resolveEffectiveMembers()
         [
             name: name,
             category: category,
             notes: notes,
-            users:  users,
-            directoryGroups: directoryGroups,
-            roles: roles,
-            inheritedRoles: listInheritedRoles(),
-            effectiveUsers: effectiveMembers[RoleMember.Type.USER],
-            effectiveDirectoryGroups: effectiveMembers[RoleMember.Type.DIRECTORY_GROUP],
-            effectiveRoles: effectiveMembers[RoleMember.Type.ROLE],
             lastUpdated: lastUpdated,
-            lastUpdatedBy: lastUpdatedBy,
-            members: members
+            lastUpdatedBy: lastUpdatedBy
         ]
     }
 
@@ -68,6 +59,31 @@ class Role implements JSONFormat {
         ret.put(RoleMember.Type.ROLE, effectiveRoles)
 
         return ret
+    }
+
+    /**
+     * Use BFS to find all roles for which this role is an effective member, with source association
+     */
+    List<EffectiveMember> listInheritedRoles() {
+        Set<String> visitedRoles = [name]
+        Queue<Role> rolesToVisit = [this] as Queue
+        List<Role> allRoles = list()
+        Map<String, EffectiveMember> ret = [:].withDefault { new EffectiveMember([name: it])}
+
+        while (!rolesToVisit.isEmpty()) {
+            Role role = rolesToVisit.poll()
+            allRoles
+                .findAll { it.roles.contains(role.name) }
+                .each { inheritedRole ->
+                    ret[inheritedRole.name].sourceRoles << role.name
+                    if (!visitedRoles.contains(inheritedRole.name)) {
+                        visitedRoles.add(inheritedRole.name)
+                        rolesToVisit.offer(inheritedRole)
+                    }
+                }
+        }
+
+        ret.values() as List<EffectiveMember>
     }
 
     //------------------------
@@ -106,31 +122,6 @@ class Role implements JSONFormat {
                     rolesToVisit.offer(get(memberName))
                 }
             }
-        }
-
-        ret.values() as List<EffectiveMember>
-    }
-
-    /**
-     * Use BFS to find all roles for which this role is an effective member, with source association
-     */
-    private List<EffectiveMember> listInheritedRoles() {
-        Set<String> visitedRoles = [name]
-        Queue<Role> rolesToVisit = [this] as Queue
-        List<Role> allRoles = list()
-        Map<String, EffectiveMember> ret = [:].withDefault { new EffectiveMember([name: it])}
-
-        while (!rolesToVisit.isEmpty()) {
-            Role role = rolesToVisit.poll()
-            allRoles
-                .findAll { it.roles.contains(role.name) }
-                .each { inheritedRole ->
-                    ret[inheritedRole.name].sourceRoles << role.name
-                    if (!visitedRoles.contains(inheritedRole.name)) {
-                        visitedRoles.add(inheritedRole.name)
-                        rolesToVisit.offer(inheritedRole)
-                    }
-                }
         }
 
         ret.values() as List<EffectiveMember>

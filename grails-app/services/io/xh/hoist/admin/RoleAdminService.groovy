@@ -5,15 +5,38 @@ import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
 import io.xh.hoist.role.Role
 import io.xh.hoist.role.RoleMember
-import io.xh.hoist.track.TrackService
+import io.xh.hoist.user.EffectiveMember
+import io.xh.hoist.user.EffectiveUser
 import io.xh.hoist.user.RoleMemberChanges
 
 class RoleAdminService extends BaseService {
-    TrackService trackService
+    def roleService,
+        trackService
 
     @ReadOnly
-    List<Role> read() {
-        Role.list()
+    List<Map> list() {
+        List<Role> roles = Role.list()
+        Set<String> directoryGroups = new HashSet<String>()
+
+        roles.each { directoryGroups.addAll(it.directoryGroups) }
+
+        Map<String, Set<String>> usersForDirectoryGroups = roleService.getUsersForDirectoryGroups(directoryGroups)
+
+        roles.collect {
+            Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers = it.resolveEffectiveMembers()
+            [
+                name: it.name,
+                category: it.category,
+                notes: it.notes,
+                lastUpdated: it.lastUpdated,
+                lastUpdatedBy: it.lastUpdatedBy,
+                inheritedRoles: it.listInheritedRoles(),
+                effectiveUsers: collectEffectiveUsers(effectiveMembers, usersForDirectoryGroups),
+                effectiveDirectoryGroups: effectiveMembers[RoleMember.Type.DIRECTORY_GROUP],
+                effectiveRoles: effectiveMembers[RoleMember.Type.ROLE],
+                members: it.members
+            ]
+        }
     }
 
     Role create(Map roleSpec) {
@@ -183,5 +206,32 @@ class RoleAdminService extends BaseService {
         }
 
         return changes
+    }
+
+    private List<EffectiveUser> collectEffectiveUsers(
+        Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers,
+        Map<String, Set<String>> usersForDirectoryGroups
+    ) {
+        Map<String, EffectiveUser> ret = [:].withDefault { new EffectiveUser([name: it])}
+
+        effectiveMembers.each { type, members ->
+            if (type == RoleMember.Type.ROLE) return
+
+            members.each { member ->
+                if (type == RoleMember.Type.USER) {
+                    member.sourceRoles.each { role ->
+                        ret[member.name].addSource(role, null)
+                    }
+                } else if (type == RoleMember.Type.DIRECTORY_GROUP) {
+                    usersForDirectoryGroups[member.name]?.each { user ->
+                        member.sourceRoles.each { role ->
+                            ret[user].addSource(role, member.name)
+                        }
+                    }
+                }
+            }
+        }
+
+        ret.values() as List<EffectiveUser>
     }
 }

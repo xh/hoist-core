@@ -95,11 +95,11 @@ abstract class BaseRoleService extends BaseService {
     }
 
     /**
-     * Return Map of directory group names to assigned users. This lookup should be fast, as it
-     * will be called regularly by the default implementation of `generateRoleAssignments()`.
+     * Return Map of directory group names to assigned users.
      */
-    protected Map<String, Set<String>> listUsersForDirectoryGroups(Set<String> directoryGroups) {
-        Collections.EMPTY_MAP
+    protected Map<String, Set<String>> getUsersForDirectoryGroups(Set<String> directoryGroups) {
+        if (!config.enableDirectoryGroups || !directoryGroups) return Collections.EMPTY_MAP
+        throw new UnsupportedOperationException('BaseRoleService.getUsersForDirectoryGroups not implemented.')
     }
 
     /**
@@ -113,7 +113,7 @@ abstract class BaseRoleService extends BaseService {
 
         roles.each { directoryGroups.addAll(it.directoryGroups) }
 
-        Map<String, Set<String>> usersForDirectoryGroups = listUsersForDirectoryGroups(directoryGroups)
+        Map<String, Set<String>> usersForDirectoryGroups = getUsersForDirectoryGroups(directoryGroups)
 
         roles.collectEntries { role ->
             Set<String> users = new HashSet<String>()
