@@ -17,7 +17,7 @@ import io.xh.hoist.util.Timer
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 
 /**
- * Abstract base service for maintaining a list of HoistUser <-> role assignments, where roles
+ * Abstract base service for maintaining a list of HoistUser <-> Role assignments, where roles
  * are returned as simple strings and made available to both server and client code.
  *
  * Applications must define a concrete implementation of this service with the name 'RoleService'.
@@ -103,16 +103,15 @@ abstract class BaseRoleService extends BaseService {
     }
 
     /**
-     * Return Map of roles to assigned users. Return value is cached and refreshed on a configurable
-     * interval.
+     * Return a map of role names to assigned usernames.
+     * Return value is cached and refreshed on a configurable interval.
      */
     @ReadOnly
     protected Map<String, Set<String>> generateRoleAssignments() {
         List<Role> roles = Role.list()
+
         Set<String> directoryGroups = new HashSet<String>()
-
         roles.each { directoryGroups.addAll(it.directoryGroups) }
-
         Map<String, Set<String>> usersForDirectoryGroups = getUsersForDirectoryGroups(directoryGroups)
 
         roles.collectEntries { role ->

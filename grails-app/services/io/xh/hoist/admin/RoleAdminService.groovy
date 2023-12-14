@@ -9,17 +9,31 @@ import io.xh.hoist.user.EffectiveMember
 import io.xh.hoist.user.EffectiveUser
 import io.xh.hoist.user.RoleMemberChanges
 
+/**
+ * Service to support admin management of Hoist's persistent, database-backed {@link Role} class.
+ *
+ * This class is intended to be used by its associated admin controller - apps should rarely (if
+ * ever) need to interact with it directly. An exception is {@link #ensureRequiredRolesCreated},
+ * which apps might wish to call in their Bootstrap code to ensure that expected roles have been
+ * created in a given database environment.
+ *
+ * @see io.xh.hoist.user.BaseRoleService - this is the service contract apps must implement and is
+ *     by default the primary user/consumer of the Roles created and updated by the service below.
+ */
 class RoleAdminService extends BaseService {
     def roleService,
         trackService
 
+    /**
+     * List all Roles with all available membership information and metadata, for display in the
+     * Hoist Admin Console. Includes fully resolved effective users, directory groups, and roles.
+     */
     @ReadOnly
     List<Map> list() {
         List<Role> roles = Role.list()
+
         Set<String> directoryGroups = new HashSet<String>()
-
         roles.each { directoryGroups.addAll(it.directoryGroups) }
-
         Map<String, Set<String>> usersForDirectoryGroups = roleService.getUsersForDirectoryGroups(directoryGroups)
 
         roles.collect {
