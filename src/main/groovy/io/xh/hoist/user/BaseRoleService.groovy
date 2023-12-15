@@ -28,13 +28,13 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
  *
  *      - Hoist provides a `Role` domain class to persist roles and their memberships to the
  *        app's primary database. Role members can include directly-assigned users, other roles
- *        (for role inheritance), and optionally external directory groups (pointers to an external
- *        Active Directory/LDAP instance - see below).
+ *        (for role inheritance), and/or external directory groups (pointers to an Active Directory
+ *        or LDAP instance - see below).
  *      - Roles and their memberships can be managed via the Hoist Admin Console.
- *      - The app-level implementation of this service does not need to (re)implement any of its
- *        protected methods - it can be an "empty" class that extends this base class.
+ *      - With this option, an app-level implementation of this service does not need to override
+ *        any of its protected methods - it can be an "empty" class that extends this base class.
  *
- * Option 1a - use Hoist Roles with member pointers to an external directory.
+ * Option 1a - use Hoist Roles with external directoryGroup members.
  *
  *     - Hoist Roles can have members that are pointers to external directory groups.
  *     - Apps must implement `getUsersForDirectoryGroups()` on their RoleService to resolve these
