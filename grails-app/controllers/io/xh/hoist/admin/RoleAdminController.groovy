@@ -4,7 +4,7 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.role.Role
 import io.xh.hoist.security.Access
 
-@Access(['HOIST_ADMIN'])
+@Access(['HOIST_ROLE_MANAGER'])
 class RoleAdminController extends BaseController {
     RoleAdminService roleAdminService
 

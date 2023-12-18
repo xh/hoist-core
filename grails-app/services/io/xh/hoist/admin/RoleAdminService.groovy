@@ -32,10 +32,6 @@ class RoleAdminService extends BaseService {
     List<Map> list() {
         List<Role> roles = Role.list()
 
-        Set<String> directoryGroups = new HashSet<String>()
-        roles.each { directoryGroups.addAll(it.directoryGroups) }
-        Map<String, Set<String>> usersForDirectoryGroups = roleService.getUsersForDirectoryGroups(directoryGroups)
-
         roles.collect {
             Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers = it.resolveEffectiveMembers()
             [
@@ -45,7 +41,7 @@ class RoleAdminService extends BaseService {
                 lastUpdated: it.lastUpdated,
                 lastUpdatedBy: it.lastUpdatedBy,
                 inheritedRoles: it.listInheritedRoles(),
-                effectiveUsers: collectEffectiveUsers(effectiveMembers, usersForDirectoryGroups),
+                effectiveUsers: collectEffectiveUsers(effectiveMembers, roles),
                 effectiveDirectoryGroups: effectiveMembers[RoleMember.Type.DIRECTORY_GROUP],
                 effectiveRoles: effectiveMembers[RoleMember.Type.ROLE],
                 members: it.members
@@ -224,19 +220,28 @@ class RoleAdminService extends BaseService {
 
     private List<EffectiveUser> collectEffectiveUsers(
         Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers,
-        Map<String, Set<String>> usersForDirectoryGroups
+        List<Role> roles
     ) {
         Map<String, EffectiveUser> ret = [:].withDefault { new EffectiveUser([name: it])}
+        Map<String, Set<String>> usersForDirectoryGroups
+        boolean enableUsers = roleService.config.enableUsers,
+             enableDirectoryGroups = roleService.config.enableDirectoryGroups
+
+        if (enableDirectoryGroups) {
+            Set<String> directoryGroups = new HashSet<String>()
+            roles.each { directoryGroups.addAll(it.directoryGroups) }
+            usersForDirectoryGroups = roleService.getUsersForDirectoryGroups(directoryGroups)
+        }
 
         effectiveMembers.each { type, members ->
             if (type == RoleMember.Type.ROLE) return
 
             members.each { member ->
-                if (type == RoleMember.Type.USER) {
+                if (type == RoleMember.Type.USER && enableUsers) {
                     member.sourceRoles.each { role ->
                         ret[member.name].addSource(role, null)
                     }
-                } else if (type == RoleMember.Type.DIRECTORY_GROUP) {
+                } else if (type == RoleMember.Type.DIRECTORY_GROUP && enableDirectoryGroups) {
                     usersForDirectoryGroups[member.name]?.each { user ->
                         member.sourceRoles.each { role ->
                             ret[user].addSource(role, member.name)

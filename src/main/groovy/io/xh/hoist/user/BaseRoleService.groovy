@@ -52,9 +52,9 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
  *     - If required for efficiency or any other app-specific handling, apps may also override
  *       `getRolesForUser()` and `getUsersForRole()`.
  *
- * Hoist requires only two roles - "HOIST_ADMIN" and "HOIST_ADMIN_READER" - to support access to the
- * built-in Admin Console and its backing endpoints. Custom application implementations should take
- * care to define and return these roles for suitable users.
+ * Hoist requires only three roles - "HOIST_ADMIN", "HOIST_ADMIN_READER" and "HOIST_ROLE_MANAGER" -
+ * to support access to the built-in Admin Console and its backing endpoints. Custom application
+ * implementations should take care to define and return these roles for suitable users.
  *
  * Note that {@link HoistUser#getRoles} and {@link HoistUser#hasRole} are the primary application
  * entry-point for verifying roles on a given user, reducing or eliminating any need to call an
@@ -66,6 +66,8 @@ abstract class BaseRoleService extends BaseService {
 
     private Timer timer
     private Map<String, Set<String>> _allRoleAssignments
+
+    static clearCachesConfigs = ['xhRoleServiceConfig']
 
     void init() {
         timer = createTimer(
@@ -101,7 +103,7 @@ abstract class BaseRoleService extends BaseService {
         allRoleAssignments.each { role, users ->
             if (users.contains(username)) ret.add(role)
         }
-        if (ret.contains('HOIST_ADMIN')) { // todo - discuss whether we should keep this.
+        if (ret.contains('HOIST_ADMIN')) {
             ret.add('HOIST_ADMIN_READER')
             ret.add('HOIST_IMPERSONATOR')
         }
@@ -120,10 +122,21 @@ abstract class BaseRoleService extends BaseService {
     }
 
     /**
+     * Return the configuration Map for this service with the following entries:
+     *  enabled: boolean
+     *  enableDirectoryGroups: boolean
+     *  enableUsers: boolean
+     *  refreshInterval": int
+     */
+    Map getConfig() {
+        return configService.getMap('xhRoleServiceConfig')
+    }
+
+    /**
      * Return Map of directory group names to assigned users.
      */
     protected Map<String, Set<String>> getUsersForDirectoryGroups(Set<String> directoryGroups) {
-        if (!config.enableDirectoryGroups || !directoryGroups) return Collections.EMPTY_MAP
+        if (!directoryGroups) return Collections.EMPTY_MAP
         throw new UnsupportedOperationException('BaseRoleService.getUsersForDirectoryGroups not implemented.')
     }
 
@@ -134,20 +147,30 @@ abstract class BaseRoleService extends BaseService {
     @ReadOnly
     protected Map<String, Set<String>> generateRoleAssignments() {
         List<Role> roles = Role.list()
+        Map<String, Set<String>> usersForDirectoryGroups
+        boolean enableUsers = config.enableUsers,
+            enableDirectoryGroups = config.enableDirectoryGroups
 
-        Set<String> directoryGroups = new HashSet<String>()
-        roles.each { directoryGroups.addAll(it.directoryGroups) }
-        Map<String, Set<String>> usersForDirectoryGroups = getUsersForDirectoryGroups(directoryGroups)
+        if (enableDirectoryGroups) {
+            Set<String> directoryGroups = new HashSet<String>()
+            roles.each { directoryGroups.addAll(it.directoryGroups) }
+            usersForDirectoryGroups = getUsersForDirectoryGroups(directoryGroups)
+        }
 
         roles.collectEntries { role ->
             Set<String> users = new HashSet<String>()
             Map<RoleMember.Type, List<EffectiveMember>> members = role.resolveEffectiveMembers()
 
-            members[RoleMember.Type.USER]
-                .each { users.add(it.name) }
+            if (enableUsers) {
+                members[RoleMember.Type.USER]
+                    .each { users.add(it.name) }
+            }
 
-            members[RoleMember.Type.DIRECTORY_GROUP]
-                .each { users.addAll(usersForDirectoryGroups[it.name] ?: Collections.EMPTY_SET) }
+            if (enableDirectoryGroups) {
+                members[RoleMember.Type.DIRECTORY_GROUP].each {
+                    users.addAll(usersForDirectoryGroups[it.name] ?: Collections.EMPTY_SET)
+                }
+            }
 
             return [role.name, users]
         }
@@ -163,9 +186,5 @@ abstract class BaseRoleService extends BaseService {
         withDebug('Refreshing role assignments') {
             _allRoleAssignments = generateRoleAssignments()
         }
-    }
-
-    private Map getConfig() {
-        return configService.getMap('xhRoleServiceConfig')
     }
 }

@@ -341,6 +341,12 @@ class BootStrap {
                 category: 'Admin',
                 notes: 'Hoist Impersonators can impersonate other users.',
                 roles: ['HOIST_ADMIN']
+            ],
+            [
+                name: 'HOIST_ROLE_MANAGER',
+                category: 'Admin',
+                notes: 'Hoist Role Managers can manage roles and their memberships.',
+                users: ['ADMIN_USER']
             ]
         ])
     }
