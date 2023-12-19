@@ -7,6 +7,7 @@ import io.xh.hoist.role.Role
 import io.xh.hoist.role.RoleMember
 import io.xh.hoist.user.EffectiveMember
 import io.xh.hoist.user.EffectiveUser
+import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.RoleMemberChanges
 
 /**
@@ -50,15 +51,20 @@ class RoleAdminService extends BaseService {
     }
 
     Role create(Map roleSpec) {
+        ensureCanEdit()
         createOrUpdate(roleSpec)
+        roleService.clearCaches()
     }
 
     Role update(Map roleSpec) {
+        ensureCanEdit()
         createOrUpdate(roleSpec, true)
+        roleService.clearCaches()
     }
 
     @Transactional
     void delete(String id) {
+        ensureCanEdit()
         Role roleToDelete = Role.get(id)
 
         RoleMember
@@ -71,6 +77,7 @@ class RoleAdminService extends BaseService {
             msg: "Deleted role: '${id}'",
             category: 'Audit'
         )
+        roleService.clearCaches()
     }
 
 
@@ -224,10 +231,10 @@ class RoleAdminService extends BaseService {
     ) {
         Map<String, EffectiveUser> ret = [:].withDefault { new EffectiveUser([name: it])}
         Map<String, Set<String>> usersForDirectoryGroups
-        boolean enableUsers = roleService.config.enableUsers,
-             enableDirectoryGroups = roleService.config.enableDirectoryGroups
+        boolean assignUsers = roleService.config.assignUsers,
+            assignDirectoryGroups = roleService.config.assignDirectoryGroups
 
-        if (enableDirectoryGroups) {
+        if (assignDirectoryGroups) {
             Set<String> directoryGroups = new HashSet<String>()
             roles.each { directoryGroups.addAll(it.directoryGroups) }
             usersForDirectoryGroups = roleService.getUsersForDirectoryGroups(directoryGroups)
@@ -237,11 +244,11 @@ class RoleAdminService extends BaseService {
             if (type == RoleMember.Type.ROLE) return
 
             members.each { member ->
-                if (type == RoleMember.Type.USER && enableUsers) {
+                if (type == RoleMember.Type.USER && assignUsers) {
                     member.sourceRoles.each { role ->
                         ret[member.name].addSource(role, null)
                     }
-                } else if (type == RoleMember.Type.DIRECTORY_GROUP && enableDirectoryGroups) {
+                } else if (type == RoleMember.Type.DIRECTORY_GROUP && assignDirectoryGroups) {
                     usersForDirectoryGroups[member.name]?.each { user ->
                         member.sourceRoles.each { role ->
                             ret[user].addSource(role, member.name)
@@ -252,5 +259,12 @@ class RoleAdminService extends BaseService {
         }
 
         ret.values() as List<EffectiveUser>
+    }
+
+    private void ensureCanEdit() {
+        HoistUser authUser = identityService.authUser
+        if (!authUser.hasRole('HOIST_ROLE_MANAGER')) {
+            throw new RuntimeException("${authUser.username} is not a 'HOIST_ROLE_MANAGER'")
+        }
     }
 }

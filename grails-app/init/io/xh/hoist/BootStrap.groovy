@@ -258,12 +258,13 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Email address to which status monitor alerts should be sent. Value "none" disables emailed alerts.'
             ],
-            xhRoleServiceConfig: [
+            xhRoleModuleConfig: [
                 valueType: 'json',
                 defaultValue: [
                     enabled: true,
-                    enableDirectoryGroups: true,
-                    refreshInterval: 30,
+                    assignDirectoryGroups: true,
+                    assignUsers: true,
+                    refreshIntervalSecs: 30,
                 ],
                 clientVisible: true,
                 groupName: 'xh.io',
