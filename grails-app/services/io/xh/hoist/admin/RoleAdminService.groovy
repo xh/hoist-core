@@ -53,13 +53,11 @@ class RoleAdminService extends BaseService {
     Role create(Map roleSpec) {
         ensureCanEdit()
         createOrUpdate(roleSpec)
-        roleService.clearCaches()
     }
 
     Role update(Map roleSpec) {
         ensureCanEdit()
         createOrUpdate(roleSpec, true)
-        roleService.clearCaches()
     }
 
     @Transactional
@@ -194,6 +192,7 @@ class RoleAdminService extends BaseService {
             )
         }
 
+        roleService.clearCaches()
         return role
     }
 
