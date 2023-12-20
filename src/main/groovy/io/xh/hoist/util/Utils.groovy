@@ -7,6 +7,7 @@
 
 package io.xh.hoist.util
 
+import io.xh.hoist.admin.RoleAdminService
 import io.xh.hoist.json.JSONParser
 import grails.util.Environment
 import grails.util.Holders
@@ -106,6 +107,10 @@ class Utils {
 
     static BaseRoleService getRoleService() {
         return (BaseRoleService) appContext.roleService
+    }
+
+    static RoleAdminService getRoleAdminService() {
+        return (RoleAdminService) appContext.roleAdminService
     }
 
     static ExceptionRenderer getExceptionRenderer() {
