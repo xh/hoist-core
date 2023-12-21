@@ -96,7 +96,7 @@ class ApplicationConfig {
                     use_query_cache = true
                     region.factory_class = 'org.hibernate.cache.ehcache.SingletonEhCacheRegionFactory'
                 }
-                show_sql = true
+                show_sql = false
             }
         }
     }
