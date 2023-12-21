@@ -261,7 +261,8 @@ class BootStrap {
             xhRoleModuleConfig: [
                 valueType: 'json',
                 defaultValue: [
-                    enabled: true,
+                    // Disabled by default for apps with legacy role management via JSON config.
+                    enabled: !configService.getMap('roles'),
                     assignDirectoryGroups: true,
                     assignUsers: true,
                     refreshIntervalSecs: 30,
@@ -324,6 +325,7 @@ class BootStrap {
     }
 
     private void ensureRequiredRolesCreated() {
+        if (!configService.getMap('xhRoleModuleConfig').enabled || Role.count()) return
         roleAdminService.ensureRequiredRolesCreated([
             [
                 name: 'HOIST_ADMIN',

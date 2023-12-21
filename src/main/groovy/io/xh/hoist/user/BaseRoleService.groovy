@@ -119,6 +119,9 @@ abstract class BaseRoleService extends BaseService {
      * Note that this default implementation does not validate that the usernames returned are in
      * fact active and enabled application users as per UserService. Apps may wish to do so -
      * the Hoist framework does not depend on it.
+     *
+     * Implementations should be careful to ensure this method doesn't throw, as doing so will
+     * prevent the application from starting.
      */
     Set<String> getUsersForRole(String role) {
         return allRoleAssignments[role] ?: Collections.EMPTY_SET
@@ -136,10 +139,10 @@ abstract class BaseRoleService extends BaseService {
     }
 
     /**
-     * Return Map of directory group names to assigned users.
+     * Return Map of directory group names to assigned users. Applications should be careful to
+     * ensure this method doesn't throw, as doing so will prevent the application from starting.
      */
     protected Map<String, Set<String>> getUsersForDirectoryGroups(Set<String> directoryGroups) {
-        if (!directoryGroups) return Collections.EMPTY_MAP
         throw new UnsupportedOperationException('BaseRoleService.getUsersForDirectoryGroups not implemented.')
     }
 
@@ -155,7 +158,7 @@ abstract class BaseRoleService extends BaseService {
 
         if (assignDirectoryGroups) {
             def groups = roles.collectMany(new HashSet()) { it.directoryGroups } as Set<String>
-            usersForDirectoryGroups = getUsersForDirectoryGroups(groups)
+            if (groups) usersForDirectoryGroups = getUsersForDirectoryGroups(groups)
         }
 
         roles.collectEntries { role ->
@@ -167,7 +170,7 @@ abstract class BaseRoleService extends BaseService {
                     .each { users.add(it.name) }
             }
 
-            if (assignDirectoryGroups) {
+            if (usersForDirectoryGroups) {
                 members[RoleMember.Type.DIRECTORY_GROUP].each {
                     def groupUsers = usersForDirectoryGroups[it.name]
                     if (groupUsers) users.addAll(groupUsers)

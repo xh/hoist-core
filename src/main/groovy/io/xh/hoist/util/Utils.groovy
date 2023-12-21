@@ -109,10 +109,6 @@ class Utils {
         return (BaseRoleService) appContext.roleService
     }
 
-    static RoleAdminService getRoleAdminService() {
-        return (RoleAdminService) appContext.roleAdminService
-    }
-
     static ExceptionRenderer getExceptionRenderer() {
         return (ExceptionRenderer) appContext.exceptionRenderer
     }

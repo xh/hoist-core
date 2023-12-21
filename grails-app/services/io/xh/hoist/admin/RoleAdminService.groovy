@@ -236,7 +236,9 @@ class RoleAdminService extends BaseService {
         if (assignDirectoryGroups) {
             Set<String> directoryGroups = new HashSet<String>()
             roles.each { directoryGroups.addAll(it.directoryGroups) }
-            usersForDirectoryGroups = roleService.getUsersForDirectoryGroups(directoryGroups)
+            if (directoryGroups) {
+                usersForDirectoryGroups = roleService.getUsersForDirectoryGroups(directoryGroups)
+            }
         }
 
         effectiveMembers.each { type, members ->
@@ -247,7 +249,7 @@ class RoleAdminService extends BaseService {
                     member.sourceRoles.each { role ->
                         ret[member.name].addSource(role, null)
                     }
-                } else if (type == RoleMember.Type.DIRECTORY_GROUP && assignDirectoryGroups) {
+                } else if (type == RoleMember.Type.DIRECTORY_GROUP && usersForDirectoryGroups) {
                     usersForDirectoryGroups[member.name]?.each { user ->
                         member.sourceRoles.each { role ->
                             ret[user].addSource(role, member.name)
