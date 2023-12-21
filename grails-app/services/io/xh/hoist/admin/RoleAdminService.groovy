@@ -97,7 +97,7 @@ class RoleAdminService extends BaseService {
             if (!currRole) {
                 Role createdRole = new Role(
                     name: roleSpec.name,
-                    category: roleSpec.category ?: 'Default',
+                    category: roleSpec.category,
                     notes: roleSpec.notes,
                     lastUpdatedBy: 'hoist-bootstrap'
                 ).save()
