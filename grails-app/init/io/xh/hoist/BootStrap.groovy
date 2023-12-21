@@ -261,11 +261,10 @@ class BootStrap {
             xhRoleModuleConfig: [
                 valueType: 'json',
                 defaultValue: [
-                    // Disabled by default for apps with legacy role management via JSON config.
-                    enabled: !configService.getMap('roles'),
+                    enabled: true,
                     assignDirectoryGroups: true,
                     assignUsers: true,
-                    refreshIntervalSecs: 30,
+                    refreshIntervalSecs: 120,
                 ],
                 clientVisible: true,
                 groupName: 'xh.io',
@@ -329,25 +328,25 @@ class BootStrap {
         roleAdminService.ensureRequiredRolesCreated([
             [
                 name: 'HOIST_ADMIN',
-                category: 'Admin',
+                category: 'Hoist',
                 notes: 'Hoist Admins have full access to all Hoist Admin tools and functionality.',
                 users: ['ADMIN_USER']
             ],
             [
                 name: 'HOIST_ADMIN_READER',
-                category: 'Admin',
+                category: 'Hoist',
                 notes: 'Hoist Admin Readers have read-only access to all Hoist Admin tools and functionality.',
                 roles: ['HOIST_ADMIN']
             ],
             [
                 name: 'HOIST_IMPERSONATOR',
-                category: 'Admin',
+                category: 'Hoist',
                 notes: 'Hoist Impersonators can impersonate other users.',
                 roles: ['HOIST_ADMIN']
             ],
             [
                 name: 'HOIST_ROLE_MANAGER',
-                category: 'Admin',
+                category: 'Hoist',
                 notes: 'Hoist Role Managers can manage roles and their memberships.',
                 users: ['ADMIN_USER']
             ]
