@@ -264,7 +264,7 @@ class BootStrap {
                     enabled: true,
                     assignDirectoryGroups: true,
                     assignUsers: true,
-                    refreshIntervalSecs: 120,
+                    refreshIntervalSecs: 30,
                 ],
                 clientVisible: true,
                 groupName: 'xh.io',
