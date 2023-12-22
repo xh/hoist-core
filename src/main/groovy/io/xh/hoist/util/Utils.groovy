@@ -7,7 +7,6 @@
 
 package io.xh.hoist.util
 
-import io.xh.hoist.admin.RoleAdminService
 import io.xh.hoist.json.JSONParser
 import grails.util.Environment
 import grails.util.Holders
