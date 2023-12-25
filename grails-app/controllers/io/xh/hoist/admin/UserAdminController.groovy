@@ -9,7 +9,7 @@ package io.xh.hoist.admin
 
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
-import io.xh.hoist.user.BaseRoleService
+import io.xh.hoist.role.BaseRoleService
 import io.xh.hoist.user.BaseUserService
 import static io.xh.hoist.util.Utils.parseBooleanStrict
 

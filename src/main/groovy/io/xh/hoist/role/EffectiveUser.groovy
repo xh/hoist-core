@@ -1,4 +1,4 @@
-package io.xh.hoist.user
+package io.xh.hoist.role
 
 import io.xh.hoist.json.JSONFormat
 
@@ -7,15 +7,13 @@ class EffectiveUser implements JSONFormat {
     List<Source> sources = []
 
     void addSource(String role, String directoryGroup) {
-        sources.add(new Source(role, directoryGroup))
+        sources << new Source(role, directoryGroup)
     }
 
-    Map formatForJSON() {
-        [
-            name: name,
-            sources: sources
-        ]
-    }
+    Map formatForJSON() {[
+        name: name,
+        sources: sources
+    ]}
 
     private class Source implements JSONFormat {
         String role

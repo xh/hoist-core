@@ -1,14 +1,10 @@
-package io.xh.hoist.admin
+package io.xh.hoist.role
 
 import grails.gorm.transactions.ReadOnly
 import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
-import io.xh.hoist.role.Role
-import io.xh.hoist.role.RoleMember
-import io.xh.hoist.user.EffectiveMember
-import io.xh.hoist.user.EffectiveUser
 import io.xh.hoist.user.HoistUser
-import io.xh.hoist.user.RoleMemberChanges
+import static io.xh.hoist.role.RoleMember.Type.*
 
 /**
  * Service to support admin management of Hoist's persistent, database-backed {@link Role} class.
@@ -18,7 +14,7 @@ import io.xh.hoist.user.RoleMemberChanges
  * which apps might wish to call in their Bootstrap code to ensure that expected roles have been
  * created in a given database environment.
  *
- * @see io.xh.hoist.user.BaseRoleService - this is the service contract apps must implement and is
+ * @see io.xh.hoist.role.BaseRoleService - this is the service contract apps must implement and is
  *     by default the primary user/consumer of the Roles created and updated by the service below.
  */
 class RoleAdminService extends BaseService {
@@ -43,36 +39,33 @@ class RoleAdminService extends BaseService {
                 lastUpdatedBy: it.lastUpdatedBy,
                 inheritedRoles: it.listInheritedRoles(),
                 effectiveUsers: collectEffectiveUsers(effectiveMembers, roles),
-                effectiveDirectoryGroups: effectiveMembers[RoleMember.Type.DIRECTORY_GROUP],
-                effectiveRoles: effectiveMembers[RoleMember.Type.ROLE],
+                effectiveDirectoryGroups: effectiveMembers[DIRECTORY_GROUP],
+                effectiveRoles: effectiveMembers[ROLE],
                 members: it.members
             ]
         }
     }
 
     Role create(Map roleSpec) {
-        ensureCanEdit()
-        createOrUpdate(roleSpec)
+        createOrUpdate(roleSpec, false)
     }
 
     Role update(Map roleSpec) {
-        ensureCanEdit()
         createOrUpdate(roleSpec, true)
     }
 
     @Transactional
     void delete(String id) {
-        ensureCanEdit()
         Role roleToDelete = Role.get(id)
 
         RoleMember
-            .findAllByTypeAndName(RoleMember.Type.ROLE, id)
+            .findAllByTypeAndName(ROLE, id)
             .each { it.role.removeFromMembers(it) }
 
         roleToDelete.delete(flush:true)
 
         trackService.track(
-            msg: "Deleted role: '${id}'",
+            msg: "Deleted role: '$id'",
             category: 'Audit'
         )
         roleService.clearCaches()
@@ -88,80 +81,102 @@ class RoleAdminService extends BaseService {
      * @param requiredRoles - List of maps of [name, category, notes, users, directoryGroups, roles]
      */
     @Transactional
-    void ensureRequiredRolesCreated(List<Map> requiredRoles) {
+    void ensureRequiredRolesCreated(List<Map> roleSpecs) {
         List<Role> currRoles = Role.list()
         int created = 0
 
-        requiredRoles.each { roleSpec ->
-            Role currRole = currRoles.find { it.name == roleSpec.name }
+        roleSpecs.each { spec ->
+            Role currRole = currRoles.find { it.name == spec.name }
             if (!currRole) {
                 Role createdRole = new Role(
-                    name: roleSpec.name,
-                    category: roleSpec.category,
-                    notes: roleSpec.notes,
+                    name: spec.name,
+                    category: spec.category,
+                    notes: spec.notes,
                     lastUpdatedBy: 'hoist-bootstrap'
                 ).save()
 
-                roleSpec.users?.each { user -> createdRole.addToMembers([
-                    type: RoleMember.Type.USER,
-                    name: user,
-                    createdBy: 'hoist-bootstrap'
-                ]) }
+                spec.users?.each {
+                    createdRole.addToMembers(
+                        type: USER,
+                        name: it,
+                        createdBy: 'hoist-bootstrap'
+                    )
+                }
 
-                roleSpec.directoryGroups?.each { directoryGroup -> createdRole.addToMembers([
-                    type: RoleMember.Type.DIRECTORY_GROUP,
-                    name: directoryGroup,
-                    createdBy: 'hoist-bootstrap'
-                ]) }
+                spec.directoryGroups?.each {
+                    createdRole.addToMembers(
+                        type: DIRECTORY_GROUP,
+                        name: it,
+                        createdBy: 'hoist-bootstrap'
+                    )
+                }
 
-                roleSpec.roles?.each { role -> createdRole.addToMembers([
-                    type: RoleMember.Type.ROLE,
-                    name: role,
-                    createdBy: 'hoist-bootstrap'
-                ]) }
+                spec.roles?.each {
+                    createdRole.addToMembers(
+                        type: ROLE,
+                        name: it,
+                        createdBy: 'hoist-bootstrap'
+                    )
+                }
 
                 logWarn(
-                    "Required role $roleSpec.name missing and created with default value",
+                    "Required role ${spec.name} missing and created with default value",
                     'verify default is appropriate for this application'
                 )
                 created++
             }
         }
 
-        logDebug("Validated presense of ${requiredRoles.size()} required roles", "created $created")
+        logDebug("Validated presense of ${roleSpecs.size()} required roles", "created $created")
+    }
+
+    /**
+     * Ensure that a user is a member of a set of roles.
+     *
+     * Typically called by bootstrapping mechanisms to ensure that core roles are
+     * accessible by a dedicated admin user on startup.
+     */
+    @Transactional
+    void ensureUserHasRoles(HoistUser user, List<String> roleNames) {
+        roleNames.each { roleName ->
+            if (!user.hasRole(roleName)) {
+                def role = Role.get(roleName)
+                if (!role) throw new RuntimeException("Unable to find role $roleName")
+                role.addToMembers(type: USER, name: user.username, createdBy: 'hoist-bootstrap')
+                role.save(flush: true)
+                roleService.clearCaches()
+            }
+        }
     }
 
     //------------------------
     // Implementation
     //------------------------
-
     @Transactional
-    private Role createOrUpdate(Map roleSpec, update = false) {
+    private Role createOrUpdate(Map<String, Object> roleSpec, boolean isUpdate) {
         List<String> users = roleSpec.users as List<String>,
                      directoryGroups = roleSpec.directoryGroups as List<String>,
                      roles = roleSpec.roles as List<String>
-
         roleSpec.remove('users')
         roleSpec.remove('directoryGroups')
         roleSpec.remove('roles')
 
         Role role
-
-        if (update) {
+        if (isUpdate) {
             role = Role.get(roleSpec.name as String)
-            roleSpec.each { k, v -> role.setProperty(k as String, v) }
+            roleSpec.each { k, v -> role[k] = v }
         } else {
             role = new Role(roleSpec)
         }
 
-        RoleMemberChanges userChanges = updateMembers(role, RoleMember.Type.USER, users),
-                          directoryGroupChanges = updateMembers(role, RoleMember.Type.DIRECTORY_GROUP, directoryGroups),
-                          roleChanges = updateMembers(role, RoleMember.Type.ROLE, roles)
+        def userChanges = updateMembers(role, USER, users),
+            directoryGroupChanges = updateMembers(role, DIRECTORY_GROUP, directoryGroups),
+            roleChanges = updateMembers(role, ROLE, roles)
 
         role.setLastUpdatedBy(authUsername)
         role.save(flush: true)
 
-        if (update) {
+        if (isUpdate) {
             trackService.track(
                 msg: "Edited role: '${roleSpec.name}'",
                 category: 'Audit',
@@ -204,12 +219,12 @@ class RoleAdminService extends BaseService {
             .findAll { it.role == owner && it.type == type }
 
         members.each { member ->
-            if (!existingMembers.find { it.name == member }) {
-                owner.addToMembers([
+            if (!existingMembers.any {it.name == member}) {
+                owner.addToMembers(
                     type: type,
                     name: member,
                     createdBy: authUsername
-                ])
+                )
                 changes.added << member
             }
         }
@@ -242,14 +257,14 @@ class RoleAdminService extends BaseService {
         }
 
         effectiveMembers.each { type, members ->
-            if (type == RoleMember.Type.ROLE) return
+            if (type == ROLE) return
 
             members.each { member ->
-                if (type == RoleMember.Type.USER && assignUsers) {
+                if (type == USER && assignUsers) {
                     member.sourceRoles.each { role ->
                         ret[member.name].addSource(role, null)
                     }
-                } else if (type == RoleMember.Type.DIRECTORY_GROUP && usersForDirectoryGroups) {
+                } else if (type == DIRECTORY_GROUP && usersForDirectoryGroups) {
                     usersForDirectoryGroups[member.name]?.each { user ->
                         member.sourceRoles.each { role ->
                             ret[user].addSource(role, member.name)
@@ -262,10 +277,8 @@ class RoleAdminService extends BaseService {
         ret.values() as List<EffectiveUser>
     }
 
-    private void ensureCanEdit() {
-        HoistUser authUser = identityService.authUser
-        if (!authUser.hasRole('HOIST_ROLE_MANAGER')) {
-            throw new RuntimeException("${authUser.username} is not a 'HOIST_ROLE_MANAGER'")
-        }
+    class RoleMemberChanges {
+        List<String> added = []
+        List<String> removed = []
     }
 }

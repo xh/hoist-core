@@ -1,7 +1,6 @@
 package io.xh.hoist.role
 
 import io.xh.hoist.json.JSONFormat
-import io.xh.hoist.user.EffectiveMember
 
 /**
  * Backing domain class for Hoist's built-in role management. Methods on this class are used

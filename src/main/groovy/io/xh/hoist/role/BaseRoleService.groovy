@@ -5,16 +5,14 @@
  * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.user
+package io.xh.hoist.role
 
 import grails.gorm.transactions.ReadOnly
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.role.RoleMember
-import io.xh.hoist.role.Role
-import io.xh.hoist.util.Timer
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import io.xh.hoist.util.Timer
 
 /**
  * Abstract base service for maintaining a list of HoistUser <-> Role assignments, where roles
@@ -56,7 +54,7 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
  * to support access to the built-in Admin Console and its backing endpoints. Custom application
  * implementations should take care to define and return these roles for suitable users.
  *
- * Note that {@link HoistUser#getRoles} and {@link HoistUser#hasRole} are the primary application
+ * Note that `HoistUser.getRoles` and `HoistUser.hasRole` are the primary application
  * entry-points for verifying roles on a given user, reducing or eliminating any need to call an
  * implementation of this service directly.
  */
@@ -101,13 +99,13 @@ abstract class BaseRoleService extends BaseService {
     Set<String> getRolesForUser(String username) {
         Set<String> ret = new HashSet()
         allRoleAssignments.each { role, users ->
-            if (users.contains(username)) ret.add(role)
+            if (users.contains(username)) ret << role
         }
 
         // For backward compatibility when not using built-in Hoist role management.
         if (!config.enabled && ret.contains('HOIST_ADMIN')) {
-            ret.add('HOIST_ADMIN_READER')
-            ret.add('HOIST_IMPERSONATOR')
+            ret << 'HOIST_ADMIN_READER'
+            ret << 'HOIST_IMPERSONATOR'
         }
 
         return ret
@@ -135,7 +133,7 @@ abstract class BaseRoleService extends BaseService {
      *  refreshIntervalSecs: int
      */
     Map getConfig() {
-        return configService.getMap('xhRoleModuleConfig')
+        configService.getMap('xhRoleModuleConfig')
     }
 
     /**
@@ -181,7 +179,6 @@ abstract class BaseRoleService extends BaseService {
         }
     }
 
-    @Override
     void clearCaches() {
         timer.forceRun()
         super.clearCaches()

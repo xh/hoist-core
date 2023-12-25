@@ -329,8 +329,7 @@ class BootStrap {
             [
                 name: 'HOIST_ADMIN',
                 category: 'Hoist',
-                notes: 'Hoist Admins have full access to all Hoist Admin tools and functionality.',
-                users: ['ADMIN_USER']
+                notes: 'Hoist Admins have full access to all Hoist Admin tools and functionality.'
             ],
             [
                 name: 'HOIST_ADMIN_READER',
@@ -348,7 +347,7 @@ class BootStrap {
                 name: 'HOIST_ROLE_MANAGER',
                 category: 'Hoist',
                 notes: 'Hoist Role Managers can manage roles and their memberships.',
-                users: ['ADMIN_USER']
+                roles: ['HOIST_ADMIN']
             ]
         ])
     }
