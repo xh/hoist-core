@@ -57,17 +57,16 @@ trait HoistUser implements JSONFormat {
     }
 
     boolean getIsHoistAdmin() {
-        return hasRole(HOIST_ADMIN_ROLE)
+        return hasRole('HOIST_ADMIN')
     }
 
     boolean getIsHoistAdminReader() {
-        return hasRole(HOIST_ADMIN_READER_ROLE)
+        return hasRole('HOIST_ADMIN_READER')
     }
 
     boolean getCanImpersonate() {
-        return hasRole(HOIST_IMPERSONATOR_ROLE)
+        return hasRole('HOIST_IMPERSONATOR')
     }
-
 
     /**
      * Gates are a lighter-weight concept, similar to roles, but sourced here from soft-config

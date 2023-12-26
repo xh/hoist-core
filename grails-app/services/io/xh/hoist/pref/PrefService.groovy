@@ -124,8 +124,6 @@ class PrefService extends BaseService {
      * these prefs are present and that their values and local flags are as expected. Will create
      * missing prefs with supplied default values if not found.
      *
-     * Called for xh.io prefs by Hoist Core Bootstrap.
-     *
      * @param requiredPrefs - map of prefName to map of [type, defaultValue, local, note]
      */
     @Transactional

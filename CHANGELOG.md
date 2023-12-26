@@ -2,6 +2,14 @@
 
 ## 18.0-SNAPSHOT
 
+### 🎁 New Features
+
+* New support for Role Management.
+  * Hoist now supports an out-of-the-box, database-driven system for maintaining a hierarchical set
+    of Roles associating and associating them with individual users.
+  * New system supports app and plug-in specific integrations to AD and other enterprise systems.
+  * Administration of the new system provided by a new admin UI in hoist-react v60 and above.
+
 ### ⚙️ Technical
 
 * Add `xh/echoHeaders` utility endpoint. Useful for verifying headers (e.g. `jespa_connection_id`)
