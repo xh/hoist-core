@@ -37,6 +37,8 @@ import static io.xh.hoist.util.Utils.getConfigService
 /**
  * Standard superclass for all Hoist and Application-level services.
  * Provides template methods for service lifecycle / state management plus support for user lookups.
+ * As an abstract class, BaseService must reside in src/main/groovy to allow Java compilation and
+ * to ensure it is not itself instantiated as a Grails service.
  */
 abstract class BaseService implements LogSupport, IdentitySupport, DisposableBean {
 

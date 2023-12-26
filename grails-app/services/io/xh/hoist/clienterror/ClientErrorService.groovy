@@ -39,7 +39,6 @@ class ClientErrorService extends BaseService {
     private int getAlertInterval()  {configService.getMap('xhClientErrorConfig').intervalMins * MINUTES}
 
     void init() {
-        super.init()
         createTimer(
             interval: { alertInterval },
             delay: 15 * SECONDS,

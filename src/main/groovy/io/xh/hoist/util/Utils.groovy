@@ -18,7 +18,7 @@ import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.pref.PrefService
-import io.xh.hoist.user.BaseRoleService
+import io.xh.hoist.role.BaseRoleService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.user.IdentityService
 import io.xh.hoist.websocket.WebSocketService

@@ -134,7 +134,8 @@ class ConfigService extends BaseService {
     /**
      * Check a list of core configurations required for Hoist/application operation - ensuring that these configs are
      * present and that their valueTypes and clientVisible flags are are as expected. Will create missing configs with
-     * supplied default values if not found. Called for xh.io configs by Hoist Core Bootstrap.
+     * supplied default values if not found.
+     *
      * @param reqConfigs - map of configName to map of [valueType, defaultValue, clientVisible, groupName]
      */
     @Transactional

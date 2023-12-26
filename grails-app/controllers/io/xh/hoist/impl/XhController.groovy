@@ -279,6 +279,15 @@ class XhController extends BaseController {
         renderJSON([offset: tz.getOffset(System.currentTimeMillis())])
     }
 
+    /**
+     * Utility to echo all headers received on the request. Useful in particular for verifying
+     * headers (e.g. `jespa_connection_id`) that are installed by or must pass through multiple
+     * ingresses/load balancers.
+     */
+    def echoHeaders() {
+        renderJSON(request.headerNames.toList().collectEntries { [it, request.getHeader(it)] })
+    }
+
     def notFound() {
         throw new NotFoundException()
     }
