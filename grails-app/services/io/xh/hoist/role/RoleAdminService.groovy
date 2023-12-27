@@ -277,6 +277,7 @@ class RoleAdminService extends BaseService {
         ret.values() as List<EffectiveUser>
     }
 
+
     class RoleMemberChanges {
         List<String> added = []
         List<String> removed = []

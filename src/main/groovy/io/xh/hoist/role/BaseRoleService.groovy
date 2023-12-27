@@ -10,9 +10,16 @@ package io.xh.hoist.role
 import grails.gorm.transactions.ReadOnly
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
+import io.xh.hoist.cluster.ReplicatedValue
 import io.xh.hoist.config.ConfigService
+
+import static io.xh.hoist.role.RoleMember.Type.DIRECTORY_GROUP
+import static io.xh.hoist.role.RoleMember.Type.USER
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import io.xh.hoist.util.Timer
+
+import static java.util.Collections.EMPTY_MAP
+import static java.util.Collections.EMPTY_SET
 
 /**
  * Abstract base service for maintaining a list of HoistUser <-> Role assignments, where roles
@@ -63,14 +70,16 @@ abstract class BaseRoleService extends BaseService {
     ConfigService configService
 
     private Timer timer
-    private Map<String, Set<String>> _allRoleAssignments
+    private ReplicatedValue<Map<String, Set<String>>> roleCache
 
     static clearCachesConfigs = ['xhRoleModuleConfig']
 
     void init() {
+        roleCache = clusterService.getReplicatedValue('roleCache')
         timer = createTimer(
             interval: { config.enabled ? config.refreshIntervalSecs as int * SECONDS : -1 },
             runFn: this.&refreshRoleAssignments,
+            masterOnly: true,
             runImmediatelyAndBlock: true
         )
     }
@@ -86,7 +95,7 @@ abstract class BaseRoleService extends BaseService {
      * when processing a request.
      */
     Map<String, Set<String>> getAllRoleAssignments() {
-        _allRoleAssignments
+        roleCache.get() ?: EMPTY_MAP
     }
 
     /**
@@ -122,7 +131,7 @@ abstract class BaseRoleService extends BaseService {
      * prevent the application from starting.
      */
     Set<String> getUsersForRole(String role) {
-        return allRoleAssignments[role] ?: Collections.EMPTY_SET
+        allRoleAssignments[role] ?: EMPTY_SET
     }
 
     /**
@@ -164,12 +173,12 @@ abstract class BaseRoleService extends BaseService {
             Map<RoleMember.Type, List<EffectiveMember>> members = role.resolveEffectiveMembers()
 
             if (assignUsers) {
-                members[RoleMember.Type.USER]
+                members[USER]
                     .each { users.add(it.name) }
             }
 
             if (usersForDirectoryGroups) {
-                members[RoleMember.Type.DIRECTORY_GROUP].each {
+                members[DIRECTORY_GROUP].each {
                     def groupUsers = usersForDirectoryGroups[it.name]
                     if (groupUsers) users.addAll(groupUsers)
                 }
@@ -186,7 +195,12 @@ abstract class BaseRoleService extends BaseService {
 
     protected void refreshRoleAssignments() {
         withDebug('Refreshing role assignments') {
-            _allRoleAssignments = generateRoleAssignments()
+            roleCache.set(generateRoleAssignments())
         }
     }
+
+    Map getAdminStats() {[
+        config: configForAdminStats('xhRoleModuleConfig'),
+        roleCacheSize: roleCache.get()?.size() ?: 0
+    ]}
 }
