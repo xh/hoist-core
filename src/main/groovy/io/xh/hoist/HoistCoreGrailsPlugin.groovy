@@ -8,6 +8,7 @@
 package io.xh.hoist
 
 import grails.plugins.Plugin
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.security.HoistSecurityFilter
 import io.xh.hoist.websocket.HoistWebSocketConfigurer
@@ -34,6 +35,8 @@ class HoistCoreGrailsPlugin extends Plugin {
 
     Closure doWithSpring() {
         {->
+            ClusterService.initializeInstance()
+
             hoistIdentityFilter(FilterRegistrationBean) {
                 filter = bean(HoistSecurityFilter)
                 order = Ordered.HIGHEST_PRECEDENCE + 40

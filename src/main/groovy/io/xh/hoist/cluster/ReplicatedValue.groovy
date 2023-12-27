@@ -22,7 +22,10 @@ class ReplicatedValue<T> {
         mp[key] as T
     }
 
-    T set(T value) {
+    void set(T value) {
+        if (value == null) {
+            mp.remove(key)
+        }
         mp[key] = value
     }
 }

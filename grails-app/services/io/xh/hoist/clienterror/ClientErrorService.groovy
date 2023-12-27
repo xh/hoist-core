@@ -34,11 +34,18 @@ class ClientErrorService extends BaseService {
     def clientErrorEmailService,
         configService
 
+    static clusterConfigs = [
+        clientErrors: [IMap, {
+            evictionConfig.size = 100
+        }]
+    ]
+
     private IMap<String, Map> errors = getIMap('clientErrors')
     private int getMaxErrors()      {configService.getMap('xhClientErrorConfig').maxErrors as int}
     private int getAlertInterval()  {configService.getMap('xhClientErrorConfig').intervalMins * MINUTES}
 
     void init() {
+        super.init()
         createTimer(
             interval: { alertInterval },
             delay: 15 * SECONDS,

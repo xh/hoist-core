@@ -50,9 +50,12 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     Date initializedDate = null
     Date lastCachesCleared = null
 
-    private boolean _destroyed = false
-
     protected final List<Timer> timers = []
+
+    private boolean _destroyed = false
+    private ReplicatedMap _repValuesMap
+    private final Logger _log = LoggerFactory.getLogger(this.class)
+
 
     /**
      * Initialize a collection of BaseServices in parallel.
@@ -112,8 +115,8 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         ClusterService.hzInstance.getReplicatedMap(hzName(id))
     }
 
-    <T> ReplicatedValue<T> getReplicatedValue(String id) {
-        new ReplicatedValue<T>(id, repValuesMap)
+    <T> ReplicatedValue<T> getReplicatedValue(String key) {
+        new ReplicatedValue<T>(key, repValuesMap)
     }
 
     <M> ITopic<M> getTopic(String id) {
@@ -281,18 +284,16 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     }
 
     // Provide cached logger to LogSupport for possible performance benefit
-    private final Logger _log = LoggerFactory.getLogger(this.class)
     Logger getInstanceLog() { _log }
 
 
     //------------------------
     // Internal implementation
     //------------------------
-    private String hzName(String key) {
+    protected String hzName(String key) {
         this.class.name + '_' + key
     }
 
-    private ReplicatedMap _repValuesMap
     private ReplicatedMap getRepValuesMap() {
         _repValuesMap = _repValuesMap ?: getReplicatedMap('replicatedValues')
     }

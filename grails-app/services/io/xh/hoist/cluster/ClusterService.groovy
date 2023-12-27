@@ -4,15 +4,10 @@ import com.hazelcast.cluster.Cluster
 import com.hazelcast.cluster.Member
 import com.hazelcast.cluster.MembershipEvent
 import com.hazelcast.cluster.MembershipListener
-import com.hazelcast.collection.ISet
 import com.hazelcast.core.DistributedObject
 import com.hazelcast.core.Hazelcast
-import com.hazelcast.config.Config
 import com.hazelcast.core.HazelcastInstance
 import com.hazelcast.core.IExecutorService
-import com.hazelcast.map.IMap
-import com.hazelcast.replicatedmap.ReplicatedMap
-import com.hazelcast.topic.ITopic
 import io.xh.hoist.BaseService
 import io.xh.hoist.ClusterConfig
 import io.xh.hoist.util.Utils
@@ -22,6 +17,7 @@ import org.springframework.context.ApplicationListener
 import javax.management.InstanceNotFoundException
 
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
+
 import static org.apache.commons.lang3.SerializationUtils.roundtrip
 
 class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent> {
@@ -45,7 +41,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      * The underlying embedded Hazelcast instance.
      * Use for accessing the native Hazelcast APIs.
      */
-    static final HazelcastInstance hzInstance
+    static HazelcastInstance hzInstance
 
     /**
      * Test all results of ClusterRequests for serialization.
@@ -55,16 +51,23 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      */
     private boolean testSerialization = getInstanceConfig('testClusterSerialization')
 
-    static {
+    private static ClusterConfig clusterConfig
 
-        // Create hazelcast instance statically so hibernate can access it early in app lifecycle
+    static {
+        // Create cluster/instance identifiers statically so logging can access early in lifecycle
         if (Utils.appCode) {  // ... do not create during build
-            def config = createConfig()
-            clusterName = config.clusterName
-            instanceName = config.instanceName
-            hzInstance = Hazelcast.newHazelcastInstance(config)
+            clusterConfig = createConfig()
+            clusterName = clusterConfig.clusterName
+            instanceName = clusterConfig.instanceName
             System.setProperty('io.xh.hoist.hzInstanceName', instanceName)
         }
+    }
+    /**
+     * Called by Framework to initialize the Hazelcast instance.
+     * @internal
+     */
+    static initializeInstance() {
+        hzInstance = Hazelcast.newHazelcastInstance(clusterConfig.createConfig())
     }
 
     void init() {
@@ -174,14 +177,14 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         return ret
     }
 
-    private static Config createConfig() {
+    private static ClusterConfig createConfig() {
         def clazz
         try {
             clazz = Class.forName(Utils.appPackage + '.ClusterConfig')
         } catch (ClassNotFoundException e) {
             clazz = Class.forName('io.xh.hoist.ClusterConfig')
         }
-        return (clazz.getConstructor().newInstance() as ClusterConfig).createConfig()
+        return (clazz.getConstructor().newInstance() as ClusterConfig)
     }
 
     void onApplicationEvent(ApplicationReadyEvent event) {

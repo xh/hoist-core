@@ -2,9 +2,25 @@ package io.xh.hoist
 
 import com.hazelcast.config.CacheSimpleConfig
 import com.hazelcast.config.Config
+import com.hazelcast.config.EvictionConfig
 import com.hazelcast.config.EvictionPolicy
+import com.hazelcast.config.InMemoryFormat
+import com.hazelcast.config.MapConfig
+import com.hazelcast.config.ReplicatedMapConfig
+import com.hazelcast.config.SetConfig
+import com.hazelcast.config.TopicConfig
+import com.hazelcast.map.IMap
+import com.hazelcast.replicatedmap.ReplicatedMap
+import com.hazelcast.topic.ITopic
+import com.hazelcast.collection.ISet
 import com.hazelcast.config.MaxSizePolicy
+import com.hazelcast.config.NearCacheConfig
+import grails.core.GrailsClass
+
+
 import io.xh.hoist.util.Utils
+
+import static grails.util.Holders.grailsApplication
 
 class ClusterConfig {
 
@@ -13,20 +29,32 @@ class ClusterConfig {
      *
      * This value identifies the cluster to attach to, create and is unique to this
      * application, version, and environment.
+     *
+     * To customize, override generateClusterName().
      */
-    String getClusterName() {
+    final String clusterName = generateClusterName()
+
+
+    /**
+     * Instance name of Hazelcast member.
+     * To customize, override generateInstanceName().
+     */
+    final String instanceName = generateInstanceName()
+
+
+    /**
+     * Override this method to customize the cluster name of the Hazelcast cluster.
+     */
+    protected String generateClusterName() {
         Utils.appCode + '_' + Utils.appEnvironment + '_' + Utils.appVersion
     }
 
     /**
-     * Name of this instance.
-     *
-     * A randomly chosen unique identifier.
+     * Override this method to customize the instance name of the Hazelcast member.
      */
-    String getInstanceName() {
+    protected String generateInstanceName() {
         UUID.randomUUID().toString().take(8)
     }
-
 
     /**
      * Produce configuration for the hazelcast cluster.
@@ -43,61 +71,102 @@ class ClusterConfig {
     Config createConfig() {
         def ret = new Config()
 
-        // Specify core identity of the instance...
-        ret.instanceName = getInstanceName()
-        ret.clusterName = getClusterName()
-        ret.memberAttributeConfig.setAttribute('instanceName', ret.instanceName)
+        ret.instanceName = instanceName
+        ret.clusterName = clusterName
+        ret.memberAttributeConfig.setAttribute('instanceName', instanceName)
 
-        // ...and add Hibernate caches and default networking
-        createCacheConfigs().each { ret.addCacheConfig(it) }
         ret.networkConfig.join.multicastConfig.enabled = true
 
+        createDefaultConfigs(ret)
+        createHibernateConfigs(ret)
+        createServiceConfigs(ret)
         return ret
     }
 
     /**
-     * The list of hibernate caches to configure for this application.
-     *
-     * Override this method to configure additional caches.
+     * Override this to create additional default configs in the application.
      */
-    protected List<CacheSimpleConfig> createCacheConfigs() {
-        [
-            hibernateCache('default-update-timestamps-region') {
-                it.evictionConfig.size = 1000
-            },
-            hibernateCache('default-query-results-region') {
-                it.evictionConfig.size = 1000
-            },
-            hibernateCache('io.xh.hoist.clienterror.ClientError'),
-            hibernateCache('io.xh.hoist.config.AppConfig'),
-            hibernateCache('io.xh.hoist.feedback.Feedback'),
-            hibernateCache('io.xh.hoist.jsonblob.JsonBlob'),
-            hibernateCache('io.xh.hoist.log.LogLevel'),
-            hibernateCache('io.xh.hoist.monitor.Monitor'),
-            hibernateCache('io.xh.hoist.pref.Preference'),
-            hibernateCache('io.xh.hoist.pref.UserPreference'),
-            hibernateCache('io.xh.hoist.track.TrackLog') {
-                it.evictionConfig.size = 20000
+    protected void createDefaultConfigs(Config config) {
+        config.getMapConfig('default').with {
+            statisticsEnabled = true
+            inMemoryFormat = InMemoryFormat.OBJECT
+            nearCacheConfig = new NearCacheConfig().setInMemoryFormat(InMemoryFormat.OBJECT)
+        }
+        config.getReplicatedMapConfig('default').with {
+            statisticsEnabled = true
+            inMemoryFormat = InMemoryFormat.OBJECT
+        }
+        config.getTopicConfig('default').with {
+            statisticsEnabled = true
+        }
+        config.getSetConfig('default').with {
+            statisticsEnabled = true
+        }
+        config.getCacheConfig('default').with {
+            statisticsEnabled = true
+            evictionConfig.maxSizePolicy = MaxSizePolicy.ENTRY_COUNT
+            evictionConfig.evictionPolicy = EvictionPolicy.LRU
+            evictionConfig.size = 5000
+        }
+
+        config.getCacheConfig('default-update-timestamps-region').with {
+            evictionConfig = new EvictionConfig(evictionConfig).setSize(1000)
+        }
+
+        config.getCacheConfig('default-query-results-region').with {
+            evictionConfig = new EvictionConfig(evictionConfig).setSize(1000)
+        }
+    }
+
+    //------------------------
+    // Implementation
+    //------------------------
+    private void createHibernateConfigs(Config config) {
+        grailsApplication.domainClasses.each { GrailsClass gc ->
+            Closure customizer = gc.getPropertyValue('cache') as Closure
+            if (customizer) {
+                // IMPORTANT -- We do an explicit clone, because wild card matching in hazelcast will
+                // actually just return the *shared* config (?!), and never want to let app edit that.
+                // Also need to explicitly clone the evictionConfig due to a probable Hz bug.
+                def baseConfig = config.findCacheConfig(gc.fullName),
+                    cacheConfig = new CacheSimpleConfig(baseConfig)
+                cacheConfig.evictionConfig = new EvictionConfig(baseConfig.evictionConfig)
+                customizer.delegate = cacheConfig
+                customizer.resolveStrategy = Closure.DELEGATE_FIRST
+                customizer(cacheConfig)
             }
-        ]
+        }
     }
 
-    /**
-     * Create a hibernate cache to be used for this application.  Typically used in
-     * implementations of createCacheConfigs().
-     *
-     * Additional properties for the returned cache may be provided via an optional closure.
-     *
-     * Override this method to change the default configuration for all hibernate caches used by
-     * this application.
-     */
-    protected CacheSimpleConfig hibernateCache(String name, Closure closure = null) {
-        def ret = new CacheSimpleConfig(name)
-        ret.statisticsEnabled = true
-        ret.evictionConfig.maxSizePolicy = MaxSizePolicy.ENTRY_COUNT
-        ret.evictionConfig.evictionPolicy = EvictionPolicy.LRU
-        ret.evictionConfig.size = 5000
-        closure?.call(ret)
-        return ret
+    private void createServiceConfigs(Config config) {
+        grailsApplication.serviceClasses.each { GrailsClass gc ->
+            Map objs = gc.getPropertyValue('clusterConfigs')
+            if (!objs) return
+            objs.forEach {String key, List value ->
+                def customizer = value[1] as Closure,
+                    objConfig
+                // IMPORTANT -- We do an explicit clone, because wild card matching in hazelcast will
+                // actually just return the *shared* config (?!), and never want to let app edit that.
+                switch (value[0]) {
+                    case IMap:
+                        objConfig = new MapConfig(config.findMapConfig(gc.fullName + '_' + key))
+                        break
+                    case ReplicatedMap:
+                        objConfig = new ReplicatedMapConfig(config.findReplicatedMapConfig(gc.fullName + '_' + key))
+                        break
+                    case ISet:
+                        objConfig = new SetConfig(config.findSetConfig(gc.fullName + '_' + key))
+                        break
+                    case ITopic:
+                        objConfig = new TopicConfig(config.findTopicConfig(key))
+                        break
+                    default:
+                        throw new RuntimeException('Unable to configure Cluster object')
+                }
+                customizer.delegate = objConfig
+                customizer.resolveStrategy = Closure.DELEGATE_FIRST
+                customizer(objConfig)
+            }
+        }
     }
 }
