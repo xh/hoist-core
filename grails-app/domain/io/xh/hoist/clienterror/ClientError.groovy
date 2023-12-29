@@ -11,7 +11,7 @@ import io.xh.hoist.json.JSONFormat
 
 import static io.xh.hoist.util.DateTimeUtils.appDay
 
-class ClientError implements JSONFormat, Serializable {
+class ClientError implements JSONFormat {
 
     String msg
     String error

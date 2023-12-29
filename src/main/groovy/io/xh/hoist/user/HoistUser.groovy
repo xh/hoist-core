@@ -14,7 +14,7 @@ import static io.xh.hoist.util.Utils.roleService
 /**
  * Core user properties required for Hoist.
  */
-trait HoistUser implements JSONFormat, Serializable {
+trait HoistUser implements JSONFormat {
 
     static boolean validateUsername(String username) {
         return username && username == username.toLowerCase() && !username.contains(' ')

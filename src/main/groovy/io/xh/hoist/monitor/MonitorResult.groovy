@@ -16,7 +16,7 @@ import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static java.lang.System.currentTimeMillis
 
 @CompileStatic
-class MonitorResult implements JSONFormat, Serializable {
+class MonitorResult implements JSONFormat {
     MonitorStatus status = UNKNOWN
     Object metric
     String message

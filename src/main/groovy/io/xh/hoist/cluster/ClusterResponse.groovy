@@ -1,6 +1,6 @@
 package io.xh.hoist.cluster
 
-class ClusterResponse<T> implements Serializable {
+class ClusterResponse<T> {
     T value
     Throwable exception
 }

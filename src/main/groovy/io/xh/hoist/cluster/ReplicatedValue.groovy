@@ -1,7 +1,4 @@
 package io.xh.hoist.cluster
-
-import com.hazelcast.replicatedmap.ReplicatedMap
-
 /**
  * A cluster available value that can be read and written by any node in the cluster.
  * Designed for small unrelated values that are needed across the cluster.
@@ -11,21 +8,22 @@ import com.hazelcast.replicatedmap.ReplicatedMap
 class ReplicatedValue<T> {
 
     final String key
-    final private ReplicatedMap<String, Object> mp
+    final Map<String, ReplicatedValueEntry<T>> mp
 
-    ReplicatedValue(String key, ReplicatedMap mp) {
+    ReplicatedValue(String key, Map mp) {
         this.key = key
         this.mp = mp
     }
 
     T get() {
-        mp[key] as T
+        mp[key]?.value as T
     }
 
     void set(T value) {
-        if (value == null) {
-            mp.remove(key)
-        }
-        mp[key] = value
+        mp[key]?.isRemoving = true
+
+        value == null ?
+            mp.remove(key) :
+            mp.put(key, new ReplicatedValueEntry<T>(key, value))
     }
 }

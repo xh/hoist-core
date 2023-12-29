@@ -66,6 +66,7 @@ class Cache<K,V> {
         cullEntries()
         def ret = _map[key]
         if (ret && shouldExpire(ret)) {
+            _map[key]?.isRemoving = true
             _map.remove(key)
             return null
         }
@@ -74,7 +75,8 @@ class Cache<K,V> {
 
     void put(K key, V obj) {
         cullEntries()
-        _map.put(key, new Entry(obj))
+        _map[key]?.isRemoving = true
+        _map.put(key, new Entry(key.toString(), obj))
     }
 
     V getOrCreate(K key, Closure<V> c) {
@@ -131,7 +133,10 @@ class Cache<K,V> {
                 svc.logDebug("Cache '${name?: "anon"}' culling ${cullKeys.size()} out of ${_map.size()} entries")
             }
 
-            cullKeys.each {_map.remove(it)}
+            cullKeys.each {
+                _map[it]?.isRemoving = true
+                _map.remove(it)
+            }
         }
     }
 

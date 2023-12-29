@@ -294,7 +294,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         this.class.name + '_' + key
     }
 
-    private ReplicatedMap getRepValuesMap() {
+    protected ReplicatedMap getRepValuesMap() {
         _repValuesMap = _repValuesMap ?: getReplicatedMap('replicatedValues')
     }
 }

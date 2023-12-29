@@ -16,10 +16,6 @@ import org.springframework.context.ApplicationListener
 
 import javax.management.InstanceNotFoundException
 
-import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
-
-import static org.apache.commons.lang3.SerializationUtils.roundtrip
-
 class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent> {
 
     /**
@@ -42,14 +38,6 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      * Use for accessing the native Hazelcast APIs.
      */
     static HazelcastInstance hzInstance
-
-    /**
-     * Test all results of ClusterRequests for serialization.
-     *
-     * Set to true in dev environment with a single node when you would like to verify that all
-     * ClusterRequests can be effectively serialized across the cluster at runtime.
-     */
-    private boolean testSerialization = getInstanceConfig('testClusterSerialization')
 
     private static ClusterConfig clusterConfig
 
@@ -138,17 +126,13 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     }
 
     <T> ClusterResponse<T> submitToInstance(ClusterRequest<T> c, String instance) {
-        def ret = executorService.submitToMember(c, getMember(instance)).get()
-
-        return testSerialization ? roundtrip(ret) : ret
+            executorService.submitToMember(c, getMember(instance)).get()
     }
 
     <T> Map<String, ClusterResponse<T>> submitToAllInstances(ClusterRequest<T> c) {
-        Map<String, ClusterResponse<T>> ret = executorService
+        executorService
             .submitToAllMembers(c)
             .collectEntries { member, f -> [member.getAttribute('instanceName'), f.get()] }
-
-        return testSerialization ? roundtrip(ret) : ret
     }
 
     //------------------------------------

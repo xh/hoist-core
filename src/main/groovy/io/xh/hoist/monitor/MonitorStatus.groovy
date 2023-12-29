@@ -11,7 +11,7 @@ import groovy.transform.CompileStatic
 import io.xh.hoist.json.JSONFormat
 
 @CompileStatic
-enum MonitorStatus implements JSONFormat, Serializable {
+enum MonitorStatus implements JSONFormat {
     INACTIVE, UNKNOWN, OK, WARN, FAIL
 
     Object formatForJSON() {

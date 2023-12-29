@@ -1,11 +1,4 @@
-/*
- * This file belongs to Hoist, an application development toolkit
- * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
- *
- * Copyright © 2023 Extremely Heavy Industries Inc.
- */
-
-package io.xh.hoist.cache
+package io.xh.hoist.cluster
 
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.KryoSerializable
@@ -15,27 +8,24 @@ import groovy.transform.CompileStatic
 import io.xh.hoist.log.LogSupport
 
 @CompileStatic
-class Entry<T> implements KryoSerializable, LogSupport {
+class ReplicatedValueEntry<T> implements KryoSerializable, LogSupport {
     String key
     T value
     boolean isRemoving
-    Long dateEntered
 
-    Entry(String key, T value) {
+    ReplicatedValueEntry() {}
+
+    ReplicatedValueEntry(String key, T value) {
         this.key = key
         this.value = value
         this.isRemoving = false
-        this.dateEntered = System.currentTimeMillis()
     }
-
-    Entry() {}
 
     void write(Kryo kryo, Output output) {
         output.writeBoolean(isRemoving)
         output.writeString(key)
         if (!isRemoving) {
             withTrace(['Serializing', key]) {
-                output.writeLong(dateEntered)
                 kryo.writeClassAndObject(output, value)
             }
         }
@@ -46,10 +36,8 @@ class Entry<T> implements KryoSerializable, LogSupport {
         key = input.readString()
         if (!isRemoving) {
             withTrace(['Deserializing', key]) {
-                dateEntered = input.readLong()
                 value = kryo.readClassAndObject(input) as T
             }
         }
     }
-
 }

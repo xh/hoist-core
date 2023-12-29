@@ -16,8 +16,7 @@ import com.hazelcast.collection.ISet
 import com.hazelcast.config.MaxSizePolicy
 import com.hazelcast.config.NearCacheConfig
 import grails.core.GrailsClass
-
-
+import info.jerrinot.subzero.SubZero
 import io.xh.hoist.util.Utils
 
 import static grails.util.Holders.grailsApplication
@@ -80,6 +79,9 @@ class ClusterConfig {
         createDefaultConfigs(ret)
         createHibernateConfigs(ret)
         createServiceConfigs(ret)
+
+        SubZero.useAsGlobalSerializer(ret)
+
         return ret
     }
 
