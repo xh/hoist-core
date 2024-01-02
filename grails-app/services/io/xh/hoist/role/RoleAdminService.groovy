@@ -56,7 +56,7 @@ class RoleAdminService extends BaseService {
                 members: it.members,
                 errors: [
                     directoryGroups: (usersForDirectoryGroups ?: [:])
-                        .findAll { it.value instanceof String }
+                        .findAll { !(it.value instanceof Set) }
                 ]
             ]
         }
