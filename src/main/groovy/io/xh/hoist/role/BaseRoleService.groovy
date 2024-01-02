@@ -58,7 +58,6 @@ import io.xh.hoist.util.Timer
  * entry-points for verifying roles on a given user, reducing or eliminating any need to call an
  * implementation of this service directly.
  */
-@CompileStatic
 abstract class BaseRoleService extends BaseService {
     ConfigService configService
 
