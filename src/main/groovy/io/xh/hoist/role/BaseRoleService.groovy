@@ -62,7 +62,7 @@ abstract class BaseRoleService extends BaseService {
     ConfigService configService
 
     private Timer timer
-    private Map<String, Set<String>> _allRoleAssignments
+    protected Map<String, Set<String>> _allRoleAssignments
 
     static clearCachesConfigs = ['xhRoleModuleConfig']
 
