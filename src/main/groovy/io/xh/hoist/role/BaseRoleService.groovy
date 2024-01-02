@@ -137,10 +137,14 @@ abstract class BaseRoleService extends BaseService {
     }
 
     /**
-     * Return Map of directory group names to assigned users. Applications should be careful to
-     * ensure this method doesn't throw, as doing so will prevent the application from starting.
+     * Return Map of directory group names to either:
+     *  a) Set<String> of assigned users
+     *     OR
+     *  b) String describing lookup error
+     *  Applications should be careful to ensure this method doesn't throw, as doing so will prevent
+     *  the application from starting.
      */
-    protected Map<String, Set<String>> getUsersForDirectoryGroups(Set<String> directoryGroups) {
+    protected Map getUsersForDirectoryGroups(Set<String> directoryGroups) {
         throw new UnsupportedOperationException('BaseRoleService.getUsersForDirectoryGroups not implemented.')
     }
 
@@ -171,7 +175,7 @@ abstract class BaseRoleService extends BaseService {
             if (usersForDirectoryGroups) {
                 members[RoleMember.Type.DIRECTORY_GROUP].each {
                     def groupUsers = usersForDirectoryGroups[it.name]
-                    if (groupUsers) users.addAll(groupUsers)
+                    if (groupUsers instanceof Set) users.addAll(groupUsers)
                 }
             }
 

@@ -28,6 +28,15 @@ class RoleAdminService extends BaseService {
     @ReadOnly
     List<Map> list() {
         List<Role> roles = Role.list()
+        Map usersForDirectoryGroups = null
+
+        if (roleService.config.assignDirectoryGroups) {
+            Set<String> directoryGroups = new HashSet<String>()
+            roles.each { directoryGroups.addAll(it.directoryGroups) }
+            if (directoryGroups) {
+                usersForDirectoryGroups = roleService.getUsersForDirectoryGroups(directoryGroups)
+            }
+        }
 
         roles.collect {
             Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers = it.resolveEffectiveMembers()
@@ -38,10 +47,17 @@ class RoleAdminService extends BaseService {
                 lastUpdated: it.lastUpdated,
                 lastUpdatedBy: it.lastUpdatedBy,
                 inheritedRoles: it.listInheritedRoles(),
-                effectiveUsers: collectEffectiveUsers(effectiveMembers, roles),
+                effectiveUsers: collectEffectiveUsers(
+                    effectiveMembers,
+                    usersForDirectoryGroups?.findAll { it.value instanceof Set }
+                ),
                 effectiveDirectoryGroups: effectiveMembers[DIRECTORY_GROUP],
                 effectiveRoles: effectiveMembers[ROLE],
-                members: it.members
+                members: it.members,
+                errors: [
+                    directoryGroups: (usersForDirectoryGroups ?: [:])
+                        .findAll { it.value instanceof String }
+                ]
             ]
         }
     }
@@ -241,26 +257,15 @@ class RoleAdminService extends BaseService {
 
     private List<EffectiveUser> collectEffectiveUsers(
         Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers,
-        List<Role> roles
+        Map usersForDirectoryGroups
     ) {
         Map<String, EffectiveUser> ret = [:].withDefault { new EffectiveUser([name: it])}
-        Map<String, Set<String>> usersForDirectoryGroups
-        boolean assignUsers = roleService.config.assignUsers,
-            assignDirectoryGroups = roleService.config.assignDirectoryGroups
-
-        if (assignDirectoryGroups) {
-            Set<String> directoryGroups = new HashSet<String>()
-            roles.each { directoryGroups.addAll(it.directoryGroups) }
-            if (directoryGroups) {
-                usersForDirectoryGroups = roleService.getUsersForDirectoryGroups(directoryGroups)
-            }
-        }
 
         effectiveMembers.each { type, members ->
             if (type == ROLE) return
 
             members.each { member ->
-                if (type == USER && assignUsers) {
+                if (type == USER && roleService.config.assignUsers) {
                     member.sourceRoles.each { role ->
                         ret[member.name].addSource(role, null)
                     }
