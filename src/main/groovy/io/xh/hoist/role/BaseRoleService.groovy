@@ -154,7 +154,7 @@ abstract class BaseRoleService extends BaseService {
     @ReadOnly
     protected Map<String, Set<String>> generateRoleAssignments() {
         List<Role> roles = Role.list()
-        Map<String, Set<String>> usersForDirectoryGroups
+        Map usersForDirectoryGroups
         boolean assignUsers = config.assignUsers,
             assignDirectoryGroups = config.assignDirectoryGroups
 
