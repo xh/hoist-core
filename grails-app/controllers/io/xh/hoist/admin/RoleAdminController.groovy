@@ -35,6 +35,16 @@ class RoleAdminController extends BaseController {
         renderJSON(success:true)
     }
 
+    def queryUsers(String query) {
+        List<Map> users = roleAdminService.queryUsers(query)
+        renderJSON(data:users)
+    }
+
+    def queryDirectoryGroups(String query) {
+        List<Map> groups = roleAdminService.queryDirectoryGroups(query)
+        renderJSON(data:groups)
+    }
+
 
     //-----------------------
     // Implementation
