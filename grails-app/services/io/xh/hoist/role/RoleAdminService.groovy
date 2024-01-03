@@ -26,40 +26,41 @@ class RoleAdminService extends BaseService {
      * Hoist Admin Console. Includes fully resolved effective users, directory groups, and roles.
      */
     @ReadOnly
-    List<Map> list() {
+    Map list() {
         List<Role> roles = Role.list()
-        Map usersForDirectoryGroups = null
+        Map usersForDirectoryGroups = null,
+            errorsForDirectoryGroups = null
 
         if (roleService.config.assignDirectoryGroups) {
             Set<String> directoryGroups = new HashSet<String>()
             roles.each { directoryGroups.addAll(it.directoryGroups) }
             if (directoryGroups) {
-                usersForDirectoryGroups = roleService.getUsersForDirectoryGroups(directoryGroups)
+                Map usersOrErrorsForDirectoryGroups = roleService.getUsersForDirectoryGroups(directoryGroups)
+                usersForDirectoryGroups = usersOrErrorsForDirectoryGroups.findAll { it.value instanceof Set }
+                errorsForDirectoryGroups = usersOrErrorsForDirectoryGroups.findAll { !(it.value instanceof Set) }
             }
         }
 
-        roles.collect {
-            Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers = it.resolveEffectiveMembers()
-            [
-                name: it.name,
-                category: it.category,
-                notes: it.notes,
-                lastUpdated: it.lastUpdated,
-                lastUpdatedBy: it.lastUpdatedBy,
-                inheritedRoles: it.listInheritedRoles(),
-                effectiveUsers: collectEffectiveUsers(
-                    effectiveMembers,
-                    usersForDirectoryGroups?.findAll { it.value instanceof Set }
-                ),
-                effectiveDirectoryGroups: effectiveMembers[DIRECTORY_GROUP],
-                effectiveRoles: effectiveMembers[ROLE],
-                members: it.members,
-                errors: [
-                    directoryGroups: (usersForDirectoryGroups ?: [:])
-                        .findAll { !(it.value instanceof Set) }
+        [
+            roles: roles.collect {
+                Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers = it.resolveEffectiveMembers()
+                [
+                    name: it.name,
+                    category: it.category,
+                    notes: it.notes,
+                    lastUpdated: it.lastUpdated,
+                    lastUpdatedBy: it.lastUpdatedBy,
+                    inheritedRoles: it.listInheritedRoles(),
+                    effectiveUsers: collectEffectiveUsers(effectiveMembers, usersForDirectoryGroups),
+                    effectiveDirectoryGroups: effectiveMembers[DIRECTORY_GROUP],
+                    effectiveRoles: effectiveMembers[ROLE],
+                    members: it.members,
                 ]
+            },
+            errors: [
+                directoryGroups: errorsForDirectoryGroups
             ]
-        }
+        ]
     }
 
     Role create(Map roleSpec) {
