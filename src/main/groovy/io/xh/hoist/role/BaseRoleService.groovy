@@ -148,22 +148,6 @@ abstract class BaseRoleService extends BaseService {
     }
 
     /**
-     * Used in the Admin UI to search for users.
-     * Implementations should return a list of maps with label and value fields
-     */
-    protected List<Map> queryUsers(String query) {
-        return Collections.EMPTY_LIST
-    }
-
-    /**
-     * Used in the Admin UI to search for directory groups.
-     * Implementations should return a list of maps with label and value fields
-     */
-    protected List<Map> queryDirectoryGroups(String query) {
-        return Collections.EMPTY_LIST
-    }
-
-    /**
      * Return a map of role names to assigned usernames.
      */
     @ReadOnly

@@ -165,14 +165,6 @@ class RoleAdminService extends BaseService {
         }
     }
 
-    List<Map> queryUsers(String query) {
-        roleService.queryUsers(query)
-    }
-
-    List<Map> queryDirectoryGroups(String query) {
-        roleService.queryDirectoryGroups(query)
-    }
-
     //------------------------
     // Implementation
     //------------------------
