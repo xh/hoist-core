@@ -7,6 +7,10 @@
 
 package io.xh.hoist.util
 
+import com.esotericsoftware.kryo.Kryo
+import com.esotericsoftware.kryo.io.Input
+import com.esotericsoftware.kryo.io.Output
+import com.esotericsoftware.kryo.serializers.JavaSerializer
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.json.JSONParser
@@ -17,6 +21,7 @@ import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.environment.EnvironmentService
+import io.xh.hoist.log.LogSupport
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.role.BaseRoleService
 import io.xh.hoist.user.BaseUserService
@@ -26,6 +31,10 @@ import org.grails.web.servlet.mvc.GrailsWebRequest
 import org.springframework.context.ApplicationContext
 import org.springframework.web.context.request.RequestContextHolder
 import javax.servlet.http.HttpServletRequest
+import java.util.zip.DeflaterOutputStream
+import java.util.zip.InflaterInputStream
+
+import static java.lang.System.currentTimeMillis
 
 
 class Utils {
@@ -179,5 +188,45 @@ class Utils {
     static void withDelegate(Object o, Closure c) {
         c.delegate = o
         c.call()
+    }
+
+    static testSerialization(Object obj,
+                             Class clazz,
+                             LogSupport logSupport,
+                             Map opts
+     ) {
+        Kryo kryo = new Kryo()
+        kryo.registrationRequired = false
+        if (opts.java) {
+            kryo.register(clazz, new JavaSerializer())
+        }
+        kryo.reset()
+        kryo.setReferences(opts.refs)
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream(32 * 1024)
+
+        Long startTime = currentTimeMillis()
+        OutputStream outputStream = byteStream
+        if (opts.compress) outputStream = new DeflaterOutputStream(outputStream)
+        Output output = new Output(outputStream)
+        kryo.writeObject(output, obj);
+        output.close()
+        Long serializeTime = currentTimeMillis()
+
+        InputStream inputStream = new ByteArrayInputStream(byteStream.toByteArray())
+        if (opts.compress) inputStream = new InflaterInputStream(inputStream)
+        Input input = new Input(inputStream)
+        Object object2 = kryo.readObject(input, clazz)
+        Long endTime = currentTimeMillis()
+
+        logSupport.logInfo(
+            opts,
+            "(${serializeTime - startTime}/${endTime-serializeTime})ms",
+            "${(byteStream.size() / 1000000).round(2)}MB",
+            "${endTime-startTime}ms"
+        )
+
+
+
+
     }
 }
