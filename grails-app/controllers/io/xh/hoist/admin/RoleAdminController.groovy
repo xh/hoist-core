@@ -11,7 +11,7 @@ class RoleAdminController extends BaseController {
 
     @Access(['HOIST_ADMIN_READER'])
     def list() {
-        List<Map> roles = roleAdminService.list()
+        Map roles = roleAdminService.list()
         renderJSON(data:roles)
     }
 
