@@ -22,11 +22,11 @@ class RoleAdminService extends BaseService {
         trackService
 
     /**
-     * Return all Roles with all available membership information and metadata, for display in the
+     * List all Roles with all available membership information and metadata, for display in the
      * Hoist Admin Console. Includes fully resolved effective users, directory groups, and roles.
      */
     @ReadOnly
-    Map index() {
+    List<Map> list() {
         List<Role> roles = Role.list()
         Map usersForDirectoryGroups = null,
             errorsForDirectoryGroups = null
@@ -35,15 +35,21 @@ class RoleAdminService extends BaseService {
             Set<String> directoryGroups = roles
                 .collectMany(new HashSet<String>()) { it.directoryGroups }
             if (directoryGroups) {
-                Map usersOrErrorsForDirectoryGroups = roleService.getUsersForDirectoryGroups(directoryGroups)
+                Map usersOrErrorsForDirectoryGroups = roleService
+                    .getUsersForDirectoryGroups(directoryGroups)
                 (usersForDirectoryGroups, errorsForDirectoryGroups) =
                     usersOrErrorsForDirectoryGroups.split { it.value instanceof Set }
             }
         }
 
-        [
-            roles: roles.collect {
-                Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers = it.resolveEffectiveMembers()
+        roles.collect {
+                Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers = it
+                    .resolveEffectiveMembers()
+                List<EffectiveMember> effectiveDirectoryGroups = effectiveMembers[DIRECTORY_GROUP]
+                    ?: []
+                Set<String> effectiveDirectoryGroupNames = effectiveDirectoryGroups
+                    .collect { it.name }.toSet()
+
                 [
                     name: it.name,
                     category: it.category,
@@ -52,15 +58,15 @@ class RoleAdminService extends BaseService {
                     lastUpdatedBy: it.lastUpdatedBy,
                     inheritedRoles: it.listInheritedRoles(),
                     effectiveUsers: collectEffectiveUsers(effectiveMembers, usersForDirectoryGroups),
-                    effectiveDirectoryGroups: effectiveMembers[DIRECTORY_GROUP],
+                    effectiveDirectoryGroups: effectiveDirectoryGroups,
                     effectiveRoles: effectiveMembers[ROLE],
                     members: it.members,
+                    errors: [
+                        directoryGroups: errorsForDirectoryGroups
+                            .findAll { k, v -> k as String in effectiveDirectoryGroupNames }
+                    ]
                 ]
-            },
-            errors: [
-                directoryGroups: errorsForDirectoryGroups
-            ]
-        ]
+        }
     }
 
     Role create(Map roleSpec) {
