@@ -14,6 +14,7 @@
 
 * Add `xh/echoHeaders` utility endpoint. Useful for verifying headers (e.g. `jespa_connection_id`)
   that are installed by or must pass through multiple ingresses/load balancers.
+* Remove HTML tag escaping when parsing alert banner create/update request JSON.
 
 ## 17.4.0 - 2023-11-09
 
