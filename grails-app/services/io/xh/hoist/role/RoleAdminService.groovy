@@ -22,22 +22,22 @@ class RoleAdminService extends BaseService {
         trackService
 
     /**
-     * List all Roles with all available membership information and metadata, for display in the
+     * Return all Roles with all available membership information and metadata, for display in the
      * Hoist Admin Console. Includes fully resolved effective users, directory groups, and roles.
      */
     @ReadOnly
-    Map list() {
+    Map index() {
         List<Role> roles = Role.list()
         Map usersForDirectoryGroups = null,
             errorsForDirectoryGroups = null
 
         if (roleService.config.assignDirectoryGroups) {
-            Set<String> directoryGroups = new HashSet<String>()
-            roles.each { directoryGroups.addAll(it.directoryGroups) }
+            Set<String> directoryGroups = roles
+                .collectMany(new HashSet<String>()) { it.directoryGroups }
             if (directoryGroups) {
                 Map usersOrErrorsForDirectoryGroups = roleService.getUsersForDirectoryGroups(directoryGroups)
-                usersForDirectoryGroups = usersOrErrorsForDirectoryGroups.findAll { it.value instanceof Set }
-                errorsForDirectoryGroups = usersOrErrorsForDirectoryGroups.findAll { !(it.value instanceof Set) }
+                (usersForDirectoryGroups, errorsForDirectoryGroups) =
+                    usersOrErrorsForDirectoryGroups.split { it.value instanceof Set }
             }
         }
 
