@@ -37,8 +37,10 @@ class RoleAdminService extends BaseService {
             if (directoryGroups) {
                 Map usersOrErrorsForDirectoryGroups = roleService
                     .getUsersForDirectoryGroups(directoryGroups)
-                (usersForDirectoryGroups, errorsForDirectoryGroups) =
-                    usersOrErrorsForDirectoryGroups.split { it.value instanceof Set }
+                usersForDirectoryGroups = usersOrErrorsForDirectoryGroups
+                    .findAll { it.value instanceof Set }
+                errorsForDirectoryGroups = usersOrErrorsForDirectoryGroups
+                    .findAll { !(it.value instanceof Set) }
             }
         }
 
