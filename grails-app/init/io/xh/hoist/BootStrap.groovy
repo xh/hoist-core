@@ -265,6 +265,11 @@ class BootStrap {
                     assignDirectoryGroups: true,
                     assignUsers: true,
                     refreshIntervalSecs: 30,
+                    infoTooltips: [
+                        users: 'All users listed here will be directly granted this role.',
+                        directoryGroups: 'All members of these directory groups will be granted this role.',
+                        roles: 'All users holding these roles will also be granted this role.'
+                    ]
                 ],
                 clientVisible: true,
                 groupName: 'xh.io',

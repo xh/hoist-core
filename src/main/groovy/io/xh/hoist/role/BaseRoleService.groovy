@@ -130,6 +130,11 @@ abstract class BaseRoleService extends BaseService {
      *  assignDirectoryGroups: boolean
      *  assignUsers: boolean
      *  refreshIntervalSecs: int
+     *  infoTooltips: [
+     *      users: String,
+     *      directoryGroups: String,
+     *      roles: String
+     *  ]
      */
     Map getConfig() {
         configService.getMap('xhRoleModuleConfig')
@@ -143,7 +148,7 @@ abstract class BaseRoleService extends BaseService {
      *  Applications should be careful to ensure this method doesn't throw, as doing so will prevent
      *  the application from starting.
      */
-    protected Map getUsersForDirectoryGroups(Set<String> directoryGroups) {
+    Map getUsersForDirectoryGroups(Set<String> directoryGroups) {
         throw new UnsupportedOperationException('BaseRoleService.getUsersForDirectoryGroups not implemented.')
     }
 

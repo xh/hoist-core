@@ -1,6 +1,7 @@
 package io.xh.hoist.admin
 
 import io.xh.hoist.BaseController
+import io.xh.hoist.role.BaseRoleService
 import io.xh.hoist.role.Role
 import io.xh.hoist.role.RoleAdminService
 import io.xh.hoist.security.Access
@@ -8,6 +9,7 @@ import io.xh.hoist.security.Access
 @Access(['HOIST_ROLE_MANAGER'])
 class RoleAdminController extends BaseController {
     RoleAdminService roleAdminService
+    BaseRoleService roleService
 
     @Access(['HOIST_ADMIN_READER'])
     def list() {
@@ -33,6 +35,10 @@ class RoleAdminController extends BaseController {
         ensureAuthUserCanEdit()
         roleAdminService.delete(id)
         renderJSON(success:true)
+    }
+
+    def usersForDirectoryGroup(String name) {
+        renderJSON(data:roleService.getUsersForDirectoryGroups(new HashSet([name]))[name])
     }
 
     //-----------------------
