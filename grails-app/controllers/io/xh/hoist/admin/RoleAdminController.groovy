@@ -5,6 +5,7 @@ import io.xh.hoist.role.BaseRoleService
 import io.xh.hoist.role.Role
 import io.xh.hoist.role.RoleAdminService
 import io.xh.hoist.security.Access
+import static java.util.Collections.singleton
 
 @Access(['HOIST_ROLE_MANAGER'])
 class RoleAdminController extends BaseController {
@@ -38,7 +39,7 @@ class RoleAdminController extends BaseController {
     }
 
     def usersForDirectoryGroup(String name) {
-        renderJSON(data:roleService.getUsersForDirectoryGroups(new HashSet([name]))[name])
+        renderJSON(data:roleService.getUsersForDirectoryGroups(singleton(name))[name])
     }
 
     //-----------------------
