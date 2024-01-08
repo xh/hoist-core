@@ -21,6 +21,11 @@ class RoleMember implements JSONFormat {
         cache true
     }
 
+    static constraints = {
+        name unique: ['type', 'role'], blank: false
+        createdBy blank: false
+    }
+
     Map formatForJSON() {
         return [
             type: type.name(),
