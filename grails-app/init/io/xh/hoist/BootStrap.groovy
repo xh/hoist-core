@@ -262,7 +262,7 @@ class BootStrap {
                 valueType: 'json',
                 defaultValue: [
                     enabled: true,
-                    assignDirectoryGroups: true,
+                    assignDirectoryGroups: false,
                     assignUsers: true,
                     refreshIntervalSecs: 30,
                     infoTooltips: [

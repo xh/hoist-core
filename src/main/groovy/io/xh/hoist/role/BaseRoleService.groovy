@@ -8,9 +8,11 @@
 package io.xh.hoist.role
 
 import grails.gorm.transactions.ReadOnly
-import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
+
+import static io.xh.hoist.role.RoleMember.Type.DIRECTORY_GROUP
+import static io.xh.hoist.role.RoleMember.Type.USER
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import io.xh.hoist.util.Timer
 
@@ -149,7 +151,9 @@ abstract class BaseRoleService extends BaseService {
      *  the application from starting.
      */
     Map<String, Object> getUsersForDirectoryGroups(Set<String> directoryGroups) {
-        throw new UnsupportedOperationException('BaseRoleService.getUsersForDirectoryGroups not implemented.')
+        directoryGroups.collectEntries {
+            [it, 'getUsersForDirectoryGroups not implemented.']
+        }
     }
 
     /**
@@ -172,12 +176,11 @@ abstract class BaseRoleService extends BaseService {
             Map<RoleMember.Type, List<EffectiveMember>> members = role.resolveEffectiveMembers()
 
             if (assignUsers) {
-                members[RoleMember.Type.USER]
-                    .each { users.add(it.name) }
+                members[USER].each { users.add(it.name) }
             }
 
             if (usersForDirectoryGroups) {
-                members[RoleMember.Type.DIRECTORY_GROUP].each {
+                members[DIRECTORY_GROUP].each {
                     def groupUsers = usersForDirectoryGroups[it.name]
                     if (groupUsers instanceof Set) users.addAll(groupUsers)
                 }
