@@ -148,7 +148,7 @@ abstract class BaseRoleService extends BaseService {
      *  Applications should be careful to ensure this method doesn't throw, as doing so will prevent
      *  the application from starting.
      */
-    Map getUsersForDirectoryGroups(Set<String> directoryGroups) {
+    Map<String, Object> getUsersForDirectoryGroups(Set<String> directoryGroups) {
         throw new UnsupportedOperationException('BaseRoleService.getUsersForDirectoryGroups not implemented.')
     }
 

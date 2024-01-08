@@ -28,14 +28,14 @@ class RoleAdminService extends BaseService {
     @ReadOnly
     List<Map> list() {
         List<Role> roles = Role.list()
-        Map usersForDirectoryGroups = null,
+        Map<String, Object> usersForDirectoryGroups = null,
             errorsForDirectoryGroups = null
 
         if (roleService.config.assignDirectoryGroups) {
             Set<String> directoryGroups = roles
                 .collectMany(new HashSet<String>()) { it.directoryGroups }
             if (directoryGroups) {
-                Map usersOrErrorsForDirectoryGroups = roleService
+                Map<String, Object> usersOrErrorsForDirectoryGroups = roleService
                     .getUsersForDirectoryGroups(directoryGroups)
                 usersForDirectoryGroups = usersOrErrorsForDirectoryGroups
                     .findAll { it.value instanceof Set }
@@ -65,7 +65,7 @@ class RoleAdminService extends BaseService {
                     members: it.members,
                     errors: [
                         directoryGroups: errorsForDirectoryGroups
-                            .findAll { k, v -> k as String in effectiveDirectoryGroupNames }
+                            .findAll { k, v -> k in effectiveDirectoryGroupNames }
                     ]
                 ]
         }
