@@ -156,22 +156,28 @@ class RoleAdminService extends BaseService {
     }
 
     /**
-     * Ensure that a user is a member of a set of roles.
+     * Ensure that a user has been assigned a set of database-backed Roles.
      *
-     * Typically called by bootstrapping mechanisms to ensure that core roles are
-     * accessible by a dedicated admin user on startup.
+     * Typically called within Bootstrap code to ensure that core roles are assigned to a dedicated
+     * admin user on startup.
      */
     @Transactional
     void ensureUserHasRoles(HoistUser user, List<String> roleNames) {
+        def didChange = false
         roleNames.each { roleName ->
             if (!user.hasRole(roleName)) {
                 def role = Role.get(roleName)
-                if (!role) throw new RuntimeException("Unable to find role $roleName")
-                role.addToMembers(type: USER, name: user.username, createdBy: 'hoist-bootstrap')
-                role.save(flush: true)
-                roleService.clearCaches()
+                if (role) {
+                    role.addToMembers(type: USER, name: user.username, createdBy: 'hoist-bootstrap')
+                    role.save(flush: true)
+                    didChange = true
+                } else {
+                    logWarn("Failed to find role $roleName to assign to $user", "role will not be assigned")
+                }
             }
         }
+
+        if (didChange) roleService.clearCaches()
     }
 
     //------------------------
