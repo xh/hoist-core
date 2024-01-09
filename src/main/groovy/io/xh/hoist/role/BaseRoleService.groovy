@@ -42,11 +42,11 @@ import io.xh.hoist.util.Timer
  *     - Hoist's Admin Console UI can still be used to define Roles and add members in the form of
  *       directly assigned users (if desired), other roles, and external groups. The provided
  *       implementation will use the return from `getUsersForDirectoryGroups()` along with Role
- *       inheritance and direct user assignments to produce a full resolved set of users.
+ *       inheritance and direct user assignments to produce a fully resolved set of users.
  *
  * Option 2 - use a custom implementation of RoleService.
  *
- *     - Hoist's built-in Role management (and Admin Console UI) can be disabled via config.
+ *     - Hoist's built-in Roles (and Admin Console UI) can be disabled via `xhRoleServiceConfig`.
  *     - Apps must replace the default `generateRoleAssignments()` implementation entirely to read
  *       role assignments from a source of their choice.
  *     - If required for efficiency or any other app-specific handling, apps may also override
@@ -56,9 +56,9 @@ import io.xh.hoist.util.Timer
  * to support access to the built-in Admin Console and its backing endpoints. Custom application
  * implementations should take care to define and return these roles for suitable users.
  *
- * Note that `HoistUser.getRoles` and `HoistUser.hasRole` are the primary application
- * entry-points for verifying roles on a given user, reducing or eliminating any need to call an
- * implementation of this service directly.
+ * Note that `HoistUser.getRoles` and `HoistUser.hasRole` are the primary application entry-points
+ * for verifying roles on a given user, reducing or eliminating any need to call an implementation
+ * of this service directly.
  */
 abstract class BaseRoleService extends BaseService {
     ConfigService configService
@@ -93,9 +93,9 @@ abstract class BaseRoleService extends BaseService {
     /**
      * Return all roles assigned to a given user(name).
      *
-     * Also, note that this default implementation does not validate that the username provided is in
-     * fact an active and enabled application user as per UserService. Apps may wish to do so -
-     * the Hoist framework does not depend on it.
+     * Also, note that this default implementation does not validate that the username provided is
+     * an active and enabled application user as per `UserService`. Apps may wish to do so - Hoist
+     * does not depend on it.
      */
     Set<String> getRolesForUser(String username) {
         Set<String> ret = new HashSet()
@@ -115,9 +115,9 @@ abstract class BaseRoleService extends BaseService {
     /**
      * Return all users with a given role, as a simple set of usernames.
      *
-     * Note that this default implementation does not validate that the usernames returned are in
-     * fact active and enabled application users as per UserService. Apps may wish to do so -
-     * the Hoist framework does not depend on it.
+     * Note that this default implementation does not validate that the usernames returned are
+     * active and enabled application users as per `UserService`. Apps may wish to do so - Hoist
+     * does not depend on it.
      *
      * Implementations should be careful to ensure this method doesn't throw, as doing so will
      * prevent the application from starting.
@@ -147,6 +147,7 @@ abstract class BaseRoleService extends BaseService {
      *  a) Set<String> of assigned users
      *     OR
      *  b) String describing lookup error
+     *
      *  Applications should be careful to ensure this method doesn't throw, as doing so will prevent
      *  the application from starting.
      */
@@ -158,6 +159,9 @@ abstract class BaseRoleService extends BaseService {
 
     /**
      * Return a map of role names to assigned usernames.
+     *
+     * Applications that do not wish to use Hoist's built-in database-backed Roles must override
+     * this method with an implementation to read role assignments from a source of their choice.
      */
     @ReadOnly
     protected Map<String, Set<String>> generateRoleAssignments() {
