@@ -7,50 +7,27 @@
 
 package io.xh.hoist.role
 
-import grails.gorm.transactions.ReadOnly
+import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
-import io.xh.hoist.config.ConfigService
-
-import static io.xh.hoist.role.RoleMember.Type.DIRECTORY_GROUP
-import static io.xh.hoist.role.RoleMember.Type.USER
-import static io.xh.hoist.util.DateTimeUtils.SECONDS
-import io.xh.hoist.util.Timer
 
 /**
- * Abstract base service for maintaining a list of HoistUser <-> Role assignments, where roles
- * are returned as simple strings and made available to both server and client code.
+ * Abstract base service for reporting on HoistUser <-> Role assignments, where roles are returned
+ * as simple strings and made available to both server and client code.
  *
- * Applications MUST define a concrete implementation of this service with the name 'RoleService'.
- * Depending on the application's needs and any pre-existing or external infrastructure around role
- * management, applications may choose to implement this service in a variety of ways.
+ * Applications must define or extend a concrete implementation of this service with the name
+ * 'RoleService' via one of the following approaches:
  *
- * Option 1 - use Hoist's built-in {@link Role} class and Admin UI to manage roles.
+ * 1) Use Hoist's built-in {@link io.xh.hoist.role.provided.DefaultRoleService}. Hoist provides this
+ *    implementation as a ready-to-go, database backed service that can be used in concert with a
+ *    hoist-react Admin Console UI to manage roles and their memberships. See the docs on that
+ *    service for additional details, including how to instantiate or inject within your app.
  *
- *      - Hoist provides a `Role` domain class to persist roles and their memberships to the
- *        app's primary database. Role members can include directly-assigned users, other roles
- *        (for role inheritance), and/or external directory groups (pointers to an Active Directory
- *        or LDAP instance - see below).
- *      - Roles and their memberships can be managed via the Hoist Admin Console.
- *      - With this option, an app-level implementation of this service does not need to override
- *        any of its protected methods - it can be an "empty" class that extends this base class.
+ * 2) Extend this class and override its abstract methods to provide an entirely custom
+ *    implementation, without leveraging Hoist's built-in domain classes or Admin Console UI.
  *
- * Option 1a - use Hoist Roles with external directoryGroup members.
- *
- *     - Hoist Roles can have members that are pointers to external directory groups.
- *     - Apps must implement `getUsersForDirectoryGroups()` on their RoleService to resolve these
- *       identifiers to actual usernames, e.g. by querying an external LDAP/AD instance.
- *     - Hoist's Admin Console UI can still be used to define Roles and add members in the form of
- *       directly assigned users (if desired), other roles, and external groups. The provided
- *       implementation will use the return from `getUsersForDirectoryGroups()` along with Role
- *       inheritance and direct user assignments to produce a fully resolved set of users.
- *
- * Option 2 - use a custom implementation of RoleService.
- *
- *     - Hoist's built-in Roles (and Admin Console UI) can be disabled via `xhRoleServiceConfig`.
- *     - Apps must replace the default `generateRoleAssignments()` implementation entirely to read
- *       role assignments from a source of their choice.
- *     - If required for efficiency or any other app-specific handling, apps may also override
- *       `getRolesForUser()` and `getUsersForRole()`.
+ * If building a custom implementation, please take care to ensure that the public API methods are
+ * as fast and reliable as possible, with local caching as necessary, as they can be called multiple
+ * times per request in quick succession.
  *
  * Hoist requires only three roles - "HOIST_ADMIN", "HOIST_ADMIN_READER" and "HOIST_ROLE_MANAGER" -
  * to support access to the built-in Admin Console and its backing endpoints. Custom application
@@ -60,96 +37,29 @@ import io.xh.hoist.util.Timer
  * for verifying roles on a given user, reducing or eliminating any need to call an implementation
  * of this service directly.
  */
+@CompileStatic
 abstract class BaseRoleService extends BaseService {
-    ConfigService configService
 
-    private Timer timer
-    protected Map<String, Set<String>> _allRoleAssignments
+    /** Return Map of roles to assigned users (as a set of usernames). */
+    abstract Map<String, Set<String>> getAllRoleAssignments()
 
-    static clearCachesConfigs = ['xhRoleModuleConfig']
+    /** Return all roles assigned to a given user(name). */
+    abstract Set<String> getRolesForUser(String username)
 
-    void init() {
-        timer = createTimer(
-            interval: { config.enabled ? config.refreshIntervalSecs as int * SECONDS : -1 },
-            runFn: this.&refreshRoleAssignments,
-            runImmediatelyAndBlock: true
-        )
-    }
-
-    /**
-     * Return Map of roles to assigned users.
-     *
-     * By default, this method returns a cached copy of the role assignments, refreshed on a
-     * configurable interval.
-     *
-     * Applications may override this method to provide a custom implementation, but should take
-     * care to provide an efficient / fast implementation as this can be queried multiple times
-     * when processing a request.
-     */
-    Map<String, Set<String>> getAllRoleAssignments() {
-        _allRoleAssignments
-    }
-
-    /**
-     * Return all roles assigned to a given user(name).
-     *
-     * Also, note that this default implementation does not validate that the username provided is
-     * an active and enabled application user as per `UserService`. Apps may wish to do so - Hoist
-     * does not depend on it.
-     */
-    Set<String> getRolesForUser(String username) {
-        Set<String> ret = new HashSet()
-        allRoleAssignments.each { role, users ->
-            if (users.contains(username)) ret << role
-        }
-
-        // For backward compatibility when not using built-in Hoist role management.
-        if (!config.enabled && ret.contains('HOIST_ADMIN')) {
-            ret << 'HOIST_ADMIN_READER'
-            ret << 'HOIST_IMPERSONATOR'
-        }
-
-        return ret
-    }
-
-    /**
-     * Return all users with a given role, as a simple set of usernames.
-     *
-     * Note that this default implementation does not validate that the usernames returned are
-     * active and enabled application users as per `UserService`. Apps may wish to do so - Hoist
-     * does not depend on it.
-     *
-     * Implementations should be careful to ensure this method doesn't throw, as doing so will
-     * prevent the application from starting.
-     */
-    Set<String> getUsersForRole(String role) {
-        return allRoleAssignments[role] ?: Collections.EMPTY_SET
-    }
-
-    /**
-     * Return the configuration Map for this service with the following entries:
-     *  enabled: boolean
-     *  assignDirectoryGroups: boolean
-     *  assignUsers: boolean
-     *  refreshIntervalSecs: int
-     *  infoTooltips: [
-     *      users: String,
-     *      directoryGroups: String,
-     *      roles: String
-     *  ]
-     */
-    Map getConfig() {
-        configService.getMap('xhRoleModuleConfig')
-    }
+    /** Return all users (as a set of usernames) with a given role. */
+    abstract Set<String> getUsersForRole(String role)
 
     /**
      * Return Map of directory group names to either:
+     *
      *  a) Set<String> of assigned users
      *     OR
      *  b) String describing lookup error
      *
-     *  Applications should be careful to ensure this method doesn't throw, as doing so will prevent
-     *  the application from starting.
+     *  Note that a working implementation of this method is only required if using the Hoist-
+     *  provided `DefaultRoleService` and support for external directory groups is desired.
+     *
+     *  See the docs on that service for additional details.
      */
     Map<String, Object> getUsersForDirectoryGroups(Set<String> directoryGroups) {
         directoryGroups.collectEntries {
@@ -158,50 +68,10 @@ abstract class BaseRoleService extends BaseService {
     }
 
     /**
-     * Return a map of role names to assigned usernames.
-     *
-     * Applications that do not wish to use Hoist's built-in database-backed Roles must override
-     * this method with an implementation to read role assignments from a source of their choice.
+     * For Hoist framework use only - overridden by `DefaultRoleService` to enable and configure
+     * its associated Admin Console UI for managing database-backed Roles and their members.
      */
-    @ReadOnly
-    protected Map<String, Set<String>> generateRoleAssignments() {
-        List<Role> roles = Role.list()
-        Map usersForDirectoryGroups
-        boolean assignUsers = config.assignUsers,
-            assignDirectoryGroups = config.assignDirectoryGroups
-
-        if (assignDirectoryGroups) {
-            def groups = roles.collectMany(new HashSet()) { it.directoryGroups } as Set<String>
-            if (groups) usersForDirectoryGroups = getUsersForDirectoryGroups(groups)
-        }
-
-        roles.collectEntries { role ->
-            Set<String> users = new HashSet<String>()
-            Map<RoleMember.Type, List<EffectiveMember>> members = role.resolveEffectiveMembers()
-
-            if (assignUsers) {
-                members[USER].each { users.add(it.name) }
-            }
-
-            if (usersForDirectoryGroups) {
-                members[DIRECTORY_GROUP].each {
-                    def groupUsers = usersForDirectoryGroups[it.name]
-                    if (groupUsers instanceof Set) users.addAll(groupUsers)
-                }
-            }
-
-            return [role.name, users]
-        }
-    }
-
-    void clearCaches() {
-        timer.forceRun()
-        super.clearCaches()
-    }
-
-    protected void refreshRoleAssignments() {
-        withDebug('Refreshing role assignments') {
-            _allRoleAssignments = generateRoleAssignments()
-        }
+    Map getAdminConfig() {
+        [enabled: false]
     }
 }

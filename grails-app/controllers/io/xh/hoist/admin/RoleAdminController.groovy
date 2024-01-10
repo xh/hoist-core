@@ -1,7 +1,7 @@
 package io.xh.hoist.admin
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.role.Role
+import io.xh.hoist.role.provided.Role
 import io.xh.hoist.security.Access
 
 import static java.util.Collections.singleton
@@ -11,6 +11,11 @@ class RoleAdminController extends BaseController {
 
     def roleAdminService,
         roleService
+
+    @Access(['HOIST_ADMIN_READER'])
+    def config() {
+        renderJSON(roleService.adminConfig)
+    }
 
     @Access(['HOIST_ADMIN_READER'])
     def list() {
@@ -48,7 +53,7 @@ class RoleAdminController extends BaseController {
     //-----------------------
     private void ensureHoistRoleManager() {
         if (!authUser.hasRole('HOIST_ROLE_MANAGER')) {
-            throw new RuntimeException("$authUsername is not a 'HOIST_ROLE_MANAGER'")
+            throw new RuntimeException("AuthUser $authUsername is not a 'HOIST_ROLE_MANAGER'")
         }
     }
 }

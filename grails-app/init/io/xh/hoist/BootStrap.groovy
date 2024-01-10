@@ -7,7 +7,6 @@
 package io.xh.hoist
 
 import grails.util.Holders
-import io.xh.hoist.role.Role
 import io.xh.hoist.util.Utils
 
 import java.time.ZoneId
@@ -19,14 +18,12 @@ class BootStrap {
 
     def logLevelService,
         configService,
-        prefService,
-        roleAdminService
+        prefService
 
     def init = {servletContext ->
         logStartupMsg()
         ensureRequiredConfigsCreated()
         ensureRequiredPrefsCreated()
-        ensureRequiredRolesCreated()
 
         ensureExpectedServerTimeZone()
 
@@ -258,23 +255,6 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Email address to which status monitor alerts should be sent. Value "none" disables emailed alerts.'
             ],
-            xhRoleModuleConfig: [
-                valueType: 'json',
-                defaultValue: [
-                    enabled: true,
-                    assignDirectoryGroups: false,
-                    assignUsers: true,
-                    refreshIntervalSecs: 30,
-                    infoTooltips: [
-                        users: null,
-                        directoryGroups: null,
-                        roles: null
-                    ]
-                ],
-                clientVisible: true,
-                groupName: 'xh.io',
-                note: 'Configures built-in role management.'
-            ],
             xhWebSocketConfig: [
                 valueType: 'json',
                 defaultValue: [
@@ -324,35 +304,6 @@ class BootStrap {
                 defaultValue: 'system',
                 groupName: 'xh.io',
                 note: 'Visual theme for the client application - "light", "dark", or "system".'
-            ]
-        ])
-    }
-
-    private void ensureRequiredRolesCreated() {
-        if (!configService.getMap('xhRoleModuleConfig').enabled || Role.count()) return
-        roleAdminService.ensureRequiredRolesCreated([
-            [
-                name: 'HOIST_ADMIN',
-                category: 'Hoist',
-                notes: 'Hoist Admins have full access to all Hoist Admin tools and functionality.'
-            ],
-            [
-                name: 'HOIST_ADMIN_READER',
-                category: 'Hoist',
-                notes: 'Hoist Admin Readers have read-only access to all Hoist Admin tools and functionality.',
-                roles: ['HOIST_ADMIN']
-            ],
-            [
-                name: 'HOIST_IMPERSONATOR',
-                category: 'Hoist',
-                notes: 'Hoist Impersonators can impersonate other users.',
-                roles: ['HOIST_ADMIN']
-            ],
-            [
-                name: 'HOIST_ROLE_MANAGER',
-                category: 'Hoist',
-                notes: 'Hoist Role Managers can manage roles and their memberships.',
-                roles: ['HOIST_ADMIN']
             ]
         ])
     }

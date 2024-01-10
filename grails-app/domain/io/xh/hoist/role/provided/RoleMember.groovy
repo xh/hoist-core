@@ -1,7 +1,10 @@
-package io.xh.hoist.role
+package io.xh.hoist.role.provided
 
 import io.xh.hoist.json.JSONFormat
 
+/**
+ * Backing domain class for Role memberships, when using Hoist's built-in role management.
+ */
 class RoleMember implements JSONFormat {
     enum Type {
         USER,

@@ -1,4 +1,4 @@
-package io.xh.hoist.role
+package io.xh.hoist.role.provided
 
 import io.xh.hoist.json.JSONFormat
 

@@ -1,21 +1,26 @@
-package io.xh.hoist.role
+package io.xh.hoist.role.provided
 
 import grails.gorm.transactions.ReadOnly
 import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
+import io.xh.hoist.role.BaseRoleService
+import io.xh.hoist.role.provided.EffectiveMember
+import io.xh.hoist.role.provided.EffectiveUser
+import io.xh.hoist.role.provided.Role
+import io.xh.hoist.role.provided.RoleMember
 import io.xh.hoist.user.HoistUser
-import static io.xh.hoist.role.RoleMember.Type.*
+import static io.xh.hoist.role.provided.RoleMember.Type.*
 
 /**
- * Service to support admin management of Hoist's persistent, database-backed {@link Role} class.
+ * Service to support built-in, database-backed Role management and its associated Admin Console UI.
+ *
+ * Requires applications to have opted-in to Hoist's {@link DefaultRoleService} for role management.
+ * See that class for additional documentation and details.
  *
  * This class is intended to be used by its associated admin controller - apps should rarely (if
  * ever) need to interact with it directly. An exception is {@link #ensureRequiredRolesCreated},
  * which apps might wish to call in their Bootstrap code to ensure that expected roles have been
  * created in a given database environment.
- *
- * @see io.xh.hoist.role.BaseRoleService - this is the service contract apps must implement and is
- *     by default the primary user/consumer of the Roles created and updated by the service below.
  */
 class RoleAdminService extends BaseService {
     def roleService,
@@ -27,11 +32,13 @@ class RoleAdminService extends BaseService {
      */
     @ReadOnly
     List<Map> list() {
+        ensureEnabled()
+
         List<Role> roles = Role.list()
         Map<String, Object> usersForDirectoryGroups = null,
-            errorsForDirectoryGroups = null
+                            errorsForDirectoryGroups = null
 
-        if (roleService.config.assignDirectoryGroups) {
+        if (config.assignDirectoryGroups) {
             Set<String> directoryGroups = roles
                 .collectMany(new HashSet<String>()) { it.directoryGroups }
             if (directoryGroups) {
@@ -45,49 +52,53 @@ class RoleAdminService extends BaseService {
         }
 
         roles.collect {
-                Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers = it
-                    .resolveEffectiveMembers()
-                List<EffectiveMember> effectiveDirectoryGroups = effectiveMembers[DIRECTORY_GROUP]
-                    ?: []
-                Set<String> effectiveDirectoryGroupNames = effectiveDirectoryGroups
-                    .collect { it.name }.toSet()
+            Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers = it
+                .resolveEffectiveMembers()
+            List<EffectiveMember> effectiveDirectoryGroups = effectiveMembers[DIRECTORY_GROUP]
+                ?: []
+            Set<String> effectiveDirectoryGroupNames = effectiveDirectoryGroups
+                .collect { it.name }.toSet()
 
-                [
-                    name: it.name,
-                    category: it.category,
-                    notes: it.notes,
-                    lastUpdated: it.lastUpdated,
-                    lastUpdatedBy: it.lastUpdatedBy,
-                    inheritedRoles: it.listInheritedRoles(),
-                    effectiveUsers: collectEffectiveUsers(effectiveMembers, usersForDirectoryGroups),
-                    effectiveDirectoryGroups: effectiveDirectoryGroups,
-                    effectiveRoles: effectiveMembers[ROLE],
-                    members: it.members,
-                    errors: [
-                        directoryGroups: errorsForDirectoryGroups
-                            .findAll { k, v -> k in effectiveDirectoryGroupNames }
-                    ]
+            [
+                name                    : it.name,
+                category                : it.category,
+                notes                   : it.notes,
+                lastUpdated             : it.lastUpdated,
+                lastUpdatedBy           : it.lastUpdatedBy,
+                inheritedRoles          : it.listInheritedRoles(),
+                effectiveUsers          : collectEffectiveUsers(effectiveMembers, usersForDirectoryGroups),
+                effectiveDirectoryGroups: effectiveDirectoryGroups,
+                effectiveRoles          : effectiveMembers[ROLE],
+                members                 : it.members,
+                errors                  : [
+                    directoryGroups: errorsForDirectoryGroups
+                        .findAll { k, v -> k in effectiveDirectoryGroupNames }
                 ]
+            ]
         }
     }
 
     Role create(Map roleSpec) {
+        ensureEnabled()
         createOrUpdate(roleSpec, false)
     }
 
     Role update(Map roleSpec) {
+        ensureEnabled()
         createOrUpdate(roleSpec, true)
     }
 
     @Transactional
     void delete(String id) {
+        ensureEnabled()
+
         Role roleToDelete = Role.get(id)
 
         RoleMember
             .findAllByTypeAndName(ROLE, id)
             .each { it.role.removeFromMembers(it) }
 
-        roleToDelete.delete(flush:true)
+        roleToDelete.delete(flush: true)
 
         trackService.track(
             msg: "Deleted role: '$id'",
@@ -107,6 +118,8 @@ class RoleAdminService extends BaseService {
      */
     @Transactional
     void ensureRequiredRolesCreated(List<Map> roleSpecs) {
+        ensureEnabled()
+
         List<Role> currRoles = Role.list()
         int created = 0
 
@@ -163,6 +176,8 @@ class RoleAdminService extends BaseService {
      */
     @Transactional
     void ensureUserHasRoles(HoistUser user, List<String> roleNames) {
+        ensureEnabled()
+
         def didChange = false
         roleNames.each { roleName ->
             if (!user.hasRole(roleName)) {
@@ -213,15 +228,15 @@ class RoleAdminService extends BaseService {
                 msg: "Edited role: '${roleSpec.name}'",
                 category: 'Audit',
                 data: [
-                    role: roleSpec.name,
-                    category: roleSpec.category,
-                    notes: roleSpec.notes,
-                    addedUsers: userChanges.added,
-                    removedUsers: userChanges.removed,
-                    addedDirectoryGroups: directoryGroupChanges.added,
+                    role                  : roleSpec.name,
+                    category              : roleSpec.category,
+                    notes                 : roleSpec.notes,
+                    addedUsers            : userChanges.added,
+                    removedUsers          : userChanges.removed,
+                    addedDirectoryGroups  : directoryGroupChanges.added,
                     removedDirectoryGroups: directoryGroupChanges.removed,
-                    addedRoles: roleChanges.added,
-                    removedRoles: roleChanges.removed
+                    addedRoles            : roleChanges.added,
+                    removedRoles          : roleChanges.removed
                 ]
             )
         } else {
@@ -229,12 +244,12 @@ class RoleAdminService extends BaseService {
                 msg: "Created role: '${roleSpec.name}'",
                 category: 'Audit',
                 data: [
-                    role: roleSpec.name,
-                    category: roleSpec.category,
-                    notes: roleSpec.notes,
-                    users: userChanges.added,
+                    role           : roleSpec.name,
+                    category       : roleSpec.category,
+                    notes          : roleSpec.notes,
+                    users          : userChanges.added,
                     directoryGroups: directoryGroupChanges.added,
-                    roles: roleChanges.added
+                    roles          : roleChanges.added
                 ]
             )
         }
@@ -251,7 +266,7 @@ class RoleAdminService extends BaseService {
             .findAll { it.role == owner && it.type == type }
 
         members.each { member ->
-            if (!existingMembers.any {it.name == member}) {
+            if (!existingMembers.any { it.name == member }) {
                 owner.addToMembers(
                     type: type,
                     name: member,
@@ -275,13 +290,13 @@ class RoleAdminService extends BaseService {
         Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers,
         Map usersForDirectoryGroups
     ) {
-        Map<String, EffectiveUser> ret = [:].withDefault { new EffectiveUser([name: it])}
+        Map<String, EffectiveUser> ret = [:].withDefault { new EffectiveUser([name: it]) }
 
         effectiveMembers.each { type, members ->
             if (type == ROLE) return
 
             members.each { member ->
-                if (type == USER && roleService.config.assignUsers) {
+                if (type == USER && config.assignUsers) {
                     member.sourceRoles.each { role ->
                         ret[member.name].addSource(role, null)
                     }
@@ -296,6 +311,18 @@ class RoleAdminService extends BaseService {
         }
 
         ret.values() as List<EffectiveUser>
+    }
+
+    private void ensureEnabled() {
+        if (!enabled) throw new RuntimeException("RoleAdminService not enabled - the Hoist-provided DefaultRoleService must be used to enable role management via this service")
+    }
+
+    private boolean getEnabled() {
+        return config.enabled
+    }
+
+    private Map getConfig() {
+        return roleService.adminConfig
     }
 
     class RoleMemberChanges {
