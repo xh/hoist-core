@@ -37,7 +37,7 @@ class RoleAdminService extends BaseService {
         Map<String, Object> usersForDirectoryGroups = null,
                             errorsForDirectoryGroups = null
 
-        if (config.assignDirectoryGroups) {
+        if (roleService.config.assignDirectoryGroups) {
             Set<String> directoryGroups = roles
                 .collectMany(new HashSet<String>()) { it.directoryGroups }
             if (directoryGroups) {
@@ -295,7 +295,7 @@ class RoleAdminService extends BaseService {
             if (type == ROLE) return
 
             members.each { member ->
-                if (type == USER && roleService.assignUsers) {
+                if (type == USER && roleService.config.assignUsers) {
                     member.sourceRoles.each { role ->
                         ret[member.name].addSource(role, null)
                     }
