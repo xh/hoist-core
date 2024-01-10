@@ -66,12 +66,4 @@ abstract class BaseRoleService extends BaseService {
             [it, 'getUsersForDirectoryGroups not implemented.']
         }
     }
-
-    /**
-     * For Hoist framework use only - overridden by `DefaultRoleService` to enable and configure
-     * its associated Admin Console UI for managing database-backed Roles and their members.
-     */
-    Map getAdminConfig() {
-        [enabled: false]
-    }
 }

@@ -1,6 +1,7 @@
 package io.xh.hoist.admin
 
 import io.xh.hoist.BaseController
+import io.xh.hoist.role.provided.DefaultRoleService
 import io.xh.hoist.role.provided.Role
 import io.xh.hoist.security.Access
 
@@ -14,7 +15,11 @@ class RoleAdminController extends BaseController {
 
     @Access(['HOIST_ADMIN_READER'])
     def config() {
-        renderJSON(roleService.adminConfig)
+        def ret = roleService instanceof DefaultRoleService ?
+            [enabled: true, *: roleService.config] :
+            [enabled: false]
+
+        renderJSON(ret)
     }
 
     @Access(['HOIST_ADMIN_READER'])

@@ -124,16 +124,6 @@ class DefaultRoleService extends BaseRoleService {
         configService.getMap('xhRoleModuleConfig')
     }
 
-    Map getAdminConfig() {
-        [
-            enabled: true,
-            assignUsers: config.assignUsers,
-            assignDirectoryGroups: config.assignDirectoryGroups,
-            infoTooltips: config.infoTooltips
-        ]
-    }
-
-
     //------------------
     // Implementation
     //------------------

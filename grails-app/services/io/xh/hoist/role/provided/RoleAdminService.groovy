@@ -26,6 +26,10 @@ class RoleAdminService extends BaseService {
     def roleService,
         trackService
 
+    boolean getEnabled() {
+        roleService instanceof DefaultRoleService
+    }
+
     /**
      * List all Roles with all available membership information and metadata, for display in the
      * Hoist Admin Console. Includes fully resolved effective users, directory groups, and roles.
@@ -317,12 +321,8 @@ class RoleAdminService extends BaseService {
         if (!enabled) throw new RuntimeException("RoleAdminService not enabled - the Hoist-provided DefaultRoleService must be used to enable role management via this service")
     }
 
-    private boolean getEnabled() {
-        return config.enabled
-    }
-
     private Map getConfig() {
-        return roleService.adminConfig
+        return roleService.config
     }
 
     class RoleMemberChanges {
