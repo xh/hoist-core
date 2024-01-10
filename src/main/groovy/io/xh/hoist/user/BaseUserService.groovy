@@ -21,6 +21,7 @@ import io.xh.hoist.BaseService
  */
 @CompileStatic
 abstract class BaseUserService extends BaseService {
+
     /** Return a user, or null if user not found. */
     abstract HoistUser find(String username)
 
@@ -38,8 +39,6 @@ abstract class BaseUserService extends BaseService {
      *
      * Overrides are highly encouraged to call this super implementation as an initial filter
      * and skip doing so at their own risk.
-     *
-     * @param authUser
      */
     List<HoistUser> impersonationTargetsForUser(HoistUser authUser) {
         if (!authUser.canImpersonate) return []

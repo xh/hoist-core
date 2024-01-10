@@ -1,10 +1,12 @@
-package io.xh.hoist.role
+package io.xh.hoist.role.provided
 
 import io.xh.hoist.json.JSONFormat
 
 /**
- * Backing domain class for Hoist's built-in role management. Methods on this class are used
- * internally by Hoist and should not be called directly by application code.
+ * Backing domain class Roles, when using Hoist's built-in role management.
+ * Methods on this class are used internally by Hoist and should not be called directly by app code.
+ *
+ * @see DefaultRoleService - an optional, concrete RoleService implementation that uses this class.
  */
 class Role implements JSONFormat {
     String name
@@ -61,7 +63,7 @@ class Role implements JSONFormat {
     }
 
     /**
-     * Use BFS to find all roles for which this role is an effective member, with source association
+     * Return all roles for which this role is an effective member, with source association
      */
     List<EffectiveMember> listInheritedRoles() {
         Set<String> visitedRoles = [name]
