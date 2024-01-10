@@ -12,6 +12,9 @@ import io.xh.hoist.role.BaseRoleService
 import io.xh.hoist.util.DateTimeUtils
 import io.xh.hoist.util.Timer
 
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
+
 import static io.xh.hoist.role.provided.RoleMember.Type.DIRECTORY_GROUP
 import static io.xh.hoist.role.provided.RoleMember.Type.USER
 
@@ -77,7 +80,7 @@ class DefaultRoleService extends BaseRoleService {
 
     private Timer timer
     protected Map<String, Set<String>> _allRoleAssignments
-    protected Map<String, Set<String>> _roleAssignmentsByUser
+    protected ConcurrentMap<String, Set<String>> _roleAssignmentsByUser
 
     static clearCachesConfigs = ['xhRoleModuleConfig']
 
@@ -130,7 +133,7 @@ class DefaultRoleService extends BaseRoleService {
     protected void refreshRoleAssignments() {
         withDebug('Refreshing role assignments') {
             _allRoleAssignments = generateRoleAssignments()
-            _roleAssignmentsByUser = new HashMap()
+            _roleAssignmentsByUser = new ConcurrentHashMap()
         }
     }
 

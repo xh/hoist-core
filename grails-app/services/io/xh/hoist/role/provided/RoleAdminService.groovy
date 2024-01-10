@@ -3,11 +3,6 @@ package io.xh.hoist.role.provided
 import grails.gorm.transactions.ReadOnly
 import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
-import io.xh.hoist.role.BaseRoleService
-import io.xh.hoist.role.provided.EffectiveMember
-import io.xh.hoist.role.provided.EffectiveUser
-import io.xh.hoist.role.provided.Role
-import io.xh.hoist.role.provided.RoleMember
 import io.xh.hoist.user.HoistUser
 import static io.xh.hoist.role.provided.RoleMember.Type.*
 
@@ -300,7 +295,7 @@ class RoleAdminService extends BaseService {
             if (type == ROLE) return
 
             members.each { member ->
-                if (type == USER && config.assignUsers) {
+                if (type == USER && roleService.assignUsers) {
                     member.sourceRoles.each { role ->
                         ret[member.name].addSource(role, null)
                     }
@@ -319,10 +314,6 @@ class RoleAdminService extends BaseService {
 
     private void ensureEnabled() {
         if (!enabled) throw new RuntimeException("RoleAdminService not enabled - the Hoist-provided DefaultRoleService must be used to enable role management via this service")
-    }
-
-    private Map getConfig() {
-        return roleService.config
     }
 
     class RoleMemberChanges {
