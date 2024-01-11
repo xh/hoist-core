@@ -13,9 +13,9 @@ import static io.xh.hoist.role.provided.RoleMember.Type.*
  * See that class for additional documentation and details.
  *
  * This class is intended to be used by its associated admin controller - apps should rarely (if
- * ever) need to interact with it directly. An exception is {@link #ensureRequiredRolesCreated},
- * which apps might wish to call in their Bootstrap code to ensure that expected roles have been
- * created in a given database environment.
+ * ever) need to interact with it directly. Exceptions are `ensureRequiredRolesCreated` and
+ * `ensureUserHasRoles`, which apps might wish to call in their Bootstrap code to ensure that
+ * essential roles have been created and assigned as needed in a given database environment.
  */
 class RoleAdminService extends BaseService {
     def roleService,
