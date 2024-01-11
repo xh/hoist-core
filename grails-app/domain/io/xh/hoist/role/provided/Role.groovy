@@ -6,7 +6,7 @@ import io.xh.hoist.json.JSONFormat
  * Backing domain class Roles, when using Hoist's built-in role management.
  * Methods on this class are used internally by Hoist and should not be called directly by app code.
  *
- * @see DefaultRoleService - an optional, concrete RoleService implementation that uses this class.
+ * @see DefaultRoleService - an optional RoleService implementation that uses this class.
  */
 class Role implements JSONFormat {
     String name

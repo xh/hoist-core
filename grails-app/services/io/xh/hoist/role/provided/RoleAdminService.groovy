@@ -38,15 +38,11 @@ class RoleAdminService extends BaseService {
                             errorsForDirectoryGroups = null
 
         if (roleService.config.assignDirectoryGroups) {
-            Set<String> directoryGroups = roles
-                .collectMany(new HashSet<String>()) { it.directoryGroups }
-            if (directoryGroups) {
-                Map<String, Object> usersOrErrorsForDirectoryGroups = roleService
-                    .getUsersForDirectoryGroups(directoryGroups)
-                usersForDirectoryGroups = usersOrErrorsForDirectoryGroups
-                    .findAll { it.value instanceof Set }
-                errorsForDirectoryGroups = usersOrErrorsForDirectoryGroups
-                    .findAll { !(it.value instanceof Set) }
+            Set<String> groups = roles.collectMany(new HashSet()) { it.directoryGroups }
+            if (groups) {
+                Map<String, Object> usersOrErrorsForGroups = roleService.getUsersForDirectoryGroups(groups)
+                usersForDirectoryGroups = usersOrErrorsForGroups.findAll { it.value instanceof Set }
+                errorsForDirectoryGroups = usersOrErrorsForGroups.findAll { !(it.value instanceof Set) }
             }
         }
 
