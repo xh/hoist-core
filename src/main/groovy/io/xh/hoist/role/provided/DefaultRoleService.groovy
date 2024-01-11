@@ -79,7 +79,7 @@ import static io.xh.hoist.role.provided.RoleMember.Type.USER
 class DefaultRoleService extends BaseRoleService {
 
     def configService,
-        roleAdminService
+        defaultRoleAdminService
 
     private Timer timer
     protected Map<String, Set<String>> _allRoleAssignments
@@ -208,7 +208,7 @@ class DefaultRoleService extends BaseRoleService {
             ]
         ])
 
-        roleAdminService.ensureRequiredRolesCreated([
+        defaultRoleAdminService.ensureRequiredRolesCreated([
             [
                 name    : 'HOIST_ADMIN',
                 category: 'Hoist',

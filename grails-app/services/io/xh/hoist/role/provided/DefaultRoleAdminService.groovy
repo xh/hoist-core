@@ -17,7 +17,7 @@ import static io.xh.hoist.role.provided.RoleMember.Type.*
  * `ensureUserHasRoles`, which apps might wish to call in their Bootstrap code to ensure that
  * essential roles have been created and assigned as needed in a given database environment.
  */
-class RoleAdminService extends BaseService {
+class DefaultRoleAdminService extends BaseService {
     def roleService,
         trackService
 
@@ -164,30 +164,25 @@ class RoleAdminService extends BaseService {
     }
 
     /**
-     * Ensure that a user has been assigned a set of database-backed Roles.
+     * Ensure that a user has been assigned a role.
      *
-     * Typically called within Bootstrap code to ensure that core roles are assigned to a dedicated
-     * admin user on startup.
+     * Typically called within Bootstrap code to ensure that a specific role is assigned to a
+     * dedicated admin user on startup.
      */
     @Transactional
-    void ensureUserHasRoles(HoistUser user, List<String> roleNames) {
+    void ensureUserHasRoles(HoistUser user, String roleName) {
         ensureEnabled()
 
-        def didChange = false
-        roleNames.each { roleName ->
-            if (!user.hasRole(roleName)) {
-                def role = Role.get(roleName)
-                if (role) {
-                    role.addToMembers(type: USER, name: user.username, createdBy: 'hoist-bootstrap')
-                    role.save(flush: true)
-                    didChange = true
-                } else {
-                    logWarn("Failed to find role $roleName to assign to $user", "role will not be assigned")
-                }
+        if (!user.hasRole(roleName)) {
+            def role = Role.get(roleName)
+            if (role) {
+                role.addToMembers(type: USER, name: user.username, createdBy: 'hoist-bootstrap')
+                role.save(flush: true)
+                roleService.clearCaches()
+            } else {
+                logWarn("Failed to find role $roleName to assign to $user", "role will not be assigned")
             }
         }
-
-        if (didChange) roleService.clearCaches()
     }
 
     //------------------------
@@ -309,7 +304,9 @@ class RoleAdminService extends BaseService {
     }
 
     private void ensureEnabled() {
-        if (!enabled) throw new RuntimeException("RoleAdminService not enabled - the Hoist-provided DefaultRoleService must be used to enable role management via this service")
+        if (!enabled) {
+            throw new RuntimeException("Action not enabled - the Hoist-provided DefaultRoleService must be used to enable role management via this service")
+        }
     }
 
     class RoleMemberChanges {
