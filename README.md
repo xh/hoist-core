@@ -91,7 +91,7 @@ available for use. Roles played by the Hoist server commonly include:
 
 ## Application Structure and Deployment
 
-A Hoist app is structured primarily as a Grails 3.x application, with a file and directory layout
+A Hoist app is structured primarily as a Grails 6.x application, with a file and directory layout
 that follows the Grails conventions. The Grails project offers extensive and well maintained
 [documentation](http://docs.grails.org/latest/) on the framework's features and configuration. This
 library - hoist-core - is packaged as a Grails plugin, and should be specified as such within the
@@ -155,9 +155,11 @@ Hoist framework or its usage, several key features are called out with additiona
 
 ### User Authentication / Authorization
 
-|             Class/File             |                   Note                   |                                                    Link                                                     |
+| Class/File                         |                   Note                   |                                                    Link                                                     |
 |------------------------------------|------------------------------------------|:-----------------------------------------------------------------------------------------------------------:|
 | `BaseAuthenticationService.groovy` | Abstract service each app must implement |              [🏗](grails-app/services/io/xh/hoist/security/BaseAuthenticationService.groovy)               |
+| `BaseUserService.groovy`           | Abstract service each app must implement |              [🏗](grails-app/services/io/xh/hoist/security/BaseAuthenticationService.groovy)               |
+| `BaseRoleService.groovy`           | Abstract service each app must implement |              [🏗](grails-app/services/io/xh/hoist/security/BaseAuthenticationService.groovy)               |
 | `HoistUser.groovy`                 | Trait/interface for core user data       |                          [🏗](src/main/groovy/io/xh/hoist/user/HoistUser.groovy)                           |
 | `IdentityService.groovy`           | Server-side source of current user info  |                     [🏗](grails-app/services/io/xh/hoist/user/IdentityService.groovy)                      |
 | `Access.groovy`                    | Annotation for endpoint security         |                          [🏗](src/main/groovy/io/xh/hoist/security/Access.groovy)                          |
@@ -184,12 +186,19 @@ fetch core user info, making it easily available to the JS app via a correspondi
 
 #### Roles and Access
 
-🔒 A minimal structure is provided for application roles. The `HoistUser` trait defines an
-abstract `getRoles()` method that returns a `Set<String>` of role names. It is up to the application
-to determine how roles are resolved and what meaning they have in the context of the app, although
-Hoist does have an expectation that a `"HOIST_ADMIN"` role will be assigned to any administrators of
-the app. (This role is required to access the built-in Admin console and make calls to admin-only
-endpoints.)
+🔒 Structure is provided for application "roles", for use in defining access to various parts of the
+application.  At their core, roles are simply strings -- it is up to the application to determine what
+meaning they will have in the context of the app.  Note that Hoist will expect (and auto-create) certain
+roles (e.g. `"HOIST_ADMIN"`, `"HOIST_ADMIN_READER"`, `"HOIST_IMPERSONATOR"`, and `"HOIST_ROLE_MANAGER"`)
+that protect built-in hoist functionality and should be assigned as needed to administrators of
+the app.
+
+Roles are associated with users via an application defined `RoleService`.  Hoist provides an
+out-of-the-box solution for this -- `DefaultRoleService` --  that will store Role definitions and
+assignments in the database, can be integrated with other systems such as Active Directory, and
+has a built-in management UI in Hoist React. `DefaultRoleService` may be customized, but for
+applications that require a fully custom solution, `BaseRoleService` establishes the minimal required
+API contract and may be subclassed directly.
 
 Server-side endpoints (Controllers) can be restricted to users with a given role or roles via the
 `@Access` annotation, e.g. a controller that should be accessible only to users with an "EDITOR"

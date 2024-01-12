@@ -1,20 +1,29 @@
 # Changelog
 
-## 18.0-SNAPSHOT
+## 18.0.0 - 2024-01-11
 
 ### 🎁 New Features
 
 * New support for Role Management.
   * Hoist now supports an out-of-the-box, database-driven system for maintaining a hierarchical set
-    of Roles associating and associating them with individual users.
+    of roles and associating them with individual users.
   * New system supports app and plug-in specific integrations to AD and other enterprise systems.
-  * Administration of the new system provided by a new admin UI in hoist-react v60 and above.
+  * Hoist-react `v60` is now required and will provide an administrative UI to visualize and manage
+    the new role system.
+  * See `DefaultRoleService` for more information.
 
 ### ⚙️ Technical
 
 * Add `xh/echoHeaders` utility endpoint. Useful for verifying headers (e.g. `jespa_connection_id`)
   that are installed by or must pass through multiple ingresses/load balancers.
 * Remove HTML tag escaping when parsing alert banner create/update request JSON.
+
+### 💥 Breaking Changes
+
+* Applications will typically need to adjust their implementation of `BaseRoleService`.  Most
+applications are expected to adopt the new provided `DefaultRoleService`, and may be required to
+migrate existing code/data to the new API.  Applications that wish to continue to use a completely
+custom `BaseRoleService` will need to implement one additional method: `getUsersForRole`.
 
 ## 17.4.0 - 2023-11-09
 
