@@ -1,5 +1,7 @@
 # Changelog
 
+## 19.0-SNAPSHOT
+
 ## 18.0.1 - 2024-01-16
 
 ### 🐞 Bug Fixes
