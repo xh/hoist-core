@@ -197,20 +197,20 @@ class DefaultRoleAdminService extends BaseService {
         roleSpec.remove('users')
         roleSpec.remove('directoryGroups')
         roleSpec.remove('roles')
+        roleSpec.put('lastUpdatedBy', authUsername)
 
         Role role
         if (isUpdate) {
             role = Role.get(roleSpec.name as String)
             roleSpec.each { k, v -> role[k] = v }
         } else {
-            role = new Role(roleSpec)
+            role = new Role(roleSpec).save(flush: true)
         }
 
         def userChanges = updateMembers(role, USER, users),
             directoryGroupChanges = updateMembers(role, DIRECTORY_GROUP, directoryGroups),
             roleChanges = updateMembers(role, ROLE, roles)
 
-        role.setLastUpdatedBy(authUsername)
         role.save(flush: true)
 
         if (isUpdate) {
