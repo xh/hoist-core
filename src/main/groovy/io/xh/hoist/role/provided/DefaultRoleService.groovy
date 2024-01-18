@@ -78,8 +78,8 @@ class DefaultRoleService extends BaseRoleService {
         defaultRoleAdminService
 
     private Timer timer
-    protected Map<String, Set<String>> _allRoleAssignments
-    protected ConcurrentMap<String, Set<String>> _roleAssignmentsByUser
+    protected Map<String, Set<String>> _allRoleAssignments = emptyMap()
+    protected ConcurrentMap<String, Set<String>> _roleAssignmentsByUser = new ConcurrentHashMap()
 
     static clearCachesConfigs = ['xhRoleModuleConfig']
 
@@ -98,13 +98,11 @@ class DefaultRoleService extends BaseRoleService {
     //------------------------------------
     @Override
     Map<String, Set<String>> getAllRoleAssignments() {
-        ensureInitialized()
         _allRoleAssignments
     }
 
     @Override
     Set<String> getRolesForUser(String username) {
-        ensureInitialized()
         Set<String> ret = _roleAssignmentsByUser[username]
         if (ret == null) {
             Set<String> userRoles = new HashSet()
@@ -115,7 +113,7 @@ class DefaultRoleService extends BaseRoleService {
         }
 
         if (getInstanceConfig('bootstrapAdminUser') == username && isLocalDevelopment && !isProduction) {
-            ret += ['HOIST_ADMIN', 'HOIST_ROLE_MANAGER']
+            ret += ['HOIST_ADMIN', 'HOIST_ADMIN_READER', 'HOIST_ROLE_MANAGER']
         }
 
         ret
@@ -123,7 +121,6 @@ class DefaultRoleService extends BaseRoleService {
 
     @Override
     Set<String> getUsersForRole(String role) {
-        ensureInitialized()
         allRoleAssignments[role] ?: EMPTY_SET
     }
 
@@ -274,12 +271,6 @@ class DefaultRoleService extends BaseRoleService {
 
             logTrace("Generated assignments for ${role.name}", "${users.size()} effective users")
             return [role.name, users]
-        }
-    }
-
-    protected void ensureInitialized() {
-        if (!initialized) {
-            throw new RuntimeException('Application initializing.  RoleService not yet available.')
         }
     }
 
