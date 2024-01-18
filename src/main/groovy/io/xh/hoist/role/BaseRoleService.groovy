@@ -48,22 +48,4 @@ abstract class BaseRoleService extends BaseService {
 
     /** Return all users (as a set of usernames) with a given role. */
     abstract Set<String> getUsersForRole(String role)
-
-    /**
-     * Return Map of directory group names to either:
-     *
-     *  a) Set<String> of assigned users
-     *     OR
-     *  b) String describing lookup error
-     *
-     *  Note that a working implementation of this method is only required if using the Hoist-
-     *  provided `DefaultRoleService` and support for external directory groups is desired.
-     *
-     *  See the docs on that service for additional details.
-     */
-    Map<String, Object> getUsersForDirectoryGroups(Set<String> directoryGroups) {
-        directoryGroups.collectEntries {
-            [it, 'getUsersForDirectoryGroups not implemented.']
-        }
-    }
 }
