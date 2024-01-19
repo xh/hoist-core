@@ -109,7 +109,7 @@ class DefaultRoleService extends BaseRoleService {
             allRoleAssignments.each { role, users ->
                 if (users.contains(username)) userRoles << role
             }
-            ret = _roleAssignmentsByUser[username] = unmodifiableSet<String>(userRoles)
+            ret = _roleAssignmentsByUser[username] = unmodifiableSet(userRoles) as Set<String>
         }
         if (getInstanceConfig('bootstrapAdminUser') == username && isLocalDevelopment && !isProduction) {
             ret += ['HOIST_ADMIN', 'HOIST_ADMIN_READER', 'HOIST_ROLE_MANAGER']
@@ -119,7 +119,7 @@ class DefaultRoleService extends BaseRoleService {
 
     @Override
     Set<String> getUsersForRole(String role) {
-        allRoleAssignments[role] ?: emptySet<String>()
+        allRoleAssignments[role] ?: emptySet() as Set<String>
     }
 
     //---------------------------------
