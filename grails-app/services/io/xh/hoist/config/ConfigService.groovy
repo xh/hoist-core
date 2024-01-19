@@ -56,6 +56,11 @@ class ConfigService extends BaseService implements EventPublisher {
     }
 
     @ReadOnly
+    boolean hasConfig(String name) {
+        return AppConfig.findByName(name, [cache: true]) != null
+    }
+
+    @ReadOnly
     Map getClientConfig() {
         def ret = [:]
 
