@@ -1,5 +1,7 @@
 # Changelog
 
+## 19.0-SNAPSHOT - unreleased
+
 ## 18.1.0 - 2024-01-18
 
 ### 🎁 New Features
