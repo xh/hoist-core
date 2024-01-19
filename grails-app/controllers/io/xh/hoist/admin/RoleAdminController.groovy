@@ -49,7 +49,7 @@ class RoleAdminController extends BaseController {
     }
 
     def usersForDirectoryGroup(String name) {
-        renderJSON(data: roleService.getUsersForDirectoryGroups(singleton(name))[name])
+        renderJSON(data: roleService.loadUsersForDirectoryGroups(singleton(name))[name])
     }
 
 
