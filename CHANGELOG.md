@@ -5,11 +5,11 @@
 ### 🎁 New Features
 
 * Improved handling of requests during application initialization.  HTTP requests received
-  during App startup will now yield clean "App Initializing Exceptions".  This is an
+  during App startup will now yield clean "App Initializing" Exceptions.  This is an
   improvement over the current behavior where attempting to service requests prematurely can cause
   arbitrary and misleading exceptions.
 
-* Misc. Improvements to DefaultRoleService API and documentation.
+* Misc. Improvements to `DefaultRoleService` API and documentation.
 
 ## 18.0.1 - 2024-01-16
 
