@@ -17,6 +17,13 @@ import java.util.concurrent.ConcurrentMap
 
 import static io.xh.hoist.role.provided.RoleMember.Type.DIRECTORY_GROUP
 import static io.xh.hoist.role.provided.RoleMember.Type.USER
+import static io.xh.hoist.util.Utils.isLocalDevelopment
+import static io.xh.hoist.util.Utils.isProduction
+import static java.util.Collections.emptySet
+import static java.util.Collections.emptyMap
+import static java.util.Collections.unmodifiableMap
+import static java.util.Collections.unmodifiableSet
+import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 
 /**
  * Optional concrete implementation of BaseRoleService for applications that wish to leverage
@@ -49,24 +56,13 @@ import static io.xh.hoist.role.provided.RoleMember.Type.USER
  * but in addition to (or instead of) assigning users directly as members, admins can assign
  * directory groups to roles. Users within those groups will then inherit membership in the Role.
  *
- * Apps wishing to use this feature must:
- *
- *  1) Extend this service and implement {@link BaseRoleService#getUsersForDirectoryGroups}.
- *
- *  2) Activate directory group support via `xhRoleModuleConfig.assignDirectoryGroups` (see below).
+ * Apps wishing to use this feature must extend this service and override.
+ * getDirectoryGroupsSupported() and doLoadUsersForDirectoryGroups().
  *
  * Certain aspects of this service and its Admin Console UI are soft-configurable via a JSON
  * `xhRoleModuleConfig`. This service will create this config entry if not found on startup.
  *
  * The following config options are supported as keys in this map:
- *
- *  - assignDirectoryGroups: boolean - true to enable assignment of external directory groups as
- *    role members. Requires an in-code implementation of `getUsersForDirectoryGroups()`. Controls
- *    visibility of the directory group membership list in the "Edit Role" admin dialog.
- *
- *  - assignUsers: boolean - true to enable direct assignment of users as role members. Disable to
- *    *require* users to be assigned via directory groups only. Controls visibility of the user
- *    membership list in the "Edit Role" admin dialog.
  *
  *  - refreshIntervalSecs: int - number of seconds between refreshes of the role membership cache.
  *    Changes made to roles via the Hoist Admin Console will trigger an immediate refresh of the
@@ -82,8 +78,8 @@ class DefaultRoleService extends BaseRoleService {
         defaultRoleAdminService
 
     private Timer timer
-    protected Map<String, Set<String>> _allRoleAssignments
-    protected ConcurrentMap<String, Set<String>> _roleAssignmentsByUser
+    protected Map<String, Set<String>> _allRoleAssignments = emptyMap()
+    protected ConcurrentMap<String, Set<String>> _roleAssignmentsByUser = new ConcurrentHashMap<>()
 
     static clearCachesConfigs = ['xhRoleModuleConfig']
 
@@ -92,116 +88,91 @@ class DefaultRoleService extends BaseRoleService {
 
         timer = createTimer(
             interval: { config.refreshIntervalSecs as int * DateTimeUtils.SECONDS },
-            runFn: this.&refreshRoleAssignments,
+            runFn: this.&refreshCaches,
             runImmediatelyAndBlock: true
         )
     }
 
+    //---------------------------------------
+    // Implementation of Base Role Service
+    //------------------------------------
+    @Override
     Map<String, Set<String>> getAllRoleAssignments() {
         _allRoleAssignments
     }
 
+    @Override
     Set<String> getRolesForUser(String username) {
-        if (!_roleAssignmentsByUser.containsKey(username)) {
+        Set<String> ret = _roleAssignmentsByUser[username]
+        if (ret == null) {
             Set<String> userRoles = new HashSet()
             allRoleAssignments.each { role, users ->
                 if (users.contains(username)) userRoles << role
             }
-
-            _roleAssignmentsByUser[username] = Collections.unmodifiableSet(userRoles)
+            ret = _roleAssignmentsByUser[username] = unmodifiableSet<String>(userRoles)
         }
+        if (getInstanceConfig('bootstrapAdminUser') == username && isLocalDevelopment && !isProduction) {
+            ret += ['HOIST_ADMIN', 'HOIST_ADMIN_READER', 'HOIST_ROLE_MANAGER']
+        }
+        ret
+    }
 
-        _roleAssignmentsByUser[username]
+    @Override
+    Set<String> getUsersForRole(String role) {
+        allRoleAssignments[role] ?: emptySet<String>()
+    }
+
+    //---------------------------------
+    // Main entry points for override
+    //---------------------------------
+    /**
+     * Does this implementation support the specification of direct role assignment via usernames?
+     * Defaults to true.  Implementations that wish to prohibit this should return false.
+     * */
+    boolean getUserAssignmentSupported() {
+        return true
     }
 
     /**
-     * Note that this default implementation does not validate that the usernames returned are
-     * active and enabled application users as per `UserService`.
-     *
-     * Apps may wish to do so - Hoist does not depend on it.
+     * Does this implementation support the specification of role assignment via directory?
+     * Defaults to false.  Implementations supporting directory lookup should return true here
+     * and implement the doLoadUsersForDirectoryGroups() method.
      */
-    Set<String> getUsersForRole(String role) {
-        allRoleAssignments[role] ?: Collections.EMPTY_SET
+    boolean getDirectoryGroupsSupported() {
+        return false
     }
 
-    /** See the class-level documentation comment for supported configuration. */
-    Map getConfig() {
-        configService.getMap('xhRoleModuleConfig')
+    /**
+     * Description of appropriate form of directory groups, if supported.
+     * Short string for UI display (e.g. tooltip) in admin client.
+     */
+    String getDirectoryGroupsDescription() {
+        return null
     }
 
-    //------------------
-    // Implementation
-    //------------------
-    protected void refreshRoleAssignments() {
-        withDebug('Refreshing role assignments') {
-            _allRoleAssignments = Collections.unmodifiableMap(generateRoleAssignments())
-            _roleAssignmentsByUser = new ConcurrentHashMap()
-        }
-    }
-
-    @ReadOnly
-    protected Map<String, Set<String>> generateRoleAssignments() {
-        List<Role> roles = Role.list()
-        Map<String, Object> usersForDirectoryGroups,
-                            errorsForDirectoryGroups
-
-        boolean assignUsers = config.assignUsers,
-                assignDirectoryGroups = config.assignDirectoryGroups
-
-        if (assignDirectoryGroups) {
-            Set<String> groups = roles.collectMany(new HashSet()) { it.directoryGroups }
-            if (groups) {
-                Map<String, Object> usersOrErrorsForGroups = getUsersForDirectoryGroups(groups)
-                usersForDirectoryGroups = usersOrErrorsForGroups.findAll { it.value instanceof Set }
-                errorsForDirectoryGroups = usersOrErrorsForGroups.findAll { !(it.value instanceof Set) }
-
-                errorsForDirectoryGroups.each { group, error ->
-                    logError("Error resolving users for directory group", group, error)
-                }
-            }
-        }
-
-        roles.collectEntries { role ->
-            Set<String> users = new HashSet<String>()
-            Map<RoleMember.Type, List<EffectiveMember>> members = role.resolveEffectiveMembers()
-
-            // The members[USER] set includes users directly assigned to this role, as well as any
-            // users that inherit this role via direct assignments on other roles.
-            if (assignUsers) {
-                members[USER].each { users.add(it.name) }
-            }
-
-            // The members[DIRECTORY_GROUP] set includes groups directly assigned to this role, as
-            // well as any groups that inherit this role via direct assignments on other roles.
-            if (usersForDirectoryGroups) {
-                members[DIRECTORY_GROUP].each {
-                    def groupUsers = usersForDirectoryGroups[it.name]
-                    if (groupUsers instanceof Set) users.addAll(groupUsers)
-                }
-            }
-
-            logTrace("Generated assignments for ${role.name}", "${users.size()} effective users")
-            return [role.name, users]
-        }
+    /**
+     * Override this method to enable directory-based lookup.  You must also override
+     * getDirectoryGroupsSupported().
+     *
+     * Method Map of directory group names to either:
+     *  a) Set<String> of assigned users
+     *     OR
+     *  b) String describing lookup error.
+     */
+    protected Map<String, Object> doLoadUsersForDirectoryGroups(Set<String> directoryGroups) {
+        throw new UnsupportedOperationException('doLoadUsersForDirectoryGroups not implemented')
     }
 
     /**
      * Ensure that the required soft-config entry for this service has been created, along with a
-     * minimal set of required Hoist roles.
+     * minimal set of required Hoist roles. Called by init() on app startup.
      */
     protected void ensureRequiredConfigAndRolesCreated() {
         configService.ensureRequiredConfigsCreated([
             xhRoleModuleConfig: [
                 valueType   : 'json',
                 defaultValue: [
-                    assignUsers          : true,
-                    assignDirectoryGroups: false,
-                    refreshIntervalSecs  : 30,
-                    infoTooltips         : [
-                        users          : null,
-                        directoryGroups: null,
-                        roles          : null
-                    ]
+                    refreshIntervalSecs  : 30
                 ],
                 groupName   : 'xh.io',
                 note        : 'Configures built-in role management via DefaultRoleService.'
@@ -235,9 +206,76 @@ class DefaultRoleService extends BaseRoleService {
         ])
     }
 
+
+    //---------------------------
+    // Implementation/Framework
+    //---------------------------
+    final Map<String, Object> loadUsersForDirectoryGroups(Set<String> directoryGroups) {
+        // Wrapped here to avoid failing implementations from ever bringing down app.
+        try {
+            return doLoadUsersForDirectoryGroups(directoryGroups)
+        } catch (Throwable e) {
+            def errMsg = 'Error resolving Directory Groups'
+            logError(errMsg, e)
+            return directoryGroups.collectEntries {[it, errMsg] }
+        }
+    }
+
+    protected void refreshCaches() {
+        withDebug('Refreshing role caches') {
+            _allRoleAssignments = unmodifiableMap(generateRoleAssignments())
+            _roleAssignmentsByUser = new ConcurrentHashMap()
+        }
+    }
+
+    @ReadOnly
+    protected Map<String, Set<String>> generateRoleAssignments() {
+        List<Role> roles = Role.list()
+        Map<String, Object> usersForDirectoryGroups, errorsForDirectoryGroups
+
+        if (directoryGroupsSupported) {
+            Set<String> groups = roles.collectMany(new HashSet()) { it.directoryGroups }
+            if (groups) {
+                Map<String, Object> usersOrErrorsForGroups = loadUsersForDirectoryGroups(groups)
+                usersForDirectoryGroups = usersOrErrorsForGroups.findAll { it.value instanceof Set }
+                errorsForDirectoryGroups = usersOrErrorsForGroups.findAll { !(it.value instanceof Set) }
+
+                errorsForDirectoryGroups.each { group, error ->
+                    logError("Error resolving users for directory group", group, error)
+                }
+            }
+        }
+
+        roles.collectEntries { role ->
+            Set<String> users = new HashSet<String>()
+            Map<RoleMember.Type, List<EffectiveMember>> members = role.resolveEffectiveMembers()
+
+            // The members[USER] set includes users directly assigned to this role, as well as any
+            // users that inherit this role via direct assignments on other roles.
+            if (userAssignmentSupported) {
+                members[USER].each { users.add(it.name) }
+            }
+
+            // The members[DIRECTORY_GROUP] set includes groups directly assigned to this role, as
+            // well as any groups that inherit this role via direct assignments on other roles.
+            if (usersForDirectoryGroups) {
+                members[DIRECTORY_GROUP].each {
+                    def groupUsers = usersForDirectoryGroups[it.name]
+                    if (groupUsers instanceof Set) users.addAll(groupUsers)
+                }
+            }
+
+            logTrace("Generated assignments for ${role.name}", "${users.size()} effective users")
+            return [role.name, users]
+        }
+    }
+
+    protected Map getConfig() {
+        configService.getMap('xhRoleModuleConfig')
+    }
+
     void clearCaches() {
         timer.forceRun()
         super.clearCaches()
     }
-
 }

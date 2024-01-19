@@ -16,7 +16,7 @@ class RoleAdminController extends BaseController {
     @Access(['HOIST_ADMIN_READER'])
     def config() {
         def ret = roleService instanceof DefaultRoleService ?
-            [enabled: true, *: roleService.config] :
+            [enabled: true, *: defaultRoleAdminService.clientConfig] :
             [enabled: false]
 
         renderJSON(ret)

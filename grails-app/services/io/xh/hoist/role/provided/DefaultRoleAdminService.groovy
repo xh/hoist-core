@@ -25,6 +25,10 @@ class DefaultRoleAdminService extends BaseService {
         roleService instanceof DefaultRoleService
     }
 
+    DefaultRoleService getDefaultRoleService() {
+        roleService instanceof DefaultRoleService ? roleService as DefaultRoleService : null
+    }
+
     /**
      * List all Roles with all available membership information and metadata, for display in the
      * Hoist Admin Console. Includes fully resolved effective users, directory groups, and roles.
@@ -37,10 +41,10 @@ class DefaultRoleAdminService extends BaseService {
         Map<String, Object> usersForDirectoryGroups = null,
                             errorsForDirectoryGroups = null
 
-        if (roleService.config.assignDirectoryGroups) {
+        if (defaultRoleService.directoryGroupsSupported) {
             Set<String> groups = roles.collectMany(new HashSet()) { it.directoryGroups }
             if (groups) {
-                Map<String, Object> usersOrErrorsForGroups = roleService.getUsersForDirectoryGroups(groups)
+                Map<String, Object> usersOrErrorsForGroups = defaultRoleService.loadUsersForDirectoryGroups(groups)
                 usersForDirectoryGroups = usersOrErrorsForGroups.findAll { it.value instanceof Set }
                 errorsForDirectoryGroups = usersOrErrorsForGroups.findAll { !(it.value instanceof Set) }
             }
@@ -73,6 +77,12 @@ class DefaultRoleAdminService extends BaseService {
         }
     }
 
+    Map getClientConfig() { [
+        userAssignmentSupported: defaultRoleService.userAssignmentSupported,
+        directoryGroupsSupported: defaultRoleService.directoryGroupsSupported,
+        directoryGroupsDescription: defaultRoleService.directoryGroupsDescription
+    ]}
+
     Role create(Map roleSpec) {
         ensureEnabled()
         createOrUpdate(roleSpec, false)
@@ -99,7 +109,7 @@ class DefaultRoleAdminService extends BaseService {
             msg: "Deleted role: '$id'",
             category: 'Audit'
         )
-        roleService.clearCaches()
+        defaultRoleService.clearCaches()
     }
 
 
@@ -178,7 +188,7 @@ class DefaultRoleAdminService extends BaseService {
             if (role) {
                 role.addToMembers(type: USER, name: user.username, createdBy: 'hoist-bootstrap')
                 role.save(flush: true)
-                roleService.clearCaches()
+                defaultRoleService.clearCaches()
             } else {
                 logWarn("Failed to find role $roleName to assign to $user", "role will not be assigned")
             }
@@ -244,7 +254,7 @@ class DefaultRoleAdminService extends BaseService {
             )
         }
 
-        roleService.clearCaches()
+        defaultRoleService.clearCaches()
         return role
     }
 
@@ -286,7 +296,7 @@ class DefaultRoleAdminService extends BaseService {
             if (type == ROLE) return
 
             members.each { member ->
-                if (type == USER && roleService.config.assignUsers) {
+                if (type == USER && defaultRoleService.userAssignmentSupported) {
                     member.sourceRoles.each { role ->
                         ret[member.name].addSource(role, null)
                     }
