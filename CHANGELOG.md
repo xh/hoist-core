@@ -2,6 +2,10 @@
 
 ## 19.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* New `ConfigService.hasConfig` method for checking if a config exists.
+
 ## 18.1.0 - 2024-01-18
 
 ### 🎁 New Features
