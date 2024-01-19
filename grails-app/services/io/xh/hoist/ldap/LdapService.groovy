@@ -12,15 +12,17 @@ import static grails.async.Promises.task
 /**
  * Query a set of LDAP servers for People or Groups.
  *
- * Requires a 'ldapConfig' with the following options
- *      enabled - true to enable
- *      username - dn of query user.
- *      password - password for user
- *      timeoutMs - time to wait for any individual search to resolve.
- *      cacheExpireSecs - length of time to cache results.  Set to -1 to disable caching.
- *      servers - list of servers to be queried, each containing:
- *          hostname
- *          baseDn
+ * Requires the following configs
+ *      'ldapConfig' with the following options
+ *          enabled - true to enable
+ *          timeoutMs - time to wait for any individual search to resolve.
+ *          cacheExpireSecs - length of time to cache results.  Set to -1 to disable caching.
+ *          servers - list of servers to be queried, each containing:
+ *              hostname
+ *              baseDn
+ *
+ *     'ldapUsername' - dn of query user.
+ *     'ldapPassword' - password for user
  *
  * This service will cache results, per server, for the configured interval.
  * This service may return partial results if any particular server fails to
@@ -88,14 +90,16 @@ class LdapService extends BaseService {
         if (!config.enabled) throw new RuntimeException('LdapService is not enabled.')
 
         String hostname = server.hostname,
-            filter = "(&(objectCategory=${objType == LdapPerson ? 'Person' : 'Group'})$baseFilter)"
+            filter = "(&(objectCategory=${objType == LdapPerson ? 'Person' : 'Group'})$baseFilter)",
+            username = configService.getString('ldapUsername'),
+            password = configService.getString('ldapPassword')
         cache.getOrCreate(hostname + filter) {
             withDebug(["Querying LDAP", [hostname: hostname, filter: filter]]) {
                 LdapNetworkConnection conn
                 try {
                     conn = new LdapNetworkConnection(hostname)
                     conn.timeOut = config.timeoutMs
-                    conn.bind(config.username, config.password)
+                    conn.bind(username, password)
                     conn.search(server.baseDn as String, filter, SearchScope.SUBTREE, objType.keys)
                         .collect { objType.create(it.attributes as Collection<Attribute>) }
                 } catch (Exception e) {
