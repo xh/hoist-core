@@ -57,7 +57,7 @@ import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
  * directory groups to roles. Users within those groups will then inherit membership in the Role.
  *
  * Apps wishing to use this feature must extend this service and override.
- * getDirectoryGroupsSupported() and  getUsersForDirectoryGroups().
+ * getDirectoryGroupsSupported() and doLoadUsersForDirectoryGroups().
  *
  * Certain aspects of this service and its Admin Console UI are soft-configurable via a JSON
  * `xhRoleModuleConfig`. This service will create this config entry if not found on startup.
@@ -111,11 +111,9 @@ class DefaultRoleService extends BaseRoleService {
             }
             ret = _roleAssignmentsByUser[username] = unmodifiableSet(userRoles)
         }
-
         if (getInstanceConfig('bootstrapAdminUser') == username && isLocalDevelopment && !isProduction) {
             ret += ['HOIST_ADMIN', 'HOIST_ADMIN_READER', 'HOIST_ROLE_MANAGER']
         }
-
         ret
     }
 
@@ -138,7 +136,7 @@ class DefaultRoleService extends BaseRoleService {
     /**
      * Does this implementation support the specification of role assignment via directory?
      * Defaults to false.  Implementations supporting directory lookup should return true here
-     * and implement the getUsersForDirectoryGroup() method.
+     * and implement the doLoadUsersForDirectoryGroups() method.
      */
     boolean getDirectoryGroupsSupported() {
         return false
@@ -159,12 +157,10 @@ class DefaultRoleService extends BaseRoleService {
      * Method Map of directory group names to either:
      *  a) Set<String> of assigned users
      *     OR
-     *  b) String describing lookup error .
+     *  b) String describing lookup error.
      */
-    protected Map<String, Object> getUsersForDirectoryGroups(Set<String> directoryGroups) {
-        directoryGroups.collectEntries {
-            [it, 'getUsersForDirectoryGroups not implemented.']
-        }
+    protected Map<String, Object> doLoadUsersForDirectoryGroups(Set<String> directoryGroups) {
+        throw new UnsupportedOperationException('doLoadUsersForDirectoryGroups not implemented')
     }
 
     /**
@@ -216,12 +212,12 @@ class DefaultRoleService extends BaseRoleService {
     //---------------------------
     final Map<String, Object> loadUsersForDirectoryGroups(Set<String> directoryGroups) {
         // Wrapped here to avoid failing implementations from ever bringing down app.
-        // TODO: consider timing out as well.
         try {
-            return getUsersForDirectoryGroups(directoryGroups)
+            return doLoadUsersForDirectoryGroups(directoryGroups)
         } catch (Throwable e) {
-            logError('Error resolving Directory Groups', e)
-            return emptyMap()
+            def errMsg = 'Error resolving Directory Groups'
+            logError(errMsg, e)
+            return directoryGroups.collectEntries {[it, errMsg] }
         }
     }
 
