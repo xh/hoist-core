@@ -19,7 +19,7 @@ import static io.xh.hoist.role.provided.RoleMember.Type.DIRECTORY_GROUP
 import static io.xh.hoist.role.provided.RoleMember.Type.USER
 import static io.xh.hoist.util.Utils.isLocalDevelopment
 import static io.xh.hoist.util.Utils.isProduction
-import static java.util.Collections.EMPTY_SET
+import static java.util.Collections.emptySet
 import static java.util.Collections.emptyMap
 import static java.util.Collections.unmodifiableMap
 import static java.util.Collections.unmodifiableSet
@@ -79,7 +79,7 @@ class DefaultRoleService extends BaseRoleService {
 
     private Timer timer
     protected Map<String, Set<String>> _allRoleAssignments = emptyMap()
-    protected ConcurrentMap<String, Set<String>> _roleAssignmentsByUser = new ConcurrentHashMap()
+    protected ConcurrentMap<String, Set<String>> _roleAssignmentsByUser = new ConcurrentHashMap<>()
 
     static clearCachesConfigs = ['xhRoleModuleConfig']
 
@@ -109,7 +109,7 @@ class DefaultRoleService extends BaseRoleService {
             allRoleAssignments.each { role, users ->
                 if (users.contains(username)) userRoles << role
             }
-            ret = _roleAssignmentsByUser[username] = unmodifiableSet(userRoles)
+            ret = _roleAssignmentsByUser[username] = unmodifiableSet<String>(userRoles)
         }
         if (getInstanceConfig('bootstrapAdminUser') == username && isLocalDevelopment && !isProduction) {
             ret += ['HOIST_ADMIN', 'HOIST_ADMIN_READER', 'HOIST_ROLE_MANAGER']
@@ -119,7 +119,7 @@ class DefaultRoleService extends BaseRoleService {
 
     @Override
     Set<String> getUsersForRole(String role) {
-        allRoleAssignments[role] ?: EMPTY_SET
+        allRoleAssignments[role] ?: emptySet<String>()
     }
 
     //---------------------------------
