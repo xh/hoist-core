@@ -33,7 +33,7 @@ class HoistSecurityFilter implements Filter, LogSupport, ApplicationListener<App
         if (!isReady) {
             ExceptionRenderer exceptionRenderer = Utils.exceptionRenderer
             exceptionRenderer.handleException(
-                new RoutineRuntimeException('Application Initializing. Please wait...'),
+                new RoutineRuntimeException('Application Initializing. Please try again shortly.'),
                 httpRequest,
                 httpResponse,
                 this
