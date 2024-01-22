@@ -134,13 +134,13 @@ class BootStrap {
             ],
             xhEmailDefaultDomain: [
                 valueType: 'string',
-                defaultValue: 'xh.io',
+                defaultValue: 'example.com',
                 groupName: 'xh.io',
                 note: 'Default domain name appended by Hoist EmailServices when unqualified usernames are passed to the service as email recipients/senders.'
             ],
             xhEmailDefaultSender: [
                 valueType: 'string',
-                defaultValue: 'support@xh.io',
+                defaultValue: 'support@example.com',
                 groupName: 'xh.io',
                 note: 'Email address for Hoist EmailService to use as default sender address.'
             ],
@@ -161,7 +161,7 @@ class BootStrap {
                 defaultValue: 'none',
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Email address to which support and feedback submissions should be sent.'
+                note: 'Email address to which support and feedback submissions should be sent. Value "none" to disable support emails.'
             ],
             xhEnableImpersonation: [
                 valueType: 'bool',
