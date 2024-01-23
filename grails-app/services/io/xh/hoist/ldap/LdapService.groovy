@@ -92,7 +92,7 @@ class LdapService extends BaseService {
         String hostname = server.hostname,
             filter = "(&(objectCategory=${objType == LdapPerson ? 'Person' : 'Group'})$baseFilter)",
             username = configService.getString('xhLdapUsername'),
-            password = configService.getString('xhLdapPassword')
+            password = configService.getPwd('xhLdapPassword')
         cache.getOrCreate(hostname + filter) {
             withDebug(["Querying LDAP", [hostname: hostname, filter: filter]]) {
                 LdapNetworkConnection conn
