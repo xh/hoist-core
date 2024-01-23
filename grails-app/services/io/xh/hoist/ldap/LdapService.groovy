@@ -114,7 +114,7 @@ class LdapService extends BaseService {
     }
 
     private Map getConfig() {
-        configService.getConfig('xhLdapConfig')
+        configService.getMap('xhLdapConfig')
     }
 
     private void initCache() {
