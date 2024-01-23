@@ -235,7 +235,7 @@ class BootStrap {
                 groupName: 'xh.io'
             ],
             xhLdapPassword: [
-                valueType: 'password',
+                valueType: 'pwd',
                 defaultValue: 'none',
                 clientVisible: false,
                 groupName: 'xh.io'
