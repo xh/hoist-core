@@ -13,7 +13,7 @@ import static grails.async.Promises.task
  * Query a set of LDAP servers for People or Groups.
  *
  * Requires the following configs
- *      'ldapConfig' with the following options
+ *      'xhLdapConfig' with the following options
  *          enabled - true to enable
  *          timeoutMs - time to wait for any individual search to resolve.
  *          cacheExpireSecs - length of time to cache results.  Set to -1 to disable caching.
@@ -21,8 +21,8 @@ import static grails.async.Promises.task
  *              hostname
  *              baseDn
  *
- *     'ldapUsername' - dn of query user.
- *     'ldapPassword' - password for user
+ *     'xhLdapUsername' - dn of query user.
+ *     'xhLdapPassword' - password for user
  *
  * This service will cache results, per server, for the configured interval.
  * This service may return partial results if any particular server fails to
@@ -34,7 +34,7 @@ class LdapService extends BaseService {
 
     private Cache<String, List<LdapObject>> cache
 
-    static clearCachesConfigs = ['ldapConfig']
+    static clearCachesConfigs = ['xhLdapConfig', 'xhLdapUsername', 'xhLdapPassword']
 
     void init() {
         initCache()
@@ -91,8 +91,8 @@ class LdapService extends BaseService {
 
         String hostname = server.hostname,
             filter = "(&(objectCategory=${objType == LdapPerson ? 'Person' : 'Group'})$baseFilter)",
-            username = configService.getString('ldapUsername'),
-            password = configService.getString('ldapPassword')
+            username = configService.getString('xhLdapUsername'),
+            password = configService.getString('xhLdapPassword')
         cache.getOrCreate(hostname + filter) {
             withDebug(["Querying LDAP", [hostname: hostname, filter: filter]]) {
                 LdapNetworkConnection conn
@@ -113,8 +113,8 @@ class LdapService extends BaseService {
         }
     }
 
-    private String getConfig() {
-        configService.getConfig('ldapConfig')
+    private Map getConfig() {
+        configService.getConfig('xhLdapConfig')
     }
 
     private void initCache() {
