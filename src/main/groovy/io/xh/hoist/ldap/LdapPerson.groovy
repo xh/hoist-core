@@ -8,7 +8,7 @@ class LdapPerson extends LdapObject{
     String email
 
     static LdapPerson create(Collection<Attribute> atts) {
-        def ret = new LdapGroup()
+        def ret = new LdapPerson()
         ret.populate(atts)
         ret
     }

@@ -221,7 +221,11 @@ class BootStrap {
                     timeoutMs: 60000,
                     cacheExpireSecs: 300,
                     servers: [
-                        [host: '', baseDn: '']
+                        [
+                            host: '',
+                            baseUserDn: '',
+                            baseGroupDn: '',
+                        ]
                     ]
                 ],
                 clientVisible: false,
