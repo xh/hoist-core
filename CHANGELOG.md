@@ -3,8 +3,13 @@
 ## 19.0-SNAPSHOT - unreleased
 
 ## 18.2.0 - 2024-01-24
+
+### 🎁 New Features
 * New `LdapService`: Out-of-the-box support for querying LDAP groups and users via
   apache `Directory` project.
+
+* New `ConfigService.hasConfig` method for checking if a config exists.
+
 
 ## 18.1.0 - 2024-01-18
 
