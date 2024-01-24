@@ -214,6 +214,36 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Governs how client application will enter "sleep mode", suspending background requests and prompting the user to reload to resume.  Timeouts are in minutes of inactivity.'
             ],
+            xhLdapConfig: [
+                valueType: 'json',
+                defaultValue: [
+                    enabled: false,
+                    timeoutMs: 60000,
+                    cacheExpireSecs: 300,
+                    servers: [
+                        [
+                            host: '',
+                            baseUserDn: '',
+                            baseGroupDn: '',
+                        ]
+                    ]
+                ],
+                clientVisible: false,
+                groupName: 'xh.io',
+                note: 'Supports connecting to LDAP servers.'
+            ],
+            xhLdapUsername: [
+                valueType: 'string',
+                defaultValue: 'none',
+                clientVisible: false,
+                groupName: 'xh.io'
+            ],
+            xhLdapPassword: [
+                valueType: 'pwd',
+                defaultValue: 'none',
+                clientVisible: false,
+                groupName: 'xh.io'
+            ],
             xhLogArchiveConfig: [
                 valueType: 'json',
                 defaultValue: [
