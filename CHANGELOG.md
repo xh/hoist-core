@@ -1,6 +1,8 @@
 # Changelog
 
 ## 19.0 - SNAPSHOT - unreleased
+### 🐞 Bug Fixes
+* Fixed `DefaultRoleService` unintended case-sensitive handling of usernames.
 
 ## 18.2.0 - 2024-01-24
 
