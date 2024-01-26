@@ -32,8 +32,8 @@ import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
  * Applications using this default implementation must either:
  *
  *  1) Define a `RoleService` class that extends this class. Allows for overriding its protected
- *     methods to customize behavior, including the option to implement `getUsersForDirectoryGroups`
- *     to resolve external directory group memberships (see below).
+ *     methods to customize behavior, including the option to implement
+ *     `doLoadUsersForDirectoryGroups` to resolve external directory group memberships (see below).
  *
  *  2) Register this class directly as `roleService` via `grails-app/conf/spring/resources.groovy`,
  *     assuming neither directory group support nor any further customizations are required.
@@ -103,6 +103,7 @@ class DefaultRoleService extends BaseRoleService {
 
     @Override
     Set<String> getRolesForUser(String username) {
+        username = username.toLowerCase()
         Set<String> ret = _roleAssignmentsByUser[username]
         if (ret == null) {
             Set<String> userRoles = new HashSet()
@@ -111,7 +112,11 @@ class DefaultRoleService extends BaseRoleService {
             }
             ret = _roleAssignmentsByUser[username] = unmodifiableSet(userRoles) as Set<String>
         }
-        if (getInstanceConfig('bootstrapAdminUser') == username && isLocalDevelopment && !isProduction) {
+        if (
+            getInstanceConfig('bootstrapAdminUser')?.toLowerCase() == username &&
+                isLocalDevelopment &&
+                !isProduction
+        ) {
             ret += ['HOIST_ADMIN', 'HOIST_ADMIN_READER', 'HOIST_ROLE_MANAGER']
         }
         ret
@@ -253,7 +258,7 @@ class DefaultRoleService extends BaseRoleService {
             // The members[USER] set includes users directly assigned to this role, as well as any
             // users that inherit this role via direct assignments on other roles.
             if (userAssignmentSupported) {
-                members[USER].each { users.add(it.name) }
+                members[USER].each { users.add(it.name.toLowerCase()) }
             }
 
             // The members[DIRECTORY_GROUP] set includes groups directly assigned to this role, as
@@ -261,7 +266,9 @@ class DefaultRoleService extends BaseRoleService {
             if (usersForDirectoryGroups) {
                 members[DIRECTORY_GROUP].each {
                     def groupUsers = usersForDirectoryGroups[it.name]
-                    if (groupUsers instanceof Set) users.addAll(groupUsers)
+                    if (groupUsers instanceof Set) {
+                        users.addAll(groupUsers.collect { it.toLowerCase() })
+                    }
                 }
             }
 
