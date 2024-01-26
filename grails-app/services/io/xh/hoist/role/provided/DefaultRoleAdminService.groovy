@@ -141,7 +141,7 @@ class DefaultRoleAdminService extends BaseService {
                 spec.users?.each {
                     createdRole.addToMembers(
                         type: USER,
-                        name: it,
+                        name: it.toLowerCase(),
                         createdBy: 'hoist-bootstrap'
                     )
                 }
@@ -201,7 +201,7 @@ class DefaultRoleAdminService extends BaseService {
 
     @Transactional
     private Role createOrUpdate(Map<String, Object> roleSpec, boolean isUpdate) {
-        List<String> users = roleSpec.users as List<String>,
+        List<String> users = roleSpec.users.collect { String it -> it.toLowerCase() },
                      directoryGroups = roleSpec.directoryGroups as List<String>,
                      roles = roleSpec.roles as List<String>
         roleSpec.remove('users')
@@ -266,7 +266,7 @@ class DefaultRoleAdminService extends BaseService {
             .findAll { it.role == owner && it.type == type }
 
         members.each { member ->
-            if (!existingMembers.any { it.name == member }) {
+            if (!existingMembers.any { it.name.equalsIgnoreCase(member) }) {
                 owner.addToMembers(
                     type: type,
                     name: member,
@@ -277,7 +277,7 @@ class DefaultRoleAdminService extends BaseService {
         }
 
         existingMembers.each { member ->
-            if (!members.contains(member.name)) {
+            if (!members.any { it.equalsIgnoreCase(member.name) }) {
                 owner.removeFromMembers(member)
                 changes.removed << member.name
             }
