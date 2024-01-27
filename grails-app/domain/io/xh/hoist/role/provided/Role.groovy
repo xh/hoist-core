@@ -1,5 +1,6 @@
 package io.xh.hoist.role.provided
 
+import io.xh.hoist.exception.RoutineRuntimeException
 import io.xh.hoist.json.JSONFormat
 
 import static io.xh.hoist.role.provided.RoleMember.Type.*
@@ -30,6 +31,12 @@ class Role implements JSONFormat {
         category nullable: true, maxSize: 30, blank: false
         notes nullable: true, maxSize: 1200
         lastUpdatedBy maxSize: 50
+    }
+
+    static beforeInsert = { ->
+        if (findByNameIlike(name)) {
+            throw new RoutineRuntimeException('Role Name must be case-insensitive unique.')
+        }
     }
 
     Map formatForJSON() {
