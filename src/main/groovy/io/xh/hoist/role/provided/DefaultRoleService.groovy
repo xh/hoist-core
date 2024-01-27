@@ -8,7 +8,9 @@
 package io.xh.hoist.role.provided
 
 import grails.gorm.transactions.ReadOnly
+import grails.gorm.transactions.Transactional
 import io.xh.hoist.role.BaseRoleService
+import io.xh.hoist.user.HoistUser
 import io.xh.hoist.util.DateTimeUtils
 import io.xh.hoist.util.Timer
 
@@ -16,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 
 import static io.xh.hoist.role.provided.RoleMember.Type.DIRECTORY_GROUP
+import static io.xh.hoist.role.provided.RoleMember.Type.ROLE
 import static io.xh.hoist.role.provided.RoleMember.Type.USER
 import static io.xh.hoist.util.Utils.isLocalDevelopment
 import static io.xh.hoist.util.Utils.isProduction
@@ -74,8 +77,7 @@ import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
  */
 class DefaultRoleService extends BaseRoleService {
 
-    def configService,
-        defaultRoleAdminService
+    def configService
 
     private Timer timer
     protected Map<String, Set<String>> _allRoleAssignments = emptyMap()
@@ -184,7 +186,7 @@ class DefaultRoleService extends BaseRoleService {
             ]
         ])
 
-        defaultRoleAdminService.ensureRequiredRolesCreated([
+        ensureRequiredRolesCreated([
             [
                 name    : 'HOIST_ADMIN',
                 category: 'Hoist',
@@ -211,6 +213,70 @@ class DefaultRoleService extends BaseRoleService {
         ])
     }
 
+
+    /**
+     * Check a list of core roles required for Hoist/application operation - ensuring that these
+     * roles are present. Will create missing roles with supplied default values if not found.
+     *
+     * @param requiredRoles - List of maps of [name, category, notes, users, directoryGroups, roles]
+     */
+    @Transactional
+    void ensureRequiredRolesCreated(List<Map> roleSpecs) {
+        List<Role> currRoles = Role.list()
+        int created = 0
+
+        roleSpecs.each { spec ->
+            Role currRole = currRoles.find { it.name == spec.name }
+            if (!currRole) {
+                Role newRole = new Role(
+                    name: spec.name,
+                    category: spec.category,
+                    notes: spec.notes,
+                    lastUpdatedBy: 'defaultRoleService'
+                ).save()
+
+                spec.users?.each {
+                    newRole.addToMembers(type: USER, name: it, createdBy: 'defaultRoleService')
+                }
+
+                spec.directoryGroups?.each {
+                    newRole.addToMembers(type: DIRECTORY_GROUP, name: it, createdBy: 'defaultRoleService')
+                }
+
+                spec.roles?.each {
+                    newRole.addToMembers(type: ROLE, name: it, createdBy: 'defaultRoleService')
+                }
+
+                logWarn(
+                    "Required role ${spec.name} missing and created with default value",
+                    'verify default is appropriate for this application'
+                )
+                created++
+            }
+        }
+
+        logDebug("Validated presense of ${roleSpecs.size()} required roles", "created $created")
+    }
+
+    /**
+     * Ensure that a user has been assigned a role.
+     *
+     * Typically called within Bootstrap code to ensure that a specific role is assigned to a
+     * dedicated admin user on startup.
+     */
+    @Transactional
+    void ensureUserHasRoles(HoistUser user, String roleName) {
+        if (!user.hasRole(roleName)) {
+            def role = Role.get(roleName)
+            if (role) {
+                role.addToMembers(type: USER, name: user.username, createdBy: 'defaultRoleService')
+                role.save(flush: true)
+                clearCaches()
+            } else {
+                logWarn("Failed to find role $roleName to assign to $user", "role will not be assigned")
+            }
+        }
+    }
 
     //---------------------------
     // Implementation/Framework

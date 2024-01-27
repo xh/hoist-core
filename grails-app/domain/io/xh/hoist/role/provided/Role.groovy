@@ -2,11 +2,13 @@ package io.xh.hoist.role.provided
 
 import io.xh.hoist.json.JSONFormat
 
+import static io.xh.hoist.role.provided.RoleMember.Type.*
+
 /**
- * Backing domain class Roles, when using Hoist's built-in role management.
+ * Backing domain class for Hoist's built-in role management.
  * Methods on this class are used internally by Hoist and should not be called directly by app code.
  *
- * @see DefaultRoleService - an optional RoleService implementation that uses this class.
+ * @see DefaultRoleService - the optional RoleService implementation that uses this class.
  */
 class Role implements JSONFormat {
     String name
@@ -14,6 +16,7 @@ class Role implements JSONFormat {
     String notes
     Date lastUpdated
     String lastUpdatedBy
+
     static hasMany = [members: RoleMember]
 
     static mapping = {
@@ -40,26 +43,25 @@ class Role implements JSONFormat {
     }
 
     List<String> getUsers() {
-        members.findAll { it.type == RoleMember.Type.USER }.collect { it.name }
+        members.findAll { it.type == USER }.collect { it.name }
     }
 
     List<String> getDirectoryGroups() {
-        members.findAll { it.type == RoleMember.Type.DIRECTORY_GROUP }.collect { it.name }
+        members.findAll { it.type == DIRECTORY_GROUP }.collect { it.name }
     }
 
     List<String> getRoles() {
-        members.findAll { it.type == RoleMember.Type.ROLE }.collect { it.name }
+        members.findAll { it.type == ROLE }.collect { it.name }
     }
 
     Map<RoleMember.Type, List<EffectiveMember>> resolveEffectiveMembers() {
-        Map<RoleMember.Type, List<EffectiveMember>> ret = [:]
         List<EffectiveMember> effectiveRoles = listEffectiveRoles()
 
-        ret.put(RoleMember.Type.USER, listEffectiveUsers(effectiveRoles))
-        ret.put(RoleMember.Type.DIRECTORY_GROUP, listEffectiveDirectoryGroups(effectiveRoles))
-        ret.put(RoleMember.Type.ROLE, effectiveRoles)
-
-        return ret
+        return [
+            (USER): listEffectiveUsers(effectiveRoles),
+            (DIRECTORY_GROUP): listEffectiveDirectoryGroups(effectiveRoles),
+            (ROLE): effectiveRoles
+        ]
     }
 
     /**
