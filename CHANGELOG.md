@@ -1,6 +1,9 @@
 # Changelog
 
 ## 19.0-SNAPSHOT - unreleased
+### ⚙️ Technical
+
+* Normalize role member usernames to lowercase and generally tighten up case-insensitive handling.
 
 ## 18.2.1 - 2024-01-25
 
