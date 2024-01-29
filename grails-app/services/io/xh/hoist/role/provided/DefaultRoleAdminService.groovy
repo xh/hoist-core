@@ -88,8 +88,7 @@ class DefaultRoleAdminService extends BaseService {
         List<Role> allRoles = Role.list()
         Map<String, EffectiveMember> ret = [:].withDefault { new EffectiveMember([name: it])}
 
-        while (!rolesToVisit.isEmpty()) {
-            role = rolesToVisit.poll()
+        while (role = rolesToVisit.poll()) {
             allRoles
                 .findAll { it.roles.contains(role.name) }
                 .each { inheritedRole ->
@@ -109,8 +108,7 @@ class DefaultRoleAdminService extends BaseService {
         Queue<Role> rolesToVisit = [role] as Queue
         Map<String, EffectiveMember> ret = [:].withDefault { new EffectiveMember([name: it])}
 
-        while (!rolesToVisit.isEmpty()) {
-            role = rolesToVisit.poll()
+        while (role = rolesToVisit.poll()) {
             role.roles.each { memberName ->
                 ret[memberName].sourceRoles << role.name
                 if (!visitedRoles.contains(memberName)) {
@@ -187,7 +185,7 @@ class DefaultRoleAdminService extends BaseService {
     //---------------------
     // Internal DTO classes
     //---------------------
-    class EffectiveMember implements JSONFormat {
+    private class EffectiveMember implements JSONFormat {
         String name
         List<String> sourceRoles = []
 
@@ -197,7 +195,7 @@ class DefaultRoleAdminService extends BaseService {
         ]}
     }
 
-    class EffectiveUser implements JSONFormat {
+    private class EffectiveUser implements JSONFormat {
         String name
         List<Source> sources = []
 

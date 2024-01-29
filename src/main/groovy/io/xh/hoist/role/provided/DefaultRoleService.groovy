@@ -189,7 +189,7 @@ class DefaultRoleService extends BaseRoleService {
         ldapService
             .lookupGroupMembers(foundGroups)
             .each {name, members ->
-                ret[name] = members.collect { it.samaccountname}
+                ret[name] = members.collect { it.samaccountname.toLowerCase()}
             }
 
         return ret
@@ -277,12 +277,11 @@ class DefaultRoleService extends BaseRoleService {
         }
 
         roles.collectEntries { role ->
-            Set<String> effectiveRoles = getEffectiveRoles(role),
+            Set<Role> effectiveRoles = getEffectiveRoles(role),
                         users = new HashSet(),
                         groups = new HashSet()
 
-            effectiveRoles.each { effName ->
-                def effRole = Role.get(effName)
+            effectiveRoles.each { effRole ->
                 if (userAssignmentSupported) users.addAll(effRole.users)
                 if (directoryGroupsSupported) groups.addAll(effRole.directoryGroups)
             }
@@ -297,15 +296,16 @@ class DefaultRoleService extends BaseRoleService {
 
     // Get the other roles that effectively have a role, e.g.
     // users with the returned roles will also be granted the input role.
-    protected Set<String> getEffectiveRoles(Role role) {
-        Set<String> ret = [role.name]
+    protected Set<Role> getEffectiveRoles(Role role) {
+        Set<Role> ret = [role]
+        Set<String> rolesVisited = [role.name]
         Queue<Role> rolesToVisit = [role] as Queue
 
         while (role = rolesToVisit.poll()) {
             role.roles.each {
-                if (!ret.contains(it)) {
-                    ret.add(it)
-                    rolesToVisit << Role.get(it)
+                if (!rolesVisited.contains(it)) {
+                    rolesVisited << it
+                    ret << rolesToVisit << Role.get(it)
                 }
             }
         }

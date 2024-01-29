@@ -217,7 +217,7 @@ class DefaultRoleEditService extends BaseService {
         }
     }
 
-    class RoleMemberChanges {
+    private class RoleMemberChanges {
         List<String> added = []
         List<String> removed = []
     }
