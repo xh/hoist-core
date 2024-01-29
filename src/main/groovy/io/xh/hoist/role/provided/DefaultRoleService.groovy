@@ -8,18 +8,13 @@
 package io.xh.hoist.role.provided
 
 import grails.gorm.transactions.ReadOnly
-import grails.gorm.transactions.Transactional
 import io.xh.hoist.role.BaseRoleService
-import io.xh.hoist.user.HoistUser
 import io.xh.hoist.util.DateTimeUtils
 import io.xh.hoist.util.Timer
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 
-import static io.xh.hoist.role.provided.RoleMember.Type.DIRECTORY_GROUP
-import static io.xh.hoist.role.provided.RoleMember.Type.ROLE
-import static io.xh.hoist.role.provided.RoleMember.Type.USER
 import static io.xh.hoist.util.Utils.isLocalDevelopment
 import static io.xh.hoist.util.Utils.isProduction
 import static java.util.Collections.emptySet
@@ -54,13 +49,14 @@ import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
  *    and cached by this service for efficient querying, with a configurable refresh interval.
  *
  * This service can assign role memberships based on "directory groups" - pointers to groups
- * maintained within a corporate Active Directory, LDAP, or equivalent system. Roles
- * themselves must still be created + managed in the local app database via the Admin Console,
- * but in addition to (or instead of) assigning users directly as members, admins can assign
- * directory groups to roles. Users within those groups will then inherit membership in the Role.
+ * maintained within a corporate Active Directory, or other external system.  The default
+ * implementation will support specifying an LDAP group, if there is an  enabled LdapService in the
+ * application.  Roles themselves must still be created + managed in the local app database via the
+ * Admin Console, but in addition to (or instead of) assigning users directly as members, admins can
+ * assign  directory groups to roles. Users within those groups will then inherit membership in the
+ * Role.
  *
- * Apps wishing to use this feature must extend this service and override.
- * getDirectoryGroupsSupported() and doLoadUsersForDirectoryGroups().
+ * Applications wishing to extend this feature should override doLoadUsersForDirectoryGroups().
  *
  * Certain aspects of this service and its Admin Console UI are soft-configurable via a JSON
  * `xhRoleModuleConfig`. This service will create this config entry if not found on startup.
@@ -77,7 +73,9 @@ import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
  */
 class DefaultRoleService extends BaseRoleService {
 
-    def configService
+    def configService,
+        ldapService,
+        defaultRoleEditService
 
     private Timer timer
     protected Map<String, Set<String>> _allRoleAssignments = emptyMap()
@@ -142,32 +140,59 @@ class DefaultRoleService extends BaseRoleService {
 
     /**
      * Does this implementation support the specification of role assignment via directory?
-     * Defaults to false.  Implementations supporting directory lookup should return true here
-     * and implement the doLoadUsersForDirectoryGroups() method.
+     * Defaults to true. Implementations that wish to prohibit this should return false.
      */
     boolean getDirectoryGroupsSupported() {
-        return false
+        return true
     }
 
     /**
-     * Description of appropriate form of directory groups, if supported.
+     * Description of appropriate form of directory groups.
      * Short string for UI display (e.g. tooltip) in admin client.
      */
     String getDirectoryGroupsDescription() {
-        return null
+        'Specify the full LDAP Distinguished Name (DN) for the directory group to be included.'
     }
 
     /**
-     * Override this method to enable directory-based lookup.  You must also override
-     * getDirectoryGroupsSupported().
+     *  Provide the users associated with directory group names.
+     *
+     * The default implementation will support specifying an LDAP group, and will require an
+     * enabled LdapService in the application.  Override this method to customize directory-based
+     * lookup to attach to different, or additional external datasources.
      *
      * Method Map of directory group names to either:
      *  a) Set<String> of assigned users
      *     OR
      *  b) String describing lookup error.
      */
-    protected Map<String, Object> doLoadUsersForDirectoryGroups(Set<String> directoryGroups) {
-        throw new UnsupportedOperationException('doLoadUsersForDirectoryGroups not implemented')
+    protected Map<String, Object> doLoadUsersForDirectoryGroups(Set<String> groups) {
+        if (!ldapService.enabled) {
+            return groups.collectEntries{[it, 'LdapService not enabled in this application']}
+        }
+
+        def foundGroups = new HashSet(),
+            ret = [:]
+
+        // 1) Determine valid groups
+        ldapService
+            .lookupGroups(groups)
+            .each {name, group ->
+                if (group) {
+                    foundGroups << name
+                } else {
+                    ret[name] = 'No AD group found'
+                }
+            }
+
+        // 2) Search for members of valid groups
+        ldapService
+            .lookupGroupMembers(foundGroups)
+            .each {name, members ->
+                ret[name] = members.collect { it.samaccountname.toLowerCase()}
+            }
+
+        return ret
     }
 
     /**
@@ -186,7 +211,7 @@ class DefaultRoleService extends BaseRoleService {
             ]
         ])
 
-        ensureRequiredRolesCreated([
+        defaultRoleEditService.ensureRequiredRolesCreated([
             [
                 name    : 'HOIST_ADMIN',
                 category: 'Hoist',
@@ -213,75 +238,11 @@ class DefaultRoleService extends BaseRoleService {
         ])
     }
 
-
-    /**
-     * Check a list of core roles required for Hoist/application operation - ensuring that these
-     * roles are present. Will create missing roles with supplied default values if not found.
-     *
-     * @param requiredRoles - List of maps of [name, category, notes, users, directoryGroups, roles]
-     */
-    @Transactional
-    void ensureRequiredRolesCreated(List<Map> roleSpecs) {
-        List<Role> currRoles = Role.list()
-        int created = 0
-
-        roleSpecs.each { spec ->
-            Role currRole = currRoles.find { it.name == spec.name }
-            if (!currRole) {
-                Role newRole = new Role(
-                    name: spec.name,
-                    category: spec.category,
-                    notes: spec.notes,
-                    lastUpdatedBy: 'defaultRoleService'
-                ).save()
-
-                spec.users?.each {
-                    newRole.addToMembers(type: USER, name: it, createdBy: 'defaultRoleService')
-                }
-
-                spec.directoryGroups?.each {
-                    newRole.addToMembers(type: DIRECTORY_GROUP, name: it, createdBy: 'defaultRoleService')
-                }
-
-                spec.roles?.each {
-                    newRole.addToMembers(type: ROLE, name: it, createdBy: 'defaultRoleService')
-                }
-
-                logWarn(
-                    "Required role ${spec.name} missing and created with default value",
-                    'verify default is appropriate for this application'
-                )
-                created++
-            }
-        }
-
-        logDebug("Validated presense of ${roleSpecs.size()} required roles", "created $created")
-    }
-
-    /**
-     * Ensure that a user has been assigned a role.
-     *
-     * Typically called within Bootstrap code to ensure that a specific role is assigned to a
-     * dedicated admin user on startup.
-     */
-    @Transactional
-    void ensureUserHasRoles(HoistUser user, String roleName) {
-        if (!user.hasRole(roleName)) {
-            def role = Role.get(roleName)
-            if (role) {
-                role.addToMembers(type: USER, name: user.username, createdBy: 'defaultRoleService')
-                role.save(flush: true)
-                clearCaches()
-            } else {
-                logWarn("Failed to find role $roleName to assign to $user", "role will not be assigned")
-            }
-        }
-    }
-
     //---------------------------
     // Implementation/Framework
     //---------------------------
     final Map<String, Object> loadUsersForDirectoryGroups(Set<String> directoryGroups) {
+       if (!directoryGroups) return emptyMap()
         // Wrapped here to avoid failing implementations from ever bringing down app.
         try {
             return doLoadUsersForDirectoryGroups(directoryGroups)
@@ -302,46 +263,55 @@ class DefaultRoleService extends BaseRoleService {
     @ReadOnly
     protected Map<String, Set<String>> generateRoleAssignments() {
         List<Role> roles = Role.list()
-        Map<String, Object> usersForDirectoryGroups, errorsForDirectoryGroups
+        Map<String, Object> usersForDirectoryGroups
 
         if (directoryGroupsSupported) {
             Set<String> groups = roles.collectMany(new HashSet()) { it.directoryGroups }
-            if (groups) {
-                Map<String, Object> usersOrErrorsForGroups = loadUsersForDirectoryGroups(groups)
-                usersForDirectoryGroups = usersOrErrorsForGroups.findAll { it.value instanceof Set }
-                errorsForDirectoryGroups = usersOrErrorsForGroups.findAll { !(it.value instanceof Set) }
-
-                errorsForDirectoryGroups.each { group, error ->
-                    logError("Error resolving users for directory group", group, error)
+            loadUsersForDirectoryGroups(groups).each { k, v ->
+                if (v instanceof Set) {
+                    usersForDirectoryGroups[k] = v
+                } else {
+                    logError("Error resolving users for directory group", k, v)
                 }
             }
         }
 
         roles.collectEntries { role ->
-            Set<String> users = new HashSet<String>()
-            Map<RoleMember.Type, List<EffectiveMember>> members = role.resolveEffectiveMembers()
+            Set<Role> effectiveRoles = getEffectiveRoles(role),
+                        users = new HashSet(),
+                        groups = new HashSet()
 
-            // The members[USER] set includes users directly assigned to this role, as well as any
-            // users that inherit this role via direct assignments on other roles.
-            if (userAssignmentSupported) {
-                members[USER].each { users.add(it.name.toLowerCase()) }
+            effectiveRoles.each { effRole ->
+                if (userAssignmentSupported) users.addAll(effRole.users)
+                if (directoryGroupsSupported) groups.addAll(effRole.directoryGroups)
             }
-
-            // The members[DIRECTORY_GROUP] set includes groups directly assigned to this role, as
-            // well as any groups that inherit this role via direct assignments on other roles.
-            if (usersForDirectoryGroups) {
-                members[DIRECTORY_GROUP].each {
-                    def groupUsers = usersForDirectoryGroups[it.name]
-                    if (groupUsers instanceof Set) {
-                        users.addAll(groupUsers.collect { it.toLowerCase() })
-                    }
-                }
+            groups.each { group ->
+                usersForDirectoryGroups[group]?.each { users << it.toLowerCase() }
             }
 
             logTrace("Generated assignments for ${role.name}", "${users.size()} effective users")
-            return [role.name, users]
+            [role.name, users]
         }
     }
+
+    // Get the other roles that effectively have a role, e.g.
+    // users with the returned roles will also be granted the input role.
+    protected Set<Role> getEffectiveRoles(Role role) {
+        Set<Role> ret = [role]
+        Set<String> rolesVisited = [role.name]
+        Queue<Role> rolesToVisit = [role] as Queue
+
+        while (role = rolesToVisit.poll()) {
+            role.roles.each {
+                if (!rolesVisited.contains(it)) {
+                    rolesVisited << it
+                    ret << rolesToVisit << Role.get(it)
+                }
+            }
+        }
+        return ret
+    }
+
 
     protected Map getConfig() {
         configService.getMap('xhRoleModuleConfig')

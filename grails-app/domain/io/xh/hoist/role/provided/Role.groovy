@@ -23,8 +23,8 @@ class Role implements JSONFormat {
     static mapping = {
         table 'xh_role'
         id name: 'name', generator: 'assigned', type: 'string'
-        cache true
         members cascade: 'all-delete-orphan', fetch: 'join', cache: true
+        cache true
     }
 
     static constraints = {
@@ -39,18 +39,8 @@ class Role implements JSONFormat {
         }
     }
 
-    Map formatForJSON() {
-        [
-            name: name,
-            category: category,
-            notes: notes,
-            lastUpdated: lastUpdated,
-            lastUpdatedBy: lastUpdatedBy
-        ]
-    }
-
     List<String> getUsers() {
-        members.findAll { it.type == USER }.collect { it.name }
+        members.findAll { it.type == USER }.collect { it.name.toLowerCase() }
     }
 
     List<String> getDirectoryGroups() {
@@ -61,101 +51,12 @@ class Role implements JSONFormat {
         members.findAll { it.type == ROLE }.collect { it.name }
     }
 
-    Map<RoleMember.Type, List<EffectiveMember>> resolveEffectiveMembers() {
-        List<EffectiveMember> effectiveRoles = listEffectiveRoles()
+    Map formatForJSON() {[
+        name: name,
+        category: category,
+        notes: notes,
+        lastUpdated: lastUpdated,
+        lastUpdatedBy: lastUpdatedBy
+    ] }
 
-        return [
-            (USER): listEffectiveUsers(effectiveRoles),
-            (DIRECTORY_GROUP): listEffectiveDirectoryGroups(effectiveRoles),
-            (ROLE): effectiveRoles
-        ]
-    }
-
-    /**
-     * Return all roles for which this role is an effective member, with source association
-     */
-    List<EffectiveMember> listInheritedRoles() {
-        Set<String> visitedRoles = [name]
-        Queue<Role> rolesToVisit = [this] as Queue
-        List<Role> allRoles = list()
-        Map<String, EffectiveMember> ret = [:].withDefault { new EffectiveMember([name: it])}
-
-        while (!rolesToVisit.isEmpty()) {
-            Role role = rolesToVisit.poll()
-            allRoles
-                .findAll { it.roles.contains(role.name) }
-                .each { inheritedRole ->
-                    ret[inheritedRole.name].sourceRoles << role.name
-                    if (!visitedRoles.contains(inheritedRole.name)) {
-                        visitedRoles.add(inheritedRole.name)
-                        rolesToVisit.offer(inheritedRole)
-                    }
-                }
-        }
-
-        ret.values() as List<EffectiveMember>
-    }
-
-    //------------------------
-    // Implementation
-    //------------------------
-
-    /**
-     * List users, each with a list of role-names justifying why they inherit this role
-     */
-    private List<EffectiveMember> listEffectiveUsers(List<EffectiveMember> effectiveRoles) {
-        collectEffectiveMembers(effectiveRoles) { it.users }
-    }
-
-    /**
-     * List directory groups, each with a list of role-names justifying why they inherit this role
-     */
-    private List<EffectiveMember> listEffectiveDirectoryGroups(List<EffectiveMember> effectiveRoles) {
-        collectEffectiveMembers(effectiveRoles) { it.directoryGroups }
-    }
-
-    /**
-     * List effective members of this role with source associations
-     */
-    private List<EffectiveMember> listEffectiveRoles() {
-        Set<String> visitedRoles = [name]
-        Queue<Role> rolesToVisit = new LinkedList<Role>()
-        rolesToVisit.offer(this)
-        Map<String, EffectiveMember> ret = [:].withDefault { new EffectiveMember([name: it])}
-
-        while (!rolesToVisit.isEmpty()) {
-            Role role = rolesToVisit.poll()
-            role.roles.each { memberName ->
-                ret[memberName].sourceRoles << role.name
-                if (!visitedRoles.contains(memberName)) {
-                    visitedRoles.add(memberName)
-                    rolesToVisit.offer(get(memberName))
-                }
-            }
-        }
-
-        ret.values() as List<EffectiveMember>
-    }
-
-    /**
-     * Implementation for `listEffectiveUsers` and `listEffectiveDirectoryGroups`
-     */
-    private List<EffectiveMember> collectEffectiveMembers(
-        List<EffectiveMember> sourceRoles,
-        Closure<List<String>> memberNamesFn
-    ) {
-        Map<String, EffectiveMember> ret = [:].withDefault { new EffectiveMember([name: it])}
-
-        memberNamesFn(this).each { memberName ->
-            ret[memberName].sourceRoles << name
-        }
-        sourceRoles.each { sourceRole ->
-            String sourceRoleName = sourceRole.name
-            memberNamesFn(get(sourceRoleName)).each { memberName ->
-                ret[memberName].sourceRoles << sourceRoleName
-            }
-        }
-
-        ret.values() as List<EffectiveMember>
-    }
 }

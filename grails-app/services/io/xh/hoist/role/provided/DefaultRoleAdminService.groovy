@@ -1,9 +1,10 @@
 package io.xh.hoist.role.provided
 
 import grails.gorm.transactions.ReadOnly
-import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
-import static io.xh.hoist.role.provided.RoleMember.Type.*
+import io.xh.hoist.json.JSONFormat
+
+import static java.util.Collections.emptyMap
 
 /**
  * Service to support built-in, database-backed Role management and its associated Admin Console UI.
@@ -15,8 +16,7 @@ import static io.xh.hoist.role.provided.RoleMember.Type.*
  * ever) need to interact with it directly.
  */
 class DefaultRoleAdminService extends BaseService {
-    def roleService,
-        trackService
+    def roleService
 
     boolean getEnabled() {
         roleService instanceof DefaultRoleService
@@ -35,40 +35,38 @@ class DefaultRoleAdminService extends BaseService {
         ensureEnabled()
 
         List<Role> roles = Role.list()
-        Map<String, Object> usersForDirectoryGroups = null,
-                            errorsForDirectoryGroups = null
+        def usersForGroups = emptyMap(),
+            errorsForGroups = emptyMap()
 
         if (defaultRoleService.directoryGroupsSupported) {
             Set<String> groups = roles.collectMany(new HashSet()) { it.directoryGroups }
             if (groups) {
-                Map<String, Object> usersOrErrorsForGroups = defaultRoleService.loadUsersForDirectoryGroups(groups)
-                usersForDirectoryGroups = usersOrErrorsForGroups.findAll { it.value instanceof Set }
-                errorsForDirectoryGroups = usersOrErrorsForGroups.findAll { !(it.value instanceof Set) }
+                Map<String, Object> groupsLookup = defaultRoleService.loadUsersForDirectoryGroups(groups)
+                usersForGroups = groupsLookup.findAll { it.value instanceof Set }
+                errorsForGroups = groupsLookup.findAll { !(it.value instanceof Set) }
             }
         }
 
-        roles.collect {
-            Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers = it
-                .resolveEffectiveMembers()
-            List<EffectiveMember> effectiveDirectoryGroups = effectiveMembers[DIRECTORY_GROUP]
-                ?: []
-            Set<String> effectiveDirectoryGroupNames = effectiveDirectoryGroups
-                .collect { it.name }.toSet()
-
+        roles.collect {role ->
+            def inheritedRoles = getInheritedRoles(role),
+                effectiveRoles = getEffectiveRoles(role),
+                effectiveGroups = getEffectiveMembers(role, effectiveRoles) { it.directoryGroups },
+                effectiveAssignedUsers = getEffectiveMembers(role, effectiveRoles) { it.users },
+                effectiveUsers = getEffectiveUsers(effectiveAssignedUsers, effectiveGroups, usersForGroups),
+                effectiveGroupNames = effectiveGroups*.name.toSet()
             [
-                name                    : it.name,
-                category                : it.category,
-                notes                   : it.notes,
-                lastUpdated             : it.lastUpdated,
-                lastUpdatedBy           : it.lastUpdatedBy,
-                inheritedRoles          : it.listInheritedRoles(),
-                effectiveUsers          : collectEffectiveUsers(effectiveMembers, usersForDirectoryGroups),
-                effectiveDirectoryGroups: effectiveDirectoryGroups,
-                effectiveRoles          : effectiveMembers[ROLE],
-                members                 : it.members,
+                name                    : role.name,
+                category                : role.category,
+                notes                   : role.notes,
+                members                 : role.members,
+                lastUpdated             : role.lastUpdated,
+                lastUpdatedBy           : role.lastUpdatedBy,
+                inheritedRoles          : inheritedRoles,
+                effectiveRoles          : effectiveRoles,
+                effectiveDirectoryGroups: effectiveGroups,
+                effectiveUsers          : effectiveUsers,
                 errors                  : [
-                    directoryGroups: errorsForDirectoryGroups
-                        .findAll { k, v -> k in effectiveDirectoryGroupNames }
+                    directoryGroups: errorsForGroups.findAll {it.key in effectiveGroupNames}
                 ]
             ]
         }
@@ -80,151 +78,103 @@ class DefaultRoleAdminService extends BaseService {
         directoryGroupsDescription: defaultRoleService.directoryGroupsDescription
     ]}
 
-    Role create(Map roleSpec) {
-        ensureEnabled()
-        createOrUpdate(roleSpec, false)
-    }
-
-    Role update(Map roleSpec) {
-        ensureEnabled()
-        createOrUpdate(roleSpec, true)
-    }
-
-    @Transactional
-    void delete(String id) {
-        ensureEnabled()
-
-        Role roleToDelete = Role.get(id)
-
-        RoleMember
-            .findAllByTypeAndName(ROLE, id)
-            .each { it.role.removeFromMembers(it) }
-
-        roleToDelete.delete(flush: true)
-
-        trackService.track(msg: "Deleted role: '$id'", category: 'Audit')
-        defaultRoleService.clearCaches()
-    }
-
 
     //------------------------
     // Implementation
     //------------------------
-    @Transactional
-    private Role createOrUpdate(Map<String, Object> roleSpec, boolean isUpdate) {
-        def users = roleSpec.remove('users'),
-            directoryGroups = roleSpec.remove('directoryGroups'),
-            roles = roleSpec.remove('roles')
+    private List<EffectiveMember> getInheritedRoles(Role role) {
+        Set<String> visitedRoles = [role.name]
+        Queue<Role> rolesToVisit = [role] as Queue
+        List<Role> allRoles = Role.list()
+        Map<String, EffectiveMember> ret = [:].withDefault { new EffectiveMember([name: it])}
 
-        roleSpec.lastUpdatedBy = authUsername
-
-        Role role
-        if (isUpdate) {
-            role = Role.get(roleSpec.name as String)
-            roleSpec.each { k, v -> role[k] = v }
-        } else {
-            role = new Role(roleSpec).save(flush: true)
+        while (role = rolesToVisit.poll()) {
+            allRoles
+                .findAll { it.roles.contains(role.name) }
+                .each { inheritedRole ->
+                    ret[inheritedRole.name].sourceRoles << role.name
+                    if (!visitedRoles.contains(inheritedRole.name)) {
+                        visitedRoles.add(inheritedRole.name)
+                        rolesToVisit.offer(inheritedRole)
+                    }
+                }
         }
 
-        def userChanges = updateMembers(role, USER, users),
-            directoryGroupChanges = updateMembers(role, DIRECTORY_GROUP, directoryGroups),
-            roleChanges = updateMembers(role, ROLE, roles)
-
-        role.save(flush: true)
-
-        if (isUpdate) {
-            trackService.track(
-                msg: "Edited role: '${roleSpec.name}'",
-                category: 'Audit',
-                data: [
-                    role                  : roleSpec.name,
-                    category              : roleSpec.category,
-                    notes                 : roleSpec.notes,
-                    addedUsers            : userChanges.added,
-                    removedUsers          : userChanges.removed,
-                    addedDirectoryGroups  : directoryGroupChanges.added,
-                    removedDirectoryGroups: directoryGroupChanges.removed,
-                    addedRoles            : roleChanges.added,
-                    removedRoles          : roleChanges.removed
-                ]
-            )
-        } else {
-            trackService.track(
-                msg: "Created role: '${roleSpec.name}'",
-                category: 'Audit',
-                data: [
-                    role           : roleSpec.name,
-                    category       : roleSpec.category,
-                    notes          : roleSpec.notes,
-                    users          : userChanges.added,
-                    directoryGroups: directoryGroupChanges.added,
-                    roles          : roleChanges.added
-                ]
-            )
-        }
-
-        defaultRoleService.clearCaches()
-        return role
+        ret.values().toList()
     }
 
-    private RoleMemberChanges updateMembers(Role owner, RoleMember.Type type, List<String> members) {
-        RoleMemberChanges changes = new RoleMemberChanges()
+    private List<EffectiveMember> getEffectiveRoles(Role role) {
+        Set<String> visitedRoles = [role.name]
+        Queue<Role> rolesToVisit = [role] as Queue
+        Map<String, EffectiveMember> ret = [:].withDefault { new EffectiveMember([name: it])}
 
-        List<RoleMember> existingMembers = RoleMember
-            .list()
-            .findAll { it.role == owner && it.type == type }
-
-        if (type == USER) {
-            members = members*.toLowerCase()
-        }
-
-        existingMembers.each { member ->
-            if (!members.contains(member.name)) {
-                owner.removeFromMembers(member)
-                changes.removed << member.name
-            }
-        }
-
-        members.each { member ->
-            if (!existingMembers.any { it.name == member }) {
-                owner.addToMembers(
-                    type: type,
-                    name: member,
-                    createdBy: authUsername
-                )
-                changes.added << member
-            }
-        }
-
-        return changes
-    }
-
-    private List<EffectiveUser> collectEffectiveUsers(
-        Map<RoleMember.Type, List<EffectiveMember>> effectiveMembers,
-        Map usersForDirectoryGroups
-    ) {
-        Map<String, EffectiveUser> ret = [:].withDefault { new EffectiveUser([name: it]) }
-
-        effectiveMembers.each { type, members ->
-            if (type == ROLE) return
-
-            members.each { member ->
-                if (type == USER && defaultRoleService.userAssignmentSupported) {
-                    member.sourceRoles.each { role ->
-                        ret[member.name].addSource(role, null)
-                    }
-                } else if (type == DIRECTORY_GROUP && usersForDirectoryGroups) {
-                    usersForDirectoryGroups[member.name]?.each { user ->
-                        member.sourceRoles.each { role ->
-                            ret[user].addSource(role, member.name)
-                        }
-                    }
+        while (role = rolesToVisit.poll()) {
+            role.roles.each { memberName ->
+                ret[memberName].sourceRoles << role.name
+                if (!visitedRoles.contains(memberName)) {
+                    visitedRoles.add(memberName)
+                    rolesToVisit.offer(Role.get(memberName))
                 }
             }
         }
 
-        ret.values() as List<EffectiveUser>
+        ret.values().toList()
     }
+
+    private List<EffectiveUser> getEffectiveUsers(
+        List<EffectiveMember> effectiveAssignedUsers,
+        List<EffectiveMember> effectiveGroups,
+        Map usersForDirectoryGroups
+    ) {
+        Map<String, EffectiveUser> ret = [:].withDefault { new EffectiveUser([name: it]) }
+
+        // 1) Copy over the assigned users, with sources
+        if (defaultRoleService.userAssignmentSupported) {
+            effectiveAssignedUsers.each { assignUser ->
+                def retUser = ret[assignUser.name]
+                assignUser.sourceRoles.each { role ->
+                    retUser.addSource(role, null)
+                }
+            }
+        }
+
+        // 2) Lookup users from directory, with appropriate sources
+        if (defaultRoleService.directoryGroupsSupported) {
+            effectiveGroups.each { group ->
+                usersForDirectoryGroups[group.name]?.each { user ->
+                    def retUser = ret[user.toLowerCase()]
+                    group.sourceRoles.each { role ->
+                        retUser.addSource(role, group.name)
+                    }
+                }
+            }
+        }
+        return ret.values().toList()
+    }
+
+    private List<EffectiveMember> getEffectiveMembers(
+        Role role,
+        List<EffectiveMember> effectiveRoles,
+        Closure<List<String>> memberNamesFn
+    ) {
+        Map<String, EffectiveMember> ret = [:].withDefault { new EffectiveMember([name: it]) }
+
+        // Get members from the input roles
+        memberNamesFn(role).each { memberName ->
+            ret[memberName].sourceRoles << role.name
+        }
+
+        // Get members from effective roles
+        effectiveRoles.each { sourceRole ->
+            String sourceRoleName = sourceRole.name
+            memberNamesFn(Role.get(sourceRoleName)).each { memberName ->
+                ret[memberName].sourceRoles << sourceRoleName
+            }
+        }
+
+        ret.values().toList()
+    }
+
 
     private void ensureEnabled() {
         if (!enabled) {
@@ -232,8 +182,47 @@ class DefaultRoleAdminService extends BaseService {
         }
     }
 
-    class RoleMemberChanges {
-        List<String> added = []
-        List<String> removed = []
+    //---------------------
+    // Internal DTO classes
+    //---------------------
+    private class EffectiveMember implements JSONFormat {
+        String name
+        List<String> sourceRoles = []
+
+        Map formatForJSON() {[
+            name: name,
+            sourceRoles: sourceRoles
+        ]}
+    }
+
+    private class EffectiveUser implements JSONFormat {
+        String name
+        List<Source> sources = []
+
+        void addSource(String role, String directoryGroup) {
+            sources << new Source(role, directoryGroup)
+        }
+
+        Map formatForJSON() {[
+            name   : name,
+            sources: sources
+        ]}
+    }
+
+    private class Source implements JSONFormat {
+        String role
+        String directoryGroup
+
+        Source(String role, String directoryGroup) {
+            this.role = role
+            this.directoryGroup = directoryGroup
+        }
+
+        Map formatForJSON() {
+            Map ret = [role: role]
+            if (directoryGroup) ret.directoryGroup = directoryGroup
+            return ret
+        }
     }
 }
+

@@ -1,8 +1,12 @@
 # Changelog
 
-## 19.0-SNAPSHOT - unreleased
-### ⚙️ Technical
+## 18.3.0 - 2024-01-29
 
+### 🎁 New Features
+* `DefaultRoleService` now includes support for out-of-the-box LDAP groups.
+
+### ⚙️ Technical
+* Refactor `DefaultRoleService` for more efficient and straightforward role-> user resolution
 * Normalize role member usernames to lowercase and generally tighten up case-insensitive handling.
 
 ## 18.2.1 - 2024-01-25
