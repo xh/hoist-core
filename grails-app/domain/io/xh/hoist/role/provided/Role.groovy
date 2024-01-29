@@ -33,8 +33,8 @@ class Role implements JSONFormat {
         lastUpdatedBy maxSize: 50
     }
 
-    static beforeInsert = { ->
-        if (findByNameIlike(name)) {
+    static beforeInsert = {
+        if (Role.findByNameIlike(name)) {
             throw new RoutineRuntimeException('Role Name must be case-insensitive unique.')
         }
     }
