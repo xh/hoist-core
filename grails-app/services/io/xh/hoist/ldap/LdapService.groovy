@@ -41,6 +41,11 @@ class LdapService extends BaseService {
         initCache()
     }
 
+    boolean getEnabled() {
+        config.enabled
+    }
+
+
     LdapPerson lookupUser(String sName) {
         searchOne("(sAMAccountName-$sName) ", LdapPerson)
     }
@@ -88,7 +93,7 @@ class LdapService extends BaseService {
     }
 
     private <T extends LdapObject> List<T> doQuery(Map server, String baseFilter, Class<T> objType) {
-        if (!config.enabled) throw new RuntimeException('LdapService is not enabled.')
+        if (!enabled) throw new RuntimeException('LdapService is not enabled.')
 
         boolean isPerson = objType == LdapPerson
         String host = server.host,

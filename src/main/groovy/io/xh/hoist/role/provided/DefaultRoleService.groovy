@@ -189,7 +189,7 @@ class DefaultRoleService extends BaseRoleService {
         ldapService
             .lookupGroupMembers(foundGroups)
             .each {name, members ->
-                ret[name] = members.collect { it.samaccountname.toLowerCase()}
+                ret[name] = members.collect(new HashSet()) { it.samaccountname.toLowerCase()}
             }
 
         return ret
@@ -263,7 +263,7 @@ class DefaultRoleService extends BaseRoleService {
     @ReadOnly
     protected Map<String, Set<String>> generateRoleAssignments() {
         List<Role> roles = Role.list()
-        Map<String, Object> usersForDirectoryGroups
+        Map<String, Object> usersForDirectoryGroups = [:]
 
         if (directoryGroupsSupported) {
             Set<String> groups = roles.collectMany(new HashSet()) { it.directoryGroups }
