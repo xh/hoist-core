@@ -190,6 +190,13 @@ class DefaultRoleEditService extends BaseService {
             members = members*.toLowerCase()
         }
 
+        existingMembers.each { member ->
+            if (!members.contains(member.name)) {
+                owner.removeFromMembers(member)
+                changes.removed << member.name
+            }
+        }
+
         members.each { member ->
             if (!existingMembers.any { it.name == member }) {
                 owner.addToMembers(
@@ -198,13 +205,6 @@ class DefaultRoleEditService extends BaseService {
                     createdBy: authUsername
                 )
                 changes.added << member
-            }
-        }
-
-        existingMembers.each { member ->
-            if (!members.contains(member.name)) {
-                owner.removeFromMembers(member)
-                changes.removed << member.name
             }
         }
 
