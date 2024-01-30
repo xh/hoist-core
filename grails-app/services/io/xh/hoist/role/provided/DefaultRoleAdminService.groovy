@@ -94,8 +94,8 @@ class DefaultRoleAdminService extends BaseService {
                 .each { inheritedRole ->
                     ret[inheritedRole.name].sourceRoles << role.name
                     if (!visitedRoles.contains(inheritedRole.name)) {
-                        visitedRoles.add(inheritedRole.name)
-                        rolesToVisit.offer(inheritedRole)
+                        visitedRoles << inheritedRole.name
+                        rolesToVisit << inheritedRole
                     }
                 }
         }
@@ -112,8 +112,8 @@ class DefaultRoleAdminService extends BaseService {
             role.roles.each { memberName ->
                 ret[memberName].sourceRoles << role.name
                 if (!visitedRoles.contains(memberName)) {
-                    visitedRoles.add(memberName)
-                    rolesToVisit.offer(Role.get(memberName))
+                    visitedRoles << memberName
+                    rolesToVisit << Role.get(memberName)
                 }
             }
         }

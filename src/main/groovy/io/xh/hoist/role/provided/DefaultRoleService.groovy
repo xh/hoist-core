@@ -298,14 +298,16 @@ class DefaultRoleService extends BaseRoleService {
     // users with the returned roles will also be granted the input role.
     protected Set<Role> getEffectiveRoles(Role role) {
         Set<Role> ret = [role]
-        Set<String> rolesVisited = [role.name]
+        Set<String> visitedRoles = [role.name]
         Queue<Role> rolesToVisit = [role] as Queue
 
         while (role = rolesToVisit.poll()) {
             role.roles.each {
-                if (!rolesVisited.contains(it)) {
-                    rolesVisited << it
-                    ret << rolesToVisit << Role.get(it)
+                if (!visitedRoles.contains(it)) {
+                    visitedRoles << it
+                    def effectiveRole = Role.get(it)
+                    rolesToVisit << effectiveRole
+                    ret << effectiveRole
                 }
             }
         }

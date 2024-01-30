@@ -2,6 +2,10 @@
 
 ## 19.0-SNAPSHOT - unreleased
 
+## 18.3.1 - 2024-01-30
+
+### 🐞 Bug Fixes
+* Fixed bug in `DefaultRoleService` where not all effective roles were being returned for a user.
 
 ## 18.3.0 - 2024-01-29
 
