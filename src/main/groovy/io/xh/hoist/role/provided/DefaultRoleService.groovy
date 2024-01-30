@@ -204,7 +204,7 @@ class DefaultRoleService extends BaseRoleService {
             xhRoleModuleConfig: [
                 valueType   : 'json',
                 defaultValue: [
-                    refreshIntervalSecs  : 30
+                    refreshIntervalSecs  : 300
                 ],
                 groupName   : 'xh.io',
                 note        : 'Configures built-in role management via DefaultRoleService.'
