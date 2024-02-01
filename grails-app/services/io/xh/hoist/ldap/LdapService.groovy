@@ -10,24 +10,28 @@ import static grails.async.Promises.task
 
 
 /**
- * Query a set of LDAP servers for People or Groups.
+ * Service to query a set of LDAP servers for People, Groups, and Group memberships.
  *
- * Requires the following configs
- *      'xhLdapConfig' with the following options
- *          enabled - true to enable
- *          timeoutMs - time to wait for any individual search to resolve.
- *          cacheExpireSecs - length of time to cache results.  Set to -1 to disable caching.
- *          servers - list of servers to be queried, each containing:
- *              host
- *              baseUserDn
- *              baseGroupDn
- *
- *     'xhLdapUsername' - dn of query user.
- *     'xhLdapPassword' - password for user
+ * Requires the following application configs:
+ *      - 'xhLdapConfig' with the following options
+ *          - enabled - true to enable
+ *          - timeoutMs - time to wait for any individual search to resolve.
+ *          - cacheExpireSecs - length of time to cache results.  Set to -1 to disable caching.
+ *          - servers - list of servers to be queried, each containing:
+ *              - host
+ *              - baseUserDn
+ *              - baseGroupDn
+ *     - 'xhLdapUsername' - dn of query user.
+ *     - 'xhLdapPassword' - password for user
  *
  * This service will cache results, per server, for the configured interval.
- * This service may return partial results if any particular server fails to
- * return results.
+ * This service may return partial results if any particular server fails to return results.
+ *
+ * Note that the implementation of `lookupGroupMembers()` is currently specific to Microsoft Active
+ * Directory, due to the use of the proprietary "LDAP_MATCHING_RULE_IN_CHAIN" rule OID (the magic
+ * `1.2.840.113556.1.4.1941` string below). This is an efficient way to resolve users in nested
+ * groups, but would require an alternate implementation if this service is required to work with
+ * more generic LDAP deployments.
  */
 class LdapService extends BaseService {
 
@@ -51,6 +55,7 @@ class LdapService extends BaseService {
     }
 
     List<LdapPerson> lookupGroupMembers(String dn) {
+        // See class-level comment regarding this AD-specific query
         searchMany("(|(member0f=$dn) (memberOf:1.2.840.113556.1.4.1941:=$dn))", LdapPerson)
     }
 
