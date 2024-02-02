@@ -1,5 +1,10 @@
 # Changelog
 
+## 18.3.2 - UNRELEASED
+
+### 🐞 Bug Fixes
+* Fix bug in `LdapService.lookupUser` where queries were not being formed correctly.
+
 ## 18.3.1 - 2024-01-30
 
 ### 🐞 Bug Fixes

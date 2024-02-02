@@ -51,7 +51,7 @@ class LdapService extends BaseService {
 
 
     LdapPerson lookupUser(String sName) {
-        searchOne("(sAMAccountName-$sName) ", LdapPerson)
+        searchOne("(sAMAccountName=$sName) ", LdapPerson)
     }
 
     List<LdapPerson> lookupGroupMembers(String dn) {
