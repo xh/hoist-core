@@ -14,7 +14,9 @@ class EnvAdminController extends BaseController {
 
     def index() {
         renderJSON([
-            environment: System.getenv(),
+            environment: System.getenv().collectEntries {
+                [it.key, it.key.endsWithIgnoreCase('password') ? '*****' : it.value]
+            },
             properties: System.getProperties()
         ])
     }

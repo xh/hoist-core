@@ -64,7 +64,7 @@ class InstanceConfigUtils {
     private static AppEnvironment _appEnvironment
 
     static String getInstanceConfig(String key) {
-        return instanceConfig[key]
+        return System.getenv("XH_$key") ?: instanceConfig[key]
     }
 
     static AppEnvironment getAppEnvironment() {
@@ -86,6 +86,7 @@ class InstanceConfigUtils {
             def configFile = new File(configFilename)
 
             if (configFile.exists()) {
+                // TODO - deprecate ability to load secrets from multiple files
                 ret = configFile.isDirectory() ? loadFromConfigDir(configFile) : loadFromYaml(configFile)
             } else {
                 println "WARNING - InstanceConfig file not found | looked for $configFilename"

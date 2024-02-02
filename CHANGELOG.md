@@ -1,5 +1,12 @@
 # Changelog
 
+## 19.0-SNAPSHOT - unreleased
+
+### 🎁 New Features
+* `InstanceConfigUtils.getInstanceConfig` now returns an environment variable with `XH_<key>` if it
+  exists.  Otherwise, it returns the instance config value as before.
+* `EnvAdminController.index` now obfuscates environment variables suffixed with `password`.
+
 ## 18.3.2 - 2024-02-01
 
 ### 🐞 Bug Fixes
