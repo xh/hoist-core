@@ -6,7 +6,7 @@
  */
 package io.xh.hoist.util
 
-import static com.fasterxml.jackson.databind.PropertyNamingStrategies.UpperSnakeCaseStrategy
+import static com.fasterxml.jackson.databind.PropertyNamingStrategies.UPPER_SNAKE_CASE
 import io.xh.hoist.AppEnvironment
 import org.yaml.snakeyaml.Yaml
 
@@ -63,10 +63,9 @@ class InstanceConfigUtils {
 
     final static Map<String, String> instanceConfig = readInstanceConfig()
     private static AppEnvironment _appEnvironment
-    private final static UpperSnakeCaseStrategy snakeCase = new UpperSnakeCaseStrategy()
 
     static String getInstanceConfig(String key) {
-        return System.getenv("APP_${snakeCase.translate(appCode)}_${snakeCase.translate(key)}") ?:
+        return System.getenv("APP_${UPPER_SNAKE_CASE.translate(appCode)}_${UPPER_SNAKE_CASE.translate(key)}") ?:
             instanceConfig[key]
     }
 
@@ -79,7 +78,7 @@ class InstanceConfigUtils {
     // Implementation
     //------------------------
 
-    private static Map<String, String> readInstanceConfig() {
+        private static Map<String, String> readInstanceConfig() {
         def ret = [:]
 
         // Attempt to load external config file - but do not strictly require one. Warnings about
@@ -101,7 +100,7 @@ class InstanceConfigUtils {
 
         // Populate environment, popping it off the map if provided via config. Priority as documented above.
         def optEnvString = System.getProperty('io.xh.hoist.environment') ?:
-                System.getenv("APP_${snakeCase.translate(appCode)}_ENVIRONMENT"),
+                System.getenv("APP_${UPPER_SNAKE_CASE.translate(appCode)}_ENVIRONMENT"),
             confEnvString = ret.remove('environment'),
             envString = optEnvString ?: confEnvString,
             env = AppEnvironment.parse(envString)
