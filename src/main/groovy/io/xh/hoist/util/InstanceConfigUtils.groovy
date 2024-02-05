@@ -65,8 +65,7 @@ class InstanceConfigUtils {
     private static AppEnvironment _appEnvironment
 
     static String getInstanceConfig(String key) {
-        return System.getenv("APP_${UPPER_SNAKE_CASE.translate(appCode)}_${UPPER_SNAKE_CASE.translate(key)}") ?:
-            instanceConfig[key]
+        return getEnvVar(key) ?: instanceConfig[key]
     }
 
     static AppEnvironment getAppEnvironment() {
@@ -99,8 +98,7 @@ class InstanceConfigUtils {
         }
 
         // Populate environment, popping it off the map if provided via config. Priority as documented above.
-        def optEnvString = System.getProperty('io.xh.hoist.environment') ?:
-                System.getenv("APP_${UPPER_SNAKE_CASE.translate(appCode)}_ENVIRONMENT"),
+        def optEnvString = System.getProperty('io.xh.hoist.environment') ?: getEnvVar('environment'),
             confEnvString = ret.remove('environment'),
             envString = optEnvString ?: confEnvString,
             env = AppEnvironment.parse(envString)
@@ -150,6 +148,11 @@ class InstanceConfigUtils {
 
     private static void logLoadCount(Map configs, File configFile) {
         println "Loaded ${configs.size()} instanceConfigs from ${configFile.getAbsolutePath()}"
+    }
+
+    private static String getEnvVar(String key) {
+        String prefix = "APP_${UPPER_SNAKE_CASE.translate(appCode).replace('-', '_')}_"
+        return System.getenv(prefix + UPPER_SNAKE_CASE.translate(key))
     }
 
     private static String getAppCode() {
