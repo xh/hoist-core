@@ -6,6 +6,7 @@
  */
 package io.xh.hoist.util
 
+import static com.fasterxml.jackson.databind.PropertyNamingStrategies.UpperSnakeCaseStrategy
 import io.xh.hoist.AppEnvironment
 import org.yaml.snakeyaml.Yaml
 
@@ -62,9 +63,11 @@ class InstanceConfigUtils {
 
     final static Map<String, String> instanceConfig = readInstanceConfig()
     private static AppEnvironment _appEnvironment
+    private final static UpperSnakeCaseStrategy snakeCase = new UpperSnakeCaseStrategy()
 
     static String getInstanceConfig(String key) {
-        return System.getenv("XH_$key") ?: instanceConfig[key]
+        return System.getenv("APP_${snakeCase.translate(appCode)}_${snakeCase.translate(key)}") ?:
+            instanceConfig[key]
     }
 
     static AppEnvironment getAppEnvironment() {
@@ -75,13 +78,14 @@ class InstanceConfigUtils {
     //------------------------
     // Implementation
     //------------------------
+
     private static Map<String, String> readInstanceConfig() {
         def ret = [:]
 
         // Attempt to load external config file - but do not strictly require one. Warnings about
         // missing/unreadable configs are output via println as the logging system itself relies on
         // this class to determine its root path.
-        def configFilename = System.getProperty('io.xh.hoist.instanceConfigFile') ?: "/etc/hoist/conf/${Utils.appCode}.yml"
+        def configFilename = System.getProperty('io.xh.hoist.instanceConfigFile') ?: "/etc/hoist/conf/${appCode}.yml"
         try {
             def configFile = new File(configFilename)
 
@@ -96,7 +100,8 @@ class InstanceConfigUtils {
         }
 
         // Populate environment, popping it off the map if provided via config. Priority as documented above.
-        def optEnvString = System.getenv('XH_environment') ?: System.getProperty('io.xh.hoist.environment'),
+        def optEnvString = System.getProperty('io.xh.hoist.environment') ?:
+                System.getenv("APP_${snakeCase.translate(appCode)}_ENVIRONMENT"),
             confEnvString = ret.remove('environment'),
             envString = optEnvString ?: confEnvString,
             env = AppEnvironment.parse(envString)
@@ -148,4 +153,7 @@ class InstanceConfigUtils {
         println "Loaded ${configs.size()} instanceConfigs from ${configFile.getAbsolutePath()}"
     }
 
+    private static String getAppCode() {
+        return Utils.appCode
+    }
 }
