@@ -9,6 +9,7 @@ package io.xh.hoist.config
 
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONFormat
+import io.xh.hoist.log.LogSupport
 import io.xh.hoist.util.InstanceConfigUtils
 import io.xh.hoist.util.Utils
 import org.jasypt.util.password.ConfigurablePasswordEncryptor
@@ -17,7 +18,7 @@ import org.jasypt.util.text.TextEncryptor
 
 import static grails.async.Promises.task
 
-class AppConfig implements JSONFormat {
+class AppConfig implements JSONFormat, LogSupport {
 
     static private final TextEncryptor encryptor = createEncryptor()
     static private final ConfigurablePasswordEncryptor digestEncryptor = createDigestEncryptor()
@@ -66,26 +67,8 @@ class AppConfig implements JSONFormat {
     }
 
     Object externalValue(Map opts = [:]) {
-        if (value == null) return null
-        switch ( valueType ) {
-            case 'json':    return opts.jsonAsObject ? JSONParser.parseObjectOrArray(value) : value
-            case 'int':     return value.toInteger()
-            case 'long':    return value.toLong()
-            case 'double':  return value.toDouble()
-            case 'bool':    return value.toBoolean()
-            case 'pwd' :
-                if (opts.obscurePassword)       return '*********';
-                if (opts.digestPassword)        return digestPassword(value);
-                if (opts.decryptPassword)       return decryptPassword(value);
-            default:        return value
-        }
-    }
-
-    String getOverrideValue(Map opts) {
-        def value = InstanceConfigUtils.getInstanceConfig(name)
-        if (value == null) return null
-        if (opts.obscurePassword && name.endsWithIgnoreCase('password')) return '*********'
-        return value
+        def overrideValue = overrideValue(opts)
+        return overrideValue != null ? overrideValue : parseValue(value, opts)
     }
 
     //--------------------------------------
@@ -129,9 +112,39 @@ class AppConfig implements JSONFormat {
         ret
     }
 
-    private static String digestPassword(value) {
+    private Object overrideValue(Map opts = [:]) {
+        String overrideValue = InstanceConfigUtils.getInstanceConfig(name)
+        if (overrideValue == null) return null
+        try {
+            if (name.endsWithIgnoreCase('password') && valueType != 'pwd') {
+                throw new RuntimeException('Attempt to override non-password config')
+            }
+            parseValue(overrideValue, opts)
+        } catch (Throwable e) {
+            logTrace("Error parsing override value for config '$name'", e.message)
+            return null
+        }
+    }
+
+    private Object parseValue(String value, Map opts = [:]) {
+        boolean isOverride = value != this.value
+        switch ( valueType ) {
+            case 'json':    return opts.jsonAsObject ? JSONParser.parseObjectOrArray(value) : value
+            case 'int':     return value.toInteger()
+            case 'long':    return value.toLong()
+            case 'double':  return value.toDouble()
+            case 'bool':    return value.toBoolean()
+            case 'pwd' :
+                if (opts.obscurePassword)       return '*********';
+                if (opts.digestPassword)        return digestPassword(value, !isOverride)
+                if (opts.decryptPassword)       return !isOverride ? decryptPassword(value) : value
+            default:        return value
+        }
+    }
+
+    private static String digestPassword(value, boolean isEncrypted) {
         // Format that will allow these values to be correctly compared in the admin config differ,
-        digestEncryptor.encryptPassword(decryptPassword(value))
+        digestEncryptor.encryptPassword(isEncrypted ? decryptPassword(value) : value)
     }
 
     private static String decryptPassword(value) {
@@ -144,8 +157,8 @@ class AppConfig implements JSONFormat {
                 name         : name,
                 groupName    : groupName,
                 valueType    : valueType,
-                value        : externalValue(digestPassword: true),
-                overrideValue: getOverrideValue(obscurePassword: true),
+                value        : parseValue(value, [digestPassword: true]),
+                overrideValue: overrideValue(digestPassword: true),
                 clientVisible: clientVisible,
                 note         : note,
                 lastUpdatedBy: lastUpdatedBy,

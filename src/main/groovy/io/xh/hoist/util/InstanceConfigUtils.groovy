@@ -6,6 +6,10 @@
  */
 package io.xh.hoist.util
 
+import groovy.transform.CompileStatic
+import groovy.transform.Memoized
+
+import static com.fasterxml.jackson.databind.PropertyNamingStrategies.UpperSnakeCaseStrategy
 import static com.fasterxml.jackson.databind.PropertyNamingStrategies.UPPER_SNAKE_CASE
 import io.xh.hoist.AppEnvironment
 import org.yaml.snakeyaml.Yaml
@@ -56,18 +60,21 @@ import static io.xh.hoist.util.Utils.isLocalDevelopment
  * file, which can also be used to set core Grails configuration options (as long as they are not
  * needed for any CLI commands you are using). See https://docs.grails.org/latest/guide/conf.html
  */
+@CompileStatic
 class InstanceConfigUtils {
 
-    final static Map<String, String> instanceConfig = readInstanceConfig()
     final static AppEnvironment appEnvironment = readAppEnvironment()
+
+    private final static Map<String, String> configs = readConfigs()
 
     /**
      * Retrieve a configuration value by key sourced from (in priority order):
      *     1) Environment variable with upper snake-case key `APP_[APP_CODE]_[KEY]`, if provided.
      *     2) Config file/directory entry with key `[key]`, if provided.
      */
+    @Memoized
     static String getInstanceConfig(String key) {
-        return getEnvVar(key) ?: instanceConfig[key]
+        return getEnvVar(key) ?: configs[key]
     }
 
 
@@ -75,21 +82,20 @@ class InstanceConfigUtils {
     // Implementation
     //------------------------
 
-        private static Map<String, String> readInstanceConfig() {
-        def ret = [:]
+    private static Map<String, String> readConfigs() {
+        Map<String, String> ret = [:]
 
         // Attempt to load external config file - but do not strictly require one. Warnings about
         // missing/unreadable configs are output via println as the logging system itself relies on
         // this class to determine its root path.
-        def configFilename = System.getProperty('io.xh.hoist.instanceConfigFile') ?: "/etc/hoist/conf/${Utils.appCode}.yml"
+        String configFilename = System.getProperty('io.xh.hoist.instanceConfigFile') ?: "/etc/hoist/conf/${Utils.appCode}.yml"
         try {
-            def configFile = new File(configFilename)
+            File configFile = new File(configFilename)
 
             if (configFile.exists()) {
-                // TODO - deprecate ability to load secrets from multiple files
                 ret = configFile.isDirectory() ? loadFromConfigDir(configFile) : loadFromYaml(configFile)
             } else {
-                println "WARNING - InstanceConfig file not found | looked for $configFilename"
+                println "InstanceConfig file not found | looked for $configFilename"
             }
         } catch (Throwable t) {
             println "ERROR - InstanceConfig file could not be parsed | $configFilename | $t.message"
@@ -100,7 +106,7 @@ class InstanceConfigUtils {
 
     private static AppEnvironment readAppEnvironment() {
         def optEnvString = System.getProperty('io.xh.hoist.environment') ?: getEnvVar('environment'),
-            envString = optEnvString ?: instanceConfig.environment,
+            envString = optEnvString ?: configs.environment,
             env = AppEnvironment.parse(envString)
 
         if (!env) {
@@ -149,7 +155,10 @@ class InstanceConfigUtils {
     }
 
     private static String getEnvVar(String key) {
-        String prefix = "APP_${UPPER_SNAKE_CASE.translate(Utils.appCode).replace('-', '_')}_"
-        return System.getenv(prefix + UPPER_SNAKE_CASE.translate(key))
+        return System.getenv("APP_${toSnakeCase(Utils.appCode)}_${toSnakeCase(key)}")
+    }
+
+    private static String toSnakeCase(String s) {
+        return ((UpperSnakeCaseStrategy) UPPER_SNAKE_CASE).translate(s).replace('-', '_')
     }
 }

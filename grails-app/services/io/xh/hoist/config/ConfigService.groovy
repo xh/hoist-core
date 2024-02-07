@@ -69,10 +69,7 @@ class ConfigService extends BaseService implements EventPublisher {
             AppConfig config = (AppConfig) it
             def name = config.name
             try {
-                def overrideValue = config.getOverrideValue(obscurePassword: true)
-                ret[name] = overrideValue != null ?
-                    overrideValue :
-                    config.externalValue(obscurePassword: true, jsonAsObject: true)
+                ret[name] = config.externalValue(obscurePassword: true, jsonAsObject: true)
             } catch (Exception e) {
                 logError("Exception while getting client config: '$name'", e)
             }
@@ -200,10 +197,6 @@ class ConfigService extends BaseService implements EventPublisher {
         if (valueType != c.valueType) {
             throw new RuntimeException("Unexpected type for config: [$name] | config is ${c.valueType} | expected ${valueType}")
         }
-
-        def overrideValue = c.getOverrideValue(obscurePassword: false)
-        return overrideValue != null ?
-            overrideValue :
-            c.externalValue(decryptPassword: true, jsonAsObject: true)
+        return c.externalValue(decryptPassword: true, jsonAsObject: true)
     }
 }
