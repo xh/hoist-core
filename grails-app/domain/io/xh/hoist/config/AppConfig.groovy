@@ -9,6 +9,7 @@ package io.xh.hoist.config
 
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONFormat
+import io.xh.hoist.util.InstanceConfigUtils
 import io.xh.hoist.util.Utils
 import org.jasypt.util.password.ConfigurablePasswordEncryptor
 import org.jasypt.util.text.BasicTextEncryptor
@@ -80,6 +81,13 @@ class AppConfig implements JSONFormat {
         }
     }
 
+    String getOverrideValue(Map opts) {
+        def value = InstanceConfigUtils.getInstanceConfig(name)
+        if (value == null) return null
+        if (opts.obscurePassword && name.endsWithIgnoreCase('password')) return '*********'
+        return value
+    }
+
     //--------------------------------------
     // Implementation
     //--------------------------------------
@@ -137,6 +145,7 @@ class AppConfig implements JSONFormat {
                 groupName    : groupName,
                 valueType    : valueType,
                 value        : externalValue(digestPassword: true),
+                overrideValue: getOverrideValue(obscurePassword: true),
                 clientVisible: clientVisible,
                 note         : note,
                 lastUpdatedBy: lastUpdatedBy,

@@ -3,9 +3,11 @@
 ## 19.0-SNAPSHOT - unreleased
 
 ### 🎁 New Features
-* `InstanceConfigUtils.getInstanceConfig` now returns an environment variable with `XH_<key>` if it
-  exists.  Otherwise, it returns the instance config value as before.
+* `InstanceConfigUtils.getInstanceConfig` now returns an environment variable with upper-snake-case
+  key `APP_[APP_CODE]_[KEY]` if it exists. Otherwise, it returns the instance config value as before.
 * `EnvAdminController.index` now obfuscates environment variables suffixed with `password`.
+* `ConfigService` methods now return values overridden by instance configs, if they exist. To see
+  which values are overridden in the client Config Admin UI, update to `hoist-react >= 61.0`.
 
 ## 18.3.2 - 2024-02-01
 

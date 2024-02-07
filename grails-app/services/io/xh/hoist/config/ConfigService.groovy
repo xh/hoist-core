@@ -18,6 +18,7 @@ import static io.xh.hoist.json.JSONSerializer.serializePretty
 
 /**
  * Service to return soft-configured variables.
+ * Note that instance configs will override any database configs returned by this service.
  * Fires a xhConfigChanged event when a config value is updated.
  */
 @GrailsCompileStatic
@@ -68,7 +69,10 @@ class ConfigService extends BaseService implements EventPublisher {
             AppConfig config = (AppConfig) it
             def name = config.name
             try {
-                ret[name] = config.externalValue(obscurePassword: true, jsonAsObject: true)
+                def overrideValue = config.getOverrideValue(obscurePassword: true)
+                ret[name] = overrideValue != null ?
+                    overrideValue :
+                    config.externalValue(obscurePassword: true, jsonAsObject: true)
             } catch (Exception e) {
                 logError("Exception while getting client config: '$name'", e)
             }
@@ -196,6 +200,10 @@ class ConfigService extends BaseService implements EventPublisher {
         if (valueType != c.valueType) {
             throw new RuntimeException("Unexpected type for config: [$name] | config is ${c.valueType} | expected ${valueType}")
         }
-        return c.externalValue(decryptPassword: true, jsonAsObject: true)
+
+        def overrideValue = c.getOverrideValue(obscurePassword: false)
+        return overrideValue != null ?
+            overrideValue :
+            c.externalValue(decryptPassword: true, jsonAsObject: true)
     }
 }

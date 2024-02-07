@@ -14,15 +14,12 @@ import static io.xh.hoist.util.Utils.isLocalDevelopment
 
 
 /**
- * Utility for loading optional, file-based configuration properties once on startup and exposing
- * them to the application as a map.
+ * Utility for loading configuration properties once on startup and exposing them to the application.
  *
  * These are intended to be minimal, low-level configs that apply to a particular deployed instance
- * of the application and therefore are better sourced from a local file/volume vs. source code,
- * JavaOpts, or database-driven ConfigService entries.
- *
- * They are also typically used to provide the connection information and credentials for the
- * primary database connection itself, keeping that sensitive info out of the source code.
+ * of the application. They are also typically used to provide the connection information and
+ * credentials for the primary database connection itself, keeping that sensitive info out of the
+ * source code.
  *
  * This utility will consult the `-Dio.xh.hoist.instanceConfigFile` JavaOpt for the full path to one
  * of the following supported locations:
@@ -47,12 +44,12 @@ import static io.xh.hoist.util.Utils.isLocalDevelopment
  * This utility also establishes the `AppEnvironment`, sourcing it from (in priority order):
  *
  *      1) A `-Dio.xh.hoist.environment` JavaOpt, if provided.
- *      2) Config file/directory entry with key `environment`, if provided.
- *      3) Fallback to Development, if not otherwise specified.
+ *      2) Environment variable with key `APP_[APP_CODE]_ENVIRONMENT`, if provided.
+ *      3) Config file/directory entry with key `environment`, if provided.
+ *      4) Fallback to Development, if not otherwise specified.
  *
- * The AppEnvironment is made available via its own getter that returns the proper Enum, and is
- * deliberately removed from the instanceConfig map. (The `io.xh.hoist.util.Utils` method is the
- * expected entry point for most app code, anyway.)
+ * The AppEnvironment is made available via its own property. (The `io.xh.hoist.util.Utils` method
+ * is the expected entry point for most app code, anyway.)
  *
  * Note that this class is *not* available for use in application.groovy, as that file is read
  * and processed prior to compilation. It can however be read from within a conf/runtime.groovy
@@ -62,14 +59,15 @@ import static io.xh.hoist.util.Utils.isLocalDevelopment
 class InstanceConfigUtils {
 
     final static Map<String, String> instanceConfig = readInstanceConfig()
-    private static AppEnvironment _appEnvironment
+    final static AppEnvironment appEnvironment = readAppEnvironment()
 
+    /**
+     * Retrieve a configuration value by key sourced from (in priority order):
+     *     1) Environment variable with upper snake-case key `APP_[APP_CODE]_[KEY]`, if provided.
+     *     2) Config file/directory entry with key `[key]`, if provided.
+     */
     static String getInstanceConfig(String key) {
         return getEnvVar(key) ?: instanceConfig[key]
-    }
-
-    static AppEnvironment getAppEnvironment() {
-        return _appEnvironment
     }
 
 
@@ -83,7 +81,7 @@ class InstanceConfigUtils {
         // Attempt to load external config file - but do not strictly require one. Warnings about
         // missing/unreadable configs are output via println as the logging system itself relies on
         // this class to determine its root path.
-        def configFilename = System.getProperty('io.xh.hoist.instanceConfigFile') ?: "/etc/hoist/conf/${appCode}.yml"
+        def configFilename = System.getProperty('io.xh.hoist.instanceConfigFile') ?: "/etc/hoist/conf/${Utils.appCode}.yml"
         try {
             def configFile = new File(configFilename)
 
@@ -97,10 +95,12 @@ class InstanceConfigUtils {
             println "ERROR - InstanceConfig file could not be parsed | $configFilename | $t.message"
         }
 
-        // Populate environment, popping it off the map if provided via config. Priority as documented above.
+        return ret
+    }
+
+    private static AppEnvironment readAppEnvironment() {
         def optEnvString = System.getProperty('io.xh.hoist.environment') ?: getEnvVar('environment'),
-            confEnvString = ret.remove('environment'),
-            envString = optEnvString ?: confEnvString,
+            envString = optEnvString ?: instanceConfig.environment,
             env = AppEnvironment.parse(envString)
 
         if (!env) {
@@ -111,9 +111,7 @@ class InstanceConfigUtils {
             }
         }
 
-        _appEnvironment = env
-
-        return ret
+        return env
     }
 
     private static Map<String, String> loadFromConfigDir(File configDirectory) {
@@ -151,11 +149,7 @@ class InstanceConfigUtils {
     }
 
     private static String getEnvVar(String key) {
-        String prefix = "APP_${UPPER_SNAKE_CASE.translate(appCode).replace('-', '_')}_"
+        String prefix = "APP_${UPPER_SNAKE_CASE.translate(Utils.appCode).replace('-', '_')}_"
         return System.getenv(prefix + UPPER_SNAKE_CASE.translate(key))
-    }
-
-    private static String getAppCode() {
-        return Utils.appCode
     }
 }
