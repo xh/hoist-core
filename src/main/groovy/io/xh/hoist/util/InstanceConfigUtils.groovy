@@ -68,9 +68,8 @@ import static io.xh.hoist.util.Utils.isLocalDevelopment
 @CompileStatic
 class InstanceConfigUtils {
 
-    final static AppEnvironment appEnvironment = readAppEnvironment()
-
     private final static Map<String, String> configs = readConfigs()
+    final static AppEnvironment appEnvironment = readAppEnvironment()
 
     /**
      * Retrieve a configuration value by key sourced from (in priority order):
