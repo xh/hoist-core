@@ -11,7 +11,7 @@ import static java.util.Collections.singleton
 class RoleAdminController extends BaseController {
 
     def defaultRoleAdminService,
-        defaultRoleEditService,
+        defaultRoleUpdateService,
         roleService
 
     @Access(['HOIST_ADMIN_READER'])
@@ -32,20 +32,20 @@ class RoleAdminController extends BaseController {
     def create() {
         ensureHoistRoleManager()
         Map roleSpec = parseRequestJSON()
-        Role role = defaultRoleEditService.create(roleSpec)
+        Role role = defaultRoleUpdateService.create(roleSpec)
         renderJSON(data: role)
     }
 
     def update() {
         ensureHoistRoleManager()
         Map roleSpec = parseRequestJSON()
-        Role role = defaultRoleEditService.update(roleSpec)
+        Role role = defaultRoleUpdateService.update(roleSpec)
         renderJSON(data: role)
     }
 
     def delete(String id) {
         ensureHoistRoleManager()
-        defaultRoleEditService.delete(id)
+        defaultRoleUpdateService.delete(id)
         renderJSON(success: true)
     }
 
