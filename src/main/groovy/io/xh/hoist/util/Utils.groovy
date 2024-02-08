@@ -156,6 +156,15 @@ class Utils {
         JSONParser.validate(val)
     }
 
+    /**
+     * Return true if the given parameter name is likely sensitive and should not be serialized
+     * if not required. Used for built-in admin functionality accessed by trusted users only.
+     * NOT intended to be comprehensive or the last word on security!
+     */
+    static boolean isSensitiveParamName(String name) {
+        name.endsWithIgnoreCase('password') || name.endsWithIgnoreCase('pwd') || name.endsWithIgnoreCase('secret')
+    }
+
     /** String parsing for a boolean. */
     static Boolean parseBooleanStrict(String s) {
         if ('true'.equalsIgnoreCase(s)) return true

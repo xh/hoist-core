@@ -9,13 +9,15 @@ package io.xh.hoist.admin
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
 
+import static io.xh.hoist.util.Utils.isSensitiveParamName
+
 @Access(['HOIST_ADMIN_READER'])
 class EnvAdminController extends BaseController {
 
     def index() {
         renderJSON([
             environment: System.getenv().collectEntries {
-                [it.key, it.key.endsWithIgnoreCase('password') ? '*****' : it.value]
+                [it.key, isSensitiveParamName(it.key) ? '*****' : it.value]
             },
             properties: System.getProperties()
         ])
