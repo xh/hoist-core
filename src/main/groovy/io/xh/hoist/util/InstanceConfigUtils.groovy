@@ -18,7 +18,7 @@ import static io.xh.hoist.util.Utils.isLocalDevelopment
 
 
 /**
- * Utility for loading configuration properties once on startup and exposing them to the application.
+ * Utility for loading configuration properties on startup and exposing them to the application.
  *
  * These are intended to be minimal, low-level configs that apply to a particular deployed instance
  * of the application. They are also typically used to provide the connection information and
@@ -29,8 +29,8 @@ import static io.xh.hoist.util.Utils.isLocalDevelopment
  * of the following supported locations:
  *
  *      1) A YAML (.yml) file containing key value pairs.
- *      2) A directory containing multiple files, where the file names are loaded as config keys and
- *          their contents are read in as the values.
+ *      2) A directory containing multiple files, where the file names are loaded as config keys
+ *         and their contents are read in as the values.
  *      3) A directory containing a YAML file with the name [appCode].yml.
  *
  * Option (1) is the default if the JavaOpt is not set, with a default location of
@@ -42,6 +42,11 @@ import static io.xh.hoist.util.Utils.isLocalDevelopment
  * Option (3) is intended for builds that might or might not be deployed within Docker - allowing
  * for a single "directory style" JavaOpt value to be baked into the Tomcat container and resolve to
  * either a single file or to a directory of Docker configs.
+ *
+ * System environment variables can also be used to provide config values, in addition to or in
+ * place of the above. These are expected to be in the form `APP_[APP_CODE]_[KEY]`. This utility
+ * will automatically convert a requested key to upper snake-case and prepend the app code to look
+ * for a match. If found, the value will be returned in preference to any other source.
  *
  * Note that all values will be read in and provided as Strings.
  *
@@ -69,7 +74,7 @@ class InstanceConfigUtils {
 
     /**
      * Retrieve a configuration value by key sourced from (in priority order):
-     *     1) Environment variable with upper snake-case key `APP_[APP_CODE]_[KEY]`, if provided.
+     *     1) Environment variable with upper snake-case key `APP_[APP_CODE]_[KEY]`, if set.
      *     2) Config file/directory entry with key `[key]`, if provided.
      */
     @Memoized
@@ -81,7 +86,6 @@ class InstanceConfigUtils {
     //------------------------
     // Implementation
     //------------------------
-
     private static Map<String, String> readConfigs() {
         Map<String, String> ret = [:]
 

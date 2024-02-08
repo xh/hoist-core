@@ -3,59 +3,77 @@
 ## 19.0-SNAPSHOT - unreleased
 
 ### 🎁 New Features
-* `InstanceConfigUtils.getInstanceConfig` now returns an environment variable with upper-snake-case
-  key `APP_[APP_CODE]_[KEY]` if it exists. Otherwise, it returns the instance config value as before.
-* `EnvAdminController.index` now obfuscates environment variables suffixed with `password`.
-* `ConfigService` methods now return values overridden by instance configs, if they exist. To see
-  which values are overridden in the client Config Admin UI, update to `hoist-react >= 61.0`.
+
+* `InstanceConfigUtils` - used to read low-level configuration values such as database credentials -
+  will now search for an environment variable with a matching name and return that value if it
+  exists.
+    * This can either override or entirely replace the use of a yaml file or Kubernetes secrets to
+      specify this kind of configuration.
+    * To help namespace app-specific environment variables while also maintaining the conventions of
+      instance configs having `camelCase` identifiers and environment variables
+      having `UPPER_SNAKE_CASE` identifiers, `InstanceConfigUtils` will convert and
+      prepend `APP_[APP_CODE]_` to the requested key when looking for an environment variable. For
+      example, `InstanceConfigUtils.getString('dbUrl')` will look for an environment
+      variable `APP_[APP_CODE]_DB_URL`.
+* `ConfigService` methods now return values overridden by instance configs, if they exist, allowing
+  for an instance-specific value specified via a yaml file or environment variable to override the
+  config value saved to the app's database.
+    * Update to `hoist-react >= 61.0` with an Admin Console change to display these overridden
+      values in the Config editor tab.
+* `EnvAdminController` now obfuscates environment variables suffixed with `password`.
 
 ## 18.3.2 - 2024-02-01
 
 ### 🐞 Bug Fixes
-* Fix bug in `LdapService.lookupUser` where queries were not being formed correctly.
+
+* Fixed bug in `LdapService.lookupUser` where queries were not being formed correctly.
 
 ## 18.3.1 - 2024-01-30
 
 ### 🐞 Bug Fixes
+
 * Fixed bug in `DefaultRoleService` where not all effective roles were being returned for a user.
 
 ## 18.3.0 - 2024-01-29
 
 ### 🎁 New Features
+
 * `DefaultRoleService` now includes support for out-of-the-box LDAP groups.
 
 ### ⚙️ Technical
+
 * Refactor `DefaultRoleService` for more efficient and straightforward role/user resolution
 * Normalize role member usernames to lowercase and generally tighten up case-insensitive handling.
 
 ## 18.2.1 - 2024-01-25
 
 ### 🐞 Bug Fixes
+
 * Fixed `DefaultRoleService` unintended case-sensitive handling of usernames.
 
 ## 18.2.0 - 2024-01-24
 
 ### 🎁 New Features
-* New `LdapService`: Out-of-the-box support for querying LDAP groups and users via
-  apache `Directory` project.
 
-* New `ConfigService.hasConfig` method for checking if a config exists.
-
+* Added new `LdapService` to provide out-of-the-box support for querying LDAP groups and users via
+  the [Apache Directory](https://directory.apache.org/) library.
+* Ådded `ConfigService.hasConfig()` method to check if a config exists.
 
 ## 18.1.0 - 2024-01-18
 
 ### 🎁 New Features
 
-* Improved handling of requests during application initialization.  HTTP requests received
-  during App startup will now yield clean "App Initializing" Exceptions.  This is an
-  improvement over the current behavior where attempting to service requests prematurely can cause
-  arbitrary and misleading exceptions.
+* Improved handling of requests during application initialization. HTTP requests received
+  during App startup will now yield clean "App Initializing" Exceptions. This is an improvement over
+  the current behavior where attempting to service requests prematurely can cause arbitrary and
+  misleading exceptions.
 
 * Misc. Improvements to `DefaultRoleService` API and documentation.
 
 ## 18.0.1 - 2024-01-16
 
 ### 🐞 Bug Fixes
+
 * Fixed an issue preventing the creation of new roles.
 
 ## 18.0.0 - 2024-01-12
@@ -63,12 +81,12 @@
 ### 🎁 New Features
 
 * New support for Role Management.
-  * Hoist now supports an out-of-the-box, database-driven system for maintaining a hierarchical set
-    of roles and associating them with individual users.
-  * New system supports app and plug-in specific integrations to AD and other enterprise systems.
-  * Hoist-react `v60` is now required and will provide an administrative UI to visualize and manage
-    the new role system.
-  * See `DefaultRoleService` for more information.
+    * Hoist now supports an out-of-the-box, database-driven system for maintaining a hierarchical
+      set of roles and associating them with individual users.
+    * New system supports app and plug-in specific integrations to AD and other enterprise systems.
+    * Hoist-react `v60` is now required and will provide an administrative UI to visualize and
+      manage the new role system.
+    * See `DefaultRoleService` for more information.
 
 ### ⚙️ Technical
 
@@ -78,10 +96,10 @@
 
 ### 💥 Breaking Changes
 
-* Applications will typically need to adjust their implementation of `BaseRoleService`.  Most
-applications are expected to adopt the new provided `DefaultRoleService`, and may be required to
-migrate existing code/data to the new API.  Applications that wish to continue to use a completely
-custom `BaseRoleService` will need to implement one additional method: `getUsersForRole`.
+* Applications will typically need to adjust their implementation of `BaseRoleService`. Most
+  applications are expected to adopt the new provided `DefaultRoleService`, and may be required to
+  migrate existing code/data to the new API. Applications that wish to continue to use a completely
+  custom `BaseRoleService` will need to implement one additional method: `getUsersForRole`.
 
 ## 17.4.0 - 2023-11-09
 
