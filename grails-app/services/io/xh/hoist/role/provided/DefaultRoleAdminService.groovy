@@ -12,8 +12,8 @@ import static java.util.Collections.emptyMap
  * Requires applications to have opted-in to Hoist's {@link DefaultRoleService} for role management.
  * See that class for additional documentation and details.
  *
- * This class is intended to be used by its associated admin controller - apps should rarely (if
- * ever) need to interact with it directly.
+ * This class is intended to be used by Hoist and its default role admin UI - apps should
+ * rarely (if ever) need to interact with it directly.
  */
 class DefaultRoleAdminService extends BaseService {
     def roleService

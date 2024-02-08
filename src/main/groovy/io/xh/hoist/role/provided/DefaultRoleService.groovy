@@ -9,6 +9,7 @@ package io.xh.hoist.role.provided
 
 import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.role.BaseRoleService
+import io.xh.hoist.user.HoistUser
 import io.xh.hoist.util.DateTimeUtils
 import io.xh.hoist.util.Timer
 
@@ -75,7 +76,7 @@ class DefaultRoleService extends BaseRoleService {
 
     def configService,
         ldapService,
-        defaultRoleEditService
+        defaultRoleUpdateService
 
     private Timer timer
     protected Map<String, Set<String>> _allRoleAssignments = emptyMap()
@@ -211,7 +212,7 @@ class DefaultRoleService extends BaseRoleService {
             ]
         ])
 
-        defaultRoleEditService.ensureRequiredRolesCreated([
+        ensureRequiredRolesCreated([
             [
                 name    : 'HOIST_ADMIN',
                 category: 'Hoist',
@@ -233,10 +234,34 @@ class DefaultRoleService extends BaseRoleService {
                 name    : 'HOIST_ROLE_MANAGER',
                 category: 'Hoist',
                 notes   : 'Hoist Role Managers can manage roles and their memberships.',
-                roles   : ['HOIST_ADMIN']
             ]
         ])
     }
+
+    /**
+     * Check a list of core roles required for Hoist/application operation - ensuring that these
+     * roles are present. Will create missing roles with supplied default values if not found.
+     *
+     * May be called within an implementation of ensureRequiredConfigAndRolesCreated().
+     *
+     * @param requiredRoles - List of maps of [name, category, notes, users, directoryGroups, roles]
+     */
+    void ensureRequiredRolesCreated(List<Map> roleSpecs) {
+        defaultRoleUpdateService.ensureRequiredRolesCreated(roleSpecs)
+    }
+
+    /**
+     * Ensure that a user has been assigned a role.
+     *
+     * Typically called within Bootstrap code to ensure that a specific role is assigned to a
+     * dedicated admin user on startup.
+     *
+     * May be called within an implementation of ensureRequiredConfigAndRolesCreated().
+     */
+    void ensureUserHasRoles(HoistUser user, String roleName) {
+        defaultRoleUpdateService.ensureUserHasRoles(user, roleName)
+    }
+
 
     //---------------------------
     // Implementation/Framework

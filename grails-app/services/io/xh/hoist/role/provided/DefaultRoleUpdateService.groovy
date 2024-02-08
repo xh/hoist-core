@@ -12,10 +12,10 @@ import static io.xh.hoist.role.provided.RoleMember.Type.*
  * Requires applications to have opted-in to Hoist's {@link DefaultRoleService} for role management.
  * See that class for additional documentation and details.
  *
- * This class is intended to be used by its associated admin controller - apps should rarely (if
- * ever) need to interact with it directly.
+ * This class is intended to be used by Hoist and its default role admin UI - apps should
+ * rarely (if ever) need to interact with it directly.
  */
-class DefaultRoleEditService extends BaseService {
+class DefaultRoleUpdateService extends BaseService {
     def roleService,
         trackService
 
@@ -54,12 +54,6 @@ class DefaultRoleEditService extends BaseService {
     }
 
 
-    /**
-    * Check a list of core roles required for Hoist/application operation - ensuring that these
-    * roles are present. Will create missing roles with supplied default values if not found.
-    *
-    * @param requiredRoles - List of maps of [name, category, notes, users, directoryGroups, roles]
-    */
     @Transactional
     void ensureRequiredRolesCreated(List<Map> roleSpecs) {
         List<Role> currRoles = Role.list()
@@ -98,12 +92,6 @@ class DefaultRoleEditService extends BaseService {
         logDebug("Validated presense of ${roleSpecs.size()} required roles", "created $created")
     }
 
-    /**
-    * Ensure that a user has been assigned a role.
-    *
-    * Typically called within Bootstrap code to ensure that a specific role is assigned to a
-    * dedicated admin user on startup.
-    */
     @Transactional
     void ensureUserHasRoles(HoistUser user, String roleName) {
         if (!user.hasRole(roleName)) {
