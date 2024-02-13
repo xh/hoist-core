@@ -17,8 +17,19 @@ import io.xh.hoist.BaseService
 import static io.xh.hoist.json.JSONSerializer.serializePretty
 
 /**
- * Service to return soft-configured variables.
- * Fires a xhConfigChanged event when a config value is updated.
+ * Service to provide soft-configured `AppConfig` values to both server and client.
+ *
+ * Configs are managed via the Hoist Admin Console and persisted to the application database with
+ * metadata to specify their type and client-side visibility. They are intended to be used for
+ * any values that might need to differ across environments, be adjusted at runtime, or that are
+ * generally unsuitable for hard-coding in the application source code.
+ *
+ * Note that the effective value of a config can be overridden by an "instance config" with the
+ * same name. See {@link io.xh.hoist.util.InstanceConfigUtils} for more details on that system.
+ * Also note that instance configs (and therefore AppConfig overrides) can be sourced from a
+ * predefined yaml file, directory, and/or environment variables.
+ *
+ * Fires an `xhConfigChanged` event when a config value is updated.
  */
 @GrailsCompileStatic
 class ConfigService extends BaseService implements EventPublisher {

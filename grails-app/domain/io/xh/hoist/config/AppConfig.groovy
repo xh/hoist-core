@@ -7,16 +7,19 @@
 
 package io.xh.hoist.config
 
-import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONFormat
+import io.xh.hoist.json.JSONParser
+import io.xh.hoist.log.LogSupport
+import io.xh.hoist.util.InstanceConfigUtils
 import io.xh.hoist.util.Utils
 import org.jasypt.util.password.ConfigurablePasswordEncryptor
 import org.jasypt.util.text.BasicTextEncryptor
 import org.jasypt.util.text.TextEncryptor
 
 import static grails.async.Promises.task
+import static io.xh.hoist.util.Utils.isSensitiveParamName
 
-class AppConfig implements JSONFormat {
+class AppConfig implements JSONFormat, LogSupport {
 
     static private final TextEncryptor encryptor = createEncryptor()
     static private final ConfigurablePasswordEncryptor digestEncryptor = createDigestEncryptor()
@@ -65,19 +68,8 @@ class AppConfig implements JSONFormat {
     }
 
     Object externalValue(Map opts = [:]) {
-        if (value == null) return null
-        switch ( valueType ) {
-            case 'json':    return opts.jsonAsObject ? JSONParser.parseObjectOrArray(value) : value
-            case 'int':     return value.toInteger()
-            case 'long':    return value.toLong()
-            case 'double':  return value.toDouble()
-            case 'bool':    return value.toBoolean()
-            case 'pwd' :
-                if (opts.obscurePassword)       return '*********';
-                if (opts.digestPassword)        return digestPassword(value);
-                if (opts.decryptPassword)       return decryptPassword(value);
-            default:        return value
-        }
+        def override = overrideValue(opts)
+        return override != null ? override : parseValue(value, opts)
     }
 
     //--------------------------------------
@@ -121,12 +113,47 @@ class AppConfig implements JSONFormat {
         ret
     }
 
-    private static String digestPassword(value) {
-        // Format that will allow these values to be correctly compared in the admin config differ,
-        digestEncryptor.encryptPassword(decryptPassword(value))
+    private Object overrideValue(Map opts = [:]) {
+        String overrideValue = InstanceConfigUtils.getInstanceConfig(name)
+        if (overrideValue == null) return null
+
+        // We don't have any control over the string that's been set into the InstanceConfig,
+        // so we don't assume it can be parsed into the required type. Log failures on trace for
+        // minimal visibility, but otherwise act as if the override value is not set.
+        try {
+            if (isSensitiveParamName(name) && valueType != 'pwd') {
+                throw new RuntimeException("Refusing to return potentially sensitive override value from plain-text config - must be of type 'pwd'")
+            }
+            return parseValue(overrideValue, opts)
+        } catch (Throwable e) {
+            logTrace("InstanceConfig override found for '$name' but cannot be parsed - override will be ignored", e.message)
+            return null
+        }
     }
 
-    private static String decryptPassword(value) {
+    private Object parseValue(String value, Map opts = [:]) {
+        boolean isOverride = value != this.value
+        switch ( valueType ) {
+            case 'json':    return opts.jsonAsObject ? JSONParser.parseObjectOrArray(value) : value
+            case 'int':     return value.toInteger()
+            case 'long':    return value.toLong()
+            case 'double':  return value.toDouble()
+            case 'bool':    return value.toBoolean()
+            case 'pwd' :
+                if (opts.obscurePassword)       return '*********';
+                // Override values will not be encrypted by our local encryptor - treat as already-plaintext.
+                if (opts.digestPassword)        return digestPassword(value, !isOverride)
+                if (opts.decryptPassword)       return !isOverride ? decryptPassword(value) : value
+            default:        return value
+        }
+    }
+
+    // Allow pwd values to be compared in the admin config differ, without exposing the actual value.
+    private static String digestPassword(String value, boolean isEncrypted) {
+        digestEncryptor.encryptPassword(isEncrypted ? decryptPassword(value) : value)
+    }
+
+    private static String decryptPassword(String value) {
         encryptor.decrypt(value)
     }
 
@@ -136,7 +163,8 @@ class AppConfig implements JSONFormat {
                 name         : name,
                 groupName    : groupName,
                 valueType    : valueType,
-                value        : externalValue(digestPassword: true),
+                value        : parseValue(value, [digestPassword: true]),
+                overrideValue: overrideValue(digestPassword: true),
                 clientVisible: clientVisible,
                 note         : note,
                 lastUpdatedBy: lastUpdatedBy,
