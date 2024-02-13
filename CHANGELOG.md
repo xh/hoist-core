@@ -13,13 +13,14 @@
       instance configs having `camelCase` identifiers and environment variables
       having `UPPER_SNAKE_CASE` identifiers, `InstanceConfigUtils` will convert and
       prepend `APP_[APP_CODE]_` to the requested key when looking for an environment variable. For
-      example, `InstanceConfigUtils.getString('dbUrl')` will look for an environment
-      variable `APP_[APP_CODE]_DB_URL`.
-* `ConfigService` methods now return values overridden by instance configs, if they exist, allowing
-  for an instance-specific value specified via a yaml file or environment variable to override the
-  config value saved to the app's database.
-    * Update to `hoist-react >= 61.0` with an Admin Console change to display these overridden
-      values in the Config editor tab.
+      example, in our Toolbox demo app `InstanceConfigUtils.getString('dbUrl')` will look for an
+      environment variable `APP_TOOLBOX_DB_URL`.
+* `ConfigService` methods now return override values from an instance config, if one exists with
+  the same name as an app config.
+    * Allows an instance-specific value specified via a yaml file or environment variable to
+      override the config value saved to the app's database, including configs used by Hoist itself.
+    * Update to `hoist-react >= 61.0` for an Admin Console upgrade to display these overridden
+      values in the Config editor.
 * `EnvAdminController` now obfuscates environment variables suffixed with `password`.
 
 ## 18.3.2 - 2024-02-01
