@@ -162,7 +162,8 @@ class Utils {
      * NOT intended to be comprehensive or the last word on security!
      */
     static boolean isSensitiveParamName(String name) {
-        name.endsWithIgnoreCase('password') || name.endsWithIgnoreCase('pwd') || name.endsWithIgnoreCase('secret')
+        def pattern = ~/(?i)(password|pwd|secret)$/
+        pattern.matcher(name).find()
     }
 
     /** String parsing for a boolean. */
