@@ -19,7 +19,7 @@
   the same name as an app config.
     * Allows an instance-specific value specified via a yaml file or environment variable to
       override the config value saved to the app's database, including configs used by Hoist itself.
-    * Update to `hoist-react >= 60.1` for an Admin Console upgrade that checks for and clearly
+    * Update to `hoist-react >= 60.2` for an Admin Console upgrade that checks for and clearly
       indicates any overridden values in the Config editor tab.
 * `EnvAdminController` now obfuscates environment variables ending with `password` and similarly
   sensitive strings.
