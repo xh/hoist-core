@@ -93,7 +93,7 @@ class DefaultRoleUpdateService extends BaseService {
     }
 
     @Transactional
-    void ensureUserHasRoles(HoistUser user, String roleName) {
+    void ensureUserHasRole(HoistUser user, String roleName) {
         if (!user.hasRole(roleName)) {
             def role = Role.get(roleName)
             if (role) {

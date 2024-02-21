@@ -258,8 +258,8 @@ class DefaultRoleService extends BaseRoleService {
      *
      * May be called within an implementation of ensureRequiredConfigAndRolesCreated().
      */
-    void ensureUserHasRoles(HoistUser user, String roleName) {
-        defaultRoleUpdateService.ensureUserHasRoles(user, roleName)
+    void ensureUserHasRole(HoistUser user, String roleName) {
+        defaultRoleUpdateService.ensureUserHasRole(user, roleName)
     }
 
 
