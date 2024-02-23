@@ -1,5 +1,13 @@
 # Changelog
 
+## 19.0-SNAPSHOT
+
+### 💥 Breaking Changes
+
+* Method `DefaultRoleService.ensureUserHasRoles` has been renamed to `assignRole`.
+  The new name more clearly describes that the code will actually grant an additional
+  role to the user.
+
 ## 18.4.0 - 2024-02-13
 
 ### 🎁 New Features

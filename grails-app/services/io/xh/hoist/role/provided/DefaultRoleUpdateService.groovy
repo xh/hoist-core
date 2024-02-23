@@ -93,11 +93,11 @@ class DefaultRoleUpdateService extends BaseService {
     }
 
     @Transactional
-    void ensureUserHasRoles(HoistUser user, String roleName) {
+    void assignRole(HoistUser user, String roleName) {
         if (!user.hasRole(roleName)) {
             def role = Role.get(roleName)
             if (role) {
-                role.addToMembers(type: USER, name: user.username, createdBy: 'defaultRoleService')
+                role.addToMembers(type: USER, name: user.username, createdBy: 'defaultRoleUpdateService')
                 role.save(flush: true)
                 defaultRoleService.clearCaches()
             } else {
