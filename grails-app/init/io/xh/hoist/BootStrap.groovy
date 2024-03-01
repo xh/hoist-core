@@ -114,6 +114,13 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Map of clientAppCodes to intervals (in seconds) on which the client-side AutoRefreshService should fire. Note the xhAutoRefreshEnabled preference must also be true for the client service to activate.'
             ],
+            xhChangelogConfig: [
+                valueType: 'json',
+                defaultValue: [enabled: true, excludedVersions: [], excludedCategories: [], limitToRoles: []],
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'Configures built-in application changelog (release notes), with options to disable the feature entirely, exclude particular releases or categories of changes from the log, and/or only show to users with selected roles.'
+            ],
             xhClientErrorConfig: [
                 valueType: 'json',
                 defaultValue: [intervalMins: 2, maxErrors: 25],
@@ -128,7 +135,6 @@ class BootStrap {
                     maxSnapshots: 1440,
                     writeToLog: false
                 ],
-                clientVisible: false,
                 groupName: 'xh.io',
                 note: 'Configures built-in JDBC connection pool monitoring.'
             ],
@@ -228,20 +234,17 @@ class BootStrap {
                         ]
                     ]
                 ],
-                clientVisible: false,
                 groupName: 'xh.io',
                 note: 'Supports connecting to LDAP servers.'
             ],
             xhLdapUsername: [
                 valueType: 'string',
                 defaultValue: 'none',
-                clientVisible: false,
                 groupName: 'xh.io'
             ],
             xhLdapPassword: [
                 valueType: 'pwd',
                 defaultValue: 'none',
-                clientVisible: false,
                 groupName: 'xh.io'
             ],
             xhLogArchiveConfig: [
