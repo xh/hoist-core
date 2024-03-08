@@ -127,6 +127,7 @@ class LogbackConfig {
             logger('org.hibernate', ERROR)
             logger('org.springframework', ERROR)
             logger('net.sf.ehcache', ERROR)
+            logger('org.apache.directory.ldap.client.api.LdapNetworkConnection', ERROR)
 
             // Turn off built-in global grails stacktrace logger.  It can easily swamp logs!
             // If needed, it can be (carefully) re-enabled by in admin console.
