@@ -2,6 +2,10 @@
 
 ## 19.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* Quiet log warnings from `LdapNetworkConnection` in `LdapService` by setting the `LdapNetworkConnection` log level to `ERROR`.
+
 ## 18.5.0 - 2024-03-08
 
 ### 💥 Breaking Changes
