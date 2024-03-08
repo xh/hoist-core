@@ -1,5 +1,8 @@
 # Changelog
 
+## 19.0-SNAPSHOT - unreleased
+
+
 ## 18.5.1 - 2024-03-08
 
 ### ⚙️ Technical
