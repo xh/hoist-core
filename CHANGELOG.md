@@ -1,6 +1,6 @@
 # Changelog
 
-## 19.0-SNAPSHOT
+## 18.5.0 - 2024-03-08
 
 ### 💥 Breaking Changes
 
