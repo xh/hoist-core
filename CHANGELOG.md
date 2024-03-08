@@ -8,6 +8,10 @@
   The new name more clearly describes that the code will actually grant an additional
   role to the user.
 
+### 🐞 Bug Fixes
+
+* Fixed `LdapService` bug where querying multiple servers with same host yielded incomplete results.
+
 ## 18.4.0 - 2024-02-13
 
 ### 🎁 New Features

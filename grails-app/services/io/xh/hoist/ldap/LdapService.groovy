@@ -104,7 +104,7 @@ class LdapService extends BaseService {
         String host = server.host,
             filter = "(&(objectCategory=${isPerson ? 'Person' : 'Group'})$baseFilter)"
 
-        cache.getOrCreate(host + filter) {
+        cache.getOrCreate(server.toString() + filter) {
             withDebug(["Querying LDAP", [host: host, filter: filter]]) {
                 LdapNetworkConnection conn
                 try {
