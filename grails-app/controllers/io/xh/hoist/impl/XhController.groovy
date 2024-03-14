@@ -89,10 +89,11 @@ class XhController extends BaseController {
     //------------------------
     // Tracking
     //------------------------
-    def track(String category, String msg, String data, String logData, int elapsed, String severity) {
+    def track(String category, String correlationId, String msg, String data, String logData, int elapsed, String severity) {
         ensureClientUsernameMatchesSession()
         trackService.track(
             category: safeEncode(category),
+            correlationId: safeEncode(correlationId),
             msg: safeEncode(msg),
             data: data ? parseObjectOrArray(safeEncode(data)) : null,
             logData: logData == 'true' || logData == 'false' ? parseBoolean(logData) : logData?.split(','),
@@ -227,14 +228,15 @@ class XhController extends BaseController {
     //------------------------
     // Client Errors
     //------------------------
-    def submitError(String msg, String error, String appVersion, String url, boolean userAlerted) {
+    def submitError(String msg, String error, String appVersion, String url, boolean userAlerted, String correlationId) {
         ensureClientUsernameMatchesSession()
         clientErrorService.submit(
             safeEncode(msg),
             safeEncode(error),
             safeEncode(appVersion),
             safeEncode(url),
-            userAlerted
+            userAlerted,
+            safeEncode(correlationId)
         )
         renderJSON(success: true)
     }
