@@ -55,7 +55,7 @@ class ClientErrorService extends BaseService implements EventPublisher {
      * @param appVersion - expected from client to ensure we record the version user's browser is actually running
      * @param url - location where error occurred
      */
-    void submit(String message, String error, String appVersion, String url, boolean userAlerted) {
+    void submit(String message, String error, String appVersion, String url, boolean userAlerted, String correlationId) {
         def request = currentRequest
 
         if (!request) {
@@ -66,6 +66,7 @@ class ClientErrorService extends BaseService implements EventPublisher {
 
         if (errors.size() < maxErrors) {
             errors[authUsername + currentTimeMillis()] = [
+                    correlationId : correlationId,
                     msg           : message,
                     error         : error,
                     username      : authUsername,

@@ -16,6 +16,7 @@ class TrackLog implements JSONFormat {
 
     String username
     String category
+    String correlationId
     String msg
     String browser
     String device
@@ -36,6 +37,7 @@ class TrackLog implements JSONFormat {
     static constraints = {
         username(maxSize: 50)
         category(maxSize: 100)
+        correlationId(nullable: true, maxSize: 100)
         msg(maxSize: 255)
         browser(nullable: true, maxSize: 100)
         device(nullable: true, maxSize: 100)
@@ -56,6 +58,7 @@ class TrackLog implements JSONFormat {
                 device: device,
                 userAgent: userAgent,
                 category: category,
+                correlationId: correlationId,
                 msg: msg,
                 data: data,
                 elapsed: elapsed,

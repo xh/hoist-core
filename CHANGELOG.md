@@ -2,6 +2,11 @@
 
 ## 19.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Added support for tracking Correlation ID's in Activity and Client Error logs.
+  Requires `hoist-react >= 62.0`.
+
 
 ## 18.5.1 - 2024-03-08
 

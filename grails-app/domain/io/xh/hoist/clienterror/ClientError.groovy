@@ -13,6 +13,7 @@ import static io.xh.hoist.util.DateTimeUtils.appDay
 
 class ClientError implements JSONFormat {
 
+    String correlationId
     String msg
     String error
     String username
@@ -37,6 +38,7 @@ class ClientError implements JSONFormat {
     }
 
     static constraints = {
+        correlationId(nullable: true, maxSize: 100)
         msg(nullable: true)
         error(nullable: true)
         username(maxSize: 50)
@@ -51,6 +53,7 @@ class ClientError implements JSONFormat {
     Map formatForJSON() {
         return [
                 id            : id,
+                correlationId : correlationId,
                 msg           : msg,
                 error         : error,
                 username      : username,
