@@ -129,6 +129,7 @@ class LogbackConfig {
             // Quiet noisy loggers
             logger('org.springframework', ERROR)
             logger('org.hibernate', ERROR)
+            logger('org.apache.directory.ldap.client.api.LdapNetworkConnection', ERROR)
 
             // Stifle warning about disabled strong consistency library -- requires 3 node min.
             logger('com.hazelcast.cp.CPSubsystem', ERROR)

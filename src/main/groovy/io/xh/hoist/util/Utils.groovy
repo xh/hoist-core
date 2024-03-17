@@ -24,6 +24,7 @@ import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.role.BaseRoleService
+import io.xh.hoist.security.BaseAuthenticationService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.user.IdentityService
 import io.xh.hoist.websocket.WebSocketService
@@ -76,7 +77,6 @@ class Utils {
         return Metadata.current.getProperty('info.xh.appBuild', String).orElse(null)
     }
 
-
     /**
      * Hoist AppEnvironment of the current deployment, distinct from Grails environment.
      */
@@ -123,6 +123,10 @@ class Utils {
         return (BaseRoleService) appContext.roleService
     }
 
+    static BaseAuthenticationService getAuthenticationService() {
+        return (BaseAuthenticationService) appContext.authenticationService
+    }
+
     static WebSocketService getWebSocketService() {
         return (WebSocketService) appContext.webSocketService
     }
@@ -164,6 +168,16 @@ class Utils {
      */
     static boolean isJSON(String val) {
         JSONParser.validate(val)
+    }
+
+    /**
+     * Return true if the given parameter name is likely sensitive and should not be serialized
+     * if not required. Used for built-in admin functionality accessed by trusted users only.
+     * NOT intended to be comprehensive or the last word on security!
+     */
+    static boolean isSensitiveParamName(String name) {
+        def pattern = ~/(?i)(password|pwd|secret)$/
+        pattern.matcher(name).find()
     }
 
     /** String parsing for a boolean. */

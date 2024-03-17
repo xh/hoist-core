@@ -9,14 +9,18 @@ package io.xh.hoist.security
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.exception.ExceptionRenderer
+import io.xh.hoist.exception.RoutineRuntimeException
+import io.xh.hoist.log.LogSupport
+import io.xh.hoist.util.Utils
+import static io.xh.hoist.util.Utils.appContext
+
 import javax.servlet.*
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
-import static io.xh.hoist.util.Utils.appContext
-
 @CompileStatic
-class HoistSecurityFilter implements Filter {
+class HoistSecurityFilter implements Filter, LogSupport {
     void init(FilterConfig filterConfig) {}
     void destroy() {}
 
@@ -27,15 +31,19 @@ class HoistSecurityFilter implements Filter {
         // Need to be *ready* before even attempting auth.
         ClusterService clusterService = (ClusterService) appContext.getBean('clusterService')
         if (!clusterService?.isReady) {
-            httpResponse.setStatus(503)
-            httpResponse.flushBuffer()
+            ExceptionRenderer exceptionRenderer = Utils.exceptionRenderer
+            exceptionRenderer.handleException(
+                new RoutineRuntimeException('Application Initializing. Please try again shortly.'),
+                httpRequest,
+                httpResponse,
+                this
+            )
             return
         }
 
-        BaseAuthenticationService authSvc = (BaseAuthenticationService) appContext.getBean('authenticationService')
-        if (authSvc.allowRequest(httpRequest, httpResponse)) {
+        BaseAuthenticationService svc = Utils.authenticationService
+        if (svc.allowRequest(httpRequest, httpResponse)) {
             chain.doFilter(request, response)
         }
     }
-
 }

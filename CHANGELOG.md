@@ -1,6 +1,105 @@
 # Changelog
 
-## 18.0-SNAPSHOT
+## 19.0-SNAPSHOT - unreleased
+
+
+## 18.5.1 - 2024-03-08
+
+### ⚙️ Technical
+
+* Quiet log warnings from `LdapNetworkConnection` in `LdapService` by setting the `LdapNetworkConnection` log level to `ERROR`.
+
+## 18.5.0 - 2024-03-08
+
+### 💥 Breaking Changes
+
+* Method `DefaultRoleService.ensureUserHasRoles` has been renamed to `assignRole`.
+  The new name more clearly describes that the code will actually grant an additional
+  role to the user.
+
+### 🐞 Bug Fixes
+
+* Fixed `LdapService` bug where querying multiple servers with same host yielded incomplete results.
+
+## 18.4.0 - 2024-02-13
+
+### 🎁 New Features
+
+* `InstanceConfigUtils` - used to read low-level configuration values such as database credentials -
+  will now search for an environment variable with a matching name and return that value if it
+  exists.
+    * This can either override or entirely replace the use of a yaml file or Kubernetes secrets to
+      specify this kind of configuration.
+    * To help namespace app-specific environment variables while also maintaining the conventions of
+      instance configs having `camelCase` identifiers and environment variables
+      having `UPPER_SNAKE_CASE` identifiers, `InstanceConfigUtils` will convert and
+      prepend `APP_[APP_CODE]_` to the requested key when looking for an environment variable. For
+      example, in our Toolbox demo app `InstanceConfigUtils.getInstanceConfig('dbUrl')` will check
+      if an environment variable named `APP_TOOLBOX_DB_URL` exists, and return its value if so.
+* `ConfigService` methods now return override values from an instance config, if one exists with
+  the same name as an app config.
+    * Allows an instance-specific value specified via a yaml file or environment variable to
+      override the config value saved to the app's database, including configs used by Hoist itself.
+    * Update to `hoist-react >= 60.2` for an Admin Console upgrade that checks for and clearly
+      indicates any overridden values in the Config editor tab.
+* `EnvAdminController` now obfuscates environment variables ending with `password` and similarly
+  sensitive strings.
+
+## 18.3.2 - 2024-02-01
+
+### 🐞 Bug Fixes
+
+* Fixed bug in `LdapService.lookupUser` where queries were not being formed correctly.
+
+## 18.3.1 - 2024-01-30
+
+### 🐞 Bug Fixes
+
+* Fixed bug in `DefaultRoleService` where not all effective roles were being returned for a user.
+
+## 18.3.0 - 2024-01-29
+
+### 🎁 New Features
+
+* `DefaultRoleService` now includes support for out-of-the-box LDAP groups.
+
+### ⚙️ Technical
+
+* Refactor `DefaultRoleService` for more efficient and straightforward role/user resolution
+* Normalize role member usernames to lowercase and generally tighten up case-insensitive handling.
+
+## 18.2.1 - 2024-01-25
+
+### 🐞 Bug Fixes
+
+* Fixed `DefaultRoleService` unintended case-sensitive handling of usernames.
+
+## 18.2.0 - 2024-01-24
+
+### 🎁 New Features
+
+* Added new `LdapService` to provide out-of-the-box support for querying LDAP groups and users via
+  the [Apache Directory](https://directory.apache.org/) library.
+* Ådded `ConfigService.hasConfig()` method to check if a config exists.
+
+## 18.1.0 - 2024-01-18
+
+### 🎁 New Features
+
+* Improved handling of requests during application initialization. HTTP requests received
+  during App startup will now yield clean "App Initializing" Exceptions. This is an improvement over
+  the current behavior where attempting to service requests prematurely can cause arbitrary and
+  misleading exceptions.
+
+* Misc. Improvements to `DefaultRoleService` API and documentation.
+
+## 18.0.1 - 2024-01-16
+
+### 🐞 Bug Fixes
+
+* Fixed an issue preventing the creation of new roles.
+
+## 18.0.0 - 2024-01-12
 
 ### 🎁 New Features
 
@@ -44,15 +143,25 @@
   most applications.
 
 * New support for Role Management.
-  * Hoist now supports an out-of-the-box, database-driven system for maintaining a hierarchical set
-    of Roles associating and associating them with individual users.
-  * New system supports app and plug-in specific integrations to AD and other enterprise systems.
-  * Administration of the new system provided by a new admin UI in hoist-react v60 and above.
+    * Hoist now supports an out-of-the-box, database-driven system for maintaining a hierarchical
+      set of roles and associating them with individual users.
+    * New system supports app and plug-in specific integrations to AD and other enterprise systems.
+    * Hoist-react `v60` is now required and will provide an administrative UI to visualize and
+      manage the new role system.
+    * See `DefaultRoleService` for more information.
 
 ### ⚙️ Technical
 
 * Add `xh/echoHeaders` utility endpoint. Useful for verifying headers (e.g. `jespa_connection_id`)
   that are installed by or must pass through multiple ingresses/load balancers.
+* Remove HTML tag escaping when parsing alert banner create/update request JSON.
+
+### 💥 Breaking Changes
+
+* Applications will typically need to adjust their implementation of `BaseRoleService`. Most
+  applications are expected to adopt the new provided `DefaultRoleService`, and may be required to
+  migrate existing code/data to the new API. Applications that wish to continue to use a completely
+  custom `BaseRoleService` will need to implement one additional method: `getUsersForRole`.
 
 ### 📚 Libraries
 * grails `6.1.0`

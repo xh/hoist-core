@@ -22,14 +22,12 @@ class BootStrap {
     def logLevelService,
         configService,
         clusterService,
-        prefService,
-        roleAdminService
+        prefService
 
     def init = {servletContext ->
         logStartupMsg()
         ensureRequiredConfigsCreated()
         ensureRequiredPrefsCreated()
-        ensureRequiredRolesCreated()
 
         ensureExpectedServerTimeZone()
 
@@ -123,6 +121,13 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Map of clientAppCodes to intervals (in seconds) on which the client-side AutoRefreshService should fire. Note the xhAutoRefreshEnabled preference must also be true for the client service to activate.'
             ],
+            xhChangelogConfig: [
+                valueType: 'json',
+                defaultValue: [enabled: true, excludedVersions: [], excludedCategories: [], limitToRoles: []],
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'Configures built-in application changelog (release notes), with options to disable the feature entirely, exclude particular releases or categories of changes from the log, and/or only show to users with selected roles.'
+            ],
             xhClientErrorConfig: [
                 valueType: 'json',
                 defaultValue: [intervalMins: 2, maxErrors: 25],
@@ -137,19 +142,18 @@ class BootStrap {
                     maxSnapshots: 1440,
                     writeToLog: false
                 ],
-                clientVisible: false,
                 groupName: 'xh.io',
                 note: 'Configures built-in JDBC connection pool monitoring.'
             ],
             xhEmailDefaultDomain: [
                 valueType: 'string',
-                defaultValue: 'xh.io',
+                defaultValue: 'example.com',
                 groupName: 'xh.io',
                 note: 'Default domain name appended by Hoist EmailServices when unqualified usernames are passed to the service as email recipients/senders.'
             ],
             xhEmailDefaultSender: [
                 valueType: 'string',
-                defaultValue: 'support@xh.io',
+                defaultValue: 'support@example.com',
                 groupName: 'xh.io',
                 note: 'Email address for Hoist EmailService to use as default sender address.'
             ],
@@ -170,7 +174,7 @@ class BootStrap {
                 defaultValue: 'none',
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Email address to which support and feedback submissions should be sent.'
+                note: 'Email address to which support and feedback submissions should be sent. Value "none" to disable support emails.'
             ],
             xhEnableImpersonation: [
                 valueType: 'bool',
@@ -223,6 +227,33 @@ class BootStrap {
                 groupName: 'xh.io',
                 note: 'Governs how client application will enter "sleep mode", suspending background requests and prompting the user to reload to resume.  Timeouts are in minutes of inactivity.'
             ],
+            xhLdapConfig: [
+                valueType: 'json',
+                defaultValue: [
+                    enabled: false,
+                    timeoutMs: 60000,
+                    cacheExpireSecs: 300,
+                    servers: [
+                        [
+                            host: '',
+                            baseUserDn: '',
+                            baseGroupDn: '',
+                        ]
+                    ]
+                ],
+                groupName: 'xh.io',
+                note: 'Supports connecting to LDAP servers.'
+            ],
+            xhLdapUsername: [
+                valueType: 'string',
+                defaultValue: 'none',
+                groupName: 'xh.io'
+            ],
+            xhLdapPassword: [
+                valueType: 'pwd',
+                defaultValue: 'none',
+                groupName: 'xh.io'
+            ],
             xhLogArchiveConfig: [
                 valueType: 'json',
                 defaultValue: [
@@ -263,18 +294,6 @@ class BootStrap {
                 defaultValue: 'none',
                 groupName: 'xh.io',
                 note: 'Email address to which status monitor alerts should be sent. Value "none" disables emailed alerts.'
-            ],
-            xhRoleModuleConfig: [
-                valueType: 'json',
-                defaultValue: [
-                    enabled: true,
-                    assignDirectoryGroups: true,
-                    assignUsers: true,
-                    refreshIntervalSecs: 30,
-                ],
-                clientVisible: true,
-                groupName: 'xh.io',
-                note: 'Configures built-in role management.'
             ],
             xhWebSocketConfig: [
                 valueType: 'json',
@@ -325,35 +344,6 @@ class BootStrap {
                 defaultValue: 'system',
                 groupName: 'xh.io',
                 note: 'Visual theme for the client application - "light", "dark", or "system".'
-            ]
-        ])
-    }
-
-    private void ensureRequiredRolesCreated() {
-        if (!configService.getMap('xhRoleModuleConfig').enabled || Role.count()) return
-        roleAdminService.ensureRequiredRolesCreated([
-            [
-                name: 'HOIST_ADMIN',
-                category: 'Hoist',
-                notes: 'Hoist Admins have full access to all Hoist Admin tools and functionality.'
-            ],
-            [
-                name: 'HOIST_ADMIN_READER',
-                category: 'Hoist',
-                notes: 'Hoist Admin Readers have read-only access to all Hoist Admin tools and functionality.',
-                roles: ['HOIST_ADMIN']
-            ],
-            [
-                name: 'HOIST_IMPERSONATOR',
-                category: 'Hoist',
-                notes: 'Hoist Impersonators can impersonate other users.',
-                roles: ['HOIST_ADMIN']
-            ],
-            [
-                name: 'HOIST_ROLE_MANAGER',
-                category: 'Hoist',
-                notes: 'Hoist Role Managers can manage roles and their memberships.',
-                roles: ['HOIST_ADMIN']
             ]
         ])
     }
