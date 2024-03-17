@@ -9,7 +9,7 @@ package io.xh.hoist.security
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.cluster.ClusterService
-import io.xh.hoist.exception.ExceptionRenderer
+import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.exception.RoutineRuntimeException
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.util.Utils
@@ -31,12 +31,11 @@ class HoistSecurityFilter implements Filter, LogSupport {
         // Need to be *ready* before even attempting auth.
         ClusterService clusterService = (ClusterService) appContext.getBean('clusterService')
         if (!clusterService?.isReady) {
-            ExceptionRenderer exceptionRenderer = Utils.exceptionRenderer
-            exceptionRenderer.handleException(
-                new RoutineRuntimeException('Application Initializing. Please try again shortly.'),
-                httpRequest,
-                httpResponse,
-                this
+            ExceptionHandler exceptionHandler = Utils.exceptionHandler
+            exceptionHandler.handleException(
+                exception: new RoutineRuntimeException('Application Initializing. Please try again shortly.'),
+                renderTo: httpResponse,
+                logTo: this
             )
             return
         }

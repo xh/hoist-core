@@ -8,7 +8,6 @@ package io.xh.hoist
 
 import grails.util.Holders
 import io.xh.hoist.cluster.ClusterService
-import io.xh.hoist.role.Role
 import io.xh.hoist.util.Utils
 
 import java.time.ZoneId
