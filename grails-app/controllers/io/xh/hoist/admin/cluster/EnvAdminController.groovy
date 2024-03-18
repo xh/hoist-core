@@ -9,6 +9,8 @@ package io.xh.hoist.admin.cluster
 import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.security.Access
 
+import static io.xh.hoist.util.Utils.isSensitiveParamName
+
 
 @Access(['HOIST_ADMIN_READER'])
 class EnvAdminController extends BaseClusterController {
@@ -19,10 +21,11 @@ class EnvAdminController extends BaseClusterController {
     static class Index extends ClusterRequest {
         def doCall() {
             [
-                environment: new HashMap(System.getenv()),
+                environment: System.getenv().collectEntries {
+                    [it.key, isSensitiveParamName(it.key) ? '*****' : it.value]
+                },
                 properties: System.properties
             ]
         }
     }
-
 }
