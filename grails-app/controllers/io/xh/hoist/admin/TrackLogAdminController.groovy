@@ -38,32 +38,18 @@ class TrackLogAdminController extends BaseController {
             maxLimit = conf.maxRows.limit as Integer,
             maxRows = [(params.maxRows ? parseInt(params.maxRows) : maxDefault), maxLimit].min()
 
-        def category, browser, device, username
-        def categoryOp, browserOp, deviceOp, usernameOp
+        def filters = null
         if (params.filters) {
-            def filters = JSONParser.parseArray(params.filters)
-            filters.each {filter ->
-                if (filter) {
-                    switch (filter.get('field')) {
-                        case 'category': category = filter.get('value'); categoryOp = filter.get('op'); break
-                        case 'browser': browser = filter.get('value'); browserOp = filter.get('op'); break
-                        case 'device': device = filter.get('value'); deviceOp = filter.get('op'); break
-                        case 'username': username = filter.get('value'); usernameOp = filter.get('op'); break
-                    }
-                }
-            }
+            filters = JSONParser.parseObject(params.filters)
         }
 
-        def results = TrackLog.findAll(max: maxRows, sort: 'dateCreated', order: 'desc') {
-            if (startDay)           dateCreated >= appStartOfDay(startDay)
-            if (endDay)             dateCreated <= appEndOfDay(endDay)
-            if (category && categoryOp.equals('='))           category == category
-            if (category && categoryOp.equals('!='))          category != category
-            if (category && categoryOp.equals('like'))        category =~ category
-            if (username)           username =~ username
-            if (browser)            browser =~ browser
-            if (device)             device =~ device
-        }
+        def results = TrackLog.findAll(
+            'FROM TrackLog AS t WHERE ' +
+            't.dateCreated >= :startDay AND t.dateCreated <= :endDay AND ' +
+            '(' + trackService.createPredicateFromFilters(filters, 't') + ')',
+            [startDay: startDay? appStartOfDay(startDay): new Date(0), endDay: endDay? appEndOfDay(endDay): new Date()],
+            [max: maxRows, sort: 'dateCreated', order: 'desc']
+        )
 
         renderJSON(results)
     }
