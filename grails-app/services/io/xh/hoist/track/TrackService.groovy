@@ -11,9 +11,6 @@ import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.data.filter.CompoundFilter
-import io.xh.hoist.data.filter.FieldFilter
-import io.xh.hoist.data.filter.Filter
 
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
@@ -84,55 +81,6 @@ class TrackService extends BaseService implements EventPublisher {
         return configService.getMap('xhActivityTrackingConfig')
     }
 
-    String createPredicateFromFilters(Filter filters, String symbol) {
-        if (!filters) return "1=1"
-        String predicate = ""
-        if (filters instanceof CompoundFilter) {
-            predicate += processCompoundFilter(filters.filters, filters.op, symbol)
-        }
-        if (filters instanceof FieldFilter) {
-            predicate += processFieldFilter(filters, filters.op, symbol)
-        }
-        return predicate
-    }
-
-    private String processCompoundFilter(List<Filter> filters, String compoundOperator, String symbol) {
-        def compoundPredicateList = []
-        filters.each { filter ->
-                if (filter instanceof CompoundFilter) {
-                    compoundPredicateList.add(processCompoundFilter(filter.filters, filter.op, symbol))
-                } else if (filter instanceof FieldFilter){
-                    compoundPredicateList.add(processFieldFilter(filter, filter.op, symbol))
-                }
-        }
-        return "(" + compoundPredicateList.join(" ${compoundOperator} ") + ")";
-    }
-
-    private String processFieldFilter(FieldFilter filter, String fieldOperator, String symbol) {
-        def operator = fieldOperator
-        if (filter.value instanceof Collection) {
-            def simplePredicateList = []
-            filter.value.each { value ->
-                simplePredicateList.add(processFieldFilter(new FieldFilter(filter.field, filter.op, value), operator, symbol))
-            }
-            return "(" + simplePredicateList.join(" OR ") + ")"
-        } else {
-            switch (operator) {
-                case "=":
-                case "!=":
-                    return "${symbol}.${filter.field} ${operator} '${filter.value}'"
-                case "like":
-                case "not like":
-                    return "${symbol}.${filter.field} ${operator} '%${filter.value}%'"
-                case "begins":
-                    return "${symbol}.${filter.field} like '${filter.value}%'"
-                case "ends":
-                    return "${symbol}.${filter.field} like '%${filter.value}'"
-            }
-        }
-
-        return "1=1"
-    }
 
     //-------------------------
     // Implementation

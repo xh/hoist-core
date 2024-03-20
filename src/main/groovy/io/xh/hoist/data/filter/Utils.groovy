@@ -78,4 +78,55 @@ class Utils {
             return filter.filters.collect { getFilterFields(it) }.flatten()
         }
     }
+
+    /**
+     * Create an SQL predicate string from a Filter instance.
+     * @param filters
+     * @param symbol
+     * @return
+     */
+    static String createPredicateFromFilters(Filter filters, String tableAlias) {
+        switch (filters) {
+            case FieldFilter:
+                return processFieldFilter(filters, filters.op, tableAlias)
+            case CompoundFilter:
+                return processCompoundFilter(filters.filters, filters.op, tableAlias)
+            case FunctionFilter:
+                throw new RuntimeException("FunctionFilter not supported in createPredicateFromFilters")
+            case null:
+                return "1=1"
+        }
+    }
+
+    //-------------------------
+    // Implementation
+    //-------------------------
+    private static String processCompoundFilter(List<Filter> filters, String op, String tableAlias) {
+        def subFilters = filters.collect { createPredicateFromFilters(it, tableAlias)}
+        return "(" + subFilters.join(" $op ") + ")"
+    }
+
+    private static String processFieldFilter(FieldFilter filter, String op, String tableAlias) {
+        if (filter.value instanceof Collection) {
+            def subFilters = filter.value.collect {
+                createPredicateFromFilters(new FieldFilter(filter.field, filter.op, it), tableAlias)
+            }
+            return "(" + subFilters.join(" OR ") + ")"
+        }
+        switch (op) {
+            case "=":
+            case "!=":
+                return "${tableAlias}.${filter.field} $op '${filter.value}'"
+            case "like":
+            case "not like":
+                return "${tableAlias}.${filter.field} $op '%${filter.value}%'"
+            case "begins":
+                return "${tableAlias}.${filter.field} like '${filter.value}%'"
+            case "ends":
+                return "${tableAlias}.${filter.field} like '%${filter.value}'"
+            default:
+                throw new RuntimeException("Unsupported operator: $op")
+        }
+
+    }
 }
