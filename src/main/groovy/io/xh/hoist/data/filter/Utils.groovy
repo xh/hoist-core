@@ -109,9 +109,18 @@ class Utils {
     private static String processFieldFilter(FieldFilter filter, String op, String tableAlias) {
         if (filter.value instanceof Collection) {
             def subFilters = filter.value.collect {
-                createPredicateFromFilters(new FieldFilter(filter.field, filter.op, it), tableAlias)
+                createPredicateFromFilters(new FieldFilter(filter.field, op, it), tableAlias)
             }
-            return "(" + subFilters.join(" OR ") + ")"
+            switch (op) {
+                case "=":
+                case "like":
+                case "begins":
+                case "ends":
+                    return "(" + subFilters.join(" OR ") + ")"
+                case "!=":
+                case "not like":
+                    return "(" + subFilters.join(" AND ") + ")"
+            }
         }
         switch (op) {
             case "=":
