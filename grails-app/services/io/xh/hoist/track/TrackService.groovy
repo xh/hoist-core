@@ -11,6 +11,9 @@ import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.data.filter.CompoundFilter
+import io.xh.hoist.data.filter.FieldFilter
+import io.xh.hoist.data.filter.Filter
 
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
@@ -81,66 +84,54 @@ class TrackService extends BaseService implements EventPublisher {
         return configService.getMap('xhActivityTrackingConfig')
     }
 
-    String createPredicateFromFilters(Map filters, String symbol) {
+    String createPredicateFromFilters(Filter filters, String symbol) {
         if (!filters) return "1=1"
         String predicate = ""
-        if (filters.containsKey("filters")) {
-            predicate += processCompoundFilter(filters.get("filters") as List<Object>, filters.get("op") as String, symbol)
+        if (filters instanceof CompoundFilter) {
+            predicate += processCompoundFilter(filters.filters, filters.op, symbol)
         }
-        if (filters.containsKey("field")) {
-            predicate += processSimpleFilter(filters, filters.get("op") as String, symbol)
+        if (filters instanceof FieldFilter) {
+            predicate += processFieldFilter(filters, filters.op, symbol)
         }
         return predicate
     }
 
-    private String processCompoundFilter(List<Object> filters, String compoundOperator, String symbol) {
-        def compoundPredicate = ""
+    private String processCompoundFilter(List<Filter> filters, String compoundOperator, String symbol) {
+        def compoundPredicateList = []
         filters.each { filter ->
-            if (filter instanceof Map) {
-                if (filter.containsKey("filters")) {
-                    compoundPredicate += processCompoundFilter(filter.get("filters") as List<Object>, filter.get("op") as String, symbol)
-                } else {
-                    compoundPredicate += processSimpleFilter(filter, filter.get("op") as String, symbol)
+                if (filter instanceof CompoundFilter) {
+                    compoundPredicateList.add(processCompoundFilter(filter.filters, filter.op, symbol))
+                } else if (filter instanceof FieldFilter){
+                    compoundPredicateList.add(processFieldFilter(filter, filter.op, symbol))
                 }
-                compoundPredicate += " ${compoundOperator} "
-            }
         }
-        compoundPredicate += "1=1"
-        return compoundPredicate;
+        return "(" + compoundPredicateList.join(" ${compoundOperator} ") + ")";
     }
 
-    private String processSimpleFilter(Map filter, String simpleOperator, String symbol) {
-        String simplePredicate = ""
-        String operator = simpleOperator
-        if (filter.get("value") instanceof List) {
-            simplePredicate += "("
-            filter.get("value").each { value ->
-                simplePredicate += processSimpleFilter([field: filter.get("field"), op: operator, value: value], operator, symbol)
-                simplePredicate += " OR "
+    private String processFieldFilter(FieldFilter filter, String fieldOperator, String symbol) {
+        def operator = fieldOperator
+        if (filter.value instanceof Collection) {
+            def simplePredicateList = []
+            filter.value.each { value ->
+                simplePredicateList.add(processFieldFilter(new FieldFilter(filter.field, filter.op, value), operator, symbol))
             }
-            simplePredicate += "1=0)"
+            return "(" + simplePredicateList.join(" OR ") + ")"
         } else {
             switch (operator) {
                 case "=":
                 case "!=":
-                    simplePredicate = "${symbol}.${filter.get("field")} ${operator} '${filter.get("value")}'"
-                    break
+                    return "${symbol}.${filter.field} ${operator} '${filter.value}'"
                 case "like":
                 case "not like":
-                    simplePredicate = "${symbol}.${filter.get("field")} ${operator} '%${filter.get("value")}%'"
-                    break;
+                    return "${symbol}.${filter.field} ${operator} '%${filter.value}%'"
                 case "begins":
-                    simplePredicate = "${symbol}.${filter.get("field")} like '${filter.get("value")}%'"
-                    break;
+                    return "${symbol}.${filter.field} like '${filter.value}%'"
                 case "ends":
-                    simplePredicate = "${symbol}.${filter.get("field")} like '%${filter.get("value")}'"
-                    break;
-                default:
-                    simplePredicate = "1=1"
+                    return "${symbol}.${filter.field} like '%${filter.value}'"
             }
         }
 
-        return simplePredicate
+        return "1=1"
     }
 
     //-------------------------
