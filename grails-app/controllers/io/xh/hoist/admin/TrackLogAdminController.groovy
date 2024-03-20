@@ -9,9 +9,7 @@ package io.xh.hoist.admin
 
 import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseController
-import io.xh.hoist.data.filter.Filter
 import io.xh.hoist.data.filter.Utils
-import io.xh.hoist.json.JSONParser
 import io.xh.hoist.security.Access
 import io.xh.hoist.track.TrackLog
 import io.xh.hoist.track.TrackService
@@ -30,25 +28,24 @@ class TrackLogAdminController extends BaseController {
             renderJSON([])
         }
 
-        def startDay = parseLocalDate(params.startDay),
-            endDay = parseLocalDate(params.endDay)
+        def query = parseRequestJSON()
+
+        def startDay = parseLocalDate(query.startDay),
+            endDay = parseLocalDate(query.endDay)
 
         // NOTE that querying + serializing large numbers of TrackLogs below requires a significant
         // allocation of memory. Be mindful if customizing maxRow-related configs above defaults!
         def conf = trackService.conf,
             maxDefault = conf.maxRows.default as Integer,
             maxLimit = conf.maxRows.limit as Integer,
-            maxRows = [(params.maxRows ? parseInt(params.maxRows) : maxDefault), maxLimit].min()
+            maxRows = [(query.maxRows ? parseInt(query.maxRows) : maxDefault), maxLimit].min()
 
-        def filters = null
-        if (params.filters) {
-            filters = Utils.parseFilter(JSONParser.parseObject(params.filters))
-        }
+        def filters = Utils.parseFilter(query.filters)
 
         def results = TrackLog.findAll(
             'FROM TrackLog AS t WHERE ' +
             't.dateCreated >= :startDay AND t.dateCreated <= :endDay AND ' +
-            '(' + trackService.createPredicateFromFilters(filters, 't') + ')',
+                Utils.createPredicateFromFilters(filters, 't'),
             [startDay: startDay? appStartOfDay(startDay): new Date(0), endDay: endDay? appEndOfDay(endDay): new Date()],
             [max: maxRows, sort: 'dateCreated', order: 'desc']
         )
