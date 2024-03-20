@@ -81,7 +81,6 @@ class TrackService extends BaseService implements EventPublisher {
         return configService.getMap('xhActivityTrackingConfig')
     }
 
-
     //-------------------------
     // Implementation
     //-------------------------
