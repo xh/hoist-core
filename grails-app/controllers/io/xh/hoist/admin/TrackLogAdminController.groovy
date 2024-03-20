@@ -12,7 +12,7 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.data.filter.Utils
 import io.xh.hoist.security.Access
 import io.xh.hoist.track.TrackLog
-import io.xh.hoist.track.TrackService
+import io.xh.hoist.track.TrackLogAdminService
 
 import static io.xh.hoist.util.DateTimeUtils.*
 import static java.lang.Integer.parseInt
@@ -20,37 +20,11 @@ import static java.lang.Integer.parseInt
 @Access(['HOIST_ADMIN_READER'])
 class TrackLogAdminController extends BaseController {
 
-    TrackService trackService
+    TrackLogAdminService trackLogAdminServiceService
 
     @ReadOnly
     def index() {
-        if (!trackService.enabled) {
-            renderJSON([])
-        }
-
-        def query = parseRequestJSON()
-
-        def startDay = parseLocalDate(query.startDay),
-            endDay = parseLocalDate(query.endDay)
-
-        // NOTE that querying + serializing large numbers of TrackLogs below requires a significant
-        // allocation of memory. Be mindful if customizing maxRow-related configs above defaults!
-        def conf = trackService.conf,
-            maxDefault = conf.maxRows.default as Integer,
-            maxLimit = conf.maxRows.limit as Integer,
-            maxRows = [(query.maxRows ? parseInt(query.maxRows) : maxDefault), maxLimit].min()
-
-        def filters = Utils.parseFilter(query.filters)
-
-        def results = TrackLog.findAll(
-            'FROM TrackLog AS t WHERE ' +
-            't.dateCreated >= :startDay AND t.dateCreated <= :endDay AND ' +
-                Utils.createPredicateFromFilters(filters, 't'),
-            [startDay: startDay? appStartOfDay(startDay): new Date(0), endDay: endDay? appEndOfDay(endDay): new Date()],
-            [max: maxRows, sort: 'dateCreated', order: 'desc']
-        )
-
-        renderJSON(results)
+        renderJSON(trackLogAdminServiceService.queryTrackLog(parseRequestJSON()))
     }
 
     def lookups() {

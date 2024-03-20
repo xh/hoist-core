@@ -9,6 +9,8 @@ package io.xh.hoist.data.filter
 
 import groovy.transform.CompileStatic
 
+import java.lang.reflect.Field
+
 @CompileStatic
 class Utils {
 
@@ -86,15 +88,14 @@ class Utils {
      * @return
      */
     static String createPredicateFromFilters(Filter filters, String tableAlias) {
-        switch (filters) {
-            case FieldFilter:
-                return processFieldFilter(filters, filters.op, tableAlias)
-            case CompoundFilter:
-                return processCompoundFilter(filters.filters, filters.op, tableAlias)
-            case FunctionFilter:
-                throw new RuntimeException("FunctionFilter not supported in createPredicateFromFilters")
-            case null:
-                return "1=1"
+        if (filters instanceof FieldFilter) {
+            return processFieldFilter(filters, filters.op, tableAlias)
+        } else if (filters instanceof CompoundFilter) {
+            return processCompoundFilter(filters.filters, filters.op, tableAlias)
+        } else if (filters instanceof FunctionFilter) {
+            throw new RuntimeException("FunctionFilter not supported in createPredicateFromFilters")
+        } else if (filters == null) {
+            return "1=1"
         }
     }
 
