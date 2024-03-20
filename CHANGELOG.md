@@ -2,6 +2,14 @@
 
 ## 19.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* `DefaultRoleService` has improved error handling for failed directory group lookups.
+
+### 💥 Breaking Changes
+
+* `LdapService` now throws if a query fails rather than returning an empty result. This is not
+  expected to affect most applications, but may require some to adjust their error handling.
 
 ## 18.5.1 - 2024-03-08
 

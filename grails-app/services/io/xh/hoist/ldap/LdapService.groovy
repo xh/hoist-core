@@ -119,9 +119,6 @@ class LdapService extends BaseService {
                     conn.bind(username, password)
                     conn.search(baseDn, filter, SearchScope.SUBTREE, keys)
                         .collect { objType.create(it.attributes as Collection<Attribute>) }
-                } catch (Exception e) {
-                    logError("Failure querying", [host: host, filter: filter], e)
-                    return null
                 } finally {
                     conn?.unBind()
                     conn?.close()
