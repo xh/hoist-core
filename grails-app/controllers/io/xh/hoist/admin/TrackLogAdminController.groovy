@@ -9,6 +9,8 @@ package io.xh.hoist.admin
 
 import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseController
+import io.xh.hoist.data.filter.Filter
+import io.xh.hoist.data.filter.Utils
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.security.Access
 import io.xh.hoist.track.TrackLog
@@ -40,7 +42,7 @@ class TrackLogAdminController extends BaseController {
 
         def filters = null
         if (params.filters) {
-            filters = JSONParser.parseObject(params.filters)
+            filters = Utils.parseFilter(JSONParser.parseObject(params.filters))
         }
 
         def results = TrackLog.findAll(
