@@ -20,11 +20,11 @@ import static java.lang.Integer.parseInt
 @Access(['HOIST_ADMIN_READER'])
 class TrackLogAdminController extends BaseController {
 
-    TrackLogAdminService trackLogAdminServiceService
+    TrackLogAdminService trackLogAdminService
 
     @ReadOnly
     def index() {
-        renderJSON(trackLogAdminServiceService.queryTrackLog(parseRequestJSON()))
+        renderJSON(trackLogAdminService.queryTrackLog(parseRequestJSON()))
     }
 
     def lookups() {
