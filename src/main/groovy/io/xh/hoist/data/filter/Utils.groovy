@@ -9,8 +9,6 @@ package io.xh.hoist.data.filter
 
 import groovy.transform.CompileStatic
 
-import java.lang.reflect.Field
-
 @CompileStatic
 class Utils {
 
@@ -82,7 +80,9 @@ class Utils {
     }
 
     /**
-     * Create an SQL predicate string from a Filter instance.
+     * Create an SQL predicate string from a Filter instance. Supports numerical comparisons
+     * and the following string comparisons: =, !=, like, not like, begins, ends.
+     *
      * @param filters
      * @param symbol
      * @return
@@ -123,20 +123,24 @@ class Utils {
                     return "(" + subFilters.join(" AND ") + ")"
             }
         }
+
+        String value = filter.value
+        if (value.isNumber()) {
+            return "${tableAlias}.${filter.field} $op ${value}"
+        }
         switch (op) {
             case "=":
             case "!=":
-                return "${tableAlias}.${filter.field} $op '${filter.value}'"
+                return "${tableAlias}.${filter.field} $op '${value}'"
             case "like":
             case "not like":
-                return "${tableAlias}.${filter.field} $op '%${filter.value}%'"
+                return "${tableAlias}.${filter.field} $op '%${value}%'"
             case "begins":
-                return "${tableAlias}.${filter.field} like '${filter.value}%'"
+                return "${tableAlias}.${filter.field} like '${value}%'"
             case "ends":
-                return "${tableAlias}.${filter.field} like '%${filter.value}'"
+                return "${tableAlias}.${filter.field} like '%${value}'"
             default:
                 throw new RuntimeException("Unsupported operator: $op")
         }
-
     }
 }
