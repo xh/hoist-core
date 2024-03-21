@@ -9,13 +9,10 @@ package io.xh.hoist.admin
 
 import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseController
-import io.xh.hoist.data.filter.Utils
 import io.xh.hoist.security.Access
 import io.xh.hoist.track.TrackLog
 import io.xh.hoist.track.TrackLogAdminService
 
-import static io.xh.hoist.util.DateTimeUtils.*
-import static java.lang.Integer.parseInt
 
 @Access(['HOIST_ADMIN_READER'])
 class TrackLogAdminController extends BaseController {

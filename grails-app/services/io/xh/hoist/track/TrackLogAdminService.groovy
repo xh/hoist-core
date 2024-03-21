@@ -10,7 +10,6 @@ import java.time.LocalDate;
 import static io.xh.hoist.util.DateTimeUtils.appEndOfDay
 import static io.xh.hoist.util.DateTimeUtils.appStartOfDay
 import static io.xh.hoist.util.DateTimeUtils.parseLocalDate
-import static java.lang.Integer.parseInt;
 
 class TrackLogAdminService extends BaseService {
     ConfigService configService
