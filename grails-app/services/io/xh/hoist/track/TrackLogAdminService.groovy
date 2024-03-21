@@ -2,7 +2,11 @@ package io.xh.hoist.track
 
 import io.xh.hoist.BaseService;
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.data.filter.Utils;
+import io.xh.hoist.data.filter.Utils
+import io.xh.hoist.util.DateTimeUtils
+
+import java.time.LocalDate;
+
 import static io.xh.hoist.util.DateTimeUtils.appEndOfDay
 import static io.xh.hoist.util.DateTimeUtils.appStartOfDay
 import static io.xh.hoist.util.DateTimeUtils.parseLocalDate
@@ -24,12 +28,12 @@ class TrackLogAdminService extends BaseService {
             return []
         }
 
-        def startDay = parseLocalDate(query.startDay),
-            endDay = parseLocalDate(query.endDay)
+        def startDay = query.startDay? parseLocalDate(query.startDay): LocalDate.of(1970, 1, 1),
+            endDay = query.endDay? parseLocalDate(query.endDay): DateTimeUtils.appDay()
 
         def maxDefault = conf.maxRows.default as Integer,
             maxLimit = conf.maxRows.limit as Integer,
-            maxRows = [(query.maxRows ? parseInt(query.maxRows) : maxDefault), maxLimit].min()
+            maxRows = [(query.maxRows ? query.maxRows : maxDefault), maxLimit].min()
 
         def filters = Utils.parseFilter(query.filters)
 
@@ -37,7 +41,7 @@ class TrackLogAdminService extends BaseService {
             'FROM TrackLog AS t WHERE ' +
                 't.dateCreated >= :startDay AND t.dateCreated <= :endDay AND ' +
                 Utils.createPredicateFromFilters(filters, 't'),
-            [startDay: startDay? appStartOfDay(startDay): new Date(0), endDay: endDay? appEndOfDay(endDay): new Date()],
+            [startDay: appStartOfDay(startDay), endDay: appEndOfDay(endDay)],
             [max: maxRows, sort: 'dateCreated', order: 'desc']
         )
     }
