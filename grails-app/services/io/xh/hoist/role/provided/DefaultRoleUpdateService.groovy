@@ -114,7 +114,8 @@ class DefaultRoleUpdateService extends BaseService {
     private Role createOrUpdate(Map<String, Object> roleSpec, boolean isUpdate) {
         def users = roleSpec.remove('users'),
             directoryGroups = roleSpec.remove('directoryGroups'),
-            roles = roleSpec.remove('roles')
+            roles = roleSpec.remove('roles'),
+            inheritedRoles = roleSpec.remove('inheritedRoles')
 
         roleSpec.lastUpdatedBy = authUsername
 
@@ -128,7 +129,8 @@ class DefaultRoleUpdateService extends BaseService {
 
         def userChanges = updateMembers(role, USER, users),
             directoryGroupChanges = updateMembers(role, DIRECTORY_GROUP, directoryGroups),
-            roleChanges = updateMembers(role, ROLE, roles)
+            roleChanges = updateMembers(role, ROLE, roles),
+            inheritedRoleChanges = updateInheritedRoles(role, inheritedRoles)
 
         role.save(flush: true)
 
@@ -145,7 +147,9 @@ class DefaultRoleUpdateService extends BaseService {
                     addedDirectoryGroups  : directoryGroupChanges.added,
                     removedDirectoryGroups: directoryGroupChanges.removed,
                     addedRoles            : roleChanges.added,
-                    removedRoles          : roleChanges.removed
+                    removedRoles          : roleChanges.removed,
+                    addedInheritedRoles   : inheritedRoleChanges.added,
+                    removedInheritedRoles : inheritedRoleChanges.removed
                 ]
             )
         } else {
@@ -158,13 +162,44 @@ class DefaultRoleUpdateService extends BaseService {
                     notes          : roleSpec.notes,
                     users          : userChanges.added,
                     directoryGroups: directoryGroupChanges.added,
-                    roles          : roleChanges.added
+                    roles          : roleChanges.added,
+                    inheritedRoles : inheritedRoleChanges.added
                 ]
             )
         }
 
         defaultRoleService.clearCaches()
         return role
+    }
+
+    private RoleMemberChanges updateInheritedRoles(Role owner, List<String> inheritedRoles) {
+        RoleMemberChanges changes = new RoleMemberChanges()
+
+        List<RoleMember> existingInheritedRoles = RoleMember
+            .list()
+            .findAll { it.name == owner.name && it.type == ROLE }
+
+        inheritedRoles.each { inheritedRole ->
+            RoleMember member = existingInheritedRoles.find{it.role.name == inheritedRole}
+            if(!member) {
+                logTrace([role: inheritedRole, type: ROLE, name: owner.name, createdBy: authUsername])
+                member = new RoleMember(role: inheritedRole, type: ROLE, name: owner.name, createdBy: authUsername)
+                changes.added << inheritedRole
+                member.role.addToMembers(member)
+                member.role.save(flush: true)
+            }
+        }
+
+        existingInheritedRoles.each { member ->
+            def role = member.role
+            if (!inheritedRoles.contains(role.name)) {
+                changes.removed << role.name
+                role.removeFromMembers(member)
+                role.save(flush: true)
+            }
+        }
+
+        return changes
     }
 
     private RoleMemberChanges updateMembers(Role owner, RoleMember.Type type, List<String> members) {
