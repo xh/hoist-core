@@ -36,10 +36,6 @@ class TrackLogAdminService extends BaseService {
 
         def filters = Utils.parseFilter(query.filters)
 
-        System.out.println('FROM TrackLog AS t WHERE ' +
-                't.dateCreated >= :startDay AND t.dateCreated <= :endDay AND ' +
-                Utils.createPredicateFromFilters(filters, 't'))
-
         return TrackLog.findAll(
             'FROM TrackLog AS t WHERE ' +
                 't.dateCreated >= :startDay AND t.dateCreated <= :endDay AND ' +
