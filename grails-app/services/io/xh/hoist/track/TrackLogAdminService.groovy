@@ -36,6 +36,10 @@ class TrackLogAdminService extends BaseService {
 
         def filters = Utils.parseFilter(query.filters)
 
+        System.out.println('FROM TrackLog AS t WHERE ' +
+                't.dateCreated >= :startDay AND t.dateCreated <= :endDay AND ' +
+                Utils.createPredicateFromFilters(filters, 't'))
+
         return TrackLog.findAll(
             'FROM TrackLog AS t WHERE ' +
                 't.dateCreated >= :startDay AND t.dateCreated <= :endDay AND ' +
@@ -43,5 +47,23 @@ class TrackLogAdminService extends BaseService {
             [startDay: appStartOfDay(startDay), endDay: appEndOfDay(endDay)],
             [max: maxRows, sort: 'dateCreated', order: 'desc']
         )
+    }
+
+    Map lookups() {
+        return [
+            category: distinctVals('category'),
+            browser: distinctVals('browser'),
+            device: distinctVals('device'),
+            username: distinctVals('username'),
+        ]
+    }
+
+    //------------------------
+    // Implementation
+    //------------------------
+    private List distinctVals(String property) {
+        return TrackLog.createCriteria().list {
+            projections { distinct(property) }
+        }.sort()
     }
 }

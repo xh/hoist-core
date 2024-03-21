@@ -10,7 +10,6 @@ package io.xh.hoist.admin
 import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
-import io.xh.hoist.track.TrackLog
 import io.xh.hoist.track.TrackLogAdminService
 
 
@@ -25,21 +24,6 @@ class TrackLogAdminController extends BaseController {
     }
 
     def lookups() {
-        renderJSON([
-            category: distinctVals('category'),
-            browser: distinctVals('browser'),
-            device: distinctVals('device'),
-            username: distinctVals('username'),
-        ])
+        renderJSON(trackLogAdminService.lookups())
     }
-
-    //------------------------
-    // Implementation
-    //------------------------
-    private List distinctVals(String property) {
-        return TrackLog.createCriteria().list {
-            projections { distinct(property) }
-        }.sort()
-    }
-
 }
