@@ -42,10 +42,6 @@ class FieldFilter extends Filter implements JSONFormat {
             throw new IllegalArgumentException('FieldFilter requires a field')
         }
 
-        if (value == null) {
-            throw new IllegalArgumentException('FieldFilter requires a value')
-        }
-
         if (!OPERATORS.contains(op)) {
             throw new IllegalArgumentException("FieldFilter requires valid 'op' value. Operator '$op' not recognized.")
         }
@@ -82,9 +78,15 @@ class FieldFilter extends Filter implements JSONFormat {
 
         switch (op) {
             case '=':
-                return Restrictions.in(field, vals)
+                Criterion c = Restrictions.in(field, vals.findAll { it != null })
+                if (vals.contains(null))
+                    return or([Restrictions.isNull(field), c])
+                return c
             case '!=':
-                return and(vals.collect { ne(field, it) })
+                Criterion c =  and(vals.findAll { it != null }.collect { ne(field, it) })
+                if (vals.contains(null))
+                    return and([Restrictions.isNotNull(field), c])
+                return c
             case '>':
                 return gt(field, value)
             case '>=':
