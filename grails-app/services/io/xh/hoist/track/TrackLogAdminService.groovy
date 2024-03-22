@@ -46,7 +46,7 @@ class TrackLogAdminService extends BaseService {
         return TrackLog.findAll(
             'FROM TrackLog AS t WHERE ' +
                 't.dateCreated >= :startDay AND t.dateCreated <= :endDay AND ' +
-                FilterUtils.createPredicateFromFilters(filters, 't'),
+                FilterUtils.createPredicate(filters, 't'),
             [startDay: appStartOfDay(startDay), endDay: appEndOfDay(endDay)],
             [max: maxRows, sort: 'dateCreated', order: 'desc']
         )
