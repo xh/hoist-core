@@ -1,65 +1,69 @@
 package io.xh.hoist.track
 
+import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService;
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.data.filter.Utils
-import io.xh.hoist.util.DateTimeUtils
+import io.xh.hoist.data.filter.Filter
+import io.xh.hoist.exception.DataNotAvailableException
+import org.hibernate.Criteria
+import org.hibernate.SessionFactory
+import org.hibernate.criterion.Order
+import org.hibernate.criterion.Restrictions
 
+import javax.persistence.criteria.CriteriaBuilder
 import java.time.LocalDate;
 
 import static io.xh.hoist.util.DateTimeUtils.appEndOfDay
 import static io.xh.hoist.util.DateTimeUtils.appStartOfDay
-import static io.xh.hoist.util.DateTimeUtils.parseLocalDate
+import static org.hibernate.criterion.Order.desc
+import static org.hibernate.criterion.Restrictions.between
 
 class TrackLogAdminService extends BaseService {
     ConfigService configService
+    SessionFactory sessionFactory
 
     Boolean getEnabled() {
         return conf.enabled == true
     }
 
-    Map getConf() {
-        return configService.getMap('xhActivityTrackingConfig')
-    }
-
-    List<TrackLog> queryTrackLog(Map query) {
-        if (!enabled) {
-            return []
-        }
-
-        def startDay = query.startDay? parseLocalDate(query.startDay): LocalDate.of(1970, 1, 1),
-            endDay = query.endDay? parseLocalDate(query.endDay): DateTimeUtils.appDay()
+    @ReadOnly
+    List<TrackLog> queryTrackLog(LocalDate startDay, LocalDate endDay, Filter filter, Integer maxRows = null) {
+        if (!enabled) throw new DataNotAvailableException('TrackService not available.')
 
         def maxDefault = conf.maxRows.default as Integer,
-            maxLimit = conf.maxRows.limit as Integer,
-            maxRows = [(query.maxRows ? query.maxRows : maxDefault), maxLimit].min()
+            maxLimit = conf.maxRows.limit as Integer
 
-        def filters = Utils.parseFilter(query.filters)
+        maxRows = [(maxRows ? maxRows : maxDefault), maxLimit].min()
 
-        return TrackLog.findAll(
-            'FROM TrackLog AS t WHERE ' +
-                't.dateCreated >= :startDay AND t.dateCreated <= :endDay AND ' +
-                Utils.createPredicateFromFilters(filters, 't'),
-            [startDay: appStartOfDay(startDay), endDay: appEndOfDay(endDay)],
-            [max: maxRows, sort: 'dateCreated', order: 'desc']
-        )
+        def session = sessionFactory.currentSession
+        Criteria c = session.createCriteria(TrackLog)
+        c.maxResults = maxRows
+        c.addOrder(desc('dateCreated'))
+        c.add(between('dateCreated', appStartOfDay(startDay), appEndOfDay(endDay)))
+        if (filter) {
+            c.add(filter.criterion)
+        }
+        c.list() as List<TrackLog>
     }
 
-    Map lookups() {
-        return [
-            category: distinctVals('category'),
-            browser: distinctVals('browser'),
-            device: distinctVals('device'),
-            username: distinctVals('username'),
-        ]
-    }
+    @ReadOnly
+    Map lookups() {[
+        category: distinctVals('category'),
+        browser: distinctVals('browser'),
+        device: distinctVals('device'),
+        username: distinctVals('username')
+    ] }
 
     //------------------------
     // Implementation
     //------------------------
     private List distinctVals(String property) {
-        return TrackLog.createCriteria().list {
+        TrackLog.createCriteria().list {
             projections { distinct(property) }
         }.sort()
+    }
+
+    private Map getConf() {
+        configService.getMap('xhActivityTrackingConfig')
     }
 }

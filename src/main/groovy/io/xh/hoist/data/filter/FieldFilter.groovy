@@ -2,12 +2,25 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2023 Extremely Heavy Industries Inc.
+ * Copyright © 2024 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.data.filter
 
 import io.xh.hoist.json.JSONFormat
+import org.hibernate.criterion.Criterion
+import org.hibernate.criterion.Restrictions
+
+import static org.hibernate.criterion.MatchMode.ANYWHERE
+import static org.hibernate.criterion.MatchMode.END
+import static org.hibernate.criterion.MatchMode.START
+import static org.hibernate.criterion.Restrictions.ge
+import static org.hibernate.criterion.Restrictions.gt
+import static org.hibernate.criterion.Restrictions.ilike
+import static org.hibernate.criterion.Restrictions.le
+import static org.hibernate.criterion.Restrictions.lt
+import static org.hibernate.criterion.Restrictions.ne
+import static org.hibernate.criterion.Restrictions.not
 
 /**
  * Filters by comparing the value of a given field to one or more given candidate values using a given operator.
@@ -24,7 +37,6 @@ class FieldFilter extends Filter implements JSONFormat {
     /** All operators that support testing multiple candidate `value`s (where this.value *can be* a collection). */
     static MULTI_VAL_OPERATORS = ['=', '!=', 'like', 'not like', 'begins', 'ends', 'includes', 'excludes']
 
-    /** Constructor - not typically called by apps - create via {@link Utils#parseFilter} instead. */
     FieldFilter(String field, String op, Object value) {
         if (!field) {
             throw new IllegalArgumentException('FieldFilter requires a field')
@@ -35,21 +47,16 @@ class FieldFilter extends Filter implements JSONFormat {
         }
 
         if (!OPERATORS.contains(op)) {
-            throw new IllegalArgumentException("FieldFilter requires valid 'op' value. Operator '${op}' not recognized.")
+            throw new IllegalArgumentException("FieldFilter requires valid 'op' value. Operator '$op' not recognized.")
         }
 
         if (!MULTI_VAL_OPERATORS.contains(op) && value instanceof Collection) {
-            throw new IllegalArgumentException("Operator '${op}' does not support multiple values. Use a CompoundFilter instead.")
+            throw new IllegalArgumentException("Operator '$op' does not support multiple values. Use a CompoundFilter instead.")
         }
 
         this.field = field
         this.op = op
-
-        if (value instanceof Collection) {
-            this.value = new ArrayList(value).unique().sort()
-        } else {
-            this.value = value
-        }
+        this.value = value instanceof Collection ? new ArrayList(value).unique().sort() : value
     }
 
     Map formatForJSON() {
@@ -60,66 +67,107 @@ class FieldFilter extends Filter implements JSONFormat {
         ]
     }
 
-    Closure<Boolean> getTestFn() {
-        def filterVal = this.value
 
-        if (MULTI_VAL_OPERATORS.contains(op)) {
-            filterVal = filterVal instanceof List ? filterVal : [filterVal]
+    //---------------------
+    // Overrides
+    //----------------------
+    List<String> getAllFields() {
+        return [field]
+    }
+
+    Criterion getCriterion() {
+        def vals = MULTI_VAL_OPERATORS.contains(op) ?
+            (value instanceof List ? value : [value]) :
+            null
+
+        switch (op) {
+            case '=':
+                return Restrictions.in(field, vals)
+            case '!=':
+                return and(vals.collect { ne(field, it) })
+            case '>':
+                return gt(field, value)
+            case '>=':
+                return ge(field, value)
+            case '<':
+                return lt(field, value)
+            case '<=':
+                return le(field, value)
+            case 'like':
+                return or(vals.collect { ilike(field, it as String, ANYWHERE) })
+            case 'not like':
+                return and(vals.collect { not(ilike(field, it as String, ANYWHERE)) })
+            case 'begins':
+                return or(vals.collect { ilike(field, it as String, START) })
+            case 'ends':
+                return or(vals.collect { ilike(field, it as String, END) })
+            case 'includes':
+            case 'excludes':
+                throw new RuntimeException('Unsupported operator for Criteria Filter')
+            default:
+                throw new RuntimeException("Unknown operator: $op")
         }
+    }
+
+
+    Closure<Boolean> getTestFn() {
+        def vals = MULTI_VAL_OPERATORS.contains(op) ?
+            (value instanceof List ? value : [value]) :
+            null
 
         switch (op) {
             case '=':
                 return {
                     def v = it[field]
                     if (v == '') v = null
-                    return filterVal.any { it == v }
+                    return vals.any { it == v }
                 }
             case '!=':
                 return {
                     def v = it[field]
                     if (v == '') v = null
-                    return filterVal.every { it != v }
+                    return vals.every { it != v }
                 }
             case '>':
                 return {
                     def v = it[field]
-                    return v != null && v > filterVal
+                    return v != null && v > value
                 }
             case '>=':
                 return {
                     def v = it[field]
-                    return v != null && v >= filterVal
+                    return v != null && v >= value
                 }
             case '<':
                 return {
                     def v = it[field]
-                    return v != null && v < filterVal
+                    return v != null && v < value
                 }
             case '<=':
                 return {
                     def v = it[field]
-                    return v != null && v <= filterVal
+                    return v != null && v <= value
                 }
             case 'like':
-                def regExps = filterVal.collect { v -> ~/(?i)$v/ }
+                def regExps = vals.collect { v -> ~/(?i)$v/ }
                 return {
                     def v = it[field]
                     return v != null && regExps.any { re -> re.matcher(v).find() }
                 }
             case 'not like':
-                def regExps = filterVal.collect { v -> ~/(?i)$v/ }
+                def regExps = vals.collect { v -> ~/(?i)$v/ }
                 return {
                     def v = it[field]
                     return v != null && !regExps.any { re -> re.matcher(v).find() }
                 }
             case 'begins':
-                def regExps = filterVal.collect { v -> ~/(?i)^$v/ }
+                def regExps = vals.collect { v -> ~/(?i)^$v/ }
                 return {
                     def v = it[field]
                     return v != null && regExps.any { re -> re.matcher(v).find() }
                 }
             case 'ends':
-                def regExps = filterVal.collect { v -> ~/(?i)$v$/ }
+                def regExps = vals.collect { v -> ~/(?i)$v$/ }
                 return {
                     def v = it[field]
                     return v != null && regExps.any { re -> re.matcher(v).find() }
@@ -128,18 +176,18 @@ class FieldFilter extends Filter implements JSONFormat {
                 return {
                     def v = it[field]
                     return v != null && v.any { vv ->
-                        filterVal.any { it == vv }
+                        vals.any { it == vv }
                     }
                 }
             case 'excludes':
                 return {
                     def v = it[field]
                     return v == null || !v.any { vv ->
-                        filterVal.any { it == vv }
+                        vals.any { it == vv }
                     }
                 }
             default:
-                throw new RuntimeException("Unknown operator: ${op}")
+                throw new RuntimeException("Unknown operator: $op")
         }
     }
 
@@ -147,9 +195,9 @@ class FieldFilter extends Filter implements JSONFormat {
         if (other === this) return true
         return (
             other instanceof FieldFilter &&
-                other.field == this.field &&
-                other.op == this.op &&
-                other.value == this.value
+                other.field == field &&
+                other.op == op &&
+                other.value == value
         )
     }
 }

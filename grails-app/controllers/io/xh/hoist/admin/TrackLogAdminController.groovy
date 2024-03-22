@@ -9,8 +9,14 @@ package io.xh.hoist.admin
 
 import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseController
+import io.xh.hoist.data.filter.Filter
 import io.xh.hoist.security.Access
 import io.xh.hoist.track.TrackLogAdminService
+
+import java.time.LocalDate
+
+import static io.xh.hoist.util.DateTimeUtils.appDay
+import static io.xh.hoist.util.DateTimeUtils.parseLocalDate
 
 
 @Access(['HOIST_ADMIN_READER'])
@@ -18,9 +24,14 @@ class TrackLogAdminController extends BaseController {
 
     TrackLogAdminService trackLogAdminService
 
-    @ReadOnly
     def index() {
-        renderJSON(trackLogAdminService.queryTrackLog(parseRequestJSON()))
+        def query = parseRequestJSON(),
+            startDay = query.startDay ? parseLocalDate(query.startDay) : LocalDate.of(1970, 1, 1),
+            endDay = query.endDay ? parseLocalDate(query.endDay) : appDay(),
+            filter = Filter.parse(query.filters),
+            maxRows = query.maxRows
+
+        renderJSON(trackLogAdminService.queryTrackLog(startDay, endDay, filter, maxRows))
     }
 
     def lookups() {
