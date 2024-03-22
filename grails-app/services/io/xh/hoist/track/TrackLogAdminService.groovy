@@ -1,8 +1,15 @@
+/*
+ * This file belongs to Hoist, an application development toolkit
+ * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
+ *
+ * Copyright © 2024 Extremely Heavy Industries Inc.
+ */
+
 package io.xh.hoist.track
 
 import io.xh.hoist.BaseService;
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.data.filter.Utils
+import io.xh.hoist.data.filter.FilterUtils
 import io.xh.hoist.util.DateTimeUtils
 
 import java.time.LocalDate;
@@ -34,12 +41,12 @@ class TrackLogAdminService extends BaseService {
             maxLimit = conf.maxRows.limit as Integer,
             maxRows = [(query.maxRows ? query.maxRows : maxDefault), maxLimit].min()
 
-        def filters = Utils.parseFilter(query.filters)
+        def filters = FilterUtils.parseFilter(query.filters)
 
         return TrackLog.findAll(
             'FROM TrackLog AS t WHERE ' +
                 't.dateCreated >= :startDay AND t.dateCreated <= :endDay AND ' +
-                Utils.createPredicateFromFilters(filters, 't'),
+                FilterUtils.createPredicateFromFilters(filters, 't'),
             [startDay: appStartOfDay(startDay), endDay: appEndOfDay(endDay)],
             [max: maxRows, sort: 'dateCreated', order: 'desc']
         )

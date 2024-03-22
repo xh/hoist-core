@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2023 Extremely Heavy Industries Inc.
+ * Copyright © 2024 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.data.filter
@@ -10,7 +10,7 @@ package io.xh.hoist.data.filter
 import groovy.transform.CompileStatic
 
 @CompileStatic
-class Utils {
+class FilterUtils {
 
     /**
      * Parse/create a Filter from a map or closure, or a collection of the same.
@@ -71,11 +71,11 @@ class Utils {
     /**
      * Extract a list of fields used by filter
      */
-    static List getFilterFields(Filter filter) {
-        if (filter instanceof FunctionFilter) return []
-        if (filter instanceof FieldFilter) return [filter.field]
+    static Set<String> getFilterFields(Filter filter) {
+        if (filter instanceof FunctionFilter) throw new RuntimeException("FunctionFilter not supported in getFilterFields")
+        if (filter instanceof FieldFilter) return new HashSet([filter.field])
         if (filter instanceof CompoundFilter) {
-            return filter.filters.collect { getFilterFields(it) }.flatten()
+            return new HashSet(filter.filters.collect { getFilterFields(it) }.flatten())
         }
     }
 
@@ -87,14 +87,14 @@ class Utils {
      * @param symbol
      * @return
      */
-    static String createPredicateFromFilters(Filter filters, String tableAlias) {
-        if (filters instanceof FieldFilter) {
-            return processFieldFilter(filters, filters.op, tableAlias)
-        } else if (filters instanceof CompoundFilter) {
-            return processCompoundFilter(filters.filters, filters.op, tableAlias)
-        } else if (filters instanceof FunctionFilter) {
+    static String createPredicate(Filter filter, String tableAlias) {
+        if (filter instanceof FieldFilter) {
+            return processFieldFilter(filter, filter.op, tableAlias)
+        } else if (filter instanceof CompoundFilter) {
+            return processCompoundFilter(filter.filters, filter.op, tableAlias)
+        } else if (filter instanceof FunctionFilter) {
             throw new RuntimeException("FunctionFilter not supported in createPredicateFromFilters")
-        } else if (filters == null) {
+        } else if (filter == null) {
             return "1=1"
         }
     }
@@ -103,14 +103,14 @@ class Utils {
     // Implementation
     //-------------------------
     private static String processCompoundFilter(List<Filter> filters, String op, String tableAlias) {
-        def subFilters = filters.collect { createPredicateFromFilters(it, tableAlias)}
+        def subFilters = filters.collect { createPredicate(it, tableAlias)}
         return "(" + subFilters.join(" $op ") + ")"
     }
 
     private static String processFieldFilter(FieldFilter filter, String op, String tableAlias) {
         if (filter.value instanceof Collection) {
             def subFilters = filter.value.collect {
-                createPredicateFromFilters(new FieldFilter(filter.field, op, it), tableAlias)
+                createPredicate(new FieldFilter(filter.field, op, it), tableAlias)
             }
             switch (op) {
                 case "=":
