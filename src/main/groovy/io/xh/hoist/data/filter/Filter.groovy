@@ -7,7 +7,10 @@
 
 package io.xh.hoist.data.filter
 
+import org.hibernate.criterion.Conjunction
 import org.hibernate.criterion.Criterion
+import org.hibernate.criterion.Disjunction
+
 import static org.hibernate.criterion.Restrictions.and
 import static org.hibernate.criterion.Restrictions.or
 
@@ -93,9 +96,17 @@ abstract class Filter {
     // Implementation
     //-------------------------
     protected static Criterion and(List<Criterion> criteria) {
-        criteria.size() == 1 ? criteria[0] : and(criteria.toArray() as Criterion[])
+        if (criteria.size() == 1) return criteria[0]
+
+        def conjunction = new Conjunction()
+        criteria.each { conjunction.add(it) }
+        return conjunction
     }
     protected static Criterion or(List<Criterion> criteria) {
-        criteria.size() == 1 ? criteria[0] : or(criteria.toArray() as Criterion[])
+        if (criteria.size() == 1) return criteria[0]
+
+        def disjunction = new Disjunction()
+        criteria.each { disjunction.add(it) }
+        return disjunction
     }
 }
