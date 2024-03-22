@@ -36,11 +36,11 @@ class CompoundFilter extends Filter implements JSONFormat {
     // Overrides
     //----------------------
     List<String> getAllFields() {
-        return filters.collectMany { it.allFields }.unique()
+        filters.collectMany { it.allFields }.unique()
     }
 
     Criterion getCriterion() {
-        return op == 'AND' ?  and(filters*.criterion) : or(filters*.criterion)
+        op == 'AND' ?  and(filters*.criterion) : or(filters*.criterion)
     }
 
     Closure<Boolean> getTestFn() {

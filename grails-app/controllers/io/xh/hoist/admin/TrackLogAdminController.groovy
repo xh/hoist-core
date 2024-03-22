@@ -7,7 +7,6 @@
 
 package io.xh.hoist.admin
 
-import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseController
 import io.xh.hoist.data.filter.Filter
 import io.xh.hoist.security.Access

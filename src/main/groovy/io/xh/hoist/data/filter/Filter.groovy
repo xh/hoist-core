@@ -19,14 +19,14 @@ import static org.hibernate.criterion.Restrictions.or
  * @see FunctionFilter
  */
 abstract class Filter {
-    /** Return a function that can be used to test a object. */
-    abstract Closure<Boolean> getTestFn()
-
     /** True if the provided other Filter is equivalent to this instance.*/
     abstract boolean equals(Filter other)
 
     /** Return a Hibernate Criterion representing this filter. */
     abstract Criterion getCriterion()
+
+    /** Return a function that can be used to test a object. */
+    abstract Closure<Boolean> getTestFn()
 
     /** Get all fields used by a filter, or its sub-filters */
     abstract List<String> getAllFields()
@@ -93,9 +93,9 @@ abstract class Filter {
     // Implementation
     //-------------------------
     protected static Criterion and(List<Criterion> criteria) {
-        criteria.size() == 1 ? criteria[1] : and(criteria.toArray() as Criterion[])
+        criteria.size() == 1 ? criteria[0] : and(criteria.toArray() as Criterion[])
     }
     protected static Criterion or(List<Criterion> criteria) {
-        criteria.size() == 1 ? criteria[1] : or(criteria.toArray() as Criterion[])
+        criteria.size() == 1 ? criteria[0] : or(criteria.toArray() as Criterion[])
     }
 }

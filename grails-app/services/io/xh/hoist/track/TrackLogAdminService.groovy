@@ -7,10 +7,6 @@ import io.xh.hoist.data.filter.Filter
 import io.xh.hoist.exception.DataNotAvailableException
 import org.hibernate.Criteria
 import org.hibernate.SessionFactory
-import org.hibernate.criterion.Order
-import org.hibernate.criterion.Restrictions
-
-import javax.persistence.criteria.CriteriaBuilder
 import java.time.LocalDate;
 
 import static io.xh.hoist.util.DateTimeUtils.appEndOfDay
