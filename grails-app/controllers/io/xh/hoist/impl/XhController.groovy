@@ -89,17 +89,18 @@ class XhController extends BaseController {
     //------------------------
     // Tracking
     //------------------------
-    def track(String category, String msg, String data, String logData, int elapsed, String severity, String url, String appVersion) {
+    def track() {
         ensureClientUsernameMatchesSession()
+        def query = parseRequestJSON()
         trackService.track(
-            category: safeEncode(category),
-            msg: safeEncode(msg),
-            data: data ? parseObjectOrArray(safeEncode(data)) : null,
-            logData: logData == 'true' || logData == 'false' ? parseBoolean(logData) : logData?.split(','),
-            elapsed: elapsed,
-            severity: safeEncode(severity),
-            url: url,
-            appVersion: appVersion
+            category: query.category? safeEncode(query.category.toString()): null,
+            msg: query.msg? safeEncode(query.msg.toString()): null,
+            data: query.data ? parseObjectOrArray(safeEncode(query.data.toString())) : null,
+            logData: query.logData? (query.logData == 'true' || query.logData == 'false' ? parseBoolean(query.logData.toString()) : query.logData.toString()?.split(',')): null,
+            elapsed: query.elapsed? query.elapsed: null,
+            severity: query.severity? safeEncode(query.severity.toString()): null,
+            url: query.url? safeEncode(query.url.toString()): null,
+            appVersion: query.appVersion? safeEncode(query.appVersion.toString()): null
         )
         renderJSON(success: true)
     }
