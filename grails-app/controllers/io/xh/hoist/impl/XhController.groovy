@@ -89,7 +89,7 @@ class XhController extends BaseController {
     //------------------------
     // Tracking
     //------------------------
-    def track(String category, String msg, String data, String logData, int elapsed, String severity) {
+    def track(String category, String msg, String data, String logData, int elapsed, String severity, String url, String appVersion) {
         ensureClientUsernameMatchesSession()
         trackService.track(
             category: safeEncode(category),
@@ -97,7 +97,9 @@ class XhController extends BaseController {
             data: data ? parseObjectOrArray(safeEncode(data)) : null,
             logData: logData == 'true' || logData == 'false' ? parseBoolean(logData) : logData?.split(','),
             elapsed: elapsed,
-            severity: safeEncode(severity)
+            severity: safeEncode(severity),
+            url: url,
+            appVersion: appVersion
         )
         renderJSON(success: true)
     }
