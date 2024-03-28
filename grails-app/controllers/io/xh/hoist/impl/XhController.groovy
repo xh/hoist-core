@@ -230,14 +230,15 @@ class XhController extends BaseController {
     //------------------------
     // Client Errors
     //------------------------
-    def submitError(String msg, String error, String appVersion, String url, boolean userAlerted) {
+    def submitError() {
         ensureClientUsernameMatchesSession()
+        def query = parseRequestJSON()
         clientErrorService.submit(
-            safeEncode(msg),
-            safeEncode(error),
-            safeEncode(appVersion),
-            safeEncode(url),
-            userAlerted
+            query.msg? safeEncode(query.msg.toString()): null,
+            query.error? safeEncode(query.error.toString()): null,
+            query.appVersion? safeEncode(query.appVersion.toString()): null,
+            query.url? safeEncode(query.url.toString()): null,
+            query.userAlerted? parseBoolean(query.userAlerted.toString()): null
         )
         renderJSON(success: true)
     }
