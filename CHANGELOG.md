@@ -2,6 +2,21 @@
 
 ## 19.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* `ClientError` `JSONFormat` now accepts `impersonating` as a `nullable` field with at most `50` characters.
+* `TrackLog` `JSONFormat` now accepts three new fields:
+  * `appVersion` as a `nullable` field with at most `100` characters
+  * `appEnvironment` as a `nullable` field with at most `100` characters
+  * `url` as a `nullable` field with at most `500` characters
+* `TrackService` now logs `appVersion`, `appEnvironment`, and `url` fields in `TrackLog` records.
+
+### 💥 Breaking Changes
+
+* `XhController` endpoints `track` and `submitError` now expect to be visited via a `postJSON` request with a
+  `JSON` object posted in the `body`. This is pattern is preferred over using a `fetchJSON` request with
+  `params` posted in the request header.
+
 
 ## 18.5.1 - 2024-03-08
 
