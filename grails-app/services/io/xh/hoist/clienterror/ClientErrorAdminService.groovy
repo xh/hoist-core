@@ -34,14 +34,15 @@ class ClientErrorAdminService extends BaseService {
     Map lookups() {[
         browser: distinctVals('browser'),
         device: distinctVals('device'),
-        username: distinctVals('username')
+        username: distinctVals('username'),
+        appEnvironment: distinctVals('appEnvironment')
     ] }
 
     //------------------------
     // Implementation
     //------------------------
     private List distinctVals(String property) {
-        TrackLog.createCriteria().list {
+        ClientError.createCriteria().list {
             projections { distinct(property) }
         }.sort()
     }
