@@ -111,8 +111,8 @@ class TrackService extends BaseService implements EventPublisher {
             elapsed: params.elapsed,
             severity: params.severity ?: 'INFO',
             data: data,
-            url: params.url? params.url: null,
-            appVersion: params.appVersion ? params.appVersion: null,
+            url: params.url,
+            appVersion: params.appVersion ?: Utils.appVersion,
             appEnvironment: Utils.appEnvironment
         ]
 

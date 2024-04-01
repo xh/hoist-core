@@ -10,12 +10,15 @@
   * `appEnvironment` as a `nullable` field with at most `100` characters
   * `url` as a `nullable` field with at most `500` characters
 * `TrackService` now logs `appVersion`, `appEnvironment`, and `url` fields in `TrackLog` records.
-
-### 💥 Breaking Changes
-
 * `XhController` endpoints `track` and `submitError` now expect to be visited via a `postJSON` request with a
   `JSON` object posted in the `body`. This is pattern is preferred over using a `fetchJSON` request with
   `params` posted in the request header.
+
+### 💥 Breaking Changes
+
+* Requires `hoist-react >= 63.0` for client-side support of the new `track` and `submitError` endpoints.
+* Three new columns added to `xh_track_log` table: `app_version`, `app_environment`, and `url`. These columns
+  are nullable and have a maximum length of `100`, `100`, and `500` characters respectively.
 
 
 ## 18.5.1 - 2024-03-08
