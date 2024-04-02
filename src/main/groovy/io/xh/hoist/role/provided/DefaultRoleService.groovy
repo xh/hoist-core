@@ -171,6 +171,7 @@ class DefaultRoleService extends BaseRoleService {
      *  b) String describing lookup error.
      */
     protected Map<String, Object> doLoadUsersForDirectoryGroups(Set<String> groups) {
+        if (!groups) return emptyMap()
         if (!ldapService.enabled) {
             return groups.collectEntries{[it, 'LdapService not enabled in this application']}
         }
@@ -185,7 +186,7 @@ class DefaultRoleService extends BaseRoleService {
                 if (group) {
                     foundGroups << name
                 } else {
-                    ret[name] = 'No AD group found'
+                    ret[name] = 'Directory Group not found'
                 }
             }
 
@@ -272,7 +273,7 @@ class DefaultRoleService extends BaseRoleService {
     // Implementation/Framework
     //---------------------------
     final Map<String, Object> loadUsersForDirectoryGroups(Set<String> directoryGroups) {
-        !directoryGroups ? emptyMap() : doLoadUsersForDirectoryGroups(directoryGroups)
+        doLoadUsersForDirectoryGroups(directoryGroups)
     }
 
     void refreshRoleAssignments() {
@@ -300,6 +301,7 @@ class DefaultRoleService extends BaseRoleService {
                 }
                 _usersForDirectoryGroups = usersForDirectoryGroups
             } catch (Throwable e) {
+                // Leave existing _usersForDirectoryGroups cache in place, log error, and continue.
                 logError("Error resolving users for directory groups", e)
             }
         }
