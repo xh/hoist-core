@@ -91,16 +91,16 @@ class XhController extends BaseController {
     //------------------------
     def track() {
         ensureClientUsernameMatchesSession()
-        def query = parseRequestJSON()
+        def query = parseRequestJSON([safeEncode: true])
         trackService.track(
-            category: safeEncode(query.category as String),
-            msg: safeEncode(query.msg as String),
+            category: query.category,
+            msg: query.msg,
             data: query.data,
             logData: query.logData,
             elapsed: query.elapsed,
-            severity: safeEncode(query.severity as String),
-            url: safeEncode(query.url as String),
-            appVersion: safeEncode(query.appVersion as String)
+            severity: query.severity,
+            url: query.url,
+            appVersion: query.appVersion
         )
         renderJSON(success: true)
     }
@@ -232,12 +232,12 @@ class XhController extends BaseController {
     //------------------------
     def submitError() {
         ensureClientUsernameMatchesSession()
-        def query = parseRequestJSON()
+        def query = parseRequestJSON([safeEncode: true])
         clientErrorService.submit(
-            safeEncode(query.msg as String),
-            safeEncode(query.error as String),
-            safeEncode(query.appVersion as String),
-            safeEncode(query.url as String),
+            query.msg as String,
+            query.error as String,
+            query.appVersion as String,
+            query.url as String,
             query.userAlerted as Boolean
         )
         renderJSON(success: true)
