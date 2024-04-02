@@ -93,14 +93,14 @@ class XhController extends BaseController {
         ensureClientUsernameMatchesSession()
         def query = parseRequestJSON()
         trackService.track(
-            category: query.category? safeEncode(query.category.toString()): null,
-            msg: query.msg? safeEncode(query.msg.toString()): null,
-            data: query.data ? parseObjectOrArray(safeEncode(query.data.toString())) : null,
-            logData: query.logData? (query.logData == 'true' || query.logData == 'false' ? parseBoolean(query.logData.toString()) : query.logData.toString()?.split(',')): null,
-            elapsed: query.elapsed? query.elapsed: null,
-            severity: query.severity? safeEncode(query.severity.toString()): null,
-            url: query.url? safeEncode(query.url.toString()): null,
-            appVersion: query.appVersion? safeEncode(query.appVersion.toString()): null
+            category: safeEncode(query.category as String),
+            msg: safeEncode(query.msg as String),
+            data: parseObjectOrArray(safeEncode(query.data as String)),
+            logData: (query.logData == 'true' || query.logData == 'false') ? parseBoolean(query.logData as String) : (query.logData as String).split(','),
+            elapsed: query.elapsed,
+            severity: safeEncode(query.severity as String),
+            url: safeEncode(query.url as String),
+            appVersion: safeEncode(query.appVersion as String)
         )
         renderJSON(success: true)
     }
@@ -234,11 +234,11 @@ class XhController extends BaseController {
         ensureClientUsernameMatchesSession()
         def query = parseRequestJSON()
         clientErrorService.submit(
-            query.msg? safeEncode(query.msg.toString()): null,
-            query.error? safeEncode(query.error.toString()): null,
-            query.appVersion? safeEncode(query.appVersion.toString()): null,
-            query.url? safeEncode(query.url.toString()): null,
-            query.userAlerted? parseBoolean(query.userAlerted.toString()): null
+            safeEncode(query.msg as String),
+            safeEncode(query.error as String),
+            safeEncode(query.appVersion as String),
+            safeEncode(query.url as String),
+            parseBoolean(query.userAlerted as String)
         )
         renderJSON(success: true)
     }
