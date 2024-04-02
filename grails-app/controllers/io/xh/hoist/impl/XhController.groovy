@@ -95,8 +95,8 @@ class XhController extends BaseController {
         trackService.track(
             category: safeEncode(query.category as String),
             msg: safeEncode(query.msg as String),
-            data: parseObjectOrArray(safeEncode(query.data as String)),
-            logData: (query.logData == 'true' || query.logData == 'false') ? parseBoolean(query.logData as String) : (query.logData as String).split(','),
+            data: query.data,
+            logData: query.logData,
             elapsed: query.elapsed,
             severity: safeEncode(query.severity as String),
             url: safeEncode(query.url as String),
@@ -238,7 +238,7 @@ class XhController extends BaseController {
             safeEncode(query.error as String),
             safeEncode(query.appVersion as String),
             safeEncode(query.url as String),
-            parseBoolean(query.userAlerted as String)
+            query.userAlerted as Boolean
         )
         renderJSON(success: true)
     }
