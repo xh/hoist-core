@@ -165,12 +165,15 @@ class DefaultRoleService extends BaseRoleService {
      * enabled LdapService in the application.  Override this method to customize directory-based
      * lookup to attach to different, or additional external datasources.
      *
+     * If strictMode is true, implementations should throw on any partial failures.  Otherwise, they
+     * should log, and make a best-faith effort to return whatever groups they can load.
+     *
      * Method Map of directory group names to either:
      *  a) Set<String> of assigned users
      *     OR
      *  b) String describing lookup error.
      */
-    protected Map<String, Object> doLoadUsersForDirectoryGroups(Set<String> groups) {
+    protected Map<String, Object> doLoadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
         if (!groups) return emptyMap()
         if (!ldapService.enabled) {
             return groups.collectEntries{[it, 'LdapService not enabled in this application']}
@@ -181,7 +184,7 @@ class DefaultRoleService extends BaseRoleService {
 
         // 1) Determine valid groups
         ldapService
-            .lookupGroups(groups)
+            .lookupGroups(groups, strictMode)
             .each {name, group ->
                 if (group) {
                     foundGroups << name
@@ -192,7 +195,7 @@ class DefaultRoleService extends BaseRoleService {
 
         // 2) Search for members of valid groups
         ldapService
-            .lookupGroupMembers(foundGroups)
+            .lookupGroupMembers(foundGroups, strictMode)
             .each {name, members ->
                 ret[name] = members.collect(new HashSet()) { it.samaccountname.toLowerCase()}
             }
@@ -272,8 +275,8 @@ class DefaultRoleService extends BaseRoleService {
     //---------------------------
     // Implementation/Framework
     //---------------------------
-    final Map<String, Object> loadUsersForDirectoryGroups(Set<String> directoryGroups) {
-        doLoadUsersForDirectoryGroups(directoryGroups)
+    final Map<String, Object> loadUsersForDirectoryGroups(Set<String> directoryGroups, boolean strictMode) {
+        doLoadUsersForDirectoryGroups(directoryGroups, strictMode)
     }
 
     void refreshRoleAssignments() {
@@ -289,10 +292,14 @@ class DefaultRoleService extends BaseRoleService {
 
         if (directoryGroupsSupported) {
             Set<String> groups = roles.collectMany(new HashSet()) { it.directoryGroups }
-            // Wrapped here to avoid failing implementations from ever bringing down app.
+
+            // Error handling on resolution.  Can be complex (e.g. parallel LDAP calls) so be robust.
+            // If we don't have results, take any results we can get, but
+            // if we do have results, never replace them with non-complete/imperfect set.
+            boolean strictMode = _usersForDirectoryGroups as boolean
             try {
                 Map<String, Object> usersForDirectoryGroups = [:]
-                loadUsersForDirectoryGroups(groups).each { k, v ->
+                loadUsersForDirectoryGroups(groups, strictMode).each { k, v ->
                     if (v instanceof Set) {
                         usersForDirectoryGroups[k] = v
                     } else {

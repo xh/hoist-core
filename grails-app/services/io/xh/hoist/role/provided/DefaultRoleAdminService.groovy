@@ -42,7 +42,7 @@ class DefaultRoleAdminService extends BaseService {
             Set<String> groups = roles.collectMany(new HashSet()) { it.directoryGroups }
             if (groups) {
                 try {
-                    Map<String, Object> groupsLookup = defaultRoleService.loadUsersForDirectoryGroups(groups)
+                    Map<String, Object> groupsLookup = defaultRoleService.loadUsersForDirectoryGroups(groups, true)
                     usersForGroups = groupsLookup.findAll { it.value instanceof Set }
                     errorsForGroups = groupsLookup.findAll { !(it.value instanceof Set) }
                 } catch (Throwable e) {
