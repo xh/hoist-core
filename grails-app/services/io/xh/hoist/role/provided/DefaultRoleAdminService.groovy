@@ -41,9 +41,15 @@ class DefaultRoleAdminService extends BaseService {
         if (defaultRoleService.directoryGroupsSupported) {
             Set<String> groups = roles.collectMany(new HashSet()) { it.directoryGroups }
             if (groups) {
-                Map<String, Object> groupsLookup = defaultRoleService.loadUsersForDirectoryGroups(groups)
-                usersForGroups = groupsLookup.findAll { it.value instanceof Set }
-                errorsForGroups = groupsLookup.findAll { !(it.value instanceof Set) }
+                try {
+                    Map<String, Object> groupsLookup = defaultRoleService.loadUsersForDirectoryGroups(groups, true)
+                    usersForGroups = groupsLookup.findAll { it.value instanceof Set }
+                    errorsForGroups = groupsLookup.findAll { !(it.value instanceof Set) }
+                } catch (Throwable e) {
+                    def errMsg = 'Error resolving Directory Groups'
+                    logError(errMsg, e)
+                    errorsForGroups = groups.collectEntries {[it, errMsg] }
+                }
             }
         }
 

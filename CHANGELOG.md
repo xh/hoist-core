@@ -36,9 +36,16 @@
   `JSON` object posted in the `body`. This is pattern is preferred over using a `fetchJSON` request with
   `params` posted in the request header.
 
+* `DefaultRoleService` has improved error handling for failed directory group lookups.
+* `LdapService` bulk lookup methods now provide a `strict` option to throw if a query fails rather than
+   quietly returning an empty result.
+
 ### 💥 Breaking Changes
 
 * Requires `hoist-react >= 63.0` for client-side support of the new `track` and `submitError` endpoints.
+* Implementations of `DefaultRoleService.doLoadUsersForDirectoryGroups`  will need to handle a new
+ `strictMode` flag provided as a second argument.
+
 
 ## 18.5.2 - 2024-04-03
 
