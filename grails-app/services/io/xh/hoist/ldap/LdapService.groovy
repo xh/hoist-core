@@ -126,34 +126,32 @@ class LdapService extends BaseService {
         if (ret != null) return ret
 
         withDebug(["Querying LDAP", [host: host, filter: filter]]) {
-            LdapNetworkConnection conn
-            boolean didBind = false
-            try {
-
+            try (LdapNetworkConnection conn = new LdapNetworkConnection(host)) {
                 String baseDn = isPerson ? server.baseUserDn : server.baseGroupDn,
-                    username = configService.getString('xhLdapUsername'),
-                    password = configService.getPwd('xhLdapPassword')
+                       username = configService.getString('xhLdapUsername'),
+                       password = configService.getPwd('xhLdapPassword')
                 String[] keys = objType.keys.toArray() as String[]
 
-                conn = new LdapNetworkConnection(host)
                 conn.timeOut = config.timeoutMs as Long
-                conn.bind(username, password)
-                didBind = true
-                ret = conn.search(baseDn, filter, SearchScope.SUBTREE, keys)
-                    .collect { objType.create(it.attributes as Collection<Attribute>) }
-                cache.put(key, ret)
+
+                boolean didBind = false
+                try {
+                    conn.bind(username, password)
+                    didBind = true
+                    ret = conn.search(baseDn, filter, SearchScope.SUBTREE, keys)
+                        .collect { objType.create(it.attributes as Collection<Attribute>) }
+                    cache.put(key, ret)
+                } finally {
+                    // Calling unBind on an unbound connection will throw an exception
+                    if (didBind) conn.unBind()
+                }
             } catch (Exception e) {
                 if (strictMode) throw e
                 logError("Failure querying", [host: host, filter: filter], e)
                 ret = null
-            } finally {
-                // Calling unBind on an unbound connection will throw an exception
-                if (didBind) conn.unBind()
-                conn?.close()
             }
         }
         return ret
-
     }
 
     private Map getConfig() {
