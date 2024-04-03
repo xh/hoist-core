@@ -21,6 +21,9 @@ class TrackLog implements JSONFormat {
     String device
     String userAgent
     String data
+    String appVersion
+    String appEnvironment
+    String url
     Integer elapsed
     String severity
     Date dateCreated
@@ -34,13 +37,16 @@ class TrackLog implements JSONFormat {
     }
 
     static constraints = {
+        msg(maxSize: 255)
         username(maxSize: 50)
         category(maxSize: 100)
-        msg(maxSize: 255)
         browser(nullable: true, maxSize: 100)
         device(nullable: true, maxSize: 100)
         userAgent(nullable: true)
-        data(nullable: true, validator: {Utils.isJSON(it) ?: 'default.invalid.json.message'})
+        data(nullable: true, validator: { Utils.isJSON(it) ?: 'default.invalid.json.message'})
+        appVersion(nullable: true, maxSize: 100)
+        appEnvironment(nullable: true, maxSize: 100)
+        url(nullable: true, maxSize: 500)
         elapsed(nullable: true)
         impersonating(nullable: true, maxSize: 50)
     }
@@ -60,7 +66,10 @@ class TrackLog implements JSONFormat {
                 data: data,
                 elapsed: elapsed,
                 severity: severity,
-                impersonating: impersonating
+                impersonating: impersonating,
+                appVersion    : appVersion,
+                appEnvironment: appEnvironment,
+                url           : url,
         ]
     }
 

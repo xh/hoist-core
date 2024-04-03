@@ -11,6 +11,7 @@ import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
@@ -109,7 +110,10 @@ class TrackService extends BaseService implements EventPublisher {
             device: getDevice(userAgent),
             elapsed: params.elapsed,
             severity: params.severity ?: 'INFO',
-            data: data
+            data: data,
+            url: params.url,
+            appVersion: params.appVersion ?: Utils.appVersion,
+            appEnvironment: Utils.appEnvironment
         ]
 
         // Execute asynchronously after we get info from request, don't block application thread.

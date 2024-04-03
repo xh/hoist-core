@@ -2,6 +2,44 @@
 
 ## 19.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* New `TrackLogAdminService` and `ClientErrorAdminService` services provide a more bespoke set of methods
+  for querying `TrackLog` and `ClientError` records.
+  * These services utilize HQL criterion to allow for filters posted by the Hoist Admin Console to be applied
+    directly to the server-side query.
+* Client error reports now include `impersonating` field for additional troubleshooting context.
+    * ⚠ NOTE - this requires a new, nullable varchar(50) column be added to the xh_client_error
+      table in your app's configuration database. Review and run the following SQL, or an equivalent
+      suitable for the particular database you are using:
+
+      ```sql
+      ALTER TABLE `xh_client_error` ADD COLUMN `impersonating` VARCHAR(50) NULL;
+      ```
+* Track log reports now include `appVersion`, `appEnvironment`, and `url`,  fields for additional
+  activity context.
+  * ⚠ NOTE - this requires new, nullable varchar(100), nullable varchar(100), and nullable varchar(500)
+    columns to be added to the xh_track_log table in your app's configuration database for `appVersion`,
+    `appEnvironment`, and `url` respectively. Review and run the following SQL, or an equivalent
+    suitable for the particular database you are using:
+
+    ```sql
+    ALTER TABLE `xh_track_log` ADD COLUMN `appVersion` VARCHAR(100) NULL;
+    ALTER TABLE `xh_track_log` ADD COLUMN `appEnvironment` VARCHAR(100) NULL;
+    ALTER TABLE `xh_track_log` ADD COLUMN `url` VARCHAR(500) NULL;
+    ```
+* `TrackService` now logs `appVersion`, `appEnvironment`, and `url` fields in `TrackLog` records.
+
+### ⚙️ Technical
+
+* `XhController` endpoints `track` and `submitError` now expect to be visited via a `postJSON` request with a
+  `JSON` object posted in the `body`. This is pattern is preferred over using a `fetchJSON` request with
+  `params` posted in the request header.
+
+### 💥 Breaking Changes
+
+* Requires `hoist-react >= 63.0` for client-side support of the new `track` and `submitError` endpoints.
+
 
 ## 18.5.1 - 2024-03-08
 
