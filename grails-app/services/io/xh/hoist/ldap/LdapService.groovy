@@ -55,7 +55,7 @@ class LdapService extends BaseService {
     }
 
     List<LdapPerson> lookupGroupMembers(String dn) {
-        lookupGroupInternal(dn, true)
+        lookupGroupMembersInternal(dn, true)
     }
 
     List<LdapGroup> findGroups(String sNamePart) {
@@ -123,7 +123,7 @@ class LdapService extends BaseService {
             key = server.toString() + filter
 
         List<T> ret = cache.get(key)
-        if (ret) return ret
+        if (ret != null) return ret
 
         withDebug(["Querying LDAP", [host: host, filter: filter]]) {
             LdapNetworkConnection conn
