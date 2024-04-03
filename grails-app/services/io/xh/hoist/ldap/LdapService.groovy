@@ -127,6 +127,7 @@ class LdapService extends BaseService {
 
         withDebug(["Querying LDAP", [host: host, filter: filter]]) {
             LdapNetworkConnection conn
+            boolean didBind = false
             try {
 
                 String baseDn = isPerson ? server.baseUserDn : server.baseGroupDn,
@@ -137,6 +138,7 @@ class LdapService extends BaseService {
                 conn = new LdapNetworkConnection(host)
                 conn.timeOut = config.timeoutMs as Long
                 conn.bind(username, password)
+                didBind = true
                 ret = conn.search(baseDn, filter, SearchScope.SUBTREE, keys)
                     .collect { objType.create(it.attributes as Collection<Attribute>) }
                 cache.put(key, ret)
@@ -145,7 +147,8 @@ class LdapService extends BaseService {
                 logError("Failure querying", [host: host, filter: filter], e)
                 ret = null
             } finally {
-                conn?.unBind()
+                // Calling unBind on an unbound connection will throw an exception
+                if (didBind) conn.unBind()
                 conn?.close()
             }
         }
