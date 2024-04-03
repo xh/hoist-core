@@ -40,6 +40,12 @@
 
 * Requires `hoist-react >= 63.0` for client-side support of the new `track` and `submitError` endpoints.
 
+## 18.5.2 - 2024-04-03
+
+### 🐞 Bug Fixes
+
+* Fixed bug in `DefaultRoleService.doLoadUsersForDirectoryGroups` where LDAP members with `null`
+  samAccountNames were not being filtered out, causing `NullPointerExceptions`.
 
 ## 18.5.1 - 2024-03-08
 
