@@ -194,9 +194,9 @@ class DefaultRoleService extends BaseRoleService {
         ldapService
             .lookupGroupMembers(foundGroups)
             .each {name, members ->
-                ret[name] = members
-                    .collect(new HashSet()) { it.samaccountname?.toLowerCase() }
-                    .remove(null)
+                ret[name] = members.collect(new HashSet()) { it.samaccountname?.toLowerCase() }
+                // Exclude members without a samaccountname (e.g. email-only contacts within a DL)
+                ret[name].remove(null)
             }
 
         return ret
