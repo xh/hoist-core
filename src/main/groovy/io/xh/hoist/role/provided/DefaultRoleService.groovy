@@ -190,7 +190,9 @@ class DefaultRoleService extends BaseRoleService {
         ldapService
             .lookupGroupMembers(foundGroups)
             .each {name, members ->
-                ret[name] = members.collect(new HashSet()) { it.samaccountname.toLowerCase()}
+                ret[name] = members
+                    .collect(new HashSet()) { it.samaccountname?.toLowerCase() }
+                    .remove(null)
             }
 
         return ret
