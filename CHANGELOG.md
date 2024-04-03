@@ -2,50 +2,38 @@
 
 ## 19.0.0 - 2024-04-03
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - latest Hoist React + DB col additions)
+
+* Requires `hoist-react >= 63.0` for client-side changes to accommodate updated `track`
+  and `submitError` APIs. See below for database column additions to support the same.
+* Implementations of `DefaultRoleService.doLoadUsersForDirectoryGroups` will need to handle a new
+  `strictMode` flag provided as a second argument.
+
 ### 🎁 New Features
 
-* New `TrackLogAdminService` and `ClientErrorAdminService` services provide a more bespoke set of methods
-  for querying `TrackLog` and `ClientError` records.
-  * These services utilize HQL criterion to allow for filters posted by the Hoist Admin Console to be applied
-    directly to the server-side query.
-* Client error reports now include `impersonating` field for additional troubleshooting context.
-    * ⚠ NOTE - this requires a new, nullable varchar(50) column be added to the xh_client_error
-      table in your app's configuration database. Review and run the following SQL, or an equivalent
-      suitable for the particular database you are using:
-
+* Client error reports include a new `impersonating` field for additional troubleshooting context.
+    * ⚠ NOTE - this requires a new column in the `xh_client_error` table. Review and run the
+      following SQL, or an equivalent suitable for the particular database you are using:
       ```sql
       ALTER TABLE `xh_client_error` ADD COLUMN `impersonating` VARCHAR(50) NULL;
       ```
-* Track log reports now include `appVersion`, `appEnvironment`, and `url`,  fields for additional
-  activity context.
-  * ⚠ NOTE - this requires new, nullable varchar(100), nullable varchar(100), and nullable varchar(500)
-    columns to be added to the xh_track_log table in your app's configuration database for `appVersion`,
-    `appEnvironment`, and `url` respectively. Review and run the following SQL, or an equivalent
-    suitable for the particular database you are using:
-
-    ```sql
-    ALTER TABLE `xh_track_log` ADD COLUMN `appVersion` VARCHAR(100) NULL;
-    ALTER TABLE `xh_track_log` ADD COLUMN `appEnvironment` VARCHAR(100) NULL;
-    ALTER TABLE `xh_track_log` ADD COLUMN `url` VARCHAR(500) NULL;
-    ```
-* `TrackService` now logs `appVersion`, `appEnvironment`, and `url` fields in `TrackLog` records.
+* Activity tracking logs include new `appVersion`, `appEnvironment` and `url` fields.
+    * ⚠ NOTE - this requires new columns in the `xh_track_log` table. Review and run the following
+      SQL, or an equivalent suitable for the particular database you are using:
+      ```sql
+      ALTER TABLE `xh_track_log` ADD COLUMN `appVersion` VARCHAR(100) NULL;
+      ALTER TABLE `xh_track_log` ADD COLUMN `appEnvironment` VARCHAR(100) NULL;
+      ALTER TABLE `xh_track_log` ADD COLUMN `url` VARCHAR(500) NULL;
+      ```
 
 ### ⚙️ Technical
 
-* `XhController` endpoints `track` and `submitError` now expect to be visited via a `postJSON` request with a
-  `JSON` object posted in the `body`. This is pattern is preferred over using a `fetchJSON` request with
-  `params` posted in the request header.
-
 * `DefaultRoleService` has improved error handling for failed directory group lookups.
-* `LdapService` bulk lookup methods now provide a `strict` option to throw if a query fails rather than
-   quietly returning an empty result.
-
-### 💥 Breaking Changes
-
-* Requires `hoist-react >= 63.0` for client-side support of the new `track` and `submitError` endpoints.
-* Implementations of `DefaultRoleService.doLoadUsersForDirectoryGroups`  will need to handle a new
- `strictMode` flag provided as a second argument.
-
+* `LdapService` bulk lookup methods now provide a `strict` option to throw if a query fails rather
+  than quietly returning an empty result.
+* New `TrackLogAdminService` and `ClientErrorAdminService` services provide improved APIs for
+  querying `TrackLog` and `ClientError` records. Leveraged by updated Hoist Admin Console to post
+  selected filters to the server and return more relevant data within configured row limits.
 
 ## 18.5.2 - 2024-04-03
 
@@ -58,11 +46,12 @@
 
 ### ⚙️ Technical
 
-* Quiet log warnings from `LdapNetworkConnection` in `LdapService` by setting the `LdapNetworkConnection` log level to `ERROR`.
+* Quiet log warnings from `LdapNetworkConnection` in `LdapService` by setting
+  the `LdapNetworkConnection` log level to `ERROR`.
 
 ## 18.5.0 - 2024-03-08
 
-### 💥 Breaking Changes
+### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL)
 
 * Method `DefaultRoleService.ensureUserHasRoles` has been renamed to `assignRole`.
   The new name more clearly describes that the code will actually grant an additional
