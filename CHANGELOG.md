@@ -2,15 +2,126 @@
 
 ## 20.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+
+* Hoist Core v20 provides support for running multi-instance clusters of Hoist application servers.
+  Cluster management is provided by the use of Hazelcast (www.hazelcast.com), an open-source library
+  providing embedded java support for inter-server communication, co-ordination, and data sharing.
+  See the new `ClusterService.groovy` service, which provides the clustering implementation and main
+  API entry point for accessing the cluster.
+  ** Applications/client plugins upgrading to v18 will need to provide a cluster configuration class
+  with the name `ClusterConfig.groovy`.  See toolbox for an example of this file.
+  ** Applications should fix their Hazelcast version with the following line in their gradle.properties:
+  `hazelcast.version=5.3.2`
+  ** Applications that intend to run with more than one server *must* enable sticky sessions when
+  routing clients to servers.  This is critical for the correct operation of authentication
+  and web socket communications.
+  ** Many applications will *not* need to implement additional changes beyond the above to
+  run with multi-instances; Hoist will setup the cluster, elect a master instance,  provide
+  cluster-aware hibernate caching and logging, and ensure cross-server consistency for its own
+  APIs.
+  ** However, complex applications -- especially applications with state, workflow, or business
+  logic -- should take care to ensure the app is safe to run in multi-instance mode. Distributed
+  data structures (e.g. Hazelcast  Maps) should be used as needed, as well as limiting certain
+  actions to the "master" server.  See toolbox, or Hoist for help.
+  ** `hoist-react >= 64.0` is required.
+* New support for reporting of service statistics for trobuleshooting/monitoring.  Implement
+  `BaseService.getAdminStats()` to provide diagnostic metadata about the state of your service that
+  will then be displayed in the admin client.
+* All `Throwable`s are now serialized to JSON by default using Hoist's standard customization of
+  Jackson.
+
+### Breaking Changes
+* The following server-side Hoist events are now implemented as cluster-wide Hazelcast messages
+  rather than single-server Grails events:
+  ** 'xhFeedbackReceived', 'xhClientErrorReceived', 'xhConfigChanged', and 'xhMonitorStatusReport'
+  Any applications that are listening to these events with `BaseService.subscribe` should instead use
+  the new cluster aware method `BaseService.subscribeToTopic`.
+* The `exceptionRenderer` singleton has been simplified and renamed as `xhExceptionHandler`. This
+  change was needed to better support cross-cluster exception handling. This object is used by
+  Hoist internally for catching uncaught exceptions and this change is not expected to impact
+  most applications.
+
+* New support for Role Management.
+    * Hoist now supports an out-of-the-box, database-driven system for maintaining a hierarchical
+      set of roles and associating them with individual users.
+    * New system supports app and plug-in specific integrations to AD and other enterprise systems.
+    * Hoist-react `v64` is now required and will provide an administrative UI to visualize and
+      manage the new role system.
+    * See `DefaultRoleService` for more information.
+
+### ⚙️ Technical
+
+* Add `xh/echoHeaders` utility endpoint. Useful for verifying headers (e.g. `jespa_connection_id`)
+  that are installed by or must pass through multiple ingresses/load balancers.
+* Remove HTML tag escaping when parsing alert banner create/update request JSON.
+
+### 💥 Breaking Changes
+
+* Applications will typically need to adjust their implementation of `BaseRoleService`. Most
+  applications are expected to adopt the new provided `DefaultRoleService`, and may be required to
+  migrate existing code/data to the new API. Applications that wish to continue to use a completely
+  custom `BaseRoleService` will need to implement one additional method: `getUsersForRole`.
+
+### 📚 Libraries
+* grails `6.1.0`
+* gorm `8.0.1`
+* hazelcast `5.3.6`
+
+
+## 19.0.0 - 2024-04-03
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - latest Hoist React + DB col additions)
+
+* Requires `hoist-react >= 63.0` for client-side changes to accommodate updated `track`
+  and `submitError` APIs. See below for database column additions to support the same.
+* Implementations of `DefaultRoleService.doLoadUsersForDirectoryGroups` will need to handle a new
+  `strictMode` flag provided as a second argument.
+
+### 🎁 New Features
+
+* Client error reports include a new `impersonating` field for additional troubleshooting context.
+    * ⚠ NOTE - this requires a new column in the `xh_client_error` table. Review and run the
+      following SQL, or an equivalent suitable for the particular database you are using:
+      ```sql
+      ALTER TABLE `xh_client_error` ADD COLUMN `impersonating` VARCHAR(50) NULL;
+      ```
+* Activity tracking logs include new `appVersion`, `appEnvironment` and `url` fields.
+    * ⚠ NOTE - this requires new columns in the `xh_track_log` table. Review and run the following
+      SQL, or an equivalent suitable for the particular database you are using:
+      ```sql
+      ALTER TABLE `xh_track_log` ADD COLUMN `appVersion` VARCHAR(100) NULL;
+      ALTER TABLE `xh_track_log` ADD COLUMN `appEnvironment` VARCHAR(100) NULL;
+      ALTER TABLE `xh_track_log` ADD COLUMN `url` VARCHAR(500) NULL;
+      ```
+
+### ⚙️ Technical
+
+* `DefaultRoleService` has improved error handling for failed directory group lookups.
+* `LdapService` bulk lookup methods now provide a `strict` option to throw if a query fails rather
+  than quietly returning an empty result.
+* New `TrackLogAdminService` and `ClientErrorAdminService` services provide improved APIs for
+  querying `TrackLog` and `ClientError` records. Leveraged by updated Hoist Admin Console to post
+  selected filters to the server and return more relevant data within configured row limits.
+
+## 18.5.2 - 2024-04-03
+
+### 🐞 Bug Fixes
+
+* Fixed bug in `DefaultRoleService.doLoadUsersForDirectoryGroups` where LDAP members with `null`
+  samAccountNames were not being filtered out, causing `NullPointerExceptions`.
+
 ## 18.5.1 - 2024-03-08
 
 ### ⚙️ Technical
 
-* Quiet log warnings from `LdapNetworkConnection` in `LdapService` by setting the `LdapNetworkConnection` log level to `ERROR`.
+* Quiet log warnings from `LdapNetworkConnection` in `LdapService` by setting
+  the `LdapNetworkConnection` log level to `ERROR`.
 
 ## 18.5.0 - 2024-03-08
 
-### 💥 Breaking Changes
+### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL)
 
 * Method `DefaultRoleService.ensureUserHasRoles` has been renamed to `assignRole`.
   The new name more clearly describes that the code will actually grant an additional
@@ -102,45 +213,6 @@
 
 ### 🎁 New Features
 
-
-* Hoist Core v18 provides support for running multi-instance clusters of Hoist application servers.
-  Cluster management is provided by the use of Hazelcast (www.hazelcast.com), an open-source library
-  providing embedded java support for inter-server communication, co-ordination, and data sharing.
-  See the new `ClusterService.groovy` service, which provides the clustering implementation and main
-  API entry point for accessing the cluster.
-  ** Applications/client plugins upgrading to v18 will need to provide a cluster configuration class
-  with the name `ClusterConfig.groovy`.  See toolbox for an example of this file.
-  ** Applications should fix their Hazelcast version with the following line in their gradle.properties:
-  `hazelcast.version=5.3.2`
-  ** Applications that intend to run with more than one server *must* enable sticky sessions when
-  routing clients to servers.  This is critical for the correct operation of authentication
-  and web socket communications.
-  ** Many applications will *not* need to implement additional changes beyond the above to
-  run with multi-instances; Hoist will setup the cluster, elect a master instance,  provide
-  cluster-aware hibernate caching and logging, and ensure cross-server consistency for its own
-  APIs.
-  ** However, complex applications -- especially applications with state, workflow, or business
-  logic -- should take care to ensure the app is safe to run in multi-instance mode. Distributed
-  data structures (e.g. Hazelcast  Maps) should be used as needed, as well as limiting certain
-  actions to the "master" server.  See toolbox, or Hoist for help.
-  ** `hoist-react >= 61.0` is required.
-* New support for reporting of service statistics for trobuleshooting/monitoring.  Implement
-  `BaseService.getAdminStats()` to provide diagnostic metadata about the state of your service that
-  will then be displayed in the admin client.
-* All `Throwable`s are now serialized to JSON by default using Hoist's standard customization of
-  Jackson.
-
-### Breaking Changes
-* The following server-side Hoist events are now implemented as cluster-wide Hazelcast messages
-  rather than single-server Grails events:
-  ** 'xhFeedbackReceived', 'xhClientErrorReceived', 'xhConfigChanged', and 'xhMonitorStatusReport'
-  Any applications that are listening to these events with `BaseService.subscribe` should instead use
-  the new cluster aware method `BaseService.subscribeToTopic`.
-* The `exceptionRenderer` singleton has been simplified and renamed as `xhExceptionHandler`. This
-  change was needed to better support cross-cluster exception handling. This object is used by
-  Hoist internally for catching uncaught exceptions and this change is not expected to impact
-  most applications.
-
 * New support for Role Management.
     * Hoist now supports an out-of-the-box, database-driven system for maintaining a hierarchical
       set of roles and associating them with individual users.
@@ -161,11 +233,6 @@
   applications are expected to adopt the new provided `DefaultRoleService`, and may be required to
   migrate existing code/data to the new API. Applications that wish to continue to use a completely
   custom `BaseRoleService` will need to implement one additional method: `getUsersForRole`.
-
-### 📚 Libraries
-* grails `6.1.0`
-* gorm `8.0.1`
-* hazelcast `5.3.6`
 
 ## 17.4.0 - 2023-11-09
 

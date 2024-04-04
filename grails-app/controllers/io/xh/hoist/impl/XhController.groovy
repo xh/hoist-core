@@ -91,15 +91,18 @@ class XhController extends BaseController {
     //------------------------
     // Tracking
     //------------------------
-    def track(String category, String msg, String data, String logData, int elapsed, String severity) {
+    def track() {
         ensureClientUsernameMatchesSession()
+        def query = parseRequestJSON([safeEncode: true])
         trackService.track(
-            category: safeEncode(category),
-            msg: safeEncode(msg),
-            data: data ? parseObjectOrArray(safeEncode(data)) : null,
-            logData: logData == 'true' || logData == 'false' ? parseBoolean(logData) : logData?.split(','),
-            elapsed: elapsed,
-            severity: safeEncode(severity)
+            category: query.category,
+            msg: query.msg,
+            data: query.data,
+            logData: query.logData,
+            elapsed: query.elapsed,
+            severity: query.severity,
+            url: query.url,
+            appVersion: query.appVersion
         )
         renderJSON(success: true)
     }
@@ -230,14 +233,15 @@ class XhController extends BaseController {
     //------------------------
     // Client Errors
     //------------------------
-    def submitError(String msg, String error, String appVersion, String url, boolean userAlerted) {
+    def submitError() {
         ensureClientUsernameMatchesSession()
+        def query = parseRequestJSON([safeEncode: true])
         clientErrorService.submit(
-            safeEncode(msg),
-            safeEncode(error),
-            safeEncode(appVersion),
-            safeEncode(url),
-            userAlerted
+            query.msg as String,
+            query.error as String,
+            query.appVersion as String,
+            query.url as String,
+            query.userAlerted as Boolean
         )
         renderJSON(success: true)
     }

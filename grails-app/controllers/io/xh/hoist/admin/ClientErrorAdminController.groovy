@@ -9,47 +9,34 @@ package io.xh.hoist.admin
 
 import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseController
-import io.xh.hoist.clienterror.ClientError
+import io.xh.hoist.clienterror.ClientErrorAdminService
 import io.xh.hoist.security.Access
 
-import static io.xh.hoist.util.DateTimeUtils.appStartOfDay
-import static io.xh.hoist.util.DateTimeUtils.appEndOfDay
+import static io.xh.hoist.util.DateTimeUtils.appDay
 import static io.xh.hoist.util.DateTimeUtils.parseLocalDate
-import static java.lang.Integer.parseInt
+import io.xh.hoist.data.filter.Filter
+import java.time.LocalDate
+
 
 
 @Access(['HOIST_ADMIN_READER'])
 class ClientErrorAdminController extends BaseController {
 
+    ClientErrorAdminService clientErrorAdminService
     static int DEFAULT_MAX_ROWS = 25000
 
     @ReadOnly
     def index() {
-        def startDay = parseLocalDate(params.startDay),
-            endDay = parseLocalDate(params.endDay),
-            maxRows = params.maxRows ? parseInt(params.maxRows) : DEFAULT_MAX_ROWS
+        def query = parseRequestJSON(),
+        startDay = query.startDay? parseLocalDate(query.startDay) : LocalDate.of(1970, 1, 1),
+        endDay = query.endDay? parseLocalDate(query.endDay) : appDay(),
+        filter = Filter.parse(query.filters),
+        maxRows = query.maxRows ?: DEFAULT_MAX_ROWS
 
-        def results = ClientError.findAll(max: maxRows, sort: 'dateCreated', order: 'desc') {
-            if (startDay)          dateCreated >= appStartOfDay(startDay)
-            if (endDay)            dateCreated <= appEndOfDay(endDay)
-            if (params.username)    username =~ "%$params.username%"
-            if (params.error)       error =~ "%$params.error%"
-        }
-
-        renderJSON(results)
+        renderJSON(clientErrorAdminService.queryClientError(startDay, endDay, filter, maxRows))
     }
 
     def lookups() {
-        renderJSON([
-            usernames: distinctVals('username')
-        ])
+        renderJSON(clientErrorAdminService.lookups())
     }
-
-
-    private List distinctVals(String property) {
-        return ClientError.createCriteria().list {
-            projections { distinct(property) }
-        }.sort()
-    }
-
 }
