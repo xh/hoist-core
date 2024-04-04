@@ -1,6 +1,6 @@
 # Changelog
 
-## 19.0.0 - 2024-04-03
+## 19.0.0 - 2024-04-04
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - latest Hoist React + DB col additions)
 
