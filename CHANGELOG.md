@@ -1,5 +1,7 @@
 # Changelog
 
+## 20.0-SNAPSHOT - unreleased
+
 ## 19.0.0 - 2024-04-04
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - latest Hoist React + DB col additions)
