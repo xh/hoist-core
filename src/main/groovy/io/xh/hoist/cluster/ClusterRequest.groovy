@@ -4,7 +4,7 @@ import io.xh.hoist.log.LogSupport
 import java.util.concurrent.Callable
 import static io.xh.hoist.util.Utils.getExceptionHandler
 
-abstract class ClusterRequest<T> implements Callable<ClusterResponse<T>>, LogSupport {
+abstract class ClusterRequest<T> implements Callable<ClusterResponse<T>>, Serializable, LogSupport {
 
     ClusterResponse<T> call() {
         try {

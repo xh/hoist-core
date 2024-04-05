@@ -17,7 +17,11 @@ import com.hazelcast.config.MaxSizePolicy
 import com.hazelcast.config.NearCacheConfig
 import grails.core.GrailsClass
 import info.jerrinot.subzero.SubZero
+import io.xh.hoist.cache.Entry
+import io.xh.hoist.cluster.ClusterResponse
+import io.xh.hoist.cluster.ReplicatedValueEntry
 import io.xh.hoist.util.Utils
+import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 
 import static grails.util.Holders.grailsApplication
 
@@ -42,10 +46,27 @@ class ClusterConfig {
 
 
     /**
+     * Are multi-instance clusters enabled?
+     *
+     * Defaults to true.  Is set to false, Hoist will not create multi-instance clusters and may
+     * use simpler in-memory  data-structures in place of their Hazelcast counterparts.  Use this
+     * for applications that do not require multi-instance and do not wish to pay the serialization penalty of storing
+     * shared data in Hazelcast.
+     *
+     * Applications and plug-ins may set this value explicitly via the `multiInstanceEnabled`
+     * instance config, or override this method to implement additional logic.
+     */
+    boolean getMultiInstanceEnabled() {
+        return getInstanceConfig('multiInstanceEnabled') !== 'false'
+    }
+
+    /**
      * Override this method to customize the cluster name of the Hazelcast cluster.
      */
     protected String generateClusterName() {
-        Utils.appCode + '_' + Utils.appEnvironment + '_' + Utils.appVersion
+        def ret = Utils.appCode + '_' + Utils.appEnvironment + '_' + Utils.appVersion
+        if (!multiInstanceEnabled) ret +=  '_' + UUID.randomUUID().toString().take(8)
+        return ret
     }
 
     /**
@@ -80,9 +101,23 @@ class ClusterConfig {
         createHibernateConfigs(ret)
         createServiceConfigs(ret)
 
-        SubZero.useAsGlobalSerializer(ret)
+        SubZero.useForClasses(ret, classesForKryo().toArray() as Class[])
 
         return ret
+    }
+
+    /**
+     * Override this method to specify additional classes that should be serialized with Kryo
+     * when being stored in Hazelcast structures.
+     *
+     * Kryo provides a more efficient serialization format and is recommended over default
+     * Java serialization for objects being stored in Hazelcast.
+     *
+     * Note that objects being stored in a Hoist `ReplicatedValue` or cluster-enabled `Cache` will not
+     * need their classes specified in this method.  These objects are always serialized via Kryo.
+     */
+    protected List<Class> classesForKryo() {
+        return [ReplicatedValueEntry, Entry, ClusterResponse]
     }
 
     /**

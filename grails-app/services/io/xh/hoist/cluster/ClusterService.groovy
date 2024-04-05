@@ -50,6 +50,12 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
             System.setProperty('io.xh.hoist.hzInstanceName', instanceName)
         }
     }
+
+    /** Are multi-instance clusters enabled? */
+    static boolean getMultiInstanceEnabled() {
+        clusterConfig.multiInstanceEnabled
+    }
+
     /**
      * Called by Framework to initialize the Hazelcast instance.
      * @internal

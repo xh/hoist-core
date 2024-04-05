@@ -62,7 +62,6 @@ class ClientErrorService extends BaseService {
      */
     void submit(String message, String error, String appVersion, String url, boolean userAlerted) {
         def request = currentRequest
-
         if (!request) {
             throw new RuntimeException('Cannot submit a client error outside the context of an HttpRequest.')
         }
@@ -70,7 +69,8 @@ class ClientErrorService extends BaseService {
         def userAgent = request.getHeader('User-Agent')
 
         if (errors.size() < maxErrors) {
-            errors[authUsername + currentTimeMillis()] = [
+            def now = currentTimeMillis()
+            errors[authUsername + now] = [
                     msg           : message,
                     error         : error,
                     username      : authUsername,
@@ -81,7 +81,7 @@ class ClientErrorService extends BaseService {
                     appEnvironment: Utils.appEnvironment,
                     url           : url?.take(500),
                     userAlerted   : userAlerted,
-                    dateCreated   : new Date(),
+                    dateCreated   : now,
                     impersonating: identityService.impersonating ? username : null
             ]
             logDebug("Client Error received from $authUsername", "queued for processing")
@@ -106,7 +106,7 @@ class ClientErrorService extends BaseService {
             withDebug("Processing $count Client Errors") {
                 def errors = errs.collect {
                     def ce = new ClientError(it)
-                    ce.dateCreated = it.dateCreated
+                    ce.dateCreated = new Date(it.dateCreated)
                     ce.save(flush: true)
                 }
                 getTopic('xhClientErrorReceived').publishAllAsync(errors)
@@ -119,4 +119,5 @@ class ClientErrorService extends BaseService {
         config: configForAdminStats('xhClientErrorConfig'),
         pendingErrorCount: errors.size()
     ]}
+
 }

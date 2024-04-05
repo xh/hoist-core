@@ -27,6 +27,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.DisposableBean
 
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 import static grails.async.Promises.task
@@ -53,7 +54,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     protected final List<Timer> timers = []
 
     private boolean _destroyed = false
-    private ReplicatedMap _repValuesMap
+    private Map _repValuesMap
     private final Logger _log = LoggerFactory.getLogger(this.class)
 
 
@@ -294,7 +295,11 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         this.class.name + '_' + key
     }
 
-    protected ReplicatedMap getRepValuesMap() {
-        _repValuesMap = _repValuesMap ?: getReplicatedMap('replicatedValues')
+    protected Map getRepValuesMap() {
+        _repValuesMap ?= (
+            ClusterService.multiInstanceEnabled ?
+                getReplicatedMap('replicatedValues') :
+                new ConcurrentHashMap()
+        )
     }
 }

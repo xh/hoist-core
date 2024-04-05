@@ -9,6 +9,7 @@ package io.xh.hoist.cache
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
+import io.xh.hoist.cluster.ClusterService
 
 import java.util.concurrent.ConcurrentHashMap
 
@@ -48,7 +49,7 @@ class Cache<K,V> {
         replicate = (boolean) options.replicate
 
         if (!svc) throw new RuntimeException("Missing required argument 'svc' for Cache")
-        if (replicate) {
+        if (replicate && ClusterService.multiInstanceEnabled) {
             if (!name) {
                 throw new RuntimeException("Cannot create a replicated cache without a unique name")
             }
