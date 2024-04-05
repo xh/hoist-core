@@ -12,7 +12,7 @@
   ** Applications/client plugins upgrading to v18 will need to provide a cluster configuration class
   with the name `ClusterConfig.groovy`.  See toolbox for an example of this file.
   ** Applications should fix their Hazelcast version with the following line in their gradle.properties:
-  `hazelcast.version=5.3.2`
+  `hazelcast.version=5.3.6`
   ** Applications that intend to run with more than one server *must* enable sticky sessions when
   routing clients to servers.  This is critical for the correct operation of authentication
   and web socket communications.
@@ -69,7 +69,7 @@
 * hazelcast `5.3.6`
 
 
-## 19.0.0 - 2024-04-03
+## 19.0.0 - 2024-04-04
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - latest Hoist React + DB col additions)
 
