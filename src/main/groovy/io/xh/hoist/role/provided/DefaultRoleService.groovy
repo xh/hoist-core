@@ -360,7 +360,7 @@ class DefaultRoleService extends BaseRoleService {
     }
 
     void clearCaches() {
-        _allRoleAssignments = emptyMap()
+        _allRoleAssignments.set(emptyMap())
         _roleAssignmentsByUser = new ConcurrentHashMap()
         _usersForDirectoryGroups = emptyMap()
         timer.forceRun()
