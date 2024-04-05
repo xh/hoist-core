@@ -4,7 +4,6 @@
 
 ### 🎁 New Features
 
-
 * Hoist Core v20 provides support for running multi-instance clusters of Hoist application servers.
   Cluster management is provided by the use of Hazelcast (www.hazelcast.com), an open-source library
   providing embedded java support for inter-server communication, co-ordination, and data sharing.

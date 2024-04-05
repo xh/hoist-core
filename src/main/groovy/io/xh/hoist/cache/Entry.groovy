@@ -14,6 +14,8 @@ import com.esotericsoftware.kryo.io.Output
 import groovy.transform.CompileStatic
 import io.xh.hoist.log.LogSupport
 
+import static java.lang.System.currentTimeMillis
+
 @CompileStatic
 class Entry<T> implements KryoSerializable, LogSupport {
     String key
@@ -34,7 +36,7 @@ class Entry<T> implements KryoSerializable, LogSupport {
         output.writeBoolean(isRemoving)
         output.writeString(key)
         if (!isRemoving) {
-            withTrace(['Serializing', key]) {
+            withSingleTrace('Serializing') {
                 output.writeLong(dateEntered)
                 kryo.writeClassAndObject(output, value)
             }
@@ -45,11 +47,16 @@ class Entry<T> implements KryoSerializable, LogSupport {
         isRemoving = input.readBoolean()
         key = input.readString()
         if (!isRemoving) {
-            withTrace(['Deserializing', key]) {
+            withSingleTrace('Deserializing') {
                 dateEntered = input.readLong()
                 value = kryo.readClassAndObject(input) as T
             }
         }
     }
 
+    private void withSingleTrace(String msg, Closure c) {
+        Long start = currentTimeMillis()
+        c()
+        logTrace(msg, key, [_elapsedMs: currentTimeMillis() - start])
+    }
 }
