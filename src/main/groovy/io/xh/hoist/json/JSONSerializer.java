@@ -50,7 +50,8 @@ public class JSONSerializer {
                 .addSerializer(JSONFormatCached.class, new JSONFormatCachedSerializer())
                 .addSerializer(JSONFormat.class, new JSONFormatSerializer())
                 .addSerializer(Double.class, new DoubleSerializer())
-                .addSerializer(Float.class, new FloatSerializer());
+                .addSerializer(Float.class, new FloatSerializer())
+                .addSerializer(Throwable.class, new ThrowableSerializer());
         // ... plus one overwrite of JSR 310 standard
         hoistModule.addSerializer(LocalDate.class, new LocalDateSerializer());
 

@@ -78,4 +78,8 @@ class ClientErrorEmailService extends BaseService {
             return null
         }
     }
+
+    Map getAdminStats() {[
+        config: [toAddress: emailService.parseMailConfig('xhEmailSupport')]
+    ]}
 }

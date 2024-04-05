@@ -7,6 +7,8 @@
 
 package io.xh.hoist.alertbanner
 
+
+import io.xh.hoist.cache.Cache
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.json.JSONParser
@@ -36,18 +38,24 @@ class AlertBannerService extends BaseService {
     private final static String presetsBlobName = 'xhAlertBannerPresets';
 
     private final emptyAlert = [active: false]
-    private Map cachedBanner = emptyAlert
+    private Cache<String, Map> cache
 
     void init() {
-        createTimer(
-                runFn: this.&refreshCachedBanner,
-                interval: 2 * MINUTES,
-                runImmediatelyAndBlock: true
-        )
+        cache = new Cache(name: 'cachedBanner', svc: this, expireTime: 2 * MINUTES, replicate: true)
+        super.init()
     }
 
     Map getAlertBanner() {
-        cachedBanner
+        return cache.getOrCreate('value') {
+            def conf = configService.getMap('xhAlertBannerConfig', [:])
+            if (conf.enabled) {
+                def spec = getAlertSpec()
+                if (spec.active && (!spec.expires || spec.expires > currentTimeMillis())) {
+                    return spec
+                }
+            }
+            return emptyAlert
+        }
     }
 
     //--------------------
@@ -68,7 +76,7 @@ class AlertBannerService extends BaseService {
         } else {
             svc.create([type: blobType, name: blobName, value: value], blobOwner)
         }
-        refreshCachedBanner()
+        cache.clear()
     }
 
     List getAlertPresets() {
@@ -88,12 +96,11 @@ class AlertBannerService extends BaseService {
         }
     }
 
-
     //----------------------------
     // Implementation
     //-----------------------------
     private Map readFromSpec() {
-        def conf = configService.getMap('xhAlertBannerConfig', [:])
+        def conf = configService.getMap('xhAlertBannerConfig')
         if (conf.enabled) {
             def spec = getAlertSpec()
             if (spec.active && (!spec.expires || spec.expires > currentTimeMillis())) {
@@ -103,13 +110,13 @@ class AlertBannerService extends BaseService {
         return emptyAlert
     }
 
-    private void refreshCachedBanner() {
-        cachedBanner = readFromSpec()
-        logDebug("Refreshing Alert Banner state: " + cachedBanner.toMapString())
-    }
-
     void clearCaches() {
         super.clearCaches()
-        refreshCachedBanner()
+        cache.clear()
     }
+
+    Map getAdminStats() {[
+        config: configForAdminStats('xhAlertBannerConfig')
+    ]}
+
 }

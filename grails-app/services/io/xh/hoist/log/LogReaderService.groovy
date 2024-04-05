@@ -137,4 +137,8 @@ class LogReaderService extends BaseService {
             throw new RoutineRuntimeException('Query took too long. Log search aborted.')
         }
     }
+
+    Map getAdminStats() {[
+        config: configForAdminStats('xhEnableLogViewer', 'xhLogSearchTimeoutMs')
+    ]}
 }

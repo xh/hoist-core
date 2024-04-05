@@ -8,21 +8,19 @@
 package io.xh.hoist.security
 
 import groovy.transform.CompileStatic
-import io.xh.hoist.exception.ExceptionRenderer
+import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.exception.RoutineRuntimeException
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.util.Utils
-import org.springframework.boot.context.event.ApplicationReadyEvent
-import org.springframework.context.ApplicationListener
+import static io.xh.hoist.util.Utils.appContext
 
 import javax.servlet.*
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
 @CompileStatic
-class HoistSecurityFilter implements Filter, LogSupport, ApplicationListener<ApplicationReadyEvent> {
-    private boolean isReady = false
-
+class HoistSecurityFilter implements Filter, LogSupport {
     void init(FilterConfig filterConfig) {}
     void destroy() {}
 
@@ -30,13 +28,14 @@ class HoistSecurityFilter implements Filter, LogSupport, ApplicationListener<App
         HttpServletRequest httpRequest = (HttpServletRequest) request
         HttpServletResponse httpResponse = (HttpServletResponse) response
 
-        if (!isReady) {
-            ExceptionRenderer exceptionRenderer = Utils.exceptionRenderer
-            exceptionRenderer.handleException(
-                new RoutineRuntimeException('Application Initializing. Please try again shortly.'),
-                httpRequest,
-                httpResponse,
-                this
+        // Need to be *ready* before even attempting auth.
+        ClusterService clusterService = (ClusterService) appContext.getBean('clusterService')
+        if (!clusterService?.isReady) {
+            ExceptionHandler exceptionHandler = Utils.exceptionHandler
+            exceptionHandler.handleException(
+                exception: new RoutineRuntimeException('Application Initializing. Please try again shortly.'),
+                renderTo: httpResponse,
+                logTo: this
             )
             return
         }
@@ -45,9 +44,5 @@ class HoistSecurityFilter implements Filter, LogSupport, ApplicationListener<App
         if (svc.allowRequest(httpRequest, httpResponse)) {
             chain.doFilter(request, response)
         }
-    }
-
-    void onApplicationEvent(ApplicationReadyEvent event) {
-        isReady = true
     }
 }

@@ -7,6 +7,7 @@
 
 package io.xh.hoist.role
 
+import grails.gorm.transactions.ReadOnly
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 

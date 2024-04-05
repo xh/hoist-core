@@ -13,6 +13,7 @@ import grails.util.Holders
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 
+
 /**
  * Service with metadata describing the runtime environment of Hoist and this application.
  * For the AppEnvironment (e.g. Development/Production), reference `Utils.appEnvironment`.
@@ -58,7 +59,6 @@ class EnvironmentService extends BaseService {
                 appVersion:             Utils.appVersion,
                 appBuild:               Utils.appBuild,
                 appEnvironment:         Utils.appEnvironment.toString(),
-                startupTime:            Utils.startupTime,
                 grailsVersion:          GrailsUtil.grailsVersion,
                 javaVersion:            System.getProperty('java.version'),
                 serverTimeZone:         serverTz.toZoneId().id,
@@ -66,6 +66,7 @@ class EnvironmentService extends BaseService {
                 appTimeZone:            appTz.toZoneId().id,
                 appTimeZoneOffset:      appTz.getOffset(now),
                 webSocketsEnabled:      webSocketService.enabled,
+                instanceName:           clusterService.instanceName
         ]
 
         hoistGrailsPlugins.each {it ->

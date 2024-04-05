@@ -41,6 +41,9 @@ class GridExportImplService extends BaseService {
 
     def configService
 
+    private Date lastExportDate = null
+    private Long exportCount = 0
+
     void init() {
         if (instanceLog.debugEnabled) {
             GraphicsEnvironment ge = GraphicsEnvironment.localGraphicsEnvironment
@@ -61,11 +64,16 @@ class GridExportImplService extends BaseService {
             rows: params.rows.size(),
             cols: params.meta.size()
         ]) {
-            return [
+            def ret =  [
                     file       : getFileData(params.type, params.rows, params.meta),
                     contentType: getContentType(params.type),
                     fileName   : getFileName(params.filename, params.type)
             ]
+
+            lastExportDate = new Date()
+            exportCount++;
+            return ret
+
         }
     }
 
@@ -357,6 +365,15 @@ class GridExportImplService extends BaseService {
 
     private Map getConfig() {
         configService.getMap('xhExportConfig')
+    }
+
+
+    Map getAdminStats() {
+        return [
+            config: configForAdminStats('xhExportConfig'),
+            exportCount: exportCount,
+            lastExportDate: lastExportDate
+        ]
     }
 
 }

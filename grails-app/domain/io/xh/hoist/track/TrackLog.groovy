@@ -36,6 +36,10 @@ class TrackLog implements JSONFormat {
         dateCreated index: 'idx_xh_track_log_date_created'
     }
 
+    static cache = {
+        evictionConfig.size = 20000
+    }
+
     static constraints = {
         msg(maxSize: 255)
         username(maxSize: 50)

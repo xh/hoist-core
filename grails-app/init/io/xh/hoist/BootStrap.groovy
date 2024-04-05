@@ -7,17 +7,20 @@
 package io.xh.hoist
 
 import grails.util.Holders
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.util.Utils
 
 import java.time.ZoneId
 
 import static io.xh.hoist.util.DateTimeUtils.serverZoneId
+import static io.xh.hoist.BaseService.parallelInit
 import static java.lang.Runtime.runtime
 
 class BootStrap {
 
     def logLevelService,
         configService,
+        clusterService,
         prefService
 
     def init = {servletContext ->
@@ -28,8 +31,9 @@ class BootStrap {
         ensureExpectedServerTimeZone()
 
         def services = Utils.xhServices.findAll {it.class.canonicalName.startsWith('io.xh.hoist')}
-        BaseService.parallelInit([logLevelService])
-        BaseService.parallelInit(services)
+        parallelInit([logLevelService])
+        parallelInit([clusterService])
+        parallelInit(services)
     }
 
     def destroy = {}
@@ -50,6 +54,8 @@ class BootStrap {
 \n
           Hoist v${hoist.version} - ${Utils.appEnvironment}
           Extremely Heavy - https://xh.io
+            + Cluster ${ClusterService.clusterName}
+            + Instance ${ClusterService.instanceName}
             + ${runtime.availableProcessors()} available processors
             + ${String.format('%,d', (runtime.maxMemory() / 1000000).toLong())}mb available memory
             + JVM TimeZone is ${serverZoneId}

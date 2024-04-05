@@ -53,11 +53,15 @@ class ConnectionPoolMonitoringService extends BaseService {
         return _snapshots
     }
 
+    Map getLatestSnapshot() {
+        return _snapshots?.max { it.key }?.value
+    }
+
     /** Take a snapshot of pool usage, add to in-memory history, and return. */
     Map takeSnapshot() {
         ensureEnabled()
 
-        def newSnap = getStats()
+        def newSnap = getSnap()
         _snapshots[newSnap.timestamp] = newSnap
 
         // Don't allow snapshot history to grow endlessly -
@@ -84,11 +88,10 @@ class ConnectionPoolMonitoringService extends BaseService {
         takeSnapshot()
     }
 
-
     //------------------------
     // Implementation
     //------------------------
-    private Map getStats() {
+    private Map getSnap() {
         def ds = pooledDataSource
         return [
             timestamp: currentTimeMillis(),
@@ -128,5 +131,11 @@ class ConnectionPoolMonitoringService extends BaseService {
 
     void clearCaches() {
         this._snapshots.clear()
+        super.clearCaches()
     }
+
+    Map getAdminStats() {[
+        config: configForAdminStats('xhConnPoolMonitoringConfig'),
+        latestSnapshot: latestSnapshot
+    ]}
 }

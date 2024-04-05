@@ -23,6 +23,9 @@ class EmailService extends BaseService {
     def configService
     def groovyPageRenderer
 
+    private Date lastSentDate = null
+    private Long emailsSent = 0
+
     /**
      * Send email as specified by args param.
      * Application environment will be appended to subject unless environment is Production.
@@ -125,6 +128,8 @@ class EmailService extends BaseService {
                     attach f.fileName as String, f.contentType as String, f.contentSource
                 }
             }
+            emailsSent++
+            lastSentDate = new Date()
 
             if (doLog) {
                 def recipCount = toRecipients.size() + (ccRecipients?.size() ?: 0)
@@ -156,6 +161,16 @@ class EmailService extends BaseService {
         return s == 'none' ? null : formatAddresses(s)
     }
 
+    Map getAdminStats() {[
+        config: configForAdminStats(
+            'xhEmailOverride',
+            'xhEmailFilter',
+            'xhEmailDefaultSender',
+            'xhEmailDefaultDomain'
+        ),
+        emailsSent: emailsSent,
+        lastSentDate: lastSentDate
+    ]}
 
     //------------------------
     // Implementation

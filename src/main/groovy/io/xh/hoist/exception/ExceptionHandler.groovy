@@ -9,11 +9,9 @@ package io.xh.hoist.exception
 
 import grails.util.GrailsUtil
 import groovy.transform.CompileStatic
-import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
 
-import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 import java.util.concurrent.ExecutionException
 
@@ -31,27 +29,35 @@ import static org.apache.hc.core5.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
  * These two contexts capture the overwhelming majority of code execution in a Hoist server.
  */
 @CompileStatic
-class ExceptionRenderer {
+class ExceptionHandler {
 
     /**
-     * Main entry point for request based code (e.g. controllers)
+     * Sanitizes, pre-processes, and logs exception.
+     *
+     * Used by BaseController, ClusterRequest, Timer, and AccessInterceptor to handle
+     * otherwise unhandled exception.
      */
-    void handleException(Throwable t, HttpServletRequest request, HttpServletResponse response, LogSupport logSupport) {
-        t = preprocess(t)
-        logException(t, logSupport)
+    void handleException(Map options) {
+        Throwable t = options.exception as Throwable
+        HttpServletResponse renderTo = options.renderTo as HttpServletResponse
+        LogSupport logTo = options.logTo as LogSupport
+        Object logMessage = options.logMessage
 
-        response.setStatus(getHttpStatus(t))
-        response.setContentType('application/json')
-        response.writer.write(toJSON(t))
-        response.flushBuffer()
-    }
-
-    /**
-     * Main entry point for non-request based code (e.g. Timers)
-     */
-    void handleException(Throwable t, LogSupport logSupport) {
         t = preprocess(t)
-        logException(t, logSupport)
+        if (logTo) {
+            if (logMessage) {
+                shouldLogDebug(t) ? logTo.logDebug(logMessage, t) : logTo.logError(logMessage, t)
+            } else {
+                shouldLogDebug(t) ? logTo.logDebug(t) : logTo.logError(t)
+            }
+        }
+
+        if (renderTo) {
+            renderTo.setStatus(getHttpStatus(t))
+            renderTo.setContentType('application/json')
+            renderTo.writer.write(JSONSerializer.serialize(t))
+            renderTo.flushBuffer()
+        }
     }
 
     /**
@@ -77,20 +83,11 @@ class ExceptionRenderer {
         return t
     }
 
-    protected void logException(Throwable t, LogSupport logSupport) {
-        if (shouldlogDebug(t)) {
-            logSupport.logDebug(null, t)
-        } else {
-            logSupport.logError(null, t)
-        }
-    }
-
-    protected boolean shouldlogDebug(Throwable t) {
+    protected boolean shouldLogDebug(Throwable t) {
         return t instanceof RoutineException
     }
 
     protected int getHttpStatus(Throwable t) {
-
         if (t instanceof HttpException && !(t instanceof ExternalHttpException)) {
             return ((HttpException) t).statusCode
         }
@@ -99,19 +96,6 @@ class ExceptionRenderer {
                 SC_BAD_REQUEST :
                 SC_INTERNAL_SERVER_ERROR
     }
-
-    protected String toJSON(Throwable t) {
-        def ret = t instanceof JSONFormat ?
-                t :
-                [
-                        name   : t.class.simpleName,
-                        message: t.message,
-                        cause  : t.cause?.message,
-                        isRoutine: t instanceof RoutineException
-                ].findAll {it.value}
-        return JSONSerializer.serialize(ret);
-    }
-
 
     //---------------------------
     // Implementation

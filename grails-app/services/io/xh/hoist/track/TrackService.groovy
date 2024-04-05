@@ -7,7 +7,6 @@
 
 package io.xh.hoist.track
 
-import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
@@ -35,7 +34,7 @@ import static io.xh.hoist.util.Utils.getCurrentRequest
  * active / accessible (intended for local development environments).
  */
 @CompileStatic
-class TrackService extends BaseService implements EventPublisher {
+class TrackService extends BaseService {
 
     ConfigService configService
 
@@ -81,7 +80,6 @@ class TrackService extends BaseService implements EventPublisher {
     Map getConf() {
         return configService.getMap('xhActivityTrackingConfig')
     }
-
 
     //-------------------------
     // Implementation
@@ -165,4 +163,8 @@ class TrackService extends BaseService implements EventPublisher {
             }
         }
     }
+
+    Map getAdminStats() {[
+        config: configForAdminStats('xhActivityTrackingConfig')
+    ]}
 }

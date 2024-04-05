@@ -19,7 +19,7 @@ import java.util.concurrent.TimeoutException
 
 import static io.xh.hoist.util.DateTimeUtils.*
 import static io.xh.hoist.util.Utils.configService
-import static io.xh.hoist.util.Utils.getExceptionRenderer
+import static io.xh.hoist.util.Utils.getExceptionHandler
 
 /**
  * Core Hoist Timer object.
@@ -31,9 +31,11 @@ class Timer {
 
      private static Long CONFIG_INTERVAL = 15 * SECONDS
 
+    /** Optional name for this timer (for logging purposes) **/
+    final String name
+
     /** Object using this timer (for logging purposes) **/
     final LogSupport owner
-
 
     /** Closure to run */
     final Closure runFn
@@ -71,9 +73,18 @@ class Timer {
     /** Block on an immediate initial run?  Default is false. */
     final boolean runImmediatelyAndBlock
 
+    /**  Only run job when clustered instance is the master server?  Default is false */
+    final boolean masterOnly
+
+
+    /** Date last run started. */
+    Date getLastRunStarted() {
+        _lastRunStarted
+    }
+
     /** Date last run completed. */
-    Date getLastRun() {
-        _lastRun
+    Date getLastRunCompleted() {
+        _lastRunCompleted
     }
 
     /** Is `runFn` currently executing? */
@@ -89,7 +100,9 @@ class Timer {
     private Long coreIntervalMs
 
 
-    private Date _lastRun = null
+    private Date _lastRunCompleted = null
+    private Date _lastRunStarted = null
+    private Map _lastRunStats = null
     private boolean _isRunning = false
     private boolean forceRun  = false
     private java.util.Timer coreTimer
@@ -104,10 +117,11 @@ class Timer {
      * created by services using the createTimer() method supplied by io.xh.hoist.BaseService.
      */
     Timer(Map config) {
+        name = config.name
         owner = config.owner
         runFn = config.runFn
+        masterOnly = config.masterOnly ?: false
         runImmediatelyAndBlock = config.runImmediatelyAndBlock ?: false
-
         interval = parseDynamicValue(config.interval)
         timeout = parseDynamicValue(config.containsKey('timeout') ? config.timeout : 3 * MINUTES)
         delay = config.delay ?: false
@@ -147,7 +161,7 @@ class Timer {
      * Any subsequent calls to this method before this additional execution has completed will be ignored.
      */
     void forceRun() {
-        this.forceRun = true
+        forceRun = true
     }
 
     /**
@@ -156,8 +170,22 @@ class Timer {
      * This will prevent any additional executions of this timer.  In-progress executions will be unaffected.
      */
     void cancel() {
-        if (coreTimer) coreTimer.cancel()
-        if (configTimer) configTimer.cancel()
+        coreTimer?.cancel()
+        configTimer?.cancel()
+    }
+
+    /**
+     * Information about this time for admin purposes.
+     */
+    Map getAdminStats() {
+        [
+            name: name,
+            masterOnly: masterOnly?: null,
+            intervalMs: intervalMs,
+            isRunning: isRunning,
+            startTime: isRunning ? _lastRunStarted: null,
+            last: _lastRunStats
+        ].findAll {it.value != null}
     }
 
 
@@ -165,7 +193,10 @@ class Timer {
     // Implementation
     //------------------------
     private void doRun() {
+        if (masterOnly && !Utils.clusterService.isMaster) return
+
         _isRunning = true
+        _lastRunStarted = new Date()
         Throwable throwable = null
         Future future = null
         try {
@@ -185,13 +216,24 @@ class Timer {
             throwable = t
         }
 
-        _lastRun = new Date()
+        _lastRunCompleted = new Date()
         _isRunning = false
-
+        _lastRunStats = [
+            startTime: _lastRunStarted,
+            endTime: _lastRunCompleted,
+            elapsedMs: _lastRunCompleted.time - _lastRunStarted.time
+        ]
         if (throwable) {
             try {
-                exceptionRenderer.handleException(throwable, owner)
-            } catch (Throwable ignore) {}
+                _lastRunStats.error = exceptionHandler.summaryTextForThrowable(throwable)
+                exceptionHandler.handleException(
+                    exception: throwable,
+                    logTo: owner,
+                    logMessage: "Failure in ${name ?: 'timer'}"
+                )
+            } catch (Throwable ignore) {
+                owner.logError('Failed to handle exception in Timer')
+            }
         }
     }
 
@@ -246,7 +288,7 @@ class Timer {
     //-------------------------------------------------------------------------------------------
     private void onCoreTimer() {
         if (!isRunning) {
-            if ((intervalMs > 0 && intervalElapsed(intervalMs, lastRun)) || forceRun) {
+            if ((intervalMs > 0 && intervalElapsed(intervalMs, lastRunCompleted)) || forceRun) {
                 boolean wasForced = forceRun
                 doRun()
                 if (wasForced) forceRun = false

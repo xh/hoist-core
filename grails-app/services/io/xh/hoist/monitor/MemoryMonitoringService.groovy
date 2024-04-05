@@ -46,6 +46,10 @@ class MemoryMonitoringService extends BaseService {
         return _snapshots
     }
 
+    Map getLatestSnapshot() {
+        return _snapshots?.max {it.key}?.value
+    }
+
     /**
      * Dump the heap to a file for analysis.
      */
@@ -73,7 +77,7 @@ class MemoryMonitoringService extends BaseService {
      * Take a snapshot of JVM memory usage, store in this service's in-memory history, and return.
      */
     Map takeSnapshot() {
-        def newSnap = getStats()
+        def newSnap = getSnap()
 
         _snapshots[newSnap.timestamp] = newSnap
 
@@ -111,11 +115,10 @@ class MemoryMonitoringService extends BaseService {
         ]
     }
 
-
     //------------------------
     // Implementation
     //------------------------
-    private Map getStats() {
+    private Map getSnap() {
         def mb = 1024 * 1024,
             timestamp = currentTimeMillis(),
             gcStats = getGCStats(timestamp),
@@ -175,5 +178,11 @@ class MemoryMonitoringService extends BaseService {
 
     void clearCaches() {
         _snapshots.clear()
+        super.clearCaches()
     }
+
+    Map getAdminStats() {[
+        config: configForAdminStats('xhMemoryMonitoringConfig'),
+        latestSnapshot: latestSnapshot,
+    ]}
 }

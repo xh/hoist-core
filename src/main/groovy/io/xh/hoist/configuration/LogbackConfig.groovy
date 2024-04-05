@@ -15,6 +15,8 @@ import ch.qos.logback.core.encoder.Encoder
 import ch.qos.logback.core.encoder.LayoutWrappingEncoder
 import ch.qos.logback.core.rolling.RollingFileAppender
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy
+import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.log.ClusterInstanceConverter
 import io.xh.hoist.util.Utils
 import java.nio.file.Paths
 
@@ -41,32 +43,32 @@ class LogbackConfig {
      * Layout used for for logging to stdout
      * String or a Closure that produces a Layout
      */
-    static Object stdoutLayout = '%d{yyyy-MM-dd HH:mm:ss.SSS} | %c{0} [%p] | %m%n'
+    static Object stdoutLayout = '%d{yyyy-MM-dd HH:mm:ss.SSS} | %instance | %c{0} [%p] | %m%n'
 
     /**
      * Layout for logs created by dailyLog() function
      * String or a Closure that produces a Layout
      * This layout will be used by the built-in rolling daily log provided by hoist.
      */
-    static Object dailyLayout = '%d{HH:mm:ss.SSS} | %c{0} [%p] | %m%n'
+    static Object dailyLayout = '%d{HH:mm:ss.SSS} | %instance | %c{0} [%p] | %m%n'
 
     /**
      * Layout for logs created by monthlyLog() function
      * String or a Closure that produces a Layout
      */
-    static Object monthlyLayout = '%d{MM-dd HH:mm:ss.SSS} | %c{0} [%p] | %m%n'
+    static Object monthlyLayout = '%d{MM-dd HH:mm:ss.SSS} | %instance | %c{0} [%p] | %m%n'
 
     /**
      * Layout used for logging monitor results to a dedicated log.
      * String or a Closure that produces a Layout
      */
-    static Object monitorLayout = '%d{HH:mm:ss.SSS} | %m%n'
+    static Object monitorLayout = '%d{HH:mm:ss.SSS} | %instance | %m%n'
 
     /**
      * Layout used for logging client-side tracking results to a dedicated log.
      * String or a Closure that produces a Layout
      */
-    static Object trackLayout = '%d{HH:mm:ss.SSS} | %m%n'
+    static Object trackLayout = '%d{HH:mm:ss.SSS} | %instance | %m%n'
 
 
     /**
@@ -87,7 +89,7 @@ class LogbackConfig {
     static void defaultConfig(Script script) {
         withDelegate(script) {
 
-            def appLogName = Utils.appCode,
+            def appLogName = "${Utils.appCode}-${ClusterService.instanceName}",
                 trackLogName = "$appLogName-track",
                 monitorLogName = "$appLogName-monitor"
 
@@ -97,6 +99,7 @@ class LogbackConfig {
             conversionRule("m", LogSupportConverter)
             conversionRule("msg", LogSupportConverter)
             conversionRule("message", LogSupportConverter)
+            conversionRule("instance", ClusterInstanceConverter)
 
             //----------------------------------
             // Appenders
@@ -124,10 +127,12 @@ class LogbackConfig {
             logger('io.xh.hoist.track.TrackService', INFO, [trackLogName, 'stdout'], false)
 
             // Quiet noisy loggers
-            logger('org.hibernate', ERROR)
             logger('org.springframework', ERROR)
-            logger('net.sf.ehcache', ERROR)
+            logger('org.hibernate', ERROR)
             logger('org.apache.directory.ldap.client.api.LdapNetworkConnection', ERROR)
+
+            // Stifle warning about disabled strong consistency library -- requires 3 node min.
+            logger('com.hazelcast.cp.CPSubsystem', ERROR)
 
             // Turn off built-in global grails stacktrace logger.  It can easily swamp logs!
             // If needed, it can be (carefully) re-enabled by in admin console.

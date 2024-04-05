@@ -8,7 +8,6 @@
 package io.xh.hoist.config
 
 import grails.compiler.GrailsCompileStatic
-import grails.events.EventPublisher
 import grails.gorm.transactions.ReadOnly
 import grails.gorm.transactions.Transactional
 import groovy.transform.CompileDynamic
@@ -32,7 +31,7 @@ import static io.xh.hoist.json.JSONSerializer.serializePretty
  * Fires an `xhConfigChanged` event when a config value is updated.
  */
 @GrailsCompileStatic
-class ConfigService extends BaseService implements EventPublisher {
+class ConfigService extends BaseService {
 
     String getString(String name, String notFoundValue = null) {
         return (String) getInternalByName(name, 'string', notFoundValue)
@@ -66,6 +65,11 @@ class ConfigService extends BaseService implements EventPublisher {
         return (String) getInternalByName(name, 'pwd', notFoundValue)
     }
 
+
+    /**
+     * Return a map of all config values needed by client.
+     * All passwords will be obscured.
+     */
     @ReadOnly
     boolean hasConfig(String name) {
         return AppConfig.findByName(name, [cache: true]) != null
@@ -86,6 +90,19 @@ class ConfigService extends BaseService implements EventPublisher {
         }
 
         return ret
+    }
+
+    /**
+     * Return a map of specified config values, appropriate for display in admin client.
+     * Note this may include configs that are not typically sent to clients
+     * as specified by 'clientVisible'.  All passwords will be obscured, however.
+     */
+    @ReadOnly
+    Map getForAdminStats(String... names) {
+        return names.toList().collectEntries {
+            def config = AppConfig.findByName(it, [cache: true])
+            [it, config?.externalValue(obscurePassword: true, jsonAsObject: true)]
+        }
     }
 
     /**
@@ -190,7 +207,8 @@ class ConfigService extends BaseService implements EventPublisher {
     }
 
     void fireConfigChanged(AppConfig obj) {
-        notify('xhConfigChanged', [key: obj.name, value: obj.externalValue()])
+        def topic = clusterService.getTopic('xhConfigChanged')
+        topic.publishAsync([key: obj.name, value: obj.externalValue()])
     }
 
     //-------------------

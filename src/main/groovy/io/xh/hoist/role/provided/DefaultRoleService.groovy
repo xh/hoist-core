@@ -8,9 +8,9 @@
 package io.xh.hoist.role.provided
 
 import grails.gorm.transactions.ReadOnly
+import io.xh.hoist.cluster.ReplicatedValue
 import io.xh.hoist.role.BaseRoleService
 import io.xh.hoist.user.HoistUser
-import io.xh.hoist.util.DateTimeUtils
 import io.xh.hoist.util.Timer
 
 import java.util.concurrent.ConcurrentHashMap
@@ -20,9 +20,9 @@ import static io.xh.hoist.util.Utils.isLocalDevelopment
 import static io.xh.hoist.util.Utils.isProduction
 import static java.util.Collections.emptySet
 import static java.util.Collections.emptyMap
-import static java.util.Collections.unmodifiableMap
 import static java.util.Collections.unmodifiableSet
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
+import static io.xh.hoist.util.DateTimeUtils.SECONDS
 
 /**
  * Optional concrete implementation of BaseRoleService for applications that wish to leverage
@@ -81,7 +81,7 @@ class DefaultRoleService extends BaseRoleService {
         defaultRoleUpdateService
 
     private Timer timer
-    protected Map<String, Set<String>> _allRoleAssignments = emptyMap()
+    protected ReplicatedValue<Map<String, Set<String>>> _allRoleAssignments = getReplicatedValue('roleAssignments')
     protected ConcurrentMap<String, Set<String>> _roleAssignmentsByUser = new ConcurrentHashMap<>()
     protected Map<String, Object> _usersForDirectoryGroups = emptyMap()
 
@@ -91,9 +91,10 @@ class DefaultRoleService extends BaseRoleService {
         ensureRequiredConfigAndRolesCreated()
 
         timer = createTimer(
-            interval: { config.refreshIntervalSecs as int * DateTimeUtils.SECONDS },
+            interval: { config.refreshIntervalSecs as int * SECONDS },
             runFn: this.&refreshRoleAssignments,
-            runImmediatelyAndBlock: true
+            runImmediatelyAndBlock: true,
+            masterOnly: true
         )
     }
 
@@ -102,7 +103,7 @@ class DefaultRoleService extends BaseRoleService {
     //------------------------------------
     @Override
     Map<String, Set<String>> getAllRoleAssignments() {
-        _allRoleAssignments
+        _allRoleAssignments.get()
     }
 
     @Override
@@ -283,7 +284,7 @@ class DefaultRoleService extends BaseRoleService {
 
     void refreshRoleAssignments() {
         withDebug('Refreshing role caches') {
-            _allRoleAssignments = unmodifiableMap(generateRoleAssignments())
+            _allRoleAssignments.set(generateRoleAssignments())
             _roleAssignmentsByUser = new ConcurrentHashMap()
         }
     }
@@ -359,10 +360,18 @@ class DefaultRoleService extends BaseRoleService {
     }
 
     void clearCaches() {
-        _allRoleAssignments = emptyMap()
+        _allRoleAssignments.set(emptyMap())
         _roleAssignmentsByUser = new ConcurrentHashMap()
         _usersForDirectoryGroups = emptyMap()
         timer.forceRun()
         super.clearCaches()
     }
+
+
+    Map getAdminStats() {[
+        roleAssignments: allRoleAssignments?.size(),
+        roleAssignmentsByUser: _roleAssignmentsByUser?.size(),
+        usersForDirectoryGroups: _usersForDirectoryGroups?.size()
+    ]}
+
 }
