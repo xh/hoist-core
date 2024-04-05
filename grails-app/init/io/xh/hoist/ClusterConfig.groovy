@@ -101,7 +101,7 @@ class ClusterConfig {
         createHibernateConfigs(ret)
         createServiceConfigs(ret)
 
-        SubZero.useForClasses(ret, classesForKryo().toArray() as Class[])
+        SubZero.useAsGlobalSerializer(ret)
 
         return ret
     }
