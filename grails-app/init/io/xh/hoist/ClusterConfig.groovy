@@ -113,20 +113,6 @@ class ClusterConfig {
     }
 
     /**
-     * Override this method to specify additional classes that should be serialized with Kryo
-     * when being stored in Hazelcast structures.
-     *
-     * Kryo provides a more efficient serialization format and is recommended over default
-     * Java serialization for objects being stored in Hazelcast.
-     *
-     * Note that objects being stored in a Hoist `ReplicatedValue` or cluster-enabled `Cache` will not
-     * need their classes specified in this method.  These objects are always serialized via Kryo.
-     */
-    protected List<Class> classesForKryo() {
-        return [ReplicatedValueEntry, Entry, ClusterResponse]
-    }
-
-    /**
      * Override this to create additional default configs in the application.
      */
     protected void createDefaultConfigs(Config config) {

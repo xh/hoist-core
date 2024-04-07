@@ -24,6 +24,7 @@ class TrackLog implements JSONFormat {
     String appVersion
     String appEnvironment
     String url
+    String instance
     Integer elapsed
     String severity
     Date dateCreated
@@ -51,6 +52,7 @@ class TrackLog implements JSONFormat {
         appVersion(nullable: true, maxSize: 100)
         appEnvironment(nullable: true, maxSize: 100)
         url(nullable: true, maxSize: 500)
+        instance(nullable: true, maxSize: 50)
         elapsed(nullable: true)
         impersonating(nullable: true, maxSize: 50)
     }
@@ -74,6 +76,7 @@ class TrackLog implements JSONFormat {
                 appVersion    : appVersion,
                 appEnvironment: appEnvironment,
                 url           : url,
+                instance:     instance
         ]
     }
 

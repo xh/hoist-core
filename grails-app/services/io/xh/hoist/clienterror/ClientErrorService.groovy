@@ -10,6 +10,7 @@ package io.xh.hoist.clienterror
 import com.hazelcast.map.IMap
 import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.browser.Utils.getBrowser
@@ -80,6 +81,7 @@ class ClientErrorService extends BaseService {
                     appVersion    : appVersion ?: Utils.appVersion,
                     appEnvironment: Utils.appEnvironment,
                     url           : url?.take(500),
+                    instance      : ClusterService.instanceName,
                     userAlerted   : userAlerted,
                     dateCreated   : new Date(now),
                     impersonating: identityService.impersonating ? username : null

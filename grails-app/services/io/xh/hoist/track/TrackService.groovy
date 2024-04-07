@@ -9,6 +9,7 @@ package io.xh.hoist.track
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.util.Utils
 
@@ -111,6 +112,7 @@ class TrackService extends BaseService {
             data: data,
             url: params.url,
             appVersion: params.appVersion ?: Utils.appVersion,
+            instance: ClusterService.instanceName,
             appEnvironment: Utils.appEnvironment
         ]
 

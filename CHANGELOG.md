@@ -25,7 +25,7 @@
   data structures (e.g. Hazelcast  Maps) should be used as needed, as well as limiting certain
   actions to the "master" server.  See toolbox, or Hoist for help.
   ** `hoist-react >= 64.0` is required.
-* New support for reporting of service statistics for trobuleshooting/monitoring.  Implement
+* New support for reporting of service statistics for troubleshooting/monitoring.  Implement
   `BaseService.getAdminStats()` to provide diagnostic metadata about the state of your service that
   will then be displayed in the admin client.
 * All `Throwable`s are now serialized to JSON by default using Hoist's standard customization of
@@ -34,34 +34,18 @@
 ### Breaking Changes
 * The following server-side Hoist events are now implemented as cluster-wide Hazelcast messages
   rather than single-server Grails events:
-  ** 'xhFeedbackReceived', 'xhClientErrorReceived', 'xhConfigChanged', and 'xhMonitorStatusReport'
+        'xhFeedbackReceived', 'xhClientErrorReceived', 'xhConfigChanged', and 'xhMonitorStatusReport'
   Any applications that are listening to these events with `BaseService.subscribe` should instead use
   the new cluster aware method `BaseService.subscribeToTopic`.
 * The `exceptionRenderer` singleton has been simplified and renamed as `xhExceptionHandler`. This
   change was needed to better support cross-cluster exception handling. This object is used by
   Hoist internally for catching uncaught exceptions and this change is not expected to impact
   most applications.
-
-* New support for Role Management.
-    * Hoist now supports an out-of-the-box, database-driven system for maintaining a hierarchical
-      set of roles and associating them with individual users.
-    * New system supports app and plug-in specific integrations to AD and other enterprise systems.
-    * Hoist-react `v64` is now required and will provide an administrative UI to visualize and
-      manage the new role system.
-    * See `DefaultRoleService` for more information.
-
-### ⚙️ Technical
-
-* Add `xh/echoHeaders` utility endpoint. Useful for verifying headers (e.g. `jespa_connection_id`)
-  that are installed by or must pass through multiple ingresses/load balancers.
-* Remove HTML tag escaping when parsing alert banner create/update request JSON.
-
-### 💥 Breaking Changes
-
-* Applications will typically need to adjust their implementation of `BaseRoleService`. Most
-  applications are expected to adopt the new provided `DefaultRoleService`, and may be required to
-  migrate existing code/data to the new API. Applications that wish to continue to use a completely
-  custom `BaseRoleService` will need to implement one additional method: `getUsersForRole`.
+* Applications will need to add an `instance` column to two tables, with the following SQL, or equivalent:
+    ```sql
+        ALTER TABLE `xh_client_error` ADD COLUMN `instance` VARCHAR(50) NULL;
+        ALTER TABLE `xh_track_log` ADD COLUMN `instance` VARCHAR(50) NULL;
+    ```
 
 ### 📚 Libraries
 * grails `6.1.0`

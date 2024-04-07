@@ -23,6 +23,7 @@ class ClientError implements JSONFormat {
     String appVersion
     String appEnvironment
     String url
+    String instance
     boolean userAlerted = false
     Date dateCreated
     String impersonating
@@ -48,6 +49,7 @@ class ClientError implements JSONFormat {
         appVersion(nullable: true, maxSize: 100)
         appEnvironment(nullable: true, maxSize: 100)
         url(nullable: true, maxSize: 500)
+        instance(nullable: true, maxSize: 50)
         impersonating(nullable: true, maxSize: 50)
     }
 
@@ -63,6 +65,7 @@ class ClientError implements JSONFormat {
                 appVersion    : appVersion,
                 appEnvironment: appEnvironment,
                 url           : url,
+                instance      : instance,
                 userAlerted   : userAlerted,
                 dateCreated   : dateCreated,
                 day           : appDay(dateCreated),
