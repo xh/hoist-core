@@ -81,7 +81,7 @@ class ClientErrorService extends BaseService {
                     appEnvironment: Utils.appEnvironment,
                     url           : url?.take(500),
                     userAlerted   : userAlerted,
-                    dateCreated   : now,
+                    dateCreated   : new Date(now),
                     impersonating: identityService.impersonating ? username : null
             ]
             logDebug("Client Error received from $authUsername", "queued for processing")
@@ -106,7 +106,7 @@ class ClientErrorService extends BaseService {
             withDebug("Processing $count Client Errors") {
                 def errors = errs.collect {
                     def ce = new ClientError(it)
-                    ce.dateCreated = new Date(it.dateCreated)
+                    ce.dateCreated = it.dateCreated
                     ce.save(flush: true)
                 }
                 getTopic('xhClientErrorReceived').publishAllAsync(errors)

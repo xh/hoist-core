@@ -20,11 +20,15 @@ import io.xh.hoist.cache.Entry
 import io.xh.hoist.cluster.ClusterResponse
 import io.xh.hoist.cluster.ReplicatedValueEntry
 import io.xh.hoist.kryo.KryoSupport
-import io.xh.hoist.util.Utils
 
+import static io.xh.hoist.util.InstanceConfigUtils.appEnvironment
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 
 import static grails.util.Holders.grailsApplication
+import static io.xh.hoist.util.Utils.appBuild
+import static io.xh.hoist.util.Utils.appCode
+import static io.xh.hoist.util.Utils.appVersion
+import static java.util.UUID.randomUUID
 
 class ClusterConfig {
 
@@ -65,16 +69,17 @@ class ClusterConfig {
      * Override this method to customize the cluster name of the Hazelcast cluster.
      */
     protected String generateClusterName() {
-        def ret = Utils.appCode + '_' + Utils.appEnvironment + '_' + Utils.appVersion
-        if (!multiInstanceEnabled) ret +=  '_' + UUID.randomUUID().toString().take(8)
-        return ret
+        List ret = [appCode, appEnvironment, appVersion]
+        if (appVersion.contains('SNAPSHOT')) ret << appBuild
+        if (!multiInstanceEnabled) ret << randomUUID().toString().take(8)
+        return ret.join('-')
     }
 
     /**
      * Override this method to customize the instance name of the Hazelcast member.
      */
     protected String generateInstanceName() {
-        UUID.randomUUID().toString().take(8)
+        randomUUID().toString().take(8)
     }
 
     /**
