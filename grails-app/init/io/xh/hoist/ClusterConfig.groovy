@@ -16,11 +16,12 @@ import com.hazelcast.collection.ISet
 import com.hazelcast.config.MaxSizePolicy
 import com.hazelcast.config.NearCacheConfig
 import grails.core.GrailsClass
-import info.jerrinot.subzero.SubZero
 import io.xh.hoist.cache.Entry
 import io.xh.hoist.cluster.ClusterResponse
 import io.xh.hoist.cluster.ReplicatedValueEntry
+import io.xh.hoist.kryo.KryoSupport
 import io.xh.hoist.util.Utils
+
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 
 import static grails.util.Holders.grailsApplication
@@ -50,8 +51,8 @@ class ClusterConfig {
      *
      * Defaults to true.  Is set to false, Hoist will not create multi-instance clusters and may
      * use simpler in-memory  data-structures in place of their Hazelcast counterparts.  Use this
-     * for applications that do not require multi-instance and do not wish to pay the serialization penalty of storing
-     * shared data in Hazelcast.
+     * for applications that do not require multi-instance and do not wish to pay the serialization
+     * penalty of storing shared data in Hazelcast.
      *
      * Applications and plug-ins may set this value explicitly via the `multiInstanceEnabled`
      * instance config, or override this method to implement additional logic.
@@ -101,7 +102,7 @@ class ClusterConfig {
         createHibernateConfigs(ret)
         createServiceConfigs(ret)
 
-        SubZero.useAsGlobalSerializer(ret)
+        KryoSupport.setAsGlobalSerializer(ret)
 
         return ret
     }
