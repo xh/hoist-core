@@ -48,6 +48,7 @@
     ```
 
 ### 📚 Libraries
+* gradle `7.6.4`
 * grails `6.1.0`
 * gorm `8.0.1`
 * hazelcast `5.3.6`
