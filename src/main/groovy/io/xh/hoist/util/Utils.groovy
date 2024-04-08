@@ -43,6 +43,18 @@ class Utils {
     static final Date startupTime = new Date()
 
     /**
+     * Is the application instance running and ready to start handling requests?
+     */
+    static boolean isInstanceReady() {
+        try {
+            return clusterService?.isReady
+        } catch (Exception e) {
+            // We expect this to be routine for very premature calls to app, fail quietly
+            return false
+        }
+    }
+
+    /**
      * Internal short name of the application - lowercase, no spaces.
      */
     static String getAppCode() {
