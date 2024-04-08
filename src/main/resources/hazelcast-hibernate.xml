@@ -2,8 +2,7 @@
 <!--
     NOTE: This file is only used to ensure that Hibernate will use the local
     hazelcast member for its hibernate caches.  To customize any hazelcast caches,
-    including those for Hibernate, see ClusterService (for Hoist) or
-    ClusterConfig.groovy (for applications).
+    including those for Hibernate, see ClusterConfig.groovy.
 -->
 <hazelcast xmlns="http://www.hazelcast.com/schema/config"
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"

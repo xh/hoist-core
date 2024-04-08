@@ -8,12 +8,10 @@
 package io.xh.hoist.security
 
 import groovy.transform.CompileStatic
-import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.exception.ExceptionHandler
-import io.xh.hoist.exception.RoutineRuntimeException
+import io.xh.hoist.exception.InstanceNotAvailableException
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.util.Utils
-import static io.xh.hoist.util.Utils.appContext
 
 import javax.servlet.*
 import javax.servlet.http.HttpServletRequest
@@ -29,11 +27,10 @@ class HoistSecurityFilter implements Filter, LogSupport {
         HttpServletResponse httpResponse = (HttpServletResponse) response
 
         // Need to be *ready* before even attempting auth.
-        ClusterService clusterService = (ClusterService) appContext.getBean('clusterService')
-        if (!clusterService?.isReady) {
+        if (!Utils.instanceReady) {
             ExceptionHandler exceptionHandler = Utils.exceptionHandler
             exceptionHandler.handleException(
-                exception: new RoutineRuntimeException('Application Initializing. Please try again shortly.'),
+                exception: new InstanceNotAvailableException('Application may be initializing. Please try again shortly.'),
                 renderTo: httpResponse,
                 logTo: this
             )

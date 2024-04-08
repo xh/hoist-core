@@ -12,6 +12,7 @@ import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.util.Utils.appContext
+import static io.xh.hoist.util.Utils.getExceptionHandler
 
 /**
  * Reports on all instances within the current Hazelcast cluster, including a general list of all
@@ -49,6 +50,12 @@ class ClusterAdminService extends BaseService {
                 ]
                 if (result.value) {
                     ret << result.value
+                } else {
+                    exceptionHandler.handleException(
+                        exception: result.exception,
+                        logTo: this,
+                        logMessage: "Exception getting stats for $name"
+                    )
                 }
                 return ret
             }
