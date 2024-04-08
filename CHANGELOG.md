@@ -9,22 +9,22 @@
   providing embedded java support for inter-server communication, co-ordination, and data sharing.
   See the new `ClusterService.groovy` service, which provides the clustering implementation and main
   API entry point for accessing the cluster.
-  ** Applications/client plugins upgrading to v18 will need to provide a cluster configuration class
+  * Applications/client plugins upgrading to v20 will need to provide a cluster configuration class
   with the name `ClusterConfig.groovy`.  See toolbox for an example of this file.
-  ** Applications should fix their Hazelcast version with the following line in their gradle.properties:
+  * Applications should fix their Hazelcast version with the following line in their gradle.properties:
   `hazelcast.version=5.3.6`
-  ** Applications that intend to run with more than one server *must* enable sticky sessions when
+  * Applications that intend to run with more than one server *must* enable sticky sessions when
   routing clients to servers.  This is critical for the correct operation of authentication
   and web socket communications.
-  ** Many applications will *not* need to implement additional changes beyond the above to
+  * Many applications will *not* need to implement additional changes beyond the above to
   run with multi-instances; Hoist will setup the cluster, elect a master instance,  provide
   cluster-aware hibernate caching and logging, and ensure cross-server consistency for its own
   APIs.
-  ** However, complex applications -- especially applications with state, workflow, or business
+  * However, complex applications -- especially applications with state, workflow, or business
   logic -- should take care to ensure the app is safe to run in multi-instance mode. Distributed
   data structures (e.g. Hazelcast  Maps) should be used as needed, as well as limiting certain
-  actions to the "master" server.  See toolbox, or Hoist for help.
-  ** `hoist-react >= 64.0` is required.
+  actions to the "master" server.  See toolbox, or hoist-core itself for examples
+  * `hoist-react >= 64.0` is required.
 * New support for reporting of service statistics for troubleshooting/monitoring.  Implement
   `BaseService.getAdminStats()` to provide diagnostic metadata about the state of your service that
   will then be displayed in the admin client.
