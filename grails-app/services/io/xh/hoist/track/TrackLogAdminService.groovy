@@ -23,7 +23,7 @@ class TrackLogAdminService extends BaseService {
     }
 
     @ReadOnly
-    List<TrackLog> queryTrackLog(LocalDate startDay, LocalDate endDay, Filter filter, Integer maxRows = null) {
+    List<TrackLog> queryTrackLog(Filter filter, LocalDate startDay = null, LocalDate endDay = null, Integer maxRows = null) {
         if (!enabled) throw new DataNotAvailableException('TrackService not available.')
 
         def maxDefault = conf.maxRows.default as Integer,
@@ -35,7 +35,9 @@ class TrackLogAdminService extends BaseService {
         Criteria c = session.createCriteria(TrackLog)
         c.maxResults = maxRows
         c.addOrder(desc('dateCreated'))
-        c.add(between('dateCreated', appStartOfDay(startDay), appEndOfDay(endDay)))
+        if (startDay && endDay) {
+            c.add(between('dateCreated', appStartOfDay(startDay), appEndOfDay(endDay)))
+        }
         if (filter) {
             c.add(filter.criterion)
         }

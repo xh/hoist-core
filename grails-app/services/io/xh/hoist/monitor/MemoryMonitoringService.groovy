@@ -34,7 +34,7 @@ class MemoryMonitoringService extends BaseService {
 
     void init() {
         createTimer(
-            interval: {config.enabled ? config.snapshotInterval * SECONDS: -1},
+            interval: {this.enabled ? config.snapshotInterval * SECONDS: -1},
             runFn: this.&takeSnapshot
         )
     }
@@ -170,6 +170,10 @@ class MemoryMonitoringService extends BaseService {
 
     private Map getConfig() {
         return configService.getMap('xhMemoryMonitoringConfig')
+    }
+
+    private boolean getEnabled() {
+        return config.enabled
     }
 
     private double roundTo2DP(v) {
