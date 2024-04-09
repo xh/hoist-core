@@ -16,9 +16,6 @@ import com.hazelcast.collection.ISet
 import com.hazelcast.config.MaxSizePolicy
 import com.hazelcast.config.NearCacheConfig
 import grails.core.GrailsClass
-import io.xh.hoist.cache.Entry
-import io.xh.hoist.cluster.ClusterResponse
-import io.xh.hoist.cluster.ReplicatedValueEntry
 import io.xh.hoist.kryo.KryoSupport
 
 import static io.xh.hoist.util.InstanceConfigUtils.appEnvironment
@@ -28,6 +25,7 @@ import static grails.util.Holders.grailsApplication
 import static io.xh.hoist.util.Utils.appBuild
 import static io.xh.hoist.util.Utils.appCode
 import static io.xh.hoist.util.Utils.appVersion
+import static io.xh.hoist.util.Utils.isLocalDevelopment
 import static java.util.UUID.randomUUID
 
 class ClusterConfig {
@@ -70,8 +68,9 @@ class ClusterConfig {
      */
     protected String generateClusterName() {
         List ret = [appCode, appEnvironment, appVersion]
-        if (appVersion.contains('SNAPSHOT')) ret << appBuild
+        if (appVersion.contains('SNAPSHOT') && appBuild != 'UNKNOWN') ret << appBuild
         if (!multiInstanceEnabled) ret << randomUUID().toString().take(8)
+        if (isLocalDevelopment) ret << System.getProperty('user.name')
         return ret.join('-')
     }
 
