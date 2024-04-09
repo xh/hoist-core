@@ -30,6 +30,9 @@
   will then be displayed in the admin client.
 * All `Throwable`s are now serialized to JSON by default using Hoist's standard customization of
   Jackson.
+* New `DefaultMonitorDefinitionService` provides default implementations for some basic monitors
+  that can be used to monitor the health of an application. Can be extended in a hoist application's
+  `MonitorDefinitionService`.
 
 ### Breaking Changes
 * The following server-side Hoist events are now implemented as cluster-wide Hazelcast messages
