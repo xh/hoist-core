@@ -75,8 +75,8 @@
     * ⚠ NOTE - this requires new columns in the `xh_track_log` table. Review and run the following
       SQL, or an equivalent suitable for the particular database you are using:
       ```sql
-      ALTER TABLE `xh_track_log` ADD COLUMN `appVersion` VARCHAR(100) NULL;
-      ALTER TABLE `xh_track_log` ADD COLUMN `appEnvironment` VARCHAR(100) NULL;
+      ALTER TABLE `xh_track_log` ADD COLUMN `app_version` VARCHAR(100) NULL;
+      ALTER TABLE `xh_track_log` ADD COLUMN `app_environment` VARCHAR(100) NULL;
       ALTER TABLE `xh_track_log` ADD COLUMN `url` VARCHAR(500) NULL;
       ```
 
