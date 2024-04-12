@@ -70,8 +70,8 @@ class ClusterConfig {
     protected String generateClusterName() {
         List ret = [appCode, appEnvironment, appVersion]
         if (appVersion.contains('SNAPSHOT') && appBuild != 'UNKNOWN') ret << appBuild
-        if (!multiInstanceEnabled) ret << randomUUID().toString().take(8)
         if (isLocalDevelopment) ret << System.getProperty('user.name')
+        if (!multiInstanceEnabled) ret << randomUUID().toString().take(8)
         return ret.join('-')
     }
 
@@ -101,9 +101,7 @@ class ClusterConfig {
         ret.clusterName = clusterName
         ret.memberAttributeConfig.setAttribute('instanceName', instanceName)
 
-        if (multiInstanceEnabled) {
-            ret.networkConfig.join.multicastConfig.enabled = true
-        }
+        createNetworkConfig(ret)
 
         createDefaultConfigs(ret)
         createHibernateConfigs(ret)
@@ -112,6 +110,18 @@ class ClusterConfig {
         KryoSupport.setAsGlobalSerializer(ret)
 
         return ret
+    }
+
+    /**
+     * Create Hazelcast network Config for this application.
+     *
+     * Override this method to specify custom configuration for your environment.
+     * This is especially important for customizing the "join" configuration used
+     * by Hazelcast for autodiscovery.  Note that if `multiInstanceEnabled` is false,
+     * any custom join code can be skipped.
+     */
+    protected void createNetworkConfig(Config config) {
+
     }
 
     /**
