@@ -99,6 +99,11 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         master.getAttribute('instanceName')
     }
 
+    /** The instance name of the local server.*/
+    String getLocalName() {
+        localMember.getAttribute('instanceName')
+    }
+
     /** Is the local instance the master instance? */
     boolean getIsMaster() {
         // Cache until we ensure our implementation lightweight enough -- also supports logging.

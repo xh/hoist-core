@@ -24,6 +24,7 @@ class Monitor implements JSONFormat {
     boolean active = false
     String lastUpdatedBy
     Date lastUpdated
+    Boolean masterOnly = false
 
     public static List<String> METRIC_TYPES = ['Floor', 'Ceil', 'None']
 
@@ -43,6 +44,7 @@ class Monitor implements JSONFormat {
         notes(nullable: true, maxSize: 1200)
         sortOrder(nullable: true)
         lastUpdatedBy(nullable: true, maxSize: 50)
+        masterOnly(nullable: true)
     }
 
     Map formatForJSON() {

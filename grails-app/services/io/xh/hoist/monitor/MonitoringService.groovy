@@ -12,6 +12,7 @@ import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ReplicatedValue
 import io.xh.hoist.util.Timer
+import io.xh.hoist.util.Utils
 
 import static grails.async.Promises.task
 import static io.xh.hoist.monitor.MonitorStatus.*
@@ -36,7 +37,7 @@ class MonitoringService extends BaseService {
         monitorResultService
 
     // Shared state for all servers to read
-    private ReplicatedValue<Map<String, MonitorResult>> _results = getReplicatedValue('results')
+    private ReplicatedValue<Map<String, Map<String, MonitorResult>>> _results = getReplicatedValue('results')
 
     // Notification state for master to read only
     private ReplicatedValue<Map<String, Map>> problems = getReplicatedValue('problems')
@@ -48,7 +49,7 @@ class MonitoringService extends BaseService {
 
     void init() {
         monitorTimer = createTimer(
-                masterOnly: true,
+                masterOnly: false,
                 name: 'monitorTimer',
                 runFn: this.&onMonitorTimer,
                 interval: {monitorInterval},
@@ -56,7 +57,7 @@ class MonitoringService extends BaseService {
         )
 
         notifyTimer = createTimer (
-                masterOnly: true,
+                masterOnly: false,
                 name: 'notifyTimer',
                 runFn: this.&onNotifyTimer,
                 interval: {notifyInterval}
@@ -68,10 +69,11 @@ class MonitoringService extends BaseService {
     }
 
     @ReadOnly
-    Map<String, MonitorResult> getResults() {
+    List<Map<String, Object>> getResults() {
         def results = _results.get()
-        Monitor.list().collectEntries {
-            [it.code, results?[it.code] ?: monitorResultService.unknownMonitorResult(it)]
+        Monitor.list().collect {
+            def code = it.code
+            [code: code, name: it.name, sortOrder: it.sortOrder, masterOnly: it.masterOnly, results: results?.findAll{it.value.containsKey(code)}?.collect{[server: it.key, result: it.value.get(code)]} ?: [[server: Utils.clusterService.masterName, result: monitorResultService.unknownMonitorResult(it)]]]
         }
     }
 
@@ -88,12 +90,17 @@ class MonitoringService extends BaseService {
                 task { monitorResultService.runMonitor(m, timeout) }
             }
 
-            Map<String, MonitorResult> newResults = Promises
+            def localName = Utils.clusterService.getLocalName()
+
+           Map<String, MonitorResult> newResults = Promises
                     .waitAll(tasks)
                     .collectEntries{ [it.code, it] }
 
-            markLastStatus(newResults, _results.get())
-            _results.set(newResults)
+            Map<String, Map<String, MonitorResult>> newResultsMap = newResults
+                    .collectEntries{k, v -> [(localName): [(k): v]]}
+
+            markLastStatus(newResults, _results.get()?[localName])
+            _results.get()? _results.get()[localName] = newResults : _results.set(newResultsMap)
             if (monitorConfig.writeToMonitorLog != false) logResults()
             evaluateProblems()
         }
@@ -105,7 +112,6 @@ class MonitoringService extends BaseService {
             def oldResult = oldResults?[result.code],
                 lastStatus = oldResult ? oldResult.status : UNKNOWN,
                 statusChanged = lastStatus != result.status
-
             result.lastStatus = lastStatus
 
             result.lastStatusChanged = statusChanged ? now : oldResult.lastStatusChanged
@@ -114,7 +120,9 @@ class MonitoringService extends BaseService {
     }
 
     private void evaluateProblems() {
-        Map<String, MonitorResult> flaggedResults = results.findAll { it.value.status >= WARN }
+        Map<String, MonitorResult> flaggedResults = results
+            .findAll { it['results']['result']['status'][0] >= WARN }
+            .collectEntries{[it['code'], it['results']['result']]}
 
         // 0) Remove all problems that are no longer problems
         def probs = problems.get()?.findAll {flaggedResults[it.key]} ?: [:]
@@ -163,21 +171,22 @@ class MonitoringService extends BaseService {
     }
 
     private MonitorStatusReport generateStatusReport() {
-        def results = results.values().toList()
+        def results = results.collect{it['results']['result']}
         new MonitorStatusReport(results: results)
     }
 
     private void logResults() {
-        results.each { code, result ->
-            def status = result.status,
-                metric = result.metric
-
-            logInfo([monitorCode: code, status: status, metric: metric])
+        results.each { it ->
+            def code = it['code']
+            def innerResults = it['results']
+            innerResults.each { res ->
+                logInfo([server: res['server'], code: code, status: res['result']['status'], metric: res['result']['metric']])
+            }
         }
 
-        def failsCount = results.count {it.value.status == FAIL},
-            warnsCount = results.count {it.value.status == WARN},
-            okCount = results.count {it.value.status == OK}
+        def failsCount = results.count {it.status == FAIL},
+            warnsCount = results.count {it.status == WARN},
+            okCount = results.count {it.status == OK}
 
         logInfo([fails: failsCount, warns: warnsCount, okays: okCount])
     }

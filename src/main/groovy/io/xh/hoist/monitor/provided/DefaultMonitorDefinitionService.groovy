@@ -13,10 +13,10 @@ import io.xh.hoist.data.filter.Filter
 import io.xh.hoist.monitor.Monitor
 import io.xh.hoist.monitor.MonitorResult
 import grails.gorm.transactions.Transactional
+import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.monitor.MonitorStatus.FAIL
 import static io.xh.hoist.monitor.MonitorStatus.INACTIVE
-import static io.xh.hoist.util.DateTimeUtils.DAYS
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static java.lang.System.currentTimeMillis
@@ -73,6 +73,11 @@ class DefaultMonitorDefinitionService extends BaseService {
     }
 
     def xhLoadTimeMonitor(MonitorResult result) {
+        if (result.monitor.masterOnly && !Utils.clusterService.isMaster) {
+            result.status = INACTIVE
+            result.message = 'Monitor is master-only and this instance is not the master.'
+            return
+        }
         if (!trackLogAdminService.enabled) {
             result.status = INACTIVE
             result.message = 'Track log service is not enabled.'
@@ -111,6 +116,11 @@ class DefaultMonitorDefinitionService extends BaseService {
     }
 
     def xhDbConnectionMonitor(MonitorResult result) {
+        if (result.monitor.masterOnly && !Utils.clusterService.isMaster) {
+            result.status = INACTIVE
+            result.message = 'Monitor is master-only and this instance is not the master.'
+            return
+        }
         def startTime = currentTimeMillis()
         Sql sql = new Sql(dataSource)
         try {
@@ -124,6 +134,11 @@ class DefaultMonitorDefinitionService extends BaseService {
     }
 
     def xhLdapServiceConnectionMonitor(MonitorResult result) {
+        if (result.monitor.masterOnly && !Utils.clusterService.isMaster) {
+            result.status = INACTIVE
+            result.message = 'Monitor is master-only and this instance is not the master.'
+            return
+        }
         if (!ldapService.enabled) {
             result.status = INACTIVE
             result.message = 'LDAP service is not enabled.'
@@ -172,6 +187,7 @@ class DefaultMonitorDefinitionService extends BaseService {
                 warnThreshold: 75,
                 failThreshold: 90,
                 active: true,
+                masterOnly: false,
                 params: '{\n\t"lookbackMinutes": 30,\n\t"aggregate": "avg"\n}',
                 notes: 'This will report the largest heap usage in the last {lookbackMinutes} minutes.\n'
                         + 'Set "aggregate" to "avg" to report average heap usage.\n'
@@ -186,6 +202,7 @@ class DefaultMonitorDefinitionService extends BaseService {
                 warnThreshold: 30,
                 failThreshold: 60,
                 active: true,
+                masterOnly: true,
                 params: '{\n\t"lookbackMinutes": 30\n}',
                 notes: 'This will report the longest tracked event in the last {lookbackMinutes} minutes.'
             ],
@@ -196,6 +213,7 @@ class DefaultMonitorDefinitionService extends BaseService {
                 warnThreshold: 10000,
                 metricUnit: 'ms',
                 active: true,
+                masterOnly: true,
             ],
             [
                 code: 'xhLdapServiceConnectionMonitor',
@@ -204,6 +222,7 @@ class DefaultMonitorDefinitionService extends BaseService {
                 warnThreshold: 10000,
                 metricUnit: 'ms',
                 active: true,
+                masterOnly: true,
                 params: '{\n\t"queryUser": "admin"\n}',
                 notes: 'This will query the LDAP service for the provided user.'
             ]
@@ -234,6 +253,7 @@ class DefaultMonitorDefinitionService extends BaseService {
                     metricUnit: spec.metricUnit,
                     warnThreshold: spec.warnThreshold,
                     failThreshold: spec.failThreshold,
+                    masterOnly: spec.masterOnly,
                     params: spec.params,
                     notes: spec.notes
                 ).save()
