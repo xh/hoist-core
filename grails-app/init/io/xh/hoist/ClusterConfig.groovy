@@ -16,6 +16,7 @@ import com.hazelcast.collection.ISet
 import com.hazelcast.config.MaxSizePolicy
 import com.hazelcast.config.NearCacheConfig
 import grails.core.GrailsClass
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.kryo.KryoSupport
 
 import static io.xh.hoist.util.InstanceConfigUtils.appEnvironment
@@ -100,7 +101,9 @@ class ClusterConfig {
         ret.clusterName = clusterName
         ret.memberAttributeConfig.setAttribute('instanceName', instanceName)
 
-        ret.networkConfig.join.multicastConfig.enabled = true
+        if (multiInstanceEnabled) {
+            ret.networkConfig.join.multicastConfig.enabled = true
+        }
 
         createDefaultConfigs(ret)
         createHibernateConfigs(ret)
