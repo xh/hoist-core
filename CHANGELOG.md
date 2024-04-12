@@ -47,6 +47,10 @@
         ALTER TABLE `xh_track_log` ADD COLUMN `instance` VARCHAR(50) NULL;
     ```
 
+### Bug Fixes
+* Endpoint urls with the correct 'controller', but a non-existent 'action', were incorrectly
+  returning raw `500` errors. They now return a properly JSON-formatted `404` error, as expected.
+
 ### 📚 Libraries
 * gradle `7.6.4`
 * grails `6.2.0`
