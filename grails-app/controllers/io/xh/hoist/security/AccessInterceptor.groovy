@@ -79,6 +79,7 @@ class AccessInterceptor implements LogSupport {
         xhExceptionHandler.handleException(
             exception: new NotFoundException(),
             logTo: this,
+            logMessage: [controller: controllerClass?.name, action: actionName],
             renderTo: response
         )
         return false
