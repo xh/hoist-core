@@ -129,6 +129,13 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         hzInstance.distributedObjects
     }
 
+    /**
+     * Is the given instance a member of the cluster?
+     */
+    boolean isMember(String instanceName) {
+        cluster.members.any { it.getAttribute('instanceName') == instanceName }
+    }
+
     //------------------------
     // Distributed execution
     //------------------------

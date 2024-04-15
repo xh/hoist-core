@@ -38,6 +38,8 @@ class MonitoringService extends BaseService {
 
     // Shared state for all servers to read
     private ReplicatedValue<Map<String, Map<String, MonitorResult>>> _results = getReplicatedValue('results')
+    private ReplicatedValue<Map<String, MonitorStatus>> _statuses = getReplicatedValue('statuses')
+    private ReplicatedValue<Map<String, Date>> _lastStatusChange = getReplicatedValue('lastStatusChange')
 
     // Notification state for master to read only
     private ReplicatedValue<Map<String, Map>> problems = getReplicatedValue('problems')
@@ -46,6 +48,7 @@ class MonitoringService extends BaseService {
 
     private Timer monitorTimer
     private Timer notifyTimer
+    private Timer cleanupTimer
 
     void init() {
         monitorTimer = createTimer(
@@ -62,6 +65,13 @@ class MonitoringService extends BaseService {
                 runFn: this.&onNotifyTimer,
                 interval: {notifyInterval}
         )
+
+        cleanupTimer = createTimer(
+            masterOnly: true,
+            name: 'cleanupTimer',
+            runFn: this.&cleanup,
+            interval: {cleanupInterval}
+        )
     }
 
     void forceRun() {
@@ -77,6 +87,15 @@ class MonitoringService extends BaseService {
         }
     }
 
+    @ReadOnly
+    Map<String, MonitorStatus> getStatuses() {
+        return _statuses.get()
+    }
+
+    @ReadOnly
+    Map<String, Date> getLastStatusChange() {
+        return _lastStatusChange.get()
+    }
 
     //------------------------
     // Implementation
@@ -90,11 +109,13 @@ class MonitoringService extends BaseService {
                 task { monitorResultService.runMonitor(m, timeout) }
             }
 
-            def localName = Utils.clusterService.getLocalName()
+            def localName = Utils.clusterService.localName
 
            Map<String, MonitorResult> newResults = Promises
                     .waitAll(tasks)
                     .collectEntries{ [it.code, it] }
+
+            this.updateStatuses(newResults)
 
             Map<String, Map<String, MonitorResult>> newResultsMap = newResults
                     .collectEntries{k, v -> [(localName): [(k): v]]}
@@ -104,6 +125,12 @@ class MonitoringService extends BaseService {
             if (monitorConfig.writeToMonitorLog != false) logResults()
             evaluateProblems()
         }
+    }
+
+    private void updateStatuses(Map<String, MonitorResult> newResults) {
+        Map<String, MonitorStatus> newStatuses = newResults.collectEntries{k, v -> [k, v.status]}
+        _lastStatusChange.set(newStatuses.collectEntries{k, v -> [k, v == statuses.get(k) ? lastStatusChange.get(k) : new Date()]})
+        _statuses.set(newStatuses)
     }
 
     private void markLastStatus(Map<String, MonitorResult> newResults, Map<String, MonitorResult> oldResults) {
@@ -216,6 +243,10 @@ class MonitoringService extends BaseService {
         return isDevelopmentMode() || !configService.getBool('xhEnableMonitoring') ? -1 : (15 * SECONDS)
     }
 
+    private int getCleanupInterval() {
+        return isDevelopmentMode() || !configService.getBool('xhEnableMonitoring') ? -1 : (10 * MINUTES)
+    }
+
     private int getStartupDelay() {
         return monitorConfig.monitorStartupDelayMins * MINUTES
     }
@@ -238,6 +269,17 @@ class MonitoringService extends BaseService {
                 monitorTimer.forceRun()
             }
         }
+    }
+
+    void cleanup() {
+        def results = _results.get()
+        def clusterService = Utils.clusterService
+        for (String server: results.keySet()) {
+            if (!clusterService.isMember(server)) {
+                results.remove(server)
+            }
+        }
+        _results.set(results)
     }
 
     Map getAdminStats() {[
