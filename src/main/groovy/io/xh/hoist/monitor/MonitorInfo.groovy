@@ -9,38 +9,29 @@ package io.xh.hoist.monitor
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.json.JSONFormat
-import io.xh.hoist.json.JSONParser
 
 import static io.xh.hoist.monitor.MonitorStatus.UNKNOWN
 
 @CompileStatic
-class MonitorResult implements JSONFormat {
-    String instance
-    MonitorStatus status = UNKNOWN
-    Object metric
-    String message
-    Long elapsed
-    Date date
-    Exception exception
+class MonitorInfo implements JSONFormat {
     Monitor monitor
+    MonitorStatus status = UNKNOWN
+    Date lastStatusChange
+    List<MonitorResult> instanceResults = []
 
     String getCode() {
         monitor.code
     }
 
-    Map getParams() {
-        monitor.params ? JSONParser.parseObject(monitor.params) : [:]
-    }
-
     Map formatForJSON() {
         [
-            instance: instance,
+            code: monitor.code,
+            name: monitor.name,
+            sortOrder: monitor.sortOrder,
+            masterOnly: monitor.masterOnly,
             status: status,
-            metric: metric,
-            message: message,
-            elapsed: elapsed,
-            date: date,
-            exception: exception?.class?.name,
+            lastStatusChange: lastStatusChange,
+            instanceResults: instanceResults
         ]
     }
 

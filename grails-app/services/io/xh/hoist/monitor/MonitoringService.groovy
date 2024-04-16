@@ -7,6 +7,7 @@
 
 package io.xh.hoist.monitor
 
+import com.hazelcast.map.IMap
 import grails.async.Promises
 import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService
@@ -40,9 +41,8 @@ class MonitoringService extends BaseService {
         monitorResultService
 
     // Shared state for all servers to read
-    private ReplicatedValue<Map<String, Map<String, MonitorResult>>> _results = getReplicatedValue('results')
-    private ReplicatedValue<Map<String, MonitorStatus>> _statuses = getReplicatedValue('statuses')
-    private ReplicatedValue<Map<String, Date>> _lastStatusChange = getReplicatedValue('lastStatusChange')
+    private IMap<String, Map<String, MonitorResult>> _results = getIMap('results')
+    private ReplicatedValue<Map<String, StatusInfo>> _statusInfos = getReplicatedValue('statusInfos')
 
     // Notification state for master to read only
     private ReplicatedValue<Map<String, Map>> problems = getReplicatedValue('problems')
@@ -55,7 +55,6 @@ class MonitoringService extends BaseService {
 
     void init() {
         monitorTimer = createTimer(
-                masterOnly: false,
                 name: 'monitorTimer',
                 runFn: this.&onMonitorTimer,
                 interval: {monitorInterval},
@@ -63,17 +62,16 @@ class MonitoringService extends BaseService {
         )
 
         notifyTimer = createTimer (
-                masterOnly: false,
                 name: 'notifyTimer',
                 runFn: this.&onNotifyTimer,
                 interval: {notifyInterval}
         )
 
         cleanupTimer = createTimer(
-            masterOnly: true,
             name: 'cleanupTimer',
             runFn: this.&cleanup,
-            interval: {cleanupInterval}
+            interval: {cleanupInterval},
+            masterOnly: true,
         )
     }
 
@@ -82,32 +80,21 @@ class MonitoringService extends BaseService {
     }
 
     @ReadOnly
-    List<Map<String, Object>> getResults() {
-        def results = _results.get()
+    List<MonitorInfo> getResults() {
+        def results = _results,
+            statusInfos = _statusInfos.get() ?: [:]
         Monitor.list().collect {
-            def code = it.code
-            def monitorStatusHistory = statusHistory.find{it.code == code}
-            [code: code, name: it.name, sortOrder: it.sortOrder, masterOnly: it.masterOnly, status: monitorStatusHistory.status, lastStatusChange: monitorStatusHistory.lastStatusChange,  results: results?.findAll{it.value.containsKey(code)}?.collect{[server: it.key, result: it.value.get(code)]} ?: [[server: Utils.clusterService.masterName, result: monitorResultService.unknownMonitorResult(it)]]]
+            def code = it.code,
+                statusInfo = statusInfos[code] ?: new StatusInfo(status: UNKNOWN),
+                instanceResults = results.collect{it.value[code]}
+
+            new MonitorInfo(
+                monitor: it,
+                status: statusInfo.status,
+                lastStatusChange: statusInfo.lastChange,
+                instanceResults: instanceResults
+            )
         }
-    }
-
-    @ReadOnly
-    List<Map<String, Object>> getStatusHistory() {
-        def statuses = _statuses.get()
-        def lastStatusChange = _lastStatusChange.get()
-        Monitor.list().collect {
-            [code: it.code, status: statuses?.get(it.code) ?: UNKNOWN, lastStatusChange: lastStatusChange?.get(it.code) ?: new Date()]
-        }
-    }
-
-    @ReadOnly
-    Map<String, MonitorStatus> getStatuses() {
-        return _statuses.get()
-    }
-
-    @ReadOnly
-    Map<String, Date> getLastStatusChange() {
-        return _lastStatusChange.get()
     }
 
     //------------------------
@@ -128,12 +115,7 @@ class MonitoringService extends BaseService {
                     .waitAll(tasks)
                     .collectEntries{ [it.code, it] }
 
-
-            Map<String, Map<String, MonitorResult>> newResultsMap = newResults
-                    .collectEntries{k, v -> [(localName): [(k): v]]}
-
-            markLastStatus(newResults, _results.get()?[localName])
-            _results.get()? _results.get()[localName] = newResults : _results.set(newResultsMap)
+            _results[localName] = newResults
             Utils.clusterService.submitToInstance(new StatusUpdater(), Utils.clusterService.masterName)
             if (monitorConfig.writeToMonitorLog != false) logResults()
             evaluateProblems()
@@ -142,17 +124,14 @@ class MonitoringService extends BaseService {
 
     @ReadOnly
     private void updateStatuses() {
-        for (Monitor monitor : Monitor.list()) {
-            List<MonitorStatus> monitorStatuses = results.findAll{it.code == monitor.code}.collect{it.results.result.status}
-            MonitorStatus newStatus = monitorStatuses.max()[0]
-            if (!_statuses.get()) {
-                _statuses.set([(monitor.code): newStatus])
-                _lastStatusChange.set([(monitor.code): new Date()])
-            } else {
-                if (newStatus > _statuses.get()[monitor.code]) {
-                    _statuses.get()[monitor.code] = newStatus
-                    _lastStatusChange.get()[monitor.code] = new Date()
-                }
+        def statusInfos = _statusInfos.get() ?: [:]
+        Monitor.list().each{ monitor ->
+            def code = monitor.code
+            List<MonitorStatus> statuses = _results.findAll{it.value[code]}.collect{it.value[code].status}
+            MonitorStatus newStatus = statuses.max()
+            if (!statusInfos[code] || newStatus > statusInfos[code].status) {
+                statusInfos[code] = new StatusInfo(status: newStatus, lastChange: new Date())
+                _statusInfos.set(statusInfos)
             }
         }
     }
@@ -163,23 +142,13 @@ class MonitoringService extends BaseService {
         }
     }
 
-    private static void markLastStatus(Map<String, MonitorResult> newResults, Map<String, MonitorResult> oldResults) {
-        def now = new Date()
-        newResults.values().each {result ->
-            def oldResult = oldResults?[result.code],
-                lastStatus = oldResult ? oldResult.status : UNKNOWN,
-                statusChanged = lastStatus != result.status
-            result.lastStatus = lastStatus
-
-            result.lastStatusChanged = statusChanged ? now : oldResult.lastStatusChanged
-            result.checksInStatus = statusChanged ? 1 : oldResult.checksInStatus + 1
-        }
-    }
-
     private void evaluateProblems() {
         Map<String, MonitorResult> flaggedResults = results
-            .findAll { it.results.result.status[0] >= WARN }
-            .collectEntries{[it.code, it.results.result]}
+            .findAll { it.status >= WARN }
+            .collectEntries{
+                def globalStatus = it.status
+                [it.code, it.instanceResults.find { it.status == globalStatus }]
+            }
 
         // 0) Remove all problems that are no longer problems
         def probs = problems.get()?.findAll {flaggedResults[it.key]} ?: [:]
@@ -228,22 +197,20 @@ class MonitoringService extends BaseService {
     }
 
     private MonitorStatusReport generateStatusReport() {
-        def results = results.collect{it.results.result}
+        def results = results.collectMany{it.instanceResults}
         new MonitorStatusReport(results: results)
     }
 
     private void logResults() {
         results.each { it ->
-            def code = it.code
-            def innerResults = it.results
-            innerResults.each { res ->
-                logInfo([server: res.server, code: code, status: res.result.status, metric: res.result.metric])
+            it.instanceResults.each { res ->
+                logInfo([instance: res.instance, code: it.code, status: res.status, metric: res.metric])
             }
         }
 
-        def failsCount = statusHistory.count {it.status == FAIL},
-            warnsCount = statusHistory.count {it.status == WARN},
-            okCount = statusHistory.count {it.status == OK}
+        def failsCount = results.count {it.status == FAIL},
+            warnsCount = results.count {it.status == WARN},
+            okCount = results.count {it.status == OK}
 
         logInfo([fails: failsCount, warns: warnsCount, okays: okCount])
     }
@@ -293,7 +260,7 @@ class MonitoringService extends BaseService {
     void clearCaches() {
         super.clearCaches()
         if (isMaster) {
-            _results.set(null)
+            _results.clear()
             problems.set(null)
             if (monitorInterval > 0) {
                 monitorTimer.forceRun()
@@ -302,14 +269,12 @@ class MonitoringService extends BaseService {
     }
 
     void cleanup() {
-        def results = _results.get()
         def clusterService = Utils.clusterService
-        for (String server: results.keySet()) {
-            if (!clusterService.isMember(server)) {
-                results.remove(server)
+        for (String instance: _results.keySet()) {
+            if (!clusterService.isMember(instance)) {
+                _results.remove(instance)
             }
         }
-        _results.set(results)
     }
 
     Map getAdminStats() {[
