@@ -22,12 +22,14 @@ class MonitorResultsAdminController extends BaseClusterController {
         renderJSON(monitoringService.getResults())
     }
 
-    def statusHistory() {
-        renderJSON(monitoringService.getStatusHistory())
-    }
 
     @Access(['HOIST_ADMIN'])
     def forceRunAllMonitors() {
-        appContext.monitoringService.forceRun()
+        runOnInstance(new ForceRunAllMonitors(), Utils.clusterService.localName)
+    }
+    static class ForceRunAllMonitors extends ClusterRequest {
+        def doCall() {
+            appContext.monitoringService.forceRun()
+        }
     }
 }

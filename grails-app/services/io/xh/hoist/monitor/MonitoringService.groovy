@@ -86,7 +86,8 @@ class MonitoringService extends BaseService {
         def results = _results.get()
         Monitor.list().collect {
             def code = it.code
-            [code: code, name: it.name, sortOrder: it.sortOrder, masterOnly: it.masterOnly, results: results?.findAll{it.value.containsKey(code)}?.collect{[server: it.key, result: it.value.get(code)]} ?: [[server: Utils.clusterService.masterName, result: monitorResultService.unknownMonitorResult(it)]]]
+            def monitorStatusHistory = statusHistory.find{it.code == code}
+            [code: code, name: it.name, sortOrder: it.sortOrder, masterOnly: it.masterOnly, status: monitorStatusHistory.status, lastStatusChange: monitorStatusHistory.lastStatusChange,  results: results?.findAll{it.value.containsKey(code)}?.collect{[server: it.key, result: it.value.get(code)]} ?: [[server: Utils.clusterService.masterName, result: monitorResultService.unknownMonitorResult(it)]]]
         }
     }
 
@@ -95,7 +96,7 @@ class MonitoringService extends BaseService {
         def statuses = _statuses.get()
         def lastStatusChange = _lastStatusChange.get()
         Monitor.list().collect {
-            [code: it.code, status: statuses?.get(it.code) ?: UNKNOWN, lastStatusChange: lastStatusChange?.get(it.code) ?: null]
+            [code: it.code, status: statuses?.get(it.code) ?: UNKNOWN, lastStatusChange: lastStatusChange?.get(it.code) ?: new Date()]
         }
     }
 
@@ -139,13 +140,14 @@ class MonitoringService extends BaseService {
         }
     }
 
+    @ReadOnly
     private void updateStatuses() {
-        Monitor.list().each{monitor ->
+        for (Monitor monitor : Monitor.list()) {
             List<MonitorStatus> monitorStatuses = results.findAll{it.code == monitor.code}.collect{it.results.result.status}
-            MonitorStatus newStatus = monitorStatuses.contains(FAIL) ? FAIL : monitorStatuses.contains(WARN) ? WARN : OK
+            MonitorStatus newStatus = monitorStatuses.max()[0]
             if (!_statuses.get()) {
-                _statuses.set([monitor.code: newStatus])
-                _lastStatusChange.set([monitor.code: new Date()])
+                _statuses.set([(monitor.code): newStatus])
+                _lastStatusChange.set([(monitor.code): new Date()])
             } else {
                 if (newStatus > _statuses.get()[monitor.code]) {
                     _statuses.get()[monitor.code] = newStatus
@@ -176,7 +178,7 @@ class MonitoringService extends BaseService {
 
     private void evaluateProblems() {
         Map<String, MonitorResult> flaggedResults = results
-            .findAll { it.results.result.status >= WARN }
+            .findAll { it.results.result.status[0] >= WARN }
             .collectEntries{[it.code, it.results.result]}
 
         // 0) Remove all problems that are no longer problems
@@ -232,8 +234,8 @@ class MonitoringService extends BaseService {
 
     private void logResults() {
         results.each { it ->
-            def code = it['code']
-            def innerResults = it['results']
+            def code = it.code
+            def innerResults = it.results
             innerResults.each { res ->
                 logInfo([server: res.server, code: code, status: res.result.status, metric: res.result.metric])
             }
