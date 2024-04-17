@@ -113,7 +113,10 @@ class MonitoringService extends BaseService {
 
            Map<String, MonitorResult> newResults = Promises
                     .waitAll(tasks)
-                    .collectEntries{ [it.code, it] }
+                    .collectEntries {
+                        it.instance = localName
+                        [it.code, it]
+                    }
 
             _results[localName] = newResults
             Utils.clusterService.submitToInstance(new StatusUpdater(), Utils.clusterService.masterName)

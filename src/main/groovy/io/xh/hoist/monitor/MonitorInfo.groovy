@@ -31,6 +31,7 @@ class MonitorInfo implements JSONFormat {
             masterOnly: monitor.masterOnly,
             status: status,
             lastStatusChange: lastStatusChange,
+            metricUnit: monitor.metricUnit,
             instanceResults: instanceResults
         ]
     }
