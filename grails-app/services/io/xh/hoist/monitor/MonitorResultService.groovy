@@ -33,13 +33,13 @@ class MonitorResultService extends BaseService {
     }
 
     MonitorResult runMonitor(Monitor monitor, long timeoutSeconds) {
-        if (!monitor.active || monitor.masterOnly && !Utils.clusterService.isMaster) {
+        if (!monitor.active || (monitor.masterOnly && !clusterService.isMaster)) {
             return inactiveMonitorResult(monitor)
         }
 
         def defSvc = Utils.appContext.monitorDefinitionService,
             code = monitor.code,
-            result = new MonitorResult(monitor: monitor),
+            result = new MonitorResult(monitor: monitor, instance: clusterService.localName, master: isMaster),
             startTime = new Date()
 
         try {

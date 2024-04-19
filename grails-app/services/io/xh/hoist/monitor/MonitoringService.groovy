@@ -14,7 +14,6 @@ import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ReplicatedValue
 import io.xh.hoist.util.Timer
-import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static grails.async.Promises.task
@@ -41,12 +40,13 @@ class MonitoringService extends BaseService {
         monitorResultService
 
     // Shared state for all servers to read
+    // Map of instance name -> Map of monitor code -> MonitorResult
     private IMap<String, Map<String, MonitorResult>> _results = getIMap('results')
-    private ReplicatedValue<Map<String, StatusInfo>> _statusInfos = getReplicatedValue('statusInfos')
 
-    // Notification state for master to read only
-    private ReplicatedValue<Boolean> alertMode = getReplicatedValue('alertMode')
-    private ReplicatedValue<Long> lastNotified = getReplicatedValue('lastNotified')
+    // Notification state for master instance to manage
+    private ReplicatedValue<Map<String, StatusInfo>> _statusInfos = getReplicatedValue('statusInfos')
+    private ReplicatedValue<Boolean> _alertMode = getReplicatedValue('alertMode')
+    private ReplicatedValue<Long> _lastNotified = getReplicatedValue('lastNotified')
 
     private Timer monitorTimer
     private Timer notifyTimer
@@ -115,17 +115,13 @@ class MonitoringService extends BaseService {
                 task { monitorResultService.runMonitor(m, timeout) }
             }
 
-            def clusterService = Utils.clusterService,
-                localName = clusterService.localName
-
            Map<String, MonitorResult> newResults = Promises
                     .waitAll(tasks)
                     .collectEntries {
-                        it.instance = clusterService.isMaster ? localName + '-M' : localName
                         [it.code, it]
                     }
 
-            _results[localName] = newResults
+            _results[clusterService.localName] = newResults
             if (monitorConfig.writeToMonitorLog != false) logResults(newResults.values())
         }
     }
@@ -151,11 +147,11 @@ class MonitoringService extends BaseService {
             warnThreshold = monitorConfig.warnNotifyThreshold
 
         // Calc new alert mode, true if crossed thresholds or already alerting and still have problems
-        def currAlertMode = alertMode.get()
+        def currAlertMode = _alertMode.get()
         def newAlertMode = (currAlertMode && statusInfos.any { it.status >= WARN }) ||
             statusInfos.any { it.cyclesAsFail >= failThreshold || it.cyclesAsWarn >= warnThreshold }
-        if (newAlertMode != alertMode.get()) {
-            alertMode.set(newAlertMode)
+        if (newAlertMode != currAlertMode) {
+            _alertMode.set(newAlertMode)
             notifyAlertModeChange()
         }
     }
@@ -163,7 +159,7 @@ class MonitoringService extends BaseService {
     private void notifyAlertModeChange() {
         if (!isDevelopmentMode()) {
             getTopic('xhMonitorStatusReport').publishAsync(generateStatusReport())
-            lastNotified.set(currentTimeMillis())
+            _lastNotified.set(currentTimeMillis())
         }
     }
 
@@ -184,13 +180,13 @@ class MonitoringService extends BaseService {
     }
 
     private void onNotifyTimer() {
-        if (!alertMode.get()) return
+        if (!_alertMode.get()) return
 
-        if (intervalElapsed(monitorConfig.monitorRepeatNotifyMins * MINUTES, lastNotified.get())) {
+        if (intervalElapsed(monitorConfig.monitorRepeatNotifyMins * MINUTES, _lastNotified.get())) {
             def report = generateStatusReport()
             logDebug("Emitting monitor status report: ${report.title}")
             getTopic('xhMonitorStatusReport').publishAsync(report)
-            lastNotified.set(currentTimeMillis())
+            _lastNotified.set(currentTimeMillis())
         }
     }
 

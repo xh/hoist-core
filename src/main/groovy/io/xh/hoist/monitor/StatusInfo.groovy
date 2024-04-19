@@ -15,14 +15,15 @@ import static io.xh.hoist.monitor.MonitorStatus.*
 class StatusInfo {
     MonitorStatus status = UNKNOWN
     Date lastChange
-    Integer cyclesAsSuccess
-    Integer cyclesAsFail
-    Integer cyclesAsWarn
+    Integer cyclesAsSuccess = 0
+    Integer cyclesAsFail = 0
+    Integer cyclesAsWarn = 0
 
     void recordStatus(MonitorStatus status) {
         // Keep track of the number of consecutive cycles in each status
         switch (status) {
             case FAIL:
+                // Entering FAIL does not clear WARN streaks
                 cyclesAsSuccess = 0
                 cyclesAsFail++
                 break

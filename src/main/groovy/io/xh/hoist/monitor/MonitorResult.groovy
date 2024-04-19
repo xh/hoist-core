@@ -16,6 +16,7 @@ import static io.xh.hoist.monitor.MonitorStatus.UNKNOWN
 @CompileStatic
 class MonitorResult implements JSONFormat {
     String instance
+    Boolean master
     MonitorStatus status = UNKNOWN
     Object metric
     String message
@@ -41,6 +42,7 @@ class MonitorResult implements JSONFormat {
     Map formatForJSON() {
         [
             instance: instance,
+            master: master,
             status: status,
             metric: metric,
             message: message,
