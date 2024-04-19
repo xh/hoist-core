@@ -56,7 +56,7 @@
 * grails `6.2.0`
 * gorm `8.1.0`
 * groovy `3.0.21`
-* hazelcast `5.3.7`
+* hazelcast `5.4.0`
 
 
 ## 19.0.0 - 2024-04-04
