@@ -32,6 +32,12 @@ class MonitorResult implements JSONFormat {
         monitor.params ? JSONParser.parseObject(monitor.params) : [:]
     }
 
+    /** Combines the given string with 'message', separated by formatting */
+    void prependMessage(String prependStr) {
+        // Space character before the newlines is for fallback formatting in `hoist-react <= v51.0.0`
+        message = prependStr + (message ? " \n\n$message" : '')
+    }
+
     Map formatForJSON() {
         [
             instance: instance,

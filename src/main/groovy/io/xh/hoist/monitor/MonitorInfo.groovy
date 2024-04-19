@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2023 Extremely Heavy Industries Inc.
+ * Copyright © 2024 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.monitor
@@ -15,8 +15,7 @@ import static io.xh.hoist.monitor.MonitorStatus.UNKNOWN
 @CompileStatic
 class MonitorInfo implements JSONFormat {
     Monitor monitor
-    MonitorStatus status = UNKNOWN
-    Date lastStatusChange
+    StatusInfo statusInfo
     List<MonitorResult> instanceResults = []
 
     String getCode() {
@@ -29,9 +28,8 @@ class MonitorInfo implements JSONFormat {
             name: monitor.name,
             sortOrder: monitor.sortOrder,
             masterOnly: monitor.masterOnly,
-            status: status,
-            lastStatusChange: lastStatusChange,
             metricUnit: monitor.metricUnit,
+            statusInfo: statusInfo,
             instanceResults: instanceResults
         ]
     }

@@ -33,7 +33,7 @@ class MonitorResultService extends BaseService {
     }
 
     MonitorResult runMonitor(Monitor monitor, long timeoutSeconds) {
-        if (!monitor.active) {
+        if (!monitor.active || monitor.masterOnly && !Utils.clusterService.isMaster) {
             return inactiveMonitorResult(monitor)
         }
 

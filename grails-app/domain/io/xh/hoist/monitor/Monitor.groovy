@@ -61,7 +61,8 @@ class Monitor implements JSONFormat {
                 sortOrder: sortOrder,
                 active: active,
                 lastUpdatedBy: lastUpdatedBy,
-                lastUpdated: lastUpdated
+                lastUpdated: lastUpdated,
+                masterOnly: masterOnly
         ]
     }
 

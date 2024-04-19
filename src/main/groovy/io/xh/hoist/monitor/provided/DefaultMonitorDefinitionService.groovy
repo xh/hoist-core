@@ -46,7 +46,6 @@ class DefaultMonitorDefinitionService extends BaseService {
     def xhMemoryMonitor(MonitorResult result) {
         if (!memoryMonitoringService.enabled) {
             result.status = INACTIVE
-            result.message = 'Memory monitoring service is not enabled.'
             return
         }
         def lookbackMinutes = result.params.lookbackMinutes
@@ -57,30 +56,21 @@ class DefaultMonitorDefinitionService extends BaseService {
         def snapshots = memoryMonitoringService.snapshots.findAll {it.key > cutOffTime}.values()
         if (!snapshots) {
             result.metric = 0
-            result.message = "No memory usage data available in the last $lookbackMinutes minutes"
             return
         }
         if (!result.params.aggregate || result.params.aggregate == 'avg') {
-            result.metric = snapshots.average{it.usedPctMax}
-            result.message = "Average heap usage over last $lookbackMinutes minutes: ${result.metric}%"
+            result.metric = snapshots.average{it.usedPctMax}.round(2)
         } else if (result.params.aggregate == 'max') {
             def maxPercentUsed = snapshots.max{it.usedPctMax}.usedPctMax
             result.metric = maxPercentUsed
-            result.message = "Max heap usage over last $lookbackMinutes minutes: $maxPercentUsed%"
         } else {
             throw new RuntimeException("Invalid aggregate parameter: ${result.params.aggregate}")
         }
     }
 
     def xhLoadTimeMonitor(MonitorResult result) {
-        if (result.monitor.masterOnly && !Utils.clusterService.isMaster) {
-            result.status = INACTIVE
-            result.message = 'Monitor is master-only and this instance is not the master.'
-            return
-        }
         if (!trackLogAdminService.enabled) {
             result.status = INACTIVE
-            result.message = 'Track log service is not enabled.'
             return
         }
         def lookbackMinutes = result.params.lookbackMinutes
@@ -107,20 +97,13 @@ class DefaultMonitorDefinitionService extends BaseService {
         )
         if (!logs) {
             result.metric = 0
-            result.message = "No reportable metrics available in the last $lookbackMinutes minutes of activity tracking data"
             return
         }
         def maxElapsed = logs.max{it.elapsed}.elapsed / SECONDS
         result.metric = maxElapsed
-        result.message = "Max load time over last $lookbackMinutes minutes: ${maxElapsed}s"
     }
 
     def xhDbConnectionMonitor(MonitorResult result) {
-        if (result.monitor.masterOnly && !Utils.clusterService.isMaster) {
-            result.status = INACTIVE
-            result.message = 'Monitor is master-only and this instance is not the master.'
-            return
-        }
         def startTime = currentTimeMillis()
         Sql sql = new Sql(dataSource)
         try {
@@ -130,18 +113,11 @@ class DefaultMonitorDefinitionService extends BaseService {
         }
 
         result.metric = currentTimeMillis() - startTime
-        result.message = 'Successfully connected to database'
     }
 
     def xhLdapServiceConnectionMonitor(MonitorResult result) {
-        if (result.monitor.masterOnly && !Utils.clusterService.isMaster) {
-            result.status = INACTIVE
-            result.message = 'Monitor is master-only and this instance is not the master.'
-            return
-        }
         if (!ldapService.enabled) {
             result.status = INACTIVE
-            result.message = 'LDAP service is not enabled.'
             return
         }
         if (!result.params.queryUser) {
@@ -151,11 +127,9 @@ class DefaultMonitorDefinitionService extends BaseService {
         def user = ldapService.lookupUser(result.params.queryUser)
         if (!user) {
             result.status = FAIL
-            result.message = 'User not found'
             return
         }
         result.metric = currentTimeMillis() - startTime
-        result.message = 'Successfully connected to LDAP service'
     }
 
     void init() {
@@ -181,7 +155,7 @@ class DefaultMonitorDefinitionService extends BaseService {
         ensureRequiredMonitorsCreated([
             [
                 code: 'xhMemoryMonitor',
-                name: 'XH Memory Monitor',
+                name: 'Avg Heap Usage % Monitor (Last 30m)',
                 metricType: 'Ceil',
                 metricUnit: '%',
                 warnThreshold: 75,
@@ -196,7 +170,7 @@ class DefaultMonitorDefinitionService extends BaseService {
             ],
             [
                 code: 'xhLoadTimeMonitor',
-                name: 'XH Load Time Monitor',
+                name: 'Max Load Time Monitor (Last 30m)',
                 metricType: 'Ceil',
                 metricUnit: 's',
                 warnThreshold: 30,
@@ -208,7 +182,7 @@ class DefaultMonitorDefinitionService extends BaseService {
             ],
             [
                 code: 'xhDbConnectionMonitor',
-                name: 'XH DB Connection Monitor',
+                name: 'DB Connection Time Monitor',
                 metricType: 'None',
                 warnThreshold: 10000,
                 metricUnit: 'ms',
@@ -217,7 +191,7 @@ class DefaultMonitorDefinitionService extends BaseService {
             ],
             [
                 code: 'xhLdapServiceConnectionMonitor',
-                name: 'XH LDAP Service Connection Monitor',
+                name: 'LDAP Service Connection Time Monitor',
                 metricType: 'None',
                 warnThreshold: 10000,
                 metricUnit: 'ms',
