@@ -27,7 +27,7 @@ class MonitorInfo implements JSONFormat {
             code: monitor.code,
             name: monitor.name,
             sortOrder: monitor.sortOrder,
-            masterOnly: monitor.masterOnly,
+            primaryOnly: monitor.primaryOnly,
             metricUnit: monitor.metricUnit,
             statusInfo: statusInfo,
             instanceResults: instanceResults

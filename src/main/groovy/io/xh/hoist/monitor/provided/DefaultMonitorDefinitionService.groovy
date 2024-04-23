@@ -161,7 +161,7 @@ class DefaultMonitorDefinitionService extends BaseService {
                 warnThreshold: 75,
                 failThreshold: 90,
                 active: true,
-                masterOnly: false,
+                primaryOnly: false,
                 params: '{\n\t"lookbackMinutes": 30,\n\t"aggregate": "avg"\n}',
                 notes: 'This will report the largest heap usage in the last {lookbackMinutes} minutes.\n'
                         + 'Set "aggregate" to "avg" to report average heap usage.\n'
@@ -176,7 +176,7 @@ class DefaultMonitorDefinitionService extends BaseService {
                 warnThreshold: 30,
                 failThreshold: 60,
                 active: true,
-                masterOnly: true,
+                primaryOnly: true,
                 params: '{\n\t"lookbackMinutes": 30\n}',
                 notes: 'This will report the longest tracked event in the last {lookbackMinutes} minutes.'
             ],
@@ -187,7 +187,7 @@ class DefaultMonitorDefinitionService extends BaseService {
                 warnThreshold: 10000,
                 metricUnit: 'ms',
                 active: true,
-                masterOnly: true,
+                primaryOnly: true,
             ],
             [
                 code: 'xhLdapServiceConnectionMonitor',
@@ -196,7 +196,7 @@ class DefaultMonitorDefinitionService extends BaseService {
                 warnThreshold: 10000,
                 metricUnit: 'ms',
                 active: true,
-                masterOnly: true,
+                primaryOnly: true,
                 params: '{\n\t"queryUser": "admin"\n}',
                 notes: 'This will query the LDAP service for the provided user.'
             ]
@@ -227,7 +227,7 @@ class DefaultMonitorDefinitionService extends BaseService {
                     metricUnit: spec.metricUnit,
                     warnThreshold: spec.warnThreshold,
                     failThreshold: spec.failThreshold,
-                    masterOnly: spec.masterOnly,
+                    primaryOnly: spec.primaryOnly,
                     params: spec.params,
                     notes: spec.notes
                 ).save()
