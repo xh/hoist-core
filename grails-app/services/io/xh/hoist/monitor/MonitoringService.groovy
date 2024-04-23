@@ -38,7 +38,7 @@ class MonitoringService extends BaseService {
     // Shared state for all servers to read
     private ReplicatedValue<Map<String, MonitorResult>> _results = getReplicatedValue('results')
 
-    // Notification state for master to read only
+    // Notification state for primary to read only
     private ReplicatedValue<Map<String, Map>> problems = getReplicatedValue('problems')
     private ReplicatedValue<Boolean> alertMode = getReplicatedValue('alertMode')
     private ReplicatedValue<Long> lastNotified = getReplicatedValue('lastNotified')
@@ -48,7 +48,7 @@ class MonitoringService extends BaseService {
 
     void init() {
         monitorTimer = createTimer(
-                masterOnly: true,
+                primaryOnly: true,
                 name: 'monitorTimer',
                 runFn: this.&onMonitorTimer,
                 interval: {monitorInterval},
@@ -56,7 +56,7 @@ class MonitoringService extends BaseService {
         )
 
         notifyTimer = createTimer (
-                masterOnly: true,
+                primaryOnly: true,
                 name: 'notifyTimer',
                 runFn: this.&onNotifyTimer,
                 interval: {notifyInterval}
@@ -136,7 +136,7 @@ class MonitoringService extends BaseService {
         problems.set(probs)
 
         // 2) Handle alert mode transition -- notify immediately
-        // Note that we may get an extra transition if new master introduced in alerting
+        // Note that we may get an extra transition if new primary introduced in alerting
         def currAlertMode = calcAlertMode()
         if (currAlertMode != alertMode.get()) {
             alertMode.set(currAlertMode)
@@ -222,7 +222,7 @@ class MonitoringService extends BaseService {
 
     void clearCaches() {
         super.clearCaches()
-        if (isMaster) {
+        if (isPrimary) {
             _results.set(null)
             problems.set(null)
             if (monitorInterval > 0) {

@@ -180,11 +180,11 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     protected void subscribeToTopic(Map config) {
         def topic = config.topic as String,
             onMessage = config.onMessage as Closure,
-            masterOnly = config.masterOnly as Boolean
+            primaryOnly = config.primaryOnly as Boolean
 
 
         getTopic(topic).addMessageListener { Message m ->
-            if (destroyed || (masterOnly && !isMaster)) return
+            if (destroyed || (primaryOnly && !isPrimary)) return
             try {
                 logDebug("Receiving message on topic '$topic'")
                 if (onMessage.maximumNumberOfParameters == 1) {
@@ -202,9 +202,9 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     //------------------
     // Cluster Support
     //------------------
-    /** Is this instance the master instance */
-    protected boolean getIsMaster() {
-        clusterService.isMaster
+    /** Is this instance the primary instance */
+    protected boolean getIsPrimary() {
+        clusterService.isPrimary
     }
 
     //-----------------------------------

@@ -50,7 +50,7 @@ class ClientErrorService extends BaseService {
         createTimer(
             interval: { alertInterval },
             delay: 15 * SECONDS,
-            masterOnly: true
+            primaryOnly: true
         )
     }
 

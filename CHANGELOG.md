@@ -17,13 +17,13 @@
   routing clients to servers.  This is critical for the correct operation of authentication
   and web socket communications.
   * Many applications will *not* need to implement additional changes beyond the above to
-  run with multi-instances; Hoist will setup the cluster, elect a master instance,  provide
+  run with multi-instances; Hoist will setup the cluster, elect a primary instance,  provide
   cluster-aware hibernate caching and logging, and ensure cross-server consistency for its own
   APIs.
   * However, complex applications -- especially applications with state, workflow, or business
   logic -- should take care to ensure the app is safe to run in multi-instance mode. Distributed
   data structures (e.g. Hazelcast  Maps) should be used as needed, as well as limiting certain
-  actions to the "master" server.  See toolbox, or hoist-core itself for examples
+  actions to the "primary" server.  See toolbox, or hoist-core itself for examples
   * `hoist-react >= 64.0` is required.
 * New support for reporting of service statistics for troubleshooting/monitoring.  Implement
   `BaseService.getAdminStats()` to provide diagnostic metadata about the state of your service that

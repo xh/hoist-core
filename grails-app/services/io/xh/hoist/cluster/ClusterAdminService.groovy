@@ -25,7 +25,7 @@ class ClusterAdminService extends BaseService {
         return [
             name          : clusterService.instanceName,
             address       : clusterService.localMember.address.toString(),
-            isMaster      : clusterService.isMaster,
+            isPrimary     : clusterService.isPrimary,
             isReady       : clusterService.isReady,
             memory        : appContext.memoryMonitoringService.latestSnapshot,
             connectionPool: appContext.connectionPoolMonitoringService.latestSnapshot,

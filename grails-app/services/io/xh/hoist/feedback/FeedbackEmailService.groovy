@@ -18,7 +18,7 @@ class FeedbackEmailService extends BaseService {
         subscribeToTopic(
             topic: 'xhFeedbackReceived',
             onMessage: this.&emailFeedback,
-            masterOnly: true
+            primaryOnly: true
         )
     }
 

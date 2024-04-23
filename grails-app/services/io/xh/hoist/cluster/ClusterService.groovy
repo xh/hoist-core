@@ -65,16 +65,16 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     }
 
     void init() {
-        adjustMasterStatus()
+        adjustPrimaryStatus()
         cluster.addMembershipListener([
-            memberAdded  : { MembershipEvent e -> adjustMasterStatus(e.members) },
-            memberRemoved: { MembershipEvent e -> adjustMasterStatus(e.members) }
+            memberAdded  : { MembershipEvent e -> adjustPrimaryStatus(e.members) },
+            memberRemoved: { MembershipEvent e -> adjustPrimaryStatus(e.members) }
         ] as MembershipListener)
 
         super.init()
     }
 
-    private boolean _isMaster = false
+    private boolean _isPrimary = false
 
 
     /**
@@ -83,26 +83,26 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     boolean isReady = false
 
     /**
-     * The Hazelcast member representing the 'master' instance.
+     * The Hazelcast member representing the 'primary' instance.
      *
-     * Apps typically use the master instance to execute any run-once logic on the cluster.
+     * Apps typically use the primary instance to execute any run-once logic on the cluster.
      *
-     * We use a simple master definition documented by Hazelcast: The oldest member.
+     * We use a simple definition documented by Hazelcast: The oldest member.
      * See https://docs.hazelcast.org/docs/4.0/javadoc/com/hazelcast/cluster/Cluster.html#getMembers
      */
-    Member getMaster() {
+    Member getPrimary() {
         cluster.members.iterator().next()
     }
 
-    /** The instance name of the master server.*/
-    String getMasterName() {
-        master.getAttribute('instanceName')
+    /** The instance name of the primary server.*/
+    String getPrimaryName() {
+        primary.getAttribute('instanceName')
     }
 
-    /** Is the local instance the master instance? */
-    boolean getIsMaster() {
+    /** Is the local instance the primary instance? */
+    boolean getIsPrimary() {
         // Cache until we ensure our implementation lightweight enough -- also supports logging.
-        return _isMaster
+        return _isPrimary
     }
 
     /** The Hazelcast member representing this instance. */
@@ -148,16 +148,16 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         hzInstance.cluster
     }
 
-    private void adjustMasterStatus(Set<Member> members = cluster.members) {
+    private void adjustPrimaryStatus(Set<Member> members = cluster.members) {
         // Accept members explicitly to avoid race conditions when responding to MembershipEvents
         // (see https://docs.hazelcast.org/docs/4.0/javadoc/com/hazelcast/cluster/MembershipEvent.html)
-        // Not sure if we ever abdicate, could network failures cause master to leave and rejoin cluster?
-        def newIsMaster = members.iterator().next().localMember()
-        if (_isMaster != newIsMaster) {
-            _isMaster = newIsMaster
-            _isMaster ?
-                logInfo("I have assumed the role of Master. All hail me, '$instanceName'") :
-                logInfo('I have abdicated the role of Master.')
+        // Not sure if we ever abdicate, could network failures cause the primary to leave and rejoin cluster?
+        def newIsPrimary = members.iterator().next().localMember()
+        if (_isPrimary != newIsPrimary) {
+            _isPrimary = newIsPrimary
+            _isPrimary ?
+                logInfo("I have become the primary instance. All hail me, '$instanceName'") :
+                logInfo('I am no longer the primary instance.')
         }
     }
 
@@ -184,8 +184,8 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     Map getAdminStats() {[
         clusterId   : cluster.clusterState.id,
         instanceName: instanceName,
-        masterName  : masterName,
-        isMaster    : isMaster,
+        primaryName  : primaryName,
+        isPrimary    : isPrimary,
         members     : cluster.members.collect { it.getAttribute('instanceName') }
     ]}
 

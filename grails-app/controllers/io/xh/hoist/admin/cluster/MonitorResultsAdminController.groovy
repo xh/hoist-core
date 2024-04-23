@@ -23,7 +23,7 @@ class MonitorResultsAdminController extends BaseClusterController {
 
     @Access(['HOIST_ADMIN'])
     def forceRunAllMonitors() {
-        runOnMaster(new ForceRunAllMonitors())
+        runOnPrimary(new ForceRunAllMonitors())
     }
     static class ForceRunAllMonitors extends ClusterRequest {
         def doCall() {
