@@ -22,7 +22,6 @@ class MonitorResultsAdminController extends BaseClusterController {
         renderJSON(monitoringService.getResults())
     }
 
-
     @Access(['HOIST_ADMIN'])
     def forceRunAllMonitors() {
         runOnInstance(new ForceRunAllMonitors(), Utils.clusterService.localName)

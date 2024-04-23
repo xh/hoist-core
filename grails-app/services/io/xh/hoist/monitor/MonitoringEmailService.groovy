@@ -23,7 +23,7 @@ class MonitoringEmailService extends BaseService {
         subscribeToTopic(
             topic: 'xhMonitorStatusReport',
             onMessage: this.&emailReport,
-            masterOnly: true
+            primaryOnly: true
         )
     }
 

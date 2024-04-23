@@ -73,8 +73,8 @@ class Timer {
     /** Block on an immediate initial run?  Default is false. */
     final boolean runImmediatelyAndBlock
 
-    /**  Only run job when clustered instance is the master server?  Default is false */
-    final boolean masterOnly
+    /**  Only run job when clustered instance is the primary instance?  Default is false. */
+    final boolean primaryOnly
 
 
     /** Date last run started. */
@@ -120,7 +120,7 @@ class Timer {
         name = config.name
         owner = config.owner
         runFn = config.runFn
-        masterOnly = config.masterOnly ?: false
+        primaryOnly = config.primaryOnly ?: false
         runImmediatelyAndBlock = config.runImmediatelyAndBlock ?: false
         interval = parseDynamicValue(config.interval)
         timeout = parseDynamicValue(config.containsKey('timeout') ? config.timeout : 3 * MINUTES)
@@ -180,7 +180,7 @@ class Timer {
     Map getAdminStats() {
         [
             name: name,
-            masterOnly: masterOnly?: null,
+            primaryOnly: primaryOnly?: null,
             intervalMs: intervalMs,
             isRunning: isRunning,
             startTime: isRunning ? _lastRunStarted: null,
@@ -193,7 +193,7 @@ class Timer {
     // Implementation
     //------------------------
     private void doRun() {
-        if (masterOnly && !Utils.clusterService.isMaster) return
+        if (primaryOnly && !Utils.clusterService.isPrimary) return
 
         _isRunning = true
         _lastRunStarted = new Date()

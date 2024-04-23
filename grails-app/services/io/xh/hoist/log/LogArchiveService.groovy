@@ -70,7 +70,7 @@ class LogArchiveService extends BaseService {
     // Implementation
     //------------------------
     private void onTimer() {
-        if (isMaster) {
+        if (isPrimary) {
             archiveLogs((Integer) config.archiveAfterDays)
         }
     }

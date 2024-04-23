@@ -43,7 +43,7 @@ class MonitoringService extends BaseService {
     // Map of instance name -> Map of monitor code -> MonitorResult
     private IMap<String, Map<String, MonitorResult>> _results = getIMap('results')
 
-    // Notification state for master instance to manage
+    // Notification state for primary instance to manage
     private ReplicatedValue<Map<String, StatusInfo>> _statusInfos = getReplicatedValue('statusInfos')
     private ReplicatedValue<Boolean> _alertMode = getReplicatedValue('alertMode')
     private ReplicatedValue<Long> _lastNotified = getReplicatedValue('lastNotified')
@@ -64,14 +64,14 @@ class MonitoringService extends BaseService {
             name: 'notifyTimer',
             runFn: this.&onNotifyTimer,
             interval: {notifyInterval},
-            masterOnly: true
+            primaryOnly: true
         )
 
         cleanupTimer = createTimer(
             name: 'cleanupTimer',
             runFn: this.&cleanup,
             interval: {cleanupInterval},
-            masterOnly: true,
+            primaryOnly: true,
         )
 
         _results.addEntryListener([
@@ -128,7 +128,7 @@ class MonitoringService extends BaseService {
 
     @ReadOnly
     private void updateStatuses() {
-        if (!isMaster) return
+        if (!isPrimary) return
         def statusInfos = _statusInfos.get() ?: [:]
         Monitor.list().each{ monitor ->
             def code = monitor.code
@@ -229,7 +229,7 @@ class MonitoringService extends BaseService {
 
     void clearCaches() {
         super.clearCaches()
-        if (isMaster) {
+        if (isPrimary) {
             _results.clear()
             _statusInfos.set(null)
             if (monitorInterval > 0) {

@@ -10,7 +10,6 @@ package io.xh.hoist
 import grails.plugins.Plugin
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.exception.ExceptionHandler
-import io.xh.hoist.security.HoistSecurityFilter
 import io.xh.hoist.websocket.HoistWebSocketConfigurer
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.core.Ordered
@@ -37,8 +36,8 @@ class HoistCoreGrailsPlugin extends Plugin {
         {->
             ClusterService.initializeInstance()
 
-            hoistIdentityFilter(FilterRegistrationBean) {
-                filter = bean(HoistSecurityFilter)
+            hoistFilter(FilterRegistrationBean) {
+                filter = bean(HoistFilter)
                 order = Ordered.HIGHEST_PRECEDENCE + 40
             }
 

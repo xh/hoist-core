@@ -24,8 +24,8 @@ abstract class BaseClusterController extends BaseController {
         renderJSON(ret.value)
     }
 
-    protected void runOnMaster(ClusterRequest task) {
-        runOnInstance(task, clusterService.masterName)
+    protected void runOnPrimary(ClusterRequest task) {
+        runOnInstance(task, clusterService.primaryName)
     }
 
     protected void runOnAllInstances(ClusterRequest task) {

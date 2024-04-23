@@ -94,7 +94,7 @@ class DefaultRoleService extends BaseRoleService {
             interval: { config.refreshIntervalSecs as int * SECONDS },
             runFn: this.&refreshRoleAssignments,
             runImmediatelyAndBlock: true,
-            masterOnly: true
+            primaryOnly: true
         )
     }
 
