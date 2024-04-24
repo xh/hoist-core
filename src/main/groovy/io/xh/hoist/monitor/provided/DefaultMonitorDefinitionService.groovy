@@ -13,7 +13,6 @@ import io.xh.hoist.data.filter.Filter
 import io.xh.hoist.monitor.Monitor
 import io.xh.hoist.monitor.MonitorResult
 import grails.gorm.transactions.Transactional
-import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.monitor.MonitorStatus.FAIL
 import static io.xh.hoist.monitor.MonitorStatus.INACTIVE

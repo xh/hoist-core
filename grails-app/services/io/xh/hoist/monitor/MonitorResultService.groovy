@@ -7,9 +7,9 @@
 
 package io.xh.hoist.monitor
 
+import grails.async.Promises
 import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService
-import io.xh.hoist.util.Utils
 import static grails.async.Promises.task
 
 import java.util.concurrent.TimeoutException
@@ -18,26 +18,35 @@ import static io.xh.hoist.monitor.MonitorStatus.*
 import static java.util.concurrent.TimeUnit.SECONDS
 
 
-/**
- * Runs individual status monitor checks as directed by MonitorService and as configured by
- * data-driven status monitor definitions. Timeouts and any other exceptions will be caught and
- * returned cleanly as failures.
- */
 class MonitorResultService extends BaseService {
 
+    def configService,
+        monitorDefinitionService
+
+    /**
+     * Runs all enabled and active monitors on this instance in parallel.
+     */
     @ReadOnly
-    MonitorResult runMonitor(String code, long timeoutSeconds) {
-        def monitor = Monitor.findByCode(code)
-        if (!monitor) throw new RuntimeException("Monitor '$code' not found.")
-        return runMonitor(monitor, timeoutSeconds)
+    List<MonitorResult> runAllMonitors() {
+        def timeout = getTimeoutSeconds(),
+            monitors = Monitor.list().findAll{it.active && (isPrimary || !it.primaryOnly)}
+
+        withDebug("Running ${monitors.size()} monitors") {
+            def tasks = monitors.collect { m -> task {runMonitor(m, timeout)}},
+                ret = Promises.waitAll(tasks)
+
+            if (monitorConfig.writeToMonitorLog != false) logResults(ret)
+
+            return ret
+        } as List<MonitorResult>
     }
 
+    /**
+     * Runs individual monitor on this instance. Timeouts and any other exceptions will be
+     * caught and returned cleanly as failures.
+     */
     MonitorResult runMonitor(Monitor monitor, long timeoutSeconds) {
-        if (!monitor.active || (monitor.primaryOnly && !clusterService.isPrimary)) {
-            return inactiveMonitorResult(monitor)
-        }
-
-        def defSvc = Utils.appContext.monitorDefinitionService,
+        def defSvc = monitorDefinitionService,
             code = monitor.code,
             result = new MonitorResult(monitor: monitor, instance: clusterService.localName, primary: isPrimary),
             startTime = new Date()
@@ -79,25 +88,6 @@ class MonitorResultService extends BaseService {
         return result
     }
 
-    MonitorResult unknownMonitorResult(Monitor monitor) {
-        return new MonitorResult(
-                status: UNKNOWN,
-                date: new Date(),
-                elapsed: 0,
-                monitor: monitor
-        )
-    }
-
-    MonitorResult inactiveMonitorResult(Monitor monitor) {
-        return new MonitorResult(
-                status: INACTIVE,
-                date: new Date(),
-                elapsed: 0,
-                monitor: monitor
-        )
-    }
-
-
     //------------------------
     // Implementation
     //------------------------
@@ -128,5 +118,28 @@ class MonitorResultService extends BaseService {
             result.status = WARN
             result.prependMessage("Metric value is $verb warn limit of $warn $units")
         }
+    }
+
+    //---------------------
+    // Implementation
+    //--------------------
+    private long getTimeoutSeconds() {
+        (monitorConfig.monitorTimeoutSecs ?: 15) as long
+    }
+
+    private Map getMonitorConfig() {
+        configService.getMap('xhMonitorConfig')
+    }
+
+    private void logResults(Collection<MonitorResult> results) {
+        results.each {
+            logInfo([code: it.code, status: it.status, metric: it.metric])
+        }
+
+        def failsCount = results.count {it.status == FAIL},
+            warnsCount = results.count {it.status == WARN},
+            okCount = results.count {it.status == OK}
+
+        logInfo([fails: failsCount, warns: warnsCount, okays: okCount])
     }
 }
