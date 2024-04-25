@@ -17,20 +17,19 @@ import static io.xh.hoist.monitor.MonitorStatus.UNKNOWN
 import static io.xh.hoist.monitor.MonitorStatus.WARN
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static java.lang.System.currentTimeMillis
-import static java.util.Collections.emptyList
 
 @CompileStatic
 class MonitorResults implements JSONFormat {
     Monitor monitor
-    MonitorStatus status = UNKNOWN
-    List<MonitorResult> results = emptyList()
-    Date dateComputed = new Date()
+    MonitorStatus status
+    List<MonitorResult> results
+    Date dateComputed
 
     // Aggregated history
     int cyclesAsSuccess = 0
     int cyclesAsFail = 0
     int cyclesAsWarn = 0
-    Date lastStatusChanged = new Date()
+    Date lastStatusChanged
 
     String getName() {
         return monitor.name
@@ -51,24 +50,17 @@ class MonitorResults implements JSONFormat {
      * Create an empty result, for when no underlying checks are available.
      */
     static MonitorResults emptyResults(Monitor monitor) {
-        new MonitorResults(
-            monitor: monitor,
-            status: monitor.active ? UNKNOWN : INACTIVE
-        )
+        new MonitorResults(monitor)
     }
 
     /**
      * Create a new result, appending it to existing history, if available.
      */
     static MonitorResults newResults(List<MonitorResult> results, MonitorResults prev) {
-        def ret = new MonitorResults(
-            monitor: results[0].monitor,
-            results: results,
-            status: results*.status.max()
-        )
+        def ret = new MonitorResults(results[0].monitor, results)
 
         // If there is history, bring it over and append to it.
-        if (prev && !(ret.status == INACTIVE || ret.status == UNKNOWN)) {
+        if (prev && ret.status != INACTIVE && ret.status != UNKNOWN) {
             ret.cyclesAsSuccess = prev.cyclesAsSuccess
             ret.cyclesAsFail = prev.cyclesAsFail
             ret.cyclesAsWarn = prev.cyclesAsWarn
@@ -94,6 +86,16 @@ class MonitorResults implements JSONFormat {
         }
 
         return ret
+    }
+
+    //------------------
+    // Implementation
+    //------------------
+    private MonitorResults(Monitor monitor, List<MonitorResult> results = null) {
+        this.monitor = monitor
+        this.results = results
+        status = results ? results*.status.max() : monitor.active ? UNKNOWN : INACTIVE
+        dateComputed = lastStatusChanged = new Date()
     }
 
     Map formatForJSON() {[

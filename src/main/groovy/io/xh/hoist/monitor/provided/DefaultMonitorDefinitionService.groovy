@@ -13,6 +13,7 @@ import io.xh.hoist.data.filter.Filter
 import io.xh.hoist.monitor.Monitor
 import io.xh.hoist.monitor.MonitorResult
 import grails.gorm.transactions.Transactional
+import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.monitor.MonitorStatus.FAIL
 import static io.xh.hoist.monitor.MonitorStatus.INACTIVE
@@ -36,11 +37,15 @@ import static java.lang.System.currentTimeMillis
  */
 class DefaultMonitorDefinitionService extends BaseService {
 
-    def configService,
-    memoryMonitoringService,
-    trackLogAdminService,
-    ldapService,
-    dataSource
+    def getConfigService() { Utils.configService }
+    def getMemoryMonitoringService() { Utils.appContext.memoryMonitoringService}
+    def getTrackLogAdminService() { Utils.appContext.trackLogAdminService}
+    def getLdapService() { Utils.appContext.ldapService}
+    def getDataSource() {Utils.appContext.dataSource}
+
+    void init() {
+        ensureRequiredConfigAndMonitorsCreated()
+    }
 
     def xhMemoryMonitor(MonitorResult result) {
         if (!memoryMonitoringService.enabled) {
@@ -129,10 +134,6 @@ class DefaultMonitorDefinitionService extends BaseService {
             return
         }
         result.metric = currentTimeMillis() - startTime
-    }
-
-    void init() {
-        ensureRequiredConfigAndMonitorsCreated()
     }
 
     /**
