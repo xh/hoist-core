@@ -135,6 +135,7 @@ abstract class BaseAuthenticationService extends BaseService {
      * session within their completeAuthentication() implementations.
      */
     protected List<String> whitelistURIs = [
+        '/oauthConfig',
         '/ping',
         '/xh/login',
         '/xh/logout',
