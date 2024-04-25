@@ -44,10 +44,11 @@
   change was needed to better support cross-cluster exception handling. This object is used by
   Hoist internally for catching uncaught exceptions and this change is not expected to impact
   most applications.
-* Applications will need to add an `instance` column to two tables, with the following SQL, or equivalent:
+* Applications will need to add column to three tables, with the following SQL, or equivalent:
     ```sql
         ALTER TABLE `xh_client_error` ADD COLUMN `instance` VARCHAR(50) NULL;
         ALTER TABLE `xh_track_log` ADD COLUMN `instance` VARCHAR(50) NULL;
+        ALTER TABLE `xh_monitor` ADD COLUMN `primary_only` BIT NOT NULL DEFAULT FALSE;
     ```
 
 ### Bug Fixes
