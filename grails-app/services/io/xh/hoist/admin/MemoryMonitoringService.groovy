@@ -5,10 +5,12 @@
  * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.monitor
+package io.xh.hoist.admin
 
 import com.sun.management.HotSpotDiagnosticMXBean
 import io.xh.hoist.BaseService
+import io.xh.hoist.util.DateTimeUtils
+import io.xh.hoist.util.Utils
 
 import java.lang.management.GarbageCollectorMXBean
 import java.lang.management.ManagementFactory
@@ -34,7 +36,7 @@ class MemoryMonitoringService extends BaseService {
 
     void init() {
         createTimer(
-            interval: {config.enabled ? config.snapshotInterval * SECONDS: -1},
+            interval: {this.enabled ? config.snapshotInterval * DateTimeUtils.SECONDS: -1},
             runFn: this.&takeSnapshot
         )
     }
@@ -91,7 +93,7 @@ class MemoryMonitoringService extends BaseService {
         if (newSnap.usedPctMax > 90) {
             logWarn(newSnap)
             logWarn("MEMORY USAGE ABOVE 90%")
-        } else if (intervalElapsed(1 * HOURS, _lastInfoLogged)) {
+        } else if (intervalElapsed(1 * DateTimeUtils.HOURS, _lastInfoLogged)) {
             logInfo(newSnap)
             _lastInfoLogged = new Date()
         } else {
@@ -152,7 +154,7 @@ class MemoryMonitoringService extends BaseService {
 
         long collectionCount = totalCollectionCount - (last ? last.totalCollectionCount : 0),
             collectionTime = totalCollectionTime - (last ? last.totalCollectionTime : 0),
-            elapsedTime = timestamp - (last ? last.timestamp : startupTime.toInstant().toEpochMilli())
+            elapsedTime = timestamp - (last ? last.timestamp : Utils.startupTime.toInstant().toEpochMilli())
 
         def avgCollectionTime = collectionCount ? Math.round(collectionTime/collectionCount) : 0
 
@@ -170,6 +172,10 @@ class MemoryMonitoringService extends BaseService {
 
     private Map getConfig() {
         return configService.getMap('xhMemoryMonitoringConfig')
+    }
+
+    private boolean getEnabled() {
+        return config.enabled
     }
 
     private double roundTo2DP(v) {

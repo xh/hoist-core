@@ -9,6 +9,7 @@ package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.security.Access
+import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.util.Utils.getAppContext
 

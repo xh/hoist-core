@@ -5,10 +5,11 @@
  * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.monitor
+package io.xh.hoist.admin
 
 import io.xh.hoist.BaseService
 import io.xh.hoist.exception.DataNotAvailableException
+import io.xh.hoist.util.DateTimeUtils
 import org.apache.tomcat.jdbc.pool.DataSource as PooledDataSource
 import org.apache.tomcat.jdbc.pool.PoolConfiguration
 import org.springframework.boot.jdbc.DataSourceUnwrapper
@@ -34,7 +35,7 @@ class ConnectionPoolMonitoringService extends BaseService {
 
     void init() {
         createTimer(
-            interval: {enabled ? config.snapshotInterval * SECONDS: -1},
+            interval: {enabled ? config.snapshotInterval * DateTimeUtils.SECONDS: -1},
             runFn: this.&takeSnapshot
         )
     }

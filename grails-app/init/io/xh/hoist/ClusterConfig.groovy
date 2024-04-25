@@ -131,7 +131,8 @@ class ClusterConfig {
         config.getMapConfig('default').with {
             statisticsEnabled = true
             inMemoryFormat = InMemoryFormat.OBJECT
-            nearCacheConfig = new NearCacheConfig().setInMemoryFormat(InMemoryFormat.OBJECT)
+            /** Setting serializeKeys=true due to bug: https://github.com/hazelcast/hazelcast/issues/19714 */
+            nearCacheConfig = new NearCacheConfig().setInMemoryFormat(InMemoryFormat.OBJECT).setSerializeKeys(true)
         }
         config.getReplicatedMapConfig('default').with {
             statisticsEnabled = true
