@@ -9,7 +9,6 @@ package io.xh.hoist.monitor
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 
-import static grails.util.Environment.isDevelopmentMode
 import static io.xh.hoist.monitor.MonitorStatus.WARN
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
@@ -31,7 +30,7 @@ class MonitoringReportService extends BaseService {
     private Long lastNotified = null
     private boolean alertMode = false
 
-    void noteResultsUpdated(Collection<MonitorResults> results) {
+    void noteResultsUpdated(List<MonitorResults> results) {
        if (!isPrimary) return;
 
         def failThreshold = config.failNotifyThreshold,
@@ -54,13 +53,11 @@ class MonitoringReportService extends BaseService {
     //------------------------
     // Implementation
     //------------------------
-    private MonitorStatusReport generateStatusReport(results) {
-        def report = new MonitorStatusReport(results: results)
+    private MonitorStatusReport generateStatusReport(List<MonitorResults> results) {
+        def report = new MonitorStatusReport(results)
         logDebug("Emitting monitor status report: ${report.title}")
         getTopic('xhMonitorStatusReport').publishAsync(report)
-        if (isDevelopmentMode()) {
-            emailReport(report)
-        }
+        emailReport(report)
     }
 
     private void emailReport(MonitorStatusReport report) {
@@ -76,16 +73,17 @@ class MonitoringReportService extends BaseService {
     }
 
     private String formatHtml(MonitorStatusReport report) {
-        def results = report.results
 
-        results.sort{it.name}
-        results.sort{it.status}
+        def problems = report.results.findAll {it.status >= WARN}
 
-        if (report.status < WARN) return "There are no alerting monitors for ${Utils.appName}."
+        if (!problems) return "There are no alerting monitors for ${Utils.appName}."
 
-        return results.findAll{it.status >= WARN}.collect {
-            "+ $it.name | ${it.message ? it.message + ' | ' : ''}Minutes in [${it.status}]: ${it.minsInStatus}"
-        }.join('<br>')
+        return problems
+            .sort {it.name}
+            .sort {it.status }
+            .collect {
+                "+ ${it.name} | ${it.message ? it.message + ' | ' : ''}Minutes in [${it.status}]: ${it.minsInStatus}"
+            }.join('<br>')
     }
 
     private Map getConfig() {

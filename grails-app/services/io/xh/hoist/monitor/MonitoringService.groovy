@@ -48,14 +48,34 @@ class MonitoringService extends BaseService {
         )
     }
 
-    void forceRun() {
-        timer.forceRun()
-    }
-
+    /**
+     * Get the current set of last monitor results for all monitors in the app.
+     *
+     * Results will be sorted according to canonical sort order defined in the monitor
+     * configuration and will include inactive monitors.
+     *
+     * Main entry point.
+     */
     @ReadOnly
     List<MonitorResults> getResults() {
         def results = _results.get()
-        Monitor.list().collect { results?[it.code] ?: emptyResults(it) }
+        Monitor
+            .listOrderBySortOrder()
+            .collect {
+                def ret = it.active && results ? results[it.code] : null
+                return ret ?: emptyResults(it)
+            }
+    }
+
+
+    /**
+     * Force the monitors to be evaluated across the cluster at the next opportunity.
+     *
+     * Note this will run the monitors even in development mode, or if monitoring is configured
+     * to be disabled in the app.
+     */
+    void forceRun() {
+        if (isPrimary) timer.forceRun()
     }
 
 
@@ -63,9 +83,10 @@ class MonitoringService extends BaseService {
     // Implementation
     //--------------------------------------------------------------------
     private void onTimer() {
+        // Recompute results across cluster for active checks
         Map<String, List<MonitorResult>> newChecks = clusterService
             .submitToAllInstances(new RunAllMonitorsTask())
-            .collectMany { instance, response -> (response.value ?: [])}
+            .collectMany { instance, response -> (response.value ?: []) }
             .groupBy { it.code }
 
         Map<String, MonitorResults> prevResults = _results.get()
@@ -74,7 +95,8 @@ class MonitoringService extends BaseService {
         }
         _results.set(newResults)
 
-        monitoringReportService.noteResultsUpdated(newResults.values())
+        // Report the canonical results from public getter
+        monitoringReportService.noteResultsUpdated(results)
     }
 
     static class RunAllMonitorsTask extends ClusterRequest<List<MonitorResult>> {

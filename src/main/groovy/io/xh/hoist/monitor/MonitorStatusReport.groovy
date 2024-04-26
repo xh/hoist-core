@@ -12,14 +12,17 @@ import io.xh.hoist.util.Utils
 import static io.xh.hoist.monitor.MonitorStatus.*
 
 class MonitorStatusReport {
-    List<MonitorResults> results
+    final MonitorStatus status
+    final String title
+    final List<MonitorResults> results
 
-    MonitorStatus getStatus() {
-        if (!results) return OK
-        results.max { it.status }.status
+    MonitorStatusReport(List<MonitorResults> results) {
+        this.results = results
+        status = results ? results.max { it.status }.status : OK
+        title = computeTitle()
     }
 
-    String getTitle() {
+    private String computeTitle() {
         def failsCount = results.count{it.status == FAIL},
             warnsCount = results.count{it.status == WARN},
             okCount = results.count{it.status == OK},
