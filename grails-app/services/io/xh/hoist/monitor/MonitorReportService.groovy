@@ -20,7 +20,7 @@ import static java.lang.System.currentTimeMillis
  *
  * Also emails status updates to a configurable list of recipients.
  */
-class MonitoringReportService extends BaseService {
+class MonitorReportService extends BaseService {
 
     def emailService,
         configService

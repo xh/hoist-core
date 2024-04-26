@@ -18,13 +18,20 @@ import static io.xh.hoist.monitor.MonitorStatus.*
 import static java.util.concurrent.TimeUnit.SECONDS
 
 
-class MonitorResultService extends BaseService {
+/**
+ * Service that evaluates monitors on a given cluster member.
+ *
+ * Called internally by Hoist's Monitor Service and not typically
+ * called directly by applications.
+ */
+class MonitorEvalService extends BaseService {
 
     def configService,
         monitorDefinitionService
 
     /**
      * Runs all enabled and active monitors on this instance in parallel.
+     * Timeouts and any other exceptions will be  caught and returned cleanly as failures.
      */
     @ReadOnly
     List<MonitorResult> runAllMonitors() {
@@ -42,7 +49,7 @@ class MonitorResultService extends BaseService {
     }
 
     /**
-     * Runs individual monitor on this instance. Timeouts and any other exceptions will be
+     * Runs an individual monitor on this instance. Timeouts and any other exceptions will be
      * caught and returned cleanly as failures.
      */
     MonitorResult runMonitor(Monitor monitor, long timeoutSeconds) {

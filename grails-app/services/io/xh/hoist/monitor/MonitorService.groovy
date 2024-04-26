@@ -30,10 +30,10 @@ import static io.xh.hoist.util.Utils.getAppContext
  *
  * If enabled via config, this service will also write monitor run results to a dedicated log file.
  */
-class MonitoringService extends BaseService {
+class MonitorService extends BaseService {
 
     def configService,
-        monitoringReportService
+        monitorReportService
 
     // Shared state for all servers to read -- gathered by primary from all instances
     private ReplicatedValue<Map<String, MonitorResults>> _results = getReplicatedValue('results')
@@ -83,12 +83,13 @@ class MonitoringService extends BaseService {
     // Implementation
     //--------------------------------------------------------------------
     private void onTimer() {
-        // Recompute results across cluster for active checks
+        // Gather per-instance results from across the cluster
         Map<String, List<MonitorResult>> newChecks = clusterService
             .submitToAllInstances(new RunAllMonitorsTask())
             .collectMany { instance, response -> (response.value ?: []) }
             .groupBy { it.code }
 
+        // Merge with existing results and save
         Map<String, MonitorResults> prevResults = _results.get()
         Map<String, MonitorResults> newResults = newChecks.collectEntries { code, checks ->
             [code, newResults(checks, prevResults?[code])]
@@ -96,12 +97,12 @@ class MonitoringService extends BaseService {
         _results.set(newResults)
 
         // Report the canonical results from public getter
-        monitoringReportService.noteResultsUpdated(results)
+        monitorReportService.noteResultsUpdated(results)
     }
 
     static class RunAllMonitorsTask extends ClusterRequest<List<MonitorResult>> {
         List<MonitorResult> doCall() {
-            return appContext.monitorResultService.runAllMonitors()
+            return appContext.monitorEvalService.runAllMonitors()
         }
     }
 
