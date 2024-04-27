@@ -36,7 +36,7 @@ Please contact XH to review your app's readiness for multi-instance operation!
 ### 💥 Breaking Changes (upgrade difficulty: 🟠 MEDIUM / 🟢 LOW for apps with minimal custom server-side functionality)
 
 * Requires `hoist-react >= 64.0` for essential Admin Console upgrades.
-* Requires updated `gradle.properties` to specify `hazelcast.version=5.x.x`. Check hoist-core or
+* Requires updated `gradle.properties` to specify `hazelcast.version=5.3.x`. Check hoist-core or
   Toolbox at time of upgrade to confirm exact recommended version.
 * Requires column additions to three `xh_` tables with the following SQL or equivalent:
     ```sql

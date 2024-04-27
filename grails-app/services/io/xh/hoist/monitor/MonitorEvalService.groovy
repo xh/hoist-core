@@ -111,11 +111,13 @@ class MonitorEvalService extends BaseService {
 
         if (type == 'None') return
 
-        if (metric == null) {
+        if (!(metric instanceof Number)) {
             result.status = FAIL
-            result.prependMessage("Monitor failed to compute metric")
+            result.prependMessage('Monitor failed to compute numerical metric.')
             return
         }
+
+        Number metricNum = metric
 
         def isCeil = (type == 'Ceil'),
             sign = isCeil ? 1 : -1,
@@ -125,10 +127,10 @@ class MonitorEvalService extends BaseService {
             currSeverity = result.status.severity,
             units = monitor.metricUnit ?: ''
 
-        if (fail != null && (metric - fail) * sign > 0 && currSeverity < FAIL.severity) {
+        if (fail != null && (metricNum - fail) * sign > 0 && currSeverity < FAIL.severity) {
             result.status = FAIL
             result.prependMessage("Metric value is $verb failure limit of $fail $units")
-        } else if (warn != null && (metric - warn) * sign > 0 && currSeverity < WARN.severity) {
+        } else if (warn != null && (metricNum - warn) * sign > 0 && currSeverity < WARN.severity) {
             result.status = WARN
             result.prependMessage("Metric value is $verb warn limit of $warn $units")
         }

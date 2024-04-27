@@ -24,7 +24,7 @@ class MonitorResult implements JSONFormat {
     String instance
     Boolean primary
     MonitorStatus status = UNKNOWN
-    Number metric
+    Object metric
     String message
     Long elapsed
     Date date
