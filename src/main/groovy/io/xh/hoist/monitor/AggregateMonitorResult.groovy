@@ -18,8 +18,15 @@ import static io.xh.hoist.monitor.MonitorStatus.WARN
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static java.lang.System.currentTimeMillis
 
+/**
+ * Consolidated results for a single monitor, linking together individual latest results from
+ * multiple instances to produce a consolidated overall status based on the worst result.
+ *
+ * Also tracks history of cycle changes at a high level, reporting on the number of check cycles for
+ * which the monitor has been in a given status.
+ */
 @CompileStatic
-class MonitorResults implements JSONFormat {
+class AggregateMonitorResult implements JSONFormat {
     Monitor monitor
     MonitorStatus status
     List<MonitorResult> results
@@ -49,15 +56,15 @@ class MonitorResults implements JSONFormat {
     /**
      * Create an empty result, for when no underlying checks are available.
      */
-    static MonitorResults emptyResults(Monitor monitor) {
-        new MonitorResults(monitor)
+    static AggregateMonitorResult emptyResults(Monitor monitor) {
+        new AggregateMonitorResult(monitor)
     }
 
     /**
-     * Create a new result, appending it to existing history, if available.
+     * Create a new result, carrying forward existing status streaks (cycle counts) if available.
      */
-    static MonitorResults newResults(List<MonitorResult> results, MonitorResults prev) {
-        def ret = new MonitorResults(results[0].monitor, results)
+    static AggregateMonitorResult newResults(List<MonitorResult> results, AggregateMonitorResult prev) {
+        def ret = new AggregateMonitorResult(results[0].monitor, results)
 
         // If there is history, bring it over and append to it.
         if (prev && ret.status != INACTIVE && ret.status != UNKNOWN) {
@@ -91,7 +98,7 @@ class MonitorResults implements JSONFormat {
     //------------------
     // Implementation
     //------------------
-    private MonitorResults(Monitor monitor, List<MonitorResult> results = null) {
+    private AggregateMonitorResult(Monitor monitor, List<MonitorResult> results = null) {
         this.monitor = monitor
         this.results = results
         status = results ? results*.status.max() : monitor.active ? UNKNOWN : INACTIVE

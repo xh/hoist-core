@@ -8,30 +8,36 @@
 package io.xh.hoist.monitor
 
 import grails.async.Promises
+import grails.compiler.GrailsCompileStatic
 import grails.gorm.transactions.ReadOnly
+import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
-import static grails.async.Promises.task
+import io.xh.hoist.config.ConfigService
 
 import java.util.concurrent.TimeoutException
 
+import static grails.async.Promises.task
 import static io.xh.hoist.monitor.MonitorStatus.*
 import static java.util.concurrent.TimeUnit.SECONDS
 
-
 /**
- * Service that evaluates monitors on a given cluster member.
+ * Coordinates the execution and immediate evaluation of status monitors on a single instance,
+ * when instructed to do so by the primary's `MonitorService`. Individual monitor runs are
+ * executed in parallel and constrained by a timeout.
  *
- * Called internally by Hoist's Monitor Service and not typically
- * called directly by applications.
+ * Will log monitor results if so configured.
+ *
+ * @internal - not intended for direct use by applications.
  */
+@GrailsCompileStatic
 class MonitorEvalService extends BaseService {
 
-    def configService,
-        monitorDefinitionService
+    ConfigService configService
+    def monitorDefinitionService
 
     /**
      * Runs all enabled and active monitors on this instance in parallel.
-     * Timeouts and any other exceptions will be  caught and returned cleanly as failures.
+     * Timeouts and any other exceptions will be caught and returned cleanly as failures.
      */
     @ReadOnly
     List<MonitorResult> runAllMonitors() {
@@ -42,16 +48,17 @@ class MonitorEvalService extends BaseService {
             def tasks = monitors.collect { m -> task {runMonitor(m, timeout)}},
                 ret = Promises.waitAll(tasks)
 
-            if (monitorConfig.writeToMonitorLog != false) logResults(ret)
+            if (config.writeToMonitorLog != false) logResults(ret)
 
             return ret
-        } as List<MonitorResult>
+        }
     }
 
     /**
      * Runs an individual monitor on this instance. Timeouts and any other exceptions will be
      * caught and returned cleanly as failures.
      */
+    @CompileDynamic
     MonitorResult runMonitor(Monitor monitor, long timeoutSeconds) {
         def defSvc = monitorDefinitionService,
             code = monitor.code,
@@ -127,15 +134,12 @@ class MonitorEvalService extends BaseService {
         }
     }
 
-    //---------------------
-    // Implementation
-    //--------------------
     private long getTimeoutSeconds() {
-        (monitorConfig.monitorTimeoutSecs ?: 15) as long
+        (config.monitorTimeoutSecs ?: 15) as long
     }
 
-    private Map getMonitorConfig() {
-        configService.getMap('xhMonitorConfig')
+    private MonitorConfig getConfig() {
+        new MonitorConfig(configService.getMap('xhMonitorConfig'))
     }
 
     private void logResults(Collection<MonitorResult> results) {

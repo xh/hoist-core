@@ -13,12 +13,18 @@ import io.xh.hoist.json.JSONParser
 
 import static io.xh.hoist.monitor.MonitorStatus.UNKNOWN
 
+/**
+ * Results from the run of a single monitor on a single instance.
+ *
+ * An instance of this object is passed into each app-level monitor implementation within
+ * `MonitorDefinitionService` and is used to collect and return the results of each check.
+ */
 @CompileStatic
 class MonitorResult implements JSONFormat {
     String instance
     Boolean primary
     MonitorStatus status = UNKNOWN
-    Object metric
+    Number metric
     String message
     Long elapsed
     Date date
