@@ -6,8 +6,10 @@
  */
 package io.xh.hoist.monitor
 
+import grails.compiler.GrailsCompileStatic
 import io.xh.hoist.BaseService
-import io.xh.hoist.util.Utils
+import io.xh.hoist.config.ConfigService
+import io.xh.hoist.email.EmailService
 
 import static io.xh.hoist.monitor.MonitorStatus.WARN
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
@@ -15,25 +17,34 @@ import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static java.lang.System.currentTimeMillis
 
 /**
- * Listens for status monitor change events from MonitoringService and generates a report.
- * Reports generated periodically, and also when status changes after certain thresholds.
+ * Listens for status monitor change events from `MonitoringService` and generates a
+ * {@link MonitorStatusReport} based on the latest results across all instances.
  *
- * Also emails status updates to a configurable list of recipients.
+ * The generated report is published on the `xhMonitorStatusReport` topic for consumption by
+ * app-specific alerting (e.g. a custom service to send alerts to an external monitoring system).
+ *
+ * If so configured, this service will also send generated reports to a list of email recipients.
+ *
+ * Reports are generated whenever status changes, respecting configurable thresholds to confirm
+ * a status change and avoid "flapping". Reports are also (re)generated at a regular interval while
+ * monitors are in a non-OK state.
  */
+@GrailsCompileStatic
 class MonitorReportService extends BaseService {
 
-    def emailService,
-        configService
+    ConfigService configService
+    EmailService emailService
 
-    // Notification state for primary instance to manage
-    // If primary instance goes down, may get extra notification -- that's ok
+    // Notification state for primary instance to manage. Not replicated as non-critical -
+    // if primary changes, worst that happens is an extra notification is sent early.
     private Long lastNotified = null
     private boolean alertMode = false
 
-    void noteResultsUpdated(List<MonitorResults> results) {
+    void noteResultsUpdated(List<AggregateMonitorResult> results) {
        if (!isPrimary) return;
 
-        def failThreshold = config.failNotifyThreshold,
+        def config = this.getConfig(),
+            failThreshold = config.failNotifyThreshold,
             warnThreshold = config.warnNotifyThreshold
 
         // 1) Calc new alert mode, true if crossed thresholds or already alerting and still have problems
@@ -46,14 +57,14 @@ class MonitorReportService extends BaseService {
         ) {
             lastNotified = currentTimeMillis()
             alertMode = newAlertMode
-            generateStatusReport(results)
+            generateAndPublishReport(results)
         }
     }
 
     //------------------------
     // Implementation
     //------------------------
-    private MonitorStatusReport generateStatusReport(List<MonitorResults> results) {
+    private void generateAndPublishReport(List<AggregateMonitorResult> results) {
         def report = new MonitorStatusReport(results)
         logDebug("Emitting monitor status report: ${report.title}")
         getTopic('xhMonitorStatusReport').publishAsync(report)
@@ -66,28 +77,14 @@ class MonitorReportService extends BaseService {
             emailService.sendEmail(
                 to: to,
                 subject: report.title,
-                html: formatHtml(report),
+                html: report.toHtml(),
                 async: true
             )
         }
     }
 
-    private String formatHtml(MonitorStatusReport report) {
-
-        def problems = report.results.findAll {it.status >= WARN}
-
-        if (!problems) return "There are no alerting monitors for ${Utils.appName}."
-
-        return problems
-            .sort {it.name}
-            .sort {it.status }
-            .collect {
-                "+ ${it.name} | ${it.message ? it.message + ' | ' : ''}Minutes in [${it.status}]: ${it.minsInStatus}"
-            }.join('<br>')
-    }
-
-    private Map getConfig() {
-        configService.getMap('xhMonitorConfig')
+    private MonitorConfig getConfig() {
+        new MonitorConfig(configService.getMap('xhMonitorConfig'))
     }
 
     Map getAdminStats() {[
