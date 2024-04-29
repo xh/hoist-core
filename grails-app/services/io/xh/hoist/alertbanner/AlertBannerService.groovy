@@ -7,17 +7,19 @@
 
 package io.xh.hoist.alertbanner
 
-
-import io.xh.hoist.cache.Cache
 import io.xh.hoist.BaseService
+import io.xh.hoist.cluster.ReplicatedValue
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.json.JSONParser
 import io.xh.hoist.jsonblob.JsonBlobService
 import io.xh.hoist.util.Utils
+import io.xh.hoist.util.Timer
 
+import static io.xh.hoist.json.JSONParser.parseArray
+import static io.xh.hoist.json.JSONParser.parseObject
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static java.lang.System.currentTimeMillis
 import static io.xh.hoist.util.Utils.getAppEnvironment
+
 
 /**
  * Provide support for application alert banners.
@@ -38,24 +40,20 @@ class AlertBannerService extends BaseService {
     private final static String presetsBlobName = 'xhAlertBannerPresets';
 
     private final emptyAlert = [active: false]
-    private Cache<String, Map> cache
+    private ReplicatedValue<Map> _alertBanner = getReplicatedValue('alertBanner')
+    private Timer timer
 
     void init() {
-        cache = new Cache(name: 'cachedBanner', svc: this, expireTime: 2 * MINUTES, replicate: true)
+        timer = createTimer(
+            interval: 2 * MINUTES,
+            runFn: this.&readFromSpec,
+            primaryOnly: true
+        )
         super.init()
     }
 
     Map getAlertBanner() {
-        return cache.getOrCreate('value') {
-            def conf = configService.getMap('xhAlertBannerConfig', [:])
-            if (conf.enabled) {
-                def spec = getAlertSpec()
-                if (spec.active && (!spec.expires || spec.expires > currentTimeMillis())) {
-                    return spec
-                }
-            }
-            return emptyAlert
-        }
+        _alertBanner.get() ?: emptyAlert  // fallback just-in-case.  Never expect to be empty.
     }
 
     //--------------------
@@ -65,7 +63,7 @@ class AlertBannerService extends BaseService {
         def svc = jsonBlobService,
             blob = svc.list(blobType, blobOwner).find { it.name == blobName }
 
-        blob ? JSONParser.parseObject(blob.value) : emptyAlert
+        blob ? parseObject(blob.value) : emptyAlert
     }
 
     void setAlertSpec(Map value) {
@@ -76,14 +74,14 @@ class AlertBannerService extends BaseService {
         } else {
             svc.create([type: blobType, name: blobName, value: value], blobOwner)
         }
-        cache.clear()
+        readFromSpec()
     }
 
     List getAlertPresets() {
         def svc = jsonBlobService,
             presetsBlob = svc.list(blobType, blobOwner).find { it.name == presetsBlobName }
 
-        presetsBlob ? JSONParser.parseArray(presetsBlob.value) : []
+        presetsBlob ? parseArray(presetsBlob.value) : []
     }
 
     void setAlertPresets(List presets) {
@@ -99,24 +97,27 @@ class AlertBannerService extends BaseService {
     //----------------------------
     // Implementation
     //-----------------------------
-    private Map readFromSpec() {
-        def conf = configService.getMap('xhAlertBannerConfig')
+    private void readFromSpec() {
+        def conf = configService.getMap('xhAlertBannerConfig'),
+            newSpec = emptyAlert
         if (conf.enabled) {
             def spec = getAlertSpec()
             if (spec.active && (!spec.expires || spec.expires > currentTimeMillis())) {
-                return spec
+                newSpec = spec
             }
         }
-        return emptyAlert
+        _alertBanner.set(newSpec)
     }
 
     void clearCaches() {
         super.clearCaches()
-        cache.clear()
+        if (isPrimary) {
+            timer.forceRun()
+        }
     }
 
     Map getAdminStats() {[
-        config: configForAdminStats('xhAlertBannerConfig')
+        config: configForAdminStats('xhAlertBannerConfig'),
+        alertBanner: _alertBanner.get()
     ]}
-
 }
