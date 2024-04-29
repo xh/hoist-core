@@ -30,7 +30,7 @@ class TrackLogAdminController extends BaseController {
             filter = Filter.parse(query.filters),
             maxRows = query.maxRows
 
-        renderJSON(trackLogAdminService.queryTrackLog(startDay, endDay, filter, maxRows))
+        renderJSON(trackLogAdminService.queryTrackLog(filter, startDay, endDay, maxRows))
     }
 
     def lookups() {

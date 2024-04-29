@@ -99,6 +99,11 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         primary.getAttribute('instanceName')
     }
 
+    /** The instance name of the local server.*/
+    String getLocalName() {
+        localMember.getAttribute('instanceName')
+    }
+
     /** Is the local instance the primary instance? */
     boolean getIsPrimary() {
         // Cache until we ensure our implementation lightweight enough -- also supports logging.
@@ -122,6 +127,13 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      */
     Collection<DistributedObject> getDistributedObjects() {
         hzInstance.distributedObjects
+    }
+
+    /**
+     * Is the given instance a member of the cluster?
+     */
+    boolean isMember(String instanceName) {
+        cluster.members.any { it.getAttribute('instanceName') == instanceName }
     }
 
     //------------------------

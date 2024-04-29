@@ -5,20 +5,20 @@
  * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.admin.cluster
+package io.xh.hoist.admin
 
+import io.xh.hoist.admin.cluster.BaseClusterController
 import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.security.Access
-
 import static io.xh.hoist.util.Utils.getAppContext
 
 @Access(['HOIST_ADMIN_READER'])
 class MonitorResultsAdminController extends BaseClusterController {
 
-    def monitoringService
+    def monitorService
 
     def results() {
-        renderJSON(monitoringService.getResults())
+        renderJSON(monitorService.getResults())
     }
 
     @Access(['HOIST_ADMIN'])
@@ -27,7 +27,7 @@ class MonitorResultsAdminController extends BaseClusterController {
     }
     static class ForceRunAllMonitors extends ClusterRequest {
         def doCall() {
-            appContext.monitoringService.forceRun()
+            appContext.monitorService.forceRun()
         }
     }
 }
