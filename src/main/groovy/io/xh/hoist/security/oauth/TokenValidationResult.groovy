@@ -1,8 +1,8 @@
-package io.xh.hoist.security
+package io.xh.hoist.security.oauth
 
 import io.xh.hoist.json.JSONFormat
 
-class JwtValidationResult implements JSONFormat {
+class TokenValidationResult implements JSONFormat {
 
     /** The OauthProvider-issued JWT that was validated. */
     final String idToken
@@ -11,21 +11,22 @@ class JwtValidationResult implements JSONFormat {
     boolean isValid
 
     /** User info extracted from token payload. */
+    final String username
     final String sub
-    final String email
-
 
     /** Exception (if any) encountered while attempting to validate the token. */
     final Exception exception
     /** Date token was validated by app. */
     final Date dateCreated
 
-    JwtValidationResult(Map mp) {
+    TokenValidationResult(Map mp) {
         idToken = mp.idToken
         sub = mp.sub
-        email = mp.email?.toLowerCase()
+        username = mp.username
         exception = mp.exception as Exception
         dateCreated = new Date()
+
+        isValid = sub && username && !exception
     }
 
     Map formatForJSON() {
@@ -33,7 +34,7 @@ class JwtValidationResult implements JSONFormat {
             idToken: idToken,
             isValid: isValid,
             sub: sub,
-            email: email,
+            username: username,
             exception: exception,
             dateCreated: dateCreated
         ]

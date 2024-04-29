@@ -1,4 +1,4 @@
-package io.xh.hoist.security
+package io.xh.hoist.security.oauth
 
 /*
  * This file belongs to Hoist, an application development toolkit
@@ -10,6 +10,7 @@ package io.xh.hoist.security
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
+import io.xh.hoist.util.Utils
 
 @CompileStatic
 abstract class BaseOauthService extends BaseService {
@@ -17,6 +18,13 @@ abstract class BaseOauthService extends BaseService {
     /** Return OauthConfig used by browser OauthService. */
     abstract Map getClientConfig()
 
-    abstract JwtValidationResult validateToken(String token)
+    abstract TokenValidationResult validateToken(String token)
 
+    protected Map getOauthConfig() {
+        return Utils.configService.getMap('oauthConfig')
+    }
+
+    Map getAdminStats() {[
+        config: configForAdminStats('oauthConfig')
+    ]}
 }
