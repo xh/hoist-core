@@ -21,12 +21,11 @@ class TokenValidationResult implements JSONFormat {
 
     TokenValidationResult(Map mp) {
         idToken = mp.idToken
-        sub = mp.sub
         username = mp.username
+        sub = mp.sub
         exception = mp.exception as Exception
-        dateCreated = new Date()
-
         isValid = sub && username && !exception
+        dateCreated = new Date()
     }
 
     Map formatForJSON() {
