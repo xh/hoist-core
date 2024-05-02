@@ -88,15 +88,14 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         if (initializedDate) return
         try {
             withInfo("Initializing") {
-                task {
-                    init()
-                }.get(timeout, TimeUnit.MILLISECONDS)
+                // Uses Promises.waitAll() to emit any exception thrown during the init task.
+                Promises.waitAll([task { init() }], timeout, TimeUnit.MILLISECONDS)
                 setupClearCachesConfigs()
             }
         } catch (Throwable t) {
             xhExceptionHandler.handleException(exception: t, logTo: this)
         } finally {
-            initializedDate = new Date();
+            initializedDate = new Date()
         }
     }
 
