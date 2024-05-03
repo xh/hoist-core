@@ -88,14 +88,14 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         if (initializedDate) return
         try {
             withInfo("Initializing") {
-                def p = task { init() }
+                def p = task {
+                    init()
+                }
                 p.onError { Throwable t ->
                     // This copy of the exception includes the stack trace into `init()`.
                     xhExceptionHandler.handleException(exception: t, logTo: this)
                 }
-                try {
-                    p.get(timeout, TimeUnit.MILLISECONDS)
-                } catch (Throwable ignored)
+                p.get(timeout, TimeUnit.MILLISECONDS)
                 setupClearCachesConfigs()
             }
         } catch (Throwable t) {
