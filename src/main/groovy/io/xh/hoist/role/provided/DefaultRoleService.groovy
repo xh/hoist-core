@@ -346,8 +346,12 @@ class DefaultRoleService extends BaseRoleService {
                 if (!visitedRoles.contains(it)) {
                     visitedRoles << it
                     def effectiveRole = Role.get(it)
-                    rolesToVisit << effectiveRole
-                    ret << effectiveRole
+                    if (effectiveRole) {
+                        rolesToVisit << effectiveRole
+                        ret << effectiveRole
+                    } else {
+                        logWarn("Role ${role.name} references non-existent role $it", "skipping")
+                    }
                 }
             }
         }
