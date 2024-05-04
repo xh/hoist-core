@@ -5,7 +5,7 @@ import io.xh.hoist.json.JSONFormat
 class TokenValidationResult implements JSONFormat {
 
     /** The OauthProvider-issued JWT that was validated. */
-    final String idToken
+    final String token
 
     /** True if the token was determined to be valid and should be trusted. */
     boolean isValid
@@ -20,7 +20,7 @@ class TokenValidationResult implements JSONFormat {
     final Date dateCreated
 
     TokenValidationResult(Map mp) {
-        idToken = mp.idToken
+        token = mp.token
         username = mp.username
         sub = mp.sub
         exception = mp.exception as Exception
@@ -30,7 +30,7 @@ class TokenValidationResult implements JSONFormat {
 
     Map formatForJSON() {
         return [
-            idToken: idToken,
+            token: token,
             isValid: isValid,
             sub: sub,
             username: username,

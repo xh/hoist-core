@@ -21,14 +21,14 @@ import io.xh.hoist.json.JSONParser
 import io.xh.hoist.jsonblob.JsonBlobService
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.security.AccessAll
+import io.xh.hoist.security.oauth.BaseOauthService
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.json.JSONParser.parseObject
-import static io.xh.hoist.json.JSONParser.parseObjectOrArray
-import static java.lang.Boolean.parseBoolean
+import static java.util.Collections.emptyMap
 
 @AccessAll
 @CompileStatic
@@ -281,6 +281,15 @@ class XhController extends BaseController {
         }
         def tz = TimeZone.getTimeZone(timeZoneId)
         renderJSON([offset: tz.getOffset(System.currentTimeMillis())])
+    }
+
+    /**
+     * Soft-config of Oauth related settings for the client.
+     * Accessible pre-auth via AuthenticationService whitelist.
+     */
+    def oauthConfig() {
+        def svc = Utils.appContext.getBean(BaseOauthService)
+        renderJSON(svc ? svc.clientConfig : emptyMap())
     }
 
     /**
