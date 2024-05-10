@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.DisposableBean
 
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 
 import static grails.async.Promises.task
@@ -93,10 +94,13 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
                 }.get(timeout, TimeUnit.MILLISECONDS)
                 setupClearCachesConfigs()
             }
+        } catch (ExecutionException ee) {
+            // Show the underlying init() exception instead of the ExecutionException
+            xhExceptionHandler.handleException(exception: ee.cause, logTo: this)
         } catch (Throwable t) {
             xhExceptionHandler.handleException(exception: t, logTo: this)
         } finally {
-            initializedDate = new Date();
+            initializedDate = new Date()
         }
     }
 
