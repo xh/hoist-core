@@ -2,6 +2,13 @@ package io.xh.hoist.security.oauth
 
 import io.xh.hoist.json.JSONFormat
 
+/**
+ * Return from `OauthService.validateToken` API, encapsulating the result of JWT validation.
+ *
+ * Application implementations are expected to use a suitable library (e.g. jose4j) to actually
+ * perform token validation and payload decoding. Apps are encouraged to extend this class to
+ * include additional fields as needed, based on the contents of their particular tokens.
+ */
 class TokenValidationResult implements JSONFormat {
 
     /** The OauthProvider-issued JWT that was validated. */
