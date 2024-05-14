@@ -8,6 +8,7 @@ package io.xh.hoist
 
 import grails.util.Holders
 import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.log.LogSupport
 import io.xh.hoist.util.Utils
 
 import java.time.ZoneId
@@ -16,7 +17,7 @@ import static io.xh.hoist.util.DateTimeUtils.serverZoneId
 import static io.xh.hoist.BaseService.parallelInit
 import static java.lang.Runtime.runtime
 
-class BootStrap {
+class BootStrap implements LogSupport {
 
     def logLevelService,
         configService,
@@ -44,7 +45,7 @@ class BootStrap {
     //------------------------
     private void logStartupMsg() {
         def hoist = Holders.currentPluginManager().getGrailsPlugin('hoist-core')
-        log.info("""
+        logInfo("""
 \n
  __  __     ______     __     ______     ______
 /\\ \\_\\ \\   /\\  __ \\   /\\ \\   /\\  ___\\   /\\__  _\\
@@ -355,7 +356,7 @@ class BootStrap {
     private void ensureExpectedServerTimeZone() {
         def confZone = configService.getString('xhExpectedServerTimeZone')
         if (confZone == '*') {
-            log.warn(
+            logWarn(
                 "WARNING - a timezone has not yet been specified for this application's server.  " +
                 "This can lead to bugs and data corruption in development and production.  " +
                 "Please specify your expected timezone in the `xhExpectedServerTimeZone` config."
