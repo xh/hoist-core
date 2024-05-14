@@ -9,6 +9,8 @@ package io.xh.hoist.role.provided
 
 import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.cluster.ReplicatedValue
+import io.xh.hoist.config.ConfigService
+import io.xh.hoist.ldap.LdapService
 import io.xh.hoist.role.BaseRoleService
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.util.Timer
@@ -16,13 +18,11 @@ import io.xh.hoist.util.Timer
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 
+import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 import static io.xh.hoist.util.Utils.isLocalDevelopment
 import static io.xh.hoist.util.Utils.isProduction
-import static java.util.Collections.emptySet
-import static java.util.Collections.emptyMap
-import static java.util.Collections.unmodifiableSet
-import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
-import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static java.util.Collections.*
 
 /**
  * Optional concrete implementation of BaseRoleService for applications that wish to leverage
@@ -76,9 +76,9 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
  */
 class DefaultRoleService extends BaseRoleService {
 
-    def configService,
-        ldapService,
-        defaultRoleUpdateService
+    ConfigService configService
+    LdapService ldapService
+    DefaultRoleUpdateService defaultRoleUpdateService
 
     private Timer timer
     protected ReplicatedValue<Map<String, Set<String>>> _allRoleAssignments = getReplicatedValue('roleAssignments')
