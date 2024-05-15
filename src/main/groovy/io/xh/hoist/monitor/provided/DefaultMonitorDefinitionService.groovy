@@ -7,12 +7,12 @@
 
 package io.xh.hoist.monitor.provided
 
+import grails.gorm.transactions.Transactional
 import groovy.sql.Sql
 import io.xh.hoist.BaseService
 import io.xh.hoist.data.filter.Filter
 import io.xh.hoist.monitor.Monitor
 import io.xh.hoist.monitor.MonitorResult
-import grails.gorm.transactions.Transactional
 import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.monitor.MonitorStatus.FAIL
@@ -21,27 +21,25 @@ import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static java.lang.System.currentTimeMillis
 
-
-
 /**
- * Optional default implementation of MonitorDefinitionService for applications that wish to leverage
- * Hoist's built-in, database-backed monitoring and its associated Admin Console UI.
+ * Optional default implementation of MonitorDefinitionService for applications that wish to
+ * leverage Hoist's built-in, database-backed monitoring and its associated Admin Console UI.
  *
  * Applications using this default implementation must either:
  *
- *  1) Define a `MonitoringDefinitionService` class that extends this class. Allows for overriding its protected
- *     methods to customize behavior.
+ *  1) Define a `MonitoringDefinitionService` class that extends this class.
+ *     Allows for overriding its protected methods to customize behavior.
  *
- *  2) Register this class directly as `monitoringDefinitionService` via `grails-app/conf/spring/resources.groovy`,
- *     assuming neither directory group support nor any further customizations are required.
+ *  2) Register this class directly as `monitoringDefinitionService` via `resources.groovy`,
+ *     if no app-specific monitors are required.
  */
 class DefaultMonitorDefinitionService extends BaseService {
 
     def getConfigService() { Utils.configService }
+    def getDataSource() {Utils.dataSource}
+    def getLdapService() { Utils.ldapService}
     def getMemoryMonitoringService() { Utils.appContext.memoryMonitoringService}
     def getTrackLogAdminService() { Utils.appContext.trackLogAdminService}
-    def getLdapService() { Utils.appContext.ldapService}
-    def getDataSource() {Utils.appContext.dataSource}
 
     void init() {
         ensureRequiredConfigAndMonitorsCreated()
@@ -155,7 +153,7 @@ class DefaultMonitorDefinitionService extends BaseService {
         ensureRequiredMonitorsCreated([
             [
                 code: 'xhMemoryMonitor',
-                name: 'Avg Heap Usage % Monitor (Last 30m)',
+                name: 'Avg Heap Usage % (Last 30m)',
                 metricType: 'Ceil',
                 metricUnit: '%',
                 warnThreshold: 75,
@@ -163,14 +161,13 @@ class DefaultMonitorDefinitionService extends BaseService {
                 active: true,
                 primaryOnly: false,
                 params: '{\n\t"lookbackMinutes": 30,\n\t"aggregate": "avg"\n}',
-                notes: 'This will report the largest heap usage in the last {lookbackMinutes} minutes.\n'
-                        + 'Set "aggregate" to "avg" to report average heap usage.\n'
-                        + 'Set "aggregate" to "max" to report the largest heap usage.\n'
-                        + 'Will report average heap usage if "aggregate" is not provided.'
+                notes: 'Reports the largest heap usage in the last {lookbackMinutes} minutes.\n'
+                        + 'Set "aggregate" to "avg" to report average heap usage (default).\n'
+                        + 'Set "aggregate" to "max" to report the largest heap usage.'
             ],
             [
                 code: 'xhLoadTimeMonitor',
-                name: 'Max Load Time Monitor (Last 30m)',
+                name: 'Max Load Time (Last 30m)',
                 metricType: 'Ceil',
                 metricUnit: 's',
                 warnThreshold: 30,
@@ -178,27 +175,28 @@ class DefaultMonitorDefinitionService extends BaseService {
                 active: true,
                 primaryOnly: true,
                 params: '{\n\t"lookbackMinutes": 30\n}',
-                notes: 'This will report the longest tracked event in the last {lookbackMinutes} minutes.'
+                notes: 'Reports the longest tracked event in the last {lookbackMinutes} minutes.'
             ],
             [
                 code: 'xhDbConnectionMonitor',
-                name: 'DB Connection Time Monitor',
+                name: 'DB Connection Time',
                 metricType: 'None',
                 warnThreshold: 10000,
                 metricUnit: 'ms',
                 active: true,
                 primaryOnly: true,
+                notes: 'Reports time taken to query primary application database with a trivial select statement.'
             ],
             [
                 code: 'xhLdapServiceConnectionMonitor',
-                name: 'LDAP Service Connection Time Monitor',
+                name: 'LDAP Connection Time',
                 metricType: 'None',
                 warnThreshold: 10000,
                 metricUnit: 'ms',
                 active: true,
                 primaryOnly: true,
                 params: '{\n\t"queryUser": "admin"\n}',
-                notes: 'This will query the LDAP service for the provided user.'
+                notes: 'Reports time taken to query Hoist LdapService for the configured user, to test connectivity to an external directory (if enabled).'
             ]
         ])
     }

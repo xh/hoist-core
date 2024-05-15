@@ -10,14 +10,11 @@ package io.xh.hoist.admin
 import com.sun.management.HotSpotDiagnosticMXBean
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.DateTimeUtils
-import io.xh.hoist.util.Utils
 
 import java.lang.management.GarbageCollectorMXBean
 import java.lang.management.ManagementFactory
 import java.util.concurrent.ConcurrentHashMap
 
-import static io.xh.hoist.util.DateTimeUtils.SECONDS
-import static io.xh.hoist.util.DateTimeUtils.HOURS
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static io.xh.hoist.util.Utils.startupTime
 import static java.lang.Runtime.getRuntime
@@ -41,9 +38,11 @@ class MemoryMonitoringService extends BaseService {
         )
     }
 
-    /**
-     * Returns a map of previous JVM memory usage snapshots, keyed by ms timestamp of snapshot.
-     */
+    boolean getEnabled() {
+        return config.enabled
+    }
+
+    /** Returns map of previous JVM memory usage snapshots, keyed by ms timestamp of snapshot. */
     Map getSnapshots() {
         return _snapshots
     }
@@ -52,9 +51,7 @@ class MemoryMonitoringService extends BaseService {
         return _snapshots?.max {it.key}?.value
     }
 
-    /**
-     * Dump the heap to a file for analysis.
-     */
+    /** Dump the heap to a file for analysis. */
     void dumpHeap(String filename) {
         String heapDumpDir = config.heapDumpDir
         if (!heapDumpDir) {
@@ -75,9 +72,7 @@ class MemoryMonitoringService extends BaseService {
         }
     }
 
-    /**
-     * Take a snapshot of JVM memory usage, store in this service's in-memory history, and return.
-     */
+    /** Take snapshot of JVM memory usage, add to this service's in-memory history, and return. */
     Map takeSnapshot() {
         def newSnap = getSnap()
 
@@ -103,9 +98,7 @@ class MemoryMonitoringService extends BaseService {
         return newSnap
     }
 
-    /**
-     * Request an immediate garbage collection, with before and after usage snapshots.
-     */
+    /** Request an immediate garbage collection, then return before and after usage snapshots. */
     Map requestGc() {
         def before = takeSnapshot()
         System.gc()
@@ -154,7 +147,7 @@ class MemoryMonitoringService extends BaseService {
 
         long collectionCount = totalCollectionCount - (last ? last.totalCollectionCount : 0),
             collectionTime = totalCollectionTime - (last ? last.totalCollectionTime : 0),
-            elapsedTime = timestamp - (last ? last.timestamp : Utils.startupTime.toInstant().toEpochMilli())
+            elapsedTime = timestamp - (last ? last.timestamp : startupTime.toInstant().toEpochMilli())
 
         def avgCollectionTime = collectionCount ? Math.round(collectionTime/collectionCount) : 0
 
@@ -172,10 +165,6 @@ class MemoryMonitoringService extends BaseService {
 
     private Map getConfig() {
         return configService.getMap('xhMemoryMonitoringConfig')
-    }
-
-    private boolean getEnabled() {
-        return config.enabled
     }
 
     private double roundTo2DP(v) {
