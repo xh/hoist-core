@@ -63,6 +63,16 @@ Please contact XH to review your app's readiness for multi-instance operation!
   most applications.
 * `Utils.dataSource` now returns a reference to the actual `javax.sql.DataSource.DataSource`.
   Use `Utils.dataSourceConfig` to access the previous return of this method (DS config, as a map).
+* Apps must replace the `buildProperties.doLast` block at the bottom of their `build.gradle` file with
+  ```java
+  tasks.war.doFirst {
+     File infoFile = layout.buildDirectory.file('resources/main/META-INF/grails.build.info').get().asFile
+     Properties properties = new Properties()
+     infoFile.withInputStream {properties.load(it)}
+     properties.putAll(hoistMetaData)
+     infoFile.withOutputStream {properties.store(it, null)}
+  }
+  ```
 
 ### 🐞 Bug Fixes
 
