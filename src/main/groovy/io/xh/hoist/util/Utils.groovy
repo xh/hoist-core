@@ -11,16 +11,17 @@ import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.Input
 import com.esotericsoftware.kryo.io.Output
 import com.esotericsoftware.kryo.serializers.JavaSerializer
-import io.xh.hoist.cluster.ClusterService
-import io.xh.hoist.exception.ExceptionHandler
-import io.xh.hoist.json.JSONParser
 import grails.util.Environment
 import grails.util.Holders
 import grails.util.Metadata
 import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.environment.EnvironmentService
+import io.xh.hoist.exception.ExceptionHandler
+import io.xh.hoist.json.JSONParser
+import io.xh.hoist.ldap.LdapService
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.role.BaseRoleService
@@ -31,67 +32,45 @@ import io.xh.hoist.websocket.WebSocketService
 import org.grails.web.servlet.mvc.GrailsWebRequest
 import org.springframework.context.ApplicationContext
 import org.springframework.web.context.request.RequestContextHolder
+
 import javax.servlet.http.HttpServletRequest
+import javax.sql.DataSource
 import java.util.zip.DeflaterOutputStream
 import java.util.zip.InflaterInputStream
 
 import static java.lang.System.currentTimeMillis
 
-
 class Utils {
 
-    static final Date startupTime = new Date()
-
-    /**
-     * Is the application instance running and ready to start handling requests?
-     */
-    static boolean isInstanceReady() {
-        try {
-            return clusterService?.isReady
-        } catch (Exception e) {
-            // We expect this to be routine for very premature calls to app, fail quietly
-            return false
-        }
-    }
-
-    /**
-     * Internal short name of the application - lowercase, no spaces.
-     */
+    //------------------
+    // App Identifiers
+    //------------------
+    /** Internal short name of the application - lowercase, no spaces. */
     static String getAppCode() {
         return Metadata.current.getProperty('info.xh.appCode', String).orElse(null)
     }
 
-    /**
-     * Internal package name of the application - lowercase, no spaces.
-     */
+    /** Internal package name of the application - lowercase, no spaces. */
     static String getAppPackage() {
         return Metadata.current.getProperty('info.xh.appPackage', String).orElse(null)
     }
 
-    /**
-     * User-facing display name of the application - proper case, can include spaces.
-     */
+    /** User-facing display name of the application - proper case, can include spaces. */
     static String getAppName() {
         return Metadata.current.getProperty('info.xh.appName', String).orElse(null)
     }
 
-    /**
-     * Current version, either SemVer x.y.z format or x.y-SNAPSHOT.
-     */
+    /** Current version, either SemVer x.y.z format or x.y-SNAPSHOT. */
     static String getAppVersion() {
         return Metadata.current.getProperty('info.app.version', String).orElse(null)
     }
 
-    /**
-     * git commit hash or other identifier set at build time.
-     */
+    /** Git commit hash or other identifier set at build time. */
     static String getAppBuild() {
         return Metadata.current.getProperty('info.xh.appBuild', String).orElse(null)
     }
 
-    /**
-     * Hoist AppEnvironment of the current deployment, distinct from Grails environment.
-     */
+    /** Hoist AppEnvironment of the current deployment, distinct from Grails environment. */
     static AppEnvironment getAppEnvironment() {
         return InstanceConfigUtils.appEnvironment
     }
@@ -100,91 +79,110 @@ class Utils {
         return appEnvironment == AppEnvironment.PRODUCTION
     }
 
-    /**
-     * Indicates if app is running in local development mode, regardless of AppEnvironment.
-     */
+    /** True if app is running in local development mode, regardless of AppEnvironment. */
     static Boolean getIsLocalDevelopment() {
         return Environment.isDevelopmentMode()
     }
 
-    static ConfigService getConfigService() {
-        return (ConfigService) appContext.configService
+    //------------------
+    // App Start/Ready
+    //------------------
+    static final Date startupTime = new Date()
+
+    /** True if the app instance is running and ready to start handling requests. */
+    static boolean isInstanceReady() {
+        try {
+            return clusterService?.isReady
+        } catch (Throwable ignored) {
+            // We expect this to be routine for very premature calls to app - fail quietly.
+            return false
+        }
     }
 
-    static ClusterService getClusterService() {
-        return (ClusterService) appContext.clusterService
-    }
-
-    static PrefService getPrefService() {
-        return (PrefService) appContext.prefService
-    }
-
-    static EnvironmentService getEnvironmentService() {
-        return (EnvironmentService) appContext.environmentService
-    }
-
-    static BaseUserService getUserService() {
-        return (BaseUserService) appContext.userService
-    }
-
-    static IdentityService getIdentityService() {
-        return (IdentityService) appContext.identityService
-    }
-
-    static BaseRoleService getRoleService() {
-        return (BaseRoleService) appContext.roleService
+    //------------------
+    // Service Accessors
+    //------------------
+    /** All singleton instances of io.xh.BaseService in the application */
+    static List<BaseService> getXhServices() {
+        return appContext.getBeansOfType(BaseService, false, true).collect { it.value }
     }
 
     static BaseAuthenticationService getAuthenticationService() {
         return (BaseAuthenticationService) appContext.authenticationService
     }
 
+    static BaseRoleService getRoleService() {
+        return (BaseRoleService) appContext.roleService
+    }
+
+    static BaseUserService getUserService() {
+        return (BaseUserService) appContext.userService
+    }
+
+    static ClusterService getClusterService() {
+        return (ClusterService) appContext.clusterService
+    }
+
+    static ConfigService getConfigService() {
+        return (ConfigService) appContext.configService
+    }
+
+    static EnvironmentService getEnvironmentService() {
+        return (EnvironmentService) appContext.environmentService
+    }
+
+    static IdentityService getIdentityService() {
+        return (IdentityService) appContext.identityService
+    }
+
+    static LdapService getLdapService() {
+        return (LdapService) appContext.ldapService
+    }
+
+    static PrefService getPrefService() {
+        return (PrefService) appContext.prefService
+    }
+
     static WebSocketService getWebSocketService() {
         return (WebSocketService) appContext.webSocketService
     }
 
+
+    //------------------
+    // Other Singletons
+    //------------------
     static ApplicationContext getAppContext() {
         return Holders.applicationContext
+    }
+
+    /** Primary JDBC datasource, default backing DB for app Domain objects. */
+    static DataSource getDataSource() {
+        return (DataSource) appContext.dataSource
+    }
+
+    /** Primary dataSource configuration. */
+    static Map getDataSourceConfig() {
+        Holders.grailsApplication
+            .config
+            .getProperty('dataSource', Map.class)
+            .collectEntries { it }
     }
 
     static ExceptionHandler getExceptionHandler() {
         return (ExceptionHandler) appContext.xhExceptionHandler
     }
 
-    /**
-     * Get the current request.
-     *
-     * Returns null if code is not executing in the context of
-     * a HTTP request. (e.g. a service timer, or async code)
-     */
-    static HttpServletRequest getCurrentRequest() {
-        def attr = RequestContextHolder.requestAttributes
-
-        return attr instanceof GrailsWebRequest ? attr.request : null
-    }
-
-
-    /**
-     * Return the app's primary dataSource configuration. This is the connection to the app's
-     * database housing Hoist-related tables as well as any app-specific domain objects.
-     */
-    static Map getDataSource() {
-        Holders.grailsApplication
-            .config
-            .getProperty('dataSource', Map.class)
-            .collectEntries {it}
-    }
-
-    /**
-     * Return true if a String represents valid JSON.
-     */
+    //------------------
+    // Validation/Parsing
+    //------------------
+    /** True if a String represents valid JSON. */
     static boolean isJSON(String val) {
         JSONParser.validate(val)
     }
 
     /**
-     * Return true if the given parameter name is likely sensitive and should not be serialized
-     * if not required. Used for built-in admin functionality accessed by trusted users only.
+     * True if the given parameter name is likely sensitive and should not be serialized if not
+     * required. Used for built-in admin functionality accessed by trusted users only.
      * NOT intended to be comprehensive or the last word on security!
      */
     static boolean isSensitiveParamName(String name) {
@@ -199,28 +197,30 @@ class Utils {
         throw new RuntimeException('Unable to parse boolean value')
     }
 
+
+    //------------------
+    // Misc/Other
+    //------------------
     /**
-     * Return all singleton instances of io.xh.BaseService in the application
+     * Get the current request, or null if caller is not executing in the context of an HTTP request
+     * (e.g. a service Timer or other async code).
      */
-    static List<BaseService> getXhServices() {
-        return appContext.getBeansOfType(BaseService, false, true).collect {it.value}
+    static HttpServletRequest getCurrentRequest() {
+        def attr = RequestContextHolder.requestAttributes
+
+        return attr instanceof GrailsWebRequest ? attr.request : null
     }
 
     /**
-     * Execute a closure with a given delegate.
-     *
-     * Useful for applying configuration to a script. See ApplicationConfig.applyDefault()
+     * Execute a closure with a given delegate. Useful for applying configuration to a script.
+     * @see io.xh.hoist.configuration.ApplicationConfig
      */
     static void withDelegate(Object o, Closure c) {
         c.delegate = o
         c.call()
     }
 
-    static testSerialization(Object obj,
-                             Class clazz,
-                             LogSupport logSupport,
-                             Map opts
-     ) {
+    static testSerialization(Object obj, Class clazz, LogSupport logSupport, Map opts) {
         Kryo kryo = new Kryo()
         kryo.registrationRequired = false
         if (opts.java) {
@@ -246,13 +246,9 @@ class Utils {
 
         logSupport.logInfo(
             opts,
-            "(${serializeTime - startTime}/${endTime-serializeTime})ms",
+            "(${serializeTime - startTime}/${endTime - serializeTime})ms",
             "${(byteStream.size() / 1000000).round(2)}MB",
-            "${endTime-startTime}ms"
+            "${endTime - startTime}ms"
         )
-
-
-
-
     }
 }

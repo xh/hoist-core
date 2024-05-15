@@ -61,6 +61,8 @@ Please contact XH to review your app's readiness for multi-instance operation!
   change was needed to better support cross-cluster exception handling. This object is used by
   Hoist internally for catching uncaught exceptions and this change is not expected to impact
   most applications.
+* `Utils.dataSource` now returns a reference to the actual `javax.sql.DataSource.DataSource`.
+  Use `Utils.dataSourceConfig` to access the previous return of this method (DS config, as a map).
 
 ### 🐞 Bug Fixes
 
