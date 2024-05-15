@@ -217,25 +217,29 @@ class DefaultMonitorDefinitionService extends BaseService {
         int created = 0
 
         monitorSpecs.each {spec ->
-            Monitor currMonitor = currMonitors.find { it.code == spec.code }
-            if (!currMonitor) {
-                new Monitor(
-                    code: spec.code,
-                    name: spec.name,
-                    metricType: spec.metricType,
-                    active: spec.active,
-                    metricUnit: spec.metricUnit,
-                    warnThreshold: spec.warnThreshold,
-                    failThreshold: spec.failThreshold,
-                    primaryOnly: spec.primaryOnly,
-                    params: spec.params,
-                    notes: spec.notes
-                ).save()
-                logWarn(
-                    "Required monitor ${spec.name} missing and created with default value",
-                    'verify default is appropriate for this application'
-                )
-                created++
+            try {
+                Monitor currMonitor = currMonitors.find { it.code == spec.code }
+                if (!currMonitor) {
+                    new Monitor(
+                        code: spec.code,
+                        name: spec.name,
+                        metricType: spec.metricType,
+                        active: spec.active,
+                        metricUnit: spec.metricUnit,
+                        warnThreshold: spec.warnThreshold,
+                        failThreshold: spec.failThreshold,
+                        primaryOnly: spec.primaryOnly,
+                        params: spec.params,
+                        notes: spec.notes
+                    ).save()
+                    logWarn(
+                        "Required monitor ${spec.name} missing and created with default value",
+                        'verify default is appropriate for this application'
+                    )
+                    created++
+                }
+            } catch (Throwable e) {
+                logError("Failed to create required monitor ${spec.name}", e)
             }
         }
         logDebug("Validated presense of ${monitorSpecs.size()} provided monitors", "created $created")
