@@ -50,24 +50,28 @@ class DefaultMonitorDefinitionService extends BaseService {
             result.status = INACTIVE
             return
         }
+
+        def aggregate = result.params.aggregate ?: 'avg'
+        if (!['avg', 'max'].contains(aggregate)) {
+            throw new RuntimeException("Invalid aggregate parameter: ${result.params.aggregate}")
+        }
+
         def lookbackMinutes = result.params.lookbackMinutes
         if (!lookbackMinutes) {
             throw new RuntimeException('No \"lookbackMinutes\" parameter provided')
         }
+
         def cutOffTime = currentTimeMillis() - lookbackMinutes * MINUTES
         def snapshots = memoryMonitoringService.snapshots.findAll {it.key > cutOffTime}.values()
+
         if (!snapshots) {
             result.metric = 0
             return
         }
-        if (!result.params.aggregate || result.params.aggregate == 'avg') {
-            result.metric = snapshots.average{it.usedPctMax}.round(2)
-        } else if (result.params.aggregate == 'max') {
-            def maxPercentUsed = snapshots.max{it.usedPctMax}.usedPctMax
-            result.metric = maxPercentUsed
-        } else {
-            throw new RuntimeException("Invalid aggregate parameter: ${result.params.aggregate}")
-        }
+
+        result.metric = aggregate == 'avg'
+            ? snapshots.average{it.usedPctMax}.round(2)
+            : snapshots.max{it.usedPctMax}.usedPctMax
     }
 
     def xhLoadTimeMonitor(MonitorResult result) {
@@ -75,10 +79,12 @@ class DefaultMonitorDefinitionService extends BaseService {
             result.status = INACTIVE
             return
         }
+
         def lookbackMinutes = result.params.lookbackMinutes
         if (!lookbackMinutes) {
             throw new RuntimeException('No \"lookbackMinutes\" parameter provided.')
         }
+
         def cutOffTime = currentTimeMillis() - lookbackMinutes * MINUTES
         def logs = trackLogAdminService.queryTrackLog(
             Filter.parse([
@@ -97,12 +103,13 @@ class DefaultMonitorDefinitionService extends BaseService {
                 op: "AND"
             ])
         )
+
         if (!logs) {
             result.metric = 0
             return
         }
-        def maxElapsed = logs.max{it.elapsed}.elapsed / SECONDS
-        result.metric = maxElapsed
+
+        result.metric = logs.max{it.elapsed}.elapsed / SECONDS
     }
 
     def xhDbConnectionMonitor(MonitorResult result) {
@@ -122,15 +129,19 @@ class DefaultMonitorDefinitionService extends BaseService {
             result.status = INACTIVE
             return
         }
+
         if (!result.params.queryUser) {
             throw new RuntimeException("No \"queryUser\" parameter provided.")
         }
+
         def startTime = currentTimeMillis()
         def user = ldapService.lookupUser(result.params.queryUser)
+
         if (!user) {
+            result.message = "Failed to find expected user: ${result.params.queryUser}"
             result.status = FAIL
-            return
         }
+
         result.metric = currentTimeMillis() - startTime
     }
 
@@ -142,7 +153,7 @@ class DefaultMonitorDefinitionService extends BaseService {
         configService.ensureRequiredConfigsCreated([
             xhMonitorConfig: [
                 valueType: 'json',
-                monitorRefreshMins: 10,
+                monitorRefreshMins: 5,
                 monitorStartupDelayMins: 1,
                 warnNotifyThreshold: 5,
                 failNotifyThreshold: 2,
@@ -159,7 +170,6 @@ class DefaultMonitorDefinitionService extends BaseService {
                 warnThreshold: 75,
                 failThreshold: 90,
                 active: true,
-                primaryOnly: false,
                 params: '{\n\t"lookbackMinutes": 30,\n\t"aggregate": "avg"\n}',
                 notes: 'Reports the largest heap usage in the last {lookbackMinutes} minutes.\n'
                         + 'Set "aggregate" to "avg" to report average heap usage (default).\n'
@@ -180,21 +190,21 @@ class DefaultMonitorDefinitionService extends BaseService {
             [
                 code: 'xhDbConnectionMonitor',
                 name: 'DB Connection Time',
-                metricType: 'None',
-                warnThreshold: 10000,
+                metricType: 'Ceil',
+                warnThreshold: 5000,
+                failThreshold: 10000,
                 metricUnit: 'ms',
                 active: true,
-                primaryOnly: true,
                 notes: 'Reports time taken to query primary application database with a trivial select statement.'
             ],
             [
                 code: 'xhLdapServiceConnectionMonitor',
                 name: 'LDAP Connection Time',
-                metricType: 'None',
-                warnThreshold: 10000,
+                metricType: 'Ceil',
+                warnThreshold: 5000,
+                failThreshold: 10000,
                 metricUnit: 'ms',
                 active: true,
-                primaryOnly: true,
                 params: '{\n\t"queryUser": "admin"\n}',
                 notes: 'Reports time taken to query Hoist LdapService for the configured user, to test connectivity to an external directory (if enabled).'
             ]
