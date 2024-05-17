@@ -26,18 +26,9 @@ needed, as well as limiting certain actions to the "primary" server.
 
 Please contact XH to review your app's readiness for multi-instance operation!
 
-#### Other new features
-
-* New support for reporting service statistics for troubleshooting/monitoring. Implement
-  `BaseService.getAdminStats()` to provide diagnostic metadata about the state of your service.
-  Output (in JSON format) can be easily viewed in the Hoist Admin Console.
-* New `DefaultMonitorDefinitionService` provides default implementations of several new status
-  monitors to track core app health metrics. Extend this new superclass in your
-  app's `MonitorDefinitionService` to enable support for these new monitors.
-* Includes new support for dynamic configuration of client-side authentication libraries. See new
-   method `Authentication.getClientConfig()`.
-
 ### 💥 Breaking Changes (upgrade difficulty: 🟠 MEDIUM / 🟢 LOW for apps with minimal custom server-side functionality)
+
+#### Required Changes - all apps
 
 * Requires `hoist-react >= 64.0` for essential Admin Console upgrades.
 * Requires updated `gradle.properties` to specify `hazelcast.version=5.3.x`. Check hoist-core or
@@ -48,9 +39,24 @@ Please contact XH to review your app's readiness for multi-instance operation!
         ALTER TABLE `xh_track_log` ADD COLUMN `instance` VARCHAR(50) NULL;
         ALTER TABLE `xh_monitor` ADD COLUMN `primary_only` BIT NOT NULL DEFAULT FALSE;
     ```
+* Apps must replace the `buildProperties.doLast` block at the bottom of their `build.gradle` file with
+  ```java
+  tasks.war.doFirst {
+     File infoFile = layout.buildDirectory.file('resources/main/META-INF/grails.build.info').get().asFile
+     Properties properties = new Properties()
+     infoFile.withInputStream {properties.load(it)}
+     properties.putAll(hoistMetaData)
+     infoFile.withOutputStream {properties.store(it, null)}
+  }
+  ```
 * Apps must provide a cluster configuration class with the name `ClusterConfig.groovy`.
     * See Toolbox for an example.
     * Note that for some XH clients this will be already provided by their internal Hoist plugin.
+
+#### Required Changes - apps that will continue to run as single instances (at least to start)
+
+* Apps that do not need to run multiple instances
+
 * Apps that intend to run with more than one server *must* enable sticky sessions when routing
   clients to servers. This is critical for the correct operation of authentication and websocket
   communications. Check with XH or your networking team to ensure this is correctly configured.
@@ -67,16 +73,17 @@ Please contact XH to review your app's readiness for multi-instance operation!
   most applications.
 * `Utils.dataSource` now returns a reference to the actual `javax.sql.DataSource.DataSource`.
   Use `Utils.dataSourceConfig` to access the previous return of this method (DS config, as a map).
-* Apps must replace the `buildProperties.doLast` block at the bottom of their `build.gradle` file with
-  ```java
-  tasks.war.doFirst {
-     File infoFile = layout.buildDirectory.file('resources/main/META-INF/grails.build.info').get().asFile
-     Properties properties = new Properties()
-     infoFile.withInputStream {properties.load(it)}
-     properties.putAll(hoistMetaData)
-     infoFile.withOutputStream {properties.store(it, null)}
-  }
-  ```
+
+### 🎁 (Other) New Features
+
+* New support for reporting service statistics for troubleshooting/monitoring. Implement
+  `BaseService.getAdminStats()` to provide diagnostic metadata about the state of your service.
+  Output (in JSON format) can be easily viewed in the Hoist Admin Console.
+* New `DefaultMonitorDefinitionService` provides default implementations of several new status
+  monitors to track core app health metrics. Extend this new superclass in your
+  app's `MonitorDefinitionService` to enable support for these new monitors.
+* Includes new support for dynamic configuration of client-side authentication libraries. See new
+  method `Authentication.getClientConfig()`.
 
 ### 🐞 Bug Fixes
 
