@@ -32,8 +32,8 @@ Please contact XH to review your app's readiness for multi-instance operation!
 * New `DefaultMonitorDefinitionService` provides default implementations of several new status
   monitors to track core app health metrics. Extend this new superclass in your
   app's `MonitorDefinitionService` to enable support for these new monitors.
-* Includes beta implementation of a new `BaseOAuthService` to support application-specific OAuth
-  flows. Note that this new (minimal) API is in incubation and is likely to change.
+* Includes new support for dynamic configuration of client-side authentication libraries. See new
+   method `Authentication.getClientConfig()`.
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟠 MEDIUM / 🟢 LOW for apps with minimal custom server-side functionality)
 

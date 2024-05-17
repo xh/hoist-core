@@ -21,14 +21,13 @@ import io.xh.hoist.json.JSONParser
 import io.xh.hoist.jsonblob.JsonBlobService
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.security.AccessAll
-import io.xh.hoist.security.oauth.BaseOauthService
+import io.xh.hoist.security.BaseAuthenticationService
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.json.JSONParser.parseObject
-import static java.util.Collections.emptyMap
 
 @AccessAll
 @CompileStatic
@@ -86,7 +85,6 @@ class XhController extends BaseController {
         identityService.endImpersonate()
         renderJSON(success: true)
     }
-
 
     //------------------------
     // Tracking
@@ -284,12 +282,11 @@ class XhController extends BaseController {
     }
 
     /**
-     * Soft-config of Oauth related settings for the client.
-     * Accessible pre-auth via AuthenticationService whitelist.
+     * Auth-related settings for the client. Accessible pre-auth via whitelist.
      */
-    def oauthConfig() {
-        def svc = Utils.appContext.getBean(BaseOauthService)
-        renderJSON(svc ? svc.clientConfig : emptyMap())
+    def authConfig() {
+        def svc = Utils.appContext.getBean(BaseAuthenticationService)
+        renderJSON(svc.clientConfig)
     }
 
     /**

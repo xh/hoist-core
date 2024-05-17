@@ -15,6 +15,8 @@ import io.xh.hoist.user.IdentityService
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
+import static java.util.Collections.emptyMap
+
 /**
  * Abstract base service for processing and confirming user authentications and evaluating incoming
  * requests to determine if authentication is either complete or not required.
@@ -29,6 +31,20 @@ abstract class BaseAuthenticationService extends BaseService {
     //-----------------------------------
     // Core template methods for override
     //-----------------------------------
+    /**
+     * Configuration to be made available to the client application before it
+     * initiates any authentication or other requests.
+     *
+     * Override this to provide information on auth methods currently in-use,
+     * including any client-side configuration needed to initialize auth.
+     *
+     * Applications should ensure the data returned by this method is appropriate for
+     * public visibility.
+     */
+    Map getClientConfig() {
+        return emptyMap()
+    }
+
     /**
      * Perform authentication on this request.
      *
@@ -140,7 +156,7 @@ abstract class BaseAuthenticationService extends BaseService {
         '/xh/logout',
         '/xh/environment',
         '/xh/version',
-        '/xh/oauthConfig'
+        '/xh/authConfig'
     ]
 
     /**
@@ -161,5 +177,4 @@ abstract class BaseAuthenticationService extends BaseService {
         '.woff',
         '.woff2'
     ]
-
 }
