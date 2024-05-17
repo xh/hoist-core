@@ -26,12 +26,14 @@ Please contact XH to review your app's readiness for multi-instance operation!
 
 #### Other new features
 
-* New support for reporting of service statistics for troubleshooting/monitoring. Implement
+* New support for reporting service statistics for troubleshooting/monitoring. Implement
   `BaseService.getAdminStats()` to provide diagnostic metadata about the state of your service.
   Output (in JSON format) can be easily viewed in the Hoist Admin Console.
 * New `DefaultMonitorDefinitionService` provides default implementations of several new status
   monitors to track core app health metrics. Extend this new superclass in your
   app's `MonitorDefinitionService` to enable support for these new monitors.
+* Includes new support for dynamic configuration of client-side authentication libraries. See new
+   method `Authentication.getClientConfig()`.
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟠 MEDIUM / 🟢 LOW for apps with minimal custom server-side functionality)
 
