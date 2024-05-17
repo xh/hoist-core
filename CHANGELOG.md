@@ -1,6 +1,6 @@
 # Changelog
 
-## 20.0-SNAPSHOT - unreleased
+## 20.0.0 - 2024-05-17
 
 ### 🎁 New Features
 
