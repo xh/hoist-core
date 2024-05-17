@@ -13,9 +13,9 @@ providing embedded Java support for inter-server communication, co-ordination, a
 See the new `ClusterService.groovy` service, which provides the clustering implementation and main
 API entry point for accessing the cluster.
 
-Many apps will *not* need to implement significant to run with multiple instances. Hoist will setup
-the cluster, elect a primary instance, provide cluster-aware Hibernate caching and logging, and
-ensure cross-server consistency for its own APIs.
+Many apps will *not* need to implement significant changes to run with multiple instances. Hoist
+will setup the cluster, elect a primary instance, provide cluster-aware Hibernate caching and logging,
+and ensure cross-server consistency for its own APIs.
 
 However, complex applications -- notably those that maintain significant server-side state or use
 their server to interact within external systems -- should take care to ensure the app is safe to
