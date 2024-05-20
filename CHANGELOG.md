@@ -2,6 +2,10 @@
 
 ## 21.0-SNAPSHOT - unreleased
 
+### 🐞 Bug Fixes
+
+* Restored routing of status monitor logging to dedicated file.
+
 ## 20.0.0 - 2024-05-17
 
 ### 🎁 New Features

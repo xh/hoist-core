@@ -30,9 +30,8 @@ import io.xh.hoist.log.LogSupportConverter;
 /**
  * This class supports the default logging configuration in Hoist.
  *
- * Applications should customize/specify their logging conventions via
- * the file grails-app/conf/logback.groovy.  See example-logback.txt
- * (in this directory) as well as the logback and grails documentation for
+ * Apps should customize/specify their logging conventions in `grails-app/conf/logback.groovy`.
+ * See `example-logback.txt` in this directory as well as the logback and grails documentation for
  * more information on how to construct this file.
  */
 class LogbackConfig {
@@ -74,17 +73,15 @@ class LogbackConfig {
     /**
      * Main entry point.
      *
-     * This function sets up "built-in" appenders for stdout, a daily rolling log,
-     * and logs for Hoists built-in monitoring.
+     * This function sets up "built-in" appenders for stdout, a daily rolling log, and additional
+     * dedicated logs for Hoist's built-in activity tracking and status monitoring.
      *
-     * It will also setup default logging levels logging levels for application, Hoist, and other
+     * It will also setup default logging levels logging levels for application, Hoist, and select
      * third-party packages. Note that these logging levels can be overwritten statically by
      * applications in logback.groovy.
      *
      * Application logback scripts need to call this method in their logback.groovy file.
-     * See example-logback.groovy in this directory for more details.
-     *
-     * @param script
+     * See `example-logback.txt` in this directory for more details.
      */
     static void defaultConfig(Script script) {
         withDelegate(script) {
@@ -123,7 +120,7 @@ class LogbackConfig {
 
             // Loggers for MonitoringService and TrackService.
             // Do not duplicate in main log file, but write to stdout
-            logger('io.xh.hoist.monitor.MonitoringService', INFO, [monitorLogName, 'stdout'], false)
+            logger('io.xh.hoist.monitor.MonitorEvalService', INFO, [monitorLogName, 'stdout'], false)
             logger('io.xh.hoist.track.TrackService', INFO, [trackLogName, 'stdout'], false)
 
             // Quiet noisy loggers
