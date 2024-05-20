@@ -39,7 +39,7 @@ class DefaultRoleAdminService extends BaseService {
             errorsForGroups = emptyMap()
 
         if (defaultRoleService.directoryGroupsSupported) {
-            Set<String> groups = roles.collectMany(new HashSet()) { it.directoryGroups }
+            Set<String> groups = roles.collectMany(new HashSet()) { it?.directoryGroups }
             if (groups) {
                 try {
                     Map<String, Object> groupsLookup = defaultRoleService.loadUsersForDirectoryGroups(groups, true)
@@ -56,8 +56,8 @@ class DefaultRoleAdminService extends BaseService {
         roles.collect {role ->
             def inheritedRoles = getInheritedRoles(role),
                 effectiveRoles = getEffectiveRoles(role),
-                effectiveGroups = getEffectiveMembers(role, effectiveRoles) { it.directoryGroups },
-                effectiveAssignedUsers = getEffectiveMembers(role, effectiveRoles) { it.users },
+                effectiveGroups = getEffectiveMembers(role, effectiveRoles) { it?.directoryGroups },
+                effectiveAssignedUsers = getEffectiveMembers(role, effectiveRoles) { it?.users },
                 effectiveUsers = getEffectiveUsers(effectiveAssignedUsers, effectiveGroups, usersForGroups),
                 effectiveGroupNames = effectiveGroups*.name.toSet()
             [
