@@ -29,7 +29,7 @@ abstract class BaseUserService extends BaseService {
      * Return all users,
      * @param activeOnly - true to return "active" users only.
      */
-    abstract List<HoistUser> list(boolean activeOnly)
+    abstract List<? extends HoistUser> list(boolean activeOnly)
 
     /**
      * Return the users that a given user can impersonate.
@@ -40,7 +40,7 @@ abstract class BaseUserService extends BaseService {
      * Overrides are highly encouraged to call this super implementation as an initial filter
      * and skip doing so at their own risk.
      */
-    List<HoistUser> impersonationTargetsForUser(HoistUser authUser) {
+    List<? extends HoistUser> impersonationTargetsForUser(HoistUser authUser) {
         if (!authUser.canImpersonate) return []
         def isAdmin = authUser.isHoistAdmin
         list(true).findAll { HoistUser target ->
