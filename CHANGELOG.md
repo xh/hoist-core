@@ -52,7 +52,7 @@ Please contact XH to review your app's readiness for multi-instance operation!
     ```sql
         ALTER TABLE `xh_client_error` ADD COLUMN `instance` VARCHAR(50) NULL;
         ALTER TABLE `xh_track_log` ADD COLUMN `instance` VARCHAR(50) NULL;
-        ALTER TABLE `xh_monitor` ADD COLUMN `primary_only` BIT NOT NULL DEFAULT FALSE;
+        ALTER TABLE `xh_monitor` ADD COLUMN `primary_only` BIT NOT NULL DEFAULT 0;
     ```
 * Apps must provide a cluster configuration class with the name `ClusterConfig.groovy`.
     * See Toolbox for an example.
@@ -74,7 +74,7 @@ Please contact XH to review your app's readiness for multi-instance operation!
 * `Utils.dataSource` now returns a reference to the actual `javax.sql.DataSource.DataSource`.
   Use `Utils.dataSourceConfig` to access the previous return of this method (DS config, as a map).
 * Apps must replace the `buildProperties.doLast` block at the bottom of their `build.gradle` file with
-  ```java
+  ```groovy
   tasks.war.doFirst {
      File infoFile = layout.buildDirectory.file('resources/main/META-INF/grails.build.info').get().asFile
      Properties properties = new Properties()
