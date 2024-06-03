@@ -38,6 +38,7 @@ abstract class BaseProxyService extends BaseService {
     protected abstract CloseableHttpClient createSourceClient()
 
     protected String getSourceRoot()                {return ''}
+    protected boolean getCacheClient()              {return true}
     protected List<String> proxyRequestHeaders()    {return []}
     protected List<String> proxyResponseHeaders()   {return []}
 
@@ -75,7 +76,11 @@ abstract class BaseProxyService extends BaseService {
         try (CloseableHttpResponse sourceResponse = sourceClient.execute(method)) {
             response.setStatus(sourceResponse.code)
             installResponseHeaders(response, sourceResponse)
-            sourceResponse.entity.writeTo(response.outputStream)
+
+            if (sourceResponse.entity) {
+                sourceResponse.entity.writeTo(response.outputStream)
+            }
+
             response.flushBuffer()
         } catch (ClientAbortException ignored) {
             logDebug("Client has aborted request to [$endpoint] - ignoring")
@@ -121,9 +126,9 @@ abstract class BaseProxyService extends BaseService {
     }
 
     protected CloseableHttpClient getSourceClient() {
-        def ret = _sourceClient
-        if (!ret) ret = createSourceClient()
-        return ret
+        if (!cacheClient || !_sourceClient) return createSourceClient()
+
+        return _sourceClient
     }
 
     protected boolean hasHeader(List<String> headers, String str) {
