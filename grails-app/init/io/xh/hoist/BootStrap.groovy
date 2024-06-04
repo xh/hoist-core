@@ -222,10 +222,10 @@ class BootStrap implements LogSupport {
             ],
             xhIdleConfig: [
                 valueType: 'json',
-                defaultValue: [timeout: -1, appTimeouts: [:]],
+                defaultValue: [timeout: 120, appTimeouts: [:]],
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Governs how client application will enter "sleep mode", suspending background requests and prompting the user to reload to resume.  Timeouts are in minutes of inactivity.'
+                note: 'Governs how client application will enter "sleep mode", suspending background requests and prompting the user to reload to resume.  Timeouts are in minutes of inactivity. -1 to disable.'
             ],
             xhLdapConfig: [
                 valueType: 'json',
