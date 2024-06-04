@@ -2,6 +2,11 @@
 
 ## 21.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* Removed obsolete `BaseAuthenticationService.whitelistFileExtensions`
+
+
 ## 20.0.1 - 2024-05-21
 
 ### 🐞 Bug Fixes
