@@ -135,11 +135,7 @@ abstract class BaseAuthenticationService extends BaseService {
      */
     protected boolean isWhitelist(HttpServletRequest request) {
         def uri = request.requestURI
-        return whitelistURIs.any{uri.endsWith(it)} || isWhitelistFile(uri)
-    }
-
-    protected boolean isWhitelistFile(String uri) {
-        whitelistFileExtensions.any{uri.endsWith(it)}
+        return whitelistURIs.any { uri.endsWith(it) }
     }
 
     /**
@@ -157,24 +153,5 @@ abstract class BaseAuthenticationService extends BaseService {
         '/xh/environment',
         '/xh/version',
         '/xh/authConfig'
-    ]
-
-    /**
-     * Extensions of file-based assets that do not require authentication and can be skipped for
-     * efficiency. Note that for Hoist React applications, the Grails server typically neither
-     * serves nor secures static assets, minimizing the impact of this list / need for tuning.
-      */
-    protected List<String> whitelistFileExtensions = [
-        '.css',
-        '.js',
-        '.gif',
-        '.ico',
-        '.jpeg',
-        '.jpg',
-        '.png',
-        '.svg',
-        '.ttf',
-        '.woff',
-        '.woff2'
     ]
 }

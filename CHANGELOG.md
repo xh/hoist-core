@@ -2,13 +2,17 @@
 
 ## 21.0-SNAPSHOT - unreleased
 
-### 🎁 New Features
-
 ### 🐞 Bug Fixes
+
 * BaseProxyService now correctly handles responses without content.
 * BaseProxyService now properly supports caching the underlying HttpClient between
   requests. This defaults to `false` to reflect current behavior, but may be
   overridden to `true`.
+  
+### ⚙️ Technical
+
+* Removed obsolete `BaseAuthenticationService.whitelistFileExtensions`
+
 
 ## 20.0.1 - 2024-05-21
 
