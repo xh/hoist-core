@@ -20,7 +20,6 @@ import org.apache.hc.client5.http.classic.methods.HttpPost
 import org.apache.hc.client5.http.classic.methods.HttpPut
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
-import org.apache.hc.core5.http.NameValuePair
 import org.apache.hc.core5.http.io.entity.StringEntity
 import org.apache.hc.core5.http.message.BasicNameValuePair
 
@@ -38,6 +37,7 @@ abstract class BaseProxyService extends BaseService {
     protected abstract CloseableHttpClient createSourceClient()
 
     protected String getSourceRoot()                {return ''}
+    protected boolean getCacheSourceClient()        {return false}
     protected List<String> proxyRequestHeaders()    {return []}
     protected List<String> proxyResponseHeaders()   {return []}
 
@@ -75,7 +75,9 @@ abstract class BaseProxyService extends BaseService {
         try (CloseableHttpResponse sourceResponse = sourceClient.execute(method)) {
             response.setStatus(sourceResponse.code)
             installResponseHeaders(response, sourceResponse)
-            sourceResponse.entity.writeTo(response.outputStream)
+
+            sourceResponse.entity?.writeTo(response.outputStream)
+
             response.flushBuffer()
         } catch (ClientAbortException ignored) {
             logDebug("Client has aborted request to [$endpoint] - ignoring")
@@ -121,8 +123,10 @@ abstract class BaseProxyService extends BaseService {
     }
 
     protected CloseableHttpClient getSourceClient() {
-        def ret = _sourceClient
-        if (!ret) ret = createSourceClient()
+        // Coded this odd way to respect impls of createSourceClient that may be
+        // setting the _sourceClient directly.  Original buggy impl of this method required that
+        def ret = _sourceClient ?: createSourceClient()
+        if (cacheSourceClient) _sourceClient = ret
         return ret
     }
 
