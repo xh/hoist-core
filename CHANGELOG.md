@@ -1,6 +1,6 @@
 # Changelog
 
-## 21.0-SNAPSHOT - unreleased
+## 20.0.2 - 2024-06-05
 
 ### 🐞 Bug Fixes
 
@@ -8,7 +8,7 @@
 * BaseProxyService now properly supports caching the underlying HttpClient between
   requests. This defaults to `false` to reflect current behavior, but may be
   overridden to `true`.
-  
+
 ### ⚙️ Technical
 
 * Removed obsolete `BaseAuthenticationService.whitelistFileExtensions`
