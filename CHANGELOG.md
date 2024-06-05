@@ -4,12 +4,11 @@
 
 ### 🎁 New Features
 
-* BaseProxyService now supports a `cacheClient` flag to override the default behavior of caching the
-  source client.
-
 ### 🐞 Bug Fixes
-
 * BaseProxyService now correctly handles responses without content.
+* BaseProxyService now properly supports caching the underlying HttpClient between
+  requests. This defaults to `false` to reflect current behavior, but may be
+  overridden to `true`.
 
 ## 20.0.1 - 2024-05-21
 
