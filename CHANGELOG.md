@@ -117,15 +117,23 @@ Please contact XH to review your app's readiness for multi-instance operation!
 
 ### 📚 Libraries
 
-Please ensure you review and update your `gradle.properties` and `gradle-wrapper.properties` files
-with the following versions, where applicable:
+Please ensure you review and update your `gradle.properties` and `gradle-wrapper.properties` files.
 
-* gradle `7.6.4`
-* grails `6.0 → 6.2`
-* grailGradlePlugin `6.0 → 6.2`
-* gorm `8.0 → 8.1`
-* groovy `3.0.11 → 3.0.21`
-* hazelcast `added @ 5.3`
+In `gradle.properties` (partial contents of this file, with updated libraries only):
+```properties
+groovyVersion=3.0.21
+grailsVersion=6.2.0
+grailsGradlePluginVersion=6.2.0
+gormVersion=8.1.0
+grailsHibernatePluginVersion=8.1.0
+hazelcast.version=5.3.7
+```
+
+In `/gradle/wrapper/gradle-wrapper.properties` (note your app might have an internal artifact repo
+in place of services.gradle.org - leave that as-is, updating the version only to 7.6.4):
+```properties
+distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.4-bin.zip
+```
 
 ## 19.0.0 - 2024-04-04
 
