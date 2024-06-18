@@ -84,6 +84,36 @@ class LdapService extends BaseService {
             .collectEntries { [it.key, it.value.get()]}
     }
 
+    /**
+     * Search for a single object, returning the first match found.
+     * @param baseFilter - an LDAP filter to be appended to the objectCategory filter.
+     * @param objType - type of Hoist-Core LdapObject to search for - must be or extend LdapObject, LdapPerson, or LdapGroup
+     * @param strictMode - if true, this method will throw if any lookups fail
+     * @return first match found in the form of objType
+     */
+    <T extends LdapObject> T searchOne(String baseFilter, Class<T> objType, boolean strictMode) {
+        for (server in config.servers) {
+            List<T> matches = doQuery(server, baseFilter, objType, strictMode)
+            if (matches) return matches.first()
+        }
+        return null
+    }
+
+    /**
+     * Search for multiple objects, returning all matches found.
+     * @param baseFilter - an LDAP filter to be appended to the objectCategory filter.
+     * @param objType - type of Hoist-Core LdapObject to search for - must be or extend LdapObject, LdapPerson, or LdapGroup
+     * @param strictMode - if true, this method will throw if any lookups fail
+     * @return list of all matches found in the form of objType
+     */
+    <T extends LdapObject> List<T> searchMany(String baseFilter, Class<T> objType, boolean strictMode) {
+        List<T> ret = []
+        for (server in config.servers) {
+            List<T> matches = doQuery(server, baseFilter, objType, strictMode)
+            if (matches) ret.addAll(matches)
+        }
+        return ret
+    }
 
     //----------------------
     // Implementation
@@ -97,27 +127,10 @@ class LdapService extends BaseService {
         searchMany("(|(member0f=$dn) (memberOf:1.2.840.113556.1.4.1941:=$dn))", LdapPerson, strictMode)
     }
 
-    private <T extends LdapObject> T searchOne(String baseFilter, Class<T> objType, boolean strictMode) {
-        for (server in config.servers) {
-            List<T> matches = doQuery(server, baseFilter, objType, strictMode)
-            if (matches) return matches.first()
-        }
-        return null
-    }
-
-    private <T extends LdapObject> List<T> searchMany(String baseFilter, Class<T> objType, boolean strictMode) {
-        List<T> ret = []
-        for (server in config.servers) {
-            List<T> matches = doQuery(server, baseFilter, objType, strictMode)
-            if (matches) ret.addAll(matches)
-        }
-        return ret
-    }
-
     private <T extends LdapObject> List<T> doQuery(Map server, String baseFilter, Class<T> objType, boolean strictMode) {
         if (!enabled) throw new RuntimeException('LdapService is not enabled.')
 
-        boolean isPerson = objType == LdapPerson
+        boolean isPerson = LdapPerson.class.isAssignableFrom(objType)
         String host = server.host,
             filter = "(&(objectCategory=${isPerson ? 'Person' : 'Group'})$baseFilter)",
             key = server.toString() + filter

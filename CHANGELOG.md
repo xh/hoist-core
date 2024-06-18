@@ -2,6 +2,15 @@
 
 ## 21.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* LdapService `searchOne` and `searchMany` methods have been made public.
+* LdapPerson class now includes `displayName`, `givenname`, and `sn` fields.
+
+### 🐞 Bug Fixes
+
+* LdapPerson class `email` key changed to `mail` to match LDAP attribute.
+
 ## 20.0.2 - 2024-06-05
 
 ### 🐞 Bug Fixes
