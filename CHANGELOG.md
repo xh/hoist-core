@@ -2,25 +2,29 @@
 
 ## 21.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* Websockets are now enabled by default. To disable, add `hoist.enableWebSockets = false` to your
+  project's `application.groovy` file (note the lowercase "a" to ensure you have the correct one).
+
 ## 20.1.0 - 2024-06-21
 
 ### 🎁 New Features
 
-* LdapService `searchOne` and `searchMany` methods have been made public.
-* LdapPerson class now includes `displayName`, `givenname`, and `sn` fields.
+* `LdapService.searchOne` and `searchMany` methods have been made public.
+* `LdapPerson` class now includes `displayName`, `givenname`, and `sn` fields.
 
 ### 🐞 Bug Fixes
 
-* LdapPerson class `email` key changed to `mail` to match LDAP attribute.
+* `LdapPerson` class `email` field changed to `mail` to match LDAP attribute.
 
 ## 20.0.2 - 2024-06-05
 
 ### 🐞 Bug Fixes
 
-* BaseProxyService now correctly handles responses without content.
-* BaseProxyService now properly supports caching the underlying HttpClient between
-  requests. This defaults to `false` to reflect current behavior, but may be
-  overridden to `true`.
+* `BaseProxyService` now correctly handles responses without content.
+* `BaseProxyService` now properly supports caching the underlying `HttpClient` between requests.
+  This defaults to `false` to reflect current behavior, but may be overridden to enable.
 
 ### ⚙️ Technical
 
@@ -46,8 +50,8 @@ See the new `ClusterService.groovy` service, which provides the clustering imple
 API entry point for accessing the cluster.
 
 Many apps will *not* need to implement significant changes to run with multiple instances. Hoist
-will setup the cluster, elect a primary instance, provide cluster-aware Hibernate caching and logging,
-and ensure cross-server consistency for its own APIs.
+will setup the cluster, elect a primary instance, provide cluster-aware Hibernate caching and
+logging, and ensure cross-server consistency for its own APIs.
 
 However, complex applications -- notably those that maintain significant server-side state or use
 their server to interact within external systems -- should take care to ensure the app is safe to
@@ -65,7 +69,7 @@ Please contact XH to review your app's readiness for multi-instance operation!
   monitors to track core app health metrics. Extend this new superclass in your
   app's `MonitorDefinitionService` to enable support for these new monitors.
 * Includes new support for dynamic configuration of client-side authentication libraries. See new
-   method `Authentication.getClientConfig()`.
+  method `Authentication.getClientConfig()`.
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟠 MEDIUM / 🟢 LOW for apps with minimal custom server-side functionality)
 
@@ -97,7 +101,7 @@ Please contact XH to review your app's readiness for multi-instance operation!
   most applications.
 * `Utils.dataSource` now returns a reference to the actual `javax.sql.DataSource.DataSource`.
   Use `Utils.dataSourceConfig` to access the previous return of this method (DS config, as a map).
-* Apps must replace the `buildProperties.doLast` block at the bottom of their `build.gradle` file with
+* Apps must replace the `buildProperties.doLast` block at the bottom of their `build.gradle` with:
   ```groovy
   tasks.war.doFirst {
      File infoFile = layout.buildDirectory.file('resources/main/META-INF/grails.build.info').get().asFile
@@ -122,6 +126,7 @@ Please contact XH to review your app's readiness for multi-instance operation!
 Please ensure you review and update your `gradle.properties` and `gradle-wrapper.properties` files.
 
 In `gradle.properties` (partial contents of this file, with updated libraries only):
+
 ```properties
 groovyVersion=3.0.21
 grailsVersion=6.2.0
@@ -133,6 +138,7 @@ hazelcast.version=5.3.7
 
 In `/gradle/wrapper/gradle-wrapper.properties` (note your app might have an internal artifact repo
 in place of services.gradle.org - leave that as-is, updating the version only to 7.6.4):
+
 ```properties
 distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.4-bin.zip
 ```
