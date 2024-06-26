@@ -4,6 +4,7 @@
 
 ### ⚙️ Technical
 
+* Common LDAP attributes `cn`, `displayname`, `mail`, and `name` moved to LdapObject class.
 * Websockets are now enabled by default. To disable, add `hoist.enableWebSockets = false` to your
   project's `application.groovy` file (note the lowercase "a" to ensure you have the correct one).
 
