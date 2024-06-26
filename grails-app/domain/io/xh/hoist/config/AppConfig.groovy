@@ -24,7 +24,7 @@ class AppConfig implements JSONFormat, LogSupport {
     static private final TextEncryptor encryptor = createEncryptor()
     static private final ConfigurablePasswordEncryptor digestEncryptor = createDigestEncryptor()
 
-    static List TYPES = ['string', 'int', 'long', 'double', 'bool', 'json', 'pwd']
+    static List TYPES = ['string', 'text', 'int', 'long', 'double', 'bool', 'json', 'pwd']
 
     String name
     String value
@@ -140,7 +140,7 @@ class AppConfig implements JSONFormat, LogSupport {
             case 'double':  return value.toDouble()
             case 'bool':    return value.toBoolean()
             case 'pwd' :
-                if (opts.obscurePassword)       return '*********';
+                if (opts.obscurePassword)       return '*********'
                 // Override values will not be encrypted by our local encryptor - treat as already-plaintext.
                 if (opts.digestPassword)        return digestPassword(value, !isOverride)
                 if (opts.decryptPassword)       return !isOverride ? decryptPassword(value) : value
