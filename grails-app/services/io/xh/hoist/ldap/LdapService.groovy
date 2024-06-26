@@ -124,7 +124,7 @@ class LdapService extends BaseService {
 
     private List<LdapPerson> lookupGroupMembersInternal(String dn, boolean strictMode) {
         // See class-level comment regarding this AD-specific query
-        searchMany("(|(member0f=$dn) (memberOf:1.2.840.113556.1.4.1941:=$dn))", LdapPerson, strictMode)
+        searchMany("(|(memberOf=$dn) (memberOf:1.2.840.113556.1.4.1941:=$dn))", LdapPerson, strictMode)
     }
 
     private <T extends LdapObject> List<T> doQuery(Map server, String baseFilter, Class<T> objType, boolean strictMode) {
