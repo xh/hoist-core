@@ -4,7 +4,6 @@ import javax.management.Attribute
 
 class LdapGroup extends LdapObject {
 
-    String cn
     List<String> member
 
     static LdapGroup create(Collection<Attribute> atts) {
@@ -14,6 +13,6 @@ class LdapGroup extends LdapObject {
     }
 
     static List<String> getKeys() {
-        LdapObject.keys + ['cn', 'member']
+        LdapObject.keys + ['member']
     }
 }
