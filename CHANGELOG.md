@@ -2,6 +2,10 @@
 
 ## 21.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* Remove obsolete, non-functioning GSP support from EmailService.
+
 ## 20.2.0 - 2024-06-26
 
 ### ⚙️ Technical
