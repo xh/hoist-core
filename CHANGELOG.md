@@ -7,9 +7,7 @@
 * Remove obsolete, non-functioning GSP support from EmailService.
 
 ### 🐞 Bug Fixes
-
-* `compileStatic` annotation removed from Ldap objects.  It was preventing the `keys` call in the
-  LdapObject `populate` method from using the subclass' `getKeys` method.
+* Fix to regression with LdapObject not fully populating all keys.
 
 ## 20.2.0 - 2024-06-26
 
