@@ -5,17 +5,16 @@
  * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.monitor
+package io.xh.hoist.admin
 
 import com.sun.management.HotSpotDiagnosticMXBean
 import io.xh.hoist.BaseService
+import io.xh.hoist.util.DateTimeUtils
 
 import java.lang.management.GarbageCollectorMXBean
 import java.lang.management.ManagementFactory
 import java.util.concurrent.ConcurrentHashMap
 
-import static io.xh.hoist.util.DateTimeUtils.SECONDS
-import static io.xh.hoist.util.DateTimeUtils.HOURS
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static io.xh.hoist.util.Utils.startupTime
 import static java.lang.Runtime.getRuntime
@@ -34,21 +33,25 @@ class MemoryMonitoringService extends BaseService {
 
     void init() {
         createTimer(
-            interval: {config.enabled ? config.snapshotInterval * SECONDS: -1},
+            interval: {this.enabled ? config.snapshotInterval * DateTimeUtils.SECONDS: -1},
             runFn: this.&takeSnapshot
         )
     }
 
-    /**
-     * Returns a map of previous JVM memory usage snapshots, keyed by ms timestamp of snapshot.
-     */
+    boolean getEnabled() {
+        return config.enabled
+    }
+
+    /** Returns map of previous JVM memory usage snapshots, keyed by ms timestamp of snapshot. */
     Map getSnapshots() {
         return _snapshots
     }
 
-    /**
-     * Dump the heap to a file for analysis.
-     */
+    Map getLatestSnapshot() {
+        return _snapshots?.max {it.key}?.value
+    }
+
+    /** Dump the heap to a file for analysis. */
     void dumpHeap(String filename) {
         String heapDumpDir = config.heapDumpDir
         if (!heapDumpDir) {
@@ -69,11 +72,9 @@ class MemoryMonitoringService extends BaseService {
         }
     }
 
-    /**
-     * Take a snapshot of JVM memory usage, store in this service's in-memory history, and return.
-     */
+    /** Take snapshot of JVM memory usage, add to this service's in-memory history, and return. */
     Map takeSnapshot() {
-        def newSnap = getStats()
+        def newSnap = getSnap()
 
         _snapshots[newSnap.timestamp] = newSnap
 
@@ -87,7 +88,7 @@ class MemoryMonitoringService extends BaseService {
         if (newSnap.usedPctMax > 90) {
             logWarn(newSnap)
             logWarn("MEMORY USAGE ABOVE 90%")
-        } else if (intervalElapsed(1 * HOURS, _lastInfoLogged)) {
+        } else if (intervalElapsed(1 * DateTimeUtils.HOURS, _lastInfoLogged)) {
             logInfo(newSnap)
             _lastInfoLogged = new Date()
         } else {
@@ -97,9 +98,7 @@ class MemoryMonitoringService extends BaseService {
         return newSnap
     }
 
-    /**
-     * Request an immediate garbage collection, with before and after usage snapshots.
-     */
+    /** Request an immediate garbage collection, then return before and after usage snapshots. */
     Map requestGc() {
         def before = takeSnapshot()
         System.gc()
@@ -111,11 +110,10 @@ class MemoryMonitoringService extends BaseService {
         ]
     }
 
-
     //------------------------
     // Implementation
     //------------------------
-    private Map getStats() {
+    private Map getSnap() {
         def mb = 1024 * 1024,
             timestamp = currentTimeMillis(),
             gcStats = getGCStats(timestamp),
@@ -175,5 +173,11 @@ class MemoryMonitoringService extends BaseService {
 
     void clearCaches() {
         _snapshots.clear()
+        super.clearCaches()
     }
+
+    Map getAdminStats() {[
+        config: configForAdminStats('xhMemoryMonitoringConfig'),
+        latestSnapshot: latestSnapshot,
+    ]}
 }

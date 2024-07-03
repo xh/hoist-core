@@ -11,15 +11,34 @@ import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.monitor.MonitorStatus.*
 
+/**
+ * Consolidated report of results across all available AggregateMonitorResults, with a single
+ * roll-up status and generated title.
+ */
 class MonitorStatusReport {
-    List<MonitorResult> results
+    final MonitorStatus status
+    final String title
+    final List<AggregateMonitorResult> results
 
-    MonitorStatus getStatus() {
-        if (!results) return MonitorStatus.OK
-        results.max{it.status}.status
+    MonitorStatusReport(List<AggregateMonitorResult> results) {
+        this.results = results
+        status = results ? results.max { it.status }.status : OK
+        title = computeTitle()
     }
 
-    String getTitle() {
+    String toHtml() {
+        def problems = results.findAll {it.status >= WARN}
+        if (!problems) return "There are no alerting monitors for ${Utils.appName}."
+
+        return problems
+            .sort {it.name}
+            .sort {it.status }
+            .collect {
+                "+ ${it.name} | ${it.message ? it.message + ' | ' : ''}Minutes in [${it.status}]: ${it.minsInStatus}"
+            }.join('<br>')
+    }
+
+    private String computeTitle() {
         def failsCount = results.count{it.status == FAIL},
             warnsCount = results.count{it.status == WARN},
             okCount = results.count{it.status == OK},

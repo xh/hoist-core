@@ -20,8 +20,9 @@ class ApplicationConfig {
     static void defaultConfig(Script script) {
         withDelegate(script) {
 
+            // Read by WebSocketService to determine if WS support should generally be enabled.
             hoist {
-                enableWebSockets = false
+                enableWebSockets = true
             }
 
             spring {
@@ -89,12 +90,35 @@ class ApplicationConfig {
                 }
             }
 
+            hazelcast {
+                jcache {
+                    provider {
+                        type = 'member'
+                    }
+                }
+                client.statistics.enabled = true
+            }
+
             hibernate {
+                javax {
+                    cache {
+                        provider = 'com.hazelcast.cache.impl.HazelcastServerCachingProvider'
+                        uri = 'hazelcast-hibernate.xml'
+                    }
+                    persistence {
+                        sharedCache {
+                            mode = 'ENABLE_SELECTIVE'
+                        }
+                    }
+                }
                 cache {
                     use_second_level_cache = true
                     queries = true
                     use_query_cache = true
-                    region.factory_class = 'org.hibernate.cache.ehcache.SingletonEhCacheRegionFactory'
+                    generate_statistics = true
+                    region {
+                        factory_class = 'org.hibernate.cache.jcache.JCacheRegionFactory'
+                    }
                 }
                 show_sql = false
             }

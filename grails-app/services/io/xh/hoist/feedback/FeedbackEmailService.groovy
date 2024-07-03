@@ -15,7 +15,11 @@ class FeedbackEmailService extends BaseService {
     def emailService
 
     void init() {
-        subscribe('xhFeedbackReceived', this.&emailFeedback)
+        subscribeToTopic(
+            topic: 'xhFeedbackReceived',
+            onMessage: this.&emailFeedback,
+            primaryOnly: true
+        )
     }
 
     //------------------------
@@ -44,5 +48,9 @@ class FeedbackEmailService extends BaseService {
 
         return [msgText, metaText].findAll{it}.join('<br/><br/>')
     }
+
+    Map getAdminStats() {[
+        config: [toAddress: emailService.parseMailConfig('xhEmailSupport')]
+    ]}
 
 }

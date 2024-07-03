@@ -15,6 +15,8 @@ import ch.qos.logback.core.encoder.Encoder
 import ch.qos.logback.core.encoder.LayoutWrappingEncoder
 import ch.qos.logback.core.rolling.RollingFileAppender
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy
+import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.log.ClusterInstanceConverter
 import io.xh.hoist.util.Utils
 import java.nio.file.Paths
 
@@ -28,9 +30,8 @@ import io.xh.hoist.log.LogSupportConverter;
 /**
  * This class supports the default logging configuration in Hoist.
  *
- * Applications should customize/specify their logging conventions via
- * the file grails-app/conf/logback.groovy.  See example-logback.txt
- * (in this directory) as well as the logback and grails documentation for
+ * Apps should customize/specify their logging conventions in `grails-app/conf/logback.groovy`.
+ * See `example-logback.txt` in this directory as well as the logback and grails documentation for
  * more information on how to construct this file.
  */
 class LogbackConfig {
@@ -41,53 +42,51 @@ class LogbackConfig {
      * Layout used for for logging to stdout
      * String or a Closure that produces a Layout
      */
-    static Object stdoutLayout = '%d{yyyy-MM-dd HH:mm:ss.SSS} | %c{0} [%p] | %m%n'
+    static Object stdoutLayout = '%d{yyyy-MM-dd HH:mm:ss.SSS} | %instance | %c{0} [%p] | %m%n'
 
     /**
      * Layout for logs created by dailyLog() function
      * String or a Closure that produces a Layout
      * This layout will be used by the built-in rolling daily log provided by hoist.
      */
-    static Object dailyLayout = '%d{HH:mm:ss.SSS} | %c{0} [%p] | %m%n'
+    static Object dailyLayout = '%d{HH:mm:ss.SSS} | %instance | %c{0} [%p] | %m%n'
 
     /**
      * Layout for logs created by monthlyLog() function
      * String or a Closure that produces a Layout
      */
-    static Object monthlyLayout = '%d{MM-dd HH:mm:ss.SSS} | %c{0} [%p] | %m%n'
+    static Object monthlyLayout = '%d{MM-dd HH:mm:ss.SSS} | %instance | %c{0} [%p] | %m%n'
 
     /**
      * Layout used for logging monitor results to a dedicated log.
      * String or a Closure that produces a Layout
      */
-    static Object monitorLayout = '%d{HH:mm:ss.SSS} | %m%n'
+    static Object monitorLayout = '%d{HH:mm:ss.SSS} | %instance | %m%n'
 
     /**
      * Layout used for logging client-side tracking results to a dedicated log.
      * String or a Closure that produces a Layout
      */
-    static Object trackLayout = '%d{HH:mm:ss.SSS} | %m%n'
+    static Object trackLayout = '%d{HH:mm:ss.SSS} | %instance | %m%n'
 
 
     /**
      * Main entry point.
      *
-     * This function sets up "built-in" appenders for stdout, a daily rolling log,
-     * and logs for Hoists built-in monitoring.
+     * This function sets up "built-in" appenders for stdout, a daily rolling log, and additional
+     * dedicated logs for Hoist's built-in activity tracking and status monitoring.
      *
-     * It will also setup default logging levels logging levels for application, Hoist, and other
+     * It will also setup default logging levels logging levels for application, Hoist, and select
      * third-party packages. Note that these logging levels can be overwritten statically by
      * applications in logback.groovy.
      *
      * Application logback scripts need to call this method in their logback.groovy file.
-     * See example-logback.groovy in this directory for more details.
-     *
-     * @param script
+     * See `example-logback.txt` in this directory for more details.
      */
     static void defaultConfig(Script script) {
         withDelegate(script) {
 
-            def appLogName = Utils.appCode,
+            def appLogName = "${Utils.appCode}-${ClusterService.instanceName}",
                 trackLogName = "$appLogName-track",
                 monitorLogName = "$appLogName-monitor"
 
@@ -97,6 +96,7 @@ class LogbackConfig {
             conversionRule("m", LogSupportConverter)
             conversionRule("msg", LogSupportConverter)
             conversionRule("message", LogSupportConverter)
+            conversionRule("instance", ClusterInstanceConverter)
 
             //----------------------------------
             // Appenders
@@ -120,14 +120,16 @@ class LogbackConfig {
 
             // Loggers for MonitoringService and TrackService.
             // Do not duplicate in main log file, but write to stdout
-            logger('io.xh.hoist.monitor.MonitoringService', INFO, [monitorLogName, 'stdout'], false)
+            logger('io.xh.hoist.monitor.MonitorEvalService', INFO, [monitorLogName, 'stdout'], false)
             logger('io.xh.hoist.track.TrackService', INFO, [trackLogName, 'stdout'], false)
 
             // Quiet noisy loggers
-            logger('org.hibernate', ERROR)
             logger('org.springframework', ERROR)
-            logger('net.sf.ehcache', ERROR)
+            logger('org.hibernate', ERROR)
             logger('org.apache.directory.ldap.client.api.LdapNetworkConnection', ERROR)
+
+            // Stifle warning about disabled strong consistency library -- requires 3 node min.
+            logger('com.hazelcast.cp.CPSubsystem', ERROR)
 
             // Turn off built-in global grails stacktrace logger.  It can easily swamp logs!
             // If needed, it can be (carefully) re-enabled by in admin console.

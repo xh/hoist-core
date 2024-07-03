@@ -10,6 +10,7 @@ package io.xh.hoist.impl
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseController
 import io.xh.hoist.alertbanner.AlertBannerService
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.clienterror.ClientErrorService
 import io.xh.hoist.exception.NotFoundException
@@ -20,14 +21,13 @@ import io.xh.hoist.json.JSONParser
 import io.xh.hoist.jsonblob.JsonBlobService
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.security.AccessAll
+import io.xh.hoist.security.BaseAuthenticationService
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.json.JSONParser.parseObject
-import static io.xh.hoist.json.JSONParser.parseObjectOrArray
-import static java.lang.Boolean.parseBoolean
 
 @AccessAll
 @CompileStatic
@@ -43,6 +43,7 @@ class XhController extends BaseController {
     TrackService trackService
     EnvironmentService environmentService
     BaseUserService userService
+    ClusterService clusterService
 
     //------------------------
     // Identity / Auth
@@ -85,20 +86,22 @@ class XhController extends BaseController {
         renderJSON(success: true)
     }
 
-
     //------------------------
     // Tracking
     //------------------------
-    def track(String category, String correlationId, String msg, String data, String logData, int elapsed, String severity) {
+    def track() {
         ensureClientUsernameMatchesSession()
+        def query = parseRequestJSON([safeEncode: true])
         trackService.track(
-            category: safeEncode(category),
-            correlationId: safeEncode(correlationId),
-            msg: safeEncode(msg),
-            data: data ? parseObjectOrArray(safeEncode(data)) : null,
-            logData: logData == 'true' || logData == 'false' ? parseBoolean(logData) : logData?.split(','),
-            elapsed: elapsed,
-            severity: safeEncode(severity)
+            category: query.category,
+            correlationId: query.correlationId,
+            msg: query.msg,
+            data: query.data,
+            logData: query.logData,
+            elapsed: query.elapsed,
+            severity: query.severity,
+            url: query.url,
+            appVersion: query.appVersion
         )
         renderJSON(success: true)
     }
@@ -220,6 +223,7 @@ class XhController extends BaseController {
         def options = configService.getMap('xhAppVersionCheck', [:])
         renderJSON(
             *: options,
+            instanceName: clusterService.instanceName,
             appVersion: Utils.appVersion,
             appBuild: Utils.appBuild
         )
@@ -228,15 +232,16 @@ class XhController extends BaseController {
     //------------------------
     // Client Errors
     //------------------------
-    def submitError(String msg, String error, String appVersion, String url, boolean userAlerted, String correlationId) {
+    def submitError() {
         ensureClientUsernameMatchesSession()
+        def query = parseRequestJSON([safeEncode: true])
         clientErrorService.submit(
-            safeEncode(msg),
-            safeEncode(error),
-            safeEncode(appVersion),
-            safeEncode(url),
-            userAlerted,
-            safeEncode(correlationId)
+            query.msg as String,
+            query.error as String,
+            query.appVersion as String,
+            query.url as String,
+            query.userAlerted as Boolean,
+            query.correlationId as String
         )
         renderJSON(success: true)
     }
@@ -276,6 +281,14 @@ class XhController extends BaseController {
         }
         def tz = TimeZone.getTimeZone(timeZoneId)
         renderJSON([offset: tz.getOffset(System.currentTimeMillis())])
+    }
+
+    /**
+     * Auth-related settings for the client. Accessible pre-auth via whitelist.
+     */
+    def authConfig() {
+        def svc = Utils.appContext.getBean(BaseAuthenticationService)
+        renderJSON(svc.clientConfig)
     }
 
     /**

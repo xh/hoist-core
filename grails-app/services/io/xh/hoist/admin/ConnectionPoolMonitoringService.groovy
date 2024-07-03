@@ -5,10 +5,11 @@
  * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.monitor
+package io.xh.hoist.admin
 
 import io.xh.hoist.BaseService
 import io.xh.hoist.exception.DataNotAvailableException
+import io.xh.hoist.util.DateTimeUtils
 import org.apache.tomcat.jdbc.pool.DataSource as PooledDataSource
 import org.apache.tomcat.jdbc.pool.PoolConfiguration
 import org.springframework.boot.jdbc.DataSourceUnwrapper
@@ -34,7 +35,7 @@ class ConnectionPoolMonitoringService extends BaseService {
 
     void init() {
         createTimer(
-            interval: {enabled ? config.snapshotInterval * SECONDS: -1},
+            interval: {enabled ? config.snapshotInterval * DateTimeUtils.SECONDS: -1},
             runFn: this.&takeSnapshot
         )
     }
@@ -53,11 +54,15 @@ class ConnectionPoolMonitoringService extends BaseService {
         return _snapshots
     }
 
+    Map getLatestSnapshot() {
+        return _snapshots?.max { it.key }?.value
+    }
+
     /** Take a snapshot of pool usage, add to in-memory history, and return. */
     Map takeSnapshot() {
         ensureEnabled()
 
-        def newSnap = getStats()
+        def newSnap = getSnap()
         _snapshots[newSnap.timestamp] = newSnap
 
         // Don't allow snapshot history to grow endlessly -
@@ -84,11 +89,10 @@ class ConnectionPoolMonitoringService extends BaseService {
         takeSnapshot()
     }
 
-
     //------------------------
     // Implementation
     //------------------------
-    private Map getStats() {
+    private Map getSnap() {
         def ds = pooledDataSource
         return [
             timestamp: currentTimeMillis(),
@@ -128,5 +132,11 @@ class ConnectionPoolMonitoringService extends BaseService {
 
     void clearCaches() {
         this._snapshots.clear()
+        super.clearCaches()
     }
+
+    Map getAdminStats() {[
+        config: configForAdminStats('xhConnPoolMonitoringConfig'),
+        latestSnapshot: latestSnapshot
+    ]}
 }

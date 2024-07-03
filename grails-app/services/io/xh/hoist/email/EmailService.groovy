@@ -21,7 +21,9 @@ import io.xh.hoist.util.Utils
 class EmailService extends BaseService {
 
     def configService
-    def groovyPageRenderer
+
+    private Date lastSentDate = null
+    private Long emailsSent = 0
 
     /**
      * Send email as specified by args param.
@@ -37,12 +39,10 @@ class EmailService extends BaseService {
      *      logIdentifier {String}  - optional, string to append to log message, defaults to subject
      *      throwError {Boolean}    - option to throw on error or to suppress and log, defaults to false
      *
-     * To determine email body, either "text" OR "html" OR ("view" AND "model") must be included in args:
+     * To determine email body, either "text" OR "html" must be included in args:
      *
      *      text {String}           - plain text message
      *      html {String}           - html message
-     *      view                    - gsp file path
-     *      model                   - model to be applied to the view
      *
      * To attach file(s) to the email, include:
      *
@@ -80,8 +80,8 @@ class EmailService extends BaseService {
                 env = Utils.appEnvironment.displayName.toUpperCase(),
                 envString = Utils.isProduction ? '' : " [$env]",
                 subj = args.subject + envString,
-                isAsync = args.containsKey('async') ? args.async : false,
-                isMultipart = args.containsKey('attachments') ,
+                isAsync = args.async as boolean,
+                isMultipart = args.attachments as boolean,
                 attachments = []
 
             if (isMultipart) {
@@ -115,16 +115,15 @@ class EmailService extends BaseService {
                 } else if (args.containsKey('text')) {
                     text args.text as String
                 } else {
-                    html groovyPageRenderer.render(
-                            view: args.view,
-                            model: args.model
-                    )
+                    throw new RuntimeException("Must provide 'html' or 'text' for email.")
                 }
 
                 attachments.each { Map f ->
                     attach f.fileName as String, f.contentType as String, f.contentSource
                 }
             }
+            emailsSent++
+            lastSentDate = new Date()
 
             if (doLog) {
                 def recipCount = toRecipients.size() + (ccRecipients?.size() ?: 0)
@@ -156,6 +155,16 @@ class EmailService extends BaseService {
         return s == 'none' ? null : formatAddresses(s)
     }
 
+    Map getAdminStats() {[
+        config: configForAdminStats(
+            'xhEmailOverride',
+            'xhEmailFilter',
+            'xhEmailDefaultSender',
+            'xhEmailDefaultDomain'
+        ),
+        emailsSent: emailsSent,
+        lastSentDate: lastSentDate
+    ]}
 
     //------------------------
     // Implementation

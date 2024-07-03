@@ -10,14 +10,18 @@ package io.xh.hoist.log
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.util.Utils
 
+import static grails.async.Promises.task
+
 class LogLevel implements JSONFormat {
 
     String name
     String level
-    String getDefaultLevel() {logLevelService.getDefaultLevel(name)}
-    String getEffectiveLevel() {logLevelService.getEffectiveLevel(name)}
     Date lastUpdated
     String lastUpdatedBy
+
+    String getDefaultLevel() { logLevelService.getDefaultLevel(name) }
+
+    String getEffectiveLevel() { logLevelService.getEffectiveLevel(name) }
 
     public static List<String> LEVELS = ['Trace', 'Debug', 'Info', 'Warn', 'Error', 'Inherit', 'Off']
 
@@ -33,18 +37,38 @@ class LogLevel implements JSONFormat {
         lastUpdatedBy(nullable: true, maxSize: 50)
     }
 
+    def afterUpdate() {
+        noteLogLevelChanged()
+    }
+
+    def afterDelete() {
+        noteLogLevelChanged()
+    }
+
+    def afterInsert() {
+        noteLogLevelChanged()
+    }
+
     Map formatForJSON() {
         return [
-                id: id,
-                name: name,
-                level: level,
-                defaultLevel: defaultLevel,
-                effectiveLevel: effectiveLevel,
-                lastUpdated: lastUpdated,
-                lastUpdatedBy: lastUpdatedBy
+            id            : id,
+            name          : name,
+            level         : level,
+            defaultLevel  : defaultLevel,
+            effectiveLevel: effectiveLevel,
+            lastUpdated   : lastUpdated,
+            lastUpdatedBy : lastUpdatedBy
         ]
     }
 
     private getLogLevelService() { Utils.appContext.logLevelService }
+
+    private noteLogLevelChanged() {
+        // called in a new thread and with a delay to make sure the change has had the time to propagate
+        task {
+            Thread.sleep(500)
+            logLevelService.noteLogLevelChanged()
+        }
+    }
 
 }

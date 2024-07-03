@@ -7,12 +7,11 @@
 
 package io.xh.hoist.clienterror
 
-import grails.events.*
+import com.hazelcast.map.IMap
 import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.util.Utils
-
-import java.util.concurrent.ConcurrentHashMap
 
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
@@ -31,20 +30,27 @@ import static java.lang.System.currentTimeMillis
  * this prevents us from ever overwhelming the server due to client issues,
  * and also allows us to produce a digest form of the email.
  */
-class ClientErrorService extends BaseService implements EventPublisher {
+class ClientErrorService extends BaseService {
 
     def clientErrorEmailService,
         configService
 
-    private Map<String, Map> errors = new ConcurrentHashMap()
+    static clusterConfigs = [
+        clientErrors: [IMap, {
+            evictionConfig.size = 100
+        }]
+    ]
 
+    private IMap<String, Map> errors = getIMap('clientErrors')
     private int getMaxErrors()      {configService.getMap('xhClientErrorConfig').maxErrors as int}
     private int getAlertInterval()  {configService.getMap('xhClientErrorConfig').intervalMins * MINUTES}
 
     void init() {
+        super.init()
         createTimer(
-                interval: { alertInterval },
-                delay: 15 * SECONDS
+            interval: { alertInterval },
+            delay: 15 * SECONDS,
+            primaryOnly: true
         )
     }
 
@@ -57,7 +63,6 @@ class ClientErrorService extends BaseService implements EventPublisher {
      */
     void submit(String message, String error, String appVersion, String url, boolean userAlerted, String correlationId) {
         def request = currentRequest
-
         if (!request) {
             throw new RuntimeException('Cannot submit a client error outside the context of an HttpRequest.')
         }
@@ -65,7 +70,8 @@ class ClientErrorService extends BaseService implements EventPublisher {
         def userAgent = request.getHeader('User-Agent')
 
         if (errors.size() < maxErrors) {
-            errors[authUsername + currentTimeMillis()] = [
+            def now = currentTimeMillis()
+            errors[authUsername + now] = [
                     correlationId : correlationId,
                     msg           : message,
                     error         : error,
@@ -76,8 +82,9 @@ class ClientErrorService extends BaseService implements EventPublisher {
                     appVersion    : appVersion ?: Utils.appVersion,
                     appEnvironment: Utils.appEnvironment,
                     url           : url?.take(500),
+                    instance      : ClusterService.instanceName,
                     userAlerted   : userAlerted,
-                    dateCreated   : new Date(),
+                    dateCreated   : new Date(now),
                     impersonating: identityService.impersonating ? username : null
             ]
             logDebug("Client Error received from $authUsername", "queued for processing")
@@ -91,25 +98,29 @@ class ClientErrorService extends BaseService implements EventPublisher {
     //---------------------------------------------------------
     @Transactional
     void onTimer() {
-       if (!errors) return
+        if (!errors) return
 
-        // swap out buffer
         def maxErrors = getMaxErrors(),
             errs = errors.values().take(maxErrors),
             count = errs.size()
-        errors = new ConcurrentHashMap()
+        errors.clear()
 
         if (getInstanceConfig('disableTrackLog') != 'true') {
             withDebug("Processing $count Client Errors") {
-                clientErrorEmailService.sendMail(errs, count == maxErrors)
-
-                errs.each {
+                def errors = errs.collect {
                     def ce = new ClientError(it)
                     ce.dateCreated = it.dateCreated
                     ce.save(flush: true)
-                    notify('xhClientErrorReceived', ce)
                 }
+                getTopic('xhClientErrorReceived').publishAllAsync(errors)
+                clientErrorEmailService.sendMail(errs, count == maxErrors)
             }
         }
     }
+
+    Map getAdminStats() {[
+        config: configForAdminStats('xhClientErrorConfig'),
+        pendingErrorCount: errors.size()
+    ]}
+
 }

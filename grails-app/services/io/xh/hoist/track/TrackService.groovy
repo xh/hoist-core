@@ -7,10 +7,11 @@
 
 package io.xh.hoist.track
 
-import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
@@ -34,7 +35,7 @@ import static io.xh.hoist.util.Utils.getCurrentRequest
  * active / accessible (intended for local development environments).
  */
 @CompileStatic
-class TrackService extends BaseService implements EventPublisher {
+class TrackService extends BaseService {
 
     ConfigService configService
 
@@ -82,7 +83,6 @@ class TrackService extends BaseService implements EventPublisher {
         return configService.getMap('xhActivityTrackingConfig')
     }
 
-
     //-------------------------
     // Implementation
     //-------------------------
@@ -111,7 +111,11 @@ class TrackService extends BaseService implements EventPublisher {
             device: getDevice(userAgent),
             elapsed: params.elapsed,
             severity: params.severity ?: 'INFO',
-            data: data
+            data: data,
+            url: params.url,
+            appVersion: params.appVersion ?: Utils.appVersion,
+            instance: ClusterService.instanceName,
+            appEnvironment: Utils.appEnvironment
         ]
 
         // Execute asynchronously after we get info from request, don't block application thread.
@@ -163,4 +167,8 @@ class TrackService extends BaseService implements EventPublisher {
             }
         }
     }
+
+    Map getAdminStats() {[
+        config: configForAdminStats('xhActivityTrackingConfig')
+    ]}
 }

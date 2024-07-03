@@ -1,11 +1,16 @@
 package io.xh.hoist.ldap
 
-import javax.management.Attribute
+import groovy.transform.CompileStatic
+import org.apache.directory.api.ldap.model.entry.Attribute
 
-class LdapPerson extends LdapObject{
+@CompileStatic
+class LdapPerson extends LdapObject {
 
-    String name
-    String email
+    /** First name of the person */
+    String givenname
+
+    /** Last (sur)name of the person */
+    String sn
 
     static LdapPerson create(Collection<Attribute> atts) {
         def ret = new LdapPerson()
@@ -14,6 +19,6 @@ class LdapPerson extends LdapObject{
     }
 
     static List<String> getKeys() {
-        LdapObject.keys + ['name', 'email']
+        LdapObject.keys + ['givenname', 'sn']
     }
 }

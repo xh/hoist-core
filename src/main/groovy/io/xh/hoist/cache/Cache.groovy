@@ -9,6 +9,7 @@ package io.xh.hoist.cache
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
+import io.xh.hoist.cluster.ClusterService
 
 import java.util.concurrent.ConcurrentHashMap
 
@@ -18,24 +19,44 @@ import static java.lang.System.currentTimeMillis
 
 @CompileStatic
 class Cache<K,V> {
-
-    private final ConcurrentHashMap<K, Entry<V>> _map = new ConcurrentHashMap()
+    private final Map<K, Entry<V>> _map
     private Date _lastCull
 
-    public final String name              //   name for status logging disambiguation [default anon]
-    public final BaseService svc          //   service using this cache (for logging purposes)
+    /** Optional name for status logging disambiguation. */
+    public final String name
+
+    /** Service using this cache (for logging purposes). */
+    public final BaseService svc
+
+    /** Closure to determine if an entry should be expired. */
     public final Closure expireFn
+
+    /** Time after which an entry should be expired. */
     public final Long expireTime
+
+    /** Closure to determine the timestamp of an entry. */
     public final Closure timestampFn
 
+    /** Whether this cache should be replicated across a cluster. */
+    public final boolean replicate
+
     Cache(Map options) {
-        name = (String) options.name ?: 'anon'
+        name = (String) options.name
         svc = (BaseService) options.svc
         expireTime = (Long) options.expireTime
         expireFn = (Closure) options.expireFn
         timestampFn = (Closure) options.timestampFn
+        replicate = (boolean) options.replicate
 
         if (!svc) throw new RuntimeException("Missing required argument 'svc' for Cache")
+        if (replicate && ClusterService.multiInstanceEnabled) {
+            if (!name) {
+                throw new RuntimeException("Cannot create a replicated cache without a unique name")
+            }
+            _map = svc.getReplicatedMap(name)
+        } else {
+            _map = new ConcurrentHashMap()
+        }
     }
 
     V get(K key) {
@@ -46,6 +67,7 @@ class Cache<K,V> {
         cullEntries()
         def ret = _map[key]
         if (ret && shouldExpire(ret)) {
+            _map[key]?.isRemoving = true
             _map.remove(key)
             return null
         }
@@ -54,7 +76,8 @@ class Cache<K,V> {
 
     void put(K key, V obj) {
         cullEntries()
-        _map.put(key, new Entry(obj))
+        _map[key]?.isRemoving = true
+        _map.put(key, new Entry(key.toString(), obj))
     }
 
     V getOrCreate(K key, Closure<V> c) {
@@ -108,10 +131,13 @@ class Cache<K,V> {
             }
 
             if (cullKeys.size()) {
-                svc.logDebug("Cache '$name' culling ${cullKeys.size()} out of ${_map.size()} entries")
+                svc.logDebug("Cache '${name?: "anon"}' culling ${cullKeys.size()} out of ${_map.size()} entries")
             }
 
-            cullKeys.each {_map.remove(it)}
+            cullKeys.each {
+                _map[it]?.isRemoving = true
+                _map.remove(it)
+            }
         }
     }
 

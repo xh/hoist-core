@@ -7,17 +7,21 @@
 package io.xh.hoist
 
 import grails.util.Holders
+import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.log.LogSupport
 import io.xh.hoist.util.Utils
 
 import java.time.ZoneId
 
 import static io.xh.hoist.util.DateTimeUtils.serverZoneId
+import static io.xh.hoist.BaseService.parallelInit
 import static java.lang.Runtime.runtime
 
-class BootStrap {
+class BootStrap implements LogSupport {
 
     def logLevelService,
         configService,
+        clusterService,
         prefService
 
     def init = {servletContext ->
@@ -28,8 +32,9 @@ class BootStrap {
         ensureExpectedServerTimeZone()
 
         def services = Utils.xhServices.findAll {it.class.canonicalName.startsWith('io.xh.hoist')}
-        BaseService.parallelInit([logLevelService])
-        BaseService.parallelInit(services)
+        parallelInit([logLevelService])
+        parallelInit([clusterService])
+        parallelInit(services)
     }
 
     def destroy = {}
@@ -40,7 +45,7 @@ class BootStrap {
     //------------------------
     private void logStartupMsg() {
         def hoist = Holders.currentPluginManager().getGrailsPlugin('hoist-core')
-        log.info("""
+        logInfo("""
 \n
  __  __     ______     __     ______     ______
 /\\ \\_\\ \\   /\\  __ \\   /\\ \\   /\\  ___\\   /\\__  _\\
@@ -50,6 +55,8 @@ class BootStrap {
 \n
           Hoist v${hoist.version} - ${Utils.appEnvironment}
           Extremely Heavy - https://xh.io
+            + Cluster ${ClusterService.clusterName}
+            + Instance ${ClusterService.instanceName}
             + ${runtime.availableProcessors()} available processors
             + ${String.format('%,d', (runtime.maxMemory() / 1000000).toLong())}mb available memory
             + JVM TimeZone is ${serverZoneId}
@@ -215,10 +222,10 @@ class BootStrap {
             ],
             xhIdleConfig: [
                 valueType: 'json',
-                defaultValue: [timeout: -1, appTimeouts: [:]],
+                defaultValue: [timeout: 120, appTimeouts: [:]],
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Governs how client application will enter "sleep mode", suspending background requests and prompting the user to reload to resume.  Timeouts are in minutes of inactivity.'
+                note: 'Governs how client application will enter "sleep mode", suspending background requests and prompting the user to reload to resume.  Timeouts are in minutes of inactivity. -1 to disable.'
             ],
             xhLdapConfig: [
                 valueType: 'json',
@@ -349,7 +356,7 @@ class BootStrap {
     private void ensureExpectedServerTimeZone() {
         def confZone = configService.getString('xhExpectedServerTimeZone')
         if (confZone == '*') {
-            log.warn(
+            logWarn(
                 "WARNING - a timezone has not yet been specified for this application's server.  " +
                 "This can lead to bugs and data corruption in development and production.  " +
                 "Please specify your expected timezone in the `xhExpectedServerTimeZone` config."

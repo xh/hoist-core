@@ -14,17 +14,19 @@ import static io.xh.hoist.util.DateTimeUtils.appDay
 class ClientError implements JSONFormat {
 
     String correlationId
+    String username
     String msg
     String error
-    String username
-    String userAgent
     String browser
     String device
+    String userAgent
     String appVersion
     String appEnvironment
     String url
+    String instance
     boolean userAlerted = false
     Date dateCreated
+    String impersonating
 
     static mapping = {
         table 'xh_client_error'
@@ -40,14 +42,16 @@ class ClientError implements JSONFormat {
     static constraints = {
         correlationId(nullable: true, maxSize: 100)
         msg(nullable: true)
-        error(nullable: true)
         username(maxSize: 50)
+        error(nullable: true)
         browser(nullable: true, maxSize: 100)
         device(nullable: true, maxSize: 100)
         userAgent(nullable: true)
         appVersion(nullable: true, maxSize: 100)
         appEnvironment(nullable: true, maxSize: 100)
         url(nullable: true, maxSize: 500)
+        instance(nullable: true, maxSize: 50)
+        impersonating(nullable: true, maxSize: 50)
     }
 
     Map formatForJSON() {
@@ -63,9 +67,11 @@ class ClientError implements JSONFormat {
                 appVersion    : appVersion,
                 appEnvironment: appEnvironment,
                 url           : url,
+                instance      : instance,
                 userAlerted   : userAlerted,
                 dateCreated   : dateCreated,
-                day           : appDay(dateCreated)
+                day           : appDay(dateCreated),
+                impersonating: impersonating
         ]
     }
 

@@ -7,39 +7,62 @@
 
 package io.xh.hoist.monitor
 
+import grails.async.Promises
+import grails.compiler.GrailsCompileStatic
 import grails.gorm.transactions.ReadOnly
+import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
-import io.xh.hoist.util.Utils
-import static grails.async.Promises.task
+import io.xh.hoist.config.ConfigService
 
 import java.util.concurrent.TimeoutException
 
+import static grails.async.Promises.task
 import static io.xh.hoist.monitor.MonitorStatus.*
 import static java.util.concurrent.TimeUnit.SECONDS
 
-
 /**
- * Runs individual status monitor checks as directed by MonitorService and as configured by
- * data-driven status monitor definitions. Timeouts and any other exceptions will be caught and
- * returned cleanly as failures.
+ * Coordinates the execution and immediate evaluation of status monitors on a single instance,
+ * when instructed to do so by the primary's `MonitorService`. Individual monitor runs are
+ * executed in parallel and constrained by a timeout.
+ *
+ * Will log monitor results if so configured.
+ *
+ * @internal - not intended for direct use by applications.
  */
-class MonitorResultService extends BaseService {
+@GrailsCompileStatic
+class MonitorEvalService extends BaseService {
 
+    ConfigService configService
+    def monitorDefinitionService
+
+    /**
+     * Runs all enabled and active monitors on this instance in parallel.
+     * Timeouts and any other exceptions will be caught and returned cleanly as failures.
+     */
     @ReadOnly
-    MonitorResult runMonitor(String code, long timeoutSeconds) {
-        def monitor = Monitor.findByCode(code)
-        if (!monitor) throw new RuntimeException("Monitor '$code' not found.")
-        return runMonitor(monitor, timeoutSeconds)
+    List<MonitorResult> runAllMonitors() {
+        def timeout = getTimeoutSeconds(),
+            monitors = Monitor.list().findAll{it.active && (isPrimary || !it.primaryOnly)}
+
+        withDebug("Running ${monitors.size()} monitors") {
+            def tasks = monitors.collect { m -> task {runMonitor(m, timeout)}},
+                ret = Promises.waitAll(tasks)
+
+            if (config.writeToMonitorLog != false) logResults(ret)
+
+            return ret
+        }
     }
 
+    /**
+     * Runs an individual monitor on this instance. Timeouts and any other exceptions will be
+     * caught and returned cleanly as failures.
+     */
+    @CompileDynamic
     MonitorResult runMonitor(Monitor monitor, long timeoutSeconds) {
-        if (!monitor.active) {
-            return inactiveMonitorResult(monitor)
-        }
-
-        def defSvc = Utils.appContext.monitorDefinitionService,
+        def defSvc = monitorDefinitionService,
             code = monitor.code,
-            result = new MonitorResult(monitor: monitor),
+            result = new MonitorResult(monitor: monitor, instance: clusterService.localName, primary: isPrimary),
             startTime = new Date()
 
         try {
@@ -79,25 +102,6 @@ class MonitorResultService extends BaseService {
         return result
     }
 
-    MonitorResult unknownMonitorResult(Monitor monitor) {
-        return new MonitorResult(
-                status: UNKNOWN,
-                date: new Date(),
-                elapsed: 0,
-                monitor: monitor
-        )
-    }
-
-    MonitorResult inactiveMonitorResult(Monitor monitor) {
-        return new MonitorResult(
-                status: INACTIVE,
-                date: new Date(),
-                elapsed: 0,
-                monitor: monitor
-        )
-    }
-
-
     //------------------------
     // Implementation
     //------------------------
@@ -107,11 +111,13 @@ class MonitorResultService extends BaseService {
 
         if (type == 'None') return
 
-        if (metric == null) {
+        if (!(metric instanceof Number)) {
             result.status = FAIL
-            result.prependMessage("Monitor failed to compute metric")
+            result.prependMessage('Monitor failed to compute numerical metric.')
             return
         }
+
+        Number metricNum = metric
 
         def isCeil = (type == 'Ceil'),
             sign = isCeil ? 1 : -1,
@@ -121,12 +127,32 @@ class MonitorResultService extends BaseService {
             currSeverity = result.status.severity,
             units = monitor.metricUnit ?: ''
 
-        if (fail != null && (metric - fail) * sign > 0 && currSeverity < FAIL.severity) {
+        if (fail != null && (metricNum - fail) * sign > 0 && currSeverity < FAIL.severity) {
             result.status = FAIL
             result.prependMessage("Metric value is $verb failure limit of $fail $units")
-        } else if (warn != null && (metric - warn) * sign > 0 && currSeverity < WARN.severity) {
+        } else if (warn != null && (metricNum - warn) * sign > 0 && currSeverity < WARN.severity) {
             result.status = WARN
             result.prependMessage("Metric value is $verb warn limit of $warn $units")
         }
+    }
+
+    private long getTimeoutSeconds() {
+        (config.monitorTimeoutSecs ?: 15) as long
+    }
+
+    private MonitorConfig getConfig() {
+        new MonitorConfig(configService.getMap('xhMonitorConfig'))
+    }
+
+    private void logResults(Collection<MonitorResult> results) {
+        results.each {
+            logInfo([code: it.code, status: it.status, metric: it.metric])
+        }
+
+        def failsCount = results.count {it.status == FAIL},
+            warnsCount = results.count {it.status == WARN},
+            okCount = results.count {it.status == OK}
+
+        logInfo([fails: failsCount, warns: warnsCount, okays: okCount])
     }
 }

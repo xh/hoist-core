@@ -15,6 +15,8 @@ import io.xh.hoist.user.IdentityService
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
+import static java.util.Collections.emptyMap
+
 /**
  * Abstract base service for processing and confirming user authentications and evaluating incoming
  * requests to determine if authentication is either complete or not required.
@@ -29,6 +31,20 @@ abstract class BaseAuthenticationService extends BaseService {
     //-----------------------------------
     // Core template methods for override
     //-----------------------------------
+    /**
+     * Configuration to be made available to the client application before it
+     * initiates any authentication or other requests.
+     *
+     * Override this to provide information on auth methods currently in-use,
+     * including any client-side configuration needed to initialize auth.
+     *
+     * Applications should ensure the data returned by this method is appropriate for
+     * public visibility.
+     */
+    Map getClientConfig() {
+        return emptyMap()
+    }
+
     /**
      * Perform authentication on this request.
      *
@@ -119,11 +135,7 @@ abstract class BaseAuthenticationService extends BaseService {
      */
     protected boolean isWhitelist(HttpServletRequest request) {
         def uri = request.requestURI
-        return whitelistURIs.any{uri.endsWith(it)} || isWhitelistFile(uri)
-    }
-
-    protected boolean isWhitelistFile(String uri) {
-        whitelistFileExtensions.any{uri.endsWith(it)}
+        return whitelistURIs.any { uri.endsWith(it) }
     }
 
     /**
@@ -139,26 +151,7 @@ abstract class BaseAuthenticationService extends BaseService {
         '/xh/login',
         '/xh/logout',
         '/xh/environment',
-        '/xh/version'
+        '/xh/version',
+        '/xh/authConfig'
     ]
-
-    /**
-     * Extensions of file-based assets that do not require authentication and can be skipped for
-     * efficiency. Note that for Hoist React applications, the Grails server typically neither
-     * serves nor secures static assets, minimizing the impact of this list / need for tuning.
-      */
-    protected List<String> whitelistFileExtensions = [
-        '.css',
-        '.js',
-        '.gif',
-        '.ico',
-        '.jpeg',
-        '.jpg',
-        '.png',
-        '.svg',
-        '.ttf',
-        '.woff',
-        '.woff2'
-    ]
-
 }

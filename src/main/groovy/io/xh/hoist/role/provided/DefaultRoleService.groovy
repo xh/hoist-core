@@ -8,21 +8,21 @@
 package io.xh.hoist.role.provided
 
 import grails.gorm.transactions.ReadOnly
+import io.xh.hoist.cluster.ReplicatedValue
+import io.xh.hoist.config.ConfigService
+import io.xh.hoist.ldap.LdapService
 import io.xh.hoist.role.BaseRoleService
 import io.xh.hoist.user.HoistUser
-import io.xh.hoist.util.DateTimeUtils
 import io.xh.hoist.util.Timer
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 
+import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 import static io.xh.hoist.util.Utils.isLocalDevelopment
 import static io.xh.hoist.util.Utils.isProduction
-import static java.util.Collections.emptySet
-import static java.util.Collections.emptyMap
-import static java.util.Collections.unmodifiableMap
-import static java.util.Collections.unmodifiableSet
-import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
+import static java.util.Collections.*
 
 /**
  * Optional concrete implementation of BaseRoleService for applications that wish to leverage
@@ -58,6 +58,8 @@ import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
  * Role.
  *
  * Applications wishing to extend this feature should override doLoadUsersForDirectoryGroups().
+ * If doLoadUsersForDirectoryGroups() throws an exception, this service will use the last successful
+ * lookup result and log an error. Clearing this service's caches will also clear the cached lookup.
  *
  * Certain aspects of this service and its Admin Console UI are soft-configurable via a JSON
  * `xhRoleModuleConfig`. This service will create this config entry if not found on startup.
@@ -74,13 +76,14 @@ import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
  */
 class DefaultRoleService extends BaseRoleService {
 
-    def configService,
-        ldapService,
-        defaultRoleUpdateService
+    ConfigService configService
+    LdapService ldapService
+    DefaultRoleUpdateService defaultRoleUpdateService
 
     private Timer timer
-    protected Map<String, Set<String>> _allRoleAssignments = emptyMap()
+    protected ReplicatedValue<Map<String, Set<String>>> _allRoleAssignments = getReplicatedValue('roleAssignments')
     protected ConcurrentMap<String, Set<String>> _roleAssignmentsByUser = new ConcurrentHashMap<>()
+    protected Map<String, Object> _usersForDirectoryGroups = emptyMap()
 
     static clearCachesConfigs = ['xhRoleModuleConfig']
 
@@ -88,9 +91,10 @@ class DefaultRoleService extends BaseRoleService {
         ensureRequiredConfigAndRolesCreated()
 
         timer = createTimer(
-            interval: { config.refreshIntervalSecs as int * DateTimeUtils.SECONDS },
-            runFn: this.&refreshCaches,
-            runImmediatelyAndBlock: true
+            interval: { config.refreshIntervalSecs as int * SECONDS },
+            runFn: this.&refreshRoleAssignments,
+            runImmediatelyAndBlock: true,
+            primaryOnly: true
         )
     }
 
@@ -99,7 +103,7 @@ class DefaultRoleService extends BaseRoleService {
     //------------------------------------
     @Override
     Map<String, Set<String>> getAllRoleAssignments() {
-        _allRoleAssignments
+        _allRoleAssignments.get()
     }
 
     @Override
@@ -162,12 +166,16 @@ class DefaultRoleService extends BaseRoleService {
      * enabled LdapService in the application.  Override this method to customize directory-based
      * lookup to attach to different, or additional external datasources.
      *
+     * If strictMode is true, implementations should throw on any partial failures.  Otherwise, they
+     * should log, and make a best-faith effort to return whatever groups they can load.
+     *
      * Method Map of directory group names to either:
      *  a) Set<String> of assigned users
      *     OR
      *  b) String describing lookup error.
      */
-    protected Map<String, Object> doLoadUsersForDirectoryGroups(Set<String> groups) {
+    protected Map<String, Object> doLoadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
+        if (!groups) return emptyMap()
         if (!ldapService.enabled) {
             return groups.collectEntries{[it, 'LdapService not enabled in this application']}
         }
@@ -177,20 +185,22 @@ class DefaultRoleService extends BaseRoleService {
 
         // 1) Determine valid groups
         ldapService
-            .lookupGroups(groups)
+            .lookupGroups(groups, strictMode)
             .each {name, group ->
                 if (group) {
                     foundGroups << name
                 } else {
-                    ret[name] = 'No AD group found'
+                    ret[name] = 'Directory Group not found'
                 }
             }
 
         // 2) Search for members of valid groups
         ldapService
-            .lookupGroupMembers(foundGroups)
+            .lookupGroupMembers(foundGroups, strictMode)
             .each {name, members ->
-                ret[name] = members.collect(new HashSet()) { it.samaccountname.toLowerCase()}
+                ret[name] = members.collect(new HashSet()) { it.samaccountname?.toLowerCase() }
+                // Exclude members without a samaccountname (e.g. email-only contacts within a DL)
+                ret[name].remove(null)
             }
 
         return ret
@@ -268,21 +278,13 @@ class DefaultRoleService extends BaseRoleService {
     //---------------------------
     // Implementation/Framework
     //---------------------------
-    final Map<String, Object> loadUsersForDirectoryGroups(Set<String> directoryGroups) {
-       if (!directoryGroups) return emptyMap()
-        // Wrapped here to avoid failing implementations from ever bringing down app.
-        try {
-            return doLoadUsersForDirectoryGroups(directoryGroups)
-        } catch (Throwable e) {
-            def errMsg = 'Error resolving Directory Groups'
-            logError(errMsg, e)
-            return directoryGroups.collectEntries {[it, errMsg] }
-        }
+    final Map<String, Object> loadUsersForDirectoryGroups(Set<String> directoryGroups, boolean strictMode) {
+        doLoadUsersForDirectoryGroups(directoryGroups, strictMode)
     }
 
-    protected void refreshCaches() {
+    void refreshRoleAssignments() {
         withDebug('Refreshing role caches') {
-            _allRoleAssignments = unmodifiableMap(generateRoleAssignments())
+            _allRoleAssignments.set(generateRoleAssignments())
             _roleAssignmentsByUser = new ConcurrentHashMap()
         }
     }
@@ -290,16 +292,27 @@ class DefaultRoleService extends BaseRoleService {
     @ReadOnly
     protected Map<String, Set<String>> generateRoleAssignments() {
         List<Role> roles = Role.list()
-        Map<String, Object> usersForDirectoryGroups = [:]
 
         if (directoryGroupsSupported) {
             Set<String> groups = roles.collectMany(new HashSet()) { it.directoryGroups }
-            loadUsersForDirectoryGroups(groups).each { k, v ->
-                if (v instanceof Set) {
-                    usersForDirectoryGroups[k] = v
-                } else {
-                    logError("Error resolving users for directory group", k, v)
+
+            // Error handling on resolution.  Can be complex (e.g. parallel LDAP calls) so be robust.
+            // If we don't have results, take any results we can get, but
+            // if we do have results, never replace them with non-complete/imperfect set.
+            boolean strictMode = _usersForDirectoryGroups as boolean
+            try {
+                Map<String, Object> usersForDirectoryGroups = [:]
+                loadUsersForDirectoryGroups(groups, strictMode).each { k, v ->
+                    if (v instanceof Set) {
+                        usersForDirectoryGroups[k] = v
+                    } else {
+                        logError("Error resolving users for directory group", k, v)
+                    }
                 }
+                _usersForDirectoryGroups = usersForDirectoryGroups
+            } catch (Throwable e) {
+                // Leave existing _usersForDirectoryGroups cache in place, log error, and continue.
+                logError("Error resolving users for directory groups", e)
             }
         }
 
@@ -313,7 +326,7 @@ class DefaultRoleService extends BaseRoleService {
                 if (directoryGroupsSupported) groups.addAll(effRole.directoryGroups)
             }
             groups.each { group ->
-                usersForDirectoryGroups[group]?.each { users << it.toLowerCase() }
+                _usersForDirectoryGroups[group]?.each { users << it.toLowerCase() }
             }
 
             logTrace("Generated assignments for ${role.name}", "${users.size()} effective users")
@@ -333,8 +346,12 @@ class DefaultRoleService extends BaseRoleService {
                 if (!visitedRoles.contains(it)) {
                     visitedRoles << it
                     def effectiveRole = Role.get(it)
-                    rolesToVisit << effectiveRole
-                    ret << effectiveRole
+                    if (effectiveRole) {
+                        rolesToVisit << effectiveRole
+                        ret << effectiveRole
+                    } else {
+                        logWarn("Role ${role.name} references non-existent role $it", "skipping")
+                    }
                 }
             }
         }
@@ -347,7 +364,18 @@ class DefaultRoleService extends BaseRoleService {
     }
 
     void clearCaches() {
+        _allRoleAssignments.set(emptyMap())
+        _roleAssignmentsByUser = new ConcurrentHashMap()
+        _usersForDirectoryGroups = emptyMap()
         timer.forceRun()
         super.clearCaches()
     }
+
+
+    Map getAdminStats() {[
+        roleAssignments: allRoleAssignments?.size(),
+        roleAssignmentsByUser: _roleAssignmentsByUser?.size(),
+        usersForDirectoryGroups: _usersForDirectoryGroups?.size()
+    ]}
+
 }

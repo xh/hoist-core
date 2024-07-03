@@ -1,4 +1,3 @@
-
 /*
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
@@ -9,9 +8,8 @@
 package io.xh.hoist
 
 import grails.async.Promise
-import grails.async.web.WebPromises
 import groovy.transform.CompileStatic
-import io.xh.hoist.exception.ExceptionRenderer
+import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
@@ -22,11 +20,13 @@ import org.owasp.encoder.Encode
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import static grails.async.web.WebPromises.task
+
 @CompileStatic
 abstract class BaseController implements LogSupport, IdentitySupport {
 
     IdentityService identityService
-    ExceptionRenderer exceptionRenderer
+    ExceptionHandler xhExceptionHandler
 
     /**
      * Render an object to JSON.
@@ -79,10 +79,12 @@ abstract class BaseController implements LogSupport, IdentitySupport {
     }
 
     protected Promise runAsync(Closure c) {
-        WebPromises.task {
-            c.call()
-        }.onError { Throwable t ->
-            exceptionRenderer.handleException(t, request, response, this)
+        task {
+            try {
+                c.call()
+            } catch (Throwable t) {
+                handleUncaughtInternal(t)
+            }
         }
     }
 
@@ -95,7 +97,16 @@ abstract class BaseController implements LogSupport, IdentitySupport {
     // Implementation
     //-------------------
     void handleException(Exception ex) {
-        exceptionRenderer.handleException(ex, request, response, this)
+        handleUncaughtInternal(ex)
+    }
+
+    private void handleUncaughtInternal(Throwable t) {
+        xhExceptionHandler.handleException(
+            exception: t,
+            logTo: this,
+            logMessage: [_action: actionName],
+            renderTo: response
+        )
     }
 
     // Provide cached logger to LogSupport for possible performance benefit

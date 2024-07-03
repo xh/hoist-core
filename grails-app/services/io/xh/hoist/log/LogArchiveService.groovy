@@ -70,7 +70,9 @@ class LogArchiveService extends BaseService {
     // Implementation
     //------------------------
     private void onTimer() {
-        archiveLogs((Integer) config.archiveAfterDays)
+        if (isPrimary) {
+            archiveLogs((Integer) config.archiveAfterDays)
+        }
     }
 
     private File getArchiveDir(String logPath, String category) {
@@ -170,4 +172,7 @@ class LogArchiveService extends BaseService {
         return configService.getMap('xhLogArchiveConfig')
     }
 
+    Map getAdminStats() {[
+        config: configForAdminStats('xhLogArchiveConfig')
+    ]}
 }

@@ -51,83 +51,120 @@ class LdapService extends BaseService {
 
 
     LdapPerson lookupUser(String sName) {
-        searchOne("(sAMAccountName=$sName) ", LdapPerson)
+        searchOne("(sAMAccountName=$sName) ", LdapPerson, true)
     }
 
     List<LdapPerson> lookupGroupMembers(String dn) {
-        // See class-level comment regarding this AD-specific query
-        searchMany("(|(member0f=$dn) (memberOf:1.2.840.113556.1.4.1941:=$dn))", LdapPerson)
-    }
-
-    Map<String, List<LdapPerson>> lookupGroupMembers(Set<String> dns) {
-        dns.collectEntries { dn -> [dn, task { lookupGroupMembers(dn) }] }
-            .collectEntries { [it.key, it.value.get()] }
-    }
-
-    Map<String, LdapGroup> lookupGroups(Set<String> dns) {
-        dns.collectEntries { dn -> [dn, task { lookupGroup(dn) }] }
-            .collectEntries { [it.key, it.value.get()] }
+        lookupGroupMembersInternal(dn, true)
     }
 
     List<LdapGroup> findGroups(String sNamePart) {
-        searchMany("(sAMAccountName=*$sNamePart*)", LdapGroup)
+        searchMany("(sAMAccountName=*$sNamePart*)", LdapGroup, true)
     }
 
-    //----------------------
-    // Implementation
-    //----------------------
-    private LdapGroup lookupGroup(String dn) {
-        searchOne("(distinguishedName=$dn)", LdapGroup)
+    /**
+     * Lookup a number of groups in parallel.
+     * @param dns - set of distinguished names.
+     * @param strictMode - if true, this method will throw if any lookups fail,
+     *      otherwise, failed lookups will be logged, and resolved as null.
+     */
+    Map<String, LdapGroup> lookupGroups(Set<String> dns, boolean strictMode = false) {
+        dns.collectEntries { dn -> [dn, task { lookupGroupInternal(dn, strictMode) }] }
+            .collectEntries { [it.key, it.value.get()] }
     }
 
-    private <T extends LdapObject> T searchOne(String baseFilter, Class<T> objType) {
+    /**
+     * Lookup group members for a number of groups in parallel.
+     * @param dns - set of distinguished names.
+     * @param strictMode - if true, this method will throw if any lookups fail,
+     *      otherwise, failed lookups will be logged, and resolved as an empty list.
+     */
+    Map<String, List<LdapPerson>> lookupGroupMembers(Set<String> dns, boolean strictMode = false) {
+        dns.collectEntries { dn -> [dn, task { lookupGroupMembersInternal(dn, strictMode) }] }
+            .collectEntries { [it.key, it.value.get()]}
+    }
+
+    /**
+     * Search for a single object, returning the first match found.
+     * @param baseFilter - an LDAP filter to be appended to the objectCategory filter.
+     * @param objType - type of Hoist-Core LdapObject to search for - must be or extend LdapObject, LdapPerson, or LdapGroup
+     * @param strictMode - if true, this method will throw if any lookups fail
+     * @return first match found in the form of objType
+     */
+    <T extends LdapObject> T searchOne(String baseFilter, Class<T> objType, boolean strictMode) {
         for (server in config.servers) {
-            List<T> matches = doQuery(server, baseFilter, objType)
+            List<T> matches = doQuery(server, baseFilter, objType, strictMode)
             if (matches) return matches.first()
         }
         return null
     }
 
-    private <T extends LdapObject> List<T> searchMany(String baseFilter, Class<T> objType) {
+    /**
+     * Search for multiple objects, returning all matches found.
+     * @param baseFilter - an LDAP filter to be appended to the objectCategory filter.
+     * @param objType - type of Hoist-Core LdapObject to search for - must be or extend LdapObject, LdapPerson, or LdapGroup
+     * @param strictMode - if true, this method will throw if any lookups fail
+     * @return list of all matches found in the form of objType
+     */
+    <T extends LdapObject> List<T> searchMany(String baseFilter, Class<T> objType, boolean strictMode) {
         List<T> ret = []
         for (server in config.servers) {
-            List<T> matches = doQuery(server, baseFilter, objType)
+            List<T> matches = doQuery(server, baseFilter, objType, strictMode)
             if (matches) ret.addAll(matches)
         }
         return ret
     }
 
-    private <T extends LdapObject> List<T> doQuery(Map server, String baseFilter, Class<T> objType) {
+    //----------------------
+    // Implementation
+    //----------------------
+    private LdapGroup lookupGroupInternal(String dn, boolean strictMode) {
+        searchOne("(distinguishedName=$dn)", LdapGroup, strictMode)
+    }
+
+    private List<LdapPerson> lookupGroupMembersInternal(String dn, boolean strictMode) {
+        // See class-level comment regarding this AD-specific query
+        searchMany("(|(memberOf=$dn) (memberOf:1.2.840.113556.1.4.1941:=$dn))", LdapPerson, strictMode)
+    }
+
+    private <T extends LdapObject> List<T> doQuery(Map server, String baseFilter, Class<T> objType, boolean strictMode) {
         if (!enabled) throw new RuntimeException('LdapService is not enabled.')
 
-        boolean isPerson = objType == LdapPerson
+        boolean isPerson = LdapPerson.class.isAssignableFrom(objType)
         String host = server.host,
-            filter = "(&(objectCategory=${isPerson ? 'Person' : 'Group'})$baseFilter)"
+            filter = "(&(objectCategory=${isPerson ? 'Person' : 'Group'})$baseFilter)",
+            key = server.toString() + filter
 
-        cache.getOrCreate(server.toString() + filter) {
-            withDebug(["Querying LDAP", [host: host, filter: filter]]) {
-                LdapNetworkConnection conn
+        List<T> ret = cache.get(key)
+        if (ret != null) return ret
+
+        withDebug(["Querying LDAP", [host: host, filter: filter]]) {
+            try (LdapNetworkConnection conn = new LdapNetworkConnection(host)) {
+                String baseDn = isPerson ? server.baseUserDn : server.baseGroupDn,
+                       username = configService.getString('xhLdapUsername'),
+                       password = configService.getPwd('xhLdapPassword')
+                String[] keys = objType.keys.toArray() as String[]
+
+                conn.timeOut = config.timeoutMs as Long
+
+                boolean didBind = false
                 try {
-
-                    String baseDn = isPerson ? server.baseUserDn : server.baseGroupDn,
-                        username = configService.getString('xhLdapUsername'),
-                        password = configService.getPwd('xhLdapPassword')
-                    String[] keys = objType.keys.toArray() as String[]
-
-                    conn = new LdapNetworkConnection(host)
-                    conn.timeOut = config.timeoutMs as Long
                     conn.bind(username, password)
-                    conn.search(baseDn, filter, SearchScope.SUBTREE, keys)
+                    didBind = true
+                    ret = conn.search(baseDn, filter, SearchScope.SUBTREE, keys)
                         .collect { objType.create(it.attributes as Collection<Attribute>) }
-                } catch (Exception e) {
-                    logError("Failure querying", [host: host, filter: filter], e)
-                    return null
+                    cache.put(key, ret)
                 } finally {
-                    conn?.unBind()
-                    conn?.close()
+                    // Calling unBind on an unbound connection will throw an exception
+                    if (didBind) conn.unBind()
                 }
-            } as List<T>
+            } catch (Exception e) {
+                if (strictMode) throw e
+                logError("Failure querying", [host: host, filter: filter], e)
+                ret = null
+            }
         }
+        return ret
     }
 
     private Map getConfig() {

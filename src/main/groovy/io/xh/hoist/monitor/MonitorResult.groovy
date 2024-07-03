@@ -12,11 +12,17 @@ import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.json.JSONParser
 
 import static io.xh.hoist.monitor.MonitorStatus.UNKNOWN
-import static io.xh.hoist.util.DateTimeUtils.MINUTES
-import static java.lang.System.currentTimeMillis
 
+/**
+ * Results from the run of a single monitor on a single instance.
+ *
+ * An instance of this object is passed into each app-level monitor implementation within
+ * `MonitorDefinitionService` and is used to collect and return the results of each check.
+ */
 @CompileStatic
 class MonitorResult implements JSONFormat {
+    String instance
+    Boolean primary
     MonitorStatus status = UNKNOWN
     Object metric
     String message
@@ -24,14 +30,6 @@ class MonitorResult implements JSONFormat {
     Date date
     Exception exception
     Monitor monitor
-
-    MonitorStatus lastStatus = UNKNOWN
-    Date lastStatusChanged
-    Integer checksInStatus
-
-    String getName() {
-        monitor.name
-    }
 
     String getCode() {
         monitor.code
@@ -47,31 +45,16 @@ class MonitorResult implements JSONFormat {
         message = prependStr + (message ? " \n\n$message" : '')
     }
 
-    String getMinsInStatus () {
-        def now = currentTimeMillis(),
-            timeInStatus = now - lastStatusChanged.time
-
-            (timeInStatus / MINUTES).intValue()
-    }
-
     Map formatForJSON() {
         [
-            code: monitor.code,
-            name: monitor.name,
-            params: monitor.params,
-            notes: monitor.notes,
-            sortOrder: monitor.sortOrder,
-            metricType: monitor.metricType,
-            metricUnit: monitor.metricUnit,
+            instance: instance,
+            primary: primary,
             status: status,
             metric: metric,
             message: message,
             elapsed: elapsed,
             date: date,
             exception: exception?.class?.name,
-            lastStatus: lastStatus,
-            lastStatusChanged: lastStatusChanged,
-            checksInStatus: checksInStatus
         ]
     }
 

@@ -50,7 +50,7 @@ class DefaultRoleUpdateService extends BaseService {
         roleToDelete.delete(flush: true)
 
         trackService.track(msg: "Deleted role: '$id'", category: 'Audit')
-        defaultRoleService.clearCaches()
+        defaultRoleService.refreshRoleAssignments()
     }
 
 
@@ -99,7 +99,7 @@ class DefaultRoleUpdateService extends BaseService {
             if (role) {
                 role.addToMembers(type: USER, name: user.username, createdBy: 'defaultRoleUpdateService')
                 role.save(flush: true)
-                defaultRoleService.clearCaches()
+                defaultRoleService.refreshRoleAssignments()
             } else {
                 logWarn("Failed to find role $roleName to assign to $user", "role will not be assigned")
             }
@@ -163,7 +163,7 @@ class DefaultRoleUpdateService extends BaseService {
             )
         }
 
-        defaultRoleService.clearCaches()
+        defaultRoleService.refreshRoleAssignments()
         return role
     }
 

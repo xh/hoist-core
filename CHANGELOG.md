@@ -1,22 +1,212 @@
 # Changelog
 
-## 19.0-SNAPSHOT - unreleased
+## 21.0-SNAPSHOT - unreleased
 
 ### 🎁 New Features
 
 * Added support for tracking Correlation ID's in Activity and Client Error logs.
-  Requires `hoist-react >= 62.0`.
+  Requires `hoist-react >= TBD`.
 
+### ⚙️ Technical
+
+* Remove obsolete, non-functioning GSP support from EmailService.
+
+## 20.2.0 - 2024-06-26
+
+### ⚙️ Technical
+
+* Common LDAP attributes `cn`, `displayname`, `mail`, and `name` moved to LdapObject class.
+* Websockets are now enabled by default. To disable, add `hoist.enableWebSockets = false` to your
+  project's `application.groovy` file (note the lowercase "a" to ensure you have the correct one).
+
+## 20.1.0 - 2024-06-21
+
+### 🎁 New Features
+
+* `LdapService.searchOne` and `searchMany` methods have been made public.
+* `LdapPerson` class now includes `displayName`, `givenname`, and `sn` fields.
+
+### 🐞 Bug Fixes
+
+* `LdapPerson` class `email` field changed to `mail` to match LDAP attribute.
+
+## 20.0.2 - 2024-06-05
+
+### 🐞 Bug Fixes
+
+* `BaseProxyService` now correctly handles responses without content.
+* `BaseProxyService` now properly supports caching the underlying `HttpClient` between requests.
+  This defaults to `false` to reflect current behavior, but may be overridden to enable.
+
+### ⚙️ Technical
+
+* Removed obsolete `BaseAuthenticationService.whitelistFileExtensions`
+
+## 20.0.1 - 2024-05-21
+
+### 🐞 Bug Fixes
+
+* Restored routing of status monitor logging to dedicated file.
+
+## 20.0.0 - 2024-05-17
+
+### 🎁 New Features
+
+#### Hoist now fully supports multi-instance, clustered deployments!
+
+Hoist Core v20 provides support for running multi-instance clusters of Hoist application servers.
+Cluster management is powered by [Hazelcast](https://hazelcast.com), an open-source library
+providing embedded Java support for inter-server communication, co-ordination, and data sharing.
+
+See the new `ClusterService.groovy` service, which provides the clustering implementation and main
+API entry point for accessing the cluster.
+
+Many apps will *not* need to implement significant changes to run with multiple instances. Hoist
+will setup the cluster, elect a primary instance, provide cluster-aware Hibernate caching and
+logging, and ensure cross-server consistency for its own APIs.
+
+However, complex applications -- notably those that maintain significant server-side state or use
+their server to interact within external systems -- should take care to ensure the app is safe to
+run in multi-instance mode. Distributed data structures (e.g. Hazelcast Maps) should be used as
+needed, as well as limiting certain actions to the "primary" server.
+
+Please contact XH to review your app's readiness for multi-instance operation!
+
+#### Other new features
+
+* New support for reporting service statistics for troubleshooting/monitoring. Implement
+  `BaseService.getAdminStats()` to provide diagnostic metadata about the state of your service.
+  Output (in JSON format) can be easily viewed in the Hoist Admin Console.
+* New `DefaultMonitorDefinitionService` provides default implementations of several new status
+  monitors to track core app health metrics. Extend this new superclass in your
+  app's `MonitorDefinitionService` to enable support for these new monitors.
+* Includes new support for dynamic configuration of client-side authentication libraries. See new
+  method `Authentication.getClientConfig()`.
+
+### 💥 Breaking Changes (upgrade difficulty: 🟠 MEDIUM / 🟢 LOW for apps with minimal custom server-side functionality)
+
+* Requires `hoist-react >= 64.0` for essential Admin Console upgrades.
+* Requires updated `gradle.properties` to specify `hazelcast.version=5.3.x`. Check hoist-core or
+  Toolbox at time of upgrade to confirm exact recommended version.
+* Requires column additions to three `xh_` tables with the following SQL or equivalent:
+    ```sql
+        ALTER TABLE `xh_client_error` ADD COLUMN `instance` VARCHAR(50) NULL;
+        ALTER TABLE `xh_track_log` ADD COLUMN `instance` VARCHAR(50) NULL;
+        ALTER TABLE `xh_monitor` ADD COLUMN `primary_only` BIT NOT NULL DEFAULT 0;
+    ```
+* Apps must provide a cluster configuration class with the name `ClusterConfig.groovy`.
+    * See Toolbox for an example.
+    * Note that for some XH clients this will be already provided by their internal Hoist plugin.
+* Apps that intend to run with more than one server *must* enable sticky sessions when routing
+  clients to servers. This is critical for the correct operation of authentication and websocket
+  communications. Check with XH or your networking team to ensure this is correctly configured.
+* Server-side events raised by Hoist are now implemented as cluster-wide Hazelcast messages rather
+  than single-server Grails events. Any app code that listens to these events
+  via `BaseService.subscribe` must update to `BaseService.subscribeToTopic`. Check for:
+    * `xhClientErrorReceived`
+    * `xhConfigChanged`
+    * `xhFeedbackReceived`
+    * `xhMonitorStatusReport`
+* The `exceptionRenderer` singleton has been simplified and renamed as `xhExceptionHandler`. This
+  change was needed to better support cross-cluster exception handling. This object is used by
+  Hoist internally for catching uncaught exceptions and this change is not expected to impact
+  most applications.
+* `Utils.dataSource` now returns a reference to the actual `javax.sql.DataSource.DataSource`.
+  Use `Utils.dataSourceConfig` to access the previous return of this method (DS config, as a map).
+* Apps must replace the `buildProperties.doLast` block at the bottom of their `build.gradle` with:
+  ```groovy
+  tasks.war.doFirst {
+     File infoFile = layout.buildDirectory.file('resources/main/META-INF/grails.build.info').get().asFile
+     Properties properties = new Properties()
+     infoFile.withInputStream {properties.load(it)}
+     properties.putAll(hoistMetaData)
+     infoFile.withOutputStream {properties.store(it, null)}
+  }
+  ```
+
+### 🐞 Bug Fixes
+
+* Calls to URLs with the correct controller but a non-existent action were incorrectly returning
+  raw `500` errors. They now return a properly JSON-formatted `404` error, as expected.
+
+### ⚙️ Technical
+
+* All `Throwable`s are now serialized to JSON using Hoist's standard customization of Jackson.
+
+### 📚 Libraries
+
+Please ensure you review and update your `gradle.properties` and `gradle-wrapper.properties` files.
+
+In `gradle.properties` (partial contents of this file, with updated libraries only):
+
+```properties
+groovyVersion=3.0.21
+grailsVersion=6.2.0
+grailsGradlePluginVersion=6.2.0
+gormVersion=8.1.0
+grailsHibernatePluginVersion=8.1.0
+hazelcast.version=5.3.7
+```
+
+In `/gradle/wrapper/gradle-wrapper.properties` (note your app might have an internal artifact repo
+in place of services.gradle.org - leave that as-is, updating the version only to 7.6.4):
+
+```properties
+distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.4-bin.zip
+```
+
+## 19.0.0 - 2024-04-04
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - latest Hoist React + DB col additions)
+
+* Requires `hoist-react >= 63.0` for client-side changes to accommodate updated `track`
+  and `submitError` APIs. See below for database column additions to support the same.
+* Implementations of `DefaultRoleService.doLoadUsersForDirectoryGroups` will need to handle a new
+  `strictMode` flag provided as a second argument.
+
+### 🎁 New Features
+
+* Client error reports include a new `impersonating` field for additional troubleshooting context.
+    * ⚠ NOTE - this requires a new column in the `xh_client_error` table. Review and run the
+      following SQL, or an equivalent suitable for the particular database you are using:
+      ```sql
+      ALTER TABLE `xh_client_error` ADD COLUMN `impersonating` VARCHAR(50) NULL;
+      ```
+* Activity tracking logs include new `appVersion`, `appEnvironment` and `url` fields.
+    * ⚠ NOTE - this requires new columns in the `xh_track_log` table. Review and run the following
+      SQL, or an equivalent suitable for the particular database you are using:
+      ```sql
+      ALTER TABLE `xh_track_log` ADD COLUMN `app_version` VARCHAR(100) NULL;
+      ALTER TABLE `xh_track_log` ADD COLUMN `app_environment` VARCHAR(100) NULL;
+      ALTER TABLE `xh_track_log` ADD COLUMN `url` VARCHAR(500) NULL;
+      ```
+
+### ⚙️ Technical
+
+* `DefaultRoleService` has improved error handling for failed directory group lookups.
+* `LdapService` bulk lookup methods now provide a `strict` option to throw if a query fails rather
+  than quietly returning an empty result.
+* New `TrackLogAdminService` and `ClientErrorAdminService` services provide improved APIs for
+  querying `TrackLog` and `ClientError` records. Leveraged by updated Hoist Admin Console to post
+  selected filters to the server and return more relevant data within configured row limits.
+
+## 18.5.2 - 2024-04-03
+
+### 🐞 Bug Fixes
+
+* Fixed bug in `DefaultRoleService.doLoadUsersForDirectoryGroups` where LDAP members with `null`
+  samAccountNames were not being filtered out, causing `NullPointerExceptions`.
 
 ## 18.5.1 - 2024-03-08
 
 ### ⚙️ Technical
 
-* Quiet log warnings from `LdapNetworkConnection` in `LdapService` by setting the `LdapNetworkConnection` log level to `ERROR`.
+* Quiet log warnings from `LdapNetworkConnection` in `LdapService` by setting
+  the `LdapNetworkConnection` log level to `ERROR`.
 
 ## 18.5.0 - 2024-03-08
 
-### 💥 Breaking Changes
+### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL)
 
 * Method `DefaultRoleService.ensureUserHasRoles` has been renamed to `assignRole`.
   The new name more clearly describes that the code will actually grant an additional
@@ -180,9 +370,9 @@ It should be fully compatible with Java 11 and Java 17.
 
 ### 📚 Libraries
 
-* grails `5.3.2 -> 6.0.0`
-* gorm `7.3.2` -> `8.0.0`
-* groovy `3.0.9` -> `3.0.11`
+* grails `5.3.2 → 6.0.0`
+* gorm `7.3.2` → `8.0.0`
+* groovy `3.0.9` → `3.0.11`
 
 ## 16.4.4 - 2023-08-03
 
@@ -323,7 +513,7 @@ It should be fully compatible with Java 11 and Java 17.
 
 ### 📚 Libraries
 
-* grails `5.2.1 -> 5.3.2`
+* grails `5.2.1 → 5.3.2`
 
 ## 15.0.0 - 2022-12-5
 
@@ -413,7 +603,7 @@ Version 15 includes changes to support more flexible logging of structured data:
 
 ### 📚 Libraries
 
-* groovy `3.0.11 -> 3.0.9`
+* groovy `3.0.11 → 3.0.9`
 
 ## 14.1.0 - 2022-07-29
 
@@ -436,12 +626,12 @@ file to fix logback on a version that remains compatible with Hoist's Groovy-bas
 
 ### 📚 Libraries
 
-* grails `5.1.1 -> 5.2.1`
-* groovy `3.0.9 -> 3.0.11`
-* gorm `7.1.2 -> 7.3.2`
-* hibernate `5.6.3 -> 5.6.10`
-* org.grails.plugins:hibernate `7.2.0 -> 7.3.0`
-* httpclient `5.1.2` -> `5.1.3`
+* grails `5.1.1 → 5.2.1`
+* groovy `3.0.9 → 3.0.11`
+* gorm `7.1.2 → 7.3.2`
+* hibernate `5.6.3 → 5.6.10`
+* org.grails.plugins:hibernate `7.2.0 → 7.3.0`
+* httpclient `5.1.2` → `5.1.3`
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v14.0.0..v14.1.0)
 
@@ -542,13 +732,13 @@ for the application-level changes to core configuration files and dependencies.
 
 * This release upgrades the major version of grails from 3.3.9 to 5.1. This major release includes
   the following upgrades of related libraries:
-    * spring boot `1.x -> 2.6`
-    * groovy `2.4 -> 3.0`
-    * gradle `4.10 -> 7.3`
-    * gorm `6.1 -> 7.1`
-    * hibernate `5.1 -> 5.6`
-    * org.grails.plugins:mail `2.0 -> 3.0`
-    * apache poi  `3.1` -> `4.1`
+    * spring boot `1.x → 2.6`
+    * groovy `2.4 → 3.0`
+    * gradle `4.10 → 7.3`
+    * gorm `6.1 → 7.1`
+    * hibernate `5.1 → 5.6`
+    * org.grails.plugins:mail `2.0 → 3.0`
+    * apache poi  `3.1` → `4.1`
 * Default application configuration is now better bundled within hoist-core. See new
   classes `ApplicationConfig`, `LogbackConfig`, and `RuntimeConfig`. Please consult the grails docs
   as well as the Toolbox update linked above for more information on required changes to config and
@@ -558,7 +748,7 @@ for the application-level changes to core configuration files and dependencies.
   may require additional tools such as JRebel. See the grails upgrade guide for more info.
 * Applications will be required to add the `@Transactional` or `@ReadOnly` annotations to service
   and controller methods that update data or read data from Hibernate/GORM.
-* HttpClient has been upgraded from `4.5 -> 5.1`. Package names have changed, and applications using
+* HttpClient has been upgraded from `4.5 → 5.1`. Package names have changed, and applications using
   this API (e.g. with `JSONClient`) will need to update their imports statements to reflect the new
   locations @ `org.apache.hc.client5.http` and `org.apache.hc.core5.http`. See Toolbox for examples.
 * WebSocket Support has been simplified. To enable WebSockets, simply set the application config
@@ -806,7 +996,7 @@ for the application-level changes to core configuration files and dependencies.
 
 ### 📚 Libraries
 
-* org.apache.httpcomponents:httpclient `4.5.6 -> 4.5.13`
+* org.apache.httpcomponents:httpclient `4.5.6 → 4.5.13`
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v8.7.0...v8.7.1)
 
@@ -1278,9 +1468,9 @@ wide variety of enterprise software projects. For any questions regarding this c
 
 ### 📚 Libraries
 
-* Grails `3.3.8 -> 3.3.9`
-* GORM `6.1.10 -> 6.1.11`
-* Apache HttpClient `4.5.3 -> 4.5.6`
+* Grails `3.3.8 → 3.3.9`
+* GORM `6.1.10 → 6.1.11`
+* Apache HttpClient `4.5.3 → 4.5.6`
 
 [Commit Log](https://github.com/xh/hoist-core/compare/v5.3.0...v5.3.1)
 
@@ -1348,7 +1538,7 @@ enterprise plugin and not require individual app changes.)
   new required `RoleService` dynamically when asked.
 * Boilerplate around auth whitelists and resources has been better consolidated into the plugin,
   helping to clean up some repeated application-level `AuthenticationService` code.
-* Hoist implementation endpoints have moved from `/hoistImpl/ -> /xh/` for brevity / clarity.
+* Hoist implementation endpoints have moved from `/hoistImpl/ → /xh/` for brevity / clarity.
   Client-side plugins will be updated to use this new path. The implementation APIs used to
   login/logout and confirm auth / roles have changed, but again are handled by Hoist client plugin
   updates and do not require application-level changes.
@@ -1386,7 +1576,7 @@ enterprise plugin and not require individual app changes.)
 
 ### 📚 Libraries
 
-* Grails `3.3.5 -> 3.3.8`
+* Grails `3.3.5 → 3.3.8`
 
 [Commit Log](https://github.com/xh/hoist-core/compare/release-4.0.0...release-4.1.0)
 
@@ -1496,9 +1686,9 @@ ALTER TABLE xh_client_error
 * Updates of following libraries:
 
 ```
-grailsVersion=3.3.1 -> 3.3.5
-grailsAsyncVersion=3.3.1 -> 3.3.2
-gormVersion=6.1.7.RELEASE -> 6.1.9.RELEASE
+grailsVersion=3.3.1 → 3.3.5
+grailsAsyncVersion=3.3.1 → 3.3.2
+gormVersion=6.1.7.RELEASE → 6.1.9.RELEASE
 ```
 
 * Note Grails update fixes support for the pathJar which helps fix long class path issues on
@@ -1652,7 +1842,7 @@ exposing them to the application as a map.
 
 ------------------------------------------
 
-Copyright © 2023 Extremely Heavy Industries Inc. - all rights reserved
+Copyright © 2024 Extremely Heavy Industries Inc. - all rights reserved
 
 ------------------------------------------
 
