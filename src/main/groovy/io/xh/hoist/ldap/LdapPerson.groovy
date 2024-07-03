@@ -1,9 +1,7 @@
 package io.xh.hoist.ldap
 
-import groovy.transform.CompileStatic
 import org.apache.directory.api.ldap.model.entry.Attribute
 
-@CompileStatic
 class LdapPerson extends LdapObject {
 
     /** First name of the person */
