@@ -5,7 +5,7 @@
 ### 🎁 New Features
 
 * Added support for tracking Correlation ID's in Activity and Client Error logs.
-  Requires `hoist-react >= TBD`.
+  Requires `hoist-react >= 66.0.0`.
 
 ### ⚙️ Technical
 
