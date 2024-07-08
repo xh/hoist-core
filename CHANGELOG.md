@@ -11,6 +11,9 @@
 
 * Remove obsolete, non-functioning GSP support from EmailService.
 
+### 🐞 Bug Fixes
+* Fix to regression with LdapObject where it was not fully populating all of its keys/properties.
+
 ## 20.2.0 - 2024-06-26
 
 ### ⚙️ Technical
