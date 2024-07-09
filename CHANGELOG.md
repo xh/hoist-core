@@ -1,6 +1,6 @@
 # Changelog
 
-## 21.0-SNAPSHOT - unreleased
+## 20.2.1 - 2024-07-09
 
 ### ⚙️ Technical
 
