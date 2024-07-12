@@ -2,6 +2,9 @@
 
 ## 21.0-SNAPSHOT - unreleased
 
+### 🐞 Bug Fixes
+* Fix a regression to the configuration of Hazelcast distributed objects and hibernate caches.
+
 ## 20.2.1 - 2024-07-09
 
 ### ⚙️ Technical
