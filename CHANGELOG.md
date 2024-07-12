@@ -94,6 +94,11 @@ Please contact XH to review your app's readiness for multi-instance operation!
         ALTER TABLE `xh_track_log` ADD COLUMN `instance` VARCHAR(50) NULL;
         ALTER TABLE `xh_monitor` ADD COLUMN `primary_only` BIT NOT NULL DEFAULT 0;
     ```
+
+    On MSSQL, the last column can be added with:
+    ```sql
+        ALTER TABLE xh_monitor ADD COLUMN primary_only BIT DEFAULT 0 NOT NULL;
+    ```
 * Apps must provide a cluster configuration class with the name `ClusterConfig.groovy`.
     * See Toolbox for an example.
     * Note that for some XH clients this will be already provided by their internal Hoist plugin.
