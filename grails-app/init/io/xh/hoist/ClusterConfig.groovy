@@ -163,13 +163,26 @@ class ClusterConfig {
     private void createHibernateConfigs(Config config) {
         grailsApplication.domainClasses.each { GrailsClass gc ->
             Closure customizer = gc.getPropertyValue('cache') as Closure
-            def baseConfig = config.getCacheConfig(gc.fullName)
             if (customizer) {
+                def baseConfig = config.getCacheConfig(gc.fullName)
                 // workaround - hz does not clone evictionConfig
                 baseConfig.evictionConfig = new EvictionConfig(baseConfig.evictionConfig)
                 customizer.delegate = baseConfig
                 customizer.resolveStrategy = Closure.DELEGATE_FIRST
                 customizer(baseConfig)
+            }
+
+            Map hasMany = (gc.getPropertyValue('hasMany') ?: [:]) as Map
+            hasMany.keySet().each {
+                def childCustomizer = gc.getPropertyValue("${it}CollectionCache") as Closure
+                if (childCustomizer) {
+                    def childConfig = config.getCacheConfig("${gc.fullName}.${it}")
+                    // workaround - hz does not clone evictionConfig
+                    childConfig.evictionConfig = new EvictionConfig(childConfig.evictionConfig)
+                    childCustomizer.delegate = childConfig
+                    childCustomizer.resolveStrategy = Closure.DELEGATE_FIRST
+                    childCustomizer(childConfig)
+                }
             }
         }
     }

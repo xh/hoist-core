@@ -33,6 +33,14 @@ class Role implements JSONFormat {
         lastUpdatedBy maxSize: 50
     }
 
+    static cache = {
+        evictionConfig.size = 5000
+    }
+
+    static membersCollectionCache = {
+        evictionConfig.size = 5000
+    }
+
     static beforeInsert = {
         if (Role.findByNameIlike(name)) {
             throw new RoutineRuntimeException('Role Name must be case-insensitive unique.')
