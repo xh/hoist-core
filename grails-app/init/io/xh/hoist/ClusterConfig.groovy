@@ -168,7 +168,7 @@ class ClusterConfig {
                 // workaround - hz does not clone evictionConfig
                 baseConfig.evictionConfig = new EvictionConfig(baseConfig.evictionConfig)
                 customizer.delegate = baseConfig
-                customizer.resolveStrategy = DELEGATE_FIRST
+                customizer.resolveStrategy = Closure.DELEGATE_FIRST
                 customizer(baseConfig)
             }
         }
@@ -198,7 +198,7 @@ class ClusterConfig {
                         throw new RuntimeException('Unable to configure Cluster object')
                 }
                 customizer.delegate = objConfig
-                customizer.resolveStrategy = DELEGATE_FIRST
+                customizer.resolveStrategy = Closure.DELEGATE_FIRST
                 customizer(objConfig)
             }
         }
