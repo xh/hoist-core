@@ -34,11 +34,8 @@ class Role implements JSONFormat {
     }
 
     // We don't expect a huge number of roles.
-    // Tighten as examples of custom cache and collection query size
+    // Tighten as example of a custom cache config being applied to a collection cache (Role.members)
     static cache = {
-        evictionConfig.size = 1000
-    }
-    static membersCollectionCache = {
         evictionConfig.size = 1000
     }
 
