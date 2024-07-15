@@ -33,12 +33,13 @@ class Role implements JSONFormat {
         lastUpdatedBy maxSize: 50
     }
 
+    // We don't expect a huge number of roles.
+    // Tighten as examples of custom cache and collection query size
     static cache = {
-        evictionConfig.size = 5000
+        evictionConfig.size = 1000
     }
-
     static membersCollectionCache = {
-        evictionConfig.size = 5000
+        evictionConfig.size = 1000
     }
 
     static beforeInsert = {

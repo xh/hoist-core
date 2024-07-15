@@ -153,7 +153,7 @@ class ClusterConfig {
 
         config.getCacheConfig('default-query-results-region').with {
             evictionConfig = new EvictionConfig(evictionConfig) // workaround - hz does not clone
-            evictionConfig.size = 1000
+            evictionConfig.size = 10000
         }
     }
 
@@ -162,9 +162,15 @@ class ClusterConfig {
     //------------------------
     private void createHibernateConfigs(Config config) {
         grailsApplication.domainClasses.each { GrailsClass gc ->
+
+            // 1) Main 2nd-level entity cache
+            // Pre-access cache for all domain classes to ensure we capture the common 'default'
+            // (Not clear why this is needed -- but hibernate would otherwise create these differently)
+            def baseConfig = config.getCacheConfig(gc.fullName)
+
+            // apply any app customization
             Closure customizer = gc.getPropertyValue('cache') as Closure
             if (customizer) {
-                def baseConfig = config.getCacheConfig(gc.fullName)
                 // workaround - hz does not clone evictionConfig
                 baseConfig.evictionConfig = new EvictionConfig(baseConfig.evictionConfig)
                 customizer.delegate = baseConfig
@@ -172,11 +178,15 @@ class ClusterConfig {
                 customizer(baseConfig)
             }
 
+            // 2) Collection caches
             Map hasMany = (gc.getPropertyValue('hasMany') ?: [:]) as Map
             hasMany.keySet().each {
+                // Pre-access cache for all to ensure common default (see above)
+                def childConfig = config.getCacheConfig("${gc.fullName}.${it}")
+
+                // apply any app customizations
                 def childCustomizer = gc.getPropertyValue("${it}CollectionCache") as Closure
                 if (childCustomizer) {
-                    def childConfig = config.getCacheConfig("${gc.fullName}.${it}")
                     // workaround - hz does not clone evictionConfig
                     childConfig.evictionConfig = new EvictionConfig(childConfig.evictionConfig)
                     childCustomizer.delegate = childConfig
