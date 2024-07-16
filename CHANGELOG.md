@@ -3,22 +3,24 @@
 ## 21.0-SNAPSHOT - unreleased
 
 ### ⚙️ Technical
+
 * Improvements to the ability to configure Hibernate Caches for 2nd-level and connection caches.
 
 ## 20.2.1 - 2024-07-09
 
 ### ⚙️ Technical
 
-* Remove obsolete, non-functioning GSP support from EmailService.
+* Remove obsolete, non-functioning GSP support from `EmailService`.
 
 ### 🐞 Bug Fixes
-* Fix to regression with LdapObject where it was not fully populating all of its keys/properties.
+
+* Fix to regression with `LdapObject` subclasses not fully populating all keys/properties.
 
 ## 20.2.0 - 2024-06-26
 
 ### ⚙️ Technical
 
-* Common LDAP attributes `cn`, `displayname`, `mail`, and `name` moved to LdapObject class.
+* Common LDAP attributes `cn`, `displayname`, `mail`, and `name` moved to `LdapObject` class.
 * Websockets are now enabled by default. To disable, add `hoist.enableWebSockets = false` to your
   project's `application.groovy` file (note the lowercase "a" to ensure you have the correct one).
 
@@ -98,7 +100,7 @@ Please contact XH to review your app's readiness for multi-instance operation!
         ALTER TABLE `xh_monitor` ADD COLUMN `primary_only` BIT NOT NULL DEFAULT 0;
     ```
 
-    On MSSQL, the last column can be added with:
+  On MSSQL, the last column can be added with:
     ```sql
         ALTER TABLE xh_monitor ADD COLUMN primary_only BIT DEFAULT 0 NOT NULL;
     ```
