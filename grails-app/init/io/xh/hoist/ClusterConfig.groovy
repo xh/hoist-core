@@ -119,7 +119,17 @@ class ClusterConfig {
     }
 
     /**
-     * Override this to create additional default configs in the application.
+     * Override this to create additional default Hazelcast configs in the application.
+     *
+     * Note that Hoist also introduces two properties for declarative configuration:
+     *
+     * - a static 'cache' property on Grails domain objects to customize associated
+     * Hibernate caches.
+     * - a static 'clusterConfigs' property on Grails services to customize any Hazelcast
+     * Distributed Objects associated with the service e.g. Hoist caches
+     *
+     * See toolbox's `Phase` object and Hoist Core's `ClientErrorService` for examples of these
+     * customizations.
      */
     protected void createDefaultConfigs(Config config) {
         config.getMapConfig('default').with {
@@ -162,21 +172,21 @@ class ClusterConfig {
     //------------------------
     private void createHibernateConfigs(Config config) {
         grailsApplication.domainClasses.each { GrailsClass gc ->
-            // Pre-access cache for all domain classes to ensure we capture the common 'default'
-            // (Not clear why this is needed -- but hibernate would otherwise create these differently)
+            // Pre-access cache config for all domain classes to ensure we capture the common 'default'
+            // (not clear why this is needed -- but hibernate would otherwise create these differently)
             def configs = [
                 // 1) Main 2nd-level entity cache
                 config.getCacheConfig(gc.fullName),
-                // 2) Collection caches
+                // 2) any related collection caches
                 config.getCacheConfig(gc.fullName + '.*')
             ]
 
-            // apply any app customization
+            // Apply any app customization specified by new static prop introduced by Hoist
+            // note we apply the same for both the entity cache [1] and any collection caches [2].
             Closure customizer = gc.getPropertyValue('cache') as Closure
             if (customizer) {
                 configs.each { cfg ->
-                    // workaround - hz does not clone evictionConfig
-                    cfg.evictionConfig = new EvictionConfig(cfg.evictionConfig)
+                    cfg.evictionConfig = new EvictionConfig(cfg.evictionConfig) // workaround - hz does not clone
                     customizer.delegate = cfg
                     customizer.resolveStrategy = Closure.DELEGATE_FIRST
                     customizer(cfg)
@@ -187,6 +197,7 @@ class ClusterConfig {
 
     private void createServiceConfigs(Config config) {
         grailsApplication.serviceClasses.each { GrailsClass gc ->
+            // Apply any app customization specified by new static prop introduced by Hoist
             Map objs = gc.getPropertyValue('clusterConfigs')
             if (!objs) return
             objs.forEach {String key, List value ->

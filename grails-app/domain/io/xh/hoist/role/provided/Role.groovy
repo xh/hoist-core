@@ -33,12 +33,6 @@ class Role implements JSONFormat {
         lastUpdatedBy maxSize: 50
     }
 
-    // We don't expect a huge number of roles.
-    // Tighten as example of a custom cache config being applied to a collection cache (Role.members)
-    static cache = {
-        evictionConfig.size = 1000
-    }
-
     static beforeInsert = {
         if (Role.findByNameIlike(name)) {
             throw new RoutineRuntimeException('Role Name must be case-insensitive unique.')
