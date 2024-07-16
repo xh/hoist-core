@@ -1,22 +1,16 @@
 package io.xh.hoist
 
-import com.hazelcast.config.CacheSimpleConfig
 import com.hazelcast.config.Config
 import com.hazelcast.config.EvictionConfig
 import com.hazelcast.config.EvictionPolicy
 import com.hazelcast.config.InMemoryFormat
-import com.hazelcast.config.MapConfig
-import com.hazelcast.config.ReplicatedMapConfig
-import com.hazelcast.config.SetConfig
-import com.hazelcast.config.TopicConfig
+import com.hazelcast.config.NearCacheConfig
 import com.hazelcast.map.IMap
 import com.hazelcast.replicatedmap.ReplicatedMap
 import com.hazelcast.topic.ITopic
 import com.hazelcast.collection.ISet
 import com.hazelcast.config.MaxSizePolicy
-import com.hazelcast.config.NearCacheConfig
 import grails.core.GrailsClass
-import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.kryo.KryoSupport
 
 import static io.xh.hoist.util.InstanceConfigUtils.appEnvironment
@@ -131,8 +125,9 @@ class ClusterConfig {
         config.getMapConfig('default').with {
             statisticsEnabled = true
             inMemoryFormat = InMemoryFormat.OBJECT
-            /** Setting serializeKeys=true due to bug: https://github.com/hazelcast/hazelcast/issues/19714 */
-            nearCacheConfig = new NearCacheConfig().setInMemoryFormat(InMemoryFormat.OBJECT).setSerializeKeys(true)
+            nearCacheConfig = new NearCacheConfig()
+            nearCacheConfig.inMemoryFormat = InMemoryFormat.OBJECT
+            nearCacheConfig.serializeKeys = true // See https://github.com/hazelcast/hazelcast/issues/19714
         }
         config.getReplicatedMapConfig('default').with {
             statisticsEnabled = true
@@ -152,11 +147,13 @@ class ClusterConfig {
         }
 
         config.getCacheConfig('default-update-timestamps-region').with {
-            evictionConfig = new EvictionConfig(evictionConfig).setSize(1000)
+            evictionConfig = new EvictionConfig(evictionConfig) // workaround - hz does not clone
+            evictionConfig.size = 1000
         }
 
         config.getCacheConfig('default-query-results-region').with {
-            evictionConfig = new EvictionConfig(evictionConfig).setSize(1000)
+            evictionConfig = new EvictionConfig(evictionConfig) // workaround - hz does not clone
+            evictionConfig.size = 10000
         }
     }
 
@@ -165,17 +162,25 @@ class ClusterConfig {
     //------------------------
     private void createHibernateConfigs(Config config) {
         grailsApplication.domainClasses.each { GrailsClass gc ->
+            // Pre-access cache for all domain classes to ensure we capture the common 'default'
+            // (Not clear why this is needed -- but hibernate would otherwise create these differently)
+            def configs = [
+                // 1) Main 2nd-level entity cache
+                config.getCacheConfig(gc.fullName),
+                // 2) Collection caches
+                config.getCacheConfig(gc.fullName + '.*')
+            ]
+
+            // apply any app customization
             Closure customizer = gc.getPropertyValue('cache') as Closure
             if (customizer) {
-                // IMPORTANT -- We do an explicit clone, because wild card matching in hazelcast will
-                // actually just return the *shared* config (?!), and never want to let app edit that.
-                // Also need to explicitly clone the evictionConfig due to a probable Hz bug.
-                def baseConfig = config.findCacheConfig(gc.fullName),
-                    cacheConfig = new CacheSimpleConfig(baseConfig)
-                cacheConfig.evictionConfig = new EvictionConfig(baseConfig.evictionConfig)
-                customizer.delegate = cacheConfig
-                customizer.resolveStrategy = Closure.DELEGATE_FIRST
-                customizer(cacheConfig)
+                configs.each { cfg ->
+                    // workaround - hz does not clone evictionConfig
+                    cfg.evictionConfig = new EvictionConfig(cfg.evictionConfig)
+                    customizer.delegate = cfg
+                    customizer.resolveStrategy = Closure.DELEGATE_FIRST
+                    customizer(cfg)
+                }
             }
         }
     }
@@ -187,20 +192,18 @@ class ClusterConfig {
             objs.forEach {String key, List value ->
                 def customizer = value[1] as Closure,
                     objConfig
-                // IMPORTANT -- We do an explicit clone, because wild card matching in hazelcast will
-                // actually just return the *shared* config (?!), and never want to let app edit that.
                 switch (value[0]) {
                     case IMap:
-                        objConfig = new MapConfig(config.findMapConfig(gc.fullName + '_' + key))
+                        objConfig = config.getMapConfig(gc.fullName + '_' + key)
                         break
                     case ReplicatedMap:
-                        objConfig = new ReplicatedMapConfig(config.findReplicatedMapConfig(gc.fullName + '_' + key))
+                        objConfig = config.getReplicatedMapConfig(gc.fullName + '_' + key)
                         break
                     case ISet:
-                        objConfig = new SetConfig(config.findSetConfig(gc.fullName + '_' + key))
+                        objConfig = config.getSetConfig(gc.fullName + '_' + key)
                         break
                     case ITopic:
-                        objConfig = new TopicConfig(config.findTopicConfig(key))
+                        objConfig = config.getTopicConfig(key)
                         break
                     default:
                         throw new RuntimeException('Unable to configure Cluster object')
