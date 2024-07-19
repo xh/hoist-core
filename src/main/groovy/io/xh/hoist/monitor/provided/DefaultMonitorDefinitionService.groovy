@@ -116,7 +116,7 @@ class DefaultMonitorDefinitionService extends BaseService {
         def startTime = currentTimeMillis()
         Sql sql = new Sql(dataSource)
         try {
-            sql.rows("SELECT * FROM xh_monitor WHERE code = 'xhDbConnectionMonitor' LIMIT 1")
+            sql.rows("SELECT * FROM xh_monitor WHERE code = 'xhDbConnectionMonitor'")
         } finally {
             sql.close()
         }
