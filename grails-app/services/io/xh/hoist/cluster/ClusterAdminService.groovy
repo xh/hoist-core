@@ -11,6 +11,9 @@ import com.hazelcast.topic.ITopic
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
 
+import javax.cache.expiry.ExpiryPolicy
+import javax.cache.expiry.Duration
+
 import static io.xh.hoist.util.Utils.appContext
 import static io.xh.hoist.util.Utils.getExceptionHandler
 
@@ -142,6 +145,7 @@ class ClusterAdminService extends BaseService {
                 ]
             case CacheProxy:
                 def evictionConfig = obj.cacheConfig.evictionConfig,
+                    expiryPolicy = obj.cacheConfig.expiryPolicyFactory.create(),
                     stats = obj.localCacheStatistics
                 return [
                     name              : obj.getName(),
@@ -156,7 +160,8 @@ class ClusterAdminService extends BaseService {
                     config            : [
                         size          : evictionConfig.size,
                         maxSizePolicy : evictionConfig.maxSizePolicy,
-                        evictionPolicy: evictionConfig.evictionPolicy
+                        evictionPolicy: evictionConfig.evictionPolicy,
+                        expiryPolicy  : formatExpiryPolicy(expiryPolicy)
                     ]
                 ]
             default:
@@ -180,4 +185,20 @@ class ClusterAdminService extends BaseService {
             ratio              : stats.ratio.round(2)
         ]
     }
+
+    private Map formatExpiryPolicy(ExpiryPolicy policy) {
+        def ret = [:]
+        if (policy.expiryForCreation) ret.creation = formatDuration(policy.expiryForCreation)
+        if (policy.expiryForAccess) ret.access = formatDuration(policy.expiryForAccess)
+        if (policy.expiryForUpdate) ret.update = formatDuration(policy.expiryForUpdate)
+        return ret
+    }
+
+
+    private String formatDuration(Duration duration) {
+        if (duration.isZero()) return 0
+        if (duration.isEternal()) return 'eternal'
+        return duration.timeUnit.toSeconds(duration.durationAmount) + 's'
+    }
+
 }

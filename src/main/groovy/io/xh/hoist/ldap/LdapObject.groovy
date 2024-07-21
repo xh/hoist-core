@@ -1,6 +1,5 @@
 package io.xh.hoist.ldap
 
-import groovy.transform.CompileStatic
 import org.apache.directory.api.ldap.model.entry.Attribute
 
 /**
@@ -12,7 +11,6 @@ import org.apache.directory.api.ldap.model.entry.Attribute
  * Available attributes can be found here:
  * https://learn.microsoft.com/en-us/archive/technet-wiki/12037.active-directory-get-aduser-default-and-extended-properties
  */
-@CompileStatic
 class LdapObject {
 
     String cn

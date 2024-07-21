@@ -3,14 +3,25 @@
 ## 21.0-SNAPSHOT - unreleased
 
 ### ⚙️ Technical
+*
+* Improvements to the ability to configure Hibernate 2nd-level caches. See `ClusterConfig` for more
+  information.
 
-* Remove obsolete, non-functioning GSP support from EmailService.
+## 20.2.1 - 2024-07-09
+
+### ⚙️ Technical
+
+* Remove obsolete, non-functioning GSP support from `EmailService`.
+
+### 🐞 Bug Fixes
+
+* Fix to regression with `LdapObject` subclasses not fully populating all keys/properties.
 
 ## 20.2.0 - 2024-06-26
 
 ### ⚙️ Technical
 
-* Common LDAP attributes `cn`, `displayname`, `mail`, and `name` moved to LdapObject class.
+* Common LDAP attributes `cn`, `displayname`, `mail`, and `name` moved to `LdapObject` class.
 * Websockets are now enabled by default. To disable, add `hoist.enableWebSockets = false` to your
   project's `application.groovy` file (note the lowercase "a" to ensure you have the correct one).
 
@@ -88,6 +99,11 @@ Please contact XH to review your app's readiness for multi-instance operation!
         ALTER TABLE `xh_client_error` ADD COLUMN `instance` VARCHAR(50) NULL;
         ALTER TABLE `xh_track_log` ADD COLUMN `instance` VARCHAR(50) NULL;
         ALTER TABLE `xh_monitor` ADD COLUMN `primary_only` BIT NOT NULL DEFAULT 0;
+    ```
+
+  On MSSQL, the last column can be added with:
+    ```sql
+        ALTER TABLE xh_monitor ADD COLUMN primary_only BIT DEFAULT 0 NOT NULL;
     ```
 * Apps must provide a cluster configuration class with the name `ClusterConfig.groovy`.
     * See Toolbox for an example.
