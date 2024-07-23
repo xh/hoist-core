@@ -106,6 +106,27 @@ class DefaultRoleUpdateService extends BaseService {
         }
     }
 
+    @Transactional
+    List<Role> bulkCategoryUpdate(ArrayList<String> roleNames, String category) {
+        ensureEnabled()
+        List<Role> updatedRoles = new ArrayList<Role>()
+        roleNames.each { roleName ->
+            Role role = Role.get(roleName as String)
+            role.category = category
+            role.save(flush:true)
+            updatedRoles.push(role)
+        }
+        trackService.track(
+            msg: "Updated roles: '${roleNames}'",
+            category: 'Audit',
+            data: [
+                roles                 : roleNames,
+                category              : category
+            ]
+        )
+        defaultRoleService.refreshRoleAssignments()
+        return updatedRoles
+    }
 
     //------------------------
     // Implementation
