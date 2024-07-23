@@ -1,6 +1,10 @@
 # Changelog
 
-## 21.0-SNAPSHOT - unreleased
+## 20.3.1 - 2024-07-23
+
+### 🐞 Bug Fixes
+
+* Simplified the `xhDbConnectionMonitor` query to work with more SQL dialects.
 
 ## 20.3.0 - 2024-07-16
 
