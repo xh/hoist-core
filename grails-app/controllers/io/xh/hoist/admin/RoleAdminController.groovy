@@ -56,7 +56,7 @@ class RoleAdminController extends BaseController {
     def bulkCategoryUpdate() {
         ensureHoistRoleManager()
         Map body = parseRequestJSON()
-        List<Role> updatedRoles = defaultRoleUpdateService.bulkCategoryUpdate(body.roleNames, body.category)
+        List<Role> updatedRoles = defaultRoleUpdateService.bulkCategoryUpdate(body.roles, body.category)
         renderJSON(data: updatedRoles)
     }
 
