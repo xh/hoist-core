@@ -56,59 +56,55 @@ class EmailService extends BaseService {
             throwError = args.throwError
 
         try {
+            //  1) Pre-process and normalize inputs and configs
             def override = parseMailConfig('xhEmailOverride'),
-                filter = parseMailConfig('xhEmailFilter')
+                filter = parseMailConfig('xhEmailFilter'),
+                toSpec = filterAddresses(formatAddresses(args.to), filter),
+                ccSpec = filterAddresses(formatAddresses(args.cc), filter),
+                toUse = override ? override :  toSpec,
+                ccUse = override ? [] : ccSpec,
+                fromUse = args.from ? formatAddresses(args.from)[0] : parseMailConfig('xhEmailDefaultSender')[0],
+                subjectUse = args.subject ?: '',
+                attachments = parseAttachments(args.attachments)
 
-            def originalTo = args.to,
-                sender = args.from ? formatAddresses(args.from)[0] : parseMailConfig('xhEmailDefaultSender')[0],
-                doLog = args.containsKey('doLog') ? args.doLog : true,
-                logIdentifier = args.logIdentifier ?: args.subject
+            logMsg = createLogMsg(args, override)
 
-            logMsg = "$sender -> ${originalTo.take(100)} | ${logIdentifier.take(70)}"
-
+            // 2) Early outs
             if (Utils.isLocalDevelopment && !override && !filter) {
                 logInfo(
-                        'No emails sent',
-                        'emailing from local development requires an active xhEmailOverride or xhEmailFilter config',
-                        logMsg
+                    'No emails sent',
+                    'emailing from local development requires an active xhEmailOverride or xhEmailFilter config',
+                    logMsg
                 )
                 return
             }
-
-            def toRecipients = filterAddresses(formatAddresses(args.to)),
-                ccRecipients = args.cc ? filterAddresses(formatAddresses(args.cc)) : null,
-                env = Utils.appEnvironment.displayName.toUpperCase(),
-                envString = Utils.isProduction ? '' : " [$env]",
-                subj = args.subject + envString,
-                isAsync = args.async as boolean,
-                isMultipart = args.attachments as boolean,
-                attachments = []
-
-            if (isMultipart) {
-                attachments = args.attachments instanceof Map ? [args.attachments] : args.attachments
-            }
-
-            if (!toRecipients) {
+            if (!toUse || !toSpec) {
                 logDebug('No emails sent', 'no valid recipients found after filtering', logMsg)
                 return
             }
 
+            // Enhance subject with context
+            def devContext = []
+            if (!Utils.isProduction) {
+                devContext << Utils.appEnvironment.displayName.toUpperCase();
+            }
             if (override) {
-                toRecipients = override
-                ccRecipients = null
-                subj += " (for $originalTo)"
-                logMsg += " | redirected to $toRecipients"
+                devContext << toSpec.size() > 1 ? "for ${toSpec.size()} receipients" : "for ${toSpec.first()}"
+            }
+            if (devContext) {
+                subjectUse += " (${devContext.join(', ')})"
             }
 
+
             sendMail {
-                multipart isMultipart
-                async isAsync
-                from sender
-                to toRecipients.toArray()
-                if (ccRecipients) {
-                    cc ccRecipients.toArray()
+                multipart (args.attachments as boolean)
+                async (args.async as boolean)
+                from fromUse
+                to toUse.toArray()
+                if (ccUse) {
+                    cc ccUse.toArray()
                 }
-                subject subj.take(255)
+                subject subjectUse.take(255)
 
                 if (args.containsKey('html')) {
                     html args.html as String
@@ -125,10 +121,10 @@ class EmailService extends BaseService {
             emailsSent++
             lastSentDate = new Date()
 
-            if (doLog) {
-                def recipCount = toRecipients.size() + (ccRecipients?.size() ?: 0)
-                logInfo('Sent mail', "$recipCount actual recipients", logMsg)
+            if (args.doLog) {
+                logInfo('Sent mail', "${toUse.size() + ccUse.size()} actual recipients", logMsg)
             }
+
         } catch (Exception e) {
             logError('Error sending email', logMsg, e)
             if (throwError) throw e
@@ -169,18 +165,14 @@ class EmailService extends BaseService {
     //------------------------
     // Implementation
     //------------------------
-    private List<String> filterAddresses(Collection<String> rawEmails) {
-        def filter = parseMailConfig('xhEmailFilter')
-        if (filter) {
-            rawEmails = filter.intersect(rawEmails)
-            if (!rawEmails) return null
-        }
-        return rawEmails
+    private List<String> filterAddresses(Collection<String> rawEmails, List<String> filter) {
+        filter ? filter.intersect(rawEmails) : rawEmails
     }
 
     private List<String> formatAddresses(Object o){
         def domain = configService.getString('xhEmailDefaultDomain')
         if (o instanceof String) o = o.split(',')
+        if (!o) return []
         return o.collect {String email ->
             email = email.trim()
             domain = domain.contains('@') ? domain : '@' + domain
@@ -188,5 +180,20 @@ class EmailService extends BaseService {
         }
     }
 
+    private List parseAttachments(Object attachments) {
+        attachments ? (attachments instanceof Map ? [attachments] : attachments) : []
+    }
+
+    private List<String> createLogMsg(Map args, List<String> override) {
+        String logIdentifier = args.logIdentifier ?: args.subject
+        def ret = [
+            _id : logIdentifier?.take(70),
+            from: args.from,
+            to: args.to?.toString().take(255)
+        ]
+        if (override) ret << [redirected: override]
+
+        return ret
+    }
 }
 
