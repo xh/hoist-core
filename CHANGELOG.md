@@ -2,6 +2,10 @@
 
 ## 21.0-SNAPSHOT - unreleased
 
+### 🐞 Bug Fixes
+* Fix to sporadic serialization errors for failed MonitorResults
+
+
 ## 20.3.1 - 2024-07-23
 
 ### 🐞 Bug Fixes
