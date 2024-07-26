@@ -3,8 +3,10 @@
 ## 21.0-SNAPSHOT - unreleased
 
 ### 🐞 Bug Fixes
-* Fix to sporadic serialization errors for failed MonitorResults
 
+* Fixed sporadic serialization errors on status monitor results with an attached exception.
+* Added configurable table name to `xhDbConnectionMonitor` status check to support edge case where
+  XH tables are in a custom schema.
 
 ## 20.3.1 - 2024-07-23
 

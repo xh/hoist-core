@@ -116,7 +116,9 @@ class DefaultMonitorDefinitionService extends BaseService {
         def startTime = currentTimeMillis()
         Sql sql = new Sql(dataSource)
         try {
-            sql.rows("SELECT * FROM xh_monitor WHERE code = 'xhDbConnectionMonitor'")
+            // Support configurable table name for edge case where XH tables are in a custom schema.
+            def tableName = result.params.tableName ?: 'xh_monitor'
+            sql.rows("SELECT * FROM ${Sql.expand(tableName)} WHERE code = 'xhDbConnectionMonitor'")
         } finally {
             sql.close()
         }
