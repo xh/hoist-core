@@ -8,6 +8,10 @@
 * Added configurable table name to `xhDbConnectionMonitor` status check to support edge case where
   XH tables are in a custom schema.
 
+### ⚙️ Technical
+
+* Add `LdapConfig` class to type + document structure of primary `LdapService` soft-config.
+
 ## 20.3.1 - 2024-07-23
 
 ### 🐞 Bug Fixes

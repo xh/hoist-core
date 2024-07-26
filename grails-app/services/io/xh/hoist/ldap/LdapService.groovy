@@ -13,16 +13,9 @@ import static grails.async.Promises.task
  * Service to query a set of LDAP servers for People, Groups, and Group memberships.
  *
  * Requires the following application configs:
- *      - 'xhLdapConfig' with the following options
- *          - enabled - true to enable
- *          - timeoutMs - time to wait for any individual search to resolve.
- *          - cacheExpireSecs - length of time to cache results.  Set to -1 to disable caching.
- *          - servers - list of servers to be queried, each containing:
- *              - host
- *              - baseUserDn
- *              - baseGroupDn
- *     - 'xhLdapUsername' - dn of query user.
- *     - 'xhLdapPassword' - password for user
+ *     - 'xhLdapConfig' - see {@link LdapConfig} for shape / properties
+ *     - 'xhLdapUsername' - dn of query user
+ *     - 'xhLdapPassword' - password for query user
  *
  * This service will cache results, per server, for the configured interval.
  * This service may return partial results if any particular server fails to return results.
@@ -46,9 +39,8 @@ class LdapService extends BaseService {
     }
 
     boolean getEnabled() {
-        config.enabled
+        config.enabled && queryUsername != 'none'
     }
-
 
     LdapPerson lookupUser(String sName) {
         searchOne("(sAMAccountName=$sName) ", LdapPerson, true)
@@ -81,7 +73,7 @@ class LdapService extends BaseService {
      */
     Map<String, List<LdapPerson>> lookupGroupMembers(Set<String> dns, boolean strictMode = false) {
         dns.collectEntries { dn -> [dn, task { lookupGroupMembersInternal(dn, strictMode) }] }
-            .collectEntries { [it.key, it.value.get()]}
+            .collectEntries { [it.key, it.value.get()] }
     }
 
     /**
@@ -127,29 +119,27 @@ class LdapService extends BaseService {
         searchMany("(|(memberOf=$dn) (memberOf:1.2.840.113556.1.4.1941:=$dn))", LdapPerson, strictMode)
     }
 
-    private <T extends LdapObject> List<T> doQuery(Map server, String baseFilter, Class<T> objType, boolean strictMode) {
+    private <T extends LdapObject> List<T> doQuery(LdapServerConfig server, String baseFilter, Class<T> objType, boolean strictMode) {
         if (!enabled) throw new RuntimeException('LdapService is not enabled.')
 
         boolean isPerson = LdapPerson.class.isAssignableFrom(objType)
         String host = server.host,
-            filter = "(&(objectCategory=${isPerson ? 'Person' : 'Group'})$baseFilter)",
-            key = server.toString() + filter
+               filter = "(&(objectCategory=${isPerson ? 'Person' : 'Group'})$baseFilter)",
+               key = server.toString() + filter
 
         List<T> ret = cache.get(key)
         if (ret != null) return ret
 
         withDebug(["Querying LDAP", [host: host, filter: filter]]) {
             try (LdapNetworkConnection conn = new LdapNetworkConnection(host)) {
-                String baseDn = isPerson ? server.baseUserDn : server.baseGroupDn,
-                       username = configService.getString('xhLdapUsername'),
-                       password = configService.getPwd('xhLdapPassword')
+                String baseDn = isPerson ? server.baseUserDn : server.baseGroupDn
                 String[] keys = objType.keys.toArray() as String[]
 
                 conn.timeOut = config.timeoutMs as Long
 
                 boolean didBind = false
                 try {
-                    conn.bind(username, password)
+                    conn.bind(queryUsername, queryUserPwd)
                     didBind = true
                     ret = conn.search(baseDn, filter, SearchScope.SUBTREE, keys)
                         .collect { objType.create(it.attributes as Collection<Attribute>) }
@@ -167,8 +157,16 @@ class LdapService extends BaseService {
         return ret
     }
 
-    private Map getConfig() {
-        configService.getMap('xhLdapConfig')
+    private LdapConfig getConfig() {
+        new LdapConfig(configService.getMap('xhLdapConfig'))
+    }
+
+    private String getQueryUsername() {
+        configService.getString('xhLdapUsername')
+    }
+
+    private String getQueryUserPwd() {
+        configService.getPwd('xhLdapPassword')
     }
 
     private void initCache() {
