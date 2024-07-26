@@ -28,7 +28,7 @@ class MonitorResult implements JSONFormat {
     String message
     Long elapsed
     Date date
-    Exception exception
+    String exception
     Monitor monitor
 
     String getCode() {
@@ -54,7 +54,7 @@ class MonitorResult implements JSONFormat {
             message: message,
             elapsed: elapsed,
             date: date,
-            exception: exception?.class?.name,
+            exception: exception
         ]
     }
 
