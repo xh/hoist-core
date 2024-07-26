@@ -43,9 +43,10 @@ class RoleAdminController extends BaseController {
         renderJSON(data: role)
     }
 
-    def delete(String id) {
+    def delete() {
         ensureHoistRoleManager()
-        defaultRoleUpdateService.delete(id)
+        Map roleSpec = parseRequestJSON()
+        defaultRoleUpdateService.delete(roleSpec.name)
         renderJSON(success: true)
     }
 

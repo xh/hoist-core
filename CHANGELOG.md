@@ -2,11 +2,15 @@
 
 ## 21.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes
+* Requires `hoist-react >= 67.0` to use corresponding role delete bug fix.
+
 ### 🐞 Bug Fixes
 
 * Fixed sporadic serialization errors on status monitor results with an attached exception.
 * Added configurable table name to `xhDbConnectionMonitor` status check to support edge case where
   XH tables are in a custom schema.
+* Fixed bug where a role with a dot in its name could not be deleted.
 
 ## 20.3.1 - 2024-07-23
 
