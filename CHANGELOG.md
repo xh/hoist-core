@@ -119,9 +119,14 @@ Please contact XH to review your app's readiness for multi-instance operation!
     ```sql
         ALTER TABLE xh_monitor ADD COLUMN primary_only BIT DEFAULT 0 NOT NULL;
     ```
-* Apps must provide a cluster configuration class with the name `ClusterConfig.groovy`.
-    * See Toolbox for an example.
-    * Note that for some XH clients this will be already provided by their internal Hoist plugin.
+* Apps can configure their HZ cluster by defining a `ClusterConfig` class:
+    * This should extend `io.xh.hoist.ClusterConfig` and be within your primary application
+      package (`xhAppPackage` in `gradle.properties` - e.g. `io.xh.toolbox.ClusterConfig`).
+    * We recommend placing it under `/grails-app/init/` - see Toolbox for an example.
+    * Note XH clients with enterprise ("mycompany-hoist") plugins may have their own superclass
+      which should be extended instead to provide appropriate defaults for their environment. Note
+      that an app-level class is *required* in this case to pick up those defaults, although it will
+      commonly not require any additional app-level overrides.
 * Apps that intend to run with more than one server *must* enable sticky sessions when routing
   clients to servers. This is critical for the correct operation of authentication and websocket
   communications. Check with XH or your networking team to ensure this is correctly configured.
