@@ -65,9 +65,10 @@ class EmailService extends BaseService {
                 ccUse = override ? [] : ccSpec,
                 fromUse = args.from ? formatAddresses(args.from)[0] : parseMailConfig('xhEmailDefaultSender')[0],
                 subjectUse = args.subject ?: '',
-                attachments = parseAttachments(args.attachments)
+                attachments = parseAttachments(args.attachments),
+                doLog = args.containsKey('doLog') ? args.doLog : true
 
-            logMsg = createLogMsg(args, override)
+            logMsg = createLogMsg(args, fromUse, filter, override)
 
             // 2) Early outs
             if (Utils.isLocalDevelopment && !override && !filter) {
@@ -89,14 +90,13 @@ class EmailService extends BaseService {
                 devContext << Utils.appEnvironment.displayName.toUpperCase();
             }
             if (override) {
-                devContext << toSpec.size() > 1 ? "for ${toSpec.size()} receipients" : "for ${toSpec.first()}"
+                devContext << (toSpec.size() > 1 ? "for ${toSpec.size()} receipients" : "for ${toSpec.first()}")
             }
             if (devContext) {
-                subjectUse += " (${devContext.join(', ')})"
+                subjectUse += " [${devContext.join(', ')}]"
             }
 
-
-            sendMail {
+           sendMail {
                 multipart (args.attachments as boolean)
                 async (args.async as boolean)
                 from fromUse
@@ -121,8 +121,8 @@ class EmailService extends BaseService {
             emailsSent++
             lastSentDate = new Date()
 
-            if (args.doLog) {
-                logInfo('Sent mail', "${toUse.size() + ccUse.size()} actual recipients", logMsg)
+            if (doLog) {
+                logInfo('Sent mail', logMsg)
             }
 
         } catch (Exception e) {
@@ -184,14 +184,18 @@ class EmailService extends BaseService {
         attachments ? (attachments instanceof Map ? [attachments] : attachments) : []
     }
 
-    private List<String> createLogMsg(Map args, List<String> override) {
-        String logIdentifier = args.logIdentifier ?: args.subject
+    private Map createLogMsg(Map args, String fromUse, List<String> filters,  List<String> override) {
+        String logIdentifier = args.logIdentifier ?: args.subject ?: '[No Subject]'
         def ret = [
-            _id : logIdentifier?.take(70),
-            from: args.from,
-            to: args.to?.toString().take(255)
+            _id : logIdentifier.take(70),
+            from: fromUse,
+            to: args.to?.toString()?.take(255)
         ]
-        if (override) ret << [redirected: override]
+        if (override) {
+            ret.redirectedTo = override
+        } else if (filters) {
+            ret.filtered = true
+        }
 
         return ret
     }
