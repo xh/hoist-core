@@ -63,6 +63,7 @@ class TrackLog implements JSONFormat {
     Map formatForJSON() {
         return [
                 id: id,
+                correlationId: correlationId,
                 dateCreated: dateCreated,
                 day: appDay(dateCreated),
                 username: username,
@@ -70,7 +71,6 @@ class TrackLog implements JSONFormat {
                 device: device,
                 userAgent: userAgent,
                 category: category,
-                correlationId: correlationId,
                 msg: msg,
                 data: data,
                 elapsed: elapsed,
