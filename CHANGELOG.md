@@ -1,5 +1,7 @@
 # Changelog
 
+## 21.0-SNAPSHOT - unreleased
+
 ## 20.4.0 - 2024-07-31
 
 ### 🐞 Bug Fixes
