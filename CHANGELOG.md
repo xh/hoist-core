@@ -8,6 +8,9 @@
 * Added configurable table name to `xhDbConnectionMonitor` status check to support edge case where
   XH tables are in a custom schema.
 
+### ⚙️ Technical
+* Support for bulk updating of Role categories.
+
 ## 20.3.1 - 2024-07-23
 
 ### 🐞 Bug Fixes
