@@ -2,6 +2,9 @@
 
 ## 21.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+* Report disabled ldapService if `xhLdapUsername` is not set while `xhLdapConfig.enabled` is true.
+
 ## 20.4.0 - 2024-07-31
 
 ### 🐞 Bug Fixes
