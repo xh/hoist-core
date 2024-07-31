@@ -128,10 +128,8 @@ class LdapService extends BaseService {
     }
 
     private <T extends LdapObject> List<T> doQuery(Map server, String baseFilter, Class<T> objType, boolean strictMode) {
-        if (!enabled) {
-            logInfo('LdapService is not enabled')
-            throw new RuntimeException('LdapService is not enabled or LdapUsername is not set')
-        }
+        if (!enabled) throw new RuntimeException('LdapService is not enabled or LdapUsername is not set')
+
 
         boolean isPerson = LdapPerson.class.isAssignableFrom(objType)
         String host = server.host,
