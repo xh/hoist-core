@@ -22,11 +22,16 @@
       ALTER TABLE `xh_track_log` ADD COLUMN `correlation_id` VARCHAR(100) NULL;
       ```
 
+## 20.4.0 - 2024-07-31
+
 ### 🐞 Bug Fixes
 
 * Fixed sporadic serialization errors on status monitor results with an attached exception.
 * Added configurable table name to `xhDbConnectionMonitor` status check to support edge case where
   XH tables are in a custom schema.
+
+### ⚙️ Technical
+* Support for bulk updating of Role categories.
 
 ## 20.3.1 - 2024-07-23
 
