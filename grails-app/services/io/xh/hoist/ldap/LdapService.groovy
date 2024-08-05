@@ -1,13 +1,13 @@
 package io.xh.hoist.ldap
 
 import io.xh.hoist.BaseService
+import io.xh.hoist.cache.Cache
 import org.apache.directory.api.ldap.model.entry.Attribute
 import org.apache.directory.api.ldap.model.message.SearchScope
 import org.apache.directory.ldap.client.api.LdapNetworkConnection
-import io.xh.hoist.cache.Cache
-import static io.xh.hoist.util.DateTimeUtils.SECONDS
-import static grails.async.Promises.task
 
+import static grails.async.Promises.task
+import static io.xh.hoist.util.DateTimeUtils.SECONDS
 
 /**
  * Service to query a set of LDAP servers for People, Groups, and Group memberships.
@@ -49,7 +49,6 @@ class LdapService extends BaseService {
         config.enabled
     }
 
-
     LdapPerson lookupUser(String sName) {
         searchOne("(sAMAccountName=$sName) ", LdapPerson, true)
     }
@@ -81,7 +80,7 @@ class LdapService extends BaseService {
      */
     Map<String, List<LdapPerson>> lookupGroupMembers(Set<String> dns, boolean strictMode = false) {
         dns.collectEntries { dn -> [dn, task { lookupGroupMembersInternal(dn, strictMode) }] }
-            .collectEntries { [it.key, it.value.get()]}
+            .collectEntries { [it.key, it.value.get()] }
     }
 
     /**
@@ -128,7 +127,8 @@ class LdapService extends BaseService {
     }
 
     private <T extends LdapObject> List<T> doQuery(Map server, String baseFilter, Class<T> objType, boolean strictMode) {
-        if (!enabled) throw new RuntimeException('LdapService is not enabled.')
+        if (!enabled) throw new RuntimeException('LdapService not enabled - check xhLdapConfig app config.')
+        if (queryUsername == 'none') throw new RuntimeException('LdapService enabled but query user not configured - check xhLdapUsername app config, or disable via xhLdapConfig.')
 
         boolean isPerson = LdapPerson.class.isAssignableFrom(objType)
         String host = server.host,
@@ -140,16 +140,14 @@ class LdapService extends BaseService {
 
         withDebug(["Querying LDAP", [host: host, filter: filter]]) {
             try (LdapNetworkConnection conn = new LdapNetworkConnection(host)) {
-                String baseDn = isPerson ? server.baseUserDn : server.baseGroupDn,
-                       username = configService.getString('xhLdapUsername'),
-                       password = configService.getPwd('xhLdapPassword')
+                String baseDn = isPerson ? server.baseUserDn : server.baseGroupDn
                 String[] keys = objType.keys.toArray() as String[]
 
                 conn.timeOut = config.timeoutMs as Long
 
                 boolean didBind = false
                 try {
-                    conn.bind(username, password)
+                    conn.bind(queryUsername, queryUserPwd)
                     didBind = true
                     ret = conn.search(baseDn, filter, SearchScope.SUBTREE, keys)
                         .collect { objType.create(it.attributes as Collection<Attribute>) }
@@ -169,6 +167,14 @@ class LdapService extends BaseService {
 
     private Map getConfig() {
         configService.getMap('xhLdapConfig')
+    }
+
+    private String getQueryUsername() {
+        configService.getString('xhLdapUsername')
+    }
+
+    private String getQueryUserPwd() {
+        configService.getPwd('xhLdapPassword')
     }
 
     private void initCache() {
