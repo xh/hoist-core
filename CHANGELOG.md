@@ -2,11 +2,6 @@
 
 ## 21.0-SNAPSHOT - unreleased
 
-### 🐞 Bug Fixes
-
-* Fix in `EnvironmentService` to show error log when passed in an invalid time zone ID by setting to
-  default time zone after the check.
-
 ## 20.4.0 - 2024-07-31
 
 ### 🐞 Bug Fixes
