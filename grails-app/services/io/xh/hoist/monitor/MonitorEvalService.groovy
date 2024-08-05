@@ -92,7 +92,7 @@ class MonitorEvalService extends BaseService {
                                     e.message ?: e.class.name
                                  )
             result.status = FAIL
-            result.exception = e
+            result.exception = xhExceptionHandler.summaryTextForThrowable(e)
         } finally {
             def endTime = new Date()
             result.date = endTime
