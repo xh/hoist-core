@@ -39,7 +39,7 @@ class LdapService extends BaseService {
     }
 
     boolean getEnabled() {
-        config.enabled && queryUsername != 'none'
+        config.enabled
     }
 
     LdapPerson lookupUser(String sName) {
