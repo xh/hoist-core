@@ -2,6 +2,8 @@
 
 ## 21.0-SNAPSHOT - unreleased
 
+## 20.4.0 - 2024-07-31
+
 ### 🐞 Bug Fixes
 
 * Fixed sporadic serialization errors on status monitor results with an attached exception.
@@ -9,7 +11,7 @@
   XH tables are in a custom schema.
 
 ### ⚙️ Technical
-
+* Support for bulk updating of Role categories.
 * Add `LdapConfig` class to type + document structure of primary `LdapService` soft-config.
 
 ## 20.3.1 - 2024-07-23

@@ -1,13 +1,13 @@
 package io.xh.hoist.ldap
 
 import io.xh.hoist.BaseService
+import io.xh.hoist.cache.Cache
 import org.apache.directory.api.ldap.model.entry.Attribute
 import org.apache.directory.api.ldap.model.message.SearchScope
 import org.apache.directory.ldap.client.api.LdapNetworkConnection
-import io.xh.hoist.cache.Cache
-import static io.xh.hoist.util.DateTimeUtils.SECONDS
-import static grails.async.Promises.task
 
+import static grails.async.Promises.task
+import static io.xh.hoist.util.DateTimeUtils.SECONDS
 
 /**
  * Service to query a set of LDAP servers for People, Groups, and Group memberships.
@@ -120,7 +120,8 @@ class LdapService extends BaseService {
     }
 
     private <T extends LdapObject> List<T> doQuery(LdapServerConfig server, String baseFilter, Class<T> objType, boolean strictMode) {
-        if (!enabled) throw new RuntimeException('LdapService is not enabled.')
+        if (!enabled) throw new RuntimeException('LdapService not enabled - check xhLdapConfig app config.')
+        if (queryUsername == 'none') throw new RuntimeException('LdapService enabled but query user not configured - check xhLdapUsername app config, or disable via xhLdapConfig.')
 
         boolean isPerson = LdapPerson.class.isAssignableFrom(objType)
         String host = server.host,
@@ -159,6 +160,14 @@ class LdapService extends BaseService {
 
     private LdapConfig getConfig() {
         new LdapConfig(configService.getMap('xhLdapConfig'))
+    }
+
+    private String getQueryUsername() {
+        configService.getString('xhLdapUsername')
+    }
+
+    private String getQueryUserPwd() {
+        configService.getPwd('xhLdapPassword')
     }
 
     private String getQueryUsername() {
