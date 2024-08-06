@@ -170,14 +170,6 @@ class LdapService extends BaseService {
         configService.getPwd('xhLdapPassword')
     }
 
-    private String getQueryUsername() {
-        configService.getString('xhLdapUsername')
-    }
-
-    private String getQueryUserPwd() {
-        configService.getPwd('xhLdapPassword')
-    }
-
     private void initCache() {
         cache = new Cache(svc: this, expireTime: config.cacheExpireSecs * SECONDS)
     }
