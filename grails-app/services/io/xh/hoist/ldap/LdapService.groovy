@@ -1,5 +1,6 @@
 package io.xh.hoist.ldap
 
+import groovy.transform.MapConstructor
 import io.xh.hoist.BaseService
 import io.xh.hoist.cache.Cache
 import org.apache.directory.api.ldap.model.entry.Attribute
@@ -13,16 +14,9 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
  * Service to query a set of LDAP servers for People, Groups, and Group memberships.
  *
  * Requires the following application configs:
- *      - 'xhLdapConfig' with the following options
- *          - enabled - true to enable
- *          - timeoutMs - time to wait for any individual search to resolve.
- *          - cacheExpireSecs - length of time to cache results.  Set to -1 to disable caching.
- *          - servers - list of servers to be queried, each containing:
- *              - host
- *              - baseUserDn
- *              - baseGroupDn
- *     - 'xhLdapUsername' - dn of query user.
- *     - 'xhLdapPassword' - password for user
+ *     - 'xhLdapConfig' - see {@link LdapConfig} for shape / properties
+ *     - 'xhLdapUsername' - dn of query user
+ *     - 'xhLdapPassword' - password for query user
  *
  * This service will cache results, per server, for the configured interval.
  * This service may return partial results if any particular server fails to return results.
@@ -126,14 +120,14 @@ class LdapService extends BaseService {
         searchMany("(|(memberOf=$dn) (memberOf:1.2.840.113556.1.4.1941:=$dn))", LdapPerson, strictMode)
     }
 
-    private <T extends LdapObject> List<T> doQuery(Map server, String baseFilter, Class<T> objType, boolean strictMode) {
+    private <T extends LdapObject> List<T> doQuery(LdapServerConfig server, String baseFilter, Class<T> objType, boolean strictMode) {
         if (!enabled) throw new RuntimeException('LdapService not enabled - check xhLdapConfig app config.')
         if (queryUsername == 'none') throw new RuntimeException('LdapService enabled but query user not configured - check xhLdapUsername app config, or disable via xhLdapConfig.')
 
         boolean isPerson = LdapPerson.class.isAssignableFrom(objType)
         String host = server.host,
-            filter = "(&(objectCategory=${isPerson ? 'Person' : 'Group'})$baseFilter)",
-            key = server.toString() + filter
+               filter = "(&(objectCategory=${isPerson ? 'Person' : 'Group'})$baseFilter)",
+               key = server.toString() + filter
 
         List<T> ret = cache.get(key)
         if (ret != null) return ret
@@ -165,8 +159,8 @@ class LdapService extends BaseService {
         return ret
     }
 
-    private Map getConfig() {
-        configService.getMap('xhLdapConfig')
+    private LdapConfig getConfig() {
+        new LdapConfig(configService.getMap('xhLdapConfig'))
     }
 
     private String getQueryUsername() {
@@ -185,4 +179,23 @@ class LdapService extends BaseService {
         initCache()
         super.clearCaches()
     }
+}
+
+
+/**
+ * Typed representation of `xhLdapConfig` values.
+ */
+@MapConstructor
+class LdapConfig {
+    Boolean enabled
+    Integer timeoutMs
+    Integer cacheExpireSecs
+    List<LdapServerConfig> servers
+}
+
+@MapConstructor
+class LdapServerConfig {
+    String host
+    String baseUserDn
+    String baseGroupDn
 }
