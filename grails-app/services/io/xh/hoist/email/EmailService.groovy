@@ -14,9 +14,9 @@ import io.xh.hoist.util.Utils
  * Service for sending email, controlled and managed via several soft configuration options for flexibility and safer
  * use in non-production environments, where careful limits could be required on sending mail to real users.
  *
- *      + xhEmailDefaultSender - address to use as default sender address if not specified in sendEmail() args.
- *      + xhEmailFilter - addresses to which the service is allowed to send mail (or "none" for no filtering).
- *      + xhEmailOverride - addresses to which the service will send all mail, regardless of sendEmail() args (or "none").
+ *  + xhEmailDefaultSender - address to use as default sender address if not specified in sendEmail() args.
+ *  + xhEmailFilter - addresses to which the service is allowed to send mail (or "none" for no filtering).
+ *  + xhEmailOverride - addresses to which the service will send all mail, regardless of sendEmail() args (or "none").
  */
 class EmailService extends BaseService {
 
@@ -56,17 +56,19 @@ class EmailService extends BaseService {
             throwError = args.throwError
 
         try {
-            //  1) Pre-process and normalize inputs and configs
+            // 1) Pre-process and normalize inputs and configs
             def override = parseMailConfig('xhEmailOverride'),
                 filter = parseMailConfig('xhEmailFilter'),
                 toSpec = filterAddresses(formatAddresses(args.to), filter),
-                ccSpec = filterAddresses(formatAddresses(args.cc), filter),
-                toUse = override ? override :  toSpec,
-                ccUse = override ? [] : ccSpec,
-                fromUse = args.from ? formatAddresses(args.from)[0] : parseMailConfig('xhEmailDefaultSender')[0],
-                subjectUse = args.subject ?: '',
-                attachments = parseAttachments(args.attachments),
-                doLog = args.containsKey('doLog') ? args.doLog : true
+                ccSpec = filterAddresses(formatAddresses(args.cc), filter)
+
+            List<String> toUse = override ? override : toSpec
+            List<String> ccUse = override ? [] : ccSpec
+            String fromUse = args.from ? formatAddresses(args.from)[0] : parseMailConfig('xhEmailDefaultSender')[0]
+            String subjectUse = args.subject ?: ''
+            List<Map> attachments = parseAttachments(args.attachments)
+            boolean hasAttachments = args.attachments as boolean
+            boolean doLog = args.containsKey('doLog') ? args.doLog : true
 
             logMsg = createLogMsg(args, fromUse, filter, override)
 
@@ -84,7 +86,7 @@ class EmailService extends BaseService {
                 return
             }
 
-            // Enhance subject with context
+            // 3) Enhance subject with context
             def devContext = []
             if (!Utils.isProduction) {
                 devContext << Utils.appEnvironment.displayName.toUpperCase();
@@ -96,9 +98,10 @@ class EmailService extends BaseService {
                 subjectUse += " [${devContext.join(', ')}]"
             }
 
-           sendMail {
-                multipart (args.attachments as boolean)
-                async (args.async as boolean)
+            // 4) Send email!
+            sendMail {
+                multipart hasAttachments
+                async(args.async as boolean)
                 from fromUse
                 to toUse.toArray()
                 if (ccUse) {
@@ -132,8 +135,7 @@ class EmailService extends BaseService {
     }
 
     /**
-     * Read a set of email addresses from a config.
-     * See parseAddresses()
+     * Read a set of email addresses from an app config, normalizing as per {@link #parseAddresses}.
      */
     List<String> parseMailConfig(String configName) {
         def addresses = configService.getStringList(configName)
@@ -141,26 +143,28 @@ class EmailService extends BaseService {
     }
 
     /**
-     *  Parse a comma delimited list of email addresses into a list of trimmed,
-     *  properly formatted email addresses. Contains special support for the string 'none'.
+     *  Parse a comma delimited list of email addresses into a list of trimmed, properly
+     *  formatted addresses, appending the xhEmailDefaultDomain config to any unqualified address.
      *
-     * @param configName
-     * @return list of email addresses.
+     *  Includes special support for returning null if given the string 'none', to allow for
+     *  sourcing optional / potentially-empty addresses from string configs.
      */
     List<String> parseAddresses(String s) {
         return s == 'none' ? null : formatAddresses(s)
     }
 
-    Map getAdminStats() {[
-        config: configForAdminStats(
-            'xhEmailOverride',
-            'xhEmailFilter',
-            'xhEmailDefaultSender',
-            'xhEmailDefaultDomain'
-        ),
-        emailsSent: emailsSent,
-        lastSentDate: lastSentDate
-    ]}
+    Map getAdminStats() {
+        [
+            config      : configForAdminStats(
+                'xhEmailOverride',
+                'xhEmailFilter',
+                'xhEmailDefaultSender',
+                'xhEmailDefaultDomain'
+            ),
+            emailsSent  : emailsSent,
+            lastSentDate: lastSentDate
+        ]
+    }
 
     //------------------------
     // Implementation
@@ -169,27 +173,29 @@ class EmailService extends BaseService {
         filter ? filter.intersect(rawEmails) : rawEmails
     }
 
-    private List<String> formatAddresses(Object o){
-        def domain = configService.getString('xhEmailDefaultDomain')
+    private List<String> formatAddresses(Object o) {
         if (o instanceof String) o = o.split(',')
         if (!o) return []
-        return o.collect {String email ->
+
+        String defaultDomain = configService.getString('xhEmailDefaultDomain')
+        if (!defaultDomain.startsWith('@')) defaultDomain = '@' + defaultDomain
+
+        return o.collect { String email ->
             email = email.trim()
-            domain = domain.contains('@') ? domain : '@' + domain
-            email.contains('@') ? email : (email + domain)
+            email.contains('@') ? email : (email + defaultDomain)
         }
     }
 
-    private List parseAttachments(Object attachments) {
+    private List<Map> parseAttachments(Object attachments) {
         attachments ? (attachments instanceof Map ? [attachments] : attachments) : []
     }
 
-    private Map createLogMsg(Map args, String fromUse, List<String> filters,  List<String> override) {
+    private Map createLogMsg(Map args, String fromUse, List<String> filters, List<String> override) {
         String logIdentifier = args.logIdentifier ?: args.subject ?: '[No Subject]'
         def ret = [
             _id : logIdentifier.take(70),
             from: fromUse,
-            to: args.to?.toString()?.take(255)
+            to  : args.to?.toString()?.take(255)
         ]
         if (override) {
             ret.redirectedTo = override
