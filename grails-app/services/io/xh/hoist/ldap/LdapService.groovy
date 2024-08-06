@@ -1,5 +1,6 @@
 package io.xh.hoist.ldap
 
+import groovy.transform.MapConstructor
 import io.xh.hoist.BaseService
 import io.xh.hoist.cache.Cache
 import org.apache.directory.api.ldap.model.entry.Attribute
@@ -178,4 +179,23 @@ class LdapService extends BaseService {
         initCache()
         super.clearCaches()
     }
+}
+
+
+/**
+ * Typed representation of `xhLdapConfig` values.
+ */
+@MapConstructor
+class LdapConfig {
+    Boolean enabled
+    Integer timeoutMs
+    Integer cacheExpireSecs
+    List<LdapServerConfig> servers
+}
+
+@MapConstructor
+class LdapServerConfig {
+    String host
+    String baseUserDn
+    String baseGroupDn
 }
