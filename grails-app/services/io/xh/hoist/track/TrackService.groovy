@@ -141,7 +141,8 @@ class TrackService extends BaseService {
                     _user     : name,
                     _category : tl.category,
                     _msg      : tl.msg,
-                    _elapsedMs: tl.elapsed
+                    _correlationId: tl.correlationId,
+                    _elapsedMs: tl.elapsed,
                 ].findAll { it.value != null } as Map<String, Object>
 
                 // 2b) Log app data, if requested/configured.
