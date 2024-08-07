@@ -52,6 +52,7 @@ class TrackService extends BaseService {
      *   @param args
      *      msg {String}                - required, identifier of action being tracked
      *      category {String}           - optional, grouping category. Defaults to 'Default'
+     *      correlationId {String}      - optional, correlation ID for tracking related actions
      *      data {Object}               - optional, object with related data to be serialized as JSON
      *      logData {boolean|String[]}  - optional, true or list of keys to log values from data.
      *                                    Defaults to value in `xhActivityTrackingConfig` or false.
@@ -103,6 +104,7 @@ class TrackService extends BaseService {
             username: params.username ?: authUsername,
             impersonating: params.impersonating ?: (identityService.isImpersonating() ? username : null),
             category: params.category ?: 'Default',
+            correlationId: params.correlationId,
             msg: params.msg,
             userAgent: userAgent,
             browser: getBrowser(userAgent),
@@ -139,7 +141,8 @@ class TrackService extends BaseService {
                     _user     : name,
                     _category : tl.category,
                     _msg      : tl.msg,
-                    _elapsedMs: tl.elapsed
+                    _correlationId: tl.correlationId,
+                    _elapsedMs: tl.elapsed,
                 ].findAll { it.value != null } as Map<String, Object>
 
                 // 2b) Log app data, if requested/configured.
