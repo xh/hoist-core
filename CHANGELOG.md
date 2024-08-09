@@ -6,6 +6,8 @@
 
 * Requires `hoist-react >= 67.0.0` for client-side changes to accommodate updated `track`
   and `submitError` APIs. See below for database column additions to support the same.
+  
+* Requires `hoist-react >= 67.0` to use corresponding role delete bug fix.
 
 ### 🎁 New Features
 
@@ -22,6 +24,10 @@
       ALTER TABLE `xh_track_log` ADD COLUMN `correlation_id` VARCHAR(100) NULL;
       ```
 
+### 🐞 Bug Fixes
+
+* Fixed bug where a role with a dot in its name could not be deleted.
+
 ## 20.4.0 - 2024-07-31
 
 ### 🐞 Bug Fixes
@@ -31,6 +37,7 @@
   XH tables are in a custom schema.
 
 ### ⚙️ Technical
+
 * Support for bulk updating of Role categories.
 
 ## 20.3.1 - 2024-07-23
