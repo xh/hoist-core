@@ -3,6 +3,9 @@ package io.xh.hoist.ldap
 import io.xh.hoist.BaseService
 import org.apache.directory.api.ldap.model.entry.Attribute
 import org.apache.directory.api.ldap.model.message.SearchScope
+import org.apache.directory.api.ldap.model.exception.LdapAuthenticationException
+import org.apache.directory.ldap.client.api.LdapConnectionConfig
+import org.apache.directory.ldap.client.api.NoVerificationTrustManager
 import org.apache.directory.ldap.client.api.LdapNetworkConnection
 import io.xh.hoist.cache.Cache
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
@@ -115,6 +118,35 @@ class LdapService extends BaseService {
         return ret
     }
 
+    /**
+     * Authenticate a user.
+     *
+     * This method uses the underlying LDAP bind mechanism to verify user password and access.
+     *
+     * @param username -- sAMAccountName for user
+     * @param password -- credentials for user
+     */
+    boolean authenticate(String username, String password) {
+        for (Map server in config.servers) {
+            String host = server.host
+            List<LdapPerson> matches = doQuery(server, "(sAMAccountName=$username)", LdapPerson, true)
+            if (matches) {
+                if (matches.size() > 1) throw new RuntimeException("Multiple user records found for $username")
+                LdapPerson user = matches.first()
+                try (def conn = createConnection(host)) {
+                    conn.bind(user.distinguishedname, password)
+                    conn.unBind()
+                    return true
+                } catch (LdapAuthenticationException ignored) {
+                    logDebug('Authentication failed, incorrect credentials', [username: username])
+                    return false
+                }
+            }
+        }
+        logDebug('Authentication failed, no user found', [username: username])
+        return false
+    }
+
     //----------------------
     // Implementation
     //----------------------
@@ -139,7 +171,7 @@ class LdapService extends BaseService {
         if (ret != null) return ret
 
         withDebug(["Querying LDAP", [host: host, filter: filter]]) {
-            try (LdapNetworkConnection conn = new LdapNetworkConnection(host)) {
+            try (def conn = createConnection(host)) {
                 String baseDn = isPerson ? server.baseUserDn : server.baseGroupDn,
                        username = configService.getString('xhLdapUsername'),
                        password = configService.getPwd('xhLdapPassword')
@@ -155,8 +187,7 @@ class LdapService extends BaseService {
                         .collect { objType.create(it.attributes as Collection<Attribute>) }
                     cache.put(key, ret)
                 } finally {
-                    // Calling unBind on an unbound connection will throw an exception
-                    if (didBind) conn.unBind()
+                    if (didBind) conn.unBind()  // If unbound will throw an exception
                 }
             } catch (Exception e) {
                 if (strictMode) throw e
@@ -173,6 +204,16 @@ class LdapService extends BaseService {
 
     private void initCache() {
         cache = new Cache(svc: this, expireTime: config.cacheExpireSecs * SECONDS)
+    }
+
+    private LdapNetworkConnection createConnection(String host) {
+        def conf = new LdapConnectionConfig()
+        conf.ldapHost = host
+        conf.ldapPort = conf.defaultLdapPort
+        conf.timeout = config.timeoutMs as Long
+        conf.setTrustManagers(new NoVerificationTrustManager())
+        conf.useTls = true
+        return new LdapNetworkConnection(conf)
     }
 
     void clearCaches() {
