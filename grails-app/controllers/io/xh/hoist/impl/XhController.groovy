@@ -94,6 +94,7 @@ class XhController extends BaseController {
         def query = parseRequestJSON([safeEncode: true])
         trackService.track(
             category: query.category,
+            correlationId: query.correlationId,
             msg: query.msg,
             data: query.data,
             logData: query.logData,
@@ -239,7 +240,8 @@ class XhController extends BaseController {
             query.error as String,
             query.appVersion as String,
             query.url as String,
-            query.userAlerted as Boolean
+            query.userAlerted as Boolean,
+            query.correlationId as String
         )
         renderJSON(success: true)
     }

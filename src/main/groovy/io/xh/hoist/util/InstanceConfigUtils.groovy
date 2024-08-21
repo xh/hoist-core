@@ -18,35 +18,35 @@ import static io.xh.hoist.util.Utils.isLocalDevelopment
 
 
 /**
- * Utility for loading configuration properties on startup and exposing them to the application.
+ * Utility for loading low-level configuration on application startup.
  *
  * These are intended to be minimal, low-level configs that apply to a particular deployed instance
- * of the application. They are also typically used to provide the connection information and
- * credentials for the primary database connection itself, keeping that sensitive info out of the
+ * of the application. They are typically used to provide the host and credentials for the primary
+ * database connection itself, keeping that environment-specific and also sensitive info out of the
  * source code.
  *
- * This utility will consult the `-Dio.xh.hoist.instanceConfigFile` JavaOpt for the full path to one
- * of the following supported locations:
+ * There are three ways to provide these configs:
+ *    1) Via system environment variables, with keys matching `APP_[APP_CODE]_[KEY]`, where `[KEY]`
+ *       is the config key referenced in code in upper snake-case. E.g. for the XH demo app Toolbox,
+ *       an environment variable of `APP_TOOLBOX_DB_HOST` could be read from this util via
+ *       `getInstanceConfig('dbHost')`.
+ *    2) Via a YAML file containing key value pairs.
+ *    3) Via a directory containing multiple files, where the file names are loaded as config keys
+ *       and their contents are read in as the values.
  *
- *      1) A YAML (.yml) file containing key value pairs.
- *      2) A directory containing multiple files, where the file names are loaded as config keys
- *         and their contents are read in as the values.
- *      3) A directory containing a YAML file with the name [appCode].yml.
+ * For options 2+3, the `-Dio.xh.hoist.instanceConfigFile` JavaOpt can be used to specify the full
+ * path to one of the following:
+ *      1) A YAML file.
+ *      2) A directory containing a YAML file with the name [appCode].yml.
+ *      3) A directory containing multiple files, where the file names are loaded as config keys
+ *         and their contents are read in as the values. Intended for use in a Docker environment
+ *         with configs/secrets mounted to a local path within the container.
  *
- * Option (1) is the default if the JavaOpt is not set, with a default location of
- * /etc/hoist/conf/[appCode].yml.
+ * If the JavaOpt is not set, this util will check for a file in the default location of
+ * `/etc/hoist/conf/[appCode].yml`.
  *
- * Option (2) is intended for use in a Docker environment with configs/secrets mounted to a local
- * path within the container. (This is how Docker exposes configs to the runtime environment.)
- *
- * Option (3) is intended for builds that might or might not be deployed within Docker - allowing
- * for a single "directory style" JavaOpt value to be baked into the Tomcat container and resolve to
- * either a single file or to a directory of Docker configs.
- *
- * System environment variables can also be used to provide config values, in addition to or in
- * place of the above. These are expected to be in the form `APP_[APP_CODE]_[KEY]`. This utility
- * will automatically convert a requested key to upper snake-case and prepend the app code to look
- * for a match. If found, the value will be returned in preference to any other source.
+ * If both an environment variable and a config file/directory entry are provided for the same key,
+ * the environment variable will take precedence.
  *
  * Note that all values will be read in and provided as Strings.
  *
@@ -88,20 +88,25 @@ class InstanceConfigUtils {
     private static Map<String, String> readConfigs() {
         Map<String, String> ret = [:]
 
-        // Attempt to load external config file - but do not strictly require one. Warnings about
-        // missing/unreadable configs are output via println as the logging system itself relies on
-        // this class to determine its root path.
+        // Informational only - note if we have any env vars that match our pattern.
+        def envVars = getInstConfigEnvVars()
+        if (envVars) {
+            println "InstanceConfigUtils [INFO] | Found ${envVars.size()} environment variables matching InstanceConfig pattern"
+        }
+
+        // Attempt to load external config file - but do not require one, as instance configs might
+        // not be needed, or might be supplied via env vars.
         String configFilename = System.getProperty('io.xh.hoist.instanceConfigFile') ?: "/etc/hoist/conf/${Utils.appCode}.yml"
         try {
             File configFile = new File(configFilename)
 
             if (configFile.exists()) {
                 ret = configFile.isDirectory() ? loadFromConfigDir(configFile) : loadFromYaml(configFile)
-            } else {
-                println "InstanceConfig file not found | looked for $configFilename"
+            } else if (!envVars) {
+                println "InstanceConfigUtils [WARN] | YAML-based InstanceConfig file not found and no matching env vars set | looked for $configFilename"
             }
         } catch (Throwable t) {
-            println "ERROR - InstanceConfig file could not be parsed | $configFilename | $t.message"
+            println "InstanceConfigUtils [ERROR] | InstanceConfig file found but could not be parsed | $configFilename | $t.message"
         }
 
         return ret
@@ -154,11 +159,19 @@ class InstanceConfigUtils {
     }
 
     private static void logLoadCount(Map configs, File configFile) {
-        println "Loaded ${configs.size()} instanceConfigs from ${configFile.getAbsolutePath()}"
+        println "InstanceConfigUtils [INFO] | Loaded ${configs.size()} configs from ${configFile.getAbsolutePath()}"
     }
 
     private static String getEnvVar(String key) {
-        return System.getenv("APP_${toSnakeCase(Utils.appCode)}_${toSnakeCase(key)}")
+        return System.getenv("${envVarPrefix}${toSnakeCase(key)}")
+    }
+
+    private static Map getInstConfigEnvVars() {
+        return System.getenv().findAll { k, v -> k.startsWith(envVarPrefix) }
+    }
+
+    private static String getEnvVarPrefix() {
+        return "APP_${toSnakeCase(Utils.appCode)}_"
     }
 
     private static String toSnakeCase(String s) {

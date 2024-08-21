@@ -89,10 +89,11 @@ class EnvironmentService extends BaseService {
     //---------------------
     private TimeZone calcAppTimeZone() {
         def defaultZone = 'UTC',
-            configZoneId = configService.getString('xhAppTimeZone', defaultZone)
+            configZoneId = configService.getString('xhAppTimeZone')
 
         if (!TimeZone.availableIDs.contains(configZoneId)) {
             log.error("Invalid xhAppTimeZone config: '$configZoneId' not a valid ZoneId - will fall back to $defaultZone.")
+            configZoneId = defaultZone;
         }
 
         return TimeZone.getTimeZone(configZoneId)
