@@ -210,13 +210,15 @@ class LdapService extends BaseService {
     }
 
     private LdapNetworkConnection createConnection(String host) {
-        def conf = new LdapConnectionConfig()
-        conf.ldapHost = host
-        conf.ldapPort = conf.defaultLdapPort
-        conf.timeout = config.timeoutMs as Long
-        conf.setTrustManagers(new NoVerificationTrustManager())
-        conf.useTls = true
-        return new LdapNetworkConnection(conf)
+        def ret = new LdapConnectionConfig()
+        ret.ldapHost = host
+        ret.ldapPort = ret.defaultLdapPort
+        ret.timeout = config.timeoutMs as Long
+        ret.useTls = true
+        if (config.requireCert == false) {
+            ret.setTrustManagers(new NoVerificationTrustManager())
+        }
+        return new LdapNetworkConnection(ret)
     }
 
     void clearCaches() {
