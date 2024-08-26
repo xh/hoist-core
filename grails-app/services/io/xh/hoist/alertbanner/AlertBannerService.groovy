@@ -8,7 +8,7 @@
 package io.xh.hoist.alertbanner
 
 import io.xh.hoist.BaseService
-import io.xh.hoist.cluster.ReplicatedValue
+import io.xh.hoist.cache.CachedValue
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.jsonblob.JsonBlobService
 import io.xh.hoist.util.Utils
@@ -33,14 +33,14 @@ class AlertBannerService extends BaseService {
     ConfigService configService
     JsonBlobService jsonBlobService
 
-    private final static String blobName = Utils.isProduction ? 'xhAlertBanner' : "xhAlertBanner_$appEnvironment";
-    private final static String blobType = 'xhAlertBanner';
-    private final static String blobOwner = 'xhAlertBannerService';
+    private final static String blobName = Utils.isProduction ? 'xhAlertBanner' : "xhAlertBanner_$appEnvironment"
+    private final static String blobType = 'xhAlertBanner'
+    private final static String blobOwner = 'xhAlertBannerService'
 
-    private final static String presetsBlobName = 'xhAlertBannerPresets';
+    private final static String presetsBlobName = 'xhAlertBannerPresets'
 
-    private final emptyAlert = [active: false]
-    private ReplicatedValue<Map> _alertBanner = getReplicatedValue('alertBanner')
+    private final Map emptyAlert = [active: false]
+    private CachedValue<Map> _alertBanner = new CachedValue<>(name: 'alertBanner', svc: this)
     private Timer timer
 
     void init() {
@@ -53,7 +53,7 @@ class AlertBannerService extends BaseService {
     }
 
     Map getAlertBanner() {
-        _alertBanner.get() ?: emptyAlert  // fallback just-in-case.  Never expect to be empty.
+        _alertBanner.get() ?: emptyAlert   // fallback just-in-case.  Never expect to be empty.
     }
 
     //--------------------
@@ -111,9 +111,7 @@ class AlertBannerService extends BaseService {
 
     void clearCaches() {
         super.clearCaches()
-        if (isPrimary) {
-            timer.forceRun()
-        }
+        timer.forceRun()
     }
 
     Map getAdminStats() {[

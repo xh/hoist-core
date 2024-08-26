@@ -13,45 +13,56 @@ import com.esotericsoftware.kryo.io.Input
 import com.esotericsoftware.kryo.io.Output
 import groovy.transform.CompileStatic
 import io.xh.hoist.log.LogSupport
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import static java.lang.System.currentTimeMillis
 
 @CompileStatic
-class Entry<T> implements KryoSerializable, LogSupport {
+class CacheEntry<T> implements KryoSerializable, LogSupport {
     String key
     T value
-    boolean isRemoving
     Long dateEntered
+    String loggerName
 
-    Entry(String key, T value) {
+    boolean isRemoving
+
+    CacheEntry(String key, T value, String loggerName) {
         this.key = key
         this.value = value
+        this.dateEntered = currentTimeMillis()
+        this.loggerName = loggerName
         this.isRemoving = false
-        this.dateEntered = System.currentTimeMillis()
     }
 
-    Entry() {}
+    CacheEntry() {}
 
     void write(Kryo kryo, Output output) {
         output.writeBoolean(isRemoving)
+        if (isRemoving) return
+
         output.writeString(key)
-        if (!isRemoving) {
-            withSingleTrace('Serializing') {
-                output.writeLong(dateEntered)
-                kryo.writeClassAndObject(output, value)
-            }
+        output.writeLong(dateEntered)
+        output.writeString(loggerName)
+        withSingleTrace('Serializing') {
+            kryo.writeClassAndObject(output, value)
         }
     }
 
     void read(Kryo kryo, Input input) {
         isRemoving = input.readBoolean()
+        if (isRemoving) return
+
         key = input.readString()
-        if (!isRemoving) {
-            withSingleTrace('Deserializing') {
-                dateEntered = input.readLong()
-                value = kryo.readClassAndObject(input) as T
-            }
+        dateEntered = input.readLong()
+        loggerName = input.readString()
+        withSingleTrace('Deserializing') {
+            value = kryo.readClassAndObject(input) as T
         }
+    }
+
+    Logger getInstanceLog() {
+        LoggerFactory.getLogger(loggerName)
     }
 
     private void withSingleTrace(String msg, Closure c) {

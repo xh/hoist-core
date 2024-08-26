@@ -16,7 +16,6 @@ import grails.async.Promises
 import grails.util.GrailsClassUtils
 import groovy.transform.CompileDynamic
 import io.xh.hoist.cluster.ClusterService
-import io.xh.hoist.cluster.ReplicatedValue
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.IdentitySupport
@@ -56,6 +55,8 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
     private boolean _destroyed = false
     private Map _repValuesMap
+    protected Map _localValuesMap
+
     private final Logger _log = LoggerFactory.getLogger(this.class)
 
 
@@ -118,10 +119,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
     <K, V> ReplicatedMap<K, V> getReplicatedMap(String id) {
         ClusterService.hzInstance.getReplicatedMap(hzName(id))
-    }
-
-    <T> ReplicatedValue<T> getReplicatedValue(String key) {
-        new ReplicatedValue<T>(key, repValuesMap)
     }
 
     <M> ITopic<M> getTopic(String id) {
@@ -300,10 +297,10 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     }
 
     protected Map getRepValuesMap() {
-        _repValuesMap ?= (
-            ClusterService.multiInstanceEnabled ?
-                getReplicatedMap('replicatedValues') :
-                new ConcurrentHashMap()
-        )
+        _repValuesMap ?= getReplicatedMap('replicatedValues')
+    }
+
+    protected Map getSimpleValuesMap() {
+        _localValuesMap ?= new ConcurrentHashMap()
     }
 }

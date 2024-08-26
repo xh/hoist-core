@@ -7,13 +7,13 @@
 
 package io.xh.hoist.admin
 
-import io.xh.hoist.admin.cluster.BaseClusterController
+import io.xh.hoist.BaseController
 import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.security.Access
 import static io.xh.hoist.util.Utils.getAppContext
 
 @Access(['HOIST_ADMIN_READER'])
-class MonitorResultsAdminController extends BaseClusterController {
+class MonitorResultsAdminController extends BaseController {
 
     def monitorService
 

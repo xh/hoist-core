@@ -7,14 +7,14 @@
 
 package io.xh.hoist.admin.cluster
 
-
+import io.xh.hoist.BaseController
 import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.security.Access
 
 import static io.xh.hoist.util.Utils.appContext
 
 @Access(['HOIST_ADMIN_READER'])
-class MemoryMonitorAdminController extends BaseClusterController {
+class MemoryMonitorAdminController extends BaseController {
 
     def snapshots(String instance) {
         runOnInstance(new Snapshots(), instance)
