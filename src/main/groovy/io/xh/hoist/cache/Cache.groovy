@@ -36,8 +36,8 @@ class Cache<K,V> {
     /** Closure to determine if an entry should be expired. */
     public final Closure expireFn
 
-    /** Time after which an entry should be expired. */
-    public final Long expireTime
+    /** Time after which an entry should be expired, or closure to get this time. */
+    public final Object expireTime
 
     /** Closure to determine the timestamp of an entry. */
     public final Closure timestampFn
@@ -47,7 +47,7 @@ class Cache<K,V> {
 
     private final List<Closure> onChange = []
     private final Timer timer
-    private final Map<K, CacheEntry<V>> _map
+    private final Map<K, Entry<V>> _map
 
     Cache(Map options) {
         name = (String) options.name
@@ -64,7 +64,7 @@ class Cache<K,V> {
         _map = replicate ? svc.getReplicatedMap(name) : new ConcurrentHashMap()
 
         if (replicate) {
-            Closure onChg = {EntryEvent<K, CacheEntry> it ->
+            Closure onChg = {EntryEvent<K, Entry> it ->
                 fireOnChange(it.key, it.oldValue?.value as V, it.value?.value as V)
             }
             (_map as ReplicatedMap).addEntryListener([
@@ -73,7 +73,7 @@ class Cache<K,V> {
                 entryRemoved: onChg,
                 entryEvicted: onChg,
                 entryExpired: onChg
-            ] as EntryListener<K, CacheEntry>, name)
+            ] as EntryListener<K, Entry>, name)
         }
 
         this.timer = new Timer(
@@ -89,7 +89,7 @@ class Cache<K,V> {
         return getEntry(key)?.value
     }
 
-    CacheEntry<V> getEntry(K key) {
+    Entry<V> getEntry(K key) {
         def ret = _map[key]
         if (ret && shouldExpire(ret)) {
             put(key, null)
@@ -101,7 +101,7 @@ class Cache<K,V> {
     void put(K key, V obj) {
         def oldEntry = _map[key]
         oldEntry?.isRemoving = true
-        _map.put(key, new CacheEntry(key.toString(), obj, svc.instanceLog.name))
+        _map.put(key, new Entry(key.toString(), obj, svc.instanceLog.name))
         if (!replicate) fireOnChange(key, oldEntry?.value, obj)
     }
 
@@ -169,7 +169,7 @@ class Cache<K,V> {
         }
     }
 
-    private boolean shouldExpire(CacheEntry<V> obj) {
+    private boolean shouldExpire(Entry<V> obj) {
         if (expireFn) return expireFn(obj)
 
         if (expireTime) {
@@ -180,7 +180,8 @@ class Cache<K,V> {
             } else {
                 timestamp = obj.dateEntered
             }
-            return currentTimeMillis() - ((Long) timestamp) > expireTime
+            Long expire = (expireTime instanceof Closure ?  expireTime.call() : expireTime) as Long
+            return intervalElapsed(expire, timestamp)
         }
         return false
     }

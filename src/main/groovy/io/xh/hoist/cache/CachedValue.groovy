@@ -26,7 +26,7 @@ class CachedValue<V> {
     /** Closure to determine if an entry should be expired. */
     public final Closure expireFn
 
-    /** Time after which an entry should be expired. */
+    /** Time after which an entry should be expired or closure to return same */
     public final Long expireTime
 
     /** Closure to determine the timestamp of an entry. */
@@ -36,7 +36,7 @@ class CachedValue<V> {
     public final boolean replicate
 
     private final List<Closure> onChange = []
-    private final Map<String, CacheEntry> _map
+    private final Map<String, Entry> _map
 
     CachedValue(Map options) {
         name = (String) options.name
@@ -76,7 +76,7 @@ class CachedValue<V> {
     void set(V value) {
         def oldEntry = _map[name]
         oldEntry?.isRemoving = true
-        _map[name] = new CacheEntry(name, value, svc.instanceLog.name)
+        _map[name] = new Entry(name, value, svc.instanceLog.name)
 
         if (!replicate) {
             this.fireOnChange(oldEntry?.value, value)
@@ -136,7 +136,7 @@ class CachedValue<V> {
         }
     }
 
-    private boolean shouldExpire(CacheEntry<V> obj) {
+    private boolean shouldExpire(Entry<V> obj) {
         if (expireFn) return expireFn(obj)
 
         if (expireTime) {
@@ -147,7 +147,8 @@ class CachedValue<V> {
             } else {
                 timestamp = obj.dateEntered
             }
-            return currentTimeMillis() - ((Long) timestamp) > expireTime
+            Long expire = (expireTime instanceof Closure ?  expireTime.call() : expireTime) as Long
+            return intervalElapsed(expire, timestamp)
         }
         return false
     }
