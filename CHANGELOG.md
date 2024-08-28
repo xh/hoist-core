@@ -14,6 +14,8 @@
   checks now include `instanceName`, `interval` should be set to a tighter value than before.
   Default is 10s. Requires `hoist-react >= 67.0`.
 
+* Renamed `/xh/version` endpoint to `/xh/status` to better reflect its purpose.
+
 ### 🎁 New Features
 
 * Client error reports include new `correlationId` field.
