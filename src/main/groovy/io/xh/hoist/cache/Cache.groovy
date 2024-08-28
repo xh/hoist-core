@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeoutException
 
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
-import static io.xh.hoist.util.DateTimeUtils.getSECONDS
+import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static java.lang.System.currentTimeMillis
 import static java.util.Collections.emptyMap
