@@ -55,7 +55,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
     private boolean _destroyed = false
     private Map _repValuesMap
-    protected Map _localValuesMap
+    private Map _localValuesMap
 
     private final Logger _log = LoggerFactory.getLogger(this.class)
 

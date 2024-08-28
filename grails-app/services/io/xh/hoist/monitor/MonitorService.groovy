@@ -43,6 +43,7 @@ class MonitorService extends BaseService {
     // Map of monitor code to aggregated (cross-instance) results.
     private CachedValue<Map<String, AggregateMonitorResult>> _results = new CachedValue<>(
         name: 'results',
+        replicate: true,
         svc: this
     )
 

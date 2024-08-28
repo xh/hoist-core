@@ -86,7 +86,7 @@ class CachedValue<V> {
     /** Get the value, or create dynamically with closure and set it. */
     V getOrCreate(Closure<V> c) {
         V ret = get()
-        if (!ret) {
+        if (ret == null) {
             ret = c()
             set(ret)
         }
@@ -119,7 +119,7 @@ class CachedValue<V> {
 
         svc.withDebug("Waiting for replicated value ${name}") {
             do {
-                if (get()) return;
+                if (get() != null) return;
                 sleep(interval)
             } while (!intervalElapsed(timeout, startTime))
 

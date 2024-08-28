@@ -76,7 +76,7 @@ class Cache<K,V> {
             ] as EntryListener<K, Entry>, name)
         }
 
-        this.timer = new Timer(
+        timer = new Timer(
             owner: svc,
             primaryOnly: replicate,
             runFn: this.&cullEntries,
@@ -92,22 +92,30 @@ class Cache<K,V> {
     Entry<V> getEntry(K key) {
         def ret = _map[key]
         if (ret && shouldExpire(ret)) {
-            put(key, null)
+            remove(key)
             return null
         }
         return ret
     }
 
+    void remove(K key) {
+        put(key, null)
+    }
+
     void put(K key, V obj) {
         def oldEntry = _map[key]
         oldEntry?.isRemoving = true
-        _map.put(key, new Entry(key.toString(), obj, svc.instanceLog.name))
+        if (obj == null) {
+            _map.remove(key)
+        } else {
+            _map.put(key, new Entry(key.toString(), obj, svc.instanceLog.name))
+        }
         if (!replicate) fireOnChange(key, oldEntry?.value, obj)
     }
 
     V getOrCreate(K key, Closure<V> c) {
         V ret = get(key)
-        if (!ret) {
+        if (ret == null) {
             ret = c(key)
             put(key, ret)
         }
@@ -144,7 +152,7 @@ class Cache<K,V> {
      *      interval, time in ms to wait between tests.  Defaults to 1 second.
      *      timeoutMessage, custom message associated with any timeout.
      */
-    void ensureAvailable(String key, Map opts = emptyMap()) {
+    void ensureAvailable(K key, Map opts = emptyMap()) {
         Long timeout = (opts?.timeout ?: 30 * SECONDS) as Long,
              interval = (opts?.interval ?: 1 * SECONDS) as Long,
              startTime = currentTimeMillis()
@@ -152,7 +160,7 @@ class Cache<K,V> {
 
         svc.withDebug("Waiting for cache entry value at ${key}") {
             do {
-                if (_map.containsKey(key)) return
+                if (getEntry(key)) return
                 sleep(interval)
             } while (!intervalElapsed(timeout, startTime))
 
@@ -187,7 +195,7 @@ class Cache<K,V> {
     }
 
     private void cullEntries() {
-        Set<K> cullKeys = new HashSet()
+        Set<K> cullKeys = new HashSet<>()
         _map.each { k, v ->
             if (!v || shouldExpire(v)) cullKeys.add(k)
         }
@@ -196,12 +204,6 @@ class Cache<K,V> {
             svc.logDebug("Cache '${name ?: "anon"}' culling ${cullKeys.size()} out of ${_map.size()} entries")
         }
 
-        cullKeys.each { k ->
-            def entry = _map[k]
-            entry?.isRemoving = true
-            _map.remove(k)
-
-            if (!replicate) fireOnChange(k as K, entry?.value, null)
-        }
+        cullKeys.each {remove(it)}
     }
 }
