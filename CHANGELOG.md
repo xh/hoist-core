@@ -6,8 +6,13 @@
 
 * Requires `hoist-react >= 67.0.0` for client-side changes to accommodate updated `track`
   and `submitError` APIs. See below for database column additions to support the same.
-  
+
 * Requires `hoist-react >= 67.0` to use corresponding role delete bug fix.
+
+* Deprecated config `xhAppVersionCheck` in favor of new `xhAppStatusCheck`. `Bootstrap` will
+  migrate apps' existing `mode` value to this new config's `updateMode` property. Since status
+  checks now include `instanceName`, `interval` should be set to a tighter value than before.
+  Default is 10s. Requires `hoist-react >= 67.0`.
 
 ### 🎁 New Features
 

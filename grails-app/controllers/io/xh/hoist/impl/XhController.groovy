@@ -219,8 +219,8 @@ class XhController extends BaseController {
         renderJSON(environmentService.getEnvironment())
     }
 
-    def version() {
-        def options = configService.getMap('xhAppVersionCheck', [:])
+    def status() {
+        def options = configService.getMap('xhAppStatusCheck', [:])
         renderJSON(
             *: options,
             instanceName: clusterService.instanceName,
