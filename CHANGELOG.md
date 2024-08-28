@@ -31,9 +31,9 @@
 *  `Cache` and the (new) `CachedValue` provide a new common API for (potentially replicated) state
    in services.  In particular the following new features are included with common API:
         * Dynamic expiry of values via fluid api
-        * new event handling via `addChangeHandler`
+        * New event handling via `addChangeHandler`
         * Improved trace logging of value serialization
-        * optimized storage for non-replicated uses
+        * Offers both replicated and non-replicated modes
 
 *  New instance aware methods on `BaseController`: `runOnInstance`, `runOnPrimary` and `runOnAllInstances`
 

@@ -65,7 +65,7 @@ class Cache<K,V> {
 
         if (replicate) {
             Closure onChg = {EntryEvent<K, Entry> it ->
-                fireOnChange(it.key, it.oldValue?.value as V, it.value?.value as V)
+                fireOnChange(it.key, it.value?.value as V)
             }
             def rMap = _map as ReplicatedMap<String, Object>,
                 listener = [
@@ -75,7 +75,7 @@ class Cache<K,V> {
                     entryEvicted: onChg,
                     entryExpired: onChg
                 ] as EntryListener
-            rMap.addEntryListener(listener, name)
+            rMap.addEntryListener(listener)
         }
 
         timer = new Timer(
@@ -112,7 +112,7 @@ class Cache<K,V> {
         } else {
             _map.put(key, new Entry(key.toString(), obj, svc.instanceLog.name))
         }
-        if (!replicate) fireOnChange(key, oldEntry?.value, obj)
+        if (!replicate) fireOnChange(key, obj)
     }
 
     V getOrCreate(K key, Closure<V> c) {
@@ -173,11 +173,9 @@ class Cache<K,V> {
     //------------------------
     // Implementation
     //------------------------
-    private void fireOnChange(K key, V oldValue, V newValue) {
-        if (oldValue != newValue) {
-            def change = new CacheValueChanged(key, oldValue, newValue)
-            onChange.each { it.call(change) }
-        }
+    private void fireOnChange(K key, V value) {
+        def change = new CacheValueChanged(key, value)
+        onChange.each { it.call(change) }
     }
 
     private boolean shouldExpire(Entry<V> obj) {

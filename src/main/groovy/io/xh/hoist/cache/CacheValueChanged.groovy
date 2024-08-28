@@ -8,15 +8,11 @@ class CacheValueChanged<K, V> {
      */
     final K key
 
-    /** Old Value.  Null if key being set for the first time. */
-    final V oldValue
-
     /** New Value.  Null if value being unset, or evicted. */
-    final V newValue
+    final V value
 
-    CacheValueChanged(K key, V oldValue, V newValue) {
+    CacheValueChanged(K key, V value) {
         this.key = key
-        this.oldValue = oldValue
-        this.newValue = newValue
+        this.value = value
     }
 }

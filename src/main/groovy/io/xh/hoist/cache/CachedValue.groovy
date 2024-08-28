@@ -54,7 +54,7 @@ class CachedValue<V> {
 
         if (replicate) {
             def rMap = _map as ReplicatedMap<String, Object>,
-                onChg = { fireOnChange(it.oldValue?.value, it.value?.value) },
+                onChg = {fireOnChange(it.value?.value)},
                 listener = [
                     entryAdded  : onChg,
                     entryUpdated: onChg,
@@ -80,10 +80,14 @@ class CachedValue<V> {
     void set(V value) {
         def oldEntry = _map[name]
         oldEntry?.isRemoving = true
-        _map[name] = new Entry(name, value, svc.instanceLog.name)
+        if (value == null) {
+            _map.remove(name)
+        } else {
+            _map[name] = new Entry(name, value, svc.instanceLog.name)
+        }
 
         if (!replicate) {
-            this.fireOnChange(oldEntry?.value, value)
+            this.fireOnChange(value)
         }
     }
 
@@ -134,11 +138,9 @@ class CachedValue<V> {
     //-----------------
     // Implementation
     //-----------------
-    private void fireOnChange(V oldValue, V newValue) {
-        if (oldValue != newValue) {
-            def change = new CacheValueChanged(name, oldValue, newValue)
-            onChange.each { it.call(change) }
-        }
+    private void fireOnChange(V value) {
+        def change = new CacheValueChanged(name, value)
+        onChange.each { it.call(change) }
     }
 
     private boolean shouldExpire(Entry<V> obj) {
