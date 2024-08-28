@@ -155,17 +155,17 @@ class Cache<K,V> {
      *      timeoutMessage, custom message associated with any timeout.
      */
     void ensureAvailable(K key, Map opts = emptyMap()) {
-        Long timeout = (opts?.timeout ?: 30 * SECONDS) as Long,
-             interval = (opts?.interval ?: 1 * SECONDS) as Long,
-             startTime = currentTimeMillis()
+        if (getEntry(key)) return
 
-        svc.withDebug("Waiting for cache entry value at ${key}") {
-            do {
-                if (getEntry(key)) return
-                sleep(interval)
-            } while (!intervalElapsed(timeout, startTime))
+        svc.withDebug("Waiting for cache entry value at '$key'") {
+            Long timeout = (opts?.timeout ?: 30 * SECONDS) as Long,
+                 interval = (opts?.interval ?: 1 * SECONDS) as Long
 
-            String msg = opts?.timeoutMessage ?: "Timed out after ${timeout}ms waiting for replicated value '$key'"
+            for (def startTime = currentTimeMillis(); !intervalElapsed(timeout, startTime); sleep(interval)) {
+                if (getEntry(key)) return;
+            }
+
+            String msg = opts?.timeoutMessage ?: "Timed out after ${timeout}ms waiting for cached entry at '$key'"
             throw new TimeoutException(msg)
         }
     }

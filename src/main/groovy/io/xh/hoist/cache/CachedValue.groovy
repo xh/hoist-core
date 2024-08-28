@@ -120,17 +120,17 @@ class CachedValue<V> {
      *      timeoutMessage, custom message associated with any timeout.
      */
     void ensureAvailable(Map opts = emptyMap()) {
-        Long timeout = (opts?.timeout ?: 30 * SECONDS) as Long,
-            interval = (opts?.interval ?: 1 * SECONDS) as Long,
-            startTime = currentTimeMillis()
+        if (get() != null) return
 
-        svc.withDebug("Waiting for replicated value ${name}") {
-            do {
-                if (get() != null) return;
-                sleep(interval)
-            } while (!intervalElapsed(timeout, startTime))
+        svc.withDebug("Waiting for CachedValue '$name'") {
+            Long timeout = (opts?.timeout ?: 30 * SECONDS) as Long,
+                 interval = (opts?.interval ?: 1 * SECONDS) as Long
 
-            String msg = opts?.timeoutMessage ?: "Timed out after ${timeout}ms waiting for replicated value '$name'"
+            for (def startTime = currentTimeMillis(); !intervalElapsed(timeout, startTime); sleep(interval)) {
+                if (get() != null) return
+            }
+
+            String msg = opts?.timeoutMessage ?: "Timed out after ${timeout}ms waiting for CachedValue '$name'"
             throw new TimeoutException(msg)
         }
     }
