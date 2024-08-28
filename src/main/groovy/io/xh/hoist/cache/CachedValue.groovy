@@ -1,5 +1,7 @@
 package io.xh.hoist.cache
 
+import com.hazelcast.core.EntryListener
+import com.hazelcast.replicatedmap.ReplicatedMap
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
 
@@ -27,7 +29,7 @@ class CachedValue<V> {
     public final Closure expireFn
 
     /** Time after which an entry should be expired or closure to return same */
-    public final Long expireTime
+    public final Object expireTime
 
     /** Closure to determine the timestamp of an entry. */
     public final Closure timestampFn
@@ -41,24 +43,26 @@ class CachedValue<V> {
     CachedValue(Map options) {
         name = (String) options.name
         svc = (BaseService) options.svc
-        expireTime = (Long) options.expireTime
+        expireTime = options.expireTime
         expireFn = (Closure) options.expireFn
         timestampFn = (Closure) options.timestampFn
         replicate = (boolean) options.replicate && ClusterService.multiInstanceEnabled
 
         if (!svc) throw new RuntimeException("Missing required argument 'svc' for Cache")
 
-        _map = replicate ? svc.repValuesMap() : svc.simpleValuesMap()
+        _map = replicate ? svc.repValuesMap : svc.simpleValuesMap
 
         if (replicate) {
-            def onChg = { fireOnChange(it.oldValue?.value, it.value?.value) }
-            _map.addEntryListener([
-                entryAdded  : onChg,
-                entryUpdated: onChg,
-                entryRemoved: onChg,
-                entryEvicted: onChg,
-                entryExpired: onChg
-            ], name)
+            def rMap = _map as ReplicatedMap<String, Object>,
+                onChg = { fireOnChange(it.oldValue?.value, it.value?.value) },
+                listener = [
+                    entryAdded  : onChg,
+                    entryUpdated: onChg,
+                    entryRemoved: onChg,
+                    entryEvicted: onChg,
+                    entryExpired: onChg
+                ] as EntryListener
+            rMap.addEntryListener(listener, name)
         }
     }
 
@@ -97,7 +101,7 @@ class CachedValue<V> {
     /**
      * Add a change handler to this object.
      *
-     * @param handler.  A closure that takes the old value and the new value
+     * @param handler.  A closure that receives a CacheValueChanged
      */
     void addChangeHandler(Closure handler) {
         onChange << handler
@@ -112,9 +116,8 @@ class CachedValue<V> {
      *      timeoutMessage, custom message associated with any timeout.
      */
     void ensureAvailable(Map opts = emptyMap()) {
-        Long timeout = opts?.timeout ?: 30 * SECONDS,
-            interval = opts?.interval ?: 1 * SECONDS,
-            msg = opts?.timeoutMessage ?: "Timed out after ${timeout}ms waiting for replicated value '$name'",
+        Long timeout = (opts?.timeout ?: 30 * SECONDS) as Long,
+            interval = (opts?.interval ?: 1 * SECONDS) as Long,
             startTime = currentTimeMillis()
 
         svc.withDebug("Waiting for replicated value ${name}") {
@@ -123,6 +126,7 @@ class CachedValue<V> {
                 sleep(interval)
             } while (!intervalElapsed(timeout, startTime))
 
+            String msg = opts?.timeoutMessage ?: "Timed out after ${timeout}ms waiting for replicated value '$name'"
             throw new TimeoutException(msg)
         }
     }
@@ -132,7 +136,8 @@ class CachedValue<V> {
     //-----------------
     private void fireOnChange(V oldValue, V newValue) {
         if (oldValue != newValue) {
-            onChange.each { it.call(oldValue, newValue) }
+            def change = new CacheValueChanged(name, oldValue, newValue)
+            onChange.each { it.call(change) }
         }
     }
 

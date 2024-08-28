@@ -52,7 +52,7 @@ class Cache<K,V> {
     Cache(Map options) {
         name = (String) options.name
         svc = (BaseService) options.svc
-        expireTime = (Long) options.expireTime
+        expireTime = options.expireTime
         expireFn = (Closure) options.expireFn
         timestampFn = (Closure) options.timestampFn
         replicate = (boolean) options.replicate && ClusterService.multiInstanceEnabled
@@ -67,21 +67,23 @@ class Cache<K,V> {
             Closure onChg = {EntryEvent<K, Entry> it ->
                 fireOnChange(it.key, it.oldValue?.value as V, it.value?.value as V)
             }
-            (_map as ReplicatedMap).addEntryListener([
-                entryAdded  : onChg,
-                entryUpdated: onChg,
-                entryRemoved: onChg,
-                entryEvicted: onChg,
-                entryExpired: onChg
-            ] as EntryListener<K, Entry>, name)
+            def rMap = _map as ReplicatedMap<String, Object>,
+                listener = [
+                    entryAdded  : onChg,
+                    entryUpdated: onChg,
+                    entryRemoved: onChg,
+                    entryEvicted: onChg,
+                    entryExpired: onChg
+                ] as EntryListener
+            rMap.addEntryListener(listener, name)
         }
 
         timer = new Timer(
             owner: svc,
             primaryOnly: replicate,
             runFn: this.&cullEntries,
-            delay: true,
-            interval: 15 * MINUTES
+            interval: 15 * MINUTES,
+            delay: true
         )
     }
 
@@ -138,7 +140,7 @@ class Cache<K,V> {
     /**
      * Add a change handler to this object.
      *
-     * @param handler.  A closure that takes the key, old value and the new value
+     * @param handler.  A closure that receives a CacheValueChanged
      */
     void addChangeHandler(Closure handler) {
         onChange << handler
@@ -156,7 +158,6 @@ class Cache<K,V> {
         Long timeout = (opts?.timeout ?: 30 * SECONDS) as Long,
              interval = (opts?.interval ?: 1 * SECONDS) as Long,
              startTime = currentTimeMillis()
-        String msg = opts?.timeoutMessage ?: "Timed out after ${timeout}ms waiting for replicated value '$key'"
 
         svc.withDebug("Waiting for cache entry value at ${key}") {
             do {
@@ -164,6 +165,7 @@ class Cache<K,V> {
                 sleep(interval)
             } while (!intervalElapsed(timeout, startTime))
 
+            String msg = opts?.timeoutMessage ?: "Timed out after ${timeout}ms waiting for replicated value '$key'"
             throw new TimeoutException(msg)
         }
     }
@@ -173,7 +175,8 @@ class Cache<K,V> {
     //------------------------
     private void fireOnChange(K key, V oldValue, V newValue) {
         if (oldValue != newValue) {
-            onChange.each { it.call(key, oldValue, newValue) }
+            def change = new CacheValueChanged(key, oldValue, newValue)
+            onChange.each { it.call(change) }
         }
     }
 

@@ -296,11 +296,13 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         this.class.name + '_' + key
     }
 
-    protected Map getRepValuesMap() {
+    /** @internal - for use by CachedValue*/
+    Map getRepValuesMap() {
         _repValuesMap ?= getReplicatedMap('replicatedValues')
     }
 
-    protected Map getSimpleValuesMap() {
+    /** @internal - for use by CachedValue*/
+    Map getSimpleValuesMap() {
         _localValuesMap ?= new ConcurrentHashMap()
     }
 }
