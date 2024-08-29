@@ -7,12 +7,9 @@
 
 package io.xh.hoist.cache
 
-import com.hazelcast.core.EntryEvent
-import com.hazelcast.core.EntryListener
 import com.hazelcast.replicatedmap.ReplicatedMap
 import groovy.transform.CompileStatic
-import io.xh.hoist.BaseService
-import io.xh.hoist.cluster.ClusterService
+
 import io.xh.hoist.util.Timer
 
 import java.util.concurrent.ConcurrentHashMap
@@ -25,57 +22,20 @@ import static java.lang.System.currentTimeMillis
 import static java.util.Collections.emptyMap
 
 @CompileStatic
-class Cache<K,V> {
+class Cache<K,V> extends BaseCache<V> {
 
-    /** Optional name for status logging disambiguation. */
-    public final String name
-
-    /** Service using this cache (for logging purposes). */
-    public final BaseService svc
-
-    /** Closure to determine if an entry should be expired. */
-    public final Closure expireFn
-
-    /** Time after which an entry should be expired, or closure to get this time. */
-    public final Object expireTime
-
-    /** Closure to determine the timestamp of an entry. */
-    public final Closure timestampFn
-
-    /** Whether this cache should be replicated across a cluster. */
-    public final boolean replicate
-
-    private final List<Closure> onChange = []
-    private final Timer timer
     private final Map<K, Entry<V>> _map
+    private final Timer timer
 
     Cache(Map options) {
-        name = (String) options.name
-        svc = (BaseService) options.svc
-        expireTime = options.expireTime
-        expireFn = (Closure) options.expireFn
-        timestampFn = (Closure) options.timestampFn
-        replicate = (boolean) options.replicate && ClusterService.multiInstanceEnabled
-
-        if (!svc) throw new RuntimeException("Missing required argument 'svc' for Cache")
+        super(options)
         if (replicate && !name) {
             throw new RuntimeException("Cannot create a replicated cache without a unique name")
         }
-        _map = replicate ? svc.getReplicatedMap(name) : new ConcurrentHashMap()
 
+        _map = replicate ? svc.getReplicatedMap(name) : new ConcurrentHashMap()
         if (replicate) {
-            Closure onChg = {EntryEvent<K, Entry> it ->
-                fireOnChange(it.key, it.value?.value as V)
-            }
-            def rMap = _map as ReplicatedMap<String, Object>,
-                listener = [
-                    entryAdded  : onChg,
-                    entryUpdated: onChg,
-                    entryRemoved: onChg,
-                    entryEvicted: onChg,
-                    entryExpired: onChg
-                ] as EntryListener
-            rMap.addEntryListener(listener)
+            (_map as ReplicatedMap).addEntryListener(getHzEntryListener())
         }
 
         timer = new Timer(
@@ -87,10 +47,12 @@ class Cache<K,V> {
         )
     }
 
+    /** Get the value at key. */
     V get(K key) {
         return getEntry(key)?.value
     }
 
+    /** Get the Entry at key. */
     Entry<V> getEntry(K key) {
         def ret = _map[key]
         if (ret && shouldExpire(ret)) {
@@ -100,21 +62,24 @@ class Cache<K,V> {
         return ret
     }
 
+    /** Remove the value at key.*/
     void remove(K key) {
         put(key, null)
     }
 
+    /** Put a value at key. */
     void put(K key, V obj) {
         def oldEntry = _map[key]
-        oldEntry?.isRemoving = true
+        if (optimizeRemovals) oldEntry?.isOptimizedRemoval = true
         if (obj == null) {
             _map.remove(key)
         } else {
             _map.put(key, new Entry(key.toString(), obj, svc.instanceLog.name))
         }
-        if (!replicate) fireOnChange(key, obj)
+        if (!replicate) fireOnChange(this, oldEntry?.value, obj)
     }
 
+    /** Return a cached value, or lazily create if needed. */
     V getOrCreate(K key, Closure<V> c) {
         V ret = get(key)
         if (ret == null) {
@@ -124,27 +89,29 @@ class Cache<K,V> {
         return ret
     }
 
+    /**
+     * Get a map representation of the underlying cache.
+     */
     Map<K, V> getMap() {
         cullEntries()
         return (Map<K, V>) _map.collectEntries {k, v -> [k, v.value]}
     }
 
+    /**
+     * Current size of the cache.
+     *
+     * Note that this may include unexpired entries that have not
+     * yet been culled.
+     */
     int size() {
         return _map.size()
     }
 
+    /** Clear all entries */
     void clear() {
         _map.clear()
     }
 
-    /**
-     * Add a change handler to this object.
-     *
-     * @param handler.  A closure that receives a CacheValueChanged
-     */
-    void addChangeHandler(Closure handler) {
-        onChange << handler
-    }
 
     /**
      * Wait for the cache entry to be populated.
@@ -173,28 +140,6 @@ class Cache<K,V> {
     //------------------------
     // Implementation
     //------------------------
-    private void fireOnChange(K key, V value) {
-        def change = new CacheValueChanged(key, value)
-        onChange.each { it.call(change) }
-    }
-
-    private boolean shouldExpire(Entry<V> obj) {
-        if (expireFn) return expireFn(obj)
-
-        if (expireTime) {
-            def timestamp
-            if (timestampFn) {
-                timestamp = timestampFn(obj.value)
-                if (timestamp instanceof Date) timestamp = ((Date) timestamp).time
-            } else {
-                timestamp = obj.dateEntered
-            }
-            Long expire = (expireTime instanceof Closure ?  expireTime.call() : expireTime) as Long
-            return intervalElapsed(expire, timestamp)
-        }
-        return false
-    }
-
     private void cullEntries() {
         Set<K> cullKeys = new HashSet<>()
         _map.each { k, v ->
