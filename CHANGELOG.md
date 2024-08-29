@@ -4,14 +4,11 @@
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - latest Hoist React + DB col additions)
 
-* Requires `hoist-react >= 67.0.0` for client-side changes to accommodate updated `track`
-  and `submitError` APIs. See below for database column additions to support the same.
-
-* Requires `hoist-react >= 67.0` to use corresponding role delete bug fix.
-
-* `ReplicatedValue` should be replaced with the enhanced `CachedValue`.  This new object provides
-  the same functionality as `ReplicatedValue`, as well as additional features from the Cache api such
-  as expiry, getOrCreate(), and event support, and blocking support for non-primary nodes.
+* Requires `hoist-react >= 67.0.0`.
+* Requires minor DB schema additions (see below).
+* `ReplicatedValue` has been replaced with the enhanced `CachedValue`. This new object provides
+  all the functionality of the old, plus additional features from the `Cache` API such as expiry,
+  `getOrCreate()`, event support, and blocking support for non-primary nodes.
 
 ### 🎁 New Features
 
@@ -27,15 +24,14 @@
       ```sql
       ALTER TABLE `xh_track_log` ADD COLUMN `correlation_id` VARCHAR(100) NULL;
       ```
-
-*  `Cache` and the (new) `CachedValue` provide a new common API for (potentially replicated) state
-   in services.  In particular the following new features are included with common API:
-        * Dynamic expiry of values via fluid api
-        * New event handling via `addChangeHandler`
-        * Improved trace logging of value serialization
-        * Offers both replicated and non-replicated modes
-
-*  New instance aware methods on `BaseController`: `runOnInstance`, `runOnPrimary` and `runOnAllInstances`
+* `Cache` and the (new) `CachedValue` provide a new common API for (potentially replicated) state
+  in services. In particular the following new features are included with common API:
+    * Dynamic expiry of values via fluid api
+    * New event handling via `addChangeHandler`
+    * Improved trace logging of value serialization
+    * Offers both replicated and non-replicated modes
+* New instance aware methods on `BaseController`: `runOnInstance`, `runOnPrimary` and
+  `runOnAllInstances`. These were formerly on `BaseClusterController`, which has been removed.
 
 ### 🐞 Bug Fixes
 
