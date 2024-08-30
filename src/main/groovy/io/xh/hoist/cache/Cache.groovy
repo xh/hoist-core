@@ -9,7 +9,9 @@ package io.xh.hoist.cache
 
 import com.hazelcast.replicatedmap.ReplicatedMap
 import groovy.transform.CompileStatic
-
+import groovy.transform.NamedParam
+import groovy.transform.NamedVariant
+import io.xh.hoist.BaseService
 import io.xh.hoist.util.Timer
 
 import java.util.concurrent.ConcurrentHashMap
@@ -27,15 +29,27 @@ class Cache<K,V> extends BaseCache<V> {
     private final Map<K, Entry<V>> _map
     private final Timer timer
 
-    Cache(Map options) {
-        super(options)
+    @NamedVariant
+    Cache(
+        @NamedParam(required = true) BaseService svc,
+        @NamedParam String name,
+        @NamedParam Object expireTime = null,
+        @NamedParam Closure expireFn = null,
+        @NamedParam Closure timestampFn = null,
+        @NamedParam boolean replicate = false,
+        @NamedParam boolean optimizeRemovals = false
+    ) {
+        super(svc, name, expireTime, expireFn, timestampFn, replicate, optimizeRemovals)
+
         if (replicate && !name) {
-            throw new RuntimeException("Cannot create a replicated cache without a unique name")
+            throw new IllegalArgumentException("Cannot create a replicated Cache without a unique name")
         }
 
-        _map = replicate ? svc.getReplicatedMap(name) : new ConcurrentHashMap()
-        if (replicate) {
-            (_map as ReplicatedMap).addEntryListener(getHzEntryListener())
+        // Intentional `this` below - super might override to false if !multiInstanceEnabled
+        _map = this.replicate ? svc.getReplicatedMap(name) : new ConcurrentHashMap()
+
+        if (_map instanceof ReplicatedMap) {
+            _map.addEntryListener(getHzEntryListener())
         }
 
         timer = new Timer(
@@ -79,7 +93,7 @@ class Cache<K,V> extends BaseCache<V> {
         if (!replicate) fireOnChange(this, oldEntry?.value, obj)
     }
 
-    /** Return a cached value, or lazily create if needed. */
+    /** @returns a cached value, or lazily creates if needed. */
     V getOrCreate(K key, Closure<V> c) {
         V ret = get(key)
         if (ret == null) {
@@ -89,19 +103,15 @@ class Cache<K,V> extends BaseCache<V> {
         return ret
     }
 
-    /**
-     * Get a map representation of the underlying cache.
-     */
+    /** @returns a map representation of currently cached data. */
     Map<K, V> getMap() {
         cullEntries()
         return (Map<K, V>) _map.collectEntries {k, v -> [k, v.value]}
     }
 
     /**
-     * Current size of the cache.
-     *
-     * Note that this may include unexpired entries that have not
-     * yet been culled.
+     * @returns the current size of the cache.
+     * Note that this may include unexpired entries that have not yet been culled.
      */
     int size() {
         return _map.size()

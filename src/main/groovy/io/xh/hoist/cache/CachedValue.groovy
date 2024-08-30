@@ -1,6 +1,10 @@
 package io.xh.hoist.cache
 
 import com.hazelcast.replicatedmap.ReplicatedMap
+import groovy.transform.NamedParam
+import groovy.transform.NamedVariant
+import io.xh.hoist.BaseService
+
 import java.util.concurrent.TimeoutException
 
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
@@ -9,23 +13,34 @@ import static java.lang.System.currentTimeMillis
 import static java.util.Collections.emptyMap
 
 /**
- * Similar to Cache, but a single value that can be read, written, and expired.
- *
+ * Similar to {@link Cache}, but a single value that can be read, written, and expired.
  * Like Cache, this object supports replication across the cluster.
  */
 class CachedValue<V> extends BaseCache<V> {
 
-    private final Map<String, Entry> _map
+    private final Map<String, Entry<V>> _map
 
-    CachedValue(Map options) {
-       super(options)
-        if (!name) {
-            throw new RuntimeException("Cannot create a CachedValue without a unique name")
+    @NamedVariant
+    CachedValue(
+        @NamedParam(required = true) BaseService svc,
+        @NamedParam(required = true) String name,
+        @NamedParam Object expireTime = null,
+        @NamedParam Closure expireFn = null,
+        @NamedParam Closure timestampFn = null,
+        @NamedParam boolean replicate = false,
+        @NamedParam boolean optimizeRemovals = false
+    ) {
+        super(svc, name, expireTime, expireFn, timestampFn, replicate, optimizeRemovals)
+
+        // Intentional `this` below - super might override to false if !multiInstanceEnabled
+        _map = this.replicate ? svc.replicatedCachedValuesMap : svc.localCachedValuesMap
+
+        if (!name || _map.containsKey(name)) {
+            throw new IllegalArgumentException("Cannot create CachedValue ${name ? "with duplicate name '$name'" : "without a name"}")
         }
 
-        _map = replicate ? svc.repValuesMap : svc.simpleValuesMap
-        if (replicate) {
-            (_map as ReplicatedMap).addEntryListener(getHzEntryListener(), name)
+        if (_map instanceof ReplicatedMap) {
+            _map.addEntryListener(getHzEntryListener(), name)
         }
     }
 
@@ -36,7 +51,7 @@ class CachedValue<V> extends BaseCache<V> {
             set(null)
             return null
         }
-        return ret?.value as V
+        return ret?.value
     }
 
     /** Set the value. */

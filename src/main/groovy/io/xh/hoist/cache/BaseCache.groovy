@@ -10,10 +10,12 @@ package io.xh.hoist.cache
 import com.hazelcast.core.EntryEvent
 import com.hazelcast.core.EntryListener
 import groovy.transform.CompileStatic
+import groovy.transform.NamedParam
+import groovy.transform.NamedVariant
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
 
-import static io.xh.hoist.util.DateTimeUtils.*
+import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 
 @CompileStatic
 abstract class BaseCache<V> {
@@ -21,7 +23,7 @@ abstract class BaseCache<V> {
     /** Service using this object. */
     public final BaseService svc
 
-    /** Name.  Should be unique in the context of the service associated with this object. */
+    /** Unique name in the context of the service associated with this object. */
     public final String name
 
     /** Closure to determine if an entry should be expired. (optional) */
@@ -37,33 +39,39 @@ abstract class BaseCache<V> {
     public final boolean replicate
 
     /**
-     * Optimize removals of replicated entries, such that the old value is
-     * not re-serialized. Default false.
+     * Optimize removals of replicated entries, such that the old value is not re-serialized.
+     * Useful for caches containing large objects that are expensive to serialize + deserialize.
+     * Default false.
      *
-     * This optimization is useful for caches containing large objects requiring
-     * time to to serialize/deserialize.  NOTE -- if enabled, the CacheValueChanged
-     * events fired on this object will *not* contain the oldValue.
+     * NOTE: if enabled, `CacheValueChanged` events from this object will *not* contain an oldValue.
      */
     public final boolean optimizeRemovals
 
     protected final List<Closure> onChange = []
 
-    BaseCache(Map options) {
-        name = (String) options.name
-        svc = (BaseService) options.svc
-        expireTime = options.expireTime
-        expireFn = (Closure) options.expireFn
-        timestampFn = (Closure) options.timestampFn
-        replicate = (boolean) options.replicate && ClusterService.multiInstanceEnabled
-        optimizeRemovals = (boolean) options.optimizeRemovals
+    @NamedVariant
+    BaseCache(
+        @NamedParam(required = true) BaseService svc,
+        @NamedParam String name,
+        @NamedParam Object expireTime = null,
+        @NamedParam Closure expireFn = null,
+        @NamedParam Closure timestampFn = null,
+        @NamedParam boolean replicate = false,
+        @NamedParam boolean optimizeRemovals = false
+    ) {
+        this.svc = svc
+        this.name = name
+        this.expireTime = expireTime
+        this.expireFn = expireFn
+        this.timestampFn = timestampFn
+        this.replicate = replicate && ClusterService.multiInstanceEnabled
+        this.optimizeRemovals = optimizeRemovals
 
-        if (!svc) throw new RuntimeException("Missing required argument 'svc' for BaseCache")
+        if (!svc) throw new IllegalArgumentException("Missing required argument 'svc' for BaseCache")
     }
 
     /**
-     * Add a change handler to this object.
-     *
-     * @param handler.  A closure that receives a CacheValueChanged
+     * @param handler - closure called on change with a {@link CacheValueChanged} object
      */
     void addChangeHandler(Closure handler) {
         onChange << handler
