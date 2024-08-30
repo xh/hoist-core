@@ -20,6 +20,7 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
  *          - enabled - true to enable
  *          - timeoutMs - time to wait for any individual search to resolve.
  *          - cacheExpireSecs - length of time to cache results.  Set to -1 to disable caching.
+ *          - skipTlsCertVerification - true to accept untrusted certificates when binding
  *          - servers - list of servers to be queried, each containing:
  *              - host
  *              - baseUserDn
@@ -195,6 +196,20 @@ class LdapService extends BaseService {
         return ret
     }
 
+    private LdapNetworkConnection createConnection(String host) {
+        def ret = new LdapConnectionConfig()
+        ret.ldapHost = host
+        ret.ldapPort = ret.defaultLdapPort
+        ret.timeout = config.timeoutMs as Long
+        ret.useTls = true
+
+        if (config.skipTlsCertVerification) {
+            ret.setTrustManagers(new NoVerificationTrustManager())
+        }
+
+        return new LdapNetworkConnection(ret)
+    }
+
     private Map getConfig() {
         configService.getMap('xhLdapConfig')
     }
@@ -209,18 +224,6 @@ class LdapService extends BaseService {
 
     private void initCache() {
         cache = new Cache(svc: this, expireTime: config.cacheExpireSecs * SECONDS)
-    }
-
-    private LdapNetworkConnection createConnection(String host) {
-        def ret = new LdapConnectionConfig()
-        ret.ldapHost = host
-        ret.ldapPort = ret.defaultLdapPort
-        ret.timeout = config.timeoutMs as Long
-        ret.useTls = true
-        if (config.requireCert == false) {
-            ret.setTrustManagers(new NoVerificationTrustManager())
-        }
-        return new LdapNetworkConnection(ret)
     }
 
     void clearCaches() {
