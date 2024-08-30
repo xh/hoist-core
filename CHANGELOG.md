@@ -28,6 +28,11 @@
 
 * Fixed bug where a role with a dot in its name could not be deleted.
 
+### ⚙️ Technical
+
+* `LdapService` now binds to configured servers with TLS and supports new `skipTlsCertVerification`
+  flag in its config to allow for self-signed or otherwise untrusted certificates.
+
 ## 20.4.0 - 2024-07-31
 
 ### 🐞 Bug Fixes
