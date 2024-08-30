@@ -120,9 +120,10 @@ class Cache<K,V> extends BaseCache<V> {
 
     /** Clear all entries */
     void clear() {
-        _map.clear()
+        // Remove key-wise to ensure that we get the proper removal message for each value and
+        // work around exceptions with clear on replicated map.
+        _map.each { k, v -> remove(k)}
     }
-
 
     /**
      * Wait for the cache entry to be populated.
@@ -153,14 +154,16 @@ class Cache<K,V> extends BaseCache<V> {
     //------------------------
     private void cullEntries() {
         Set<K> cullKeys = new HashSet<>()
+        def oldSize = size()
         _map.each { k, v ->
-            if (!v || shouldExpire(v)) cullKeys.add(k)
+            if (!v || shouldExpire(v)) {
+                cullKeys.add(k)
+                remove(k)
+            }
         }
 
-        if (cullKeys.size()) {
-            svc.logDebug("Cache '${name ?: "anon"}' culling ${cullKeys.size()} out of ${_map.size()} entries")
+        if (cullKeys) {
+            svc.logDebug("Cache '${name ?: "anon"}' culled ${cullKeys.size()} out of $oldSize entries")
         }
-
-        cullKeys.each {remove(it)}
     }
 }
