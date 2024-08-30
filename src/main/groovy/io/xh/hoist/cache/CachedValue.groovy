@@ -12,6 +12,7 @@ import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static java.lang.System.currentTimeMillis
 import static java.util.Collections.emptyMap
 
+
 /**
  * Similar to {@link Cache}, but a single value that can be read, written, and expired.
  * Like Cache, this object supports replication across the cluster.
@@ -28,19 +29,16 @@ class CachedValue<V> extends BaseCache<V> {
         @NamedParam Closure expireFn = null,
         @NamedParam Closure timestampFn = null,
         @NamedParam boolean replicate = false,
-        @NamedParam boolean optimizeRemovals = false
+        @NamedParam boolean optimizeRemovals = true,
+        @NamedParam Closure onChange = null
     ) {
-        super(svc, name, expireTime, expireFn, timestampFn, replicate, optimizeRemovals)
+        super(svc, name, expireTime, expireFn, timestampFn, replicate, optimizeRemovals, onChange)
 
-        // Intentional `this` below - super might override to false if !multiInstanceEnabled
-        _map = this.replicate ? svc.replicatedCachedValuesMap : svc.localCachedValuesMap
-
-        if (!name || _map.containsKey(name)) {
-            throw new IllegalArgumentException("Cannot create CachedValue ${name ? "with duplicate name '$name'" : "without a name"}")
-        }
-
-        if (_map instanceof ReplicatedMap) {
-            _map.addEntryListener(getHzEntryListener(), name)
+        if (useCluster) {
+            _map = svc.replicatedCachedValuesMap
+            (_map as ReplicatedMap).addEntryListener(getHzEntryListener(), name)
+        } else {
+            _map = svc.localCachedValuesMap
         }
     }
 
@@ -64,7 +62,7 @@ class CachedValue<V> extends BaseCache<V> {
             _map[name] = new Entry(name, value, svc.instanceLog.name)
         }
 
-        if (!replicate) fireOnChange(name, oldEntry?.value, value)
+        if (!useCluster) fireOnChange(name, oldEntry?.value, value)
     }
 
     /** Return the cached value, or lazily create if needed. */
@@ -75,6 +73,11 @@ class CachedValue<V> extends BaseCache<V> {
             set(ret)
         }
         return ret
+    }
+
+    /** Clear value. */
+    void clear() {
+        set(null)
     }
 
     /**

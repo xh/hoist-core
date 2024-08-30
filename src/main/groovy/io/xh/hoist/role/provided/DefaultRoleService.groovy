@@ -84,7 +84,10 @@ class DefaultRoleService extends BaseRoleService {
     protected CachedValue<Map<String, Set<String>>> _allRoleAssignments = new CachedValue(
         name: 'roleAssignments',
         replicate: true,
-        svc: this
+        svc: this,
+        onChange: {
+            _roleAssignmentsByUser = new ConcurrentHashMap()
+        }
     )
 
     // Derived lazy cache on each instance
@@ -97,10 +100,6 @@ class DefaultRoleService extends BaseRoleService {
 
     void init() {
         ensureRequiredConfigAndRolesCreated()
-
-        _allRoleAssignments.addChangeHandler {
-            _roleAssignmentsByUser = new ConcurrentHashMap()
-        }
 
         timer = createTimer(
             interval: { config.refreshIntervalSecs as int * SECONDS },

@@ -10,8 +10,6 @@ package io.xh.hoist.cache
 import com.hazelcast.core.EntryEvent
 import com.hazelcast.core.EntryListener
 import groovy.transform.CompileStatic
-import groovy.transform.NamedParam
-import groovy.transform.NamedVariant
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
 
@@ -41,33 +39,35 @@ abstract class BaseCache<V> {
     /**
      * Optimize removals of replicated entries, such that the old value is not re-serialized.
      * Useful for caches containing large objects that are expensive to serialize + deserialize.
-     * Default false.
+     * Default true.
      *
      * NOTE: if enabled, `CacheValueChanged` events from this object will *not* contain an oldValue.
      */
     public final boolean optimizeRemovals
 
-    protected final List<Closure> onChange = []
+    /**
+     * Handlers to be called on change with a {@link CacheValueChanged} object
+     */
+    public final List<Closure> onChange
 
-    @NamedVariant
     BaseCache(
-        @NamedParam(required = true) BaseService svc,
-        @NamedParam String name,
-        @NamedParam Object expireTime = null,
-        @NamedParam Closure expireFn = null,
-        @NamedParam Closure timestampFn = null,
-        @NamedParam boolean replicate = false,
-        @NamedParam boolean optimizeRemovals = false
+        BaseService svc,
+        String name,
+        Object expireTime,
+        Closure expireFn,
+        Closure timestampFn,
+        boolean replicate,
+        boolean optimizeRemovals,
+        Closure onChange
     ) {
         this.svc = svc
         this.name = name
         this.expireTime = expireTime
         this.expireFn = expireFn
         this.timestampFn = timestampFn
-        this.replicate = replicate && ClusterService.multiInstanceEnabled
+        this.replicate = replicate
         this.optimizeRemovals = optimizeRemovals
-
-        if (!svc) throw new IllegalArgumentException("Missing required argument 'svc' for BaseCache")
+        this.onChange = onChange ? [onChange] : []
     }
 
     /**
@@ -77,10 +77,16 @@ abstract class BaseCache<V> {
         onChange << handler
     }
 
+    /** Clear all values. */
+    abstract void clear()
 
     //------------------------
     // Implementation
     //------------------------
+    protected boolean getUseCluster() {
+        return replicate && ClusterService.multiInstanceEnabled
+    }
+
     protected EntryListener getHzEntryListener() {
         Closure onChg = { EntryEvent<?, Entry<V>> it ->
             fireOnChange(it.key, it.oldValue?.value, it.value?.value)

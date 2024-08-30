@@ -37,19 +37,20 @@ class Cache<K,V> extends BaseCache<V> {
         @NamedParam Closure expireFn = null,
         @NamedParam Closure timestampFn = null,
         @NamedParam boolean replicate = false,
-        @NamedParam boolean optimizeRemovals = false
+        @NamedParam boolean optimizeRemovals = true,
+        @NamedParam Closure onChange = null
     ) {
-        super(svc, name, expireTime, expireFn, timestampFn, replicate, optimizeRemovals)
+        super(svc, name, expireTime, expireFn, timestampFn, replicate, optimizeRemovals, onChange)
 
         if (replicate && !name) {
             throw new IllegalArgumentException("Cannot create a replicated Cache without a unique name")
         }
 
-        // Intentional `this` below - super might override to false if !multiInstanceEnabled
-        _map = this.replicate ? svc.getReplicatedMap(name) : new ConcurrentHashMap()
-
-        if (_map instanceof ReplicatedMap) {
-            _map.addEntryListener(getHzEntryListener())
+        if (useCluster) {
+            _map = svc.getReplicatedMap(name)
+            (_map as ReplicatedMap).addEntryListener(getHzEntryListener())
+        } else {
+            _map = new ConcurrentHashMap()
         }
 
         timer = new Timer(
@@ -90,7 +91,7 @@ class Cache<K,V> extends BaseCache<V> {
         } else {
             _map.put(key, new Entry(key.toString(), obj, svc.instanceLog.name))
         }
-        if (!replicate) fireOnChange(this, oldEntry?.value, obj)
+        if (!useCluster) fireOnChange(this, oldEntry?.value, obj)
     }
 
     /** @returns a cached value, or lazily creates if needed. */
