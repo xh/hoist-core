@@ -4,17 +4,12 @@
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - latest Hoist React + DB col additions)
 
-* Requires `hoist-react >= 67.0.0` for client-side changes to accommodate updated `track`
-  and `submitError` APIs. See below for database column additions to support the same.
-
-* Requires `hoist-react >= 67.0` to use corresponding role delete bug fix.
-
+* Requires `hoist-react >= 67.0.0`.
+* Requires minor DB schema additions (see below).
 * Deprecated config `xhAppVersionCheck` in favor of new `xhAppStatusCheck`. `Bootstrap` will
   migrate apps' existing `mode` value to this new config's `updateMode` property. Since status
   checks now include `instanceName`, `interval` should be set to a tighter value than before.
-  Default is 10s. Requires `hoist-react >= 67.0`.
-
-* Renamed `/xh/version` endpoint to `/xh/status` to better reflect its purpose.
+  Default is 10s.
 
 ### 🎁 New Features
 
@@ -30,10 +25,17 @@
       ```sql
       ALTER TABLE `xh_track_log` ADD COLUMN `correlation_id` VARCHAR(100) NULL;
       ```
+* New `LdapService.authenticate()` API supports a new way to validate a domain user's credentials by
+  confirming they can be used to bind to a configured LDAP server.
 
 ### 🐞 Bug Fixes
 
 * Fixed bug where a role with a dot in its name could not be deleted.
+
+### ⚙️ Technical
+
+* `LdapService` now binds to configured servers with TLS and supports new `skipTlsCertVerification`
+  flag in its config to allow for self-signed or otherwise untrusted certificates.
 
 ## 20.4.0 - 2024-07-31
 
