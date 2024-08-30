@@ -4,10 +4,8 @@
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - latest Hoist React + DB col additions)
 
-* Requires `hoist-react >= 67.0.0` for client-side changes to accommodate updated `track`
-  and `submitError` APIs. See below for database column additions to support the same.
-
-* Requires `hoist-react >= 67.0` to use corresponding role delete bug fix.
+* Requires `hoist-react >= 67.0.0`.
+* Requires minor DB schema additions (see below).
 
 ### 🎁 New Features
 
@@ -23,7 +21,8 @@
       ```sql
       ALTER TABLE `xh_track_log` ADD COLUMN `correlation_id` VARCHAR(100) NULL;
       ```
-* New `LdapService.authenticate()` provides support for forms/session based auth.
+* New `LdapService.authenticate()` API supports a new way to validate a domain user's credentials by
+  confirming they can be used to bind to a configured LDAP server.
 
 ### 🐞 Bug Fixes
 

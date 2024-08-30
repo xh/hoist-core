@@ -118,12 +118,14 @@ class LdapService extends BaseService {
     }
 
     /**
-     * Authenticate a user.
+     * Validate a domain user's password by confirming it can be used to bind to a configured LDAP
+     * server. Note this does *not* on its own cause the user to become authenticated to this
+     * application - it is intended to support an alternate form-based login strategy as a backup
+     * to primary OAuth/SSO authentication.
      *
-     * This method uses the underlying LDAP bind mechanism to verify user password and access.
-     *
-     * @param username -- sAMAccountName for user
-     * @param password -- credentials for user
+     * @param username - sAMAccountName for user
+     * @param password - credentials for user
+     * @return true if the password is valid and the test connection succeeds
      */
     boolean authenticate(String username, String password) {
         for (Map server in config.servers) {
