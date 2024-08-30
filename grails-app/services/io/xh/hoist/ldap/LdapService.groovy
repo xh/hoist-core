@@ -4,6 +4,9 @@ import io.xh.hoist.BaseService
 import io.xh.hoist.cache.Cache
 import org.apache.directory.api.ldap.model.entry.Attribute
 import org.apache.directory.api.ldap.model.message.SearchScope
+import org.apache.directory.api.ldap.model.exception.LdapAuthenticationException
+import org.apache.directory.ldap.client.api.LdapConnectionConfig
+import org.apache.directory.ldap.client.api.NoVerificationTrustManager
 import org.apache.directory.ldap.client.api.LdapNetworkConnection
 
 import static grails.async.Promises.task
@@ -17,6 +20,7 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
  *          - enabled - true to enable
  *          - timeoutMs - time to wait for any individual search to resolve.
  *          - cacheExpireSecs - length of time to cache results.  Set to -1 to disable caching.
+ *          - skipTlsCertVerification - true to accept untrusted certificates when binding
  *          - servers - list of servers to be queried, each containing:
  *              - host
  *              - baseUserDn
@@ -114,6 +118,37 @@ class LdapService extends BaseService {
         return ret
     }
 
+    /**
+     * Validate a domain user's password by confirming it can be used to bind to a configured LDAP
+     * server. Note this does *not* on its own cause the user to become authenticated to this
+     * application - it is intended to support an alternate form-based login strategy as a backup
+     * to primary OAuth/SSO authentication.
+     *
+     * @param username - sAMAccountName for user
+     * @param password - credentials for user
+     * @return true if the password is valid and the test connection succeeds
+     */
+    boolean authenticate(String username, String password) {
+        for (Map server in config.servers) {
+            String host = server.host
+            List<LdapPerson> matches = doQuery(server, "(sAMAccountName=$username)", LdapPerson, true)
+            if (matches) {
+                if (matches.size() > 1) throw new RuntimeException("Multiple user records found for $username")
+                LdapPerson user = matches.first()
+                try (def conn = createConnection(host)) {
+                    conn.bind(user.distinguishedname, password)
+                    conn.unBind()
+                    return true
+                } catch (LdapAuthenticationException ignored) {
+                    logDebug('Authentication failed, incorrect credentials', [username: username])
+                    return false
+                }
+            }
+        }
+        logDebug('Authentication failed, no user found', [username: username])
+        return false
+    }
+
     //----------------------
     // Implementation
     //----------------------
@@ -139,12 +174,9 @@ class LdapService extends BaseService {
         if (ret != null) return ret
 
         withDebug(["Querying LDAP", [host: host, filter: filter]]) {
-            try (LdapNetworkConnection conn = new LdapNetworkConnection(host)) {
+            try (def conn = createConnection(host)) {
                 String baseDn = isPerson ? server.baseUserDn : server.baseGroupDn
                 String[] keys = objType.keys.toArray() as String[]
-
-                conn.timeOut = config.timeoutMs as Long
-
                 boolean didBind = false
                 try {
                     conn.bind(queryUsername, queryUserPwd)
@@ -153,8 +185,7 @@ class LdapService extends BaseService {
                         .collect { objType.create(it.attributes as Collection<Attribute>) }
                     cache.put(key, ret)
                 } finally {
-                    // Calling unBind on an unbound connection will throw an exception
-                    if (didBind) conn.unBind()
+                    if (didBind) conn.unBind()  // If unbound will throw an exception
                 }
             } catch (Exception e) {
                 if (strictMode) throw e
@@ -163,6 +194,20 @@ class LdapService extends BaseService {
             }
         }
         return ret
+    }
+
+    private LdapNetworkConnection createConnection(String host) {
+        def ret = new LdapConnectionConfig()
+        ret.ldapHost = host
+        ret.ldapPort = ret.defaultLdapPort
+        ret.timeout = config.timeoutMs as Long
+        ret.useTls = true
+
+        if (config.skipTlsCertVerification) {
+            ret.setTrustManagers(new NoVerificationTrustManager())
+        }
+
+        return new LdapNetworkConnection(ret)
     }
 
     private Map getConfig() {
