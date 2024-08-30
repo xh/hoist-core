@@ -39,6 +39,7 @@
 ### ⚙️ Technical
 
 * Support for bulk updating of Role categories.
+* Add `LdapConfig` class to type + document structure of primary `LdapService` soft-config.
 
 ## 20.3.1 - 2024-07-23
 
