@@ -16,6 +16,7 @@ class TrackLog implements JSONFormat {
 
     String username
     String category
+    String correlationId
     String msg
     String browser
     String device
@@ -46,6 +47,7 @@ class TrackLog implements JSONFormat {
         username(maxSize: 50)
         category(maxSize: 100)
         browser(nullable: true, maxSize: 100)
+        correlationId(nullable: true, maxSize: 100)
         device(nullable: true, maxSize: 100)
         userAgent(nullable: true)
         data(nullable: true, validator: { Utils.isJSON(it) ?: 'default.invalid.json.message'})
@@ -61,6 +63,7 @@ class TrackLog implements JSONFormat {
     Map formatForJSON() {
         return [
                 id: id,
+                correlationId: correlationId,
                 dateCreated: dateCreated,
                 day: appDay(dateCreated),
                 username: username,

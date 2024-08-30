@@ -2,6 +2,32 @@
 
 ## 21.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - latest Hoist React + DB col additions)
+
+* Requires `hoist-react >= 67.0.0` for client-side changes to accommodate updated `track`
+  and `submitError` APIs. See below for database column additions to support the same.
+  
+* Requires `hoist-react >= 67.0` to use corresponding role delete bug fix.
+
+### 🎁 New Features
+
+* Client error reports include new `correlationId` field.
+    * ⚠ NOTE - this requires a new column in the `xh_client_error` table. Review and run the
+      following SQL, or an equivalent suitable for the particular database you are using:
+      ```sql
+      ALTER TABLE `xh_client_error` ADD COLUMN `correlation_id` VARCHAR(100) NULL;
+      ```
+* Activity tracking logs include new `correlationId` field.
+    * ⚠ NOTE - this requires a new column in the `xh_track_log` table. Review and run the following
+      SQL, or an equivalent suitable for the particular database you are using:
+      ```sql
+      ALTER TABLE `xh_track_log` ADD COLUMN `correlation_id` VARCHAR(100) NULL;
+      ```
+
+### 🐞 Bug Fixes
+
+* Fixed bug where a role with a dot in its name could not be deleted.
+
 ## 20.4.0 - 2024-07-31
 
 ### 🐞 Bug Fixes
@@ -11,6 +37,7 @@
   XH tables are in a custom schema.
 
 ### ⚙️ Technical
+
 * Support for bulk updating of Role categories.
 * Add `LdapConfig` class to type + document structure of primary `LdapService` soft-config.
 

@@ -38,18 +38,18 @@ class DefaultRoleUpdateService extends BaseService {
     }
 
     @Transactional
-    void delete(String id) {
+    void delete(String name) {
         ensureEnabled()
 
-        Role roleToDelete = Role.get(id)
+        Role roleToDelete = Role.get(name)
 
         RoleMember
-            .findAllByTypeAndName(ROLE, id)
+            .findAllByTypeAndName(ROLE, name)
             .each { it.role.removeFromMembers(it) }
 
         roleToDelete.delete(flush: true)
 
-        trackService.track(msg: "Deleted role: '$id'", category: 'Audit')
+        trackService.track(msg: "Deleted role: '$name'", category: 'Audit')
         defaultRoleService.refreshRoleAssignments()
     }
 
