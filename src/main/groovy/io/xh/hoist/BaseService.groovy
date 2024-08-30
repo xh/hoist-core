@@ -54,8 +54,8 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     protected final List<Timer> timers = []
 
     private boolean _destroyed = false
-    private Map _repValuesMap
-    private Map _localValuesMap
+    private Map _replicatedCachedValues
+    private Map _localCachedValues
 
     private final Logger _log = LoggerFactory.getLogger(this.class)
 
@@ -256,7 +256,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     //--------------------
     // Implemented methods
     //--------------------
-    boolean isInitialized() {!!initializedDate}
+    boolean isInitialized() {initializedDate != null}
     boolean isDestroyed()   {_destroyed}
 
     HoistUser getUser()         {identityService.user}
@@ -296,13 +296,13 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         this.class.name + '_' + key
     }
 
-    /** @internal - for use by CachedValue*/
-    Map getRepValuesMap() {
-        _repValuesMap ?= getReplicatedMap('replicatedValues')
+    /** @internal - for use by CachedValue */
+    Map getReplicatedCachedValuesMap() {
+        _replicatedCachedValues ?= getReplicatedMap('cachedValues')
     }
 
-    /** @internal - for use by CachedValue*/
-    Map getSimpleValuesMap() {
-        _localValuesMap ?= new ConcurrentHashMap()
+    /** @internal - for use by CachedValue */
+    Map getLocalCachedValuesMap() {
+        _localCachedValues ?= new ConcurrentHashMap()
     }
 }

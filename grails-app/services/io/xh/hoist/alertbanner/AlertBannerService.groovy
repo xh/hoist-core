@@ -7,19 +7,20 @@
 
 package io.xh.hoist.alertbanner
 
+
+import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.cache.CachedValue
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.jsonblob.JsonBlobService
-import io.xh.hoist.util.Utils
 import io.xh.hoist.util.Timer
+import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.json.JSONParser.parseArray
 import static io.xh.hoist.json.JSONParser.parseObject
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
-import static java.lang.System.currentTimeMillis
 import static io.xh.hoist.util.Utils.getAppEnvironment
-
+import static java.lang.System.currentTimeMillis
 
 /**
  * Provide support for application alert banners.
@@ -28,6 +29,7 @@ import static io.xh.hoist.util.Utils.getAppEnvironment
  * The published alert state is updated via the Hoist Admin console and is regularly refreshed
  * on a timer to catch banner expiry.
  */
+@CompileStatic
 class AlertBannerService extends BaseService {
 
     ConfigService configService
@@ -100,12 +102,16 @@ class AlertBannerService extends BaseService {
     private void readFromSpec() {
         def conf = configService.getMap('xhAlertBannerConfig'),
             newSpec = emptyAlert
+
         if (conf.enabled) {
-            def spec = getAlertSpec()
-            if (spec.active && (!spec.expires || spec.expires > currentTimeMillis())) {
+            def spec = getAlertSpec(),
+                expires = spec.expires as Long
+
+            if (spec.active && (!expires || expires > currentTimeMillis())) {
                 newSpec = spec
             }
         }
+
         _alertBanner.set(newSpec)
     }
 
