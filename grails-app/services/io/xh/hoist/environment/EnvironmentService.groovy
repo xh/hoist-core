@@ -11,7 +11,9 @@ import grails.plugins.GrailsPlugin
 import grails.util.GrailsUtil
 import grails.util.Holders
 import io.xh.hoist.BaseService
+import io.xh.hoist.config.ConfigService
 import io.xh.hoist.util.Utils
+import io.xh.hoist.websocket.WebSocketService
 
 
 /**
@@ -20,8 +22,8 @@ import io.xh.hoist.util.Utils
  */
 class EnvironmentService extends BaseService {
 
-    def configService,
-        webSocketService
+    ConfigService configService
+    WebSocketService webSocketService
 
     private TimeZone _appTimeZone
 
@@ -47,8 +49,21 @@ class EnvironmentService extends BaseService {
         return Calendar.instance.timeZone
     }
 
-    /** Bundle of environment-related metadata, for serialization to JS clients. */
+    /**
+     * Returns environment-related metadata, varying based on the current authenticated user.
+     *
+     * If there is not an authenticated user, a minimal summary object will be returned.
+     *
+     * Otherwise, the return payload will include additional details regarding this application,
+     * runtime, and libraries, along with current `xhEnvPollingConfig` settings to control client
+     * polling to detect changes to the connected instance or the application version.
+     */
     Map getEnvironment() {
+        def authUser = getAuthUser()
+        if (!authUser) {
+            return getEnvironmentSummary()
+        }
+
         def serverTz = serverTimeZone,
             appTz = appTimeZone,
             now = System.currentTimeMillis()
@@ -66,21 +81,35 @@ class EnvironmentService extends BaseService {
                 appTimeZone:            appTz.toZoneId().id,
                 appTimeZoneOffset:      appTz.getOffset(now),
                 webSocketsEnabled:      webSocketService.enabled,
-                instanceName:           clusterService.instanceName
+                instanceName:           clusterService.instanceName,
+                pollingConfig:          configService.getMap('xhEnvPollingConfig')
         ]
 
         hoistGrailsPlugins.each {it ->
             ret[it.name + 'Version'] = it.version
         }
 
-        def user = authUser
-        if (user?.isHoistAdminReader) {
+        if (authUser.isHoistAdminReader) {
             def dataSource = Utils.dataSourceConfig
             ret.databaseConnectionString = dataSource.url
             ret.databaseUser = dataSource.username
             ret.databaseCreateMode = dataSource.dbCreate
         }
+
         return ret
+    }
+
+    /**
+     * Returns deliberately minimal environment metadata, suitable for unauthenticated requests.
+     */
+    Map getEnvironmentSummary() {
+        [
+            appCode: Utils.appCode,
+            appVersion: Utils.appVersion,
+            appBuild: Utils.appBuild,
+            appEnvironment: Utils.appEnvironment.toString(),
+            instanceName: clusterService.instanceName
+        ]
     }
 
 

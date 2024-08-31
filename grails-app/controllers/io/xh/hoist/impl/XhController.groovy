@@ -215,19 +215,26 @@ class XhController extends BaseController {
     //------------------------
     // Environment
     //------------------------
+    /**
+     * Whitelisted for pre-auth access by {@link BaseAuthenticationService} to support emitting
+     * minimal information about this application to automated uptime/health checks.
+     *
+     * Note that EnvironmentService will return different payloads based on presence of an
+     * authenticated user and whether the user is an admin - see the service for details.
+     */
     def environment() {
-        renderJSON(environmentService.getEnvironment())
+        renderJSON(environmentService.environment)
     }
 
-    def status() {
-        def options = configService.getMap('xhAppStatusCheck', [:])
-        renderJSON(
-            *: options,
-            instanceName: clusterService.instanceName,
-            appVersion: Utils.appVersion,
-            appBuild: Utils.appBuild
-        )
+    /**
+     * Whitelisted for pre-auth access by {@link BaseAuthenticationService}.
+     * @deprecated - call /environment instead - no longer called by Hoist React 67+.
+     */
+    @Deprecated(since = "21.0.0")
+    def version() {
+        renderJSON(environmentService.environmentSummary)
     }
+
 
     //------------------------
     // Client Errors

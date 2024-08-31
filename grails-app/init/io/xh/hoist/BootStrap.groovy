@@ -99,21 +99,6 @@ class BootStrap implements LogSupport {
                 groupName: 'xh.io',
                 note: 'Official TimeZone for this application - e.g. the zone of the head office. Used to format/parse business related dates that need to be considered and displayed consistently at all locations. Set to a valid Java TimeZone ID.'
             ],
-            xhAppStatusCheck: [
-                valueType: 'json',
-                defaultValue: [
-                    interval: 10,
-                    updateMode: configService.getMap('xhAppVersionCheck', [mode: 'promptReload']).get('mode')
-                ],
-                clientVisible: true,
-                groupName: 'xh.io',
-                note: "Controls client calls to server to poll for new version and/or instance. Supports the following options:\n\n" +
-                    "-'interval': Frequency (in seconds) with which the status of the app server should be polled. Value of -1 disables checking.\n" +
-                    "-'updateMode': Action taken by client upon a new version becoming available. Supports the following options:\n" +
-                    "\t+ 'forceReload': Force clients to refresh immediately. To be used when an updated server is known to be incompatible with a previously deployed client.\n" +
-                    "\t+ 'promptReload': Show an update prompt banner, allowing users to refresh when convenient.\n" +
-                    "\t+ 'silent': No action taken."
-            ],
             xhAutoRefreshIntervals: [
                 valueType: 'json',
                 defaultValue: [app: -1],
@@ -196,6 +181,20 @@ class BootStrap implements LogSupport {
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'True to enable the monitor tab included with the Hoist Admin console and the associated server-side jobs'
+            ],
+            xhEnvPollingConfig: [
+                valueType: 'json',
+                defaultValue: [
+                    interval: 10,
+                    onVersionChange: configService.getMap('xhAppVersionCheck', [mode: 'promptReload']).get('mode')
+                ],
+                groupName: 'xh.io',
+                note: "Controls client calls to server to poll for version and/or instance changes. Supports the following options:\n\n" +
+                    "- interval: Frequency (in seconds) with which the status of the app server should be polled. Value of -1 disables checking.\n" +
+                    "- onVersionChange: Action taken by client upon a new version becoming available, one of:\n" +
+                    "\t+ 'forceReload': Force clients to refresh immediately. To be used when an updated server is known to be incompatible with a previously deployed client.\n" +
+                    "\t+ 'promptReload': Show an update prompt banner, allowing users to refresh when convenient.\n" +
+                    "\t+ 'silent': No action taken."
             ],
             xhExpectedServerTimeZone: [
                 valueType: 'string',
