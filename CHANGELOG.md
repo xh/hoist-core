@@ -6,10 +6,10 @@
 
 * Requires `hoist-react >= 67.0.0`.
 * Requires minor DB schema additions (see below).
-* Deprecated config `xhAppVersionCheck` in favor of new `xhAppStatusCheck`. `Bootstrap` will
-  migrate apps' existing `mode` value to this new config's `updateMode` property. Since status
-  checks now include `instanceName`, `interval` should be set to a tighter value than before.
-  Default is 10s.
+* Migrated previous `xhAppVersionCheck` to new `xhEnvPollingConfig`, which now governs a single
+  polling interval on the client to check for both app version and instance changes. The previous
+  config's `mode` value will be automatically migrated to the new `onVersionChange` key. A shorter
+  default interval of 10s will be set in all cases, to ensure timely detection of instance changes.
 
 ### 🎁 New Features
 
