@@ -4,7 +4,6 @@
  *
  * Copyright © 2023 Extremely Heavy Industries Inc.
  */
-
 package io.xh.hoist.cache
 
 import com.hazelcast.replicatedmap.ReplicatedMap
@@ -21,7 +20,6 @@ import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static java.lang.System.currentTimeMillis
-import static java.util.Collections.emptyMap
 
 @CompileStatic
 class Cache<K,V> extends BaseCache<V> {
@@ -37,10 +35,10 @@ class Cache<K,V> extends BaseCache<V> {
         @NamedParam Closure expireFn = null,
         @NamedParam Closure timestampFn = null,
         @NamedParam boolean replicate = false,
-        @NamedParam boolean optimizeRemovals = true,
+        @NamedParam boolean serializeOldValue = false,
         @NamedParam Closure onChange = null
     ) {
-        super(svc, name, expireTime, expireFn, timestampFn, replicate, optimizeRemovals, onChange)
+        super(svc, name, expireTime, expireFn, timestampFn, replicate, serializeOldValue, onChange)
 
         if (replicate && !name) {
             throw new IllegalArgumentException("Cannot create a replicated Cache without a unique name")
@@ -85,7 +83,7 @@ class Cache<K,V> extends BaseCache<V> {
     /** Put a value at key. */
     void put(K key, V obj) {
         def oldEntry = _map[key]
-        if (optimizeRemovals) oldEntry?.isOptimizedRemoval = true
+        if (!serializeOldValue) oldEntry?.serializeValue = false
         if (obj == null) {
             _map.remove(key)
         } else {
@@ -128,23 +126,27 @@ class Cache<K,V> extends BaseCache<V> {
     /**
      * Wait for the cache entry to be populated.
      *
-     * @param opts -- optional parameters governing behavior:
-     *      timeout, time in ms to wait.  -1 to wait indefinitely (not recommended). Default 30 seconds.
-     *      interval, time in ms to wait between tests.  Defaults to 1 second.
-     *      timeoutMessage, custom message associated with any timeout.
+     * @param key, entry to check
+     * @param timeout, time in ms to wait.  -1 to wait indefinitely (not recommended).
+     * @param interval, time in ms to wait between tests.
+     * @param timeoutMessage, custom message associated with any timeout.
      */
-    void ensureAvailable(K key, Map opts = emptyMap()) {
+    @NamedVariant
+    void ensureAvailable(
+        K key,
+        @NamedParam Long timeout = 30 * SECONDS,
+        @NamedParam Long interval = 1 * SECONDS,
+        @NamedParam String timeoutMessage = null
+    ) {
+
         if (getEntry(key)) return
 
         svc.withDebug("Waiting for cache entry value at '$key'") {
-            Long timeout = (opts?.timeout ?: 30 * SECONDS) as Long,
-                 interval = (opts?.interval ?: 1 * SECONDS) as Long
-
             for (def startTime = currentTimeMillis(); !intervalElapsed(timeout, startTime); sleep(interval)) {
                 if (getEntry(key)) return;
             }
 
-            String msg = opts?.timeoutMessage ?: "Timed out after ${timeout}ms waiting for cached entry at '$key'"
+            String msg = timeoutMessage ?: "Timed out after ${timeout}ms waiting for cached entry at '$key'"
             throw new TimeoutException(msg)
         }
     }

@@ -37,13 +37,16 @@ abstract class BaseCache<V> {
     public final boolean replicate
 
     /**
-     * Optimize removals of replicated entries, such that the old value is not re-serialized.
-     * Useful for caches containing large objects that are expensive to serialize + deserialize.
-     * Default true.
+     * Should old values being removed be serialized to cluster replicas?
      *
-     * NOTE: if enabled, `CacheValueChanged` events from this object will *not* contain an oldValue.
+     * By default, the values being removed from this object are not serialized to replicas.  This
+     * improves performance and is especially important for caches containing large objects that
+     * are expensive to serialize + deserialize.
+     *
+     * If false, `CacheValueChanged` events from this object will *not* contain an
+     * oldValue.  Set to true if your event handlers need access to the previous value.
      */
-    public final boolean optimizeRemovals
+    public final boolean serializeOldValue
 
     /**
      * Handlers to be called on change with a {@link CacheValueChanged} object
@@ -57,7 +60,7 @@ abstract class BaseCache<V> {
         Closure expireFn,
         Closure timestampFn,
         boolean replicate,
-        boolean optimizeRemovals,
+        boolean serializeOldValue,
         Closure onChange
     ) {
         this.svc = svc
@@ -66,7 +69,7 @@ abstract class BaseCache<V> {
         this.expireFn = expireFn
         this.timestampFn = timestampFn
         this.replicate = replicate
-        this.optimizeRemovals = optimizeRemovals
+        this.serializeOldValue = serializeOldValue
         this.onChange = onChange ? [onChange] : []
     }
 

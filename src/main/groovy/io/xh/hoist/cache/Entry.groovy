@@ -25,21 +25,21 @@ class Entry<T> implements KryoSerializable, LogSupport {
     Long dateEntered
     String loggerName
 
-    boolean isOptimizedRemoval
+    boolean serializeValue
 
     Entry(String key, T value, String loggerName) {
         this.key = key
         this.value = value
         this.dateEntered = currentTimeMillis()
         this.loggerName = loggerName
-        this.isOptimizedRemoval = false
+        this.serializeValue = true
     }
 
     Entry() {}
 
     void write(Kryo kryo, Output output) {
-        output.writeBoolean(isOptimizedRemoval)
-        if (isOptimizedRemoval) return
+        output.writeBoolean(serializeValue)
+        if (!serializeValue) return
 
         output.writeString(key)
         output.writeLong(dateEntered)
@@ -50,8 +50,8 @@ class Entry<T> implements KryoSerializable, LogSupport {
     }
 
     void read(Kryo kryo, Input input) {
-        isOptimizedRemoval = input.readBoolean()
-        if (isOptimizedRemoval) return
+        serializeValue = input.readBoolean()
+        if (!serializeValue) return
 
         key = input.readString()
         dateEntered = input.readLong()

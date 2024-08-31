@@ -36,8 +36,8 @@ class CacheValueChanged<K, V> {
      * In that case, the value will always be null.
      */
     V getOldValue() {
-        if (source.optimizeRemovals) {
-            source.svc.logWarn('Accessing the old value for a cache with optimizedRemoval not supported')
+        if (!source.serializeOldValue) {
+            source.svc.logWarn('Accessing the old value for a cache with serializeOldValue=false')
             return null
         }
         return this._oldValue

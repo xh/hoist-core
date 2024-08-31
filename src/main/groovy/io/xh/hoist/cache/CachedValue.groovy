@@ -29,10 +29,10 @@ class CachedValue<V> extends BaseCache<V> {
         @NamedParam Closure expireFn = null,
         @NamedParam Closure timestampFn = null,
         @NamedParam boolean replicate = false,
-        @NamedParam boolean optimizeRemovals = true,
+        @NamedParam boolean serializeOldValue = false,
         @NamedParam Closure onChange = null
     ) {
-        super(svc, name, expireTime, expireFn, timestampFn, replicate, optimizeRemovals, onChange)
+        super(svc, name, expireTime, expireFn, timestampFn, replicate, serializeOldValue, onChange)
 
         if (useCluster) {
             _map = svc.replicatedCachedValuesMap
@@ -55,7 +55,7 @@ class CachedValue<V> extends BaseCache<V> {
     /** Set the value. */
     void set(V value) {
         def oldEntry = _map[name]
-        if (optimizeRemovals) oldEntry?.isOptimizedRemoval = true
+        if (!serializeOldValue) oldEntry?.serializeValue = false
         if (value == null) {
             _map.remove(name)
         } else {
@@ -83,23 +83,24 @@ class CachedValue<V> extends BaseCache<V> {
     /**
      * Wait for the replicated value to be populated
      *
-     * @param opts -- optional parameters governing behavior:
-     *      timeout, time in ms to wait.  -1 to wait indefinitely (not recommended). Default 30 seconds.
-     *      interval, time in ms to wait between tests.  Defaults to 1 second.
-     *      timeoutMessage, custom message associated with any timeout.
+     * @param timeout, time in ms to wait.  -1 to wait indefinitely (not recommended).
+     * @param interval, time in ms to wait between tests.
+     * @param timeoutMessage, custom message associated with any timeout.
      */
-    void ensureAvailable(Map opts = emptyMap()) {
+    @NamedVariant
+    void ensureAvailable(
+        @NamedParam Long timeout = 30 * SECONDS,
+        @NamedParam Long interval = 1 * SECONDS,
+        @NamedParam String timeoutMessage = null
+    ) {
         if (get() != null) return
 
         svc.withDebug("Waiting for CachedValue '$name'") {
-            Long timeout = (opts?.timeout ?: 30 * SECONDS) as Long,
-                 interval = (opts?.interval ?: 1 * SECONDS) as Long
-
             for (def startTime = currentTimeMillis(); !intervalElapsed(timeout, startTime); sleep(interval)) {
                 if (get() != null) return
             }
 
-            String msg = opts?.timeoutMessage ?: "Timed out after ${timeout}ms waiting for CachedValue '$name'"
+            String msg = timeoutMessage ?: "Timed out after ${timeout}ms waiting for CachedValue '$name'"
             throw new TimeoutException(msg)
         }
     }
