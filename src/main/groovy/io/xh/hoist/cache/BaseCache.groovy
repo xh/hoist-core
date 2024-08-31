@@ -1,0 +1,127 @@
+/*
+ * This file belongs to Hoist, an application development toolkit
+ * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
+ *
+ * Copyright © 2023 Extremely Heavy Industries Inc.
+ */
+
+package io.xh.hoist.cache
+
+import com.hazelcast.core.EntryEvent
+import com.hazelcast.core.EntryListener
+import groovy.transform.CompileStatic
+import io.xh.hoist.BaseService
+import io.xh.hoist.cluster.ClusterService
+
+import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
+
+@CompileStatic
+abstract class BaseCache<V> {
+
+    /** Service using this object. */
+    public final BaseService svc
+
+    /** Unique name in the context of the service associated with this object. */
+    public final String name
+
+    /** Closure to determine if an entry should be expired. (optional) */
+    public final Closure expireFn
+
+    /** Time after which an entry should be expired, or closure to get this time. (optional) */
+    public final Object expireTime
+
+    /** Closure to determine the timestamp of an entry. (optional) */
+    public final Closure timestampFn
+
+    /** Whether this cache should be replicated across a cluster. Default false */
+    public final boolean replicate
+
+    /**
+     * Should old values being removed be serialized to cluster replicas?
+     *
+     * By default, the values being removed from this object are not serialized to replicas.  This
+     * improves performance and is especially important for caches containing large objects that
+     * are expensive to serialize + deserialize.
+     *
+     * If false, `CacheValueChanged` events from this object will *not* contain an
+     * oldValue.  Set to true if your event handlers need access to the previous value.
+     */
+    public final boolean serializeOldValue
+
+    /**
+     * Handlers to be called on change with a {@link CacheValueChanged} object
+     */
+    public final List<Closure> onChange
+
+    BaseCache(
+        BaseService svc,
+        String name,
+        Object expireTime,
+        Closure expireFn,
+        Closure timestampFn,
+        boolean replicate,
+        boolean serializeOldValue,
+        Closure onChange
+    ) {
+        this.svc = svc
+        this.name = name
+        this.expireTime = expireTime
+        this.expireFn = expireFn
+        this.timestampFn = timestampFn
+        this.replicate = replicate
+        this.serializeOldValue = serializeOldValue
+        this.onChange = onChange ? [onChange] : []
+    }
+
+    /**
+     * @param handler - closure called on change with a {@link CacheValueChanged} object
+     */
+    void addChangeHandler(Closure handler) {
+        onChange << handler
+    }
+
+    /** Clear all values. */
+    abstract void clear()
+
+    //------------------------
+    // Implementation
+    //------------------------
+    protected boolean getUseCluster() {
+        return replicate && ClusterService.multiInstanceEnabled
+    }
+
+    protected EntryListener getHzEntryListener() {
+        Closure onChg = { EntryEvent<?, Entry<V>> it ->
+            fireOnChange(it.key, it.oldValue?.value, it.value?.value)
+        }
+        return [
+            entryAdded  : onChg,
+            entryUpdated: onChg,
+            entryRemoved: onChg,
+            entryEvicted: onChg,
+            entryExpired: onChg
+        ] as EntryListener
+    }
+
+    protected void fireOnChange(Object key, V oldValue, V value) {
+        def change = new CacheValueChanged(this, key, oldValue,  value)
+        onChange.each { it.call(change) }
+    }
+
+    protected boolean shouldExpire(Entry<V> obj) {
+        if (expireFn) return expireFn(obj)
+
+        if (expireTime) {
+            def timestamp
+            if (timestampFn) {
+                timestamp = timestampFn(obj.value)
+                if (timestamp instanceof Date) timestamp = ((Date) timestamp).time
+            } else {
+                timestamp = obj.dateEntered
+            }
+            Long expire = (expireTime instanceof Closure ?  expireTime.call() : expireTime) as Long
+            return intervalElapsed(expire, timestamp)
+        }
+        return false
+    }
+}

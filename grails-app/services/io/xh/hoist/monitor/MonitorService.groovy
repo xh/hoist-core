@@ -11,8 +11,8 @@ import grails.compiler.GrailsCompileStatic
 import grails.gorm.transactions.ReadOnly
 import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
+import io.xh.hoist.cache.CachedValue
 import io.xh.hoist.cluster.ClusterRequest
-import io.xh.hoist.cluster.ReplicatedValue
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.util.Timer
 
@@ -41,7 +41,11 @@ class MonitorService extends BaseService {
 
     // Shared state for all servers to read - gathered by primary from all instances.
     // Map of monitor code to aggregated (cross-instance) results.
-    private ReplicatedValue<Map<String, AggregateMonitorResult>> _results = getReplicatedValue('results')
+    private CachedValue<Map<String, AggregateMonitorResult>> _results = new CachedValue<>(
+        name: 'results',
+        replicate: true,
+        svc: this
+    )
 
     private Timer timer
 

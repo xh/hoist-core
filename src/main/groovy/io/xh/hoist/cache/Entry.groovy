@@ -13,6 +13,8 @@ import com.esotericsoftware.kryo.io.Input
 import com.esotericsoftware.kryo.io.Output
 import groovy.transform.CompileStatic
 import io.xh.hoist.log.LogSupport
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import static java.lang.System.currentTimeMillis
 
@@ -20,38 +22,47 @@ import static java.lang.System.currentTimeMillis
 class Entry<T> implements KryoSerializable, LogSupport {
     String key
     T value
-    boolean isRemoving
     Long dateEntered
+    String loggerName
 
-    Entry(String key, T value) {
+    boolean serializeValue
+
+    Entry(String key, T value, String loggerName) {
         this.key = key
         this.value = value
-        this.isRemoving = false
-        this.dateEntered = System.currentTimeMillis()
+        this.dateEntered = currentTimeMillis()
+        this.loggerName = loggerName
+        this.serializeValue = true
     }
 
     Entry() {}
 
     void write(Kryo kryo, Output output) {
-        output.writeBoolean(isRemoving)
+        output.writeBoolean(serializeValue)
+        if (!serializeValue) return
+
         output.writeString(key)
-        if (!isRemoving) {
-            withSingleTrace('Serializing') {
-                output.writeLong(dateEntered)
-                kryo.writeClassAndObject(output, value)
-            }
+        output.writeLong(dateEntered)
+        output.writeString(loggerName)
+        withSingleTrace('Serializing') {
+            kryo.writeClassAndObject(output, value)
         }
     }
 
     void read(Kryo kryo, Input input) {
-        isRemoving = input.readBoolean()
+        serializeValue = input.readBoolean()
+        if (!serializeValue) return
+
         key = input.readString()
-        if (!isRemoving) {
-            withSingleTrace('Deserializing') {
-                dateEntered = input.readLong()
-                value = kryo.readClassAndObject(input) as T
-            }
+        dateEntered = input.readLong()
+        loggerName = input.readString()
+        withSingleTrace('Deserializing') {
+            value = kryo.readClassAndObject(input) as T
         }
+    }
+
+    Logger getInstanceLog() {
+        LoggerFactory.getLogger(loggerName)
     }
 
     private void withSingleTrace(String msg, Closure c) {

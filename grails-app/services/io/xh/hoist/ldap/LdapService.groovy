@@ -41,13 +41,12 @@ class LdapService extends BaseService {
 
     def configService
 
-    private Cache<String, List<LdapObject>> cache
+    private Cache<String, List<LdapObject>> cache = new Cache<>(
+        expireTime: {config.cacheExpireSecs * SECONDS},
+        svc: this
+    )
 
     static clearCachesConfigs = ['xhLdapConfig', 'xhLdapUsername', 'xhLdapPassword']
-
-    void init() {
-        initCache()
-    }
 
     boolean getEnabled() {
         config.enabled
@@ -222,12 +221,8 @@ class LdapService extends BaseService {
         configService.getPwd('xhLdapPassword')
     }
 
-    private void initCache() {
-        cache = new Cache(svc: this, expireTime: config.cacheExpireSecs * SECONDS)
-    }
-
     void clearCaches() {
-        initCache()
+        cache.clear()
         super.clearCaches()
     }
 }

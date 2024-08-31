@@ -6,13 +6,14 @@
  */
 package io.xh.hoist.admin.cluster
 
+import io.xh.hoist.BaseController
 import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.security.Access
 
 import static io.xh.hoist.util.Utils.appContext
 
 @Access(['HOIST_ADMIN_READER'])
-class ServiceManagerAdminController extends BaseClusterController {
+class ServiceManagerAdminController extends BaseController {
 
     def listServices(String instance) {
         runOnInstance(new ListServices(), instance)

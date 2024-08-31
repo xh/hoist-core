@@ -8,7 +8,7 @@
 package io.xh.hoist.role.provided
 
 import grails.gorm.transactions.ReadOnly
-import io.xh.hoist.cluster.ReplicatedValue
+import io.xh.hoist.cache.CachedValue
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.ldap.LdapService
 import io.xh.hoist.role.BaseRoleService
@@ -81,8 +81,19 @@ class DefaultRoleService extends BaseRoleService {
     DefaultRoleUpdateService defaultRoleUpdateService
 
     private Timer timer
-    protected ReplicatedValue<Map<String, Set<String>>> _allRoleAssignments = getReplicatedValue('roleAssignments')
+    protected CachedValue<Map<String, Set<String>>> _allRoleAssignments = new CachedValue(
+        name: 'roleAssignments',
+        replicate: true,
+        svc: this,
+        onChange: {
+            _roleAssignmentsByUser = new ConcurrentHashMap()
+        }
+    )
+
+    // Derived lazy cache on each instance
     protected ConcurrentMap<String, Set<String>> _roleAssignmentsByUser = new ConcurrentHashMap<>()
+
+    // Local state for primary when computing role assignment
     protected Map<String, Object> _usersForDirectoryGroups = emptyMap()
 
     static clearCachesConfigs = ['xhRoleModuleConfig']
@@ -96,6 +107,7 @@ class DefaultRoleService extends BaseRoleService {
             runImmediatelyAndBlock: true,
             primaryOnly: true
         )
+        _allRoleAssignments.ensureAvailable()
     }
 
     //---------------------------------------
@@ -285,7 +297,6 @@ class DefaultRoleService extends BaseRoleService {
     void refreshRoleAssignments() {
         withDebug('Refreshing role caches') {
             _allRoleAssignments.set(generateRoleAssignments())
-            _roleAssignmentsByUser = new ConcurrentHashMap()
         }
     }
 
@@ -364,8 +375,6 @@ class DefaultRoleService extends BaseRoleService {
     }
 
     void clearCaches() {
-        _allRoleAssignments.set(emptyMap())
-        _roleAssignmentsByUser = new ConcurrentHashMap()
         _usersForDirectoryGroups = emptyMap()
         timer.forceRun()
         super.clearCaches()
