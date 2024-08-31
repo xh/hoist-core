@@ -8,6 +8,7 @@
 package io.xh.hoist.admin.cluster
 
 import groovy.io.FileType
+import io.xh.hoist.BaseController
 import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.configuration.LogbackConfig
 import io.xh.hoist.security.Access
@@ -15,7 +16,7 @@ import io.xh.hoist.security.Access
 import static io.xh.hoist.util.Utils.getAppContext
 
 @Access(['HOIST_ADMIN_READER'])
-class LogViewerAdminController extends BaseClusterController {
+class LogViewerAdminController extends BaseController {
 
     def listFiles(String instance) {
         runOnInstance(new ListFiles(), instance)

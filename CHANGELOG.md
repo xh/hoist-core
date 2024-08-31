@@ -6,6 +6,9 @@
 
 * Requires `hoist-react >= 67.0.0`.
 * Requires minor DB schema additions (see below).
+* `ReplicatedValue` has been replaced with the enhanced `CachedValue`. This new object provides
+  all the functionality of the old, plus additional features from the `Cache` API such as expiry,
+  `getOrCreate()`, event support, and blocking support for non-primary nodes.
 * Migrated previous `xhAppVersionCheck` to new `xhEnvPollingConfig`, which now governs a single
   polling interval on the client to check for both app version and instance changes. The previous
   config's `mode` value will be automatically migrated to the new `onVersionChange` key. A shorter
@@ -25,6 +28,14 @@
       ```sql
       ALTER TABLE `xh_track_log` ADD COLUMN `correlation_id` VARCHAR(100) NULL;
       ```
+* `Cache` and the (new) `CachedValue` provide a new common API for (potentially replicated) state
+  in services. In particular the following new features are included with common API:
+    * Dynamic expiry of values via fluid api
+    * New event handling via `addChangeHandler`
+    * Improved trace logging of value serialization
+    * Offers both replicated and non-replicated modes
+* New instance aware methods on `BaseController`: `runOnInstance`, `runOnPrimary` and
+  `runOnAllInstances`. These were formerly on `BaseClusterController`, which has been removed.
 * New `LdapService.authenticate()` API supports a new way to validate a domain user's credentials by
   confirming they can be used to bind to a configured LDAP server.
 
