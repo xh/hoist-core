@@ -13,6 +13,7 @@ import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
 
+import static io.xh.hoist.util.DateTimeUtils.asEpochMilli
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 
 @CompileStatic
@@ -24,33 +25,34 @@ abstract class BaseCache<V> {
     /** Unique name in the context of the service associated with this object. */
     public final String name
 
-    /** Closure to determine if an entry should be expired. (optional) */
-    public final Closure expireFn
+    /** Closure to determine if an entry should be expired (optional). */
+    public final Closure<Boolean> expireFn
 
-    /** Time after which an entry should be expired, or closure to get this time. (optional) */
+    /**
+     * Entry TTL as epochMillis Long, or closure to return the same (optional).
+     * No effect if a custom expireFn is provided instead. If both null, entries will never expire.
+     */
     public final Object expireTime
 
-    /** Closure to determine the timestamp of an entry. (optional) */
+    /**
+     * Closure to determine the timestamp of an entry (optional).
+     * Must return a Long (as epochMillis), Date, or Instant.
+     */
     public final Closure timestampFn
 
-    /** Whether this cache should be replicated across a cluster. Default false */
+    /** True to replicate this cache across a cluster (default false). */
     public final boolean replicate
 
     /**
-     * Should old values being removed be serialized to cluster replicas?
+     * True to serialize old values to replicas in `CacheValueChanged` events (default false).
      *
-     * By default, the values being removed from this object are not serialized to replicas.  This
-     * improves performance and is especially important for caches containing large objects that
-     * are expensive to serialize + deserialize.
-     *
-     * If false, `CacheValueChanged` events from this object will *not* contain an
-     * oldValue.  Set to true if your event handlers need access to the previous value.
+     * Not serializing old values improves performance and is especially important for caches
+     * containing large objects that are expensive to serialize + deserialize. Enable only if your
+     * event handlers need access to the previous value.
      */
     public final boolean serializeOldValue
 
-    /**
-     * Handlers to be called on change with a {@link CacheValueChanged} object
-     */
+    /** Handlers to be called on change with a {@link CacheValueChanged} object. */
     public final List<Closure> onChange
 
     BaseCache(
@@ -73,9 +75,7 @@ abstract class BaseCache<V> {
         this.onChange = onChange ? [onChange] : []
     }
 
-    /**
-     * @param handler - closure called on change with a {@link CacheValueChanged} object
-     */
+    /** @param handler called on change with a {@link CacheValueChanged} object. */
     void addChangeHandler(Closure handler) {
         onChange << handler
     }
@@ -108,20 +108,20 @@ abstract class BaseCache<V> {
         onChange.each { it.call(change) }
     }
 
-    protected boolean shouldExpire(Entry<V> obj) {
-        if (expireFn) return expireFn(obj)
+    protected boolean shouldExpire(Entry<V> entry) {
+        if (expireFn) return expireFn(entry)
 
         if (expireTime) {
-            def timestamp
-            if (timestampFn) {
-                timestamp = timestampFn(obj.value)
-                if (timestamp instanceof Date) timestamp = ((Date) timestamp).time
-            } else {
-                timestamp = obj.dateEntered
-            }
-            Long expire = (expireTime instanceof Closure ?  expireTime.call() : expireTime) as Long
+            Long timestamp = getEntryTimestamp(entry),
+                expire = (expireTime instanceof Closure ?  expireTime.call() : expireTime) as Long
             return intervalElapsed(expire, timestamp)
         }
         return false
+    }
+
+    protected Long getEntryTimestamp(Entry<V> entry) {
+        if (!entry) return null
+        if (timestampFn) return asEpochMilli(timestampFn(entry.value))
+        return entry.dateEntered
     }
 }

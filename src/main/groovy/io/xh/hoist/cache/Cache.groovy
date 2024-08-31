@@ -21,6 +21,9 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static java.lang.System.currentTimeMillis
 
+/**
+ * A key-value Cache, with support for optional entry TTL and replication across a cluster.
+ */
 @CompileStatic
 class Cache<K,V> extends BaseCache<V> {
 
@@ -60,12 +63,12 @@ class Cache<K,V> extends BaseCache<V> {
         )
     }
 
-    /** Get the value at key. */
+    /** @returns the cached value at key. */
     V get(K key) {
         return getEntry(key)?.value
     }
 
-    /** Get the Entry at key. */
+    /** @returns the cached Entry at key. */
     Entry<V> getEntry(K key) {
         def ret = _map[key]
         if (ret && shouldExpire(ret)) {
@@ -75,7 +78,7 @@ class Cache<K,V> extends BaseCache<V> {
         return ret
     }
 
-    /** Remove the value at key.*/
+    /** Remove the value at key. */
     void remove(K key) {
         put(key, null)
     }
@@ -92,7 +95,7 @@ class Cache<K,V> extends BaseCache<V> {
         if (!useCluster) fireOnChange(this, oldEntry?.value, obj)
     }
 
-    /** @returns a cached value, or lazily creates if needed. */
+    /** @returns cached value for key, or lazily creates if needed. */
     V getOrCreate(K key, Closure<V> c) {
         V ret = get(key)
         if (ret == null) {
@@ -102,10 +105,15 @@ class Cache<K,V> extends BaseCache<V> {
         return ret
     }
 
-    /** @returns a map representation of currently cached data. */
+    /** @returns a Map representation of currently cached data. */
     Map<K, V> getMap() {
         cullEntries()
         return (Map<K, V>) _map.collectEntries {k, v -> [k, v.value]}
+    }
+
+    /** @returns the timestamp of the cached Entry at key. */
+    Long getTimestamp(K key) {
+        return getEntryTimestamp(_map[key])
     }
 
     /**
@@ -125,7 +133,6 @@ class Cache<K,V> extends BaseCache<V> {
 
     /**
      * Wait for the cache entry to be populated.
-     *
      * @param key, entry to check
      * @param timeout, time in ms to wait.  -1 to wait indefinitely (not recommended).
      * @param interval, time in ms to wait between tests.
