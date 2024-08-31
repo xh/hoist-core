@@ -32,10 +32,17 @@
     * Offers both replicated and non-replicated modes
 * New instance aware methods on `BaseController`: `runOnInstance`, `runOnPrimary` and
   `runOnAllInstances`. These were formerly on `BaseClusterController`, which has been removed.
+* New `LdapService.authenticate()` API supports a new way to validate a domain user's credentials by
+  confirming they can be used to bind to a configured LDAP server.
 
 ### 🐞 Bug Fixes
 
 * Fixed bug where a role with a dot in its name could not be deleted.
+
+### ⚙️ Technical
+
+* `LdapService` now binds to configured servers with TLS and supports new `skipTlsCertVerification`
+  flag in its config to allow for self-signed or otherwise untrusted certificates.
 
 ## 20.4.0 - 2024-07-31
 
