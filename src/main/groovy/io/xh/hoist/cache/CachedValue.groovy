@@ -42,7 +42,7 @@ class CachedValue<V> extends BaseCache<V> {
         }
     }
 
-    /** Get the value. */
+    /** @returns the cached value. */
     V get() {
         def ret = _map[name]
         if (ret && shouldExpire(ret)) {
@@ -50,6 +50,16 @@ class CachedValue<V> extends BaseCache<V> {
             return null
         }
         return ret?.value
+    }
+
+    /** @returns the cached value, or calls the provided closure to create, cache, and return. */
+    V getOrCreate(Closure<V> c) {
+        V ret = get()
+        if (ret == null) {
+            ret = c()
+            set(ret)
+        }
+        return ret
     }
 
     /** Set the value. */
@@ -65,24 +75,18 @@ class CachedValue<V> extends BaseCache<V> {
         if (!useCluster) fireOnChange(name, oldEntry?.value, value)
     }
 
-    /** Return the cached value, or lazily create if needed. */
-    V getOrCreate(Closure<V> c) {
-        V ret = get()
-        if (ret == null) {
-            ret = c()
-            set(ret)
-        }
-        return ret
-    }
-
-    /** Clear value. */
+    /** Clear the value. */
     void clear() {
         set(null)
     }
 
+    /** @returns timestamp of the current entry, or null if none. */
+    Long getTimestamp() {
+        getEntryTimestamp(_map[name])
+    }
+
     /**
-     * Wait for the replicated value to be populated
-     *
+     * Wait for the replicated value to be populated.
      * @param timeout, time in ms to wait.  -1 to wait indefinitely (not recommended).
      * @param interval, time in ms to wait between tests.
      * @param timeoutMessage, custom message associated with any timeout.
