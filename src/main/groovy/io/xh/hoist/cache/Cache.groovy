@@ -138,7 +138,6 @@ class Cache<K,V> extends BaseCache<V> {
         @NamedParam Long interval = 1 * SECONDS,
         @NamedParam String timeoutMessage = null
     ) {
-
         if (getEntry(key)) return
 
         svc.withDebug("Waiting for cache entry value at '$key'") {
