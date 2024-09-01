@@ -48,7 +48,6 @@ class ClusterAdminService extends BaseService {
             .collect { name, result ->
                 def ret = [
                     name   : name,
-                    isLocal: name == clusterService.instanceName,
                     isReady: false
                 ]
                 if (result.value) {
