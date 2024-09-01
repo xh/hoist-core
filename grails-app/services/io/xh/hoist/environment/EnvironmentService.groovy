@@ -49,21 +49,14 @@ class EnvironmentService extends BaseService {
         return Calendar.instance.timeZone
     }
 
-    /**
-     * Returns environment-related metadata, varying based on the current authenticated user.
-     *
-     * If there is not an authenticated user, a minimal summary object will be returned.
-     *
-     * Otherwise, the return payload will include additional details regarding this application,
-     * runtime, and libraries, along with current `xhEnvPollingConfig` settings to control client
-     * polling to detect changes to the connected instance or the application version.
-     */
-    Map getEnvironment() {
-        def authUser = getAuthUser()
-        if (!authUser) {
-            return getEnvironmentSummary()
-        }
 
+
+
+
+
+
+    /** Bundle of environment-related metadata, for serialization to JS clients. */
+    Map getEnvironment() {
         def serverTz = serverTimeZone,
             appTz = appTimeZone,
             now = System.currentTimeMillis()
@@ -100,15 +93,19 @@ class EnvironmentService extends BaseService {
     }
 
     /**
-     * Returns deliberately minimal environment metadata, suitable for unauthenticated requests.
+     * Report critical state to the client about server version, instance identity, and
+     * user auth state.
+     *
+     * Designed to be called frequently by client and whitelisted.  Should be minimal and
+     * highly optimized.
      */
-    Map getEnvironmentSummary() {
+    Map pollEnvironment() {
         [
             appCode: Utils.appCode,
             appVersion: Utils.appVersion,
             appBuild: Utils.appBuild,
-            appEnvironment: Utils.appEnvironment.toString(),
-            instanceName: clusterService.instanceName
+            instanceName: clusterService.instanceName,
+            authUser: getAuthUser()
         ]
     }
 
