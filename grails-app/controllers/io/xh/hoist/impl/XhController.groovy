@@ -215,16 +215,14 @@ class XhController extends BaseController {
     //------------------------
     // Environment
     //------------------------
-    /**
-     * Return critical information about the client's server-environment, including
-     * app version, instance, and authentication state.  Designed to be polled frequently
-     * by client to test its associated server state.
-     *
-     * Whitelisted for pre-auth access by {@link BaseAuthenticationService}.
-     */
     def environment() {
-        renderJSON(environmentService.environment)
+        renderJSON(environmentService.getEnvironment())
     }
+
+    def environmentPoll() {
+        renderJSON(environmentService.pollEnvironment())
+    }
+
 
     //------------------------
     // Client Errors
@@ -286,6 +284,11 @@ class XhController extends BaseController {
     def authConfig() {
         def svc = Utils.appContext.getBean(BaseAuthenticationService)
         renderJSON(svc.clientConfig)
+    }
+
+    /** Whitelisted endpoint with version info */
+    def version() {
+        renderJSON(appVersion: Utils.appVersion, appBuild: Utils.appBuild)
     }
 
     /**

@@ -26,12 +26,9 @@ class EnvironmentService extends BaseService {
     WebSocketService webSocketService
 
     private TimeZone _appTimeZone
+    private Map _pollResult
 
-    static clearCachesConfigs = ['xhAppTimeZone']
-
-    void init() {
-        _appTimeZone = calcAppTimeZone()
-    }
+    static clearCachesConfigs = ['xhAppTimeZone', 'xhEnvPollConfig']
 
     /**
      * Official TimeZone for this application - e.g. the zone of the head office or trading center.
@@ -41,7 +38,7 @@ class EnvironmentService extends BaseService {
      * Not to be confused with `serverTimeZone` below.
      */
     TimeZone getAppTimeZone() {
-        return _appTimeZone
+        return _appTimeZone ?= calcAppTimeZone()
     }
 
     /** TimeZone of the server/JVM running this application. */
@@ -49,13 +46,7 @@ class EnvironmentService extends BaseService {
         return Calendar.instance.timeZone
     }
 
-
-
-
-
-
-
-    /** Bundle of environment-related metadata, for serialization to JS clients. */
+    /** Full bundle of environment-related metadata, for serialization to JS clients. */
     Map getEnvironment() {
         def serverTz = serverTimeZone,
             appTz = appTimeZone,
@@ -75,7 +66,7 @@ class EnvironmentService extends BaseService {
                 appTimeZoneOffset:      appTz.getOffset(now),
                 webSocketsEnabled:      webSocketService.enabled,
                 instanceName:           clusterService.instanceName,
-                pollingConfig:          configService.getMap('xhEnvPollingConfig')
+                pollConfig:             configService.getMap('xhEnvPollConfig')
         ]
 
         hoistGrailsPlugins.each {it ->
@@ -93,19 +84,16 @@ class EnvironmentService extends BaseService {
     }
 
     /**
-     * Report critical state to the client about server version, instance identity, and
-     * user auth state.
-     *
-     * Designed to be called frequently by client and whitelisted.  Should be minimal and
-     * highly optimized.
+     * Report server version and instance identity to the client.
+     * Designed to be called frequently by client. Should be minimal and highly optimized.
      */
     Map pollEnvironment() {
-        [
-            appCode: Utils.appCode,
-            appVersion: Utils.appVersion,
-            appBuild: Utils.appBuild,
+        return _pollResult ?= [
+            appCode     : Utils.appCode,
+            appVersion  : Utils.appVersion,
+            appBuild    : Utils.appBuild,
             instanceName: clusterService.instanceName,
-            authUser: getAuthUser()
+            pollConfig  : configService.getMap('xhEnvPollConfig'),
         ]
     }
 
@@ -130,7 +118,8 @@ class EnvironmentService extends BaseService {
     }
 
     void clearCaches() {
-        this._appTimeZone = calcAppTimeZone()
+        _appTimeZone = null
+        _pollResult = null
         super.clearCaches()
     }
 }
