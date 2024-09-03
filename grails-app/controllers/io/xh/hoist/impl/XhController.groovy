@@ -220,7 +220,7 @@ class XhController extends BaseController {
     }
 
     def environmentPoll() {
-        renderJSON(environmentService.pollEnvironment())
+        renderJSON(environmentService.environmentPoll())
     }
 
 
