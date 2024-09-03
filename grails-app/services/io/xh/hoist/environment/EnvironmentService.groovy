@@ -87,7 +87,7 @@ class EnvironmentService extends BaseService {
      * Report server version and instance identity to the client.
      * Designed to be called frequently by client. Should be minimal and highly optimized.
      */
-    Map pollEnvironment() {
+    Map environmentPoll() {
         return _pollResult ?= [
             appCode     : Utils.appCode,
             appVersion  : Utils.appVersion,
