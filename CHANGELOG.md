@@ -9,10 +9,12 @@
 * `ReplicatedValue` has been replaced with the enhanced `CachedValue`. This new object provides
   all the functionality of the old, plus additional features from the `Cache` API such as expiry,
   `getOrCreate()`, event support, and blocking support for non-primary nodes.
-* Migrated previous `xhAppVersionCheck` to new `xhEnvPollingConfig`, which now governs a single
-  polling interval on the client to check for both app version and instance changes. The previous
+* Migrated previous `xhAppVersionCheck` to new `xhEnvPollConfig`, which now governs a single polling
+  interval on the client to check for app version and connected instance changes. The previous
   config's `mode` value will be automatically migrated to the new `onVersionChange` key. A shorter
   default interval of 10s will be set in all cases, to ensure timely detection of instance changes.
+* The `/xh/environment` endpoint is no longer whitelisted and requires / will trigger
+  authentication flow.
 
 ### 🎁 New Features
 
