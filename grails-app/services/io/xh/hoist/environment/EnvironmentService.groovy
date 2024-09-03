@@ -11,7 +11,9 @@ import grails.plugins.GrailsPlugin
 import grails.util.GrailsUtil
 import grails.util.Holders
 import io.xh.hoist.BaseService
+import io.xh.hoist.config.ConfigService
 import io.xh.hoist.util.Utils
+import io.xh.hoist.websocket.WebSocketService
 
 
 /**
@@ -20,16 +22,13 @@ import io.xh.hoist.util.Utils
  */
 class EnvironmentService extends BaseService {
 
-    def configService,
-        webSocketService
+    ConfigService configService
+    WebSocketService webSocketService
 
     private TimeZone _appTimeZone
+    private Map _pollResult
 
-    static clearCachesConfigs = ['xhAppTimeZone']
-
-    void init() {
-        _appTimeZone = calcAppTimeZone()
-    }
+    static clearCachesConfigs = ['xhAppTimeZone', 'xhEnvPollConfig']
 
     /**
      * Official TimeZone for this application - e.g. the zone of the head office or trading center.
@@ -39,7 +38,7 @@ class EnvironmentService extends BaseService {
      * Not to be confused with `serverTimeZone` below.
      */
     TimeZone getAppTimeZone() {
-        return _appTimeZone
+        return _appTimeZone ?= calcAppTimeZone()
     }
 
     /** TimeZone of the server/JVM running this application. */
@@ -47,7 +46,7 @@ class EnvironmentService extends BaseService {
         return Calendar.instance.timeZone
     }
 
-    /** Bundle of environment-related metadata, for serialization to JS clients. */
+    /** Full bundle of environment-related metadata, for serialization to JS clients. */
     Map getEnvironment() {
         def serverTz = serverTimeZone,
             appTz = appTimeZone,
@@ -66,21 +65,36 @@ class EnvironmentService extends BaseService {
                 appTimeZone:            appTz.toZoneId().id,
                 appTimeZoneOffset:      appTz.getOffset(now),
                 webSocketsEnabled:      webSocketService.enabled,
-                instanceName:           clusterService.instanceName
+                instanceName:           clusterService.instanceName,
+                pollConfig:             configService.getMap('xhEnvPollConfig')
         ]
 
         hoistGrailsPlugins.each {it ->
             ret[it.name + 'Version'] = it.version
         }
 
-        def user = authUser
-        if (user?.isHoistAdminReader) {
+        if (authUser.isHoistAdminReader) {
             def dataSource = Utils.dataSourceConfig
             ret.databaseConnectionString = dataSource.url
             ret.databaseUser = dataSource.username
             ret.databaseCreateMode = dataSource.dbCreate
         }
+
         return ret
+    }
+
+    /**
+     * Report server version and instance identity to the client.
+     * Designed to be called frequently by client. Should be minimal and highly optimized.
+     */
+    Map environmentPoll() {
+        return _pollResult ?= [
+            appCode     : Utils.appCode,
+            appVersion  : Utils.appVersion,
+            appBuild    : Utils.appBuild,
+            instanceName: clusterService.instanceName,
+            pollConfig  : configService.getMap('xhEnvPollConfig'),
+        ]
     }
 
 
@@ -104,7 +118,8 @@ class EnvironmentService extends BaseService {
     }
 
     void clearCaches() {
-        this._appTimeZone = calcAppTimeZone()
+        _appTimeZone = null
+        _pollResult = null
         super.clearCaches()
     }
 }

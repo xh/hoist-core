@@ -18,6 +18,7 @@ class UrlMappings {
         "/$controller/$action?/$id?(.$format)?"{}
 
         "404" (controller: 'xh', action: 'notFound')
+        "/ping" (controller: 'xh', action: 'version')
 
         //------------------------
         // Rest Support
@@ -28,7 +29,6 @@ class UrlMappings {
         "/rest/$controller/$id?"{
             action = [POST: 'create', GET: 'read', PUT: 'update', DELETE: 'delete']
         }
-
 
         //------------------------
         // Proxy Support

@@ -150,7 +150,6 @@ abstract class BaseAuthenticationService extends BaseService {
         '/ping',
         '/xh/login',
         '/xh/logout',
-        '/xh/environment',
         '/xh/version',
         '/xh/authConfig'
     ]

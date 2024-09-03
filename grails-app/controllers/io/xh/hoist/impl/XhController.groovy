@@ -45,11 +45,18 @@ class XhController extends BaseController {
     BaseUserService userService
     ClusterService clusterService
 
+
     //------------------------
     // Identity / Auth
     //------------------------
     def authStatus() {
         renderJSON(authenticated: authUser != null)
+    }
+
+    /** Whitelisted endpoint to return auth-related settings for client bootstrap. */
+    def authConfig() {
+        def svc = Utils.appContext.getBean(BaseAuthenticationService)
+        renderJSON(svc.clientConfig)
     }
 
     def getIdentity() {
@@ -170,6 +177,7 @@ class XhController extends BaseController {
         renderJSON(success: true)
     }
 
+
     //------------------------
     // Json Blobs
     //------------------------
@@ -219,15 +227,10 @@ class XhController extends BaseController {
         renderJSON(environmentService.getEnvironment())
     }
 
-    def version() {
-        def options = configService.getMap('xhAppVersionCheck', [:])
-        renderJSON(
-            *: options,
-            instanceName: clusterService.instanceName,
-            appVersion: Utils.appVersion,
-            appBuild: Utils.appBuild
-        )
+    def environmentPoll() {
+        renderJSON(environmentService.environmentPoll())
     }
+
 
     //------------------------
     // Client Errors
@@ -246,6 +249,8 @@ class XhController extends BaseController {
         renderJSON(success: true)
     }
 
+
+
     //------------------------
     // Feedback
     //------------------------
@@ -258,6 +263,7 @@ class XhController extends BaseController {
         renderJSON(success: true)
     }
 
+
     //----------------------
     // Alert Banner
     //----------------------
@@ -265,9 +271,24 @@ class XhController extends BaseController {
         renderJSON(alertBannerService.alertBanner)
     }
 
+
     //-----------------------
     // Misc
     //-----------------------
+    /**
+     * Whitelisted (pre-auth) endpoint with minimal app identifier and version info.
+     * Also reachable (for backwards compatibility) via /ping, as per `UrlMappings`.
+     */
+    def version() {
+        renderJSON(
+            appCode: Utils.appCode,
+            appVersion: Utils.appVersion,
+            appBuild: Utils.appBuild,
+            timestamp: System.currentTimeMillis(),
+            success: true
+        )
+    }
+
     /**
      * Returns the timezone offset for a given timezone ID.
      * While abbrevs (e.g. 'GMT', 'PST', 'UTC+04') are supported, fully qualified IDs (e.g.
@@ -281,14 +302,6 @@ class XhController extends BaseController {
         }
         def tz = TimeZone.getTimeZone(timeZoneId)
         renderJSON([offset: tz.getOffset(System.currentTimeMillis())])
-    }
-
-    /**
-     * Auth-related settings for the client. Accessible pre-auth via whitelist.
-     */
-    def authConfig() {
-        def svc = Utils.appContext.getBean(BaseAuthenticationService)
-        renderJSON(svc.clientConfig)
     }
 
     /**
