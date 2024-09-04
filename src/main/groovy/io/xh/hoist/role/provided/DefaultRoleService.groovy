@@ -221,6 +221,13 @@ class DefaultRoleService extends BaseRoleService {
     /**
      * Ensure that the required soft-config entry for this service has been created, along with a
      * minimal set of required Hoist roles. Called by init() on app startup.
+     *
+     * Override this method with an additional call to {@link #ensureRequiredRolesCreated} to
+     * create any roles required by the application on startup, ensuring that this super
+     * implementation is also called to confirm roles required by Hoist.
+     *
+     * (Note overriding is preferable to making a direct call to ensureRequiredRolesCreated within
+     * init(), as this superclass rebuilds its cache of role assignments within its init method.)
      */
     protected void ensureRequiredConfigAndRolesCreated() {
         configService.ensureRequiredConfigsCreated([
@@ -264,9 +271,17 @@ class DefaultRoleService extends BaseRoleService {
      * Check a list of core roles required for Hoist/application operation - ensuring that these
      * roles are present. Will create missing roles with supplied default values if not found.
      *
-     * May be called within an implementation of ensureRequiredConfigAndRolesCreated().
+     * Note that roles that *do* exist will *not* be modified in any way - i.e. this method cannot
+     * be used to ensure or update the membership of existing roles, only to create new ones.
      *
-     * @param requiredRoles - List of maps of [name, category, notes, users, directoryGroups, roles]
+     * @param roleSpecs - collection of specs for roles to be created as needed, as Maps with keys:
+     *      - name: required, unique role name
+     *      - category: optional
+     *      - notes: optional
+     *      - users: optional, list of usernames to add as members to the role
+     *      - directoryGroups: optional, list of directory group DNs to add as members to the role
+     *      - roles: optional, list of other role names to add as members to the role, granting
+     *              users in those roles the permissions of the new role.
      */
     void ensureRequiredRolesCreated(List<Map> roleSpecs) {
         defaultRoleUpdateService.ensureRequiredRolesCreated(roleSpecs)
