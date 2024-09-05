@@ -285,7 +285,12 @@ class XhController extends BaseController {
             appVersion: Utils.appVersion,
             appBuild: Utils.appBuild,
             timestamp: System.currentTimeMillis(),
-            success: true
+            success: true,
+            // TODO - this is a temporary measure to ensure that clients running hoist-react < 67
+            //      prompt for upgrade when a new app release is deployed with hoist-core >= 21.
+            //      Going forward clients will read these instructions from `xh/environmentPoll`.
+            //      Once a majority of key apps have been upgraded, we should remove this key.
+            mode: configService.getMap('xhEnvPollConfig').onVersionChange
         )
     }
 
