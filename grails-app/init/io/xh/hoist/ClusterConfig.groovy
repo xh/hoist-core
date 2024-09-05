@@ -46,8 +46,8 @@ class ClusterConfig {
     /**
      * Are multi-instance clusters enabled?
      *
-     * Defaults to true.  Is set to false, Hoist will not create multi-instance clusters and may
-     * use simpler in-memory  data-structures in place of their Hazelcast counterparts.  Use this
+     * Defaults to true.  If set to false, Hoist will not create multi-instance clusters and may
+     * use simpler in-memory data-structures in place of their Hazelcast counterparts.  Use this
      * for applications that do not require multi-instance and do not wish to pay the serialization
      * penalty of storing shared data in Hazelcast.
      *
