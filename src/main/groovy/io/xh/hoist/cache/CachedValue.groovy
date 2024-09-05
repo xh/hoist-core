@@ -10,8 +10,6 @@ import java.util.concurrent.TimeoutException
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static java.lang.System.currentTimeMillis
-import static java.util.Collections.emptyMap
-
 
 /**
  * Similar to {@link Cache}, but a single value that can be read, written, and expired.
@@ -32,14 +30,10 @@ class CachedValue<V> extends BaseCache<V> {
         @NamedParam boolean serializeOldValue = false,
         @NamedParam Closure onChange = null
     ) {
-        super(svc, name, expireTime, expireFn, timestampFn, replicate, serializeOldValue, onChange)
+        super(svc, name, expireTime, expireFn, timestampFn, replicate, serializeOldValue)
 
-        if (useCluster) {
-            _map = svc.replicatedCachedValuesMap
-            (_map as ReplicatedMap).addEntryListener(getHzEntryListener(), name)
-        } else {
-            _map = svc.localCachedValuesMap
-        }
+        _map = useCluster ? svc.replicatedCachedValuesMap : svc.localCachedValuesMap
+        if (onChange) addChangeHandler(onChange)
     }
 
     /** @returns the cached value. */
@@ -107,5 +101,12 @@ class CachedValue<V> extends BaseCache<V> {
             String msg = timeoutMessage ?: "Timed out after ${timeout}ms waiting for CachedValue '$name'"
             throw new TimeoutException(msg)
         }
+    }
+
+    void addChangeHandler(Closure handler) {
+        if (!onChange && _map instanceof ReplicatedMap) {
+            _map.addEntryListener(new HzEntryListener(this), name)
+        }
+        onChange << handler
     }
 }

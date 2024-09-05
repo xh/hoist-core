@@ -2,6 +2,9 @@
 
 ## 22.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+* Improvements to serialization efficiency of replicated `Cache` and `CachedValue`
+
 ## 21.0.0 - 2024-09-03
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - latest Hoist React + DB col additions)
