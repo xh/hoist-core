@@ -74,7 +74,7 @@ class AlertBannerService extends BaseService {
         blob ? parseObject(blob.value) : emptyAlert
     }
 
-    void setAlertSpec(Map value) {
+    Map setAlertSpec(Map value) {
         def svc = jsonBlobService,
             blob = svc.list(blobType, blobOwner).find { it.name == blobName }
         if (blob) {
@@ -105,7 +105,7 @@ class AlertBannerService extends BaseService {
     //----------------------------
     // Implementation
     //-----------------------------
-    private void readFromSpec() {
+    private Map readFromSpec() {
         def conf = configService.getMap('xhAlertBannerConfig'),
             newSpec = emptyAlert
 
@@ -119,6 +119,7 @@ class AlertBannerService extends BaseService {
         }
 
         _alertBanner.set(newSpec)
+        newSpec
     }
 
     void clearCaches() {
