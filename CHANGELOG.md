@@ -1,6 +1,15 @@
 # Changelog
 
-## 22.0-SNAPSHOT - unreleased
+## 21.0.1 - 2024-09-05
+
+### 🐞 Bug Fixes
+
+* Resolved issue where connected clients would not display the upgrade prompt banner when an app was
+  first released with an update to `hoist-core >= 21.0.0`.
+
+### ⚙️ Technical
+
+* Improved serialization efficiency of replicated `Cache` and `CachedValue`.
 
 ## 21.0.0 - 2024-09-03
 

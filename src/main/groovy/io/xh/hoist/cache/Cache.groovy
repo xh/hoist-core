@@ -41,18 +41,14 @@ class Cache<K,V> extends BaseCache<V> {
         @NamedParam boolean serializeOldValue = false,
         @NamedParam Closure onChange = null
     ) {
-        super(svc, name, expireTime, expireFn, timestampFn, replicate, serializeOldValue, onChange)
+        super(svc, name, expireTime, expireFn, timestampFn, replicate, serializeOldValue)
 
         if (replicate && !name) {
             throw new IllegalArgumentException("Cannot create a replicated Cache without a unique name")
         }
 
-        if (useCluster) {
-            _map = svc.getReplicatedMap(name)
-            (_map as ReplicatedMap).addEntryListener(getHzEntryListener())
-        } else {
-            _map = new ConcurrentHashMap()
-        }
+        _map = useCluster ? svc.getReplicatedMap(name) : new ConcurrentHashMap()
+        if (onChange) addChangeHandler(onChange)
 
         timer = new Timer(
             owner: svc,
@@ -130,6 +126,14 @@ class Cache<K,V> extends BaseCache<V> {
         // work around exceptions with clear on replicated map.
         _map.each { k, v -> remove(k)}
     }
+
+    void addChangeHandler(Closure handler) {
+        if (!onChange && _map instanceof ReplicatedMap) {
+            _map.addEntryListener(new HzEntryListener(this))
+        }
+        onChange << handler
+    }
+
 
     /**
      * Wait for the cache entry to be populated.
