@@ -7,7 +7,6 @@
 
 package io.xh.hoist.alertbanner
 
-
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.cache.CachedValue
@@ -74,7 +73,7 @@ class AlertBannerService extends BaseService {
         blob ? parseObject(blob.value) : emptyAlert
     }
 
-    Map setAlertSpec(Map value) {
+    void setAlertSpec(Map value) {
         def svc = jsonBlobService,
             blob = svc.list(blobType, blobOwner).find { it.name == blobName }
         if (blob) {
@@ -105,7 +104,7 @@ class AlertBannerService extends BaseService {
     //----------------------------
     // Implementation
     //-----------------------------
-    private Map readFromSpec() {
+    private void readFromSpec() {
         def conf = configService.getMap('xhAlertBannerConfig'),
             newSpec = emptyAlert
 
@@ -119,7 +118,6 @@ class AlertBannerService extends BaseService {
         }
 
         _alertBanner.set(newSpec)
-        newSpec
     }
 
     void clearCaches() {
