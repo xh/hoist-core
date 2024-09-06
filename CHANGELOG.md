@@ -1,5 +1,12 @@
 # Changelog
 
+## 22.0-SNAPSHOT
+
+### ⚙️ Technical
+
+* Exposed `/xh/ping` as whitelisted route for basic uptime/reachability checks. Retained legacy
+  `/ping` alias, but prefer this new path going forward.
+
 ## 21.0.1 - 2024-09-05
 
 ### 🐞 Bug Fixes
