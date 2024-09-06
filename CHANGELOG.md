@@ -2,6 +2,9 @@
 
 ## 22.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+* Deliver AlertBanner data with environment polling.
+
 ## 21.0.0 - 2024-09-03
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - latest Hoist React + DB col additions)
