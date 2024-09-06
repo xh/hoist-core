@@ -11,6 +11,7 @@ import grails.plugins.GrailsPlugin
 import grails.util.GrailsUtil
 import grails.util.Holders
 import io.xh.hoist.BaseService
+import io.xh.hoist.alertbanner.AlertBannerService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.util.Utils
 import io.xh.hoist.websocket.WebSocketService
@@ -24,9 +25,9 @@ class EnvironmentService extends BaseService {
 
     ConfigService configService
     WebSocketService webSocketService
+    AlertBannerService alertBannerService
 
     private TimeZone _appTimeZone
-    private Map _pollResult
 
     static clearCachesConfigs = ['xhAppTimeZone', 'xhEnvPollConfig']
 
@@ -66,6 +67,7 @@ class EnvironmentService extends BaseService {
                 appTimeZoneOffset:      appTz.getOffset(now),
                 webSocketsEnabled:      webSocketService.enabled,
                 instanceName:           clusterService.instanceName,
+                alertBanner:            alertBannerService.alertBanner,
                 pollConfig:             configService.getMap('xhEnvPollConfig')
         ]
 
@@ -88,12 +90,13 @@ class EnvironmentService extends BaseService {
      * Designed to be called frequently by client. Should be minimal and highly optimized.
      */
     Map environmentPoll() {
-        return _pollResult ?= [
+        return [
             appCode     : Utils.appCode,
             appVersion  : Utils.appVersion,
             appBuild    : Utils.appBuild,
             instanceName: clusterService.instanceName,
-            pollConfig  : configService.getMap('xhEnvPollConfig'),
+            alertBanner : alertBannerService.alertBanner,
+            pollConfig  : configService.getMap('xhEnvPollConfig')
         ]
     }
 
@@ -119,7 +122,6 @@ class EnvironmentService extends BaseService {
 
     void clearCaches() {
         _appTimeZone = null
-        _pollResult = null
         super.clearCaches()
     }
 }

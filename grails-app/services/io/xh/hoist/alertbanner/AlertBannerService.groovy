@@ -27,7 +27,9 @@ import static java.lang.System.currentTimeMillis
  *
  * This class uses a single {@link io.xh.hoist.jsonblob.JsonBlob} to persist its state.
  * The published alert state is updated via the Hoist Admin console and is regularly refreshed
- * on a timer to catch banner expiry.
+ * by EnvironmentService.
+ *
+ * For this service to be active, `xhAlertBannerConfig` config must be specified as `{enabled:true}`.
  */
 @CompileStatic
 class AlertBannerService extends BaseService {
