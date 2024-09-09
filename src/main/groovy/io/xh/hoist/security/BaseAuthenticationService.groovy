@@ -147,9 +147,10 @@ abstract class BaseAuthenticationService extends BaseService {
      * session within their completeAuthentication() implementations.
      */
     protected List<String> whitelistURIs = [
-        '/ping',
+        '/ping',  // legacy alias for /xh/ping (via UrlMappings)
         '/xh/login',
         '/xh/logout',
+        '/xh/ping',
         '/xh/version',
         '/xh/authConfig'
     ]
