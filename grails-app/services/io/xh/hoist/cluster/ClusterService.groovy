@@ -10,11 +10,10 @@ import com.hazelcast.core.HazelcastInstance
 import com.hazelcast.core.IExecutorService
 import io.xh.hoist.BaseService
 import io.xh.hoist.ClusterConfig
+import io.xh.hoist.exception.InstanceNotFoundException
 import io.xh.hoist.util.Utils
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.ApplicationListener
-
-import javax.management.InstanceNotFoundException
 
 class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent> {
 
