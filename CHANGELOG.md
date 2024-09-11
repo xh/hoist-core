@@ -4,6 +4,8 @@
 
 ### ⚙️ Technical
 
+* Updated `ClusterService` to use Hoist's `InstanceNotFoundException` class to designate routine.
+
 * Exposed `/xh/ping` as whitelisted route for basic uptime/reachability checks. Retained legacy
   `/ping` alias, but prefer this new path going forward.
 
