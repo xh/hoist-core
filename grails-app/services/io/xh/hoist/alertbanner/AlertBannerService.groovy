@@ -51,6 +51,7 @@ class AlertBannerService extends BaseService {
 
     void init() {
         timer = createTimer(
+            name: 'readFromSpec',
             interval: 2 * MINUTES,
             runFn: this.&readFromSpec,
             primaryOnly: true

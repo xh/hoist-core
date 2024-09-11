@@ -51,6 +51,7 @@ class MonitorService extends BaseService {
 
     void init() {
         timer = createTimer(
+            name: 'runMonitors',
             interval: { monitorInterval },
             delay: startupDelay,
             primaryOnly: true

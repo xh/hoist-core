@@ -51,6 +51,7 @@ class Cache<K,V> extends BaseCache<V> {
         if (onChange) addChangeHandler(onChange)
 
         timer = new Timer(
+            name: name ? "cullEntries_$name" : 'cullEntries',
             owner: svc,
             primaryOnly: replicate,
             runFn: this.&cullEntries,

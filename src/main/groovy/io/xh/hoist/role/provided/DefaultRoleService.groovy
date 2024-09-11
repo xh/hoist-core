@@ -102,6 +102,7 @@ class DefaultRoleService extends BaseRoleService {
         ensureRequiredConfigAndRolesCreated()
 
         timer = createTimer(
+            name: 'refreshRoles',
             interval: { config.refreshIntervalSecs as int * SECONDS },
             runFn: this.&refreshRoleAssignments,
             runImmediatelyAndBlock: true,

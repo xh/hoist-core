@@ -48,6 +48,7 @@ class ClientErrorService extends BaseService {
     void init() {
         super.init()
         createTimer(
+            name: 'processErrors',
             interval: { alertInterval },
             delay: 15 * SECONDS,
             primaryOnly: true
