@@ -7,6 +7,8 @@
 
 package io.xh.hoist.util
 
+import io.xh.hoist.BaseService
+import io.xh.hoist.cache.CachedValue
 import io.xh.hoist.log.LogSupport
 
 import java.util.concurrent.ExecutionException
@@ -31,10 +33,10 @@ class Timer {
 
      private static Long CONFIG_INTERVAL = 15 * SECONDS
 
-    /** Optional name for this timer (for logging purposes) **/
+    /** Unique name for this timer, required for cluster aware timers (see `primaryOnly`) **/
     final String name
 
-    /** Object using this timer (for logging purposes) **/
+    /** Object using this timer **/
     final LogSupport owner
 
     /** Closure to run */
@@ -73,7 +75,10 @@ class Timer {
     /** Block on an immediate initial run?  Default is false. */
     final boolean runImmediatelyAndBlock
 
-    /**  Only run job when clustered instance is the primary instance?  Default is false. */
+    /**
+     * Only run job when clustered instance is the primary instance?  Default is false.
+     * For timers owned by instances of BaseService only.
+     */
     final boolean primaryOnly
 
 
@@ -109,6 +114,9 @@ class Timer {
     private java.util.Timer configTimer
 
 
+    private CachedValue<Date> _lastCompletedOnCluster
+
+
     // Args from Grails 3.0 async promise implementation
     static ExecutorService executorService = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>())
 
@@ -131,6 +139,16 @@ class Timer {
 
         if ([owner, interval, runFn].contains(null)) throw new RuntimeException('Missing required arguments for Timer.')
         if (config.delayUnits) throw new RuntimeException('delayUnits has been removed from the API. Specify delay in ms.')
+
+        if (primaryOnly) {
+            if (!name) {
+                throw new IllegalArgumentException("Cannot create a 'primaryOnly' timer without a unique name")
+            }
+            if (!owner instanceof BaseService)  {
+                throw new IllegalArgumentException("A 'primaryOnly' timer must be owned by an instance of BaseService.")
+            }
+            _lastCompletedOnCluster = new CachedValue<>(name: "xhTimer_$name", svc: owner as BaseService)
+        }
 
         intervalMs = calcIntervalMs()
         timeoutMs = calcTimeoutMs()
@@ -217,6 +235,7 @@ class Timer {
         }
 
         _lastRunCompleted = new Date()
+        _lastCompletedOnCluster?.set(_lastRunCompleted)
         _isRunning = false
         _lastRunStats = [
             startTime: _lastRunStarted,
@@ -287,13 +306,17 @@ class Timer {
     // frequently enough to pickup forceRun reasonably fast. Tighten down for the rare fast timer.
     //-------------------------------------------------------------------------------------------
     private void onCoreTimer() {
-        if (!isRunning) {
-            if ((intervalMs > 0 && intervalElapsed(intervalMs, lastRunCompleted)) || forceRun) {
-                boolean wasForced = forceRun
-                doRun()
-                if (wasForced) forceRun = false
-            }
+        if (!isRunning && (forceRun || isIntervalElapsed())) {
+            boolean wasForced = forceRun
+            doRun()
+            if (wasForced) forceRun = false
         }
+    }
+
+    private boolean isIntervalElapsed() {
+        if (intervalMs <= 0) return false
+        def lastRun = _lastCompletedOnCluster ? _lastCompletedOnCluster.get() : _lastRunCompleted
+        return intervalElapsed(intervalMs, lastRun)
     }
 
     private Long calcCoreIntervalMs() {

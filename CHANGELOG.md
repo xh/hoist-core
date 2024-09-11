@@ -4,6 +4,8 @@
 
 ### ⚙️ Technical
 
+* Improvements to `Timer` to avoid extra executions when primary instance changes.
+
 * Updated `ClusterService` to use Hoist's `InstanceNotFoundException` class to designate routine.
 
 * Exposed `/xh/ping` as whitelisted route for basic uptime/reachability checks. Retained legacy
