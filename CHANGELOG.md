@@ -9,6 +9,9 @@
 * Exposed `/xh/ping` as whitelisted route for basic uptime/reachability checks. Retained legacy
   `/ping` alias, but prefer this new path going forward.
 
+* Improvements to `RestController` to better support editing Domain Objects defined with secondary
+  domain objects.
+
 ## 21.0.1 - 2024-09-05
 
 ### 🐞 Bug Fixes
