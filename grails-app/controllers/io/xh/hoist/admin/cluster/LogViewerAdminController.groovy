@@ -11,6 +11,7 @@ import groovy.io.FileType
 import io.xh.hoist.BaseController
 import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.configuration.LogbackConfig
+import io.xh.hoist.exception.RoutineRuntimeException
 import io.xh.hoist.security.Access
 
 import static io.xh.hoist.util.Utils.getAppContext
@@ -67,13 +68,12 @@ class LogViewerAdminController extends BaseController {
         def doCall() {
             if (!availableFiles[filename]) throwUnavailable()
 
-            // Catch any exceptions and render clean failure - the admin client auto-polls for log file
-            // updates, and we don't want to spam the logs with a repeated stacktrace.
+            // Wrap any exceptions as routine as the admin client aggressively auto-polls.
             try {
                 def content = appContext.logReaderService.readFile(filename, startLine, maxLines, pattern, caseSensitive)
                 return [success: true, filename: filename, content: content]
             } catch (Exception e) {
-                return [success: false, filename: filename, content: [], exception: e.message]
+                throw new RoutineRuntimeException(e.message)
             }
         }
     }
