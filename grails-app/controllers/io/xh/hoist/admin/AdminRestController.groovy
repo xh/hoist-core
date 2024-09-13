@@ -7,11 +7,9 @@
 
 package io.xh.hoist.admin
 
-import grails.gorm.transactions.Transactional
 import io.xh.hoist.RestController
 import io.xh.hoist.security.Access
 
-@Transactional
 @Access(['HOIST_ADMIN_READER'])
 abstract class AdminRestController extends RestController{
 
