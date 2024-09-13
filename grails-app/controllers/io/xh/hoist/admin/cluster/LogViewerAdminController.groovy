@@ -12,6 +12,7 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.configuration.LogbackConfig
 import io.xh.hoist.security.Access
+import io.xh.hoist.exception.RoutineRuntimeException
 
 import static io.xh.hoist.util.Utils.getAppContext
 
@@ -65,15 +66,12 @@ class LogViewerAdminController extends BaseController {
         Boolean caseSensitive
 
         def doCall() {
-            if (!availableFiles[filename]) throwUnavailable()
-
-            // Catch any exceptions and render clean failure - the admin client auto-polls for log file
-            // updates, and we don't want to spam the logs with a repeated stacktrace.
+            if (!availableFiles[filename]) throwUnavailable(filename)
             try {
                 def content = appContext.logReaderService.readFile(filename, startLine, maxLines, pattern, caseSensitive)
                 return [success: true, filename: filename, content: content]
-            } catch (Exception e) {
-                return [success: false, filename: filename, content: [], exception: e.message]
+            } catch (FileNotFoundException ignored) {
+                throwUnavailable(filename)
             }
         }
     }
@@ -99,7 +97,7 @@ class LogViewerAdminController extends BaseController {
         String filename
 
         File doCall() {
-            if (!availableFiles[filename]) throwUnavailable()
+            if (!availableFiles[filename]) throwUnavailable(filename)
             return appContext.logReaderService.get(filename)
         }
     }
@@ -122,7 +120,7 @@ class LogViewerAdminController extends BaseController {
 
             filenames.each { filename ->
                 def toDelete = available[filename]
-                if (!toDelete) throwUnavailable()
+                if (!toDelete) throwUnavailable(filename)
 
                 def deleted = toDelete.delete()
                 if (!deleted) logWarn("Failed to delete log: '$filename'.")
@@ -167,7 +165,7 @@ class LogViewerAdminController extends BaseController {
         }
     }
 
-    static void throwUnavailable() {
-        throw new RuntimeException('Filename not valid or available')
+    static void throwUnavailable(String filename) {
+        throw new RoutineRuntimeException("Filename not valid or available: $filename")
     }
 }
