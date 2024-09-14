@@ -384,7 +384,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     }
 
     private void ensureUniqueResourceName(String name) {
-        if (!name || resourceNames(name)) {
+        if (!name || resourceNames.contains(name)) {
             def msg = 'Service resource requires a unique name. '
             if (name) msg += "Name `$name` already used on this service."
             throw new RuntimeException(msg)
