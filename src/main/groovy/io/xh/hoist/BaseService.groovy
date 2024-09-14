@@ -15,6 +15,10 @@ import com.hazelcast.topic.Message
 import grails.async.Promises
 import grails.util.GrailsClassUtils
 import groovy.transform.CompileDynamic
+import groovy.transform.NamedParam
+import groovy.transform.NamedVariant
+import io.xh.hoist.cache.Cache
+import io.xh.hoist.cache.CachedValue
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.log.LogSupport
@@ -32,6 +36,7 @@ import java.util.concurrent.TimeUnit
 
 import static grails.async.Promises.task
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.Utils.appContext
 import static io.xh.hoist.util.Utils.getConfigService
 
@@ -40,6 +45,12 @@ import static io.xh.hoist.util.Utils.getConfigService
  * Provides template methods for service lifecycle / state management plus support for user lookups.
  * As an abstract class, BaseService must reside in src/main/groovy to allow Java compilation and
  * to ensure it is not itself instantiated as a Grails service.
+ *
+ * BaseService also provides support for cluster aware state via factories to create
+ * Hoist objects such as Cache, CachedValue, Timer, as well as raw Hazelcast distributed
+ * data structures such as ReplicatedMap, ISet and IMap.  Objects created with these factories
+ * will be associated with this service for the purposes of logging and management via the
+ * Hoist admin console.
  */
 abstract class BaseService implements LogSupport, IdentitySupport, DisposableBean {
 
@@ -58,6 +69,9 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     private Map _localCachedValues
 
     private final Logger _log = LoggerFactory.getLogger(this.class)
+
+
+    private Set<String> resourceNames = new HashSet()
 
 
     /**
@@ -109,36 +123,109 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     // Distributed Resources
     // Use static reference to ClusterService to allow access pre-init.
     //------------------------------------------------------------------
-    <K, V> IMap<K, V> getIMap(String id) {
-        ClusterService.hzInstance.getMap(hzName(id))
+    /**
+     * Get a reference to a Hazelcast IMap.
+     *
+     * @param name - unique name relative to all Caches, Timers and Hazelcast objects
+     *      associated with this service.
+     */
+    <K, V> IMap<K, V> getIMap(String name) {
+        ensureUniqueResourceName(name)
+        ClusterService.hzInstance.getMap(hzName(name))
     }
 
-    <V> ISet<V> getISet(String id) {
-        ClusterService.hzInstance.getSet(hzName(id))
+    /**
+     * Get a reference to a Hazelcast ISet.
+     *
+     * @param name - unique name relative to all Caches, Timers and Hazelcast objects
+     *      associated with this service.
+     */
+    <V> ISet<V> getISet(String name) {
+        ensureUniqueResourceName(name)
+        ClusterService.hzInstance.getSet(hzName(name))
     }
 
-    <K, V> ReplicatedMap<K, V> getReplicatedMap(String id) {
-        ClusterService.hzInstance.getReplicatedMap(hzName(id))
+    /**
+     * Get a reference to a Hazelcast Replicated Map.
+     *
+     * @param name - unique name relative to all Caches, Timers and Hazelcast objects
+     *      associated with this service.
+     */
+     <K, V> ReplicatedMap<K, V> getReplicatedMap(String name) {
+        ensureUniqueResourceName(name)
+        ClusterService.hzInstance.getReplicatedMap(hzName(name))
     }
 
-    <M> ITopic<M> getTopic(String id) {
+    /**
+     * Get a reference to a Hazelcast Replicated topic.
+     */
+     <M> ITopic<M> getTopic(String id) {
         ClusterService.hzInstance.getTopic(id)
     }
 
     /**
      * Create a new managed Timer bound to this service.
-     * @param args - arguments appropriate for a Hoist Timer.
+     *
+     * Note that the provided name should be unique with respect to all
+     * Caches, Timers and Hazelcast objects associated with this service.
+     *
+     * @see Timer
      */
     @CompileDynamic
-    protected Timer createTimer(Map args) {
-        args.owner = this
-        if (!args.runFn && metaClass.respondsTo(this, 'onTimer')) {
-            args.runFn = this.&onTimer
+    @NamedVariant
+    Timer createTimer(
+        @NamedParam(required = true) String name,
+        @NamedParam Closure runFn = null,
+        @NamedParam Boolean primaryOnly = false,
+        @NamedParam Boolean runImmediatelyAndBlock = false,
+        @NamedParam Object interval = null,
+        @NamedParam Object timeout = 3 * MINUTES,
+        @NamedParam Object delay = false,
+        @NamedParam Long intervalUnits = 1,
+        @NamedParam Long timeoutUnits = 1
+    ) {
+        ensureUniqueResourceName(name)
+        if (!runFn) {
+            if (metaClass.respondsTo(this, 'onTimer')) {
+                runFn = this.&onTimer
+            } else {
+                throw new IllegalArgumentException('Must specify a runFn, or provide an onTimer() method on this service.')
+            }
         }
-        def ret = new Timer(args)
+
+        def ret = new Timer(name, this, runFn, primaryOnly, runImmediatelyAndBlock, interval, timeout, delay, intervalUnits, timeoutUnits)
         timers << ret
         return ret
     }
+
+    /**
+     * Create a new Cache bound to this service.
+     *
+     * Note that the provided name should be unique with respect to all
+     * Caches, Timers and Hazelcast objects associated with this service.
+     *
+     * @see Cache
+     */
+    <K, V> Cache<K, V> createCache(Map mp) {
+        // Cannot use @NamedVariant, as incompatible with generics. We'll still get run-time checks.
+        ensureUniqueResourceName(mp.name)
+        return new Cache([*:mp, svc: this])
+    }
+
+    /**
+     * Create a new CachedValue bound to this service.
+     *
+     * Note that the provided name should be unique with respect to all
+     * Caches, Timers and Hazelcast objects associated with this service.
+     *
+     * @see CachedValue
+     */
+    <T> CachedValue<T> createCachedValue(Map mp) {
+        // Cannot use @NamedVariant, as incompatible with generics. We'll still get run-time checks.
+        ensureUniqueResourceName(mp.name)
+        return new CachedValue([*:mp, svc: this])
+    }
+
 
     /**
      * Managed Subscription to a Grails Event.
@@ -292,8 +379,17 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     //------------------------
     // Internal implementation
     //------------------------
-    protected String hzName(String key) {
-        this.class.name + '_' + key
+    protected String hzName(String name) {
+        this.class.name + '_' + name
+    }
+
+    private void ensureUniqueResourceName(String name) {
+        if (!name || resourceNames(name)) {
+            def msg = 'Service resource requires a unique name. '
+            if (name) msg += "Name `$name` already used on this service."
+            throw new RuntimeException(msg)
+        }
+        resourceNames << name
     }
 
     /** @internal - for use by CachedValue */

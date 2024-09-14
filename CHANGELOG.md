@@ -2,6 +2,15 @@
 
 ## 22.0-SNAPSHOT
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
+* All `Timer`, `Cache`, and `CachedValue` object require a 'name' property.  This property was
+previously optional in many cases, but is now required in order to support new cluster features,
+logging, and admin tools.
+
+### 🎁 New Features
+* `Cache` and `CachedValue` may now be created using a factory on `BaseService`.  This streamlined
+interface reduces boilerplate, and provides a consistent interface with `Timer`.
+
 ### ⚙️ Technical
 
 * Improvements to `Timer` to avoid extra executions when primary instance changes.

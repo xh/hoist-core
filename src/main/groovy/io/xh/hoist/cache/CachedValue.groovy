@@ -19,18 +19,23 @@ class CachedValue<V> extends BaseCache<V> {
 
     private final Map<String, Entry<V>> _map
 
+    /**
+     * @internal
+     *
+     * Not typically created directly. Use BaseService.createCachedValue() instead.
+     */
     @NamedVariant
     CachedValue(
-        @NamedParam(required = true) BaseService svc,
         @NamedParam(required = true) String name,
+        @NamedParam(required = true) BaseService svc,
         @NamedParam Object expireTime = null,
         @NamedParam Closure expireFn = null,
         @NamedParam Closure timestampFn = null,
-        @NamedParam boolean replicate = false,
-        @NamedParam boolean serializeOldValue = false,
+        @NamedParam Boolean replicate = false,
+        @NamedParam Boolean serializeOldValue = false,
         @NamedParam Closure onChange = null
     ) {
-        super(svc, name, expireTime, expireFn, timestampFn, replicate, serializeOldValue)
+        super(name, svc, expireTime, expireFn, timestampFn, replicate, serializeOldValue)
 
         _map = useCluster ? svc.replicatedCachedValuesMap : svc.localCachedValuesMap
         if (onChange) addChangeHandler(onChange)

@@ -49,6 +49,7 @@ class ClientErrorService extends BaseService {
         super.init()
         createTimer(
             name: 'processErrors',
+            runFn: this.&processErrors,
             interval: { alertInterval },
             delay: 15 * SECONDS,
             primaryOnly: true
@@ -100,7 +101,7 @@ class ClientErrorService extends BaseService {
     // Implementation
     //---------------------------------------------------------
     @Transactional
-    void onTimer() {
+    private void processErrors() {
         if (!errors) return
 
         def maxErrors = getMaxErrors(),

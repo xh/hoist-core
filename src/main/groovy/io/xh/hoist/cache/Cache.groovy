@@ -30,33 +30,33 @@ class Cache<K,V> extends BaseCache<V> {
     private final Map<K, Entry<V>> _map
     private final Timer timer
 
+    /**
+     * @internal
+     *
+     * Not typically created directly. Use BaseService.createCache() instead.
+     */
     @NamedVariant
     Cache(
+        @NamedParam(required = true) String name,
         @NamedParam(required = true) BaseService svc,
-        @NamedParam String name,
         @NamedParam Object expireTime = null,
         @NamedParam Closure expireFn = null,
         @NamedParam Closure timestampFn = null,
-        @NamedParam boolean replicate = false,
-        @NamedParam boolean serializeOldValue = false,
+        @NamedParam Boolean replicate = false,
+        @NamedParam Boolean serializeOldValue = false,
         @NamedParam Closure onChange = null
     ) {
-        super(svc, name, expireTime, expireFn, timestampFn, replicate, serializeOldValue)
-
-        if (replicate && !name) {
-            throw new IllegalArgumentException("Cannot create a replicated Cache without a unique name")
-        }
+        super(name, svc, expireTime, expireFn, timestampFn, replicate, serializeOldValue)
 
         _map = useCluster ? svc.getReplicatedMap(name) : new ConcurrentHashMap()
         if (onChange) addChangeHandler(onChange)
 
-        timer = new Timer(
-            name: name ? "cullEntries_$name" : 'cullEntries',
-            owner: svc,
-            primaryOnly: replicate,
+        timer = svc.createTimer(
+            name: "${name}_cullEntries",
             runFn: this.&cullEntries,
             interval: 15 * MINUTES,
-            delay: true
+            delay: true,
+            primaryOnly: replicate
         )
     }
 
@@ -176,7 +176,7 @@ class Cache<K,V> extends BaseCache<V> {
         }
 
         if (cullKeys) {
-            svc.logDebug("Cache '${name ?: "anon"}' culled ${cullKeys.size()} out of $oldSize entries")
+            svc.logDebug("Cache '$name' culled ${cullKeys.size()} out of $oldSize entries")
         }
     }
 }

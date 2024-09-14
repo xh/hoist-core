@@ -7,6 +7,8 @@
 
 package io.xh.hoist.util
 
+import groovy.transform.NamedParam
+import groovy.transform.NamedVariant
 import io.xh.hoist.BaseService
 import io.xh.hoist.cache.CachedValue
 import io.xh.hoist.log.LogSupport
@@ -124,30 +126,36 @@ class Timer {
      * Applications should not typically use this constructor directly. Timers are typically
      * created by services using the createTimer() method supplied by io.xh.hoist.BaseService.
      */
-    Timer(Map config) {
-        name = config.name
-        owner = config.owner
-        runFn = config.runFn
-        primaryOnly = config.primaryOnly ?: false
-        runImmediatelyAndBlock = config.runImmediatelyAndBlock ?: false
-        interval = parseDynamicValue(config.interval)
-        timeout = parseDynamicValue(config.containsKey('timeout') ? config.timeout : 3 * MINUTES)
-        delay = config.delay ?: false
-
-        intervalUnits = config.intervalUnits ?: 1
-        timeoutUnits = config.timeoutUnits ?: 1
-
-        if ([owner, interval, runFn].contains(null)) throw new RuntimeException('Missing required arguments for Timer.')
-        if (config.delayUnits) throw new RuntimeException('delayUnits has been removed from the API. Specify delay in ms.')
+    @NamedVariant
+    Timer(
+        @NamedParam(required = true) String name,
+        @NamedParam(required = true) LogSupport owner,
+        @NamedParam(required = true) Closure runFn,
+        @NamedParam Boolean primaryOnly = false,
+        @NamedParam Boolean runImmediatelyAndBlock = false,
+        @NamedParam Object interval = null,
+        @NamedParam Object timeout = 3 * MINUTES,
+        @NamedParam Object delay = false,
+        @NamedParam Long intervalUnits = 1,
+        @NamedParam Long timeoutUnits = 1
+    ) {
+        this.name = name
+        this.owner = owner
+        this.runFn = runFn
+        this.primaryOnly = primaryOnly
+        this.runImmediatelyAndBlock = runImmediatelyAndBlock
+        this.interval = parseDynamicValue(interval)
+        this.timeout = parseDynamicValue(timeout)
+        this.delay = delay
+        this.intervalUnits = intervalUnits
+        this.timeoutUnits = timeoutUnits
 
         if (primaryOnly) {
-            if (!name) {
-                throw new IllegalArgumentException("Cannot create a 'primaryOnly' timer without a unique name")
-            }
             if (!owner instanceof BaseService)  {
                 throw new IllegalArgumentException("A 'primaryOnly' timer must be owned by an instance of BaseService.")
             }
-            _lastCompletedOnCluster = new CachedValue<>(name: "xhTimer_$name", svc: owner as BaseService)
+
+            _lastCompletedOnCluster = (owner as BaseService).createCachedValue(name: "${name}_lastCompleted")
         }
 
         intervalMs = calcIntervalMs()
@@ -248,7 +256,7 @@ class Timer {
                 exceptionHandler.handleException(
                     exception: throwable,
                     logTo: owner,
-                    logMessage: "Failure in ${name ?: 'timer'}"
+                    logMessage: "Failure in '$name'"
                 )
             } catch (Throwable ignore) {
                 owner.logError('Failed to handle exception in Timer')

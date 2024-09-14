@@ -55,16 +55,16 @@ abstract class BaseCache<V> {
     public final List<Closure> onChange = []
 
     BaseCache(
-        BaseService svc,
         String name,
+        BaseService svc,
         Object expireTime,
         Closure expireFn,
         Closure timestampFn,
         boolean replicate,
         boolean serializeOldValue
     ) {
-        this.svc = svc
         this.name = name
+        this.svc = svc
         this.expireTime = expireTime
         this.expireFn = expireFn
         this.timestampFn = timestampFn

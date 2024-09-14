@@ -33,8 +33,9 @@ class MemoryMonitoringService extends BaseService {
 
     void init() {
         createTimer(
-            interval: {this.enabled ? config.snapshotInterval * DateTimeUtils.SECONDS: -1},
-            runFn: this.&takeSnapshot
+            name: 'takeSnapshot',
+            runFn: this.&takeSnapshot,
+            interval: {this.enabled ? config.snapshotInterval * DateTimeUtils.SECONDS: -1}
         )
     }
 
