@@ -392,13 +392,24 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         resourceNames << name
     }
 
+    /** @internal - for use by Cache */
+    Map getCacheReplicatedMap(String name) {
+        ClusterService.hzInstance.getReplicatedMap(hzName(name))
+    }
+
     /** @internal - for use by CachedValue */
     Map getReplicatedCachedValuesMap() {
-        _replicatedCachedValues ?= getReplicatedMap('cachedValues')
+        if (_replicatedCachedValues == null) {
+            _replicatedCachedValues = getReplicatedMap('cachedValues')
+        }
+        return _replicatedCachedValues
     }
 
     /** @internal - for use by CachedValue */
     Map getLocalCachedValuesMap() {
-        _localCachedValues ?= new ConcurrentHashMap()
+        if (_localCachedValues == null) {
+            _localCachedValues = new ConcurrentHashMap()
+        }
+        return _localCachedValues
     }
 }

@@ -48,7 +48,7 @@ class Cache<K,V> extends BaseCache<V> {
     ) {
         super(name, svc, expireTime, expireFn, timestampFn, replicate, serializeOldValue)
 
-        _map = useCluster ? svc.getReplicatedMap(name) : new ConcurrentHashMap()
+        _map = useCluster ? svc.getCacheReplicatedMap(name) : new ConcurrentHashMap()
         if (onChange) addChangeHandler(onChange)
 
         timer = svc.createTimer(
