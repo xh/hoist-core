@@ -37,7 +37,7 @@ class CachedValue<V> extends BaseCache<V> {
     ) {
         super(name, svc, expireTime, expireFn, timestampFn, replicate, serializeOldValue)
 
-        _map = useCluster ? svc.replicatedCachedValuesMap : svc.localCachedValuesMap
+        _map = svc.getMapForCachedValue(this)
         if (onChange) addChangeHandler(onChange)
     }
 

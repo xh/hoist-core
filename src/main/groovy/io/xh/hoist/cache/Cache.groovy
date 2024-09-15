@@ -12,8 +12,6 @@ import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Timer
-
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeoutException
 
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
@@ -48,7 +46,7 @@ class Cache<K,V> extends BaseCache<V> {
     ) {
         super(name, svc, expireTime, expireFn, timestampFn, replicate, serializeOldValue)
 
-        _map = useCluster ? svc.getCacheReplicatedMap(name) : new ConcurrentHashMap()
+        _map = svc.getMapForCache(this)
         if (onChange) addChangeHandler(onChange)
 
         timer = svc.createTimer(

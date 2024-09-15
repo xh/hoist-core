@@ -78,13 +78,14 @@ abstract class BaseCache<V> {
     /** Clear all values. */
     abstract void clear()
 
-    //------------------------
-    // Implementation
-    //------------------------
-    protected boolean getUseCluster() {
+    /** Is Cache to be stored on cluster? */
+    boolean getUseCluster() {
         return replicate && ClusterService.multiInstanceEnabled
     }
 
+    //------------------------
+    // Implementation
+    //------------------------
     protected void fireOnChange(Object key, V oldValue, V value) {
         def change = new CacheValueChanged(this, key, oldValue,  value)
         onChange.each { it.call(change) }

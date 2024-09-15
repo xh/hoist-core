@@ -65,8 +65,8 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     protected final List<Timer> timers = []
 
     private boolean _destroyed = false
-    private Map _replicatedCachedValues
-    private Map _localCachedValues
+    private Map _replicatedValues
+    private Map _localValues
 
     private final Logger _log = LoggerFactory.getLogger(this.class)
 
@@ -208,7 +208,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      */
     <K, V> Cache<K, V> createCache(Map mp) {
         // Cannot use @NamedVariant, as incompatible with generics. We'll still get run-time checks.
-        ensureUniqueResourceName(mp.name)
         return new Cache([*:mp, svc: this])
     }
 
@@ -222,7 +221,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      */
     <T> CachedValue<T> createCachedValue(Map mp) {
         // Cannot use @NamedVariant, as incompatible with generics. We'll still get run-time checks.
-        ensureUniqueResourceName(mp.name)
         return new CachedValue([*:mp, svc: this])
     }
 
@@ -393,23 +391,22 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     }
 
     /** @internal - for use by Cache */
-    Map getCacheReplicatedMap(String name) {
-        ClusterService.hzInstance.getReplicatedMap(hzName(name))
+    Map getMapForCache(Cache cache) {
+        ensureUniqueResourceName(cache.name)
+        cache.useCluster ?
+            ClusterService.hzInstance.getReplicatedMap(hzName(cache.name)) :
+            new ConcurrentHashMap()
     }
 
     /** @internal - for use by CachedValue */
-    Map getReplicatedCachedValuesMap() {
-        if (_replicatedCachedValues == null) {
-            _replicatedCachedValues = getReplicatedMap('cachedValues')
+    Map getMapForCachedValue(CachedValue cachedValue) {
+        ensureUniqueResourceName(cachedValue.name)
+        if (cachedValue.useCluster) {
+            if (_replicatedValues == null) _replicatedValues = getReplicatedMap('cachedValues')
+            return _replicatedValues
+        } else {
+            if (_localValues == null) _localValues = new ConcurrentHashMap()
+            return _localValues
         }
-        return _replicatedCachedValues
-    }
-
-    /** @internal - for use by CachedValue */
-    Map getLocalCachedValuesMap() {
-        if (_localCachedValues == null) {
-            _localCachedValues = new ConcurrentHashMap()
-        }
-        return _localCachedValues
     }
 }
