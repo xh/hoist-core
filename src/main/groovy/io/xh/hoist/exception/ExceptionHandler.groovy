@@ -9,6 +9,8 @@ package io.xh.hoist.exception
 
 import grails.util.GrailsUtil
 import groovy.transform.CompileStatic
+import groovy.transform.NamedParam
+import groovy.transform.NamedVariant
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
 
@@ -37,25 +39,26 @@ class ExceptionHandler {
      * Used by BaseController, ClusterRequest, Timer, and AccessInterceptor to handle
      * otherwise unhandled exception.
      */
-    void handleException(Map options) {
-        Throwable t = options.exception as Throwable
-        HttpServletResponse renderTo = options.renderTo as HttpServletResponse
-        LogSupport logTo = options.logTo as LogSupport
-        Object logMessage = options.logMessage
-
-        t = preprocess(t)
+    @NamedVariant
+    void handleException(
+        @NamedParam(required = true) Throwable exception,
+        @NamedParam HttpServletResponse renderTo,
+        @NamedParam LogSupport logTo,
+        @NamedParam Object logMessage
+    ) {
+        exception = preprocess(exception)
         if (logTo) {
             if (logMessage) {
-                shouldLogDebug(t) ? logTo.logDebug(logMessage, t) : logTo.logError(logMessage, t)
+                shouldLogDebug(exception) ? logTo.logDebug(logMessage, exception) : logTo.logError(logMessage, exception)
             } else {
-                shouldLogDebug(t) ? logTo.logDebug(t) : logTo.logError(t)
+                shouldLogDebug(exception) ? logTo.logDebug(exception) : logTo.logError(exception)
             }
         }
 
         if (renderTo) {
-            renderTo.setStatus(getHttpStatus(t))
+            renderTo.setStatus(getHttpStatus(exception))
             renderTo.setContentType('application/json')
-            renderTo.writer.write(JSONSerializer.serialize(t))
+            renderTo.writer.write(JSONSerializer.serialize(exception))
             renderTo.flushBuffer()
         }
     }

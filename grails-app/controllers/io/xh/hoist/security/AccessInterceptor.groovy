@@ -28,63 +28,50 @@ class AccessInterceptor implements LogSupport {
     }
 
     boolean before() {
+        try {
 
-        // Ignore Websockets -- these are destined for a non-controller based endpoint
-        // established via a spring-websocket configuration mapping. (Note this is *not* currently
-        // built into Hoist but is checked / allowed for here.)
-        if (isWebSocketHandshake()) {
-            return true
+            // Ignore Websockets -- these are destined for a non-controller based endpoint
+            // established via a spring-websocket configuration mapping. (Note this is *not* currently
+            // built into Hoist but is checked / allowed for here.)
+            if (isWebSocketHandshake()) {
+                return true
+            }
+
+            // Get controller method, or 404
+            Class clazz = controllerClass?.clazz
+            String actionNm = actionName ?: controllerClass?.defaultAction
+            Method method = clazz && actionNm ? findMethod(clazz, actionNm) : null
+            if (!method) throw new NotFoundException()
+
+            // Eval method annotations, and return true or 401
+            def access = method.getAnnotation(Access) ?:
+                method.getAnnotation(AccessAll) ?:
+                    clazz.getAnnotation(Access) as Access ?:
+                        clazz.getAnnotation(AccessAll) as AccessAll
+
+            if (access instanceof AccessAll ||
+                (access instanceof Access && identityService.user.hasAllRoles(access.value()))
+            ) {
+                return true
+            }
+
+            def username = identityService.username ?: 'UNKNOWN'
+            throw new NotAuthorizedException(
+                "You do not have the required role(s) for this action. Currently logged in as: $username."
+            )
+        } catch (Exception e) {
+            xhExceptionHandler.handleException(
+                exception: e,
+                logMessage: [controller: controllerClass?.name, action: actionName],
+                logTo: this,
+                renderTo: response
+            )
         }
-
-        // Get controller method, or 404
-        Class clazz = controllerClass?.clazz
-        String actionNm = actionName ?: controllerClass?.defaultAction
-        Method method = clazz && actionNm ? findMethod(clazz, actionNm) : null
-        if (!method) return handleNotFound()
-
-       // Eval method annotations, and return true or 401
-        def access = method.getAnnotation(Access) ?:
-            method.getAnnotation(AccessAll) ?:
-                clazz.getAnnotation(Access) as Access ?:
-                    clazz.getAnnotation(AccessAll) as AccessAll
-
-        if (access instanceof AccessAll ||
-            (access instanceof Access && identityService.user.hasAllRoles(access.value()))
-        ) {
-            return true
-        }
-
-        return handleUnauthorized()
     }
 
     //------------------------
     // Implementation
     //------------------------
-    private boolean handleUnauthorized() {
-        def username = identityService.username ?: 'UNKNOWN',
-            ex = new NotAuthorizedException("""
-                    You do not have the application role(s) required.
-                    Currently logged in as: $username.
-            """)
-        xhExceptionHandler.handleException(
-            exception: ex,
-            logTo: this,
-            logMessage: [controller: controllerClass?.name, action: actionName],
-            renderTo: response
-        )
-        return false
-    }
-
-    private boolean handleNotFound() {
-        xhExceptionHandler.handleException(
-            exception: new NotFoundException(),
-            logTo: this,
-            logMessage: [controller: controllerClass?.name, action: actionName],
-            renderTo: response
-        )
-        return false
-    }
-
     private boolean isWebSocketHandshake() {
         def upgradeHeader = request?.getHeader('upgrade')
         return upgradeHeader == 'websocket'
