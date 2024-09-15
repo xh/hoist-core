@@ -12,6 +12,9 @@
 * Improvements to `RestController` to better support editing Domain Objects defined with secondary
   domain objects.
 
+* Improved handling/rendering of exceptions during Authentication and Authorization checking of
+ requests.
+
 ## 21.0.1 - 2024-09-05
 
 ### 🐞 Bug Fixes
