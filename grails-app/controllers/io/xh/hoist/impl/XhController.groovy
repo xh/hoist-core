@@ -279,16 +279,30 @@ class XhController extends BaseController {
     // Misc
     //-----------------------
     /**
+     * Whitelisted (pre-auth) endpoint with minimal app identifier, for uptime/reachability checks.
+     * Also reachable via legacy `/ping` alias (via `UrlMappings`), but prefer `/xh/ping`.
+     */
+    def ping() {
+        renderJSON(
+            appCode: Utils.appCode,
+            timestamp: System.currentTimeMillis(),
+            success: true
+        )
+    }
+
+    /**
      * Whitelisted (pre-auth) endpoint with minimal app identifier and version info.
-     * Also reachable (for backwards compatibility) via /ping, as per `UrlMappings`.
      */
     def version() {
         renderJSON(
             appCode: Utils.appCode,
             appVersion: Utils.appVersion,
             appBuild: Utils.appBuild,
-            timestamp: System.currentTimeMillis(),
-            success: true
+            // TODO - this is a temporary measure to ensure that clients running hoist-react < 67
+            //      prompt for upgrade when a new app release is deployed with hoist-core >= 21.
+            //      Going forward clients will read these instructions from `xh/environmentPoll`.
+            //      Once a majority of key apps have been upgraded, we should remove this key.
+            mode: configService.getMap('xhEnvPollConfig').onVersionChange
         )
     }
 

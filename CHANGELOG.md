@@ -1,6 +1,27 @@
 # Changelog
 
-## 22.0-SNAPSHOT - unreleased
+## 22.0-SNAPSHOT
+
+### ⚙️ Technical
+
+* Updated `ClusterService` to use Hoist's `InstanceNotFoundException` class to designate routine.
+
+* Exposed `/xh/ping` as whitelisted route for basic uptime/reachability checks. Retained legacy
+  `/ping` alias, but prefer this new path going forward.
+
+* Improvements to `RestController` to better support editing Domain Objects defined with secondary
+  domain objects.
+
+## 21.0.1 - 2024-09-05
+
+### 🐞 Bug Fixes
+
+* Resolved issue where connected clients would not display the upgrade prompt banner when an app was
+  first released with an update to `hoist-core >= 21.0.0`.
+
+### ⚙️ Technical
+
+* Improved serialization efficiency of replicated `Cache` and `CachedValue`.
 
 ### ⚙️ Technical
 * Deliver AlertBanner data with environment polling.

@@ -7,8 +7,7 @@
 
 package io.xh.hoist.cache
 
-import com.hazelcast.core.EntryEvent
-import com.hazelcast.core.EntryListener
+
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
@@ -53,7 +52,7 @@ abstract class BaseCache<V> {
     public final boolean serializeOldValue
 
     /** Handlers to be called on change with a {@link CacheValueChanged} object. */
-    public final List<Closure> onChange
+    public final List<Closure> onChange = []
 
     BaseCache(
         BaseService svc,
@@ -62,8 +61,7 @@ abstract class BaseCache<V> {
         Closure expireFn,
         Closure timestampFn,
         boolean replicate,
-        boolean serializeOldValue,
-        Closure onChange
+        boolean serializeOldValue
     ) {
         this.svc = svc
         this.name = name
@@ -72,13 +70,10 @@ abstract class BaseCache<V> {
         this.timestampFn = timestampFn
         this.replicate = replicate
         this.serializeOldValue = serializeOldValue
-        this.onChange = onChange ? [onChange] : []
     }
 
     /** @param handler called on change with a {@link CacheValueChanged} object. */
-    void addChangeHandler(Closure handler) {
-        onChange << handler
-    }
+    abstract void addChangeHandler(Closure handler)
 
     /** Clear all values. */
     abstract void clear()
@@ -88,19 +83,6 @@ abstract class BaseCache<V> {
     //------------------------
     protected boolean getUseCluster() {
         return replicate && ClusterService.multiInstanceEnabled
-    }
-
-    protected EntryListener getHzEntryListener() {
-        Closure onChg = { EntryEvent<?, Entry<V>> it ->
-            fireOnChange(it.key, it.oldValue?.value, it.value?.value)
-        }
-        return [
-            entryAdded  : onChg,
-            entryUpdated: onChg,
-            entryRemoved: onChg,
-            entryEvicted: onChg,
-            entryExpired: onChg
-        ] as EntryListener
     }
 
     protected void fireOnChange(Object key, V oldValue, V value) {

@@ -7,11 +7,9 @@
 
 package io.xh.hoist
 
-import grails.gorm.transactions.Transactional
 import grails.validation.ValidationException
 import io.xh.hoist.json.JSONParser
 
-@Transactional
 abstract class RestController extends BaseController {
 
     def trackService
@@ -20,92 +18,104 @@ abstract class RestController extends BaseController {
     static restTarget = null // Implementations set to value of GORM domain class they are editing.
 
     def create() {
-        def data = parseRequestJSON().data
-        preprocessSubmit(data)
+        restTargetVal.withTransaction {
+            def data = parseRequestJSON().data
+            preprocessSubmit(data)
 
-        def obj = restTargetVal.newInstance(data)
-        doCreate(obj, data)
-        noteChange(obj, 'CREATE')
-        renderJSON(success:true, data:obj)
+            def obj = restTargetVal.newInstance(data)
+            doCreate(obj, data)
+            noteChange(obj, 'CREATE')
+            renderJSON(success:true, data:obj)
+        }
     }
 
     def read() {
-        def query = params.query ? JSONParser.parseObject(params.query) : [:],
-            ret = params.id ? [restTargetVal.get(params.id)] : doList(query)
-        renderJSON(success:true, data:ret)
+        restTargetVal.withTransaction {
+            def query = params.query ? JSONParser.parseObject(params.query) : [:],
+                ret = params.id ? [restTargetVal.get(params.id)] : doList(query)
+            renderJSON(success:true, data:ret)
+        }
     }
 
     def update() {
-        def data = parseRequestJSON().data
-        preprocessSubmit(data)
+        restTargetVal.withTransaction {
+            def data = parseRequestJSON().data
+            preprocessSubmit(data)
 
-        def obj = restTargetVal.get(data.id)
-        try {
-            doUpdate(obj, data)
-            noteChange(obj, 'UPDATE')
-            renderJSON(success:true, data:obj)
-        } catch (ValidationException ex) {
-            obj.discard()
-            throw ex
+            def obj = restTargetVal.get(data.id)
+            try {
+                doUpdate(obj, data)
+                noteChange(obj, 'UPDATE')
+                renderJSON(success:true, data:obj)
+            } catch (ValidationException ex) {
+                obj.discard()
+                throw ex
+            }
         }
     }
 
     def bulkUpdate() {
-        def body = parseRequestJSON(),
-            ids = body.ids,
-            newParams = body.newParams,
-            successCount = 0,
-            failCount = 0,
-            target = restTargetVal,
-            obj = null
+        restTargetVal.withTransaction {
+            def body = parseRequestJSON(),
+                ids = body.ids,
+                newParams = body.newParams,
+                successCount = 0,
+                failCount = 0,
+                target = restTargetVal,
+                obj = null
 
-        ids.each { id ->
-            try {
-                obj = target.get(id)
-                doUpdate(obj, newParams)
-                noteChange(obj, 'UPDATE')
-                successCount++
-            } catch (Exception e) {
-                failCount++
-                if (e instanceof ValidationException) {
-                    e = new io.xh.hoist.exception.ValidationException(e)
-                    logDebug("Validation exception updating ${obj}", e)
-                } else {
-                    logError("Unexpected exception updating ${obj}", e)
+            ids.each { id ->
+                try {
+                    obj = target.get(id)
+                    doUpdate(obj, newParams)
+                    noteChange(obj, 'UPDATE')
+                    successCount++
+                } catch (Exception e) {
+                    failCount++
+                    if (e instanceof ValidationException) {
+                        e = new io.xh.hoist.exception.ValidationException(e)
+                        logDebug("Validation exception updating ${obj}", e)
+                    } else {
+                        logError("Unexpected exception updating ${obj}", e)
+                    }
                 }
             }
-        }
 
-        renderJSON(success:successCount, fail:failCount)
+            renderJSON(success:successCount, fail:failCount)
+        }
     }
 
     def delete() {
-        def obj = restTargetVal.get(params.id)
-        doDelete(obj)
-        noteChange(obj, 'DELETE')
-        renderJSON(success:true)
+        restTargetVal.withTransaction {
+            def obj = restTargetVal.get(params.id)
+            doDelete(obj)
+            noteChange(obj, 'DELETE')
+            renderJSON(success:true)
+        }
     }
 
     def bulkDelete() {
-        def ids = params.list('ids'),
-            successCount = 0,
-            failCount = 0,
-            target = restTargetVal
+        restTargetVal.withTransaction {
+            def ids = params.list('ids'),
+                successCount = 0,
+                failCount = 0,
+                target = restTargetVal
 
-        ids.each {id ->
-            try {
-                target.withTransaction{ status ->
-                    def obj = target.get(id)
-                    doDelete(obj)
-                    noteChange(obj, 'DELETE')
-                    successCount++
+            ids.each {id ->
+                try {
+                    target.withTransaction{ status ->
+                        def obj = target.get(id)
+                        doDelete(obj)
+                        noteChange(obj, 'DELETE')
+                        successCount++
+                    }
+                } catch (Exception ignored) {
+                    failCount++
                 }
-            } catch (Exception ignored) {
-                failCount++
             }
-        }
 
-        renderJSON(success:successCount, fail:failCount)
+            renderJSON(success:successCount, fail:failCount)
+        }
     }
 
 
