@@ -179,6 +179,6 @@ class MemoryMonitoringService extends BaseService {
 
     Map getAdminStats() {[
         config: configForAdminStats('xhMemoryMonitoringConfig'),
-        latestSnapshot: latestSnapshot,
+        latestSnapshot: latestSnapshot
     ]}
 }
