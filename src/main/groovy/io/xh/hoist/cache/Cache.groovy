@@ -23,12 +23,12 @@ import static java.lang.System.currentTimeMillis
  * A key-value Cache, with support for optional entry TTL and replication across a cluster.
  */
 @CompileStatic
-class Cache<K,V> extends BaseCache<V> {
+class Cache<K, V> extends BaseCache<V> {
 
     private final Map<K, Entry<V>> _map
     private final Timer cullTimer
 
-    /** @internal - do not construct directly - use {@link BaseService#createCache}. */
+    /** @internal - do not construct directly - use {@link BaseService#createCache}.  */
     @NamedVariant
     Cache(
         @NamedParam(required = true) String name,
@@ -54,12 +54,12 @@ class Cache<K,V> extends BaseCache<V> {
         )
     }
 
-    /** @returns the cached value at key. */
+    /** @returns the cached value at key.  */
     V get(K key) {
         return getEntry(key)?.value
     }
 
-    /** @returns the cached Entry at key. */
+    /** @returns the cached Entry at key.  */
     Entry<V> getEntry(K key) {
         def ret = _map[key]
         if (ret && shouldExpire(ret)) {
@@ -86,7 +86,7 @@ class Cache<K,V> extends BaseCache<V> {
         if (!useCluster) fireOnChange(this, oldEntry?.value, obj)
     }
 
-    /** @returns cached value for key, or lazily creates if needed. */
+    /** @returns cached value for key, or lazily creates if needed.  */
     V getOrCreate(K key, Closure<V> c) {
         V ret = get(key)
         if (ret == null) {
@@ -96,13 +96,13 @@ class Cache<K,V> extends BaseCache<V> {
         return ret
     }
 
-    /** @returns a Map representation of currently cached data. */
+    /** @returns a Map representation of currently cached data.  */
     Map<K, V> getMap() {
         cullEntries()
-        return (Map<K, V>) _map.collectEntries {k, v -> [k, v.value]}
+        return (Map<K, V>) _map.collectEntries { k, v -> [k, v.value] }
     }
 
-    /** @returns the timestamp of the cached Entry at key. */
+    /** @returns the timestamp of the cached Entry at key.  */
     Long getTimestamp(K key) {
         return getEntryTimestamp(_map[key])
     }
@@ -119,7 +119,7 @@ class Cache<K,V> extends BaseCache<V> {
     void clear() {
         // Remove key-wise to ensure that we get the proper removal message for each value and
         // work around exceptions with clear on replicated map.
-        _map.each { k, v -> remove(k)}
+        _map.each { k, v -> remove(k) }
     }
 
     void addChangeHandler(Closure handler) {
@@ -132,10 +132,10 @@ class Cache<K,V> extends BaseCache<V> {
 
     /**
      * Wait for the cache entry to be populated.
-     * @param key, entry to check
-     * @param timeout, time in ms to wait.  -1 to wait indefinitely (not recommended).
-     * @param interval, time in ms to wait between tests.
-     * @param timeoutMessage, custom message associated with any timeout.
+     * @param key - entry to check
+     * @param timeout - time in ms to wait.  -1 to wait indefinitely (not recommended).
+     * @param interval - time in ms to wait between tests.
+     * @param timeoutMessage - custom message associated with any timeout.
      */
     @NamedVariant
     void ensureAvailable(
@@ -156,14 +156,13 @@ class Cache<K,V> extends BaseCache<V> {
         }
     }
 
-
     Map getAdminStats() {
         [
             name           : name,
-            type           : 'Cache' + (replicate ? '(replicated)' : ''),
+            type           : 'Cache' + (replicate ? ' (replicated)' : ''),
             count          : size(),
             latestTimestamp: _map.max { it.value.dateEntered }?.value?.dateEntered,
-            lastCullTime     : cullTimer.lastRunCompleted
+            lastCullTime   : cullTimer.lastRunCompleted
         ]
     }
 
