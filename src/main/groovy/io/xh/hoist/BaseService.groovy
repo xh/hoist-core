@@ -258,12 +258,12 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * This subscription also avoids firing handlers on destroyed services. This is important in a
      * hot-reloading scenario where multiple instances of singleton services may be created.
      */
-    protected void subscribeToTopic(Map config) {
-        def topic = config.topic as String,
-            onMessage = config.onMessage as Closure,
-            primaryOnly = config.primaryOnly as Boolean
-
-
+    @NamedVariant
+    protected void subscribeToTopic(
+        @NamedParam(required = true) String topic,
+        @NamedParam(required = true) Closure onMessage,
+        @NamedParam Boolean primaryOnly = false
+    ) {
         getTopic(topic).addMessageListener { Message m ->
             if (destroyed || (primaryOnly && !isPrimary)) return
             try {
