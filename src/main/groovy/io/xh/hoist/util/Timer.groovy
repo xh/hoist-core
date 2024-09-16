@@ -321,14 +321,14 @@ class Timer {
     // frequently enough to pickup forceRun reasonably fast. Tighten down for the rare fast timer.
     //-------------------------------------------------------------------------------------------
     private void onCoreTimer() {
-        if (!isRunning && (forceRun || isIntervalElapsed())) {
+        if (!isRunning && (forceRun || intervalHasElapsed())) {
             boolean wasForced = forceRun
             doRun()
             if (wasForced) forceRun = false
         }
     }
 
-    private boolean isIntervalElapsed() {
+    private boolean intervalHasElapsed() {
         if (intervalMs <= 0) return false
         def lastRun = _lastCompletedOnCluster ? _lastCompletedOnCluster.get() : _lastRunCompleted
         return intervalElapsed(intervalMs, lastRun)
