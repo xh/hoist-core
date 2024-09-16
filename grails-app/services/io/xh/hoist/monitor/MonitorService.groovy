@@ -41,17 +41,18 @@ class MonitorService extends BaseService {
 
     // Shared state for all servers to read - gathered by primary from all instances.
     // Map of monitor code to aggregated (cross-instance) results.
-    private CachedValue<Map<String, AggregateMonitorResult>> _results = new CachedValue<>(
+    private CachedValue<Map<String, AggregateMonitorResult>> _results = createCachedValue(
         name: 'results',
-        replicate: true,
-        svc: this
+        replicate: true
     )
 
     private Timer timer
 
     void init() {
         timer = createTimer(
-            interval: { monitorInterval },
+            name: 'runMonitors',
+            runFn: this.&runMonitors,
+            interval: {monitorInterval},
             delay: startupDelay,
             primaryOnly: true
         )
@@ -86,7 +87,7 @@ class MonitorService extends BaseService {
     //------------------
     // Implementation
     //------------------
-    private void onTimer() {
+    private void runMonitors() {
         // Gather per-instance results from across the cluster
         Map<String, List<MonitorResult>> newChecks = clusterService
             .submitToAllInstances(new RunAllMonitorsTask())

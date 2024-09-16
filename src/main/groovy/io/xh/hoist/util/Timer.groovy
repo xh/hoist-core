@@ -7,6 +7,10 @@
 
 package io.xh.hoist.util
 
+import groovy.transform.NamedParam
+import groovy.transform.NamedVariant
+import io.xh.hoist.BaseService
+import io.xh.hoist.cache.CachedValue
 import io.xh.hoist.log.LogSupport
 
 import java.util.concurrent.ExecutionException
@@ -22,19 +26,28 @@ import static io.xh.hoist.util.Utils.configService
 import static io.xh.hoist.util.Utils.getExceptionHandler
 
 /**
- * Core Hoist Timer object.
+ * Hoist's implementation of an interval-based Timer, for running tasks on a repeated interval.
+ * Supports a dynamic / configurable run interval, startup delay, and timeout. Used by services
+ * that need to schedule work to maintain internal state, eg regularly refreshing a cache from an
+ * external data source.
  *
- * This object is typically used by services that need to schedule work to maintain
- * internal state.
+ * This class ensures that only one instance of the task is running at a time. To schedule an ad hoc
+ * run, call `forceRun()` to run again as soon as any in-progress run completes, or ASAP on the next
+ * tick of the Timer's internal (and fast) interval-evaluation heartbeat.
+ *
+ * Timers can be configured to run only on the primary instance in a clustered environment, to
+ * ensure that tasks with external side effects are not run on every instance unless so desired.
+ * A common pattern would be to have the primary instance run a Timer-based job to load data into
+ * a cache, with the cache then replicated across the cluster.
  */
 class Timer {
 
      private static Long CONFIG_INTERVAL = 15 * SECONDS
 
-    /** Optional name for this timer (for logging purposes) **/
+    /** Unique name for this timer, required for cluster aware timers (see `primaryOnly`) **/
     final String name
 
-    /** Object using this timer (for logging purposes) **/
+    /** Object using this timer **/
     final LogSupport owner
 
     /** Closure to run */
@@ -73,7 +86,10 @@ class Timer {
     /** Block on an immediate initial run?  Default is false. */
     final boolean runImmediatelyAndBlock
 
-    /**  Only run job when clustered instance is the primary instance?  Default is false. */
+    /**
+     * Only run job when clustered instance is the primary instance?  Default is false.
+     * For timers owned by instances of BaseService only.
+     */
     final boolean primaryOnly
 
 
@@ -109,6 +125,9 @@ class Timer {
     private java.util.Timer configTimer
 
 
+    private CachedValue<Date> _lastCompletedOnCluster
+
+
     // Args from Grails 3.0 async promise implementation
     static ExecutorService executorService = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>())
 
@@ -116,21 +135,37 @@ class Timer {
      * Applications should not typically use this constructor directly. Timers are typically
      * created by services using the createTimer() method supplied by io.xh.hoist.BaseService.
      */
-    Timer(Map config) {
-        name = config.name
-        owner = config.owner
-        runFn = config.runFn
-        primaryOnly = config.primaryOnly ?: false
-        runImmediatelyAndBlock = config.runImmediatelyAndBlock ?: false
-        interval = parseDynamicValue(config.interval)
-        timeout = parseDynamicValue(config.containsKey('timeout') ? config.timeout : 3 * MINUTES)
-        delay = config.delay ?: false
+    @NamedVariant
+    Timer(
+        @NamedParam(required = true) String name,
+        @NamedParam(required = true) LogSupport owner,
+        @NamedParam(required = true) Closure runFn,
+        @NamedParam Boolean primaryOnly = false,
+        @NamedParam Boolean runImmediatelyAndBlock = false,
+        @NamedParam Object interval = null,
+        @NamedParam Object timeout = 3 * MINUTES,
+        @NamedParam Object delay = false,
+        @NamedParam Long intervalUnits = 1,
+        @NamedParam Long timeoutUnits = 1
+    ) {
+        this.name = name
+        this.owner = owner
+        this.runFn = runFn
+        this.primaryOnly = primaryOnly
+        this.runImmediatelyAndBlock = runImmediatelyAndBlock
+        this.interval = parseDynamicValue(interval)
+        this.timeout = parseDynamicValue(timeout)
+        this.delay = delay
+        this.intervalUnits = intervalUnits
+        this.timeoutUnits = timeoutUnits
 
-        intervalUnits = config.intervalUnits ?: 1
-        timeoutUnits = config.timeoutUnits ?: 1
+        if (primaryOnly) {
+            if (!owner instanceof BaseService)  {
+                throw new IllegalArgumentException("A 'primaryOnly' timer must be owned by an instance of BaseService.")
+            }
 
-        if ([owner, interval, runFn].contains(null)) throw new RuntimeException('Missing required arguments for Timer.')
-        if (config.delayUnits) throw new RuntimeException('delayUnits has been removed from the API. Specify delay in ms.')
+            _lastCompletedOnCluster = (owner as BaseService).createCachedValue(name: "xh_${name}_lastCompleted")
+        }
 
         intervalMs = calcIntervalMs()
         timeoutMs = calcTimeoutMs()
@@ -155,32 +190,30 @@ class Timer {
     }
 
     /**
-     * Force a new execution as soon as possible.
+     * Force a new execution as soon as possible, on the next scheduled internal heartbeat, or as
+     * soon as any already in-progress execution completes.
      *
-     * This will occur on the next scheduled heartbeat, or as soon as any in-progress executions complete.
-     * Any subsequent calls to this method before this additional execution has completed will be ignored.
+     * Note that any additional calls to this method before an already-requested force run has
+     * completed will be ignored.
      */
     void forceRun() {
         forceRun = true
     }
 
     /**
-     * Cancel this timer.
-     *
-     * This will prevent any additional executions of this timer.  In-progress executions will be unaffected.
+     * Cancel this timer, permanently preventing any additional executions.
+     * In-progress executions will be unaffected.
      */
     void cancel() {
         coreTimer?.cancel()
         configTimer?.cancel()
     }
 
-    /**
-     * Information about this time for admin purposes.
-     */
+    /** Information about this timer, accessible via the Hoist Admin Console. */
     Map getAdminStats() {
         [
             name: name,
-            primaryOnly: primaryOnly?: null,
+            type: 'Timer' + (primaryOnly ? ' (primary only)': ''),
             intervalMs: intervalMs,
             isRunning: isRunning,
             startTime: isRunning ? _lastRunStarted: null,
@@ -217,6 +250,7 @@ class Timer {
         }
 
         _lastRunCompleted = new Date()
+        _lastCompletedOnCluster?.set(_lastRunCompleted)
         _isRunning = false
         _lastRunStats = [
             startTime: _lastRunStarted,
@@ -229,7 +263,7 @@ class Timer {
                 exceptionHandler.handleException(
                     exception: throwable,
                     logTo: owner,
-                    logMessage: "Failure in ${name ?: 'timer'}"
+                    logMessage: "Failure in '$name'"
                 )
             } catch (Throwable ignore) {
                 owner.logError('Failed to handle exception in Timer')
@@ -287,13 +321,17 @@ class Timer {
     // frequently enough to pickup forceRun reasonably fast. Tighten down for the rare fast timer.
     //-------------------------------------------------------------------------------------------
     private void onCoreTimer() {
-        if (!isRunning) {
-            if ((intervalMs > 0 && intervalElapsed(intervalMs, lastRunCompleted)) || forceRun) {
-                boolean wasForced = forceRun
-                doRun()
-                if (wasForced) forceRun = false
-            }
+        if (!isRunning && (forceRun || intervalHasElapsed())) {
+            boolean wasForced = forceRun
+            doRun()
+            if (wasForced) forceRun = false
         }
+    }
+
+    private boolean intervalHasElapsed() {
+        if (intervalMs <= 0) return false
+        def lastRun = _lastCompletedOnCluster ? _lastCompletedOnCluster.get() : _lastRunCompleted
+        return intervalElapsed(intervalMs, lastRun)
     }
 
     private Long calcCoreIntervalMs() {
