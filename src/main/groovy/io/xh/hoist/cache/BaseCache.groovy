@@ -78,13 +78,12 @@ abstract class BaseCache<V> {
     /** Clear all values. */
     abstract void clear()
 
-    /** Is Cache to be stored on cluster? */
+    /** True if this Cache should be stored across the cluster (backed by a ReplicatedMap). */
     boolean getUseCluster() {
         return replicate && ClusterService.multiInstanceEnabled
     }
 
-
-    /** Information about this object for admin purposes */
+    /** Information about this object, accessible via the Hoist Admin Console. */
     abstract Map getAdminStats()
 
     //------------------------

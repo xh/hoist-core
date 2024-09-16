@@ -122,49 +122,48 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     // Use static reference to ClusterService to allow access pre-init.
     //------------------------------------------------------------------
     /**
-     * Get a reference to a Hazelcast IMap.
+     * Create and return a reference to a Hazelcast IMap.
      *
-     * @param name - unique name relative to all Caches, Timers and Hazelcast objects
-     *      associated with this service.
+     * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
+     * associated with this service.
      */
     <K, V> IMap<K, V> getIMap(String name) {
         addResource(name, ClusterService.hzInstance.getMap(hzName(name)))
     }
 
     /**
-     * Get a reference to a Hazelcast ISet.
+     * Create and return a reference to a Hazelcast ISet.
      *
-     * @param name - unique name relative to all Caches, Timers and Hazelcast objects
-     *      associated with this service.
+     * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
+     * associated with this service.
      */
     <V> ISet<V> getISet(String name) {
         addResource(name, ClusterService.hzInstance.getSet(hzName(name)))
     }
 
     /**
-     * Get a reference to a Hazelcast Replicated Map.
+     * Create and return a reference to a Hazelcast Replicated Map.
      *
-     * @param name - unique name relative to all Caches, Timers and Hazelcast objects
-     *      associated with this service.
+     * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
+     * associated with this service.
      */
      <K, V> ReplicatedMap<K, V> getReplicatedMap(String name) {
         addResource(name, ClusterService.hzInstance.getReplicatedMap(hzName(name)))
     }
 
     /**
-     * Get a reference to a Hazelcast Replicated topic.
+     * Get a reference to a Hazelcast Replicated topic, useful to publish to a cluster-wide topic.
+     * To subscribe to events fired by other services on a topic, use {@link #subscribeToTopic}.
      */
      <M> ITopic<M> getTopic(String id) {
         ClusterService.hzInstance.getTopic(id)
     }
 
     /**
-     * Create a new managed Timer bound to this service.
+     * Create a new managed {@link Timer} bound to this service.
      *
-     * Note that the provided name should be unique with respect to all
-     * Caches, Timers and Hazelcast objects associated with this service.
-     *
-     * @see Timer
+     * Note that the provided name must be unique across all Caches, Timers and distributed
+     * Hazelcast objects associated with this service.
      */
     @CompileDynamic
     @NamedVariant
@@ -194,12 +193,10 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     }
 
     /**
-     * Create a new Cache bound to this service.
+     * Create a new {@link Cache} bound to this service.
      *
-     * Note that the provided name should be unique with respect to all
-     * Caches, Timers and Hazelcast objects associated with this service.
-     *
-     * @see Cache
+     * Note that the provided name must be unique across all Caches, Timers and distributed
+     * Hazelcast objects associated with this service.
      */
     <K, V> Cache<K, V> createCache(Map mp) {
         // Cannot use @NamedVariant, as incompatible with generics. We'll still get run-time checks.
@@ -207,12 +204,10 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     }
 
     /**
-     * Create a new CachedValue bound to this service.
+     * Create a new {@link CachedValue} bound to this service.
      *
-     * Note that the provided name should be unique with respect to all
-     * Caches, Timers and Hazelcast objects associated with this service.
-     *
-     * @see CachedValue
+     * Note that the provided name must be unique across all Caches, Timers and distributed
+     * Hazelcast objects associated with this service.
      */
     <T> CachedValue<T> createCachedValue(Map mp) {
         // Cannot use @NamedVariant, as incompatible with generics. We'll still get run-time checks.
@@ -221,14 +216,14 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
 
     /**
-     * Managed Subscription to a Grails Event.
+     * Create a managed subscription to events on the instance-local Grails event bus.
      *
-     * NOTE:  Use this method to subscribe to local Grails events on the given server
-     * instance only.  To subscribe to cluster-wide topics, use 'subscribeToTopic' instead.
+     * NOTE: this method subscribes to Grails events on the current server instance only.
+     * To subscribe to cluster-wide topics, use {@link #subscribeToTopic} instead.
      *
      * This method will catch (and log) any exceptions thrown by its handler closure.
-     * This is important because the core grails EventBus.subscribe() will silently swallow
-     * exceptions, and stop processing subsequent handlers.
+     * This is important because the core Grails `EventBus.subscribe()` will silently swallow
+     * exceptions and stop processing subsequent handlers.
      *
      * This subscription also avoids firing handlers on destroyed services. This is important in a
      * hot-reloading scenario where multiple instances of singleton services may be created.
@@ -248,10 +243,11 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
     /**
      *
-     * Managed Subscription to a cluster topic.
+     * Create a managed subscription to a cluster topic.
      *
-     * NOTE:  Use this method to subscribe to cluster-wide topics. To subscribe to local
-     * Grails events on this instance only, use subscribe instead.
+     * NOTE: this subscribes to cluster-wide topics. To subscribe to local Grails events on this
+     * instance only, use {@link #subscribe} instead. That said, this is most likely the method you
+     * want, as most pub/sub use cases should take multi-instance operation into account.
      *
      * This method will catch (and log) any exceptions thrown by its handler closure.
      *

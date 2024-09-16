@@ -26,10 +26,19 @@ import static io.xh.hoist.util.Utils.configService
 import static io.xh.hoist.util.Utils.getExceptionHandler
 
 /**
- * Core Hoist Timer object.
+ * Hoist's implementation of an interval-based Timer, for running tasks on a repeated interval.
+ * Supports a dynamic / configurable run interval, startup delay, and timeout. Used by services
+ * that need to schedule work to maintain internal state, eg regularly refreshing a cache from an
+ * external data source.
  *
- * This object is typically used by services that need to schedule work to maintain
- * internal state.
+ * This class ensures that only one instance of the task is running at a time. To schedule an ad hoc
+ * run, call `forceRun()` to run again as soon as any in-progress run completes, or ASAP on the next
+ * tick of the Timer's internal (and fast) interval-evaluation heartbeat.
+ *
+ * Timers can be configured to run only on the primary instance in a clustered environment, to
+ * ensure that tasks with external side effects are not run on every instance unless so desired.
+ * A common pattern would be to have the primary instance run a Timer-based job to load data into
+ * a cache, with the cache then replicated across the cluster.
  */
 class Timer {
 
@@ -181,28 +190,26 @@ class Timer {
     }
 
     /**
-     * Force a new execution as soon as possible.
+     * Force a new execution as soon as possible, on the next scheduled internal heartbeat, or as
+     * soon as any already in-progress execution completes.
      *
-     * This will occur on the next scheduled heartbeat, or as soon as any in-progress executions complete.
-     * Any subsequent calls to this method before this additional execution has completed will be ignored.
+     * Note that any additional calls to this method before an already-requested force run has
+     * completed will be ignored.
      */
     void forceRun() {
         forceRun = true
     }
 
     /**
-     * Cancel this timer.
-     *
-     * This will prevent any additional executions of this timer.  In-progress executions will be unaffected.
+     * Cancel this timer, permanently preventing any additional executions.
+     * In-progress executions will be unaffected.
      */
     void cancel() {
         coreTimer?.cancel()
         configTimer?.cancel()
     }
 
-    /**
-     * Information about this timer for admin purposes.
-     */
+    /** Information about this timer, accessible via the Hoist Admin Console. */
     Map getAdminStats() {
         [
             name: name,

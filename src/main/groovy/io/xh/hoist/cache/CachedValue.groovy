@@ -19,11 +19,7 @@ class CachedValue<V> extends BaseCache<V> {
 
     private final Map<String, Entry<V>> _map
 
-    /**
-     * @internal
-     *
-     * Not typically created directly. Use BaseService.createCachedValue() instead.
-     */
+    /** @internal - do not construct directly - use {@link BaseService#createCachedValue}. */
     @NamedVariant
     CachedValue(
         @NamedParam(required = true) String name,

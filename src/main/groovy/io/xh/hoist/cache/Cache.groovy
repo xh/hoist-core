@@ -28,11 +28,7 @@ class Cache<K,V> extends BaseCache<V> {
     private final Map<K, Entry<V>> _map
     private final Timer cullTimer
 
-    /**
-     * @internal
-     *
-     * Not typically created directly. Use BaseService.createCache() instead.
-     */
+    /** @internal - do not construct directly - use {@link BaseService#createCache}. */
     @NamedVariant
     Cache(
         @NamedParam(required = true) String name,
