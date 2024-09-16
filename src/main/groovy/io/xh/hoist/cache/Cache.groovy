@@ -50,7 +50,7 @@ class Cache<K, V> extends BaseCache<V> {
             runFn: this.&cullEntries,
             interval: 15 * MINUTES,
             delay: true,
-            primaryOnly: replicate
+            primaryOnly: useCluster
         )
     }
 

@@ -127,7 +127,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
      * associated with this service.
      */
-    <K, V> IMap<K, V> getIMap(String name) {
+    <K, V> IMap<K, V> createIMap(String name) {
         addResource(name, ClusterService.hzInstance.getMap(hzName(name)))
     }
 
@@ -137,7 +137,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
      * associated with this service.
      */
-    <V> ISet<V> getISet(String name) {
+    <V> ISet<V> createISet(String name) {
         addResource(name, ClusterService.hzInstance.getSet(hzName(name)))
     }
 
@@ -147,7 +147,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
      * associated with this service.
      */
-     <K, V> ReplicatedMap<K, V> getReplicatedMap(String name) {
+     <K, V> ReplicatedMap<K, V> createReplicatedMap(String name) {
         addResource(name, ClusterService.hzInstance.getReplicatedMap(hzName(name)))
     }
 
@@ -186,9 +186,19 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
             }
         }
 
-        addResource(
-            name,
-            new Timer(name, this, runFn, primaryOnly, runImmediatelyAndBlock, interval, timeout, delay, intervalUnits, timeoutUnits)
+        addResource(name,
+            new Timer(
+                name,
+                this,
+                runFn,
+                primaryOnly,
+                runImmediatelyAndBlock,
+                interval,
+                timeout,
+                delay,
+                intervalUnits,
+                timeoutUnits
+            )
         )
     }
 
@@ -200,7 +210,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      */
     <K, V> Cache<K, V> createCache(Map mp) {
         // Cannot use @NamedVariant, as incompatible with generics. We'll still get run-time checks.
-        addResource(mp.name, new Cache([*:mp, svc: this]))
+        addResource(mp.name as String, new Cache([*:mp, svc: this]))
     }
 
     /**
@@ -211,7 +221,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      */
     <T> CachedValue<T> createCachedValue(Map mp) {
         // Cannot use @NamedVariant, as incompatible with generics. We'll still get run-time checks.
-        addResource(mp.name, new CachedValue([*:mp, svc: this]))
+        addResource(mp.name as String, new CachedValue([*:mp, svc: this]))
     }
 
 
@@ -386,8 +396,8 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * @internal - for use by Cache.
      */
     Map getMapForCache(Cache cache) {
-        // register under xh name to avoid collisions, allow filtering out in admin
-        cache.useCluster ? getReplicatedMap("xh_${cache.name}") : new ConcurrentHashMap()
+        // register with xh prefix to avoid collisions, allow filtering out in admin
+        cache.useCluster ? createReplicatedMap("xh_${cache.name}") : new ConcurrentHashMap()
     }
 
     /**
@@ -396,7 +406,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     Map getMapForCachedValue(CachedValue cachedValue) {
         // register with xh prefix to avoid collisions, allow filtering out in admin
         if (cachedValue.useCluster) {
-            if (_replicatedValues == null) _replicatedValues = getReplicatedMap('xh_cachedValues')
+            if (_replicatedValues == null) _replicatedValues = createReplicatedMap('xh_cachedValues')
             return _replicatedValues
         } else {
             if (_localValues == null) _localValues = new ConcurrentHashMap()

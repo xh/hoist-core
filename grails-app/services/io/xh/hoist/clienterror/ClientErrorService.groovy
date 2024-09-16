@@ -41,7 +41,7 @@ class ClientErrorService extends BaseService {
         }]
     ]
 
-    private IMap<String, Map> errors = getIMap('clientErrors')
+    private IMap<String, Map> errors = createIMap('clientErrors')
     private int getMaxErrors()      {configService.getMap('xhClientErrorConfig').maxErrors as int}
     private int getAlertInterval()  {configService.getMap('xhClientErrorConfig').intervalMins * MINUTES}
 
