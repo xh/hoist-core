@@ -114,4 +114,12 @@ class CachedValue<V> extends BaseCache<V> {
         }
         onChange << handler
     }
+
+    Map getAdminStats() {
+        [
+            name     : name,
+            type     : 'CachedValue' + (replicate ? ' (replicated)' : ''),
+            timestamp: timestamp
+        ]
+    }
 }

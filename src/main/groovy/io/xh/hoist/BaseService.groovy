@@ -62,16 +62,14 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     Date initializedDate = null
     Date lastCachesCleared = null
 
-    protected final List<Timer> timers = []
+    // Caches, CachedValues and Timers and other distributed objects associated with this service
+    protected final ConcurrentHashMap<String, Object> resources = [:]
 
     private boolean _destroyed = false
     private Map _replicatedValues
     private Map _localValues
 
     private final Logger _log = LoggerFactory.getLogger(this.class)
-
-
-    private Set<String> resourceNames = new HashSet()
 
 
     /**
@@ -130,8 +128,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      *      associated with this service.
      */
     <K, V> IMap<K, V> getIMap(String name) {
-        ensureUniqueResourceName(name)
-        ClusterService.hzInstance.getMap(hzName(name))
+        addResource(name, ClusterService.hzInstance.getMap(hzName(name)))
     }
 
     /**
@@ -141,8 +138,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      *      associated with this service.
      */
     <V> ISet<V> getISet(String name) {
-        ensureUniqueResourceName(name)
-        ClusterService.hzInstance.getSet(hzName(name))
+        addResource(name, ClusterService.hzInstance.getSet(hzName(name)))
     }
 
     /**
@@ -152,8 +148,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      *      associated with this service.
      */
      <K, V> ReplicatedMap<K, V> getReplicatedMap(String name) {
-        ensureUniqueResourceName(name)
-        ClusterService.hzInstance.getReplicatedMap(hzName(name))
+        addResource(name, ClusterService.hzInstance.getReplicatedMap(hzName(name)))
     }
 
     /**
@@ -184,7 +179,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         @NamedParam Long intervalUnits = 1,
         @NamedParam Long timeoutUnits = 1
     ) {
-        ensureUniqueResourceName(name)
         if (!runFn) {
             if (metaClass.respondsTo(this, 'onTimer')) {
                 runFn = this.&onTimer
@@ -193,9 +187,10 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
             }
         }
 
-        def ret = new Timer(name, this, runFn, primaryOnly, runImmediatelyAndBlock, interval, timeout, delay, intervalUnits, timeoutUnits)
-        timers << ret
-        return ret
+        addResource(
+            name,
+            new Timer(name, this, runFn, primaryOnly, runImmediatelyAndBlock, interval, timeout, delay, intervalUnits, timeoutUnits)
+        )
     }
 
     /**
@@ -208,7 +203,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      */
     <K, V> Cache<K, V> createCache(Map mp) {
         // Cannot use @NamedVariant, as incompatible with generics. We'll still get run-time checks.
-        return new Cache([*:mp, svc: this])
+        addResource(mp.name, new Cache([*:mp, svc: this]))
     }
 
     /**
@@ -221,7 +216,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      */
     <T> CachedValue<T> createCachedValue(Map mp) {
         // Cannot use @NamedVariant, as incompatible with generics. We'll still get run-time checks.
-        return new CachedValue([*:mp, svc: this])
+        addResource(mp.name, new CachedValue([*:mp, svc: this]))
     }
 
 
@@ -315,8 +310,8 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * Called by Spring on a clean shutdown of the application.
      */
     void destroy() {
-        timers.each {
-            it.cancel()
+        resources.each { k, v ->
+            if (v instanceof Timer) v.cancel()
         }
         _destroyed = true
     }
@@ -381,28 +376,31 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         this.class.name + '_' + name
     }
 
-    private void ensureUniqueResourceName(String name) {
-        if (!name || resourceNames.contains(name)) {
+    private <T> T addResource(String name, T resource) {
+        if (!name || resources.containsKey(name)) {
             def msg = 'Service resource requires a unique name. '
-            if (name) msg += "Name `$name` already used on this service."
+            if (name) msg += "Name '$name' already used on this service."
             throw new RuntimeException(msg)
         }
-        resourceNames << name
+        resources[name] = resource
+        return resource
     }
 
-    /** @internal - for use by Cache */
+    /**
+     * @internal - for use by Cache.
+     */
     Map getMapForCache(Cache cache) {
-        ensureUniqueResourceName(cache.name)
-        cache.useCluster ?
-            ClusterService.hzInstance.getReplicatedMap(hzName(cache.name)) :
-            new ConcurrentHashMap()
+        // register under xh name to avoid collisions, allow filtering out in admin
+        cache.useCluster ? getReplicatedMap("xh_${cache.name}") : new ConcurrentHashMap()
     }
 
-    /** @internal - for use by CachedValue */
+    /**
+     * @internal - for use by CachedValue
+     */
     Map getMapForCachedValue(CachedValue cachedValue) {
-        ensureUniqueResourceName(cachedValue.name)
+        // register with xh prefix to avoid collisions, allow filtering out in admin
         if (cachedValue.useCluster) {
-            if (_replicatedValues == null) _replicatedValues = getReplicatedMap('cachedValues')
+            if (_replicatedValues == null) _replicatedValues = getReplicatedMap('xh_cachedValues')
             return _replicatedValues
         } else {
             if (_localValues == null) _localValues = new ConcurrentHashMap()

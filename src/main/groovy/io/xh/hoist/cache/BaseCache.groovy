@@ -83,6 +83,10 @@ abstract class BaseCache<V> {
         return replicate && ClusterService.multiInstanceEnabled
     }
 
+
+    /** Information about this object for admin purposes */
+    abstract Map getAdminStats()
+
     //------------------------
     // Implementation
     //------------------------

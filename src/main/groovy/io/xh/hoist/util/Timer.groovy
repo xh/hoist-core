@@ -155,7 +155,7 @@ class Timer {
                 throw new IllegalArgumentException("A 'primaryOnly' timer must be owned by an instance of BaseService.")
             }
 
-            _lastCompletedOnCluster = (owner as BaseService).createCachedValue(name: "${name}_lastCompleted")
+            _lastCompletedOnCluster = (owner as BaseService).createCachedValue(name: "xh_${name}_lastCompleted")
         }
 
         intervalMs = calcIntervalMs()
@@ -201,12 +201,12 @@ class Timer {
     }
 
     /**
-     * Information about this time for admin purposes.
+     * Information about this timer for admin purposes.
      */
     Map getAdminStats() {
         [
             name: name,
-            primaryOnly: primaryOnly?: null,
+            type: 'Timer' + (primaryOnly ? ' (primary only)': ''),
             intervalMs: intervalMs,
             isRunning: isRunning,
             startTime: isRunning ? _lastRunStarted: null,

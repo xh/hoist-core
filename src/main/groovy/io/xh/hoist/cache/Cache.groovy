@@ -26,7 +26,7 @@ import static java.lang.System.currentTimeMillis
 class Cache<K,V> extends BaseCache<V> {
 
     private final Map<K, Entry<V>> _map
-    private final Timer timer
+    private final Timer cullTimer
 
     /**
      * @internal
@@ -49,8 +49,8 @@ class Cache<K,V> extends BaseCache<V> {
         _map = svc.getMapForCache(this)
         if (onChange) addChangeHandler(onChange)
 
-        timer = svc.createTimer(
-            name: "${name}_cullEntries",
+        cullTimer = svc.createTimer(
+            name: "xh_${name}_cullEntries",
             runFn: this.&cullEntries,
             interval: 15 * MINUTES,
             delay: true,
@@ -159,6 +159,18 @@ class Cache<K,V> extends BaseCache<V> {
             throw new TimeoutException(msg)
         }
     }
+
+
+    Map getAdminStats() {
+        [
+            name           : name,
+            type           : 'Cache' + (replicate ? '(replicated)' : ''),
+            count          : size(),
+            latestTimestamp: _map.max { it.value.dateEntered }?.value?.dateEntered,
+            lastCullTime     : cullTimer.lastRunCompleted
+        ]
+    }
+
 
     //------------------------
     // Implementation

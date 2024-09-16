@@ -5,7 +5,8 @@
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
 * All `Timer`, `Cache`, and `CachedValue` object require a 'name' property.  This property was
 previously optional in many cases, but is now required in order to support new cluster features,
-logging, and admin tools.
+logging, and admin tools.  The new `BaseService.resources` property now will give access to all
+resources by name, if needed and replaces `BaseService.timers`.
 
 ### 🎁 New Features
 * `Cache` and `CachedValue` may now be created using a factory on `BaseService`.  This streamlined
