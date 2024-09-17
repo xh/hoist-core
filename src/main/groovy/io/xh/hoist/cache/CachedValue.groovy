@@ -111,11 +111,23 @@ class CachedValue<V> extends BaseCache<V> {
         onChange << handler
     }
 
+    //-------------------
+    // Implementation
+    //-------------------
     Map getAdminStats() {
-        [
-            name     : name,
-            type     : 'CachedValue' + (replicate ? ' (replicated)' : ''),
-            timestamp: timestamp
-        ]
+        def val = get(),
+            ret = [
+                name     : name,
+                type     : 'CachedValue' + (replicate ? ' (replicated)' : ''),
+                timestamp: timestamp
+            ]
+        if (val instanceof Collection) {
+            ret.size = val.size()
+        }
+        return ret
+    }
+
+    boolean asBoolean() {
+        return get() != null
     }
 }

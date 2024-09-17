@@ -129,7 +129,6 @@ class Cache<K, V> extends BaseCache<V> {
         onChange << handler
     }
 
-
     /**
      * Wait for the cache entry to be populated.
      * @param key - entry to check
@@ -156,6 +155,9 @@ class Cache<K, V> extends BaseCache<V> {
         }
     }
 
+    //------------------------
+    // Implementation
+    //------------------------
     Map getAdminStats() {
         [
             name           : name,
@@ -166,10 +168,10 @@ class Cache<K, V> extends BaseCache<V> {
         ]
     }
 
+    boolean asBoolean() {
+        return size() > 0
+    }
 
-    //------------------------
-    // Implementation
-    //------------------------
     private void cullEntries() {
         Set<K> cullKeys = new HashSet<>()
         def oldSize = size()
