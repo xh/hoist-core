@@ -13,6 +13,8 @@ import io.xh.hoist.exception.NotAuthorizedException
 import io.xh.hoist.exception.NotFoundException
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.IdentityService
+import io.xh.hoist.websocket.HoistWebSocketConfigurer
+
 import java.lang.reflect.Method
 
 import static org.springframework.util.ReflectionUtils.findMethod
@@ -72,8 +74,11 @@ class AccessInterceptor implements LogSupport {
     // Implementation
     //------------------------
     private boolean isWebSocketHandshake() {
-        def upgradeHeader = request?.getHeader('upgrade')
-        return upgradeHeader == 'websocket'
+        def req = getRequest(),
+            upgradeHeader = req?.getHeader('upgrade'),
+            uri = req?.requestURI
+
+        return upgradeHeader == 'websocket' && uri?.endsWith(HoistWebSocketConfigurer.WEBSOCKET_PATH)
     }
 
 }
