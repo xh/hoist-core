@@ -31,7 +31,7 @@ class EnvironmentService extends BaseService {
 
     private TimeZone _appTimeZone
 
-    static clearCachesConfigs = ['xhAppTimeZone', 'xhEnvPollConfig']
+    static clearCachesConfigs = ['xhAppTimeZone']
 
     /**
      * Official TimeZone for this application - e.g. the zone of the head office or trading center.
