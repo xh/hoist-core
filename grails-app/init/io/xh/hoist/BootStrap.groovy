@@ -80,10 +80,10 @@ class BootStrap implements LogSupport {
             ],
             xhAlertBannerConfig: [
                 valueType: 'json',
-                defaultValue: [enabled: true, interval: 30],
+                defaultValue: [enabled: true],
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Configures support for showing an app-wide alert banner.\n\nAdmins configure and activate alert banners from the Hoist Admin console. To generally enable this system, set "enabled" to true and "interval" to a positive value (in seconds) to control how often connected apps check for a new alert.'
+                note: 'Configures support for showing an app-wide alert banner.\n\nAdmins configure and activate alert banners from the Hoist Admin console. To generally enable this system, set "enabled" to true. The xhEnvPollConfig.interval config governs client polling for updates.'
             ],
             xhAppInstances: [
                 valueType: 'json',
