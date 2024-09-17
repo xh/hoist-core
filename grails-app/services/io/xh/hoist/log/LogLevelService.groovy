@@ -23,11 +23,12 @@ class LogLevelService extends BaseService {
     private List<LogLevelAdjustment> adjustments = []
 
     void init() {
-        createTimer(interval: 30 * MINUTES, runImmediatelyAndBlock: true)
-    }
-
-    private void onTimer() {
-        calculateAdjustments()
+        createTimer(
+            name: 'calculateAdjustments',
+            runFn: this.&calculateAdjustments,
+            interval: 30 * MINUTES,
+            runImmediatelyAndBlock: true
+        )
     }
 
     // -------------------------------------------------------------------------------

@@ -41,9 +41,9 @@ class LdapService extends BaseService {
 
     def configService
 
-    private Cache<String, List<LdapObject>> cache = new Cache<>(
-        expireTime: {config.cacheExpireSecs * SECONDS},
-        svc: this
+    private Cache<String, List<LdapObject>> cache = createCache(
+        name: 'queryCache',
+        expireTime: {config.cacheExpireSecs * SECONDS}
     )
 
     static clearCachesConfigs = ['xhLdapConfig', 'xhLdapUsername', 'xhLdapPassword']
