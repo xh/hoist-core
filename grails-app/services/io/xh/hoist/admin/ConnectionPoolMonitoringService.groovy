@@ -35,8 +35,9 @@ class ConnectionPoolMonitoringService extends BaseService {
 
     void init() {
         createTimer(
-            interval: {enabled ? config.snapshotInterval * DateTimeUtils.SECONDS: -1},
-            runFn: this.&takeSnapshot
+            name: 'takeSnapshot',
+            runFn: this.&takeSnapshot,
+            interval: {enabled ? config.snapshotInterval * DateTimeUtils.SECONDS: -1}
         )
     }
 

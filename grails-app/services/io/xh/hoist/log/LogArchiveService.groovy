@@ -27,7 +27,11 @@ class LogArchiveService extends BaseService {
         logReaderService
 
     void init() {
-        createTimer(interval: 1 * DAYS)
+        createTimer(
+            name: 'archiveLogs',
+            runFn: { archiveLogs((Integer) config.archiveAfterDays)},
+            interval: 1 * DAYS
+        )
     }
 
     List<String> archiveLogs(Integer daysThreshold) {
@@ -69,12 +73,6 @@ class LogArchiveService extends BaseService {
     //------------------------
     // Implementation
     //------------------------
-    private void onTimer() {
-        if (isPrimary) {
-            archiveLogs((Integer) config.archiveAfterDays)
-        }
-    }
-
     private File getArchiveDir(String logPath, String category) {
         return new File(logPath + separator + config.archiveFolder + separator + category)
     }

@@ -15,6 +15,10 @@ import com.hazelcast.topic.Message
 import grails.async.Promises
 import grails.util.GrailsClassUtils
 import groovy.transform.CompileDynamic
+import groovy.transform.NamedParam
+import groovy.transform.NamedVariant
+import io.xh.hoist.cache.Cache
+import io.xh.hoist.cache.CachedValue
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.log.LogSupport
@@ -32,6 +36,7 @@ import java.util.concurrent.TimeUnit
 
 import static grails.async.Promises.task
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.Utils.appContext
 import static io.xh.hoist.util.Utils.getConfigService
 
@@ -40,6 +45,12 @@ import static io.xh.hoist.util.Utils.getConfigService
  * Provides template methods for service lifecycle / state management plus support for user lookups.
  * As an abstract class, BaseService must reside in src/main/groovy to allow Java compilation and
  * to ensure it is not itself instantiated as a Grails service.
+ *
+ * BaseService also provides support for cluster aware state via factories to create
+ * Hoist objects such as Cache, CachedValue, Timer, as well as raw Hazelcast distributed
+ * data structures such as ReplicatedMap, ISet and IMap.  Objects created with these factories
+ * will be associated with this service for the purposes of logging and management via the
+ * Hoist admin console.
  */
 abstract class BaseService implements LogSupport, IdentitySupport, DisposableBean {
 
@@ -51,11 +62,12 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     Date initializedDate = null
     Date lastCachesCleared = null
 
-    protected final List<Timer> timers = []
+    // Caches, CachedValues and Timers and other distributed objects associated with this service
+    protected final ConcurrentHashMap<String, Object> resources = [:]
 
     private boolean _destroyed = false
-    private Map _replicatedCachedValues
-    private Map _localCachedValues
+    private Map _replicatedValues
+    private Map _localValues
 
     private final Logger _log = LoggerFactory.getLogger(this.class)
 
@@ -109,46 +121,119 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     // Distributed Resources
     // Use static reference to ClusterService to allow access pre-init.
     //------------------------------------------------------------------
-    <K, V> IMap<K, V> getIMap(String id) {
-        ClusterService.hzInstance.getMap(hzName(id))
+    /**
+     * Create and return a reference to a Hazelcast IMap.
+     *
+     * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
+     * associated with this service.
+     */
+    <K, V> IMap<K, V> createIMap(String name) {
+        addResource(name, ClusterService.hzInstance.getMap(hzName(name)))
     }
 
-    <V> ISet<V> getISet(String id) {
-        ClusterService.hzInstance.getSet(hzName(id))
+    /**
+     * Create and return a reference to a Hazelcast ISet.
+     *
+     * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
+     * associated with this service.
+     */
+    <V> ISet<V> createISet(String name) {
+        addResource(name, ClusterService.hzInstance.getSet(hzName(name)))
     }
 
-    <K, V> ReplicatedMap<K, V> getReplicatedMap(String id) {
-        ClusterService.hzInstance.getReplicatedMap(hzName(id))
+    /**
+     * Create and return a reference to a Hazelcast Replicated Map.
+     *
+     * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
+     * associated with this service.
+     */
+     <K, V> ReplicatedMap<K, V> createReplicatedMap(String name) {
+        addResource(name, ClusterService.hzInstance.getReplicatedMap(hzName(name)))
     }
 
-    <M> ITopic<M> getTopic(String id) {
+    /**
+     * Get a reference to a Hazelcast Replicated topic, useful to publish to a cluster-wide topic.
+     * To subscribe to events fired by other services on a topic, use {@link #subscribeToTopic}.
+     */
+     <M> ITopic<M> getTopic(String id) {
         ClusterService.hzInstance.getTopic(id)
     }
 
     /**
-     * Create a new managed Timer bound to this service.
-     * @param args - arguments appropriate for a Hoist Timer.
+     * Create a new managed {@link Timer} bound to this service.
+     *
+     * Note that the provided name must be unique across all Caches, Timers and distributed
+     * Hazelcast objects associated with this service.
      */
     @CompileDynamic
-    protected Timer createTimer(Map args) {
-        args.owner = this
-        if (!args.runFn && metaClass.respondsTo(this, 'onTimer')) {
-            args.runFn = this.&onTimer
+    @NamedVariant
+    Timer createTimer(
+        @NamedParam(required = true) String name,
+        @NamedParam Closure runFn = null,
+        @NamedParam Boolean primaryOnly = false,
+        @NamedParam Boolean runImmediatelyAndBlock = false,
+        @NamedParam Object interval = null,
+        @NamedParam Object timeout = 3 * MINUTES,
+        @NamedParam Object delay = false,
+        @NamedParam Long intervalUnits = 1,
+        @NamedParam Long timeoutUnits = 1
+    ) {
+        if (!runFn) {
+            if (metaClass.respondsTo(this, 'onTimer')) {
+                runFn = this.&onTimer
+            } else {
+                throw new IllegalArgumentException('Must specify a runFn, or provide an onTimer() method on this service.')
+            }
         }
-        def ret = new Timer(args)
-        timers << ret
-        return ret
+
+        addResource(name,
+            new Timer(
+                name,
+                this,
+                runFn,
+                primaryOnly,
+                runImmediatelyAndBlock,
+                interval,
+                timeout,
+                delay,
+                intervalUnits,
+                timeoutUnits
+            )
+        )
     }
 
     /**
-     * Managed Subscription to a Grails Event.
+     * Create a new {@link Cache} bound to this service.
      *
-     * NOTE:  Use this method to subscribe to local Grails events on the given server
-     * instance only.  To subscribe to cluster-wide topics, use 'subscribeToTopic' instead.
+     * Note that the provided name must be unique across all Caches, Timers and distributed
+     * Hazelcast objects associated with this service.
+     */
+    <K, V> Cache<K, V> createCache(Map mp) {
+        // Cannot use @NamedVariant, as incompatible with generics. We'll still get run-time checks.
+        addResource(mp.name as String, new Cache([*:mp, svc: this]))
+    }
+
+    /**
+     * Create a new {@link CachedValue} bound to this service.
+     *
+     * Note that the provided name must be unique across all Caches, Timers and distributed
+     * Hazelcast objects associated with this service.
+     */
+    <T> CachedValue<T> createCachedValue(Map mp) {
+        // Cannot use @NamedVariant, as incompatible with generics. We'll still get run-time checks.
+        addResource(mp.name as String, new CachedValue([*:mp, svc: this]))
+    }
+
+
+    /**
+     * Create a managed subscription to events on the instance-local Grails event bus.
+     *
+     * NOTE: this method subscribes to Grails events on the current server instance only.
+     * To subscribe to cluster-wide topics, use {@link #subscribeToTopic} instead.
      *
      * This method will catch (and log) any exceptions thrown by its handler closure.
-     * This is important because the core grails EventBus.subscribe() will silently swallow
-     * exceptions, and stop processing subsequent handlers.
+     * This is important because the core Grails `EventBus.subscribe()` will silently swallow
+     * exceptions and stop processing subsequent handlers.
      *
      * This subscription also avoids firing handlers on destroyed services. This is important in a
      * hot-reloading scenario where multiple instances of singleton services may be created.
@@ -168,22 +253,23 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
     /**
      *
-     * Managed Subscription to a cluster topic.
+     * Create a managed subscription to a cluster topic.
      *
-     * NOTE:  Use this method to subscribe to cluster-wide topics. To subscribe to local
-     * Grails events on this instance only, use subscribe instead.
+     * NOTE: this subscribes to cluster-wide topics. To subscribe to local Grails events on this
+     * instance only, use {@link #subscribe} instead. That said, this is most likely the method you
+     * want, as most pub/sub use cases should take multi-instance operation into account.
      *
      * This method will catch (and log) any exceptions thrown by its handler closure.
      *
      * This subscription also avoids firing handlers on destroyed services. This is important in a
      * hot-reloading scenario where multiple instances of singleton services may be created.
      */
-    protected void subscribeToTopic(Map config) {
-        def topic = config.topic as String,
-            onMessage = config.onMessage as Closure,
-            primaryOnly = config.primaryOnly as Boolean
-
-
+    @NamedVariant
+    protected void subscribeToTopic(
+        @NamedParam(required = true) String topic,
+        @NamedParam(required = true) Closure onMessage,
+        @NamedParam Boolean primaryOnly = false
+    ) {
         getTopic(topic).addMessageListener { Message m ->
             if (destroyed || (primaryOnly && !isPrimary)) return
             try {
@@ -230,8 +316,8 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * Called by Spring on a clean shutdown of the application.
      */
     void destroy() {
-        timers.each {
-            it.cancel()
+        resources.each { k, v ->
+            if (v instanceof Timer) v.cancel()
         }
         _destroyed = true
     }
@@ -292,17 +378,39 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     //------------------------
     // Internal implementation
     //------------------------
-    protected String hzName(String key) {
-        this.class.name + '_' + key
+    protected String hzName(String name) {
+        this.class.name + '_' + name
     }
 
-    /** @internal - for use by CachedValue */
-    Map getReplicatedCachedValuesMap() {
-        _replicatedCachedValues ?= getReplicatedMap('cachedValues')
+    private <T> T addResource(String name, T resource) {
+        if (!name || resources.containsKey(name)) {
+            def msg = 'Service resource requires a unique name. '
+            if (name) msg += "Name '$name' already used on this service."
+            throw new RuntimeException(msg)
+        }
+        resources[name] = resource
+        return resource
     }
 
-    /** @internal - for use by CachedValue */
-    Map getLocalCachedValuesMap() {
-        _localCachedValues ?= new ConcurrentHashMap()
+    /**
+     * @internal - for use by Cache.
+     */
+    Map getMapForCache(Cache cache) {
+        // register with xh prefix to avoid collisions, allow filtering out in admin
+        cache.useCluster ? createReplicatedMap("xh_${cache.name}") : new ConcurrentHashMap()
+    }
+
+    /**
+     * @internal - for use by CachedValue
+     */
+    Map getMapForCachedValue(CachedValue cachedValue) {
+        // register with xh prefix to avoid collisions, allow filtering out in admin
+        if (cachedValue.useCluster) {
+            if (_replicatedValues == null) _replicatedValues = createReplicatedMap('xh_cachedValues')
+            return _replicatedValues
+        } else {
+            if (_localValues == null) _localValues = new ConcurrentHashMap()
+            return _localValues
+        }
     }
 }

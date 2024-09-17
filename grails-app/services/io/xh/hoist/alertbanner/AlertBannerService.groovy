@@ -42,17 +42,14 @@ class AlertBannerService extends BaseService {
     private final static String presetsBlobName = 'xhAlertBannerPresets'
 
     private final Map emptyAlert = [active: false]
-    private CachedValue<Map> _alertBanner = new CachedValue<>(
-        name: 'alertBanner',
-        replicate: true,
-        svc: this
-    )
+    private CachedValue<Map> _alertBanner = createCachedValue(name: 'alertBanner', replicate: true)
     private Timer timer
 
     void init() {
         timer = createTimer(
-            interval: 2 * MINUTES,
+            name: 'readFromSpec',
             runFn: this.&readFromSpec,
+            interval: 2 * MINUTES,
             primaryOnly: true
         )
         super.init()

@@ -55,16 +55,16 @@ abstract class BaseCache<V> {
     public final List<Closure> onChange = []
 
     BaseCache(
-        BaseService svc,
         String name,
+        BaseService svc,
         Object expireTime,
         Closure expireFn,
         Closure timestampFn,
         boolean replicate,
         boolean serializeOldValue
     ) {
-        this.svc = svc
         this.name = name
+        this.svc = svc
         this.expireTime = expireTime
         this.expireFn = expireFn
         this.timestampFn = timestampFn
@@ -78,13 +78,17 @@ abstract class BaseCache<V> {
     /** Clear all values. */
     abstract void clear()
 
-    //------------------------
-    // Implementation
-    //------------------------
-    protected boolean getUseCluster() {
+    /** True if this Cache should be stored across the cluster (backed by a ReplicatedMap). */
+    boolean getUseCluster() {
         return replicate && ClusterService.multiInstanceEnabled
     }
 
+    /** Information about this object, accessible via the Hoist Admin Console. */
+    abstract Map getAdminStats()
+
+    //------------------------
+    // Implementation
+    //------------------------
     protected void fireOnChange(Object key, V oldValue, V value) {
         def change = new CacheValueChanged(this, key, oldValue,  value)
         onChange.each { it.call(change) }

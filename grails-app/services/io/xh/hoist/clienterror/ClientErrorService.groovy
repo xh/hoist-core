@@ -41,13 +41,15 @@ class ClientErrorService extends BaseService {
         }]
     ]
 
-    private IMap<String, Map> errors = getIMap('clientErrors')
+    private IMap<String, Map> errors = createIMap('clientErrors')
     private int getMaxErrors()      {configService.getMap('xhClientErrorConfig').maxErrors as int}
     private int getAlertInterval()  {configService.getMap('xhClientErrorConfig').intervalMins * MINUTES}
 
     void init() {
         super.init()
         createTimer(
+            name: 'processErrors',
+            runFn: this.&processErrors,
             interval: { alertInterval },
             delay: 15 * SECONDS,
             primaryOnly: true
@@ -99,7 +101,7 @@ class ClientErrorService extends BaseService {
     // Implementation
     //---------------------------------------------------------
     @Transactional
-    void onTimer() {
+    private void processErrors() {
         if (!errors) return
 
         def maxErrors = getMaxErrors(),
@@ -121,8 +123,7 @@ class ClientErrorService extends BaseService {
     }
 
     Map getAdminStats() {[
-        config: configForAdminStats('xhClientErrorConfig'),
-        pendingErrorCount: errors.size()
+        config: configForAdminStats('xhClientErrorConfig')
     ]}
 
 }
