@@ -9,6 +9,7 @@ package io.xh.hoist.security
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.exception.HttpException
+import io.xh.hoist.exception.NotAuthenticatedException
 import io.xh.hoist.exception.NotAuthorizedException
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
@@ -114,7 +115,7 @@ abstract class BaseAuthenticationService extends BaseService {
             }
 
             if (!identityService.findAuthUser(request)) {
-                throw new NotAuthorizedException()
+                throw new NotAuthenticatedException()
             }
 
             return true
