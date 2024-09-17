@@ -7,6 +7,7 @@
 
 package io.xh.hoist.admin
 
+import com.hazelcast.core.DistributedObject
 import io.xh.hoist.BaseService
 
 class ServiceManagerService extends BaseService {
@@ -15,8 +16,6 @@ class ServiceManagerService extends BaseService {
         clusterAdminService
 
     Collection<Map> listServices() {
-
-
         getServicesInternal().collect { name, svc ->
             return [
                 name: name,
@@ -28,24 +27,8 @@ class ServiceManagerService extends BaseService {
 
     Map getStats(String name) {
         def svc = grailsApplication.mainContext.getBean(name),
-            prefix = svc.class.name + '_',
-            timers = svc.timers*.adminStats,
-            distObjs = clusterService.distributedObjects
-                .findAll { it.getName().startsWith(prefix) }
-                .collect {clusterAdminService.getAdminStatsForObject(it)}
-
-        Map ret = svc.adminStats
-        if (timers || distObjs) {
-            ret = ret.clone()
-            if (distObjs) ret.distributedObjects = distObjs
-            if (timers.size() == 1) {
-                ret.timer = timers[0]
-            } else if (timers.size() > 1) {
-                ret.timers = timers
-            }
-        }
-
-        return ret
+            resources = getResourceStats(svc)
+        return resources ? [*: svc.adminStats, resources: resources] : svc.adminStats
     }
 
     void clearCaches(List<String> names) {
@@ -59,6 +42,23 @@ class ServiceManagerService extends BaseService {
             }
         }
     }
+
+    //----------------------
+    // Implementation
+    //----------------------
+    private List getResourceStats(BaseService svc) {
+        svc.resources
+            .findAll { !it.key.startsWith('xh_') }  // skip hoist implementation objects
+            .collect { k, v ->
+                Map stats = v instanceof DistributedObject ?
+                    clusterAdminService.getAdminStatsForObject(v) :
+                    v.adminStats
+
+                // rely on the name (key) service knows, i.e avoid HZ prefix
+                return [*: stats, name: k]
+            }
+    }
+
 
     private Map<String, BaseService> getServicesInternal() {
         return grailsApplication.mainContext.getBeansOfType(BaseService.class, false, false)

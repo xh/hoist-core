@@ -81,10 +81,9 @@ class DefaultRoleService extends BaseRoleService {
     DefaultRoleUpdateService defaultRoleUpdateService
 
     private Timer timer
-    protected CachedValue<Map<String, Set<String>>> _allRoleAssignments = new CachedValue(
+    protected CachedValue<Map<String, Set<String>>> _allRoleAssignments = createCachedValue(
         name: 'roleAssignments',
         replicate: true,
-        svc: this,
         onChange: {
             _roleAssignmentsByUser = new ConcurrentHashMap()
         }
@@ -102,8 +101,9 @@ class DefaultRoleService extends BaseRoleService {
         ensureRequiredConfigAndRolesCreated()
 
         timer = createTimer(
-            interval: { config.refreshIntervalSecs as int * SECONDS },
+            name: 'refreshRoles',
             runFn: this.&refreshRoleAssignments,
+            interval: { config.refreshIntervalSecs as int * SECONDS },
             runImmediatelyAndBlock: true,
             primaryOnly: true
         )
