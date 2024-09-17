@@ -20,7 +20,7 @@
 ### ⚙️ Technical
 
 * Enhanced the `xh/environmentPoll` payload to include any active Alert Banner spec. Clients running
-  `hoist-react >= 67.1` will leverage this to avoid an extra polling request.
+  `hoist-react >= 68` will leverage this to avoid an extra polling request.
 * Exposed `/xh/ping` as whitelisted route for basic uptime/reachability checks. Retained legacy
   `/ping` alias, but prefer this new path going forward.
 * Improved handling + rendering of exceptions during authentication and authorization requests.
