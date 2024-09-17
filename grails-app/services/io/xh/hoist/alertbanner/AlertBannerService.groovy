@@ -7,7 +7,6 @@
 
 package io.xh.hoist.alertbanner
 
-
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.cache.CachedValue
@@ -27,7 +26,9 @@ import static java.lang.System.currentTimeMillis
  *
  * This class uses a single {@link io.xh.hoist.jsonblob.JsonBlob} to persist its state.
  * The published alert state is updated via the Hoist Admin console and is regularly refreshed
- * on a timer to catch banner expiry.
+ * by EnvironmentService.
+ *
+ * For this service to be active, `xhAlertBannerConfig` config must be specified as `{enabled:true}`.
  */
 @CompileStatic
 class AlertBannerService extends BaseService {
@@ -101,10 +102,9 @@ class AlertBannerService extends BaseService {
     // Implementation
     //-----------------------------
     private void readFromSpec() {
-        def conf = configService.getMap('xhAlertBannerConfig'),
-            newSpec = emptyAlert
+        def newSpec = emptyAlert
 
-        if (conf.enabled) {
+        if (configService.getMap('xhAlertBannerConfig').enabled) {
             def spec = getAlertSpec(),
                 expires = spec.expires as Long
 

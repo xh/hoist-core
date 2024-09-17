@@ -11,6 +11,7 @@ import grails.plugins.GrailsPlugin
 import grails.util.GrailsUtil
 import grails.util.Holders
 import io.xh.hoist.BaseService
+import io.xh.hoist.alertbanner.AlertBannerService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.util.Utils
 import io.xh.hoist.websocket.WebSocketService
@@ -18,17 +19,19 @@ import io.xh.hoist.websocket.WebSocketService
 
 /**
  * Service with metadata describing the runtime environment of Hoist and this application.
- * For the AppEnvironment (e.g. Development/Production), reference `Utils.appEnvironment`.
+ *
+ * If you are simply looking to read the `AppEnvironment` (e.g. Development/Production), use
+ * the static {@link io.xh.hoist.util.Utils#getAppEnvironment} instead.
  */
 class EnvironmentService extends BaseService {
 
     ConfigService configService
     WebSocketService webSocketService
+    AlertBannerService alertBannerService
 
     private TimeZone _appTimeZone
-    private Map _pollResult
 
-    static clearCachesConfigs = ['xhAppTimeZone', 'xhEnvPollConfig']
+    static clearCachesConfigs = ['xhAppTimeZone']
 
     /**
      * Official TimeZone for this application - e.g. the zone of the head office or trading center.
@@ -66,6 +69,7 @@ class EnvironmentService extends BaseService {
                 appTimeZoneOffset:      appTz.getOffset(now),
                 webSocketsEnabled:      webSocketService.enabled,
                 instanceName:           clusterService.instanceName,
+                alertBanner:            alertBannerService.alertBanner,
                 pollConfig:             configService.getMap('xhEnvPollConfig')
         ]
 
@@ -84,16 +88,17 @@ class EnvironmentService extends BaseService {
     }
 
     /**
-     * Report server version and instance identity to the client.
-     * Designed to be called frequently by client. Should be minimal and highly optimized.
+     * Report server version, instance identity, and any active alert banner to the client.
+     * Designed for rapid polling - keep this minimal and highly optimized.
      */
     Map environmentPoll() {
-        return _pollResult ?= [
+        return [
             appCode     : Utils.appCode,
             appVersion  : Utils.appVersion,
             appBuild    : Utils.appBuild,
             instanceName: clusterService.instanceName,
-            pollConfig  : configService.getMap('xhEnvPollConfig'),
+            alertBanner : alertBannerService.alertBanner,
+            pollConfig  : configService.getMap('xhEnvPollConfig')
         ]
     }
 
@@ -119,7 +124,6 @@ class EnvironmentService extends BaseService {
 
     void clearCaches() {
         _appTimeZone = null
-        _pollResult = null
         super.clearCaches()
     }
 }
