@@ -29,28 +29,27 @@ class AccessInterceptor implements LogSupport {
 
     boolean before() {
         try {
-
-            // Ignore Websockets -- these are destined for a non-controller based endpoint
-            // established via a spring-websocket configuration mapping. (Note this is *not* currently
-            // built into Hoist but is checked / allowed for here.)
+            // Ignore websockets - these are destined for a non-controller based endpoint
+            // established via a spring-websocket configuration mapping.
+            // Note that websockets are not always enabled by Hoist apps but must be supported here.
             if (isWebSocketHandshake()) {
                 return true
             }
 
-            // Get controller method, or 404
+            // Get controller method, or throw 404 (Not Found).
             Class clazz = controllerClass?.clazz
             String actionNm = actionName ?: controllerClass?.defaultAction
             Method method = clazz && actionNm ? findMethod(clazz, actionNm) : null
             if (!method) throw new NotFoundException()
 
-            // Eval method annotations, and return true or 401
+            // Eval @Access annotations, return true if allowed, or throw 403 (Forbidden).
             def access = method.getAnnotation(Access) ?:
                 method.getAnnotation(AccessAll) ?:
                     clazz.getAnnotation(Access) as Access ?:
                         clazz.getAnnotation(AccessAll) as AccessAll
 
             if (access instanceof AccessAll ||
-                (access instanceof Access && identityService.user.hasAllRoles(access.value()))
+                    (access instanceof Access && identityService.user.hasAllRoles(access.value()))
             ) {
                 return true
             }
