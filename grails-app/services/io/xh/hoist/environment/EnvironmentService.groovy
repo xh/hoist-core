@@ -19,7 +19,9 @@ import io.xh.hoist.websocket.WebSocketService
 
 /**
  * Service with metadata describing the runtime environment of Hoist and this application.
- * For the AppEnvironment (e.g. Development/Production), reference `Utils.appEnvironment`.
+ *
+ * If you are simply looking to read the `AppEnvironment` (e.g. Development/Production), use
+ * the static {@link io.xh.hoist.util.Utils#getAppEnvironment} instead.
  */
 class EnvironmentService extends BaseService {
 
@@ -86,8 +88,8 @@ class EnvironmentService extends BaseService {
     }
 
     /**
-     * Report server version and instance identity to the client.
-     * Designed to be called frequently by client. Should be minimal and highly optimized.
+     * Report server version, instance identity, and any active alert banner to the client.
+     * Designed for rapid polling - keep this minimal and highly optimized.
      */
     Map environmentPoll() {
         return [

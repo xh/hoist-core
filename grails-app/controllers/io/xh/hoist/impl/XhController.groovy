@@ -268,7 +268,7 @@ class XhController extends BaseController {
     // Alert Banner
     //----------------------
     /**
-     * @deprecated.  Used by hoist-react <= 67.0.0
+     * @deprecated - used by hoist-react <= 67.0.0, now nested within {@link #environmentPoll}.
      */
     def alertBanner() {
         renderJSON(alertBannerService.alertBanner)

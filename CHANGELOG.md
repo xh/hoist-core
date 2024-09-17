@@ -19,6 +19,8 @@
 
 ### ⚙️ Technical
 
+* Enhanced the `xh/environmentPoll` payload to include any active Alert Banner spec. Clients running
+  `hoist-react >= 67.1` will leverage this to avoid an extra polling request.
 * Exposed `/xh/ping` as whitelisted route for basic uptime/reachability checks. Retained legacy
   `/ping` alias, but prefer this new path going forward.
 * Improved handling + rendering of exceptions during authentication and authorization requests.
@@ -37,9 +39,6 @@
 ### ⚙️ Technical
 
 * Improved serialization efficiency of replicated `Cache` and `CachedValue`.
-
-### ⚙️ Technical
-* Deliver AlertBanner data with environment polling.
 
 ## 21.0.0 - 2024-09-03
 
