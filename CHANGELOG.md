@@ -1,5 +1,7 @@
 # Changelog
 
+## 23.0-SNAPSHOT - unreleased
+
 ## 22.0.0 - 2024-09-18
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
