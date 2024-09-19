@@ -90,7 +90,7 @@ abstract class BaseCache<V> {
     // Implementation
     //------------------------
     protected void fireOnChange(Object key, V oldValue, V value) {
-        def change = new CacheValueChanged(this, key, oldValue,  value)
+        def change = new CacheValueChanged(this, key, oldValue, value)
         onChange.each { it.call(change) }
     }
 
