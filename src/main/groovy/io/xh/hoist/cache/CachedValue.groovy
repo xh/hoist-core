@@ -121,7 +121,7 @@ class CachedValue<V> extends BaseCache<V> {
                 type     : 'CachedValue' + (replicate ? ' (replicated)' : ''),
                 timestamp: timestamp
             ]
-        if (val instanceof Collection) {
+        if (val instanceof Collection || val instanceof Map) {
             ret.size = val.size()
         }
         return ret
