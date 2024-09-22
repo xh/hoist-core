@@ -4,11 +4,12 @@ import com.hazelcast.core.EntryEvent
 import com.hazelcast.core.EntryListener
 import com.hazelcast.map.MapEvent
 
-class HzEntryListener implements EntryListener {
+/** @internal */
+class CacheEntryListener implements EntryListener {
 
     private BaseCache target
 
-    HzEntryListener(BaseCache target) {
+    CacheEntryListener(BaseCache target) {
         this.target = target
     }
 

@@ -10,9 +10,12 @@ package io.xh.hoist.cache
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.log.LogSupport
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 @CompileStatic
-abstract class BaseCache<V> {
+abstract class BaseCache<V> implements LogSupport {
 
     /** Service using this object. */
     public final BaseService svc
@@ -38,17 +41,11 @@ abstract class BaseCache<V> {
     /** True to replicate this cache across a cluster (default false). */
     public final boolean replicate
 
-    /**
-     * True to serialize old values to replicas in `CacheValueChanged` events (default false).
-     *
-     * Not serializing old values improves performance and is especially important for caches
-     * containing large objects that are expensive to serialize + deserialize. Enable only if your
-     * event handlers need access to the previous value.
-     */
-    public final boolean serializeOldValue
-
-    /** Handlers to be called on change with a {@link CacheValueChanged} object. */
+    /** Handlers to be called on change with a {@link CacheEntryChanged} or a {@link CachedValueChanged} object. */
     public final List<Closure> onChange = []
+
+    /** Log to use for logging.  Set by default to an extension of the owning service. */
+    protected final String loggerName
 
     BaseCache(
         String name,
@@ -56,8 +53,7 @@ abstract class BaseCache<V> {
         Object expireTime,
         Closure expireFn,
         Closure timestampFn,
-        boolean replicate,
-        boolean serializeOldValue
+        boolean replicate
     ) {
         this.name = name
         this.svc = svc
@@ -65,11 +61,12 @@ abstract class BaseCache<V> {
         this.expireFn = expireFn
         this.timestampFn = timestampFn
         this.replicate = replicate
-        this.serializeOldValue = serializeOldValue
+
+        // Allow fine grain logging for this within namespace of owning service
+        loggerName = "${svc.instanceLog.name}.${this.class.simpleName}(${name})"
     }
 
-
-    /** @param handler called on change with a {@link CacheValueChanged} object. */
+    /** @param handler called on change with a {@link CacheEntryChanged} or a {@link CachedValueChanged} object. */
     abstract void addChangeHandler(Closure handler)
 
     /** Clear all values. */
@@ -86,8 +83,7 @@ abstract class BaseCache<V> {
     //------------------------
     // Implementation
     //------------------------
-    protected void fireOnChange(Object key, V oldValue, V value) {
-        def change = new CacheValueChanged(this, key, oldValue, value)
-        onChange.each { it.call(change) }
+    Logger getInstanceLog() {
+        LoggerFactory.getLogger(loggerName)
     }
 }

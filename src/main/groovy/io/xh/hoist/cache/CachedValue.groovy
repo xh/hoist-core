@@ -1,7 +1,5 @@
 package io.xh.hoist.cache
 
-import antlr.debug.MessageListener
-import com.hazelcast.ringbuffer.Ringbuffer
 import com.hazelcast.topic.ITopic
 import com.hazelcast.topic.Message
 import com.hazelcast.topic.ReliableMessageListener
@@ -9,9 +7,6 @@ import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
-import io.xh.hoist.log.LogSupport
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 import java.util.concurrent.TimeoutException
 
@@ -24,11 +19,9 @@ import static java.lang.System.currentTimeMillis
  * Similar to {@link Cache}, but a single value that can be read, written, and expired.
  * Like Cache, this object supports replication across the cluster.
  */
-class CachedValue<V> extends BaseCache<V> implements LogSupport {
+class CachedValue<V> extends BaseCache<V> {
 
     private final ITopic<CachedValueEntry<V>> topic
-    private final Ringbuffer<CachedValueEntry<V>> ring
-    private final String loggerName
     private CachedValueEntry<V> entry
 
     /** @internal - do not construct directly - use {@link BaseService#createCachedValue}. */
@@ -42,13 +35,13 @@ class CachedValue<V> extends BaseCache<V> implements LogSupport {
         @NamedParam Boolean replicate = false,
         @NamedParam Closure onChange = null
     ) {
-        super(name, svc, expireTime, expireFn, timestampFn, replicate, true)
-        loggerName = svc.instanceLog.name + '_' + name
-
+        super(name, svc, expireTime, expireFn, timestampFn, replicate)
         if (useCluster) {
             topic = createUpdateTopic()
         }
-        if (onChange) addChangeHandler(onChange)
+        if (onChange) {
+            addChangeHandler(onChange)
+        }
     }
 
     /** @returns the cached value. */
@@ -192,9 +185,5 @@ class CachedValue<V> extends BaseCache<V> implements LogSupport {
             ret.size = val.size()
         }
         return ret
-    }
-
-    Logger getInstanceLog() {
-        LoggerFactory.getLogger(loggerName)
     }
 }
