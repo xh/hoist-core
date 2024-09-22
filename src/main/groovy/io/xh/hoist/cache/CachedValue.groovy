@@ -1,13 +1,22 @@
 package io.xh.hoist.cache
 
-import com.hazelcast.replicatedmap.ReplicatedMap
+import antlr.debug.MessageListener
+import com.hazelcast.ringbuffer.Ringbuffer
+import com.hazelcast.topic.ITopic
+import com.hazelcast.topic.Message
+import com.hazelcast.topic.ReliableMessageListener
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
 import io.xh.hoist.BaseService
+import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.log.LogSupport
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import java.util.concurrent.TimeoutException
 
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static io.xh.hoist.util.DateTimeUtils.asEpochMilli
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static java.lang.System.currentTimeMillis
 
@@ -15,9 +24,12 @@ import static java.lang.System.currentTimeMillis
  * Similar to {@link Cache}, but a single value that can be read, written, and expired.
  * Like Cache, this object supports replication across the cluster.
  */
-class CachedValue<V> extends BaseCache<V> {
+class CachedValue<V> extends BaseCache<V> implements LogSupport {
 
-    private final Map<String, Entry<V>> _map
+    private final ITopic<CachedValueEntry<V>> topic
+    private final Ringbuffer<CachedValueEntry<V>> ring
+    private final String loggerName
+    private CachedValueEntry<V> entry
 
     /** @internal - do not construct directly - use {@link BaseService#createCachedValue}. */
     @NamedVariant
@@ -28,23 +40,24 @@ class CachedValue<V> extends BaseCache<V> {
         @NamedParam Closure expireFn = null,
         @NamedParam Closure timestampFn = null,
         @NamedParam Boolean replicate = false,
-        @NamedParam Boolean serializeOldValue = false,
         @NamedParam Closure onChange = null
     ) {
-        super(name, svc, expireTime, expireFn, timestampFn, replicate, serializeOldValue)
+        super(name, svc, expireTime, expireFn, timestampFn, replicate, true)
+        loggerName = svc.instanceLog.name + '_' + name
 
-        _map = svc.getMapForCachedValue(this)
+        if (useCluster) {
+            topic = createUpdateTopic()
+        }
         if (onChange) addChangeHandler(onChange)
     }
 
     /** @returns the cached value. */
     V get() {
-        def ret = _map[name]
-        if (ret && shouldExpire(ret)) {
+        if (shouldExpire(entry)) {
             set(null)
             return null
         }
-        return ret?.value
+        return entry?.value
     }
 
     /** @returns the cached value, or calls the provided closure to create, cache, and return. */
@@ -59,15 +72,9 @@ class CachedValue<V> extends BaseCache<V> {
 
     /** Set the value. */
     void set(V value) {
-        def oldEntry = _map[name]
-        if (!serializeOldValue) oldEntry?.serializeValue = false
-        if (value == null) {
-            _map.remove(name)
-        } else {
-            _map[name] = new Entry(name, value, svc.instanceLog.name)
-        }
-
-        if (!useCluster) fireOnChange(name, oldEntry?.value, value)
+        if (value == entry?.value) return
+        setInternal(new CachedValueEntry(value, loggerName))
+        topic?.publish(entry)
     }
 
     /** Clear the value. */
@@ -77,7 +84,7 @@ class CachedValue<V> extends BaseCache<V> {
 
     /** @returns timestamp of the current entry, or null if none. */
     Long getTimestamp() {
-        getEntryTimestamp(_map[name])
+        getEntryTimestamp(entry)
     }
 
     /**
@@ -105,15 +112,75 @@ class CachedValue<V> extends BaseCache<V> {
     }
 
     void addChangeHandler(Closure handler) {
-        if (!onChange && _map instanceof ReplicatedMap) {
-            _map.addEntryListener(new HzEntryListener(this), name)
-        }
         onChange << handler
     }
 
     //-------------------
     // Implementation
     //-------------------
+    void setInternal(CachedValueEntry newEntry) {
+        def oldEntry = entry
+        entry = newEntry
+        def change = new CachedValueChanged(this, oldEntry?.value, newEntry?.value)
+        onChange.each { it.call(change) }
+    }
+
+    boolean asBoolean() {
+        return get() != null
+    }
+
+    private boolean shouldExpire(CachedValueEntry<V> entry) {
+        if (!entry) return null
+        if (expireFn) return expireFn(entry)
+
+        if (expireTime) {
+            Long timestamp = getEntryTimestamp(entry),
+                 expire = (expireTime instanceof Closure ? expireTime.call() : expireTime) as Long
+            return intervalElapsed(expire, timestamp)
+        }
+        return false
+    }
+
+    private Long getEntryTimestamp(CachedValueEntry<V> entry) {
+        if (!entry) return null
+        if (timestampFn) return asEpochMilli(timestampFn(entry.value))
+        return entry.dateEntered
+    }
+
+    private ITopic<CachedValueEntry<V>> createUpdateTopic() {
+        // 0) Create a durable topic with room for just a single item
+        def hzInstance = ClusterService.hzInstance,
+            hzConfig = hzInstance.config,
+            hzName = svc.hzName("xh_$name")
+        hzConfig.getRingbufferConfig(hzName).with { capacity = 1 }
+        hzConfig.getReliableTopicConfig(hzName).with { readBatchSize = 1 }
+
+        // 1) ...rnd register for all events, including replay of event before this instance existed.
+        def ret = hzInstance.getReliableTopic(hzName)
+        ret.addMessageListener(
+            new ReliableMessageListener<CachedValueEntry<V>>() {
+                void onMessage(Message<CachedValueEntry<V>> message) {
+                    def publisher = message.publishingMember
+                    svc.logDebug('Received update', [source: publisher.getAttribute('instanceName')])
+                    if (publisher.localMember()) return
+                    setInternal((CachedValueEntry) message.messageObject)
+                }
+
+                long retrieveInitialSequence() { return 0 }
+
+                void storeSequence(long sequence) {}
+
+                boolean isLossTolerant() { return true }
+
+                boolean isTerminal(Throwable e) {
+                    svc.logError('Error handling update message', e)
+                    return false
+                }
+            }
+        )
+        return ret
+    }
+
     Map getAdminStats() {
         def val = get(),
             ret = [
@@ -127,7 +194,7 @@ class CachedValue<V> extends BaseCache<V> {
         return ret
     }
 
-    boolean asBoolean() {
-        return get() != null
+    Logger getInstanceLog() {
+        LoggerFactory.getLogger(loggerName)
     }
 }

@@ -11,11 +11,16 @@ import groovy.transform.CompileStatic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
 import io.xh.hoist.BaseService
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.util.Timer
+
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeoutException
 
+import static io.xh.hoist.cluster.ClusterService.hzInstance
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static io.xh.hoist.util.DateTimeUtils.asEpochMilli
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static java.lang.System.currentTimeMillis
 
@@ -42,7 +47,7 @@ class Cache<K, V> extends BaseCache<V> {
     ) {
         super(name, svc, expireTime, expireFn, timestampFn, replicate, serializeOldValue)
 
-        _map = svc.getMapForCache(this)
+        _map = useCluster ? hzInstance.getMap(svc.hzName("xh_$name")) : new ConcurrentHashMap()
         if (onChange) addChangeHandler(onChange)
 
         cullTimer = svc.createTimer(
@@ -185,5 +190,22 @@ class Cache<K, V> extends BaseCache<V> {
         if (cullKeys) {
             svc.logDebug("Cache '$name' culled ${cullKeys.size()} out of $oldSize entries")
         }
+    }
+
+    protected boolean shouldExpire(Entry<V> entry) {
+        if (expireFn) return expireFn.call(entry)
+
+        if (expireTime) {
+            Long timestamp = getEntryTimestamp(entry),
+                 expire = (expireTime instanceof Closure ?  expireTime.call() : expireTime) as Long
+            return intervalElapsed(expire, timestamp)
+        }
+        return false
+    }
+
+    protected Long getEntryTimestamp(Entry<V> entry) {
+        if (!entry) return null
+        if (timestampFn) return asEpochMilli(timestampFn.call(entry.value))
+        return entry.dateEntered
     }
 }

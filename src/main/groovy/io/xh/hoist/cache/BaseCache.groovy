@@ -7,13 +7,9 @@
 
 package io.xh.hoist.cache
 
-
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
-
-import static io.xh.hoist.util.DateTimeUtils.asEpochMilli
-import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 
 @CompileStatic
 abstract class BaseCache<V> {
@@ -72,6 +68,7 @@ abstract class BaseCache<V> {
         this.serializeOldValue = serializeOldValue
     }
 
+
     /** @param handler called on change with a {@link CacheValueChanged} object. */
     abstract void addChangeHandler(Closure handler)
 
@@ -92,22 +89,5 @@ abstract class BaseCache<V> {
     protected void fireOnChange(Object key, V oldValue, V value) {
         def change = new CacheValueChanged(this, key, oldValue, value)
         onChange.each { it.call(change) }
-    }
-
-    protected boolean shouldExpire(Entry<V> entry) {
-        if (expireFn) return expireFn(entry)
-
-        if (expireTime) {
-            Long timestamp = getEntryTimestamp(entry),
-                expire = (expireTime instanceof Closure ?  expireTime.call() : expireTime) as Long
-            return intervalElapsed(expire, timestamp)
-        }
-        return false
-    }
-
-    protected Long getEntryTimestamp(Entry<V> entry) {
-        if (!entry) return null
-        if (timestampFn) return asEpochMilli(timestampFn(entry.value))
-        return entry.dateEntered
     }
 }

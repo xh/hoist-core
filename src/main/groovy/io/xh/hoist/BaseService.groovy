@@ -66,8 +66,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     protected final ConcurrentHashMap<String, Object> resources = [:]
 
     private boolean _destroyed = false
-    private Map _replicatedValues
-    private Map _localValues
 
     private final Logger _log = LoggerFactory.getLogger(this.class)
 
@@ -224,7 +222,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         addResource(mp.name as String, new CachedValue([*:mp, svc: this]))
     }
 
-
     /**
      * Create a managed subscription to events on the instance-local Grails event bus.
      *
@@ -375,13 +372,22 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     Logger getInstanceLog() { _log }
 
 
-    //------------------------
-    // Internal implementation
-    //------------------------
-    protected String hzName(String name) {
+    /**
+     * Generate a name for a resource, appropriate for Hazelcast.
+     * Note that this allows us to group all Hazelcast resources by Service
+     *
+     * Not typically called directly by applications.  Applications should aim to create
+     * Hazelcast distributed objects using the methods in this class.
+     *
+     * @internal
+     */
+    String hzName(String name) {
         this.class.name + '_' + name
     }
 
+    //------------------------
+    // Internal implementation
+    //------------------------
     private <T> T addResource(String name, T resource) {
         if (!name || resources.containsKey(name)) {
             def msg = 'Service resource requires a unique name. '
@@ -390,27 +396,5 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         }
         resources[name] = resource
         return resource
-    }
-
-    /**
-     * @internal - for use by Cache.
-     */
-    Map getMapForCache(Cache cache) {
-        // register with xh prefix to avoid collisions, allow filtering out in admin
-        cache.useCluster ? createReplicatedMap("xh_${cache.name}") : new ConcurrentHashMap()
-    }
-
-    /**
-     * @internal - for use by CachedValue
-     */
-    Map getMapForCachedValue(CachedValue cachedValue) {
-        // register with xh prefix to avoid collisions, allow filtering out in admin
-        if (cachedValue.useCluster) {
-            if (_replicatedValues == null) _replicatedValues = createReplicatedMap('xh_cachedValues')
-            return _replicatedValues
-        } else {
-            if (_localValues == null) _localValues = new ConcurrentHashMap()
-            return _localValues
-        }
     }
 }
