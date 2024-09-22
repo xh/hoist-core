@@ -92,6 +92,10 @@ tasks.withType(GroovyCompile) {
         forkOptions.jvmArgs = ['-Dspring.output.ansi.enabled=always']
     }
 }
+tasks.named('jar') {
+    duplicatesStrategy = 'warn'
+}
+
 bootJar.enabled = false
 
 tasks.bootRun.doFirst {

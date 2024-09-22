@@ -99,7 +99,6 @@ class ClusterConfig {
 
         createDefaultConfigs(ret)
         createHibernateConfigs(ret)
-        createServiceConfigs(ret)
 
         KryoSupport.setAsGlobalSerializer(ret)
 
@@ -124,12 +123,7 @@ class ClusterConfig {
      * Note that Hoist also introduces two properties for declarative configuration:
      *
      * - a static 'cache' property on Grails domain objects to customize associated
-     * Hibernate caches.
-     * - a static 'clusterConfigs' property on Grails services to customize any Hazelcast
-     * Distributed Objects associated with the service e.g. Hoist caches
-     *
-     * See toolbox's `Phase` object and Hoist Core's `ClientErrorService` for examples of these
-     * customizations.
+     * Hibernate caches. See toolbox's `Phase` object for examples.
      */
     protected void createDefaultConfigs(Config config) {
         config.getMapConfig('default').with {
@@ -191,37 +185,6 @@ class ClusterConfig {
                     customizer.resolveStrategy = Closure.DELEGATE_FIRST
                     customizer(cfg)
                 }
-            }
-        }
-    }
-
-    private void createServiceConfigs(Config config) {
-        grailsApplication.serviceClasses.each { GrailsClass gc ->
-            // Apply any app customization specified by new static prop introduced by Hoist
-            Map objs = gc.getPropertyValue('clusterConfigs')
-            if (!objs) return
-            objs.forEach {String key, List value ->
-                def customizer = value[1] as Closure,
-                    objConfig
-                switch (value[0]) {
-                    case IMap:
-                        objConfig = config.getMapConfig(gc.fullName + '_' + key)
-                        break
-                    case ReplicatedMap:
-                        objConfig = config.getReplicatedMapConfig(gc.fullName + '_' + key)
-                        break
-                    case ISet:
-                        objConfig = config.getSetConfig(gc.fullName + '_' + key)
-                        break
-                    case ITopic:
-                        objConfig = config.getTopicConfig(key)
-                        break
-                    default:
-                        throw new RuntimeException('Unable to configure Cluster object')
-                }
-                customizer.delegate = objConfig
-                customizer.resolveStrategy = Closure.DELEGATE_FIRST
-                customizer(objConfig)
             }
         }
     }

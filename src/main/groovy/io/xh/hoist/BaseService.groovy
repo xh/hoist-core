@@ -8,6 +8,8 @@
 package io.xh.hoist
 
 import com.hazelcast.collection.ISet
+import com.hazelcast.config.Config
+import com.hazelcast.config.NamedConfig
 import com.hazelcast.map.IMap
 import com.hazelcast.replicatedmap.ReplicatedMap
 import com.hazelcast.topic.ITopic
@@ -39,6 +41,7 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.Utils.appContext
 import static io.xh.hoist.util.Utils.getConfigService
+import static io.xh.hoist.cluster.ClusterService.hzInstance
 
 /**
  * Standard superclass for all Hoist and Application-level services.
@@ -117,26 +120,32 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
     //-----------------------------------------------------------------
     // Distributed Resources
-    // Use static reference to ClusterService to allow access pre-init.
     //------------------------------------------------------------------
     /**
      * Create and return a reference to a Hazelcast IMap.
      *
      * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
      * associated with this service.
+     * @param customizer - closure receiving a Hazelcast MapConfig.  Mutate to customize.
      */
-    <K, V> IMap<K, V> createIMap(String name) {
-        addResource(name, ClusterService.hzInstance.getMap(hzName(name)))
+    <K, V> IMap<K, V> createIMap(String name, Closure customizer = null) {
+        def hzName = hzName(name)
+        if (customizer) hzConfig.getMapConfig(hzName).with(customizer)
+        addResource(name, hzInstance.getMap(hzName))
     }
+
 
     /**
      * Create and return a reference to a Hazelcast ISet.
      *
      * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
      * associated with this service.
+     * @param customizer - closure receiving a Hazelcast SetConfig.  Mutate to customize.
      */
-    <V> ISet<V> createISet(String name) {
-        addResource(name, ClusterService.hzInstance.getSet(hzName(name)))
+    <V> ISet<V> createISet(String name, Closure customizer = null) {
+        def hzName = hzName(name)
+        if (customizer) hzConfig.getSetConfig(hzName).with(customizer)
+        addResource(name, hzInstance.getSet(hzName))
     }
 
     /**
@@ -144,17 +153,35 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      *
      * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
      * associated with this service.
+     * @param customizer - closure receiving a Hazelcast ReplicatedMapConfig.  Mutate to customize.
      */
-     <K, V> ReplicatedMap<K, V> createReplicatedMap(String name) {
-        addResource(name, ClusterService.hzInstance.getReplicatedMap(hzName(name)))
+     <K, V> ReplicatedMap<K, V> createReplicatedMap(String name, Closure customizer = null) {
+         def hzName = hzName(name)
+         if (customizer) hzConfig.getReplicatedMapConfig(hzName).with(customizer)
+         addResource(name, hzInstance.getReplicatedMap(hzName))
+     }
+
+    /**
+     * Create and return a reference to a Hazelcast Topic
+     *
+     * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
+     * associated with this service.
+     * @param customizer - closure receiving a Hazelcast ReplicatedMapConfig.  Mutate to customize.
+     *
+     * Note: To get a reference to an existing or default topic. use {@link #getTopic}.
+     */
+    <M> ITopic<M> createTopic(String name, Closure customizer = null) {
+        def hzName = hzName(name)
+        if (customizer) hzConfig.getTopicConfig(hzName).with(customizer)
+        addResource(name, hzInstance.getTopic(hzName))
     }
 
     /**
-     * Get a reference to a Hazelcast Replicated topic, useful to publish to a cluster-wide topic.
+     * Get a reference to an existing or default Hazelcast topic.
      * To subscribe to events fired by other services on a topic, use {@link #subscribeToTopic}.
      */
      <M> ITopic<M> getTopic(String id) {
-        ClusterService.hzInstance.getTopic(id)
+        hzInstance.getTopic(id)
     }
 
     /**
@@ -282,7 +309,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         }
     }
 
-
     //------------------
     // Cluster Support
     //------------------
@@ -371,7 +397,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     // Provide cached logger to LogSupport for possible performance benefit
     Logger getInstanceLog() { _log }
 
-
     /**
      * Generate a name for a resource, appropriate for Hazelcast.
      * Note that this allows us to group all Hazelcast resources by Service
@@ -396,5 +421,9 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         }
         resources[name] = resource
         return resource
+    }
+
+    private Config getHzConfig() {
+        hzInstance.config
     }
 }
