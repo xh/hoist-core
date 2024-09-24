@@ -20,12 +20,15 @@ import static java.lang.System.currentTimeMillis
 class CachedValueEntry<T> implements KryoSerializable, LogSupport {
     Long dateEntered
     String loggerName
+    String uuid
     T value
 
     CachedValueEntry(T value, String loggerName) {
         this.dateEntered = currentTimeMillis()
         this.loggerName = loggerName
+        this.uuid = uuid
         this.value = value
+        this.uuid = UUID.randomUUID()
     }
 
     CachedValueEntry() {}
@@ -33,6 +36,7 @@ class CachedValueEntry<T> implements KryoSerializable, LogSupport {
     void write(Kryo kryo, Output output) {
         output.writeLong(dateEntered)
         output.writeString(loggerName)
+        output.writeString(uuid)
         withSingleTrace('Serializing value') {
             kryo.writeClassAndObject(output, value)
         }
@@ -41,6 +45,7 @@ class CachedValueEntry<T> implements KryoSerializable, LogSupport {
     void read(Kryo kryo, Input input) {
         dateEntered = input.readLong()
         loggerName = input.readString()
+        uuid = input.readString()
         withSingleTrace('Deserializing value') {
             value = (T) kryo.readClassAndObject(input)
         }

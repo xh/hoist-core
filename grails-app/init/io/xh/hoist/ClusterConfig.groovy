@@ -140,6 +140,9 @@ class ClusterConfig {
         config.getTopicConfig('default').with {
             statisticsEnabled = true
         }
+        config.getReliableTopicConfig('default').with {
+            statisticsEnabled = true
+        }
         config.getSetConfig('default').with {
             statisticsEnabled = true
         }

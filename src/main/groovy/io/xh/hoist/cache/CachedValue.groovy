@@ -1,5 +1,6 @@
 package io.xh.hoist.cache
 
+import com.hazelcast.config.InMemoryFormat
 import com.hazelcast.topic.ITopic
 import com.hazelcast.topic.Message
 import com.hazelcast.topic.ReliableMessageListener
@@ -9,6 +10,7 @@ import io.xh.hoist.BaseService
 
 import java.util.concurrent.TimeoutException
 
+import static grails.async.Promises.task
 import static io.xh.hoist.cluster.ClusterService.configuredReliableTopic
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.asEpochMilli
@@ -36,9 +38,7 @@ class CachedValue<V> extends BaseCache<V> {
         @NamedParam Closure onChange = null
     ) {
         super(name, svc, expireTime, expireFn, timestampFn, replicate)
-        if (useCluster) {
-            topic = createUpdateTopic()
-        }
+        topic = useCluster ? createUpdateTopic() : null
         if (onChange) {
             addChangeHandler(onChange)
         }
@@ -65,9 +65,7 @@ class CachedValue<V> extends BaseCache<V> {
 
     /** Set the value. */
     void set(V value) {
-        if (value == entry?.value) return
-        setInternal(new CachedValueEntry(value, loggerName))
-        topic?.publish(entry)
+        setInternal(new CachedValueEntry(value, loggerName), true)
     }
 
     /** Clear the value. */
@@ -111,11 +109,17 @@ class CachedValue<V> extends BaseCache<V> {
     //-------------------
     // Implementation
     //-------------------
-    void setInternal(CachedValueEntry newEntry) {
+    synchronized void setInternal(CachedValueEntry newEntry, boolean publish) {
         def oldEntry = entry
+        if (oldEntry?.value === newEntry.value || oldEntry?.uuid == newEntry.uuid) return
         entry = newEntry
-        def change = new CachedValueChanged(this, oldEntry?.value, newEntry?.value)
-        onChange.each { it.call(change) }
+        if (publish) topic?.publish(newEntry)
+        if (onChange) {
+            task {
+                def change = new CachedValueChanged(this, oldEntry?.value, newEntry.value)
+                onChange.each { it.call(change) }
+            }
+        }
     }
 
     boolean asBoolean() {
@@ -145,16 +149,20 @@ class CachedValue<V> extends BaseCache<V> {
         // and register for all events, including replay of event before this instance existed.
         def ret = configuredReliableTopic(
             svc.hzName(name),
-            { readBatchSize = 1 },
-            { capacity = 1 }
+            {readBatchSize = 1},
+            {
+                capacity = 1
+                inMemoryFormat = InMemoryFormat.OBJECT
+            }
         )
         ret.addMessageListener(
             new ReliableMessageListener<CachedValueEntry<V>>() {
                 void onMessage(Message<CachedValueEntry<V>> message) {
-                    def publisher = message.publishingMember
-                    svc.logDebug('Received update', [source: publisher.getAttribute('instanceName')])
-                    if (publisher.localMember()) return
-                    setInternal((CachedValueEntry) message.messageObject)
+                    logDebug('Received update from topic', [
+                        uuid: message.messageObject.uuid,
+                        source : message.publishingMember.getAttribute('instanceName'),
+                    ])
+                    setInternal(message.messageObject, false)
                 }
 
                 long retrieveInitialSequence() { return 0 }
