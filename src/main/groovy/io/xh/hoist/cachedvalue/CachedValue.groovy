@@ -1,4 +1,4 @@
-package io.xh.hoist.cache
+package io.xh.hoist.cachedvalue
 
 import com.hazelcast.config.InMemoryFormat
 import com.hazelcast.topic.ITopic
@@ -7,24 +7,58 @@ import com.hazelcast.topic.ReliableMessageListener
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
 import io.xh.hoist.BaseService
+import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.log.LogSupport
+import io.xh.hoist.util.DateTimeUtils
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import java.util.concurrent.TimeoutException
 
 import static grails.async.Promises.task
 import static io.xh.hoist.cluster.ClusterService.configuredReliableTopic
-import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.asEpochMilli
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static java.lang.System.currentTimeMillis
 
 /**
- * Similar to {@link Cache}, but a single value that can be read, written, and expired.
+ * Similar to {@link io.xh.hoist.cache.Cache}, but a single value that can be read, written, and expired.
  * Like Cache, this object supports replication across the cluster.
  */
-class CachedValue<V> extends BaseCache<V> {
+class CachedValue<V> implements LogSupport {
 
+    /** Service using this object. */
+    public final BaseService svc
+
+    /** Unique name in the context of the service associated with this object. */
+    public final String name
+
+    /** Closure to determine if an entry should be expired (optional). */
+    public final Closure<Boolean> expireFn
+
+    /**
+     * Entry TTL as epochMillis Long, or closure to return the same (optional).
+     * No effect if a custom expireFn is provided instead. If both null, entries will never expire.
+     */
+    public final Object expireTime
+
+    /**
+     * Closure to determine the timestamp of an entry (optional).
+     * Must return a Long (as epochMillis), Date, or Instant.
+     */
+    public final Closure timestampFn
+
+    /** True to replicate this cache across a cluster (default false). */
+    public final boolean replicate
+
+    /** Handlers to be called on change with a {@link CachedValueChanged} object. */
+    public final List<Closure> onChange = []
+
+
+    private final String loggerName
     private final ITopic<CachedValueEntry<V>> topic
-    private CachedValueEntry<V> entry
+    private CachedValueEntry<V> entry = new CachedValueEntry<V>(null, loggerName)
+
 
     /** @internal - do not construct directly - use {@link BaseService#createCachedValue}. */
     @NamedVariant
@@ -37,7 +71,17 @@ class CachedValue<V> extends BaseCache<V> {
         @NamedParam Boolean replicate = false,
         @NamedParam Closure onChange = null
     ) {
-        super(name, svc, expireTime, expireFn, timestampFn, replicate)
+
+        this.name = name
+        this.svc = svc
+        this.expireTime = expireTime
+        this.expireFn = expireFn
+        this.timestampFn = timestampFn
+        this.replicate = replicate
+
+        // Allow fine grain logging for this within namespace of owning service
+        loggerName = "${svc.instanceLog.name}.CachedValue[${name}]"
+
         topic = useCluster ? createUpdateTopic() : null
         if (onChange) {
             addChangeHandler(onChange)
@@ -50,13 +94,12 @@ class CachedValue<V> extends BaseCache<V> {
             set(null)
             return null
         }
-        return entry?.value
+        return entry.value
     }
 
     /** @returns the cached value, or calls the provided closure to create, cache, and return. */
     V getOrCreate(Closure<V> c) {
-        V ret = get()
-        if (ret == null) {
+        if (entry.value == null || shouldExpire(entry)) {
             ret = c()
             set(ret)
         }
@@ -86,8 +129,8 @@ class CachedValue<V> extends BaseCache<V> {
      */
     @NamedVariant
     void ensureAvailable(
-        @NamedParam Long timeout = 30 * SECONDS,
-        @NamedParam Long interval = 1 * SECONDS,
+        @NamedParam Long timeout = 30 * DateTimeUtils.SECONDS,
+        @NamedParam Long interval = 1 * DateTimeUtils.SECONDS,
         @NamedParam String timeoutMessage = null
     ) {
         if (get() != null) return
@@ -101,7 +144,7 @@ class CachedValue<V> extends BaseCache<V> {
             throw new TimeoutException(msg)
         }
     }
-
+    /** @param handler called on change with a {@link CachedValueChanged} object. */
     void addChangeHandler(Closure handler) {
         onChange << handler
     }
@@ -110,13 +153,17 @@ class CachedValue<V> extends BaseCache<V> {
     // Implementation
     //-------------------
     synchronized void setInternal(CachedValueEntry newEntry, boolean publish) {
+        if (newEntry.uuid == entry.uuid) return
+
+        // Make the swap and put on topic.
         def oldEntry = entry
-        if (oldEntry?.value === newEntry.value || oldEntry?.uuid == newEntry.uuid) return
         entry = newEntry
-        if (publish) topic?.publish(newEntry)
-        if (onChange) {
+        if (publish && topic) topic.publish(newEntry)
+
+        // Fire event handlers
+        if (onChange && oldEntry.value !== newEntry.value) {
             task {
-                def change = new CachedValueChanged(this, oldEntry?.value, newEntry.value)
+                def change = new CachedValueChanged(this, oldEntry.value, newEntry.value)
                 onChange.each { it.call(change) }
             }
         }
@@ -127,7 +174,7 @@ class CachedValue<V> extends BaseCache<V> {
     }
 
     private boolean shouldExpire(CachedValueEntry<V> entry) {
-        if (!entry) return null
+        if (entry.value == null) return false
         if (expireFn) return expireFn(entry)
 
         if (expireTime) {
@@ -139,9 +186,7 @@ class CachedValue<V> extends BaseCache<V> {
     }
 
     private Long getEntryTimestamp(CachedValueEntry<V> entry) {
-        if (!entry) return null
-        if (timestampFn) return asEpochMilli(timestampFn(entry.value))
-        return entry.dateEntered
+        return timestampFn ? asEpochMilli(timestampFn(entry.value)) : entry.dateEntered
     }
 
     private ITopic<CachedValueEntry<V>> createUpdateTopic() {
@@ -149,10 +194,10 @@ class CachedValue<V> extends BaseCache<V> {
         // and register for all events, including replay of event before this instance existed.
         def ret = configuredReliableTopic(
             svc.hzName(name),
-            {readBatchSize = 1},
+            {it.readBatchSize = 1},
             {
-                capacity = 1
-                inMemoryFormat = InMemoryFormat.OBJECT
+                it.capacity = 1
+                it.inMemoryFormat = InMemoryFormat.OBJECT
             }
         )
         ret.addMessageListener(
@@ -180,6 +225,15 @@ class CachedValue<V> extends BaseCache<V> {
         return ret
     }
 
+    private boolean getUseCluster() {
+        return replicate && ClusterService.multiInstanceEnabled
+    }
+
+    Logger getInstanceLog() {
+        LoggerFactory.getLogger(loggerName)
+    }
+
+
     Map getAdminStats() {
         def val = get(),
             ret = [
@@ -192,4 +246,5 @@ class CachedValue<V> extends BaseCache<V> {
         }
         return ret
     }
+
 }

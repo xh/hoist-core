@@ -1,4 +1,4 @@
-package io.xh.hoist.cache
+package io.xh.hoist.cachedvalue
 
 class CachedValueChanged<V> {
 

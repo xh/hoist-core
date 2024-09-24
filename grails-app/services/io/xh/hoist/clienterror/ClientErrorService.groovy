@@ -42,7 +42,7 @@ class ClientErrorService extends BaseService {
 
     void init() {
         super.init()
-        errors = createIMap('clientErrors') {evictionConfig.size = 100}
+        errors = createIMap('clientErrors') {it.evictionConfig.size = 100}
         createTimer(
             name: 'processErrors',
             runFn: this.&processErrors,

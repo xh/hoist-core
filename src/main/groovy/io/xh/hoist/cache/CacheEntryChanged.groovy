@@ -37,7 +37,7 @@ class CacheEntryChanged<K, V> {
      */
     V getOldValue() {
         if (!source.serializeOldValue) {
-            source.svc.logWarn('Accessing the old value for a cache with serializeOldValue=false')
+            source.logWarn('Accessing the old value for a cache with serializeOldValue=false')
             return null
         }
         return this._oldValue

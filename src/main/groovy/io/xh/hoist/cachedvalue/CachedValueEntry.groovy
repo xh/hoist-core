@@ -5,7 +5,7 @@
  * Copyright © 2023 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.cache
+package io.xh.hoist.cachedvalue
 
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.KryoSerializable
@@ -26,7 +26,6 @@ class CachedValueEntry<T> implements KryoSerializable, LogSupport {
     CachedValueEntry(T value, String loggerName) {
         this.dateEntered = currentTimeMillis()
         this.loggerName = loggerName
-        this.uuid = uuid
         this.value = value
         this.uuid = UUID.randomUUID()
     }

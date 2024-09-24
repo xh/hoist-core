@@ -161,22 +161,22 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     // Create Objects
     //-----------------
     static <K, V> IMap<K, V> configuredIMap(String name, Closure customizer = null) {
-        if (customizer) hzConfig.getMapConfig(name).with(customizer)
+        customizer?.call(hzConfig.getMapConfig(name))
         hzInstance.getMap(name)
     }
 
     static <V> ISet<V> configuredISet(String name, Closure customizer = null) {
-        if (customizer) hzConfig.getSetConfig(name).with(customizer)
+        customizer?.call(hzConfig.getSetConfig(name))
         hzInstance.getSet(name)
     }
 
     static <K, V> ReplicatedMap<K, V> configuredReplicatedMap(String name, Closure customizer = null) {
-        if (customizer) hzConfig.getReplicatedMapConfig(name).with(customizer)
+        customizer?.call(hzConfig.getReplicatedMapConfig(name))
         hzInstance.getReplicatedMap(name)
     }
 
     static <M> ITopic<M> configuredTopic(String name, Closure customizer = null) {
-        if (customizer) hzConfig.getTopicConfig(name).with(customizer)
+        customizer?.call(hzConfig.getTopicConfig(name))
         hzInstance.getTopic(name)
     }
 
@@ -185,8 +185,8 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         Closure customizer = null,
         Closure ringBufferCustomizer = null
     ) {
-        if (ringBufferCustomizer) hzConfig.getRingbufferConfig(name).with(ringBufferCustomizer)
-        if (customizer) hzConfig.getReliableTopicConfig(name).with(customizer)
+        ringBufferCustomizer?.call(hzConfig.getRingbufferConfig(name))
+        customizer?.call(hzConfig.getReliableTopicConfig(name))
         hzInstance.getReliableTopic(name)
     }
 

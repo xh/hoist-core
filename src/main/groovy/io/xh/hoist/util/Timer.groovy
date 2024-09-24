@@ -349,7 +349,7 @@ class Timer {
     }
 
     private setLastCompletedInternal(Long timestamp) {
-        if (useCluster)  lastCompletedOnCluster.put(uuid, timestamp)
+        if (useCluster) lastCompletedOnCluster.put(uuid, timestamp)
         _lastRunCompleted = timestamp
     }
 

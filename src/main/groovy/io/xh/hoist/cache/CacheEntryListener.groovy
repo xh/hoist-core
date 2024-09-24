@@ -7,9 +7,9 @@ import com.hazelcast.map.MapEvent
 /** @internal */
 class CacheEntryListener implements EntryListener {
 
-    private BaseCache target
+    private Cache target
 
-    CacheEntryListener(BaseCache target) {
+    CacheEntryListener(Cache target) {
         this.target = target
     }
 

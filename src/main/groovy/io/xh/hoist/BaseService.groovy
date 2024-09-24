@@ -18,7 +18,7 @@ import groovy.transform.CompileDynamic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
 import io.xh.hoist.cache.Cache
-import io.xh.hoist.cache.CachedValue
+import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.log.LogSupport
@@ -155,9 +155,8 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
          addResource(name, configuredReplicatedMap(hzName(name), customizer))
      }
 
-
     /**
-     * Get a reference to an existing or default Hazelcast topic.
+     * Get a reference to an existing or new Hazelcast topic.
      * To subscribe to events fired by other services on a topic, use {@link #subscribeToTopic}.
      */
      <M> ITopic<M> getTopic(String id) {

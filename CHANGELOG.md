@@ -2,6 +2,14 @@
 
 ## 23.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
+
+* Improvements to the efficiency of `CachedValue` for sharing of large objects.  This included
+  moving to its own package `io.xh.hoist.cachedvalue` for clarity.
+* New dynamic configuration for all distributed hazelcast objects.  See `ClusterService.configureXXX`.
+  This replaces the static map `BaseService.clusterConfigs`.
+* Misc. improvements to logging and performance of `Cache` and `Timer`.
+
 ## 22.0.0 - 2024-09-18
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
