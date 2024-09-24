@@ -386,7 +386,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * @internal
      */
     String hzName(String name) {
-        this.class.name + '_' + name
+        "${this.class.name}[$name]"
     }
 
     //------------------------
