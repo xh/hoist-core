@@ -8,8 +8,6 @@
 package io.xh.hoist
 
 import com.hazelcast.collection.ISet
-import com.hazelcast.config.Config
-import com.hazelcast.config.NamedConfig
 import com.hazelcast.map.IMap
 import com.hazelcast.replicatedmap.ReplicatedMap
 import com.hazelcast.topic.ITopic
@@ -37,6 +35,9 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 
 import static grails.async.Promises.task
+import static io.xh.hoist.cluster.ClusterService.configuredIMap
+import static io.xh.hoist.cluster.ClusterService.configuredISet
+import static io.xh.hoist.cluster.ClusterService.configuredReplicatedMap
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.Utils.appContext
@@ -129,11 +130,8 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * @param customizer - closure receiving a Hazelcast MapConfig.  Mutate to customize.
      */
     <K, V> IMap<K, V> createIMap(String name, Closure customizer = null) {
-        def hzName = hzName(name)
-        if (customizer) hzConfig.getMapConfig(hzName).with(customizer)
-        addResource(name, hzInstance.getMap(hzName))
+        addResource(name, configuredIMap(hzName(name), customizer))
     }
-
 
     /**
      * Create and return a reference to a Hazelcast ISet.
@@ -143,9 +141,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * @param customizer - closure receiving a Hazelcast SetConfig.  Mutate to customize.
      */
     <V> ISet<V> createISet(String name, Closure customizer = null) {
-        def hzName = hzName(name)
-        if (customizer) hzConfig.getSetConfig(hzName).with(customizer)
-        addResource(name, hzInstance.getSet(hzName))
+        addResource(name, configuredISet(hzName(name), customizer))
     }
 
     /**
@@ -156,25 +152,9 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * @param customizer - closure receiving a Hazelcast ReplicatedMapConfig.  Mutate to customize.
      */
      <K, V> ReplicatedMap<K, V> createReplicatedMap(String name, Closure customizer = null) {
-         def hzName = hzName(name)
-         if (customizer) hzConfig.getReplicatedMapConfig(hzName).with(customizer)
-         addResource(name, hzInstance.getReplicatedMap(hzName))
+         addResource(name, configuredReplicatedMap(hzName(name), customizer))
      }
 
-    /**
-     * Create and return a reference to a Hazelcast Topic
-     *
-     * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
-     * associated with this service.
-     * @param customizer - closure receiving a Hazelcast ReplicatedMapConfig.  Mutate to customize.
-     *
-     * Note: To get a reference to an existing or default topic. use {@link #getTopic}.
-     */
-    <M> ITopic<M> createTopic(String name, Closure customizer = null) {
-        def hzName = hzName(name)
-        if (customizer) hzConfig.getTopicConfig(hzName).with(customizer)
-        addResource(name, hzInstance.getTopic(hzName))
-    }
 
     /**
      * Get a reference to an existing or default Hazelcast topic.
@@ -421,9 +401,5 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         }
         resources[name] = resource
         return resource
-    }
-
-    private Config getHzConfig() {
-        hzInstance.config
     }
 }

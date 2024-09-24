@@ -57,9 +57,9 @@ class Cache<K, V> extends BaseCache<V> {
     ) {
         super(name, svc, expireTime, expireFn, timestampFn, replicate)
         this.serializeOldValue = serializeOldValue
-        _map = useCluster ? hzInstance.getMap(svc.hzName("xh_$name")) : new ConcurrentHashMap()
+        _map = useCluster ? hzInstance.getMap(svc.hzName(name)) : new ConcurrentHashMap()
         cullTimer = svc.createTimer(
-            name: "xh_${name}_cullEntries",
+            name: "${name}_cullEntries",
             runFn: this.&cullEntries,
             interval: 15 * MINUTES,
             delay: true,

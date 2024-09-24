@@ -6,10 +6,10 @@ import com.hazelcast.topic.ReliableMessageListener
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
 import io.xh.hoist.BaseService
-import io.xh.hoist.cluster.ClusterService
 
 import java.util.concurrent.TimeoutException
 
+import static io.xh.hoist.cluster.ClusterService.configuredReliableTopic
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.asEpochMilli
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
@@ -141,15 +141,13 @@ class CachedValue<V> extends BaseCache<V> {
     }
 
     private ITopic<CachedValueEntry<V>> createUpdateTopic() {
-        // 0) Create a durable topic with room for just a single item
-        def hzInstance = ClusterService.hzInstance,
-            hzConfig = hzInstance.config,
-            hzName = svc.hzName("xh_$name")
-        hzConfig.getRingbufferConfig(hzName).with { capacity = 1 }
-        hzConfig.getReliableTopicConfig(hzName).with { readBatchSize = 1 }
-
-        // 1) ...rnd register for all events, including replay of event before this instance existed.
-        def ret = hzInstance.getReliableTopic(hzName)
+        // Create a durable topic with room for just a single item
+        // and register for all events, including replay of event before this instance existed.
+        def ret = configuredReliableTopic(
+            svc.hzName(name),
+            { readBatchSize = 1 },
+            { capacity = 1 }
+        )
         ret.addMessageListener(
             new ReliableMessageListener<CachedValueEntry<V>>() {
                 void onMessage(Message<CachedValueEntry<V>> message) {
