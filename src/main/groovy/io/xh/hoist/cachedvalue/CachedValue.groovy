@@ -203,10 +203,9 @@ class CachedValue<V> implements LogSupport {
         ret.addMessageListener(
             new ReliableMessageListener<CachedValueEntry<V>>() {
                 void onMessage(Message<CachedValueEntry<V>> message) {
-                    logDebug('Received update from topic', [
-                        uuid: message.messageObject.uuid,
-                        source : message.publishingMember.getAttribute('instanceName'),
-                    ])
+                    def member = message.publishingMember,
+                        src = member.localMember() ? 'Self' : member.getAttribute('instanceName')
+                    logDebug("Received msg from $src", message.messageObject.uuid)
                     setInternal(message.messageObject, false)
                 }
 
