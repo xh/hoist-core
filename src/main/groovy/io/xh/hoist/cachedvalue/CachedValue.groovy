@@ -204,8 +204,8 @@ class CachedValue<V> implements LogSupport {
             new ReliableMessageListener<CachedValueEntry<V>>() {
                 void onMessage(Message<CachedValueEntry<V>> message) {
                     def member = message.publishingMember,
-                        src = member.localMember() ? 'Self' : member.getAttribute('instanceName')
-                    logDebug("Received msg from $src", message.messageObject.uuid)
+                        src = member.localMember() ? '[self]' : member.getAttribute('instanceName')
+                    logTrace("Received msg from $src", message.messageObject.uuid)
                     setInternal(message.messageObject, false)
                 }
 
