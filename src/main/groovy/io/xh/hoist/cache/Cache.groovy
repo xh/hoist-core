@@ -98,7 +98,7 @@ class Cache<K, V> implements LogSupport {
         // Allow fine grain logging for this within namespace of owning service
         loggerName = "${svc.instanceLog.name}.Cache[$name]"
 
-        _map = useCluster ? hzInstance.getMap(svc.hzName(name)) : new ConcurrentHashMap()
+        _map = useCluster ? hzInstance.getReplicatedMap(svc.hzName(name)) : new ConcurrentHashMap()
         cullTimer = new Timer(
             name: 'cullEntries',
             owner: this,
@@ -205,7 +205,7 @@ class Cache<K, V> implements LogSupport {
     ) {
         if (getEntry(key)) return
 
-        svc.withDebug("Waiting for cache entry value at '$key'") {
+        withDebug("Waiting for cache entry value at '$key'") {
             for (def startTime = currentTimeMillis(); !intervalElapsed(timeout, startTime); sleep(interval)) {
                 if (getEntry(key)) return;
             }
@@ -251,7 +251,7 @@ class Cache<K, V> implements LogSupport {
         }
 
         if (cullKeys) {
-            svc.logDebug("Cache '$name' culled ${cullKeys.size()} out of $oldSize entries")
+            logDebug("Cache '$name' culled ${cullKeys.size()} out of $oldSize entries")
         }
     }
 
