@@ -86,15 +86,12 @@ class MemoryMonitoringService extends BaseService {
             _snapshots.remove(oldest.key)
         }
 
-        if (newSnap.usedPctMax > 90) {
-            logWarn(newSnap)
-            logWarn("MEMORY USAGE ABOVE 90%")
-        } else if (intervalElapsed(1 * DateTimeUtils.HOURS, _lastInfoLogged)) {
-            logInfo(newSnap)
-            _lastInfoLogged = new Date()
+       if (intervalElapsed(1 * DateTimeUtils.HOURS, _lastInfoLogged)) {
+           logInfo(newSnap)
+           _lastInfoLogged = new Date()
         } else {
-            logDebug(newSnap)
-        }
+           logDebug(newSnap)
+       }
 
         return newSnap
     }
