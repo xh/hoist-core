@@ -11,11 +11,19 @@ import groovy.transform.CompileStatic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
 import io.xh.hoist.BaseService
+import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.log.LogSupport
 import io.xh.hoist.util.Timer
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeoutException
 
+import static io.xh.hoist.cluster.ClusterService.hzInstance
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static io.xh.hoist.util.DateTimeUtils.asEpochMilli
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static java.lang.System.currentTimeMillis
 
@@ -23,10 +31,49 @@ import static java.lang.System.currentTimeMillis
  * A key-value Cache, with support for optional entry TTL and replication across a cluster.
  */
 @CompileStatic
-class Cache<K, V> extends BaseCache<V> {
+class Cache<K, V> implements LogSupport {
 
-    private final Map<K, Entry<V>> _map
+    /** Service using this object. */
+    public final BaseService svc
+
+    /** Unique name in the context of the service associated with this object. */
+    public final String name
+
+    /** Closure to determine if an entry should be expired (optional). */
+    public final Closure<Boolean> expireFn
+
+    /**
+     * Entry TTL as epochMillis Long, or closure to return the same (optional).
+     * No effect if a custom expireFn is provided instead. If both null, entries will never expire.
+     */
+    public final Object expireTime
+
+    /**
+     * Closure to determine the timestamp of an entry (optional).
+     * Must return a Long (as epochMillis), Date, or Instant.
+     */
+    public final Closure timestampFn
+
+    /** True to replicate this cache across a cluster (default false). */
+    public final boolean replicate
+
+    /** Handlers to be called on change with a {@link CacheEntryChanged} */
+    public final List<Closure> onChange = []
+
+    /**
+     * True to serialize old values to replicas in `CacheEntryChanged` events (default false).
+     *
+     * Not serializing old values improves performance and is especially important for caches
+     * containing large objects that are expensive to serialize + deserialize. Enable only if your
+     * event handlers need access to the previous value.
+     */
+    public final boolean serializeOldValue
+
+
+    private final String loggerName
+    private final Map<K, CacheEntry<V>> _map
     private final Timer cullTimer
+
 
     /** @internal - do not construct directly - use {@link BaseService#createCache}.  */
     @NamedVariant
@@ -40,18 +87,29 @@ class Cache<K, V> extends BaseCache<V> {
         @NamedParam Boolean serializeOldValue = false,
         @NamedParam Closure onChange = null
     ) {
-        super(name, svc, expireTime, expireFn, timestampFn, replicate, serializeOldValue)
+        this.name = name
+        this.svc = svc
+        this.expireTime = expireTime
+        this.expireFn = expireFn
+        this.timestampFn = timestampFn
+        this.replicate = replicate
+        this.serializeOldValue = serializeOldValue
 
-        _map = svc.getMapForCache(this)
-        if (onChange) addChangeHandler(onChange)
+        // Allow fine grain logging for this within namespace of owning service
+        loggerName = "${svc.instanceLog.name}.Cache[$name]"
 
-        cullTimer = svc.createTimer(
-            name: "xh_${name}_cullEntries",
+        _map = useCluster ? hzInstance.getReplicatedMap(svc.hzName(name)) : new ConcurrentHashMap()
+        cullTimer = new Timer(
+            name: 'cullEntries',
+            owner: this,
             runFn: this.&cullEntries,
             interval: 15 * MINUTES,
             delay: true,
             primaryOnly: useCluster
         )
+        if (onChange) {
+            addChangeHandler(onChange)
+        }
     }
 
     /** @returns the cached value at key.  */
@@ -60,13 +118,24 @@ class Cache<K, V> extends BaseCache<V> {
     }
 
     /** @returns the cached Entry at key.  */
-    Entry<V> getEntry(K key) {
+    CacheEntry<V> getEntry(K key) {
         def ret = _map[key]
         if (ret && shouldExpire(ret)) {
             remove(key)
             return null
         }
         return ret
+    }
+
+    /** @returns cached value for key, or lazily creates if needed.  */
+    V getOrCreate(K key, Closure<V> c) {
+        CacheEntry<V> entry = _map[key]
+        if (!entry || shouldExpire(entry)) {
+            def val = c(key)
+            put(key, val)
+            return val
+        }
+        return entry.value
     }
 
     /** Remove the value at key. */
@@ -81,20 +150,11 @@ class Cache<K, V> extends BaseCache<V> {
         if (obj == null) {
             _map.remove(key)
         } else {
-            _map.put(key, new Entry(key.toString(), obj, svc.instanceLog.name))
+            _map.put(key, new CacheEntry(key.toString(), obj, loggerName))
         }
         if (!useCluster) fireOnChange(this, oldEntry?.value, obj)
     }
 
-    /** @returns cached value for key, or lazily creates if needed.  */
-    V getOrCreate(K key, Closure<V> c) {
-        V ret = get(key)
-        if (ret == null) {
-            ret = c(key)
-            put(key, ret)
-        }
-        return ret
-    }
 
     /** @returns a Map representation of currently cached data.  */
     Map<K, V> getMap() {
@@ -124,7 +184,7 @@ class Cache<K, V> extends BaseCache<V> {
 
     void addChangeHandler(Closure handler) {
         if (!onChange && _map instanceof ReplicatedMap) {
-            _map.addEntryListener(new HzEntryListener(this))
+            _map.addEntryListener(new CacheEntryListener(this))
         }
         onChange << handler
     }
@@ -145,7 +205,7 @@ class Cache<K, V> extends BaseCache<V> {
     ) {
         if (getEntry(key)) return
 
-        svc.withDebug("Waiting for cache entry value at '$key'") {
+        withDebug("Waiting for cache entry value at '$key'") {
             for (def startTime = currentTimeMillis(); !intervalElapsed(timeout, startTime); sleep(interval)) {
                 if (getEntry(key)) return;
             }
@@ -168,8 +228,16 @@ class Cache<K, V> extends BaseCache<V> {
         ]
     }
 
+    Logger getInstanceLog() {
+        LoggerFactory.getLogger(loggerName)
+    }
+
     boolean asBoolean() {
         return size() > 0
+    }
+
+    private boolean getUseCluster() {
+        return replicate && ClusterService.multiInstanceEnabled
     }
 
     private void cullEntries() {
@@ -183,7 +251,30 @@ class Cache<K, V> extends BaseCache<V> {
         }
 
         if (cullKeys) {
-            svc.logDebug("Cache '$name' culled ${cullKeys.size()} out of $oldSize entries")
+            logDebug("Cache '$name' culled ${cullKeys.size()} out of $oldSize entries")
         }
+    }
+
+    private boolean shouldExpire(CacheEntry<V> entry) {
+        if (expireFn) return expireFn.call(entry)
+
+        if (expireTime) {
+            Long timestamp = getEntryTimestamp(entry),
+                 expire = (expireTime instanceof Closure ?  expireTime.call() : expireTime) as Long
+            return intervalElapsed(expire, timestamp)
+        }
+        return false
+    }
+
+    private Long getEntryTimestamp(CacheEntry<V> entry) {
+        if (!entry) return null
+        if (timestampFn) return asEpochMilli(timestampFn.call(entry.value))
+        return entry.dateEntered
+    }
+
+    private void fireOnChange(Object key, V oldValue, V value) {
+        if (oldValue === value) return
+        def change = new CacheEntryChanged(this, key, oldValue, value)
+        onChange.each { it.call(change) }
     }
 }

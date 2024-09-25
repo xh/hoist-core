@@ -7,6 +7,7 @@ import com.hazelcast.executor.impl.ExecutorServiceProxy
 import com.hazelcast.map.IMap
 import com.hazelcast.nearcache.NearCacheStats
 import com.hazelcast.replicatedmap.ReplicatedMap
+import com.hazelcast.ringbuffer.impl.RingbufferProxy
 import com.hazelcast.topic.ITopic
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.Utils
@@ -141,6 +142,13 @@ class ClusterAdminService extends BaseService {
                     type                 : 'Topic',
                     publishOperationCount: stats.publishOperationCount,
                     receiveOperationCount: stats.receiveOperationCount
+                ]
+            case RingbufferProxy:
+                return [
+                    name          : obj.getName(),
+                    type          : 'RingBuffer',
+                    size          : obj.size(),
+                    capacity      : obj.capacity()
                 ]
             case CacheProxy:
                 def evictionConfig = obj.cacheConfig.evictionConfig,

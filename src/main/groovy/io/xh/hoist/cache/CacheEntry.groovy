@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory
 import static java.lang.System.currentTimeMillis
 
 @CompileStatic
-class Entry<T> implements KryoSerializable, LogSupport {
+class CacheEntry<T> implements KryoSerializable, LogSupport {
     String key
     T value
     Long dateEntered
@@ -27,7 +27,7 @@ class Entry<T> implements KryoSerializable, LogSupport {
 
     boolean serializeValue
 
-    Entry(String key, T value, String loggerName) {
+    CacheEntry(String key, T value, String loggerName) {
         this.key = key
         this.value = value
         this.dateEntered = currentTimeMillis()
@@ -35,7 +35,7 @@ class Entry<T> implements KryoSerializable, LogSupport {
         this.serializeValue = true
     }
 
-    Entry() {}
+    CacheEntry() {}
 
     void write(Kryo kryo, Output output) {
         output.writeBoolean(serializeValue)

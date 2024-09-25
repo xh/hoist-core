@@ -8,7 +8,7 @@
 package io.xh.hoist.role.provided
 
 import grails.gorm.transactions.ReadOnly
-import io.xh.hoist.cache.CachedValue
+import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.ldap.LdapService
 import io.xh.hoist.role.BaseRoleService

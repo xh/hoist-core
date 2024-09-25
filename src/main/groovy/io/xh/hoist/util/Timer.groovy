@@ -7,11 +7,13 @@
 
 package io.xh.hoist.util
 
+import com.hazelcast.replicatedmap.ReplicatedMap
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
-import io.xh.hoist.BaseService
-import io.xh.hoist.cache.CachedValue
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.log.LogSupport
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.ExecutorService
@@ -21,9 +23,12 @@ import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
+import static io.xh.hoist.cluster.ClusterService.multiInstanceEnabled
 import static io.xh.hoist.util.DateTimeUtils.*
 import static io.xh.hoist.util.Utils.configService
 import static io.xh.hoist.util.Utils.getExceptionHandler
+import static java.lang.Math.max
+import static java.lang.System.currentTimeMillis
 
 /**
  * Hoist's implementation of an interval-based Timer, for running tasks on a repeated interval.
@@ -40,11 +45,11 @@ import static io.xh.hoist.util.Utils.getExceptionHandler
  * A common pattern would be to have the primary instance run a Timer-based job to load data into
  * a cache, with the cache then replicated across the cluster.
  */
-class Timer {
+class Timer implements LogSupport {
 
-     private static Long CONFIG_INTERVAL = 15 * SECONDS
+    private static Long CONFIG_INTERVAL = 15 * SECONDS
 
-    /** Unique name for this timer, required for cluster aware timers (see `primaryOnly`) **/
+    /** Name for this timer.  Should be unique within the context of owner for the purpose of logging. **/
     final String name
 
     /** Object using this timer **/
@@ -88,18 +93,16 @@ class Timer {
 
     /**
      * Only run job when clustered instance is the primary instance?  Default is false.
-     * For timers owned by instances of BaseService only.
      */
     final boolean primaryOnly
 
-
     /** Date last run started. */
-    Date getLastRunStarted() {
+    Long getLastRunStarted() {
         _lastRunStarted
     }
 
     /** Date last run completed. */
-    Date getLastRunCompleted() {
+    Long getLastRunCompleted() {
         _lastRunCompleted
     }
 
@@ -115,21 +118,21 @@ class Timer {
     private Long timeoutMs
     private Long coreIntervalMs
 
-
-    private Date _lastRunCompleted = null
-    private Date _lastRunStarted = null
+    private Long _lastRunCompleted = null
+    private Long _lastRunStarted = null
     private Map _lastRunStats = null
     private boolean _isRunning = false
-    private boolean forceRun  = false
+    private boolean forceRun = false
     private java.util.Timer coreTimer
     private java.util.Timer configTimer
+    private String uuid = UUID.randomUUID()
+    private String loggerName
 
-
-    private CachedValue<Date> _lastCompletedOnCluster
-
+    private static ReplicatedMap<String, Long> lastCompletedOnCluster
 
     // Args from Grails 3.0 async promise implementation
     static ExecutorService executorService = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>())
+
 
     /**
      * Applications should not typically use this constructor directly. Timers are typically
@@ -150,6 +153,7 @@ class Timer {
     ) {
         this.name = name
         this.owner = owner
+        this.loggerName = "${owner.instanceLog.name}.Timer[$name]"
         this.runFn = runFn
         this.primaryOnly = primaryOnly
         this.runImmediatelyAndBlock = runImmediatelyAndBlock
@@ -159,18 +163,14 @@ class Timer {
         this.intervalUnits = intervalUnits
         this.timeoutUnits = timeoutUnits
 
-        if (primaryOnly) {
-            if (!owner instanceof BaseService)  {
-                throw new IllegalArgumentException("A 'primaryOnly' timer must be owned by an instance of BaseService.")
-            }
-
-            _lastCompletedOnCluster = (owner as BaseService).createCachedValue(name: "xh_${name}_lastCompleted")
-        }
-
         intervalMs = calcIntervalMs()
         timeoutMs = calcTimeoutMs()
         delayMs = calcDelayMs()
         coreIntervalMs = calcCoreIntervalMs()
+
+        if (useCluster && lastCompletedOnCluster == null) {
+            lastCompletedOnCluster = ClusterService.configuredReplicatedMap('xhTimersLastCompleted')
+        }
 
         if (runImmediatelyAndBlock) {
             doRun()
@@ -184,7 +184,7 @@ class Timer {
         if (interval instanceof Closure || timeout instanceof Closure) {
             configTimer = new java.util.Timer()
             configTimer.schedule(
-                    (this.&onConfigTimer as TimerTask), CONFIG_INTERVAL, CONFIG_INTERVAL
+                (this.&onConfigTimer as TimerTask), CONFIG_INTERVAL, CONFIG_INTERVAL
             )
         }
     }
@@ -212,13 +212,13 @@ class Timer {
     /** Information about this timer, accessible via the Hoist Admin Console. */
     Map getAdminStats() {
         [
-            name: name,
-            type: 'Timer' + (primaryOnly ? ' (primary only)': ''),
+            name      : name,
+            type      : 'Timer' + (primaryOnly ? ' (primary only)' : ''),
             intervalMs: intervalMs,
-            isRunning: isRunning,
-            startTime: isRunning ? _lastRunStarted: null,
-            last: _lastRunStats
-        ].findAll {it.value != null}
+            isRunning : isRunning,
+            startTime : isRunning ? _lastRunStarted : null,
+            last      : _lastRunStats
+        ].findAll { it.value != null }
     }
 
 
@@ -229,7 +229,7 @@ class Timer {
         if (primaryOnly && !Utils.clusterService.isPrimary) return
 
         _isRunning = true
-        _lastRunStarted = new Date()
+        _lastRunStarted = currentTimeMillis()
         Throwable throwable = null
         Future future = null
         try {
@@ -249,24 +249,23 @@ class Timer {
             throwable = t
         }
 
-        _lastRunCompleted = new Date()
-        _lastCompletedOnCluster?.set(_lastRunCompleted)
+        setLastCompletedInternal(currentTimeMillis())
         _isRunning = false
         _lastRunStats = [
             startTime: _lastRunStarted,
-            endTime: _lastRunCompleted,
-            elapsedMs: _lastRunCompleted.time - _lastRunStarted.time
+            endTime  : _lastRunCompleted,
+            elapsedMs: _lastRunCompleted - _lastRunStarted
         ]
         if (throwable) {
             try {
                 _lastRunStats.error = exceptionHandler.summaryTextForThrowable(throwable)
                 exceptionHandler.handleException(
                     exception: throwable,
-                    logTo: owner,
+                    logTo: this,
                     logMessage: "Failure in '$name'"
                 )
             } catch (Throwable ignore) {
-                owner.logError('Failed to handle exception in Timer')
+                logError('Failed to handle exception in Timer')
             }
         }
     }
@@ -281,7 +280,7 @@ class Timer {
         if (interval == null) return null
         Long ret = (interval instanceof Closure ? (interval as Closure)() : interval) * intervalUnits;
         if (ret > 0 && ret < 500) {
-            owner.logWarn('Timer cannot be set for values less than 500ms.')
+            logWarn('Timer cannot be set for values less than 500ms.')
             ret = 500
         }
         return ret
@@ -304,7 +303,7 @@ class Timer {
             timeoutMs = calcTimeoutMs()
             adjustCoreTimerIfNeeded()
         } catch (Throwable t) {
-            owner.logError('Timer failed to reload config', t)
+            logError('Timer failed to reload config', t)
         }
     }
 
@@ -329,9 +328,7 @@ class Timer {
     }
 
     private boolean intervalHasElapsed() {
-        if (intervalMs <= 0) return false
-        def lastRun = _lastCompletedOnCluster ? _lastCompletedOnCluster.get() : _lastRunCompleted
-        return intervalElapsed(intervalMs, lastRun)
+        intervalMs > 0 ? intervalElapsed(intervalMs, lastCompletedInternal) : false
     }
 
     private Long calcCoreIntervalMs() {
@@ -346,5 +343,24 @@ class Timer {
             coreTimer.schedule((this.&onCoreTimer as TimerTask), 0, newCoreIntervalMs)
             coreIntervalMs = newCoreIntervalMs
         }
+    }
+
+    private Long getLastCompletedInternal() {
+        def local = _lastRunCompleted,
+            onCluster = useCluster ? lastCompletedOnCluster[uuid] : null
+        return local && onCluster ? max(local, onCluster) : (onCluster ?: local)
+    }
+
+    private setLastCompletedInternal(Long timestamp) {
+        if (useCluster) lastCompletedOnCluster.put(uuid, timestamp)
+        _lastRunCompleted = timestamp
+    }
+
+    private boolean getUseCluster() {
+        multiInstanceEnabled && primaryOnly
+    }
+
+    Logger getInstanceLog() {
+        LoggerFactory.getLogger(loggerName)
     }
 }

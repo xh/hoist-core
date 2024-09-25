@@ -18,7 +18,7 @@ import groovy.transform.CompileDynamic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
 import io.xh.hoist.cache.Cache
-import io.xh.hoist.cache.CachedValue
+import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.log.LogSupport
@@ -35,10 +35,14 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 
 import static grails.async.Promises.task
+import static io.xh.hoist.cluster.ClusterService.configuredIMap
+import static io.xh.hoist.cluster.ClusterService.configuredISet
+import static io.xh.hoist.cluster.ClusterService.configuredReplicatedMap
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.Utils.appContext
 import static io.xh.hoist.util.Utils.getConfigService
+import static io.xh.hoist.cluster.ClusterService.hzInstance
 
 /**
  * Standard superclass for all Hoist and Application-level services.
@@ -66,8 +70,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     protected final ConcurrentHashMap<String, Object> resources = [:]
 
     private boolean _destroyed = false
-    private Map _replicatedValues
-    private Map _localValues
 
     private final Logger _log = LoggerFactory.getLogger(this.class)
 
@@ -119,16 +121,16 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
     //-----------------------------------------------------------------
     // Distributed Resources
-    // Use static reference to ClusterService to allow access pre-init.
     //------------------------------------------------------------------
     /**
      * Create and return a reference to a Hazelcast IMap.
      *
      * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
      * associated with this service.
+     * @param customizer - closure receiving a Hazelcast MapConfig.  Mutate to customize.
      */
-    <K, V> IMap<K, V> createIMap(String name) {
-        addResource(name, ClusterService.hzInstance.getMap(hzName(name)))
+    <K, V> IMap<K, V> createIMap(String name, Closure customizer = null) {
+        addResource(name, configuredIMap(hzName(name), customizer))
     }
 
     /**
@@ -136,9 +138,10 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      *
      * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
      * associated with this service.
+     * @param customizer - closure receiving a Hazelcast SetConfig.  Mutate to customize.
      */
-    <V> ISet<V> createISet(String name) {
-        addResource(name, ClusterService.hzInstance.getSet(hzName(name)))
+    <V> ISet<V> createISet(String name, Closure customizer = null) {
+        addResource(name, configuredISet(hzName(name), customizer))
     }
 
     /**
@@ -146,17 +149,18 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      *
      * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
      * associated with this service.
+     * @param customizer - closure receiving a Hazelcast ReplicatedMapConfig.  Mutate to customize.
      */
-     <K, V> ReplicatedMap<K, V> createReplicatedMap(String name) {
-        addResource(name, ClusterService.hzInstance.getReplicatedMap(hzName(name)))
-    }
+     <K, V> ReplicatedMap<K, V> createReplicatedMap(String name, Closure customizer = null) {
+         addResource(name, configuredReplicatedMap(hzName(name), customizer))
+     }
 
     /**
-     * Get a reference to a Hazelcast Replicated topic, useful to publish to a cluster-wide topic.
+     * Get a reference to an existing or new Hazelcast topic.
      * To subscribe to events fired by other services on a topic, use {@link #subscribeToTopic}.
      */
      <M> ITopic<M> getTopic(String id) {
-        ClusterService.hzInstance.getTopic(id)
+        hzInstance.getTopic(id)
     }
 
     /**
@@ -224,7 +228,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         addResource(mp.name as String, new CachedValue([*:mp, svc: this]))
     }
 
-
     /**
      * Create a managed subscription to events on the instance-local Grails event bus.
      *
@@ -284,7 +287,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
             }
         }
     }
-
 
     //------------------
     // Cluster Support
@@ -374,14 +376,22 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     // Provide cached logger to LogSupport for possible performance benefit
     Logger getInstanceLog() { _log }
 
+    /**
+     * Generate a name for a resource, appropriate for Hazelcast.
+     * Note that this allows us to group all Hazelcast resources by Service
+     *
+     * Not typically called directly by applications.  Applications should aim to create
+     * Hazelcast distributed objects using the methods in this class.
+     *
+     * @internal
+     */
+    String hzName(String name) {
+        "${this.class.name}[$name]"
+    }
 
     //------------------------
     // Internal implementation
     //------------------------
-    protected String hzName(String name) {
-        this.class.name + '_' + name
-    }
-
     private <T> T addResource(String name, T resource) {
         if (!name || resources.containsKey(name)) {
             def msg = 'Service resource requires a unique name. '
@@ -390,27 +400,5 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         }
         resources[name] = resource
         return resource
-    }
-
-    /**
-     * @internal - for use by Cache.
-     */
-    Map getMapForCache(Cache cache) {
-        // register with xh prefix to avoid collisions, allow filtering out in admin
-        cache.useCluster ? createReplicatedMap("xh_${cache.name}") : new ConcurrentHashMap()
-    }
-
-    /**
-     * @internal - for use by CachedValue
-     */
-    Map getMapForCachedValue(CachedValue cachedValue) {
-        // register with xh prefix to avoid collisions, allow filtering out in admin
-        if (cachedValue.useCluster) {
-            if (_replicatedValues == null) _replicatedValues = createReplicatedMap('xh_cachedValues')
-            return _replicatedValues
-        } else {
-            if (_localValues == null) _localValues = new ConcurrentHashMap()
-            return _localValues
-        }
     }
 }

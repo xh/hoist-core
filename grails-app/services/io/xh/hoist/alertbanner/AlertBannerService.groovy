@@ -9,7 +9,7 @@ package io.xh.hoist.alertbanner
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
-import io.xh.hoist.cache.CachedValue
+import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.jsonblob.JsonBlobService
 import io.xh.hoist.util.Timer
