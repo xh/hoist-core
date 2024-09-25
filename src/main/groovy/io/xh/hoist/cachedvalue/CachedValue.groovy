@@ -99,7 +99,8 @@ class CachedValue<V> implements LogSupport {
 
     /** @returns the cached value, or calls the provided closure to create, cache, and return. */
     V getOrCreate(Closure<V> c) {
-        if (entry.value == null || shouldExpire(entry)) {
+        V ret = entry.value
+        if (ret == null || shouldExpire(entry)) {
             ret = c()
             set(ret)
         }
