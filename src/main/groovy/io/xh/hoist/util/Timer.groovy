@@ -12,6 +12,8 @@ import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.log.LogSupport
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.ExecutorService
@@ -43,11 +45,11 @@ import static java.lang.System.currentTimeMillis
  * A common pattern would be to have the primary instance run a Timer-based job to load data into
  * a cache, with the cache then replicated across the cluster.
  */
-class Timer {
+class Timer implements LogSupport {
 
     private static Long CONFIG_INTERVAL = 15 * SECONDS
 
-    /** Unique name for this timer **/
+    /** Name for this timer.  Should be unique within the context of owner for the purpose of logging. **/
     final String name
 
     /** Object using this timer **/
@@ -94,7 +96,6 @@ class Timer {
      */
     final boolean primaryOnly
 
-
     /** Date last run started. */
     Long getLastRunStarted() {
         _lastRunStarted
@@ -125,6 +126,7 @@ class Timer {
     private java.util.Timer coreTimer
     private java.util.Timer configTimer
     private String uuid = UUID.randomUUID()
+    private String loggerName
 
     private static ReplicatedMap<String, Long> lastCompletedOnCluster
 
@@ -151,6 +153,7 @@ class Timer {
     ) {
         this.name = name
         this.owner = owner
+        this.loggerName = "${owner.instanceLog.name}.Timer[$name]"
         this.runFn = runFn
         this.primaryOnly = primaryOnly
         this.runImmediatelyAndBlock = runImmediatelyAndBlock
@@ -355,5 +358,9 @@ class Timer {
 
     private boolean getUseCluster() {
         multiInstanceEnabled && primaryOnly
+    }
+
+    Logger getInstanceLog() {
+        LoggerFactory.getLogger(loggerName)
     }
 }

@@ -80,7 +80,7 @@ class CachedValue<V> implements LogSupport {
         this.replicate = replicate
 
         // Allow fine grain logging for this within namespace of owning service
-        loggerName = "${svc.instanceLog.name}.CachedValue[${name}]"
+        loggerName = "${svc.instanceLog.name}.CachedValue[$name]"
 
         topic = useCluster ? createUpdateTopic() : null
         if (onChange) {

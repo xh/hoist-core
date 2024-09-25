@@ -96,11 +96,12 @@ class Cache<K, V> implements LogSupport {
         this.serializeOldValue = serializeOldValue
 
         // Allow fine grain logging for this within namespace of owning service
-        loggerName = "${svc.instanceLog.name}.Cache[${name}]"
+        loggerName = "${svc.instanceLog.name}.Cache[$name]"
 
         _map = useCluster ? hzInstance.getMap(svc.hzName(name)) : new ConcurrentHashMap()
-        cullTimer = svc.createTimer(
-            name: "${name}_cullEntries",
+        cullTimer = new Timer(
+            name: 'cullEntries',
+            owner: this,
             runFn: this.&cullEntries,
             interval: 15 * MINUTES,
             delay: true,
