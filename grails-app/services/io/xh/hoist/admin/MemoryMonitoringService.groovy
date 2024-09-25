@@ -91,7 +91,7 @@ class MemoryMonitoringService extends BaseService {
             _lastInfoLogged = new Date()
         } else {
             logDebug(newSnap)
-       }
+        }
 
         return newSnap
     }
