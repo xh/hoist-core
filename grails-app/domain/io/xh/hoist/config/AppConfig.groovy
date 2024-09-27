@@ -17,7 +17,6 @@ import org.jasypt.util.text.BasicTextEncryptor
 import org.jasypt.util.text.TextEncryptor
 
 import static grails.async.Promises.task
-import static io.xh.hoist.util.Utils.isSensitiveParamName
 
 class AppConfig implements JSONFormat, LogSupport {
 
@@ -121,9 +120,6 @@ class AppConfig implements JSONFormat, LogSupport {
         // so we don't assume it can be parsed into the required type. Log failures on trace for
         // minimal visibility, but otherwise act as if the override value is not set.
         try {
-            if (isSensitiveParamName(name) && valueType != 'pwd') {
-                throw new RuntimeException("Refusing to return potentially sensitive override value from plain-text config - must be of type 'pwd'")
-            }
             return parseValue(overrideValue, opts)
         } catch (Throwable e) {
             logTrace("InstanceConfig override found for '$name' but cannot be parsed - override will be ignored", e.message)

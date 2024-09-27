@@ -7,8 +7,6 @@
 
 package io.xh.hoist.websocket
 
-import grails.async.Promises
-import grails.core.GrailsApplication
 import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
@@ -23,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 import static grails.async.Promises.task
 import static grails.async.Promises.waitAll
+import static io.xh.hoist.util.Utils.grailsConfig
 
 
 /**
@@ -50,7 +49,6 @@ import static grails.async.Promises.waitAll
 @CompileStatic
 class WebSocketService extends BaseService implements EventPublisher {
 
-    GrailsApplication grailsApplication
     IdentityService identityService
 
     static final String HEARTBEAT_TOPIC = 'xhHeartbeat'
@@ -62,7 +60,7 @@ class WebSocketService extends BaseService implements EventPublisher {
     private Map<WebSocketSession, HoistWebSocketChannel> _channels = new ConcurrentHashMap<>()
 
     boolean isEnabled() {
-        return grailsApplication.config.getProperty('hoist.enableWebSockets', Boolean)
+        grailsConfig.getProperty('hoist.enableWebSockets', Boolean)
     }
 
     /**

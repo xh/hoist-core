@@ -11,6 +11,7 @@ import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.Input
 import com.esotericsoftware.kryo.io.Output
 import com.esotericsoftware.kryo.serializers.JavaSerializer
+import grails.config.Config
 import grails.util.Environment
 import grails.util.Holders
 import grails.util.Metadata
@@ -151,8 +152,14 @@ class Utils {
     //------------------
     // Other Singletons
     //------------------
+    /** Get the grails application context.  */
     static ApplicationContext getAppContext() {
         return Holders.applicationContext
+    }
+
+    /** Get the grails application config.  */
+    static Config getGrailsConfig() {
+        Holders.grailsApplication.config
     }
 
     /** Primary JDBC datasource, default backing DB for app Domain objects. */
@@ -162,10 +169,7 @@ class Utils {
 
     /** Primary dataSource configuration. */
     static Map getDataSourceConfig() {
-        Holders.grailsApplication
-            .config
-            .getProperty('dataSource', Map.class)
-            .collectEntries { it }
+        grailsConfig.getProperty('dataSource', Map.class).collectEntries { it }
     }
 
     static ExceptionHandler getExceptionHandler() {
@@ -181,13 +185,14 @@ class Utils {
     }
 
     /**
-     * True if the given parameter name is likely sensitive and should not be serialized if not
-     * required. Used for built-in admin functionality accessed by trusted users only.
-     * NOT intended to be comprehensive or the last word on security!
+     * True if the given parameter name is likely sensitive and should not be serialized.
+     * To customize, set `hoist.sensitiveParamTerms` within your app's `application.groovy` to a
+     * list of terms that should trigger this behavior.
+     *
+     * See {@link io.xh.hoist.configuration.ApplicationConfig} for the default list.
      */
     static boolean isSensitiveParamName(String name) {
-        def pattern = ~/(?i)(password|pwd|secret)$/
-        pattern.matcher(name).find()
+        sensitiveParams.any { name.containsIgnoreCase(it) }
     }
 
     /** String parsing for a boolean. */
@@ -220,6 +225,7 @@ class Utils {
         c.call()
     }
 
+
     static testSerialization(Object obj, Class clazz, LogSupport logSupport, Map opts) {
         Kryo kryo = new Kryo()
         kryo.registrationRequired = false
@@ -251,4 +257,13 @@ class Utils {
             "${endTime - startTime}ms"
         )
     }
+
+    private static terms = null
+    private static List<String> getSensitiveParams() {
+        if (terms == null) {
+            terms = grailsConfig.getProperty('hoist.sensitiveParamTerms', ArrayList.class) as List<String>
+        }
+        return terms
+    }
+
 }
