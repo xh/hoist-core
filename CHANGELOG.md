@@ -6,11 +6,12 @@
 
 * Improvements to the efficiency of `CachedValue` for sharing of large objects.  This included
   moving to its own package `io.xh.hoist.cachedvalue` for clarity.
-* New dynamic configuration for all distributed hazelcast objects.  See `ClusterService.configureXXX`.
-  This replaces the static map `BaseService.clusterConfigs`.
-* Misc. improvements to logging and performance of `Cache` and `Timer`.
+* New dynamic configuration for all distributed hazelcast objects.  See methods
+  `ClusterService.configureXXX`. These methods replace the static map `BaseService.clusterConfigs`.
 
 ### 🎁 New Features
+
+* Misc. improvements to logging and performance of `Cache` and `Timer`.
 * New configuration property `hoist.sensitiveParamTerms` allows customization of environment
 variables to be obscured in the admin client.
 
