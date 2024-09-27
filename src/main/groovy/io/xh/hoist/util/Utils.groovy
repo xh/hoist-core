@@ -185,13 +185,11 @@ class Utils {
     }
 
     /**
-     * True if the given parameter name is likely sensitive and should not be serialized if not
-     * required. Used for built-in admin functionality accessed by trusted users only.
+     * True if the given parameter name is likely sensitive and should not be serialized.
+     * To customize, set `hoist.sensitiveParamTerms` within your app's `application.groovy` to a
+     * list of terms that should trigger this behavior.
      *
-     * To customize the behavior of this, edit the configuration `hoist.sensitiveParamTerms`
-     * which defaults to a few specific terms such as 'password' and 'token'
-     *
-     * NOT intended to be comprehensive or the last word on security!
+     * See {@link io.xh.hoist.configuration.ApplicationConfig} for the default list.
      */
     static boolean isSensitiveParamName(String name) {
         sensitiveParams.any { name.containsIgnoreCase(it) }
