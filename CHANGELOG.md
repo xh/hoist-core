@@ -10,6 +10,10 @@
   This replaces the static map `BaseService.clusterConfigs`.
 * Misc. improvements to logging and performance of `Cache` and `Timer`.
 
+### 🎁 New Features
+* New configuration property `hoist.sensitiveParamTerms` allows customization of environment
+variables to be obscured in the admin client.
+
 ## 22.0.0 - 2024-09-18
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)

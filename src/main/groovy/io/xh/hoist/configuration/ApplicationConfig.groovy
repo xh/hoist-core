@@ -23,6 +23,7 @@ class ApplicationConfig {
             // Read by WebSocketService to determine if WS support should generally be enabled.
             hoist {
                 enableWebSockets = true
+                sensitiveParamTerms = ['password', 'pwd', 'secret', 'token', 'passwrd', 'tkn']
             }
 
             spring {
