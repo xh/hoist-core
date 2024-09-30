@@ -41,6 +41,7 @@ class JsonBlobService extends BaseService implements DataBinder {
         data = [*: data, owner: username, lastUpdatedBy: username]
         if (data.containsKey('value')) data.value = serialize(data.value)
         if (data.containsKey('meta')) data.meta = serialize(data.meta)
+        if (data.containsKey('acl')) data.acl = serialize(data.acl)
 
         new JsonBlob(data).save()
     }
@@ -52,6 +53,7 @@ class JsonBlobService extends BaseService implements DataBinder {
             data = [*: data, lastUpdatedBy: username]
             if (data.containsKey('value')) data.value = serialize(data.value)
             if (data.containsKey('meta')) data.meta = serialize(data.meta)
+            if (data.containsKey('acl')) data.acl = serialize(data.acl)
 
             bindData(blob, data)
             blob.save()
