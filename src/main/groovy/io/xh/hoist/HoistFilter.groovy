@@ -10,12 +10,14 @@ package io.xh.hoist
 import groovy.transform.CompileStatic
 import io.xh.hoist.exception.InstanceNotAvailableException
 import io.xh.hoist.log.LogSupport
-import io.xh.hoist.security.BaseAuthenticationService
-import io.xh.hoist.util.Utils
 
 import javax.servlet.*
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
+
+import static io.xh.hoist.util.Utils.authenticationService
+import static io.xh.hoist.util.Utils.exceptionHandler
+import static io.xh.hoist.util.Utils.instanceReady
 
 /**
  * Main Filter for all requests in Hoist.
@@ -34,27 +36,21 @@ class HoistFilter implements Filter, LogSupport {
         HttpServletRequest httpRequest = (HttpServletRequest) request
         HttpServletResponse httpResponse = (HttpServletResponse) response
 
-        // Need to be *ready* before even attempting auth.
-        if (!Utils.instanceReady) {
-            Utils.exceptionHandler.handleException(
-                exception: new InstanceNotAvailableException('Application may be initializing. Please try again shortly.'),
+        try {
+            // Need to be *ready* before even attempting auth.
+            if (!instanceReady) {
+                throw new InstanceNotAvailableException('Application may be initializing. Please try again shortly.')
+            }
+
+            if (authenticationService.allowRequest(httpRequest, httpResponse)) {
+                chain.doFilter(request, response)
+            }
+        } catch (Throwable t) {
+            exceptionHandler.handleException(
+                exception: t,
                 renderTo: httpResponse,
                 logTo: this
             )
-            return
-        }
-
-        BaseAuthenticationService authSvc = Utils.authenticationService
-        if (authSvc.allowRequest(httpRequest, httpResponse)) {
-            try {
-                chain.doFilter(request, response)
-            } catch (Throwable t) {
-                Utils.exceptionHandler.handleException(
-                    exception: t,
-                    renderTo: httpResponse,
-                    logTo: this
-                )
-            }
         }
     }
 }

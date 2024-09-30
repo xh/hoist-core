@@ -1,9 +1,9 @@
 package io.xh.hoist.cache
 
-class CacheValueChanged<K, V> {
+class CacheEntryChanged<K, V> {
 
     /** Source object the changed value is contained within. */
-    final BaseCache source
+    final Cache source
 
     /**
      * Key of the value being changed.
@@ -17,7 +17,7 @@ class CacheValueChanged<K, V> {
     private final V _value
 
     /** @internal */
-    CacheValueChanged(BaseCache source, K key, V oldValue, V value) {
+    CacheEntryChanged(Cache source, K key, V oldValue, V value) {
         this.source = source
         this.key = key
         _oldValue = oldValue
@@ -37,7 +37,7 @@ class CacheValueChanged<K, V> {
      */
     V getOldValue() {
         if (!source.serializeOldValue) {
-            source.svc.logWarn('Accessing the old value for a cache with serializeOldValue=false')
+            source.logWarn('Accessing the old value for a cache with serializeOldValue=false')
             return null
         }
         return this._oldValue

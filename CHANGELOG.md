@@ -1,33 +1,50 @@
 # Changelog
 
-## 22.0-SNAPSHOT
+## 24.0-SNAPSHOT - unreleased
+
+## 23.0.0 - 2024-09-27
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
-* All `Timer`, `Cache`, and `CachedValue` object require a 'name' property.  This property was
-previously optional in many cases, but is now required in order to support new cluster features,
-logging, and admin tools.  The new `BaseService.resources` property now will give access to all
-resources by name, if needed and replaces `BaseService.timers`.
 
-* `BaseService` methods `getIMap()`, `getReplicatedMap()` and `getISet()` have been changed to
-  `createIMap()`, `createReplicatedMap()` and `createISet()`, respectively.  This change provides
-  a consistent interface for all resources on BaseService and is not expected to impact most
- applications.
+* Improvements to the efficiency of `CachedValue` for sharing of large objects.  This included
+  moving to its own package `io.xh.hoist.cachedvalue` for clarity.
+* New dynamic configuration for all distributed hazelcast objects.  See methods
+  `ClusterService.configureXXX`. These methods replace the static map `BaseService.clusterConfigs`.
 
 ### 🎁 New Features
-* `Cache` and `CachedValue` should now be created using a factory on `BaseService`.  This streamlined
-interface reduces boilerplate, and provides a consistent interface with `Timer`.
+
+* Misc. improvements to logging and performance of `Cache` and `Timer`.
+* New configuration property `hoist.sensitiveParamTerms` allows customization of environment
+variables to be obscured in the admin client.
+
+## 22.0.0 - 2024-09-18
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
+
+* Updated `Timer`, `Cache`, and `CachedValue` objects to require a `name` property. Names are now
+  mandatory to better support new cluster features, logging, and Admin Console tooling.
+* Migrated `BaseService` methods `getIMap()`, `getReplicatedMap()` and `getISet()` to
+  `createIMap()`, `createReplicatedMap()` and `createISet()`, respectively. Not expected to impact
+  most apps, as these APIs are new and only used for distributed, multi-instance data.
+
+### 🎁 New Features
+
+* Added new `BaseService` factories to create `Cache` and `CachedValue` objects. This streamlined
+  interface reduces boilerplate and is consistent with `Timer` creation.
+* Improved `Timer` to maintain consistent execution timing across primary instance changes.
+* Improved `RestController` to support domain objects linked to a non-primary `DataSource`.
 
 ### ⚙️ Technical
 
-* Improvements to `Timer` to avoid extra executions when primary instance changes.
-
-* Updated `ClusterService` to use Hoist's `InstanceNotFoundException` class to designate routine.
-
+* Enhanced the `xh/environmentPoll` payload to include any active Alert Banner spec. Clients running
+  `hoist-react >= 68` will leverage this to avoid an extra polling request.
 * Exposed `/xh/ping` as whitelisted route for basic uptime/reachability checks. Retained legacy
   `/ping` alias, but prefer this new path going forward.
-
-* Improvements to `RestController` to better support editing Domain Objects defined with secondary
-  domain objects.
+* Improved handling + rendering of exceptions during authentication and authorization requests.
+* Updated `ClusterService` to use Hoist's `InstanceNotFoundException`, ensuring that common errors
+  thrown due to instance changes are marked as routine and don't spam error reporting.
+* Added new `BaseService.resources` property to track and provide access to `Cache` objects and
+  `Timer`s by name, replacing `BaseService.timers`.
 
 ## 21.0.1 - 2024-09-05
 

@@ -11,7 +11,7 @@ import grails.compiler.GrailsCompileStatic
 import grails.gorm.transactions.ReadOnly
 import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
-import io.xh.hoist.cache.CachedValue
+import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.util.Timer

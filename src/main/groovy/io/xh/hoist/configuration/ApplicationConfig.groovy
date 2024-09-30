@@ -20,9 +20,10 @@ class ApplicationConfig {
     static void defaultConfig(Script script) {
         withDelegate(script) {
 
-            // Read by WebSocketService to determine if WS support should generally be enabled.
             hoist {
+                // Read by WebSocketService to determine if WS support should generally be enabled.
                 enableWebSockets = true
+                sensitiveParamTerms = ['password', 'passwrd', 'pwd', 'secret', 'tkn', 'token']
             }
 
             spring {
