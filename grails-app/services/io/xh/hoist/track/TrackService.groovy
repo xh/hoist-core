@@ -19,6 +19,7 @@ import static io.xh.hoist.json.JSONSerializer.serialize
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 import static grails.async.Promises.task
 import static io.xh.hoist.util.Utils.getCurrentRequest
+import static java.lang.System.currentTimeMillis
 
 /**
  * Service for tracking user activity within the application. This service provides a server-side
@@ -49,7 +50,8 @@ class TrackService extends BaseService {
 
     /**
      * Create a new track log entry. Username, browser info, and datetime will be set automatically.
-     *   @param args
+     *
+     *   @param entry
      *      msg {String}                - required, identifier of action being tracked
      *      category {String}           - optional, grouping category. Defaults to 'Default'
      *      correlationId {String}      - optional, correlation ID for tracking related actions
@@ -65,11 +67,44 @@ class TrackService extends BaseService {
      *                                    Use this if track will be called in an asynchronous process,
      *                                    outside of a request, where impersonator info not otherwise available.
      *      severity {String}           - optional, defaults to 'INFO'.
-     *      elapsed {int}               - optional, time associated with action in millis
+     *      url {String}                - optional, url associated with statement
+     *      timestamp {long}            - optional, time associated with start of action.  Defaults to current time.
+     *      elapsed {int}               - optional, duration of action in millis
      */
-    void track(Map args) {
+    void track(Map entry) {
+        trackAll([entry])
+    }
+
+    /**
+     * Record a collection of track entries.
+     *
+     * @param entries -- List of maps containing data for individual track messages.
+     *      See track() for information on the form of each entry.
+     */
+    void trackAll(Collection<Map> entries) {
+        if (!enabled) {
+            logTrace("Tracking disabled via config.")
+            return
+        }
+
+        // Always fail quietly, and never interrupt real work.
         try {
-            createTrackLog(args)
+            // Normalize data within thread to gather context
+            entries = entries.collect {prepareEntry(it)}
+
+            // Persist and log on new thread to avoid delay.
+            task {
+                TrackLog.withTransaction {
+                    entries.each {
+                        try {
+                            persistEntry(it)
+                            logEntry(it)
+                        } catch (Exception e) {
+                            logError('Exception writing track log', e)
+                        }
+                    }
+                }
+            }
         } catch (Exception e) {
             logError('Exception writing track log', e)
         }
@@ -86,88 +121,86 @@ class TrackService extends BaseService {
     //-------------------------
     // Implementation
     //-------------------------
-    private void createTrackLog(Map params) {
-        if (!enabled) {
-            logTrace("Activity tracking disabled via config", "track log with message [${params.msg}] will not be persisted")
-            return
-        }
-
+    private Map prepareEntry(Map entry) {
         String userAgent = currentRequest?.getHeader('User-Agent')
-        String data = params.data ? serialize(params.data) : null
+        return [
+            // From submission
+            username      : entry.username ?: authUsername,
+            impersonating : entry.impersonating ?: (identityService.isImpersonating() ? username : null),
+            category      : entry.category ?: 'Default',
+            correlationId : entry.correlationId,
+            msg           : entry.msg,
+            elapsed       : entry.elapsed,
+            severity      : entry.severity ?: 'INFO',
+            data          : entry.data ? serialize(entry.data) : null,
+            rawData       : entry.data,
+            url           : entry.url,
+            appVersion    : entry.appVersion ?: Utils.appVersion,
+            timestamp     : entry.timestamp ?: currentTimeMillis(),
 
-        if (data?.size() > (conf.maxDataLength as Integer)) {
-            logTrace("Track log with message [${params.msg}] includes ${data.size()} chars of JSON data", "exceeds limit of ${conf.maxDataLength}", "data will not be persisted")
-            data = null
-        }
 
-        Map values = [
-            username: params.username ?: authUsername,
-            impersonating: params.impersonating ?: (identityService.isImpersonating() ? username : null),
-            category: params.category ?: 'Default',
-            correlationId: params.correlationId,
-            msg: params.msg,
-            userAgent: userAgent,
-            browser: getBrowser(userAgent),
-            device: getDevice(userAgent),
-            elapsed: params.elapsed,
-            severity: params.severity ?: 'INFO',
-            data: data,
-            url: params.url,
-            appVersion: params.appVersion ?: Utils.appVersion,
-            instance: ClusterService.instanceName,
-            appEnvironment: Utils.appEnvironment
+            // From request/context
+            instance      : ClusterService.instanceName,
+            appEnvironment: Utils.appEnvironment,
+            userAgent     : userAgent,
+            browser       : getBrowser(userAgent),
+            device        : getDevice(userAgent)
         ]
+    }
 
-        // Execute asynchronously after we get info from request, don't block application thread.
-        // Save with additional try/catch to alert on persistence failures within this async block.
-        task {
-            TrackLog.withTransaction {
+    private void logEntry(Map entry) {
+        // Log core info,
+        String name = entry.username
+        if (entry.impersonating) name += " (as ${entry.impersonating})"
+        Map<String, Object> msgParts = [
+            _user         : name,
+            _category     : entry.category,
+            _msg          : entry.msg,
+            _correlationId: entry.correlationId,
+            _elapsedMs    : entry.elapsed,
+        ].findAll { it.value != null } as Map<String, Object>
 
-                // 1) Save in DB
-                TrackLog tl = new TrackLog(values)
-                if (getInstanceConfig('disableTrackLog') != 'true') {
-                    try {
-                        tl.save()
-                    } catch (Exception e) {
-                        logError('Exception writing track log', e)
-                    }
+        // Log app data, if requested/configured.
+        def data = entry.rawData,
+            logData = entry.logData
+        if (data && (data instanceof Map)) {
+            logData = logData != null
+                ? logData
+                : conf.logData != null
+                ? conf.logData
+                : false
+
+            if (logData) {
+                Map<String, Object> dataParts = data as Map<String, Object>
+                dataParts = dataParts.findAll { k, v ->
+                    (logData === true || (logData as List).contains(k)) &&
+                        !(v instanceof Map || v instanceof List)
                 }
-
-                // 2) Logging
-                // 2a) Log core info,
-                String name = tl.username
-                if (tl.impersonating) name += " (as ${tl.impersonating})"
-                Map<String, Object> msgParts = [
-                    _user     : name,
-                    _category : tl.category,
-                    _msg      : tl.msg,
-                    _correlationId: tl.correlationId,
-                    _elapsedMs: tl.elapsed,
-                ].findAll { it.value != null } as Map<String, Object>
-
-                // 2b) Log app data, if requested/configured.
-                if (data && (params.data instanceof Map)) {
-
-                    def logData = params.logData != null
-                        ? params.logData
-                        : conf.logData != null
-                        ? conf.logData
-                        : false
-
-                    if (logData) {
-                        Map<String, Object> dataParts = params.data as Map<String, Object>
-                        dataParts = dataParts.findAll { k, v ->
-                            (logData === true || (logData as List).contains(k)) &&
-                                !(v instanceof Map || v instanceof List)
-                        }
-                        msgParts.putAll(dataParts)
-                    }
-                }
-
-                logInfo(msgParts)
+                msgParts.putAll(dataParts)
             }
         }
+
+        logInfo(msgParts)
     }
+
+    private void persistEntry(Map entry) {
+        if (getInstanceConfig('disableTrackLog') == 'true') return
+
+        String data = entry.data
+        if (data?.size() > (conf.maxDataLength as Integer)) {
+            logTrace(
+                "Track log with message [$entry.msg] includes ${data.size()} chars of JSON data",
+                "exceeds limit of ${conf.maxDataLength}",
+                "data will not be persisted"
+            )
+            entry.data = null
+        }
+
+        TrackLog tl = new TrackLog(entry)
+        tl.dateCreated = new Date(entry.timestamp as Long)
+        tl.save()
+    }
+
 
     Map getAdminStats() {[
         config: configForAdminStats('xhActivityTrackingConfig')

@@ -98,21 +98,11 @@ class XhController extends BaseController {
     //------------------------
     def track() {
         ensureClientUsernameMatchesSession()
-        def query = parseRequestJSON([safeEncode: true])
-        trackService.track(
-            category: query.category,
-            correlationId: query.correlationId,
-            msg: query.msg,
-            data: query.data,
-            logData: query.logData,
-            elapsed: query.elapsed,
-            severity: query.severity,
-            url: query.url,
-            appVersion: query.appVersion
-        )
+        def payload = parseRequestJSON([safeEncode: true]),
+            entries = payload.entries != null ? payload.entries as List : Collections.singletonList(payload)
+        trackService.trackAll(entries)
         renderJSON(success: true)
     }
-
 
     //------------------------
     // Config
