@@ -2,6 +2,8 @@
 
 ## 24.0-SNAPSHOT - unreleased
 
+* Support bulk tracking messages.  Improve timestamps on tracking messages
+
 ## 23.0.0 - 2024-09-27
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
