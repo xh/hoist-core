@@ -99,7 +99,7 @@ class XhController extends BaseController {
     def track() {
         ensureClientUsernameMatchesSession()
         def payload = parseRequestJSON([safeEncode: true]),
-            entries = payload.entries != null ? payload.entries as List : Collections.singletonList(payload)
+            entries =  payload.entries as List
         trackService.trackAll(entries)
         renderJSON(success: true)
     }
@@ -120,10 +120,10 @@ class XhController extends BaseController {
         renderJSON(prefService.clientConfig)
     }
 
-    def setPrefs(String updates) {
+    def setPrefs() {
         ensureClientUsernameMatchesSession()
 
-        Map prefs = parseObject(updates)
+        def prefs = parseRequestJSON()
         prefs.each {k, value ->
             String key = k.toString()
             if (value instanceof Map) {
