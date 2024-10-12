@@ -36,6 +36,9 @@ class TrackLog implements JSONFormat {
         cache true
         data type: 'text'
         dateCreated index: 'idx_xh_track_log_date_created'
+
+        // We will manually set dateCreated in TrackService, which is bulk generating these
+        autoTimestamp false
     }
 
     static cache = {
