@@ -14,6 +14,12 @@
 * Improved the handling of track log timestamps - these can now be supplied by the client and are no
   longer bound to insert time of DB record. Latest Hoist React uses *start* of the tracked activity.
 
+### ⚙️ Technical
+
+* Updated behavior of `withInfo` and `withDebug` log utils to print a "started" message if logging
+  enabled at `DEBUG` or `TRACE`, respectively. Allows admins to see start messages for more
+  important `withInfo` logs, without necessarily printing both lines for all `withDebug` calls.
+
 ## 23.0.0 - 2024-09-27
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
