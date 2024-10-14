@@ -8,6 +8,7 @@
 package io.xh.hoist.admin
 
 import com.sun.management.HotSpotDiagnosticMXBean
+import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
 import io.xh.hoist.util.DateTimeUtils
 
@@ -15,10 +16,15 @@ import java.lang.management.GarbageCollectorMXBean
 import java.lang.management.ManagementFactory
 import java.util.concurrent.ConcurrentHashMap
 
+import static io.xh.hoist.json.JSONParser.parseObject
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
+import static io.xh.hoist.util.Utils.getAppEnvironment
+import static io.xh.hoist.util.Utils.isProduction
 import static io.xh.hoist.util.Utils.startupTime
+import static io.xh.hoist.util.DateTimeUtils.HOURS
 import static java.lang.Runtime.getRuntime
 import static java.lang.System.currentTimeMillis
+
 
 /**
  * Service to sample and return simple statistics on heap (memory) usage from the JVM runtime.
@@ -27,15 +33,27 @@ import static java.lang.System.currentTimeMillis
 class MemoryMonitoringService extends BaseService {
 
     def configService
+    def jsonBlobService
 
     private Map<Long, Map> _snapshots = new ConcurrentHashMap()
     private Date _lastInfoLogged
+    private final String blobOwner = 'xhMemoryMonitoringService'
+    private final static String blobType =  isProduction ? 'xhMemorySnapshots' : "xhMemorySnapshots_$appEnvironment"
+    private String blobToken
 
     void init() {
         createTimer(
             name: 'takeSnapshot',
             runFn: this.&takeSnapshot,
             interval: {this.enabled ? config.snapshotInterval * DateTimeUtils.SECONDS: -1}
+        )
+
+        createTimer(
+            name: 'cullPersisted',
+            runFn: this.&cullPersisted,
+            interval: {config.persistHours > 0 ? 1 * HOURS : -1},
+            delay: true,
+            primaryOnly: true
         )
     }
 
@@ -86,12 +104,14 @@ class MemoryMonitoringService extends BaseService {
             _snapshots.remove(oldest.key)
         }
 
-        if (intervalElapsed(1 * DateTimeUtils.HOURS, _lastInfoLogged)) {
+        if (intervalElapsed(1 * HOURS, _lastInfoLogged)) {
             logInfo(newSnap)
             _lastInfoLogged = new Date()
         } else {
             logDebug(newSnap)
         }
+
+        if (config.persistHours > 0) persistSnapshots()
 
         return newSnap
     }
@@ -106,6 +126,24 @@ class MemoryMonitoringService extends BaseService {
             after: after,
             elapsedMs: after.timestamp - before.timestamp
         ]
+    }
+
+    /**
+     * Get list of past instances for which snapshots are available.
+     */
+    List<Map> availablePastInstances() {
+        jsonBlobService
+            .list(blobType, blobOwner)
+            .findAll { !clusterService.isMember(it.name) }
+            .collect { [name: it.name, lastUpdated: it.lastUpdated] }
+    }
+
+    /**
+     * Get snapshots for a past instance.
+     */
+    Map snapshotsForPastInstance(String instanceName) {
+        def blob = jsonBlobService.list(blobType, blobOwner).find { it.name == instanceName }
+        blob ? parseObject(blob.value) : [:]
     }
 
     //------------------------
@@ -167,6 +205,38 @@ class MemoryMonitoringService extends BaseService {
 
     private double roundTo2DP(v) {
         return Math.round(v * 100) / 100
+    }
+
+    private void persistSnapshots() {
+        try {
+            if (blobToken) {
+                jsonBlobService.update(blobToken, [value: snapshots], blobOwner)
+            } else {
+                def blob = jsonBlobService.create([
+                    name : clusterService.instanceName,
+                    type : blobType,
+                    value: snapshots
+                ], blobOwner)
+                blobToken = blob.token
+            }
+        } catch (Exception e) {
+            logError('Failed to persist memory snapshots', e)
+            blobToken = null
+        }
+    }
+
+    @Transactional
+    private cullPersisted() {
+        def persistMs = config.persistHours ? config.persistHours * HOURS : null,
+            toDelete = jsonBlobService
+                .list(blobType, blobOwner)
+                .findAll { !persistMs || intervalElapsed(persistMs, it.lastUpdated) }
+
+        if (toDelete) {
+            withInfo(['Deleting expired memory snapshots', [count: toDelete.size()]]) {
+                toDelete.each { it.delete() }
+            }
+        }
     }
 
     void clearCaches() {

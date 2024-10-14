@@ -2,7 +2,10 @@
 
 ## 24.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - requires Hoist React v69)
+
 * Support bulk tracking messages.  Improve timestamps on tracking messages
+* Support for persisting of memory monitoring results
 
 ## 23.0.0 - 2024-09-27
 
