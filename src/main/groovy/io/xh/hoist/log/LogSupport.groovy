@@ -126,11 +126,9 @@ trait LogSupport {
     private <T> T loggedDo(Logger log, Level level, Object msgs, Closure<T> c) {
         Map meta = getMeta() ?: [:];
 
-        // Log *start* of closure execution if logging enabled @ one level finer than the main log level.
-        // Ie setting level to debug will start showing INFO start msgs, up to trace to show DEBUG start msgs.
-        if (
-            (level == INFO && log.debugEnabled) || (level == DEBUG && log.traceEnabled) || level == TRACE
-        ) {
+        // Log *start* of closure execution if at a fine run-time level. Use debug to get
+        // start msgs for your 'withInfo' logs, trace for your 'withDebug/withTrace'
+        if ((log.debugEnabled && level == INFO) || log.traceEnabled) {
             meta << [_status: 'started']
             logAtLevel(log, level, msgs, meta)
         }
