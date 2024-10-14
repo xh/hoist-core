@@ -2,22 +2,32 @@
 
 ## 24.0-SNAPSHOT - unreleased
 
-* Support bulk tracking messages.  Improve timestamps on tracking messages
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - Hoist React update)
+
+* Requires `hoist-react >= 69` to support revised API for Activity Tracking and User Preference
+  POSTs from client.
+
+### 🎁 New Features
+
+* Updated Activity Tracking endpoint to support client POSTing multiple track logs in a single
+  request, helping to reduce network overhead for chatty apps.
+* Improved the handling of track log timestamps - these can now be supplied by the client and are no
+  longer bound to insert time of DB record. Latest Hoist React uses *start* of the tracked activity.
 
 ## 23.0.0 - 2024-09-27
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
 
-* Improvements to the efficiency of `CachedValue` for sharing of large objects.  This included
+* Improvements to the efficiency of `CachedValue` for sharing of large objects. This included
   moving to its own package `io.xh.hoist.cachedvalue` for clarity.
-* New dynamic configuration for all distributed hazelcast objects.  See methods
+* New dynamic configuration for all distributed hazelcast objects. See methods
   `ClusterService.configureXXX`. These methods replace the static map `BaseService.clusterConfigs`.
 
 ### 🎁 New Features
 
 * Misc. improvements to logging and performance of `Cache` and `Timer`.
 * New configuration property `hoist.sensitiveParamTerms` allows customization of environment
-variables to be obscured in the admin client.
+  variables to be obscured in the admin client.
 
 ## 22.0.0 - 2024-09-18
 
