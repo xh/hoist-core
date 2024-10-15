@@ -266,10 +266,11 @@ class BootStrap implements LogSupport {
                 valueType: 'json',
                 defaultValue: [
                     enabled: true,
-                    persistHours: 24,
                     snapshotInterval: 60,
                     maxSnapshots: 1440,
-                    heapDumpDir: null
+                    heapDumpDir: null,
+                    preservePastInstances: true,
+                    maxPastInstances: 10
                 ],
                 clientVisible: true,
                 groupName: 'xh.io',

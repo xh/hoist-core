@@ -17,6 +17,7 @@ import java.lang.management.ManagementFactory
 import java.util.concurrent.ConcurrentHashMap
 
 import static io.xh.hoist.json.JSONParser.parseObject
+import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static io.xh.hoist.util.Utils.getAppEnvironment
 import static io.xh.hoist.util.Utils.isProduction
@@ -51,8 +52,8 @@ class MemoryMonitoringService extends BaseService {
         createTimer(
             name: 'cullPersisted',
             runFn: this.&cullPersisted,
-            interval: {config.persistHours > 0 ? 1 * HOURS : -1},
-            delay: true,
+            interval: 1 * HOURS,
+            delay: 5 * MINUTES,
             primaryOnly: true
         )
     }
@@ -111,7 +112,7 @@ class MemoryMonitoringService extends BaseService {
             logDebug(newSnap)
         }
 
-        if (config.persistHours > 0) persistSnapshots()
+        if (config.preservePastInstances) persistSnapshots()
 
         return newSnap
     }
@@ -132,6 +133,7 @@ class MemoryMonitoringService extends BaseService {
      * Get list of past instances for which snapshots are available.
      */
     List<Map> availablePastInstances() {
+        if (!config.preservePastInstances) return []
         jsonBlobService
             .list(blobType, blobOwner)
             .findAll { !clusterService.isMember(it.name) }
@@ -227,13 +229,12 @@ class MemoryMonitoringService extends BaseService {
 
     @Transactional
     private cullPersisted() {
-        def persistMs = config.persistHours ? config.persistHours * HOURS : null,
-            toDelete = jsonBlobService
-                .list(blobType, blobOwner)
-                .findAll { !persistMs || intervalElapsed(persistMs, it.lastUpdated) }
+        def all = jsonBlobService.list(blobType, blobOwner).sort { it.lastUpdated },
+            maxKeep = config.maxPastInstances != null ? Math.max(config.maxPastInstances, 0) : 5,
+            toDelete = all.dropRight(maxKeep)
 
         if (toDelete) {
-            withInfo(['Deleting expired memory snapshots', [count: toDelete.size()]]) {
+            withInfo(['Deleting memory snapshots', [count: toDelete.size()]]) {
                 toDelete.each { it.delete() }
             }
         }
