@@ -39,6 +39,17 @@ class MonitorResult implements JSONFormat {
         monitor.params ? JSONParser.parseObject(monitor.params) : [:]
     }
 
+    <T> T getParam(String name, T defaultVal = null) {
+        params.containsKey(name) ? params[name] : defaultVal
+    }
+
+    <T> T getRequiredParam(String name) {
+        if (!params.containsKey(name)) {
+            throw new RuntimeException("Missing required parameter ${name}")
+        }
+        params[name]
+    }
+
     /** Combines the given string with 'message', separated by formatting */
     void prependMessage(String prependStr) {
         // Space character before the newlines is for fallback formatting in `hoist-react <= v51.0.0`

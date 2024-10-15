@@ -14,6 +14,8 @@
 * Improved the handling of track log timestamps - these can now be supplied by the client and are no
   longer bound to insert time of DB record. Latest Hoist React uses *start* of the tracked activity.
 * Support for persisting of memory monitoring results
+* New built-in monitor `xhClientErrorsMonitor`
+* New methods `MonitorResult.getParam` and `MonitorResult.getRequiredParam`
 
 ### ⚙️ Technical
 
