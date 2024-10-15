@@ -13,6 +13,7 @@
   request, helping to reduce network overhead for chatty apps.
 * Improved the handling of track log timestamps - these can now be supplied by the client and are no
   longer bound to insert time of DB record. Latest Hoist React uses *start* of the tracked activity.
+* Support for persisting of memory monitoring results
 
 ### ⚙️ Technical
 

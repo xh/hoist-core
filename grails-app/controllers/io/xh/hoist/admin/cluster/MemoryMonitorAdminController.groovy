@@ -16,6 +16,8 @@ import static io.xh.hoist.util.Utils.appContext
 @Access(['HOIST_ADMIN_READER'])
 class MemoryMonitorAdminController extends BaseController {
 
+    def memoryMonitoringService
+
     def snapshots(String instance) {
         runOnInstance(new Snapshots(), instance)
     }
@@ -46,7 +48,6 @@ class MemoryMonitorAdminController extends BaseController {
         }
     }
 
-
     @Access(['HOIST_ADMIN'])
     def dumpHeap(String filename, String instance) {
         runOnInstance(new DumpHeap(filename: filename), instance)
@@ -58,5 +59,13 @@ class MemoryMonitorAdminController extends BaseController {
             appContext.memoryMonitoringService.dumpHeap(filename)
             return [success: true]
         }
+    }
+
+    def availablePastInstances() {
+        renderJSON(memoryMonitoringService.availablePastInstances())
+    }
+
+    def snapshotsForPastInstance(String instance) {
+        renderJSON(memoryMonitoringService.snapshotsForPastInstance(instance))
     }
 }
