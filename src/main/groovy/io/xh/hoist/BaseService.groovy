@@ -67,7 +67,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     Date lastCachesCleared = null
 
     // Caches, CachedValues and Timers and other distributed objects associated with this service
-    protected final ConcurrentHashMap<String, Object> resources = [:]
+    protected final ConcurrentHashMap<String, Object> resources = new ConcurrentHashMap()
 
     private boolean _destroyed = false
 
