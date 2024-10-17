@@ -1,5 +1,7 @@
 # Changelog
 
+## 25.0-SNAPSHOT - unreleased
+
 ## 24.0.0 - 2024-10-17
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - Hoist React update)
