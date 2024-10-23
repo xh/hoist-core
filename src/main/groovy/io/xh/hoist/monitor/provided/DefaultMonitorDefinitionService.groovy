@@ -160,7 +160,7 @@ class DefaultMonitorDefinitionService extends BaseService {
                 code: 'xhClientErrorsMonitor',
                 name: 'Client Errors (Last 30m)',
                 metricType: 'Ceil',
-                metricUnit: 's',
+                metricUnit: 'errors',
                 warnThreshold: 1,
                 failThreshold: 10,
                 active: true,
