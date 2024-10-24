@@ -234,15 +234,15 @@ class DefaultMonitorDefinitionService extends BaseService {
                         notes: spec.notes
                     ).save()
                     logWarn(
-                        "Required monitor ${spec.name} missing and created with default value",
+                        "Required status monitor ${spec.name} missing and created with default value",
                         'verify default is appropriate for this application'
                     )
                     created++
                 }
             } catch (Throwable e) {
-                logError("Failed to create required monitor ${spec.name}", e)
+                logError("Failed to create required status monitor ${spec.name}", e)
             }
         }
-        logDebug("Validated presense of ${monitorSpecs.size()} provided monitors", "created $created")
+        logDebug("Validated presense of ${monitorSpecs.size()} required status monitors", "created $created")
     }
 }
