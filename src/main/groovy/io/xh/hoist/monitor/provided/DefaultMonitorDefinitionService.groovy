@@ -166,7 +166,7 @@ class DefaultMonitorDefinitionService extends BaseService {
                 active: true,
                 primaryOnly: true,
                 params: '{\n\t"lookbackMinutes": 30\n}',
-                notes: 'Reports the longest tracked event in the last {lookbackMinutes} minutes.'
+                notes: 'Reports count of client (UI) errors in the last {lookbackMinutes} minutes.'
             ],
             [
                 code: 'xhLoadTimeMonitor',
