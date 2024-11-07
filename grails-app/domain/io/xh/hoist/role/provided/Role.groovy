@@ -28,7 +28,7 @@ class Role implements JSONFormat {
     }
 
     static constraints = {
-        category nullable: true, maxSize: 30, blank: false
+        category nullable: true, maxSize: 100, blank: false
         notes nullable: true, maxSize: 1200
         lastUpdatedBy maxSize: 50
     }

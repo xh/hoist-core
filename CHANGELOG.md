@@ -2,6 +2,19 @@
 
 ## 25.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* Increased max length of `Role.category` string to 100 chars.
+* Requires column modification to `xh_role` table with the following SQL or equivalent:
+```mysql
+-- MySQL
+ALTER TABLE `xh_role` CHANGE COLUMN `category` `category` VARCHAR(100) null
+```
+```sql
+-- SQL Server
+ALTER TABLE xh_role ALTER COLUMN category VARCHAR(100) null
+```
+
 ## 24.0.0 - 2024-10-17
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - Hoist React update)
