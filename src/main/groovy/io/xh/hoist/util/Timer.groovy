@@ -302,7 +302,6 @@ class Timer implements LogSupport {
             intervalMs = calcIntervalMs()
             timeoutMs = calcTimeoutMs()
             adjustCoreTimerIfNeeded()
-            logInfo('intervalMs: ' + intervalMs)
         } catch (Throwable t) {
             logError('Timer failed to reload config', t)
         }
