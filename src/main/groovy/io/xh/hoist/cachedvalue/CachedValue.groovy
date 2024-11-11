@@ -33,17 +33,20 @@ class CachedValue<V> implements LogSupport {
     /** Unique name in the context of the service associated with this object. */
     public final String name
 
-    /** Closure to determine if an entry should be expired (optional). */
+    /**
+     * Closure { CachedValueEntry<V> -> Boolean } to determine if an entry should
+     * be expired (optional).
+     */
     public final Closure<Boolean> expireFn
 
     /**
-     * Entry TTL as epochMillis Long, or closure to return the same (optional).
+     * Entry TTL as epochMillis Long, or closure { void -> Long } to return the same (optional).
      * No effect if a custom expireFn is provided instead. If both null, entries will never expire.
      */
     public final Object expireTime
 
     /**
-     * Closure to determine the timestamp of an entry (optional).
+     * Closure { V -> Long | Date | Instant } to determine the timestamp of an entry (optional).
      * Must return a Long (as epochMillis), Date, or Instant.
      */
     public final Closure timestampFn
@@ -51,7 +54,7 @@ class CachedValue<V> implements LogSupport {
     /** True to replicate this cache across a cluster (default false). */
     public final boolean replicate
 
-    /** Handlers to be called on change with a {@link CachedValueChanged} object. */
+    /** Handler closures { CachedValueChanged<V> -> void } to be called on change. */
     public final List<Closure> onChange = []
 
 
