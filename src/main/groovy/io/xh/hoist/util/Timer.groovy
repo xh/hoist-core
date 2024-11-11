@@ -181,7 +181,7 @@ class Timer implements LogSupport {
         coreTimer.schedule((this.&onCoreTimer as TimerTask), delayMs, coreIntervalMs)
 
         // Aux Timer for reloading dynamic intervals
-        if (interval instanceof Closure || timeout instanceof Closure) {
+        if (this.interval instanceof Closure || this.timeout instanceof Closure) {
             configTimer = new java.util.Timer()
             configTimer.schedule(
                 (this.&onConfigTimer as TimerTask), CONFIG_INTERVAL, CONFIG_INTERVAL
@@ -302,6 +302,7 @@ class Timer implements LogSupport {
             intervalMs = calcIntervalMs()
             timeoutMs = calcTimeoutMs()
             adjustCoreTimerIfNeeded()
+            logInfo('intervalMs: ' + intervalMs)
         } catch (Throwable t) {
             logError('Timer failed to reload config', t)
         }
