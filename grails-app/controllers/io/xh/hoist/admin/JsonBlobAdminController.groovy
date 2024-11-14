@@ -10,6 +10,8 @@ package io.xh.hoist.admin
 import io.xh.hoist.jsonblob.JsonBlob
 import io.xh.hoist.security.Access
 
+import static java.lang.System.currentTimeMillis
+
 @Access(['HOIST_ADMIN_READER'])
 class JsonBlobAdminController extends AdminRestController {
     static restTarget = JsonBlob
@@ -26,7 +28,7 @@ class JsonBlobAdminController extends AdminRestController {
     protected void preprocessSubmit(Map submit) {
         // Note explicit true/false check to distinguish from undefined
         if (submit.archived == true) {
-            submit.archivedDate = new Date().getTime()
+            submit.archivedDate = currentTimeMillis()
         } else if (submit.archived == false) {
             submit.archivedDate = 0
         }

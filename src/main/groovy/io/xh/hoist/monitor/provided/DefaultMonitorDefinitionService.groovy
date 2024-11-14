@@ -7,13 +7,15 @@
 
 package io.xh.hoist.monitor.provided
 
+import grails.gorm.transactions.ReadOnly
 import grails.gorm.transactions.Transactional
 import groovy.sql.Sql
 import io.xh.hoist.BaseService
-import io.xh.hoist.data.filter.Filter
 import io.xh.hoist.monitor.Monitor
 import io.xh.hoist.monitor.MonitorResult
 import io.xh.hoist.util.Utils
+import io.xh.hoist.clienterror.ClientError
+import io.xh.hoist.track.TrackLog
 
 import static io.xh.hoist.monitor.MonitorStatus.FAIL
 import static io.xh.hoist.monitor.MonitorStatus.INACTIVE
@@ -51,18 +53,14 @@ class DefaultMonitorDefinitionService extends BaseService {
             return
         }
 
-        def aggregate = result.params.aggregate ?: 'avg'
-        if (!['avg', 'max'].contains(aggregate)) {
-            throw new RuntimeException("Invalid aggregate parameter: ${result.params.aggregate}")
+        def aggregate = result.getParam('aggregate', 'avg')
+        if (!(aggregate in ['avg', 'max'])) {
+            throw new RuntimeException("Invalid aggregate parameter: $aggregate")
         }
 
-        def lookbackMinutes = result.params.lookbackMinutes
-        if (!lookbackMinutes) {
-            throw new RuntimeException('No \"lookbackMinutes\" parameter provided')
-        }
-
-        def cutOffTime = currentTimeMillis() - lookbackMinutes * MINUTES
-        def snapshots = memoryMonitoringService.snapshots.findAll {it.key > cutOffTime}.values()
+        def lookback = result.getRequiredParam('lookbackMinutes') * MINUTES,
+            cutoffTime = currentTimeMillis() - lookback,
+            snapshots = memoryMonitoringService.snapshots.findAll {it.key > cutoffTime}.values()
 
         if (!snapshots) {
             result.metric = 0
@@ -74,42 +72,26 @@ class DefaultMonitorDefinitionService extends BaseService {
             : snapshots.max{it.usedPctMax}.usedPctMax
     }
 
+    @ReadOnly
+    def xhClientErrorsMonitor(MonitorResult result) {
+        def lookback = result.getRequiredParam('lookbackMinutes') * MINUTES,
+            cutoffDate = new Date(currentTimeMillis() - lookback)
+
+        result.metric = ClientError.countByDateCreatedGreaterThan(cutoffDate)
+    }
+
+    @ReadOnly
     def xhLoadTimeMonitor(MonitorResult result) {
         if (!trackLogAdminService.enabled) {
             result.status = INACTIVE
             return
         }
 
-        def lookbackMinutes = result.params.lookbackMinutes
-        if (!lookbackMinutes) {
-            throw new RuntimeException('No \"lookbackMinutes\" parameter provided.')
-        }
+        def lookback = result.getRequiredParam('lookbackMinutes') * MINUTES,
+            cutoffDate = new Date(currentTimeMillis() - lookback),
+            logs = TrackLog.findAllByDateCreatedGreaterThanAndElapsedIsNotNull(cutoffDate)
 
-        def cutOffTime = currentTimeMillis() - lookbackMinutes * MINUTES
-        def logs = trackLogAdminService.queryTrackLog(
-            Filter.parse([
-                filters: [
-                    [
-                        field: 'dateCreated',
-                        op: '>',
-                        value: new Date(cutOffTime)
-                    ],
-                    [
-                        field: 'elapsed',
-                        op: '!=',
-                        value: null
-                    ]
-                ],
-                op: "AND"
-            ])
-        )
-
-        if (!logs) {
-            result.metric = 0
-            return
-        }
-
-        result.metric = logs.max{it.elapsed}.elapsed / SECONDS
+        result.metric = logs ? logs.max{it.elapsed}.elapsed / SECONDS : 0
     }
 
     def xhDbConnectionMonitor(MonitorResult result) {
@@ -117,7 +99,7 @@ class DefaultMonitorDefinitionService extends BaseService {
         Sql sql = new Sql(dataSource)
         try {
             // Support configurable table name for edge case where XH tables are in a custom schema.
-            def tableName = result.params.tableName ?: 'xh_monitor'
+            def tableName = result.getParam('tableName', 'xh_monitor')
             sql.rows("SELECT * FROM ${Sql.expand(tableName)} WHERE code = 'xhDbConnectionMonitor'")
         } finally {
             sql.close()
@@ -132,12 +114,9 @@ class DefaultMonitorDefinitionService extends BaseService {
             return
         }
 
-        if (!result.params.queryUser) {
-            throw new RuntimeException("No \"queryUser\" parameter provided.")
-        }
-
-        def startTime = currentTimeMillis()
-        def user = ldapService.lookupUser(result.params.queryUser)
+        def queryUser = result.getRequiredParam('queryUser'),
+            user = ldapService.lookupUser(queryUser),
+            startTime = currentTimeMillis()
 
         if (!user) {
             result.message = "Failed to find expected user: ${result.params.queryUser}"
@@ -176,6 +155,18 @@ class DefaultMonitorDefinitionService extends BaseService {
                 notes: 'Reports the largest heap usage in the last {lookbackMinutes} minutes.\n'
                         + 'Set "aggregate" to "avg" to report average heap usage (default).\n'
                         + 'Set "aggregate" to "max" to report the largest heap usage.'
+            ],
+            [
+                code: 'xhClientErrorsMonitor',
+                name: 'Client Errors (Last 30m)',
+                metricType: 'Ceil',
+                metricUnit: 'errors',
+                warnThreshold: 1,
+                failThreshold: 10,
+                active: true,
+                primaryOnly: true,
+                params: '{\n\t"lookbackMinutes": 30\n}',
+                notes: 'Reports count of client (UI) errors in the last {lookbackMinutes} minutes.'
             ],
             [
                 code: 'xhLoadTimeMonitor',
@@ -243,15 +234,15 @@ class DefaultMonitorDefinitionService extends BaseService {
                         notes: spec.notes
                     ).save()
                     logWarn(
-                        "Required monitor ${spec.name} missing and created with default value",
+                        "Required status monitor ${spec.name} missing and created with default value",
                         'verify default is appropriate for this application'
                     )
                     created++
                 }
             } catch (Throwable e) {
-                logError("Failed to create required monitor ${spec.name}", e)
+                logError("Failed to create required status monitor ${spec.name}", e)
             }
         }
-        logDebug("Validated presense of ${monitorSpecs.size()} provided monitors", "created $created")
+        logDebug("Validated presense of ${monitorSpecs.size()} required status monitors", "created $created")
     }
 }

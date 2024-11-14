@@ -1,21 +1,57 @@
 # Changelog
 
-## 24.0-SNAPSHOT - unreleased
+## 25.0-SNAPSHOT - unreleased
+
+### ⚙️ Technical
+
+* Increased max length of `Role.category` string to 100 chars.
+* Requires column modification to `xh_role` table with the following SQL or equivalent:
+```mysql
+-- MySQL
+ALTER TABLE `xh_role` CHANGE COLUMN `category` `category` VARCHAR(100) null
+```
+```sql
+-- SQL Server
+ALTER TABLE xh_role ALTER COLUMN category VARCHAR(100) null
+```
+
+## 24.0.0 - 2024-10-17
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - Hoist React update)
+
+* Requires `hoist-react >= 69` to support revised API for Activity Tracking and User Preference
+  POSTs from client.
+
+### 🎁 New Features
+
+* Updated Activity Tracking endpoint to support client POSTing multiple track logs in a single
+  request, helping to reduce network overhead for chatty apps.
+* Improved the handling of track log timestamps - these can now be supplied by the client and are no
+  longer bound to insert time of DB record. Latest Hoist React uses *start* of the tracked activity.
+* Support for persisting of memory monitoring results
+* New built-in monitor `xhClientErrorsMonitor`
+* New methods `MonitorResult.getParam` and `MonitorResult.getRequiredParam`
+
+### ⚙️ Technical
+
+* Updated behavior of `withInfo` and `withDebug` log utils to print a "started" message if logging
+  enabled at `DEBUG` or `TRACE`, respectively. Allows admins to see start messages for more
+  important `withInfo` logs, without necessarily printing both lines for all `withDebug` calls.
 
 ## 23.0.0 - 2024-09-27
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
 
-* Improvements to the efficiency of `CachedValue` for sharing of large objects.  This included
+* Improvements to the efficiency of `CachedValue` for sharing of large objects. This included
   moving to its own package `io.xh.hoist.cachedvalue` for clarity.
-* New dynamic configuration for all distributed hazelcast objects.  See methods
+* New dynamic configuration for all distributed hazelcast objects. See methods
   `ClusterService.configureXXX`. These methods replace the static map `BaseService.clusterConfigs`.
 
 ### 🎁 New Features
 
 * Misc. improvements to logging and performance of `Cache` and `Timer`.
 * New configuration property `hoist.sensitiveParamTerms` allows customization of environment
-variables to be obscured in the admin client.
+  variables to be obscured in the admin client.
 
 ## 22.0.0 - 2024-09-18
 

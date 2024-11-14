@@ -76,6 +76,8 @@ import static java.util.Collections.*
  */
 class DefaultRoleService extends BaseRoleService {
 
+    static clearCachesConfigs = ['xhRoleModuleConfig']
+
     ConfigService configService
     LdapService ldapService
     DefaultRoleUpdateService defaultRoleUpdateService
@@ -95,10 +97,21 @@ class DefaultRoleService extends BaseRoleService {
     // Local state for primary when computing role assignment
     protected Map<String, Object> _usersForDirectoryGroups = emptyMap()
 
-    static clearCachesConfigs = ['xhRoleModuleConfig']
+    // Support granting key Hoist admin roles to an instance-configured user in local dev only,
+    // for initial bootstrapping during development when databased roles not yet created.
+    private String bootstrapAdminUser = null
+    private final Set<String> bootstrapAdminRoles = ['HOIST_ADMIN', 'HOIST_ADMIN_READER', 'HOIST_ROLE_MANAGER']
 
     void init() {
         ensureRequiredConfigAndRolesCreated()
+
+        if (isLocalDevelopment && !isProduction) {
+            bootstrapAdminUser = getInstanceConfig('bootstrapAdminUser')?.toLowerCase()
+            if (bootstrapAdminUser) {
+                logInfo("$bootstrapAdminUser configured as local development bootstrapAdminUser - will be granted $bootstrapAdminRoles")
+            }
+        }
+
 
         timer = createTimer(
             name: 'refreshRoles',
@@ -129,13 +142,11 @@ class DefaultRoleService extends BaseRoleService {
             }
             ret = _roleAssignmentsByUser[username] = unmodifiableSet(userRoles) as Set<String>
         }
-        if (
-            getInstanceConfig('bootstrapAdminUser')?.toLowerCase() == username &&
-                isLocalDevelopment &&
-                !isProduction
-        ) {
-            ret += ['HOIST_ADMIN', 'HOIST_ADMIN_READER', 'HOIST_ROLE_MANAGER']
+
+        if (bootstrapAdminUser == username) {
+            ret += bootstrapAdminRoles
         }
+
         ret
     }
 
@@ -189,7 +200,7 @@ class DefaultRoleService extends BaseRoleService {
     protected Map<String, Object> doLoadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
         if (!groups) return emptyMap()
         if (!ldapService.enabled) {
-            return groups.collectEntries{[it, 'LdapService not enabled in this application']}
+            return groups.collectEntries { [it, 'LdapService not enabled in this application'] }
         }
 
         def foundGroups = new HashSet(),
@@ -198,7 +209,7 @@ class DefaultRoleService extends BaseRoleService {
         // 1) Determine valid groups
         ldapService
             .lookupGroups(groups, strictMode)
-            .each {name, group ->
+            .each { name, group ->
                 if (group) {
                     foundGroups << name
                 } else {
@@ -209,7 +220,7 @@ class DefaultRoleService extends BaseRoleService {
         // 2) Search for members of valid groups
         ldapService
             .lookupGroupMembers(foundGroups, strictMode)
-            .each {name, members ->
+            .each { name, members ->
                 ret[name] = members.collect(new HashSet()) { it.samaccountname?.toLowerCase() }
                 // Exclude members without a samaccountname (e.g. email-only contacts within a DL)
                 ret[name].remove(null)
@@ -234,7 +245,7 @@ class DefaultRoleService extends BaseRoleService {
             xhRoleModuleConfig: [
                 valueType   : 'json',
                 defaultValue: [
-                    refreshIntervalSecs  : 300
+                    refreshIntervalSecs: 300
                 ],
                 groupName   : 'xh.io',
                 note        : 'Configures built-in role management via DefaultRoleService.'
@@ -344,8 +355,8 @@ class DefaultRoleService extends BaseRoleService {
 
         roles.collectEntries { role ->
             Set<Role> effectiveRoles = getEffectiveRoles(role),
-                        users = new HashSet(),
-                        groups = new HashSet()
+                      users = new HashSet(),
+                      groups = new HashSet()
 
             effectiveRoles.each { effRole ->
                 if (userAssignmentSupported) users.addAll(effRole.users)
@@ -396,10 +407,12 @@ class DefaultRoleService extends BaseRoleService {
     }
 
 
-    Map getAdminStats() {[
-        roleAssignments: allRoleAssignments?.size(),
-        roleAssignmentsByUser: _roleAssignmentsByUser?.size(),
-        usersForDirectoryGroups: _usersForDirectoryGroups?.size()
-    ]}
+    Map getAdminStats() {
+        [
+            roleAssignments        : allRoleAssignments?.size(),
+            roleAssignmentsByUser  : _roleAssignmentsByUser?.size(),
+            usersForDirectoryGroups: _usersForDirectoryGroups?.size()
+        ]
+    }
 
 }

@@ -156,7 +156,7 @@ class ClusterAdminService extends BaseService {
                     stats = obj.localCacheStatistics
                 return [
                     name              : obj.getName(),
-                    type              : 'Cache',
+                    type              : 'Hibernate Cache',
                     size              : obj.size(),
                     lastUpdateTime    : stats.lastUpdateTime ?: null,
                     lastAccessTime    : stats.lastAccessTime ?: null,
