@@ -99,6 +99,8 @@ class ClusterConfig {
 
         createDefaultConfigs(ret)
         createHibernateConfigs(ret)
+        createServiceConfigs(ret)
+        createCachedValueConfigs(ret)
 
         KryoSupport.setAsGlobalSerializer(ret)
 
@@ -124,6 +126,10 @@ class ClusterConfig {
      *
      * - a static 'cache' property on Grails domain objects to customize associated
      * Hibernate caches. See toolbox's `Phase` object for examples.
+     *
+     * - a static 'configureCluster' property on Grails Service to allow services to provide
+     * configuration for any custom hazelcast structures that they will user.  See
+     * Hoist Core's `ClientErrorService` for an example.
      */
     protected void createDefaultConfigs(Config config) {
         config.getMapConfig('default').with {
@@ -189,6 +195,24 @@ class ClusterConfig {
                     customizer(cfg)
                 }
             }
+        }
+    }
+
+    private void createServiceConfigs(Config config) {
+        // Ad-Hoc per service configuration, via static closure
+        grailsApplication.serviceClasses.each { GrailsClass gc ->
+            def customizer = gc.getPropertyValue('configureCluster') as Closure
+            customizer?.call(config)
+        }
+    }
+
+    private void createCachedValueConfigs(Config config) {
+        config.getReliableTopicConfig('xhcachedvalue.*').with {
+            readBatchSize = 1
+        }
+        config.getRingbufferConfig('xhcachedvalue.*').with {
+            inMemoryFormat = InMemoryFormat.OBJECT
+            capacity = 1
         }
     }
 }

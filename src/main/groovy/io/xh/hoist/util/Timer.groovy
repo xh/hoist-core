@@ -169,7 +169,7 @@ class Timer implements LogSupport {
         coreIntervalMs = calcCoreIntervalMs()
 
         if (useCluster && lastCompletedOnCluster == null) {
-            lastCompletedOnCluster = ClusterService.configuredReplicatedMap('xhTimersLastCompleted')
+            lastCompletedOnCluster = ClusterService.hzInstance.getReplicatedMap('xhTimersLastCompleted')
         }
 
         if (runImmediatelyAndBlock) {

@@ -4,15 +4,11 @@ import com.hazelcast.cluster.Cluster
 import com.hazelcast.cluster.Member
 import com.hazelcast.cluster.MembershipEvent
 import com.hazelcast.cluster.MembershipListener
-import com.hazelcast.collection.ISet
 import com.hazelcast.config.Config
 import com.hazelcast.core.DistributedObject
 import com.hazelcast.core.Hazelcast
 import com.hazelcast.core.HazelcastInstance
 import com.hazelcast.core.IExecutorService
-import com.hazelcast.map.IMap
-import com.hazelcast.replicatedmap.ReplicatedMap
-import com.hazelcast.topic.ITopic
 import io.xh.hoist.BaseService
 import io.xh.hoist.ClusterConfig
 import io.xh.hoist.exception.InstanceNotFoundException
@@ -155,39 +151,6 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         executorService
             .submitToAllMembers(c)
             .collectEntries { member, f -> [member.getAttribute('instanceName'), f.get()] }
-    }
-
-    //------------------
-    // Create Objects
-    //-----------------
-    static <K, V> IMap<K, V> configuredIMap(String name, Closure customizer = null) {
-        customizer?.call(hzConfig.getMapConfig(name))
-        hzInstance.getMap(name)
-    }
-
-    static <V> ISet<V> configuredISet(String name, Closure customizer = null) {
-        customizer?.call(hzConfig.getSetConfig(name))
-        hzInstance.getSet(name)
-    }
-
-    static <K, V> ReplicatedMap<K, V> configuredReplicatedMap(String name, Closure customizer = null) {
-        customizer?.call(hzConfig.getReplicatedMapConfig(name))
-        hzInstance.getReplicatedMap(name)
-    }
-
-    static <M> ITopic<M> configuredTopic(String name, Closure customizer = null) {
-        customizer?.call(hzConfig.getTopicConfig(name))
-        hzInstance.getTopic(name)
-    }
-
-    static <M> ITopic<M> configuredReliableTopic(
-        String name,
-        Closure customizer = null,
-        Closure ringBufferCustomizer = null
-    ) {
-        ringBufferCustomizer?.call(hzConfig.getRingbufferConfig(name))
-        customizer?.call(hzConfig.getReliableTopicConfig(name))
-        hzInstance.getReliableTopic(name)
     }
 
     //------------------------------------

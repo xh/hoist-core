@@ -2,8 +2,18 @@
 
 ## 25.0-SNAPSHOT - unreleased
 
-### ⚙️ Technical
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
+* Dynamic configuration for distributed hazelcast objects is no longer supported -- all configuration
+  must be in place before an instance is started, per Hazelcast documentation.  Therefore the
+  `ClusterService.configureXXX` methods have been removed, and have been replaced by support for
+  specifying a static closure `ClusterService.configureCluster`.  This is not expected to have a
+  practical impact on any existing applications.
 
+
+### 🐞 Bug Fixes
+* Fix to issue with a `Timer` interval specified as a config names failing to update dynamically.
+
+### ⚙️ Technical
 * Increased max length of `Role.category` string to 100 chars.
 * Requires column modification to `xh_role` table with the following SQL or equivalent:
 ```mysql
