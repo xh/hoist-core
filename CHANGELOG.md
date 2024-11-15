@@ -1,6 +1,6 @@
 # Changelog
 
-## 25.0-SNAPSHOT - unreleased
+## 25.0.0 - 2024-11-15
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
 * Dynamic configuration for distributed hazelcast objects is no longer supported -- all configuration
