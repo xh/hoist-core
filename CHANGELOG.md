@@ -1,5 +1,7 @@
 # Changelog
 
+## 26.0-SNAPSHOT - unreleased
+
 ## 25.0.0 - 2024-11-15
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
