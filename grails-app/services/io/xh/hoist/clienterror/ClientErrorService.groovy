@@ -7,6 +7,7 @@
 
 package io.xh.hoist.clienterror
 
+import com.hazelcast.config.Config
 import com.hazelcast.map.IMap
 import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
@@ -32,6 +33,18 @@ import static java.lang.System.currentTimeMillis
  */
 class ClientErrorService extends BaseService {
 
+    /**
+     * An example of a closure for custom configuration of associated Hazelcast structures.
+     * This is provided statically to allow configuration to be in place before the Hazelcast
+     * instance is instantiated.
+     * Note the call to `hzName` to get the appropriately qualified name of the resource.
+     */
+    static configureCluster = { Config c ->
+        c.getMapConfig(hzName('clientErrors', this)).with {
+            evictionConfig.size = 100
+        }
+    }
+
     def clientErrorEmailService,
         configService
 
@@ -42,7 +55,7 @@ class ClientErrorService extends BaseService {
 
     void init() {
         super.init()
-        errors = createIMap('clientErrors') {it.evictionConfig.size = 100}
+        errors = createIMap('clientErrors')
         createTimer(
             name: 'processErrors',
             runFn: this.&processErrors,

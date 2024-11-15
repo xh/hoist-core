@@ -35,9 +35,6 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 
 import static grails.async.Promises.task
-import static io.xh.hoist.cluster.ClusterService.configuredIMap
-import static io.xh.hoist.cluster.ClusterService.configuredISet
-import static io.xh.hoist.cluster.ClusterService.configuredReplicatedMap
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.Utils.appContext
@@ -127,10 +124,9 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      *
      * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
      * associated with this service.
-     * @param customizer - closure receiving a Hazelcast MapConfig.  Mutate to customize.
      */
-    <K, V> IMap<K, V> createIMap(String name, Closure customizer = null) {
-        addResource(name, configuredIMap(hzName(name), customizer))
+    <K, V> IMap<K, V> createIMap(String name) {
+        addResource(name, hzInstance.getMap(hzName(name)))
     }
 
     /**
@@ -138,10 +134,9 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      *
      * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
      * associated with this service.
-     * @param customizer - closure receiving a Hazelcast SetConfig.  Mutate to customize.
      */
-    <V> ISet<V> createISet(String name, Closure customizer = null) {
-        addResource(name, configuredISet(hzName(name), customizer))
+    <V> ISet<V> createISet(String name) {
+        addResource(name, hzInstance.getSet(hzName(name)))
     }
 
     /**
@@ -149,10 +144,9 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      *
      * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
      * associated with this service.
-     * @param customizer - closure receiving a Hazelcast ReplicatedMapConfig.  Mutate to customize.
      */
-     <K, V> ReplicatedMap<K, V> createReplicatedMap(String name, Closure customizer = null) {
-         addResource(name, configuredReplicatedMap(hzName(name), customizer))
+     <K, V> ReplicatedMap<K, V> createReplicatedMap(String name) {
+         addResource(name, hzInstance.getReplicatedMap(hzName(name)))
      }
 
     /**
@@ -382,11 +376,13 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      *
      * Not typically called directly by applications.  Applications should aim to create
      * Hazelcast distributed objects using the methods in this class.
-     *
-     * @internal
      */
     String hzName(String name) {
-        "${this.class.name}[$name]"
+       hzName(name, this.class)
+    }
+
+    static String hzName(String name, Class clazz) {
+        "${clazz.name}[$name]"
     }
 
     //------------------------

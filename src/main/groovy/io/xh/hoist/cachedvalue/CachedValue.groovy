@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeoutException
 
 import static grails.async.Promises.task
-import static io.xh.hoist.cluster.ClusterService.configuredReliableTopic
 import static io.xh.hoist.util.DateTimeUtils.asEpochMilli
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static java.lang.System.currentTimeMillis
@@ -196,14 +195,7 @@ class CachedValue<V> implements LogSupport {
     private ITopic<CachedValueEntry<V>> createUpdateTopic() {
         // Create a durable topic with room for just a single item
         // and register for all events, including replay of event before this instance existed.
-        def ret = configuredReliableTopic(
-            svc.hzName(name),
-            {it.readBatchSize = 1},
-            {
-                it.capacity = 1
-                it.inMemoryFormat = InMemoryFormat.OBJECT
-            }
-        )
+        def ret = ClusterService.hzInstance.getReliableTopic('xhcachedvalue.' + svc.hzName(name))
         ret.addMessageListener(
             new ReliableMessageListener<CachedValueEntry<V>>() {
                 void onMessage(Message<CachedValueEntry<V>> message) {
