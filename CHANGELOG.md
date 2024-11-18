@@ -2,6 +2,9 @@
 
 ## 26.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+* Misc. Improvements to ViewManager
+
 ## 25.0.0 - 2024-11-15
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
