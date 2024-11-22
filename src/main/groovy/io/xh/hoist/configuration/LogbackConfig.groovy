@@ -86,9 +86,10 @@ class LogbackConfig {
     static void defaultConfig(Script script) {
         withDelegate(script) {
 
-            def appLogName = "${Utils.appCode}-${ClusterService.instanceName}",
-                trackLogName = "$appLogName-track",
-                monitorLogName = "$appLogName-monitor"
+            def appLogRoot = "${Utils.appCode}-${ClusterService.instanceName}",
+                appLogName = "$appLogRoot-app",
+                trackLogName = "$appLogRoot-track",
+                monitorLogName = "$appLogRoot-monitor"
 
             //----------------------------------
             // Register Hoist-Core's Conversion Specifiers
