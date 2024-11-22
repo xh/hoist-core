@@ -3,7 +3,7 @@
 ## 26.0-SNAPSHOT - unreleased
 
 ### ⚙️ Technical
-* Misc. Improvements to ViewManager
+* Align all-built in log names to have form "App-Cluster-xxx.log"
 
 ## 25.0.0 - 2024-11-15
 
