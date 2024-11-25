@@ -14,7 +14,7 @@ import static io.xh.hoist.util.Utils.appContext
 
 
 @Access(['HOIST_ADMIN_READER'])
-class HzObjectAdminController extends BaseController {
+class DistributedObjectAdminController extends BaseController {
 
     def listObjects(String instance) {
         runOnInstance(new ListObjects(), instance)
