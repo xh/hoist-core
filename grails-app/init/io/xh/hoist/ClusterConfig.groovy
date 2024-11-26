@@ -91,6 +91,8 @@ class ClusterConfig {
     Config createConfig() {
         def ret = new Config()
 
+        System.out.println("ClusterConfig [INFO] | ${multiInstanceEnabled ? 'Multi-instance is enabled - instances will attempt to cluster.' : 'Multi-instance is disabled - instances will avoid clustering.'}")
+
         ret.instanceName = instanceName
         ret.clusterName = clusterName
         ret.memberAttributeConfig.setAttribute('instanceName', instanceName)
