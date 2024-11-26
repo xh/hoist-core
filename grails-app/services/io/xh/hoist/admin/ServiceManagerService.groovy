@@ -51,7 +51,7 @@ class ServiceManagerService extends BaseService {
             .findAll { !it.key.startsWith('xh_') }  // skip hoist implementation objects
             .collect { k, v ->
                 Map stats = v instanceof DistributedObject ?
-                    clusterAdminService.getAdminStatsForObject(v) :
+                    clusterAdminService.getAdminStatsForDistributedObject(v) :
                     v.adminStats
 
                 // rely on the name (key) service knows, i.e avoid HZ prefix

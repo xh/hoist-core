@@ -69,7 +69,7 @@ class ClusterAdminService extends BaseService {
             .hzInstance
             .distributedObjects
             .findAll { !(it instanceof ExecutorServiceProxy) }
-            .collect { getAdminStatsForObject(it) }
+            .collect { getAdminStatsForDistributedObject(it) }
     }
 
     void clearObjects(List<String> names) {
@@ -95,29 +95,29 @@ class ClusterAdminService extends BaseService {
             .each { appContext.getBean(it)?.cache.evictAllRegions() }
     }
 
-    Map getAdminStatsForObject(DistributedObject obj) {
+    Map getAdminStatsForDistributedObject(DistributedObject obj) {
         switch (obj) {
             case ReplicatedMap:
                 def stats = obj.getReplicatedMapStats()
                 return [
-                    name           : obj.getName(),
-                    type           : 'Replicated Map',
-                    size           : obj.size(),
-                    lastUpdateTime : stats.lastUpdateTime ?: null,
-                    lastAccessTime : stats.lastAccessTime ?: null,
+                    name          : obj.getName(),
+                    type          : 'Replicated Map',
+                    size          : obj.size(),
+                    lastUpdateTime: stats.lastUpdateTime ?: null,
+                    lastAccessTime: stats.lastAccessTime ?: null,
 
-                    hits           : stats.hits,
-                    gets           : stats.getOperationCount,
-                    puts           : stats.putOperationCount
+                    hits          : stats.hits,
+                    gets          : stats.getOperationCount,
+                    puts          : stats.putOperationCount
                 ]
             case IMap:
                 def stats = obj.getLocalMapStats()
                 return [
-                    name           : obj.getName(),
-                    type           : 'IMap',
-                    size           : obj.size(),
-                    lastUpdateTime : stats.lastUpdateTime ?: null,
-                    lastAccessTime : stats.lastAccessTime ?: null,
+                    name          : obj.getName(),
+                    type          : 'Map',
+                    size          : obj.size(),
+                    lastUpdateTime: stats.lastUpdateTime ?: null,
+                    lastAccessTime: stats.lastAccessTime ?: null,
 
                     ownedEntryCount: stats.ownedEntryCount,
                     hits           : stats.hits,
@@ -145,10 +145,10 @@ class ClusterAdminService extends BaseService {
                 ]
             case RingbufferProxy:
                 return [
-                    name          : obj.getName(),
-                    type          : 'RingBuffer',
-                    size          : obj.size(),
-                    capacity      : obj.capacity()
+                    name    : obj.getName(),
+                    type    : 'Ringbuffer',
+                    size    : obj.size(),
+                    capacity: obj.capacity()
                 ]
             case CacheProxy:
                 def evictionConfig = obj.cacheConfig.evictionConfig,
@@ -173,7 +173,7 @@ class ClusterAdminService extends BaseService {
                 ]
             default:
                 return [
-                    name     : obj.getName(),
+                    name: obj.getName(),
                     type: obj.class.toString()
                 ]
         }
