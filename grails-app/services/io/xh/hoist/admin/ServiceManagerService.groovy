@@ -13,7 +13,7 @@ import io.xh.hoist.BaseService
 class ServiceManagerService extends BaseService {
 
     def grailsApplication,
-        clusterAdminService
+        distributedObjectAdminService
 
     Collection<Map> listServices() {
         getServicesInternal().collect { name, svc ->
@@ -51,7 +51,7 @@ class ServiceManagerService extends BaseService {
             .findAll { !it.key.startsWith('xh_') }  // skip hoist implementation objects
             .collect { k, v ->
                 Map stats = v instanceof DistributedObject ?
-                    clusterAdminService.getAdminStatsForDistributedObject(v) :
+                    distributedObjectAdminService.getAdminStatsForObject(v) :
                     v.adminStats
 
                 // rely on the name (key) service knows, i.e avoid HZ prefix

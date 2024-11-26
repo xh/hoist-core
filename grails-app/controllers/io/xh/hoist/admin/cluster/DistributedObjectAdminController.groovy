@@ -22,7 +22,7 @@ class DistributedObjectAdminController extends BaseController {
 
     static class ListObjects extends ClusterRequest {
         def doCall() {
-            appContext.clusterAdminService.listObjects()
+            appContext.distributedObjectAdminService.listObjects()
         }
     }
 
@@ -35,7 +35,7 @@ class DistributedObjectAdminController extends BaseController {
         List<String> names
 
         def doCall() {
-            appContext.clusterAdminService.clearObjects(names)
+            appContext.distributedObjectAdminService.clearObjects(names)
             return [success: true]
         }
     }
@@ -47,7 +47,7 @@ class DistributedObjectAdminController extends BaseController {
 
     static class ClearHibernateCaches extends ClusterRequest {
         def doCall() {
-            appContext.clusterAdminService.clearHibernateCaches()
+            appContext.distributedObjectAdminService.clearHibernateCaches()
             return [success: true]
         }
     }
