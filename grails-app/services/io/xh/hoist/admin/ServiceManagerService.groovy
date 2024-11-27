@@ -25,6 +25,15 @@ class ServiceManagerService extends BaseService {
         }
     }
 
+    Collection<Map> listStats() {
+        getServicesInternal().collect { name, svc ->
+            def resources = getResourceStats(svc)
+            return resources
+                ? [name: name, *: svc.adminStats, resources: resources]
+                : [name: name, *: svc.adminStats]
+        }
+    }
+
     Map getStats(String name) {
         def svc = grailsApplication.mainContext.getBean(name),
             resources = getResourceStats(svc)

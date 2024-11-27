@@ -12,7 +12,6 @@ import io.xh.hoist.security.Access
 
 import static io.xh.hoist.util.Utils.appContext
 
-
 @Access(['HOIST_ADMIN_READER'])
 class DistributedObjectAdminController extends BaseController {
 
