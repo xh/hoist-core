@@ -11,7 +11,7 @@ class ClusterConsistencyCheckService extends BaseService {
     ServiceManagerService serviceManagerService
 
     Map runClusterConsistencyCheck() {
-        def responsesByInstance = clusterService.submitToAllInstances(new ListClusterConsistencyChecks()),
+        def responsesByInstance = clusterService.submitToAllInstances(new ListChecks()),
             primaryList = responsesByInstance[clusterService.primaryName].value as List<ClusterConsistencyCheck>,
             primaryMap = primaryList.collectEntries {[it.key, it]} as Map<String, ClusterConsistencyCheck>,
             mismatches = [:],
@@ -48,32 +48,32 @@ class ClusterConsistencyCheckService extends BaseService {
         ]
     }
 
-    List<ClusterConsistencyCheck> listClusterConsistencyChecks() {
+    List<ClusterConsistencyCheck> listChecks() {
        [
-           *listClusterConsistencyChecksForDistributedObjects(),
-           *listClusterConsistencyChecksForServices()
+           *listChecksForDistributedObjects(),
+           *listChecksForServices()
        ].findAll { it } as List<ClusterConsistencyCheck>
     }
-    static class ListClusterConsistencyChecks extends ClusterRequest<List<ClusterConsistencyCheck>> {
+    static class ListChecks extends ClusterRequest<List<ClusterConsistencyCheck>> {
         List<ClusterConsistencyCheck> doCall() {
-            appContext.clusterConsistencyCheckService.listClusterConsistencyChecks()
+            appContext.clusterConsistencyCheckService.listChecks()
         }
     }
 
-    List<ClusterConsistencyCheck> listClusterConsistencyChecksForDistributedObjects() {
+    List<ClusterConsistencyCheck> listChecksForDistributedObjects() {
         distributedObjectAdminService.listObjects().collect {
-            getClusterConsistencyCheckForAdminStats(it)
+            getCheckFromAdminStats(it)
         }.findAll { it }
     }
 
-    List<ClusterConsistencyCheck> listClusterConsistencyChecksForServices() {
+    List<ClusterConsistencyCheck> listChecksForServices() {
         serviceManagerService.listStats().collectMany { Map svcStats ->
            [
                // The service itself, if it has custom cluster consistency checks
-               getClusterConsistencyCheckForAdminStats(svcStats),
+               getCheckFromAdminStats(svcStats),
                // All of the service's resources
                *(svcStats.resources as List<Map>)?.collect {
-                   getClusterConsistencyCheckForAdminStats(it, svcStats.name as String)
+                   getCheckFromAdminStats(it, svcStats.name as String)
                }.findAll { it }
            ] as List<ClusterConsistencyCheck>
         }
@@ -82,7 +82,7 @@ class ClusterConsistencyCheckService extends BaseService {
     // ------------------------------
     // Implementation
     // ------------------------------
-    ClusterConsistencyCheck getClusterConsistencyCheckForAdminStats(Map adminStats, String parentName = null) {
+    ClusterConsistencyCheck getCheckFromAdminStats(Map adminStats, String parentName = null) {
         def name = parentName ? "$parentName[${adminStats.name}]" : adminStats.name as String,
             type = adminStats.type as String
 
