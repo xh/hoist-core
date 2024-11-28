@@ -2,6 +2,14 @@
 
 ## 26.0-SNAPSHOT - unreleased
 
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL - change to runOnInstance signature.)
+
+### 🎁 New Features
+* `BaseController.runOnInstance` now performs the json serialization on the target instance.  This
+allows lighter-weight remote endpoint executions, that do not require object serialization.
+Applications must now provide a `ClusterJsonRequest` to this method rather than a `JsonRequest`
+
 ### ⚙️ Technical
 * Align all-built in log names to have form "App-Cluster-xxx.log"
 
@@ -37,7 +45,7 @@ ALTER TABLE xh_role ALTER COLUMN category VARCHAR(100) null
 * Requires `hoist-react >= 69` to support revised API for Activity Tracking and User Preference
   POSTs from client.
 
-### 🎁 New Features
+_### 🎁 New Features_
 
 * Updated Activity Tracking endpoint to support client POSTing multiple track logs in a single
   request, helping to reduce network overhead for chatty apps.
