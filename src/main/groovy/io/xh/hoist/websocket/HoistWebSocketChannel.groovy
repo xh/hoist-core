@@ -97,8 +97,8 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
     Map formatForJSON() {
         return [
             key: key,
-            authUser: [username: authUsername],
-            apparentUser: [username: apparentUsername],
+            authUser: authUser,
+            apparentUser: apparentUser,
             isOpen: session.isOpen(),
             createdTime: createdTime,
             sentMessageCount: sentMessageCount,

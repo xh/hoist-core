@@ -7,7 +7,7 @@
 package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.cluster.ClusterRequest
+import io.xh.hoist.cluster.ClusterJsonRequest
 import io.xh.hoist.security.Access
 
 import static io.xh.hoist.util.Utils.appContext
@@ -18,7 +18,7 @@ class ConnectionPoolMonitorAdminController extends BaseController {
     def snapshots(String instance) {
         runOnInstance(new Snapshots(), instance)
     }
-    static class Snapshots extends ClusterRequest {
+    static class Snapshots extends ClusterJsonRequest {
         def doCall() {
             def svc = appContext.connectionPoolMonitoringService
             return [
@@ -34,7 +34,7 @@ class ConnectionPoolMonitorAdminController extends BaseController {
     def takeSnapshot(String instance) {
         runOnInstance(new TakeSnapshot(), instance)
     }
-    static class TakeSnapshot extends ClusterRequest {
+    static class TakeSnapshot extends ClusterJsonRequest {
         def doCall() {
             appContext.connectionPoolMonitoringService.takeSnapshot()
         }
@@ -44,7 +44,7 @@ class ConnectionPoolMonitorAdminController extends BaseController {
     def resetStats() {
         runOnInstance(new ResetStats())
     }
-    static class ResetStats extends ClusterRequest {
+    static class ResetStats extends ClusterJsonRequest {
         def doCall() {
             appContext.connectionPoolMonitoringService.resetStats()
         }

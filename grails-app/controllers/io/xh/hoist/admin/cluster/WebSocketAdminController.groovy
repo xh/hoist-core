@@ -8,7 +8,7 @@
 package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.cluster.ClusterRequest
+import io.xh.hoist.cluster.ClusterJsonRequest
 import io.xh.hoist.security.Access
 
 import static io.xh.hoist.util.Utils.getAppContext
@@ -19,7 +19,7 @@ class WebSocketAdminController extends BaseController {
     def allChannels(String instance) {
         runOnInstance(new AllChannels(), instance)
     }
-    static class AllChannels extends ClusterRequest {
+    static class AllChannels extends ClusterJsonRequest {
         def doCall() {
             appContext.webSocketService.allChannels*.formatForJSON()
         }
@@ -29,7 +29,7 @@ class WebSocketAdminController extends BaseController {
     def pushToChannel(String channelKey, String topic, String message, String instance) {
         runOnInstance(new PushToChannel(channelKey: channelKey, topic: topic, message: message), instance)
     }
-    static class PushToChannel extends ClusterRequest {
+    static class PushToChannel extends ClusterJsonRequest {
         String channelKey
         String topic
         String message

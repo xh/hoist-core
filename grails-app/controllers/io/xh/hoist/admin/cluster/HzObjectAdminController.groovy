@@ -7,7 +7,7 @@
 package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.cluster.ClusterRequest
+import io.xh.hoist.cluster.ClusterJsonRequest
 import io.xh.hoist.security.Access
 
 import static io.xh.hoist.util.Utils.appContext
@@ -20,7 +20,7 @@ class HzObjectAdminController extends BaseController {
         runOnInstance(new ListObjects(), instance)
     }
 
-    static class ListObjects extends ClusterRequest {
+    static class ListObjects extends ClusterJsonRequest {
         def doCall() {
             appContext.clusterAdminService.listObjects()
         }
@@ -31,7 +31,7 @@ class HzObjectAdminController extends BaseController {
         runOnInstance(new ClearObjects(names: params.list('names')), instance)
     }
 
-    static class ClearObjects extends ClusterRequest {
+    static class ClearObjects extends ClusterJsonRequest {
         List<String> names
 
         def doCall() {
@@ -45,7 +45,7 @@ class HzObjectAdminController extends BaseController {
         runOnInstance(new ClearHibernateCaches(), instance)
     }
 
-    static class ClearHibernateCaches extends ClusterRequest {
+    static class ClearHibernateCaches extends ClusterJsonRequest {
         def doCall() {
             appContext.clusterAdminService.clearHibernateCaches()
             return [success: true]
