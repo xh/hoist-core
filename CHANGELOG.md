@@ -2,7 +2,6 @@
 
 ## 26.0-SNAPSHOT - unreleased
 
-
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL - change to runOnInstance signature.)
 
 ### 🎁 New Features
@@ -45,7 +44,7 @@ ALTER TABLE xh_role ALTER COLUMN category VARCHAR(100) null
 * Requires `hoist-react >= 69` to support revised API for Activity Tracking and User Preference
   POSTs from client.
 
-_### 🎁 New Features_
+### 🎁 New Features
 
 * Updated Activity Tracking endpoint to support client POSTing multiple track logs in a single
   request, helping to reduce network overhead for chatty apps.
