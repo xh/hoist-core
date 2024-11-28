@@ -1,5 +1,6 @@
 package io.xh.hoist.cluster
 
+import io.xh.hoist.exception.ClusterExecutionException
 import io.xh.hoist.exception.InstanceNotAvailableException
 import io.xh.hoist.log.LogSupport
 
@@ -17,15 +18,17 @@ abstract class ClusterRequest<T> implements Callable<ClusterResponse<T>>, LogSup
             }
             return new ClusterResponse(value: doCall())
         } catch (Throwable t) {
+            def simpleName = this.class.simpleName
             try {
                 exceptionHandler.handleException(
                     exception: t,
                     logTo: this,
-                    logMessage: [_action: this.class.simpleName]
+                    logMessage: [_action: simpleName]
                 )
             } catch (Exception e) {
-                // Even logging failing -- just catch quietly and return neatly to calling member.
+                // Don't let logging ever prevent us from returning *actual* exception to caller.
             }
+            t = new ClusterExecutionException("Failed to execute ${simpleName}: ${t.message}", t)
             return new ClusterResponse(exception: t)
         }
     }

@@ -87,19 +87,19 @@ class LogViewerAdminController extends BaseController {
             return
         }
 
-        render(
-            file: ret.value,
-            fileName: filename,
-            contentType: 'application/octet-stream'
-        )
+        render(ret)
     }
 
-    static class Download extends ClusterRequest<File> {
+    static class Download extends ClusterRequest<Map> {
         String filename
-
-        File doCall() {
+        Map doCall() {
             if (!availableFiles[filename]) throwUnavailable(filename)
-            return appContext.logReaderService.get(filename)
+            def file = appContext.logReaderService.get(filename)
+            [
+                file: file.bytes,
+                fileName: filename,
+                contentType: 'application/octet-stream'
+            ]
         }
     }
 
