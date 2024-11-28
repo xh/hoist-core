@@ -8,7 +8,7 @@
 ### 🎁 New Features
 * `BaseController.runOnInstance` now performs the json serialization on the target instance.  This
 allows lighter-weight remote endpoint executions, that do not require object serialization.
-Applications must now provide a `ClusterJsonRequest` to this method rather than a `JsonRequest`
+Applications must now provide a `ClusterJsonRequest` to this method rather than a `ClusterRequest`
 
 ### ⚙️ Technical
 * Align all-built in log names to have form "App-Cluster-xxx.log"
