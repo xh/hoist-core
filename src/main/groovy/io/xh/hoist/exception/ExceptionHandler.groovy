@@ -75,6 +75,18 @@ class ExceptionHandler {
         summaryTextInternal(t, true)
     }
 
+    /** HttpStatus dode for this exception. */
+    int getHttpStatus(Throwable t) {
+        if (t instanceof HttpException && !(t instanceof ExternalHttpException)) {
+            return ((HttpException) t).statusCode
+        }
+
+        return t instanceof RoutineException ?
+            SC_BAD_REQUEST :
+            SC_INTERNAL_SERVER_ERROR
+    }
+
+
     //---------------------------------------------
     // Template methods.  For application override
     //---------------------------------------------
@@ -88,16 +100,6 @@ class ExceptionHandler {
 
     protected boolean shouldLogDebug(Throwable t) {
         return t instanceof RoutineException
-    }
-
-    protected int getHttpStatus(Throwable t) {
-        if (t instanceof HttpException && !(t instanceof ExternalHttpException)) {
-            return ((HttpException) t).statusCode
-        }
-
-        return t instanceof RoutineException ?
-                SC_BAD_REQUEST :
-                SC_INTERNAL_SERVER_ERROR
     }
 
     //---------------------------

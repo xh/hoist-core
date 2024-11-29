@@ -10,6 +10,7 @@ package io.xh.hoist.admin.cluster
 import groovy.io.FileType
 import io.xh.hoist.BaseController
 import io.xh.hoist.cluster.ClusterRequest
+import io.xh.hoist.cluster.ClusterJsonRequest
 import io.xh.hoist.configuration.LogbackConfig
 import io.xh.hoist.security.Access
 import io.xh.hoist.exception.RoutineRuntimeException
@@ -23,7 +24,7 @@ class LogViewerAdminController extends BaseController {
         runOnInstance(new ListFiles(), instance)
     }
 
-    static class ListFiles extends ClusterRequest {
+    static class ListFiles extends ClusterJsonRequest {
         def doCall() {
             def logRootPath = appContext.logReaderService.logDir.absolutePath,
                 files = availableFiles.collect {
@@ -58,7 +59,7 @@ class LogViewerAdminController extends BaseController {
         )
     }
 
-    static class GetFile extends ClusterRequest {
+    static class GetFile extends ClusterJsonRequest {
         String filename
         Integer startLine
         Integer maxLines
@@ -86,19 +87,19 @@ class LogViewerAdminController extends BaseController {
             return
         }
 
-        render(
-            file: ret.value,
-            fileName: filename,
-            contentType: 'application/octet-stream'
-        )
+        render(ret)
     }
 
-    static class Download extends ClusterRequest<File> {
+    static class Download extends ClusterRequest<Map> {
         String filename
-
-        File doCall() {
+        Map doCall() {
             if (!availableFiles[filename]) throwUnavailable(filename)
-            return appContext.logReaderService.get(filename)
+            def file = appContext.logReaderService.get(filename)
+            [
+                file: file.bytes,
+                fileName: filename,
+                contentType: 'application/octet-stream'
+            ]
         }
     }
 
@@ -112,7 +113,7 @@ class LogViewerAdminController extends BaseController {
         runOnInstance(new DeleteFiles(filenames: params.list('filenames')), instance)
     }
 
-    static class DeleteFiles extends ClusterRequest {
+    static class DeleteFiles extends ClusterJsonRequest {
         List<String> filenames
 
         def doCall() {
@@ -138,7 +139,7 @@ class LogViewerAdminController extends BaseController {
         runOnInstance(new ArchiveLogs(daysThreshold: daysThreshold), instance)
     }
 
-    static class ArchiveLogs extends ClusterRequest {
+    static class ArchiveLogs extends ClusterJsonRequest {
         Integer daysThreshold
 
         def doCall() {

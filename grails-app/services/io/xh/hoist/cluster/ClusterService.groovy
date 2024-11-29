@@ -16,6 +16,8 @@ import io.xh.hoist.util.Utils
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.ApplicationListener
 
+import java.util.concurrent.Callable
+
 class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent> {
 
     /**
@@ -143,11 +145,11 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         return hzInstance.getExecutorService('default')
     }
 
-    <T> ClusterResponse<T> submitToInstance(ClusterRequest<T> c, String instance) {
-            executorService.submitToMember(c, getMember(instance)).get()
+    <T> T submitToInstance(Callable<T> c, String instance) {
+        executorService.submitToMember(c, getMember(instance)).get()
     }
 
-    <T> Map<String, ClusterResponse<T>> submitToAllInstances(ClusterRequest<T> c) {
+    <T> Map<String, T> submitToAllInstances(Callable<T> c) {
         executorService
             .submitToAllMembers(c)
             .collectEntries { member, f -> [member.getAttribute('instanceName'), f.get()] }
