@@ -72,12 +72,11 @@ abstract class RestController extends BaseController {
                     successCount++
                 } catch (Exception e) {
                     failCount++
-                    if (e instanceof ValidationException) {
-                        e = new io.xh.hoist.exception.ValidationException(e)
-                        logDebug("Validation exception updating ${obj}", e)
-                    } else {
-                        logError("Unexpected exception updating ${obj}", e)
-                    }
+                    xhExceptionHandler.handleException(
+                        exception: e,
+                        logMessage: "Exception updating ${id}",
+                        logTo: this
+                    )
                 }
             }
 
