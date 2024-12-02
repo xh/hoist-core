@@ -1,6 +1,6 @@
 # Changelog
 
-## 26.0-SNAPSHOT - unreleased
+## 26.0.0 - 2024-12-02
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL - change to runOnInstance signature.)
 
