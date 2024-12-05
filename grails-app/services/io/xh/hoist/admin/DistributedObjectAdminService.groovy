@@ -55,7 +55,7 @@ class DistributedObjectAdminService extends BaseService {
                 def stats = obj.getReplicatedMapStats()
                 return [
                     name          : obj.getName(),
-                    type          : 'Replicated Map',
+                    type          : 'ReplicatedMap',
                     size          : obj.size(),
                     lastUpdateTime: stats.lastUpdateTime ?: null,
                     lastAccessTime: stats.lastAccessTime ?: null,
@@ -68,7 +68,7 @@ class DistributedObjectAdminService extends BaseService {
                 def stats = obj.getLocalMapStats()
                 return [
                     name           : obj.getName(),
-                    type           : 'Map',
+                    type           : 'IMap',
                     size           : obj.size(),
                     lastUpdateTime : stats.lastUpdateTime ?: null,
                     lastAccessTime : stats.lastAccessTime ?: null,
@@ -84,7 +84,7 @@ class DistributedObjectAdminService extends BaseService {
                 def stats = obj.getLocalSetStats()
                 return [
                     name          : obj.getName(),
-                    type          : 'Set',
+                    type          : 'ISet',
                     size          : obj.size(),
                     lastUpdateTime: stats.lastUpdateTime ?: null,
                     lastAccessTime: stats.lastAccessTime ?: null,

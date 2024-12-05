@@ -9,10 +9,12 @@ class ClusterConsistencyCheck implements JSONFormat {
     String name
     String type
 
+    String owner
+
     /** Will be compared across instances. */
     Map<String, Object> checks
     /** Last time the checked object was updated. */
-    Long timestamp
+    Long lastUpdated
 
     Boolean test(ClusterConsistencyCheck other) {
         if (!sameObjectAs(other)) throw new RuntimeException("Cannot compare different objects: ${key} and ${other.key}.")
@@ -31,8 +33,9 @@ class ClusterConsistencyCheck implements JSONFormat {
         return [
             name: name,
             type: type,
+            owner: owner,
             checks: checks,
-            timestamp: timestamp
+            lastUpdated: lastUpdated
         ]
     }
 }

@@ -10,42 +10,22 @@ class ClusterConsistencyCheckService extends BaseService {
     DistributedObjectAdminService distributedObjectAdminService
     ServiceManagerService serviceManagerService
 
-    Map runClusterConsistencyCheck() {
-        def responsesByInstance = clusterService.submitToAllInstances(new ListChecks()),
-            primaryList = responsesByInstance[clusterService.primaryName].value as List<ClusterConsistencyCheck>,
-            primaryMap = primaryList.collectEntries {[it.key, it]} as Map<String, ClusterConsistencyCheck>,
-            mismatches = [:],
-            checkCount = 0,
-            mismatchCount = 0
+    List<ClusterConsistencyResult> runClusterConsistencyCheck() {
+        def responsesByInstance = clusterService.submitToAllInstances(new ListChecks())
 
-        responsesByInstance.each { clusterName, clusterResponse ->
-            // No need to compare primary to itself
-            if (clusterName == clusterService.primaryName) return
-            clusterResponse.value.each { ClusterConsistencyCheck nonPrimaryRecord ->
-                def primaryRecord = primaryMap[nonPrimaryRecord.key]
-                // Compare each nonPrimary record to its primary counterpart
-                if (!primaryRecord.test(nonPrimaryRecord)) {
-                    if (mismatches[nonPrimaryRecord.key]) {
-                        mismatches[nonPrimaryRecord.key][clusterName] = nonPrimaryRecord
-                    } else {
-                        mismatches[nonPrimaryRecord.key] = [
-                            (clusterService.primaryName): primaryRecord,
-                            (clusterName)               : nonPrimaryRecord
-                        ]
-                    }
-                    mismatchCount++
-                 }
-                checkCount++
+        // Group the ClusterConsistencyCheck objects into ClusterConsistencyResult objects
+        Map<String,ClusterConsistencyResult> resultMap = [:]
+        responsesByInstance.each { instanceName, instanceValue ->
+            instanceValue.value.each { check ->
+                if (!resultMap[check.key]) {
+                    resultMap[check.key] = new ClusterConsistencyResult(check, instanceName)
+                } else {
+                    resultMap[check.key].add(check, instanceName)
+                }
             }
         }
 
-        return [
-            instanceCount: responsesByInstance.size(),
-            objectsCount: primaryMap.size(),
-            checkCount: checkCount,
-            mismatchCount: mismatchCount,
-            mismatches: mismatches
-        ]
+        return resultMap.values().toList()
     }
 
     List<ClusterConsistencyCheck> listChecks() {
@@ -91,12 +71,21 @@ class ClusterConsistencyCheckService extends BaseService {
             case 'Replicated Map':
             case 'Map':
             case 'Set':
+                return new ClusterConsistencyCheck(
+                    name: name,
+                    type: type,
+                    owner: parentName,
+                    checks: [size: adminStats.size],
+                    lastUpdated: adminStats.lastUpdateTime as Long
+                )
+
             case 'Hibernate Cache':
                 return new ClusterConsistencyCheck(
                     name: name,
                     type: type,
+                    owner: 'Hibernate',
                     checks: [size: adminStats.size],
-                    timestamp: adminStats.lastUpdateTime as Long
+                    lastUpdated: adminStats.lastUpdateTime as Long
                 )
 
             // Hoist objects
@@ -104,18 +93,23 @@ class ClusterConsistencyCheckService extends BaseService {
                 return new ClusterConsistencyCheck(
                     name: name,
                     type: type,
+                    owner: parentName,
                     checks: [
                         count: adminStats.count,
                         latestTimestamp: adminStats.latestTimestamp
                     ],
-                    timestamp: adminStats.latestTimestamp as Long
+                    lastUpdated: adminStats.latestTimestamp as Long
                 )
             case 'CachedValue (replicated)':
                 return new ClusterConsistencyCheck(
                     name: name,
                     type: type,
-                    checks: [timestamp: adminStats.timestamp],
-                    timestamp: adminStats.timestamp as Long
+                    owner: parentName,
+                    checks: [
+                        size: adminStats.size,
+                        timestamp: adminStats.timestamp
+                    ],
+                    lastUpdated: adminStats.timestamp as Long
                 )
 
             // Default
@@ -124,12 +118,14 @@ class ClusterConsistencyCheckService extends BaseService {
                 if (adminStats.clusterConsistencyCheckConfig) {
                     def config = adminStats.clusterConsistencyCheckConfig as Map,
                         defaultName = config.name ?: name,
-                        defaultType = config.type ?: type ?: name.endsWith('Service') ? 'Service' : null
+                        defaultType = config.type ?: type ?: name.endsWith('Service') ? 'Service' : null,
+                        defaultOwner = config.owner ?: parentName
                     return new ClusterConsistencyCheck(
                         name: defaultName,
                         type: defaultType,
+                        owner: defaultOwner,
                         checks: config.checks as Map,
-                        timestamp: config.timestamp as Long
+                        lastUpdated: config.lastUpdated as Long
                     )
                 } else {
                     return null

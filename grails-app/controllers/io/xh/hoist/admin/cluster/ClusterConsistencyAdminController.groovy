@@ -16,7 +16,7 @@ class ClusterConsistencyAdminController extends BaseController {
 
     def clusterConsistencyCheckService
 
-    def runChecks() {
+    def listAllChecks() {
         renderJSON(clusterConsistencyCheckService.runClusterConsistencyCheck())
     }
 
