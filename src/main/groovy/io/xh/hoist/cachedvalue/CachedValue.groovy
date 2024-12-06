@@ -242,4 +242,15 @@ class CachedValue<V> implements LogSupport {
         return ret
     }
 
+    List getComparisonFields() {
+        if (!replicate) return null
+
+        def val = get(),
+            ret = ['timestamp']
+        if (val instanceof Collection || val instanceof Map) {
+            ret << 'size'
+        }
+        return ret
+    }
+
 }

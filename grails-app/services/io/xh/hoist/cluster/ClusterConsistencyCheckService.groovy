@@ -1,135 +1,199 @@
 package io.xh.hoist.cluster
 
+import com.hazelcast.cache.impl.CacheProxy
+import com.hazelcast.collection.ISet
+import com.hazelcast.core.DistributedObject
+import com.hazelcast.executor.impl.ExecutorServiceProxy
+import com.hazelcast.map.IMap
+import com.hazelcast.nearcache.NearCacheStats
+import com.hazelcast.replicatedmap.ReplicatedMap
+import com.hazelcast.ringbuffer.impl.RingbufferProxy
+import com.hazelcast.topic.ITopic
 import io.xh.hoist.BaseService
-import io.xh.hoist.admin.DistributedObjectAdminService
-import io.xh.hoist.admin.ServiceManagerService
+
+import javax.cache.expiry.Duration
+import javax.cache.expiry.ExpiryPolicy
 
 import static io.xh.hoist.util.Utils.getAppContext
 
 class ClusterConsistencyCheckService extends BaseService {
-    DistributedObjectAdminService distributedObjectAdminService
-    ServiceManagerService serviceManagerService
+    def grailsApplication
 
-    List<ClusterConsistencyResult> runClusterConsistencyCheck() {
-        def responsesByInstance = clusterService.submitToAllInstances(new ListChecks())
+    DistributedObjectsReport getDistributedObjectsReport() {
+        def responsesByInstance = clusterService.submitToAllInstances(new ListDistributedObjects())
+        return new DistributedObjectsReport(
+            info: responsesByInstance.collectMany {it.value.value},
+            timestamp: System.currentTimeMillis()
+        )
+    }
 
-        // Group the ClusterConsistencyCheck objects into ClusterConsistencyResult objects
-        Map<String,ClusterConsistencyResult> resultMap = [:]
-        responsesByInstance.each { instanceName, instanceValue ->
-            instanceValue.value.each { check ->
-                if (!resultMap[check.key]) {
-                    resultMap[check.key] = new ClusterConsistencyResult(check, instanceName)
-                } else {
-                    resultMap[check.key].add(check, instanceName)
-                }
+    private List<DistributedObjectInfo> listDistributedObjects() {
+        Map<String, BaseService> svcs = grailsApplication.mainContext.getBeansOfType(BaseService.class, false, false)
+        def resourceObjs = svcs.collectMany { _, svc ->
+            def svcName = svc.class.getName()
+            svc.resources.findAll { k, v -> !(v instanceof DistributedObject)}.collect { k, v ->
+                new DistributedObjectInfo(
+                    name            : svc.hzName(k),
+                    comparisonFields: v.hasProperty('comparisonFields') ? v.comparisonFields : null,
+                    adminStats      : v.hasProperty('adminStats') ? v.adminStats : null,
+                    owner           : svcName
+                )
             }
-        }
+        },
+            hzObjs = clusterService
+                .hzInstance
+                .distributedObjects
+                .findAll { !(it instanceof ExecutorServiceProxy) }
+                .collect { getInfoForObject(it) }
 
-        return resultMap.values().toList()
+        return [*hzObjs, *resourceObjs]
     }
-
-    List<ClusterConsistencyCheck> listChecks() {
-       [
-           *listChecksForDistributedObjects(),
-           *listChecksForServices()
-       ].findAll { it } as List<ClusterConsistencyCheck>
-    }
-    static class ListChecks extends ClusterRequest<List<ClusterConsistencyCheck>> {
-        List<ClusterConsistencyCheck> doCall() {
-            appContext.clusterConsistencyCheckService.listChecks()
-        }
-    }
-
-    List<ClusterConsistencyCheck> listChecksForDistributedObjects() {
-        distributedObjectAdminService.listObjects().collect {
-            getCheckFromAdminStats(it)
-        }.findAll { it }
-    }
-
-    List<ClusterConsistencyCheck> listChecksForServices() {
-        serviceManagerService.listStats().collectMany { Map svcStats ->
-           [
-               // The service itself, if it has custom cluster consistency checks
-               getCheckFromAdminStats(svcStats),
-               // All of the service's resources
-               *(svcStats.resources as List<Map>)?.collect {
-                   getCheckFromAdminStats(it, svcStats.name as String)
-               }.findAll { it }
-           ] as List<ClusterConsistencyCheck>
+    static class ListDistributedObjects extends ClusterRequest<List<DistributedObjectInfo>> {
+        List<DistributedObjectInfo> doCall() {
+            appContext.clusterConsistencyCheckService.listDistributedObjects()
         }
     }
 
     // ------------------------------
     // Implementation
     // ------------------------------
-    ClusterConsistencyCheck getCheckFromAdminStats(Map adminStats, String parentName = null) {
-        def name = parentName ? "$parentName[${adminStats.name}]" : adminStats.name as String,
-            type = adminStats.type as String
+    DistributedObjectInfo getInfoForObject(DistributedObject obj) {
+        switch (obj) {
+            case ReplicatedMap:
+                def stats = obj.getReplicatedMapStats()
+                return new DistributedObjectInfo(
+                    name: obj.getName(),
+                    comparisonFields: ['size'],
+                    adminStats: [
+                        name          : obj.getName(),
+                        type          : 'ReplicatedMap',
+                        size          : obj.size(),
+                        lastUpdateTime: stats.lastUpdateTime ?: null,
+                        lastAccessTime: stats.lastAccessTime ?: null,
 
-        switch (type) {
-            // Distributed objects
-            case 'Replicated Map':
-            case 'Map':
-            case 'Set':
-                return new ClusterConsistencyCheck(
-                    name: name,
-                    type: type,
-                    owner: parentName,
-                    checks: [size: adminStats.size],
-                    lastUpdated: adminStats.lastUpdateTime as Long
+                        hits          : stats.hits,
+                        gets          : stats.getOperationCount,
+                        puts          : stats.putOperationCount
+                    ]
                 )
+            case IMap:
+                def stats = obj.getLocalMapStats()
+                return new DistributedObjectInfo(
+                    name: obj.getName(),
+                    comparisonFields: ['size'],
+                    adminStats: [
+                        name           : obj.getName(),
+                        type           : 'IMap',
+                        size           : obj.size(),
+                        lastUpdateTime : stats.lastUpdateTime ?: null,
+                        lastAccessTime : stats.lastAccessTime ?: null,
 
-            case 'Hibernate Cache':
-                return new ClusterConsistencyCheck(
-                    name: name,
-                    type: type,
+                        ownedEntryCount: stats.ownedEntryCount,
+                        hits           : stats.hits,
+                        gets           : stats.getOperationCount,
+                        sets           : stats.setOperationCount,
+                        puts           : stats.putOperationCount,
+                        nearCache      : getNearCacheStats(stats.nearCacheStats),
+                    ]
+                )
+            case ISet:
+                def stats = obj.getLocalSetStats()
+                return new DistributedObjectInfo(
+                    name: obj.getName(),
+                    comparisonFields: ['size'],
+                    adminStats: [
+                        name          : obj.getName(),
+                        type          : 'ISet',
+                        size          : obj.size(),
+                        lastUpdateTime: stats.lastUpdateTime ?: null,
+                        lastAccessTime: stats.lastAccessTime ?: null,
+                    ]
+                )
+            case ITopic:
+                def stats = obj.getLocalTopicStats()
+                return new DistributedObjectInfo(
+                    name: obj.getName(),
+                    adminStats: [
+                        name                 : obj.getName(),
+                        type                 : 'Topic',
+                        publishOperationCount: stats.publishOperationCount,
+                        receiveOperationCount: stats.receiveOperationCount
+                    ]
+                )
+            case RingbufferProxy:
+                return new DistributedObjectInfo(
+                    name: obj.getName(),
+                    adminStats: [
+                        name    : obj.getName(),
+                        type    : 'Ringbuffer',
+                        size    : obj.size(),
+                        capacity: obj.capacity()
+                    ]
+                )
+            case CacheProxy:
+                def evictionConfig = obj.cacheConfig.evictionConfig,
+                    expiryPolicy = obj.cacheConfig.expiryPolicyFactory.create(),
+                    stats = obj.localCacheStatistics
+                return new DistributedObjectInfo(
+                    name: obj.getName(),
                     owner: 'Hibernate',
-                    checks: [size: adminStats.size],
-                    lastUpdated: adminStats.lastUpdateTime as Long
-                )
+                    comparisonFields: ['size'],
+                    adminStats: [
+                        name              : obj.getName(),
+                        type              : 'Hibernate Cache',
+                        size              : obj.size(),
+                        lastUpdateTime    : stats.lastUpdateTime ?: null,
+                        lastAccessTime    : stats.lastAccessTime ?: null,
 
-            // Hoist objects
-            case 'Cache (replicated)' :
-                return new ClusterConsistencyCheck(
-                    name: name,
-                    type: type,
-                    owner: parentName,
-                    checks: [
-                        count: adminStats.count,
-                        latestTimestamp: adminStats.latestTimestamp
-                    ],
-                    lastUpdated: adminStats.latestTimestamp as Long
+                        ownedEntryCount   : stats.ownedEntryCount,
+                        cacheHits         : stats.cacheHits,
+                        cacheHitPercentage: stats.cacheHitPercentage?.round(0),
+                        config            : [
+                            size          : evictionConfig.size,
+                            maxSizePolicy : evictionConfig.maxSizePolicy,
+                            evictionPolicy: evictionConfig.evictionPolicy,
+                            expiryPolicy  : formatExpiryPolicy(expiryPolicy)
+                        ]
+                    ]
                 )
-            case 'CachedValue (replicated)':
-                return new ClusterConsistencyCheck(
-                    name: name,
-                    type: type,
-                    owner: parentName,
-                    checks: [
-                        size: adminStats.size,
-                        timestamp: adminStats.timestamp
-                    ],
-                    lastUpdated: adminStats.timestamp as Long
-                )
-
-            // Default
             default:
-                // Opt-in to cluster health check
-                if (adminStats.clusterConsistencyCheckConfig) {
-                    def config = adminStats.clusterConsistencyCheckConfig as Map,
-                        defaultName = config.name ?: name,
-                        defaultType = config.type ?: type ?: name.endsWith('Service') ? 'Service' : null,
-                        defaultOwner = config.owner ?: parentName
-                    return new ClusterConsistencyCheck(
-                        name: defaultName,
-                        type: defaultType,
-                        owner: defaultOwner,
-                        checks: config.checks as Map,
-                        lastUpdated: config.lastUpdated as Long
-                    )
-                } else {
-                    return null
-                }
+                return new DistributedObjectInfo(
+                    name: obj.getName(),
+                    adminStats: [
+                        name: obj.getName(),
+                        type: obj.class.toString()
+                    ]
+                )
         }
     }
+
+    //--------------------
+    // Implementation
+    //--------------------
+    private Map getNearCacheStats(NearCacheStats stats) {
+        if (!stats) return null
+        [
+            ownedEntryCount    : stats.ownedEntryCount,
+            lastPersistenceTime: stats.lastPersistenceTime,
+            hits               : stats.hits,
+            misses             : stats.misses,
+            ratio              : stats.ratio.round(2)
+        ]
+    }
+
+    private Map formatExpiryPolicy(ExpiryPolicy policy) {
+        def ret = [:]
+        if (policy.expiryForCreation) ret.creation = formatDuration(policy.expiryForCreation)
+        if (policy.expiryForAccess) ret.access = formatDuration(policy.expiryForAccess)
+        if (policy.expiryForUpdate) ret.update = formatDuration(policy.expiryForUpdate)
+        return ret
+    }
+
+
+    private String formatDuration(Duration duration) {
+        if (duration.isZero()) return 0
+        if (duration.isEternal()) return 'eternal'
+        return duration.timeUnit.toSeconds(duration.durationAmount) + 's'
+    }
+
 }

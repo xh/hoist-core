@@ -16,11 +16,11 @@ class ClusterConsistencyAdminController extends BaseController {
 
     def clusterConsistencyCheckService
 
-    def listAllChecks() {
-        renderJSON(clusterConsistencyCheckService.runClusterConsistencyCheck())
+    def getDistributedObjectsReport() {
+        renderJSON(clusterConsistencyCheckService.getDistributedObjectsReport())
     }
 
-    def listChecks(String instance) {
-        runOnInstance(new ClusterConsistencyCheckService.ListChecks(), instance)
+    def listDistributedObjects(String instance) {
+        runOnInstance(new ClusterConsistencyCheckService.ListDistributedObjects(), instance)
     }
 }

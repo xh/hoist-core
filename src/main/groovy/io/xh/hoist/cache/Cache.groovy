@@ -209,7 +209,7 @@ class Cache<K, V> implements LogSupport {
 
         withDebug("Waiting for cache entry value at '$key'") {
             for (def startTime = currentTimeMillis(); !intervalElapsed(timeout, startTime); sleep(interval)) {
-                if (getEntry(key)) return;
+                if (getEntry(key)) return
             }
 
             String msg = timeoutMessage ?: "Timed out after ${timeout}ms waiting for cached entry at '$key'"
@@ -228,6 +228,10 @@ class Cache<K, V> implements LogSupport {
             latestTimestamp: _map.max { it.value.dateEntered }?.value?.dateEntered,
             lastCullTime   : cullTimer.lastRunCompleted
         ]
+    }
+
+    List getComparisonFields() {
+        replicate ?  ['count', 'latestTimestamp'] : null
     }
 
     Logger getInstanceLog() {
