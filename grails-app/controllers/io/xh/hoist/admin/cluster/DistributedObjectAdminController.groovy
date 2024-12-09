@@ -15,13 +15,13 @@ import static io.xh.hoist.util.Utils.appContext
 @Access(['HOIST_ADMIN_READER'])
 class DistributedObjectAdminController extends BaseController {
 
-    def listObjects(String instance) {
-        runOnInstance(new ListObjects(), instance)
+    def getDistributedObjectsReport(String instance) {
+        runOnInstance(new GetDistributedObjectsReport(), instance)
     }
 
-    static class ListObjects extends ClusterRequest {
+    static class GetDistributedObjectsReport extends ClusterRequest {
         def doCall() {
-            appContext.distributedObjectAdminService.listObjects()
+            appContext.clusterConsistencyCheckService.getDistributedObjectsReport()
         }
     }
 

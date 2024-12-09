@@ -10,6 +10,9 @@ import com.hazelcast.replicatedmap.ReplicatedMap
 import com.hazelcast.ringbuffer.impl.RingbufferProxy
 import com.hazelcast.topic.ITopic
 import io.xh.hoist.BaseService
+import io.xh.hoist.cluster.ClusterRequest
+import io.xh.hoist.cluster.DistributedObjectInfo
+import io.xh.hoist.cluster.DistributedObjectsReport
 
 import javax.cache.expiry.Duration
 import javax.cache.expiry.ExpiryPolicy
@@ -17,13 +20,41 @@ import javax.cache.expiry.ExpiryPolicy
 import static io.xh.hoist.util.Utils.appContext
 
 class DistributedObjectAdminService extends BaseService {
+    def grailsApplication
 
-    Collection<Map> listObjects() {
-        clusterService
-            .hzInstance
-            .distributedObjects
-            .findAll { !(it instanceof ExecutorServiceProxy) }
-            .collect { getAdminStatsForObject(it) }
+    DistributedObjectsReport getDistributedObjectsReport() {
+        def responsesByInstance = clusterService.submitToAllInstances(new ListDistributedObjects())
+        return new DistributedObjectsReport(
+            info: responsesByInstance.collectMany {it.value.value},
+            timestamp: System.currentTimeMillis()
+        )
+    }
+
+    private List<DistributedObjectInfo> listDistributedObjects() {
+        Map<String, BaseService> svcs = grailsApplication.mainContext.getBeansOfType(BaseService.class, false, false)
+        def resourceObjs = svcs.collectMany { _, svc ->
+            def svcName = svc.class.getName()
+            svc.resources.findAll { k, v -> !(v instanceof DistributedObject)}.collect { k, v ->
+                new DistributedObjectInfo(
+                    name            : svc.hzName(k),
+                    comparisonFields: v.hasProperty('comparisonFields') ? v.comparisonFields : null,
+                    adminStats      : v.hasProperty('adminStats') ? v.adminStats : null,
+                    owner           : svcName
+                )
+            }
+        },
+            hzObjs = clusterService
+                .hzInstance
+                .distributedObjects
+                .findAll { !(it instanceof ExecutorServiceProxy) }
+                .collect { getInfoForObject(it) }
+
+        return [*hzObjs, *resourceObjs]
+    }
+    static class ListDistributedObjects extends ClusterRequest<List<DistributedObjectInfo>> {
+        List<DistributedObjectInfo> doCall() {
+            appContext.clusterConsistencyCheckService.listDistributedObjects()
+        }
     }
 
     void clearObjects(List<String> names) {
@@ -50,86 +81,116 @@ class DistributedObjectAdminService extends BaseService {
     }
 
     Map getAdminStatsForObject(DistributedObject obj) {
+        return getInfoForObject(obj)?.adminStats
+    }
+
+    DistributedObjectInfo getInfoForObject(DistributedObject obj) {
         switch (obj) {
             case ReplicatedMap:
                 def stats = obj.getReplicatedMapStats()
-                return [
-                    name          : obj.getName(),
-                    type          : 'ReplicatedMap',
-                    size          : obj.size(),
-                    lastUpdateTime: stats.lastUpdateTime ?: null,
-                    lastAccessTime: stats.lastAccessTime ?: null,
+                return new DistributedObjectInfo(
+                    name: obj.getName(),
+                    comparisonFields: ['size'],
+                    adminStats: [
+                        name          : obj.getName(),
+                        type          : 'ReplicatedMap',
+                        size          : obj.size(),
+                        lastUpdateTime: stats.lastUpdateTime ?: null,
+                        lastAccessTime: stats.lastAccessTime ?: null,
 
-                    hits          : stats.hits,
-                    gets          : stats.getOperationCount,
-                    puts          : stats.putOperationCount
-                ]
+                        hits          : stats.hits,
+                        gets          : stats.getOperationCount,
+                        puts          : stats.putOperationCount
+                    ]
+                )
             case IMap:
                 def stats = obj.getLocalMapStats()
-                return [
-                    name           : obj.getName(),
-                    type           : 'IMap',
-                    size           : obj.size(),
-                    lastUpdateTime : stats.lastUpdateTime ?: null,
-                    lastAccessTime : stats.lastAccessTime ?: null,
+                return new DistributedObjectInfo(
+                    name: obj.getName(),
+                    comparisonFields: ['size'],
+                    adminStats: [
+                        name           : obj.getName(),
+                        type           : 'IMap',
+                        size           : obj.size(),
+                        lastUpdateTime : stats.lastUpdateTime ?: null,
+                        lastAccessTime : stats.lastAccessTime ?: null,
 
-                    ownedEntryCount: stats.ownedEntryCount,
-                    hits           : stats.hits,
-                    gets           : stats.getOperationCount,
-                    sets           : stats.setOperationCount,
-                    puts           : stats.putOperationCount,
-                    nearCache      : getNearCacheStats(stats.nearCacheStats),
-                ]
+                        ownedEntryCount: stats.ownedEntryCount,
+                        hits           : stats.hits,
+                        gets           : stats.getOperationCount,
+                        sets           : stats.setOperationCount,
+                        puts           : stats.putOperationCount,
+                        nearCache      : getNearCacheStats(stats.nearCacheStats),
+                    ]
+                )
             case ISet:
                 def stats = obj.getLocalSetStats()
-                return [
-                    name          : obj.getName(),
-                    type          : 'ISet',
-                    size          : obj.size(),
-                    lastUpdateTime: stats.lastUpdateTime ?: null,
-                    lastAccessTime: stats.lastAccessTime ?: null,
-                ]
+                return new DistributedObjectInfo(
+                    name: obj.getName(),
+                    comparisonFields: ['size'],
+                    adminStats: [
+                        name          : obj.getName(),
+                        type          : 'ISet',
+                        size          : obj.size(),
+                        lastUpdateTime: stats.lastUpdateTime ?: null,
+                        lastAccessTime: stats.lastAccessTime ?: null,
+                    ]
+                )
             case ITopic:
                 def stats = obj.getLocalTopicStats()
-                return [
-                    name                 : obj.getName(),
-                    type                 : 'Topic',
-                    publishOperationCount: stats.publishOperationCount,
-                    receiveOperationCount: stats.receiveOperationCount
-                ]
+                return new DistributedObjectInfo(
+                    name: obj.getName(),
+                    adminStats: [
+                        name                 : obj.getName(),
+                        type                 : 'Topic',
+                        publishOperationCount: stats.publishOperationCount,
+                        receiveOperationCount: stats.receiveOperationCount
+                    ]
+                )
             case RingbufferProxy:
-                return [
-                    name    : obj.getName(),
-                    type    : 'Ringbuffer',
-                    size    : obj.size(),
-                    capacity: obj.capacity()
-                ]
+                return new DistributedObjectInfo(
+                    name: obj.getName(),
+                    adminStats: [
+                        name    : obj.getName(),
+                        type    : 'Ringbuffer',
+                        size    : obj.size(),
+                        capacity: obj.capacity()
+                    ]
+                )
             case CacheProxy:
                 def evictionConfig = obj.cacheConfig.evictionConfig,
                     expiryPolicy = obj.cacheConfig.expiryPolicyFactory.create(),
                     stats = obj.localCacheStatistics
-                return [
-                    name              : obj.getName(),
-                    type              : 'Hibernate Cache',
-                    size              : obj.size(),
-                    lastUpdateTime    : stats.lastUpdateTime ?: null,
-                    lastAccessTime    : stats.lastAccessTime ?: null,
-
-                    ownedEntryCount   : stats.ownedEntryCount,
-                    cacheHits         : stats.cacheHits,
-                    cacheHitPercentage: stats.cacheHitPercentage?.round(0),
-                    config            : [
-                        size          : evictionConfig.size,
-                        maxSizePolicy : evictionConfig.maxSizePolicy,
-                        evictionPolicy: evictionConfig.evictionPolicy,
-                        expiryPolicy  : formatExpiryPolicy(expiryPolicy)
-                    ]
-                ]
-            default:
-                return [
+                return new DistributedObjectInfo(
                     name: obj.getName(),
-                    type: obj.class.toString()
-                ]
+                    owner: 'Hibernate',
+                    comparisonFields: ['size'],
+                    adminStats: [
+                        name              : obj.getName(),
+                        type              : 'Hibernate Cache',
+                        size              : obj.size(),
+                        lastUpdateTime    : stats.lastUpdateTime ?: null,
+                        lastAccessTime    : stats.lastAccessTime ?: null,
+
+                        ownedEntryCount   : stats.ownedEntryCount,
+                        cacheHits         : stats.cacheHits,
+                        cacheHitPercentage: stats.cacheHitPercentage?.round(0),
+                        config            : [
+                            size          : evictionConfig.size,
+                            maxSizePolicy : evictionConfig.maxSizePolicy,
+                            evictionPolicy: evictionConfig.evictionPolicy,
+                            expiryPolicy  : formatExpiryPolicy(expiryPolicy)
+                        ]
+                    ]
+                )
+            default:
+                return new DistributedObjectInfo(
+                    name: obj.getName(),
+                    adminStats: [
+                        name: obj.getName(),
+                        type: obj.class.toString()
+                    ]
+                )
         }
     }
 
