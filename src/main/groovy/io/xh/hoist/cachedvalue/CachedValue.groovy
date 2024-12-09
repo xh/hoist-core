@@ -231,9 +231,12 @@ class CachedValue<V> implements LogSupport {
 
     Map getAdminStats() {
         def val = get(),
+            hashCode = val?.hashCode(),
             ret = [
                 name     : name,
                 type     : 'CachedValue' + (replicate ? ' (replicated)' : ''),
+                hashCode : hashCode ? Integer.toHexString(hashCode) : null,
+                // FIXME: the timestamp is out of sync if a CachedValue is "uninitialized" (no put() or getOrCreate() call has been made)
                 timestamp: timestamp
             ]
         if (val instanceof Collection || val instanceof Map) {
@@ -246,7 +249,7 @@ class CachedValue<V> implements LogSupport {
         if (!replicate) return null
 
         def val = get(),
-            ret = ['timestamp']
+            ret = ['timestamp' , 'hashCode']
         if (val instanceof Collection || val instanceof Map) {
             ret << 'size'
         }

@@ -1,34 +1,45 @@
 package io.xh.hoist.cluster
 
-import groovy.transform.MapConstructor
 import io.xh.hoist.json.JSONFormat
 
 import static io.xh.hoist.util.Utils.getClusterService
 
-@MapConstructor
 class DistributedObjectInfo implements JSONFormat {
-
-    final Map adminStats
-    final List<String> comparisonFields
-    final String instanceName = clusterService.localName
-    final String owner
-    final String name
+    // Absolute name of the object, use `svc.hzName(name)` on relative-named objects
+    String name
+    // Absolute name of the parent
+    String owner
+    // Admin stats of the object
+    Map adminStats
+    // Admin stat fields to compare, if any
+    List<String> comparisonFields
+    // Name of the cluster instance this data was collected from
+    String instanceName
 
     String getType() { adminStats.type }
 
     // Composite key of name and type
+    // FIXME: Make all names unique and follow an additive (prefix/suffix) naming hierarchy
     String getKey() { "$name-$type" }
 
-    Boolean isMatching(DistributedObjectInfo other) {
-        if (!isComparableWith(other)) throw new RuntimeException("Cannot compare different objects: ${key} and ${other.key}.")
+    DistributedObjectInfo(Map args) {
+        name = args.name
+        adminStats = args.adminStats as Map
+        comparisonFields = args.comparisonFields as List<String>
+        owner = args.owner
+        instanceName = clusterService.localName
+    }
 
-        return this.comparisonFields == other.comparisonFields && this.comparisonFields.every { myField ->
-            this.adminStats[myField] == other.adminStats[myField]
+    boolean isMatching(DistributedObjectInfo other) {
+        if (!this.isComparableWith(other)) throw new RuntimeException("Cannot compare different objects: ${key} and ${other.key}.")
+
+        return this.comparisonFields == other.comparisonFields && this.comparisonFields.every { field ->
+            this.adminStats[field] == other.adminStats[field]
         }
     }
 
     boolean isComparableWith(DistributedObjectInfo other) {
-        return key == other.key
+        return this.key == other.key
     }
 
     Map formatForJSON() {

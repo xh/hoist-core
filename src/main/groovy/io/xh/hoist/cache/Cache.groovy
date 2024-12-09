@@ -71,7 +71,6 @@ class Cache<K, V> implements LogSupport {
      */
     public final boolean serializeOldValue
 
-
     private final String loggerName
     private final Map<K, CacheEntry<V>> _map
     private final Timer cullTimer
@@ -221,17 +220,21 @@ class Cache<K, V> implements LogSupport {
     // Implementation
     //------------------------
     Map getAdminStats() {
-        [
-            name           : name,
-            type           : 'Cache' + (replicate ? ' (replicated)' : ''),
-            count          : size(),
-            latestTimestamp: _map.max { it.value.dateEntered }?.value?.dateEntered,
-            lastCullTime   : cullTimer.lastRunCompleted
+        def hashCode = _map?.hashCode(),
+            ret = [
+                name           : name,
+                type           : 'Cache' + (replicate ? ' (replicated)' : ''),
+                count          : size(),
+                latestTimestamp: _map.max { it.value.dateEntered }?.value?.dateEntered,
+                hashCode       : hashCode ? Integer.toHexString(hashCode) : null,
+                lastCullTime   : cullTimer.lastRunCompleted
         ]
+        return ret
     }
 
     List getComparisonFields() {
-        replicate ?  ['count', 'latestTimestamp'] : null
+        if (!replicate) return null
+        return ['count', 'latestTimestamp', 'hashCode']
     }
 
     Logger getInstanceLog() {
