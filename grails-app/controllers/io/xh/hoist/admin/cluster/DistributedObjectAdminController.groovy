@@ -21,7 +21,7 @@ class DistributedObjectAdminController extends BaseController {
 
     static class GetDistributedObjectsReport extends ClusterRequest {
         def doCall() {
-            appContext.clusterConsistencyCheckService.getDistributedObjectsReport()
+            appContext.distributedObjectAdminService.getDistributedObjectsReport()
         }
     }
 

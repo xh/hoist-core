@@ -34,26 +34,51 @@ class DistributedObjectAdminService extends BaseService {
         Map<String, BaseService> svcs = grailsApplication.mainContext.getBeansOfType(BaseService.class, false, false)
         def resourceObjs = svcs.collectMany { _, svc ->
             def svcName = svc.class.getName()
-            svc.resources.findAll { k, v -> !(v instanceof DistributedObject)}.collect { k, v ->
+            [
+                // Services themselves
                 new DistributedObjectInfo(
-                    name            : svc.hzName(k),
-                    comparisonFields: v.hasProperty('comparisonFields') ? v.comparisonFields : null,
-                    adminStats      : v.hasProperty('adminStats') ? v.adminStats : null,
-                    owner           : svcName
-                )
-            }
+                    name: svcName,
+                    parentName: svcName.startsWith('io.xh.hoist') ? 'Hoist': 'App',
+                    type: 'Service',
+                    comparisonFields: svc.comparisonFields,
+                    adminStats: svc.adminStats
+                ),
+                // Resources, excluding DistributedObject
+                *svc.resources.findAll { k, v -> !(v instanceof DistributedObject)}.collect { k, v ->
+                    new DistributedObjectInfo(
+                        name: svc.hzName(k),
+                        parentName: svcName,
+                        comparisonFields: v.hasProperty('comparisonFields') ? v.comparisonFields : null,
+                        adminStats: v.hasProperty('adminStats') ? v.adminStats : null
+                    )
+                }
+            ]
         },
-            hzObjs = clusterService
-                .hzInstance
-                .distributedObjects
-                .findAll { !(it instanceof ExecutorServiceProxy) }
-                .collect { getInfoForObject(it) }
+            hzObjs = [
+                // Hibernate cache groupings
+                new DistributedObjectInfo(
+                    name: 'Hibernate (App)',
+                    parentName: 'App',
+                    type: 'Hibernate'
+                ),
+                new DistributedObjectInfo(
+                    name: 'Hibernate (Hoist)',
+                    parentName: 'Hoist',
+                    type: 'Hibernate'
+                ),
+                // Distributed objects
+                *clusterService
+                    .hzInstance
+                    .distributedObjects
+                    .findAll { !(it instanceof ExecutorServiceProxy) }
+                    .collect { getInfoForObject(it) }
+            ]
 
         return [*hzObjs, *resourceObjs]
     }
     static class ListDistributedObjects extends ClusterRequest<List<DistributedObjectInfo>> {
         List<DistributedObjectInfo> doCall() {
-            appContext.clusterConsistencyCheckService.listDistributedObjects()
+            appContext.distributedObjectAdminService.listDistributedObjects()
         }
     }
 
@@ -160,10 +185,11 @@ class DistributedObjectAdminService extends BaseService {
             case CacheProxy:
                 def evictionConfig = obj.cacheConfig.evictionConfig,
                     expiryPolicy = obj.cacheConfig.expiryPolicyFactory.create(),
-                    stats = obj.localCacheStatistics
+                    stats = obj.localCacheStatistics,
+                    name = obj.getName()
                 return new DistributedObjectInfo(
-                    name: obj.getName(),
-                    owner: 'Hibernate',
+                    name: name,
+                    parentName: "Hibernate (${name.startsWith('io.xh.hoist') ? 'Hoist': 'App'})",
                     comparisonFields: ['size'],
                     adminStats: [
                         name              : obj.getName(),

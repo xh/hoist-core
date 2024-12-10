@@ -327,6 +327,8 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      */
     Map getAdminStats(){[:]}
 
+    List<String> getComparisonFields(){[]}
+
     /**
      * Return a map of specified config values, appropriate for including in
      * implementations of getAdminStats().
