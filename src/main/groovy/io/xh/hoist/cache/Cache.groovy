@@ -99,7 +99,7 @@ class Cache<K, V> implements LogSupport {
         // Allow fine grain logging for this within namespace of owning service
         loggerName = "${svc.instanceLog.name}.Cache[$name]"
 
-        _map = useCluster ? hzInstance.getReplicatedMap(svc.hzName(name)) : new ConcurrentHashMap()
+        _map = useCluster ? hzInstance.getReplicatedMap('xhcache.' + svc.hzName(name)) : new ConcurrentHashMap()
         cullTimer = new Timer(
             name: 'cullEntries',
             owner: this,

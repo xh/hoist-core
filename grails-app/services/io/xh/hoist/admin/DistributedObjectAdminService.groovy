@@ -23,10 +23,12 @@ class DistributedObjectAdminService extends BaseService {
     def grailsApplication
 
     DistributedObjectsReport getDistributedObjectsReport() {
-        def responsesByInstance = clusterService.submitToAllInstances(new ListDistributedObjects())
+        def startTimestamp = System.currentTimeMillis(),
+            responsesByInstance = clusterService.submitToAllInstances(new ListDistributedObjects())
         return new DistributedObjectsReport(
             info: responsesByInstance.collectMany {it.value.value},
-            timestamp: System.currentTimeMillis()
+            startTimestamp: startTimestamp,
+            endTimestamp: System.currentTimeMillis()
         )
     }
 
@@ -74,7 +76,7 @@ class DistributedObjectAdminService extends BaseService {
                     .collect { getInfoForObject(it) }
             ]
 
-        return [*hzObjs, *resourceObjs]
+        return [*hzObjs, *resourceObjs].findAll{ it } as List<DistributedObjectInfo>
     }
     static class ListDistributedObjects extends ClusterRequest<List<DistributedObjectInfo>> {
         List<DistributedObjectInfo> doCall() {
@@ -102,7 +104,7 @@ class DistributedObjectAdminService extends BaseService {
     void clearHibernateCaches() {
         appContext.beanDefinitionNames
             .findAll { it.startsWith('sessionFactory') }
-            .each { appContext.getBean(it)?.cache.evictAllRegions() }
+            .each { appContext.getBean(it)?.cache?.evictAllRegions() }
     }
 
     Map getAdminStatsForObject(DistributedObject obj) {
@@ -192,7 +194,7 @@ class DistributedObjectAdminService extends BaseService {
                     parentName: "Hibernate (${name.startsWith('io.xh.hoist') ? 'Hoist': 'App'})",
                     comparisonFields: ['size'],
                     adminStats: [
-                        name              : obj.getName(),
+                        name              : name,
                         type              : 'Hibernate Cache',
                         size              : obj.size(),
                         lastUpdateTime    : stats.lastUpdateTime ?: null,

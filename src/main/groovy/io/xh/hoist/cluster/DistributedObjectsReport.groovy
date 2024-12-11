@@ -7,14 +7,16 @@ class DistributedObjectsReport implements JSONFormat {
 
     // List of all of the distributed object data from all of the instances in the cluster.
     List<DistributedObjectInfo> info
-    // Roughly when this report was generated.
-    Long timestamp
+    // Roughly when this report was generated, how long it took.
+    Long startTimestamp
+    Long endTimestamp
     // Map of mismatches
     Map<String, List<List<String>>> breaks
 
     DistributedObjectsReport(Map args) {
         info = args.info as List<DistributedObjectInfo>
-        timestamp = args.timestamp as Long
+        startTimestamp = args.startTimestamp as Long
+        endTimestamp = args.endTimestamp as Long
 
         breaks = createBreaks()
     }
@@ -23,7 +25,8 @@ class DistributedObjectsReport implements JSONFormat {
         return [
             info              : info,
             breaks            : breaks,
-            timestamp         : timestamp
+            startTimestamp    : startTimestamp,
+            endTimestamp      : endTimestamp
         ]
     }
 

@@ -16,12 +16,12 @@ class DistributedObjectInfo implements JSONFormat {
     // Name of the cluster instance this data was collected from
     String instanceName
 
-    String getType() { adminStats.type }
+    String getType() { adminStats?.type }
 
     DistributedObjectInfo(Map args) {
         name = args.name
-        adminStats = args.adminStats as Map
-        comparisonFields = args.comparisonFields as List<String>
+        adminStats = (args.adminStats ?: Collections.emptyMap()) as Map
+        comparisonFields = (args.comparisonFields ?: Collections.emptyList()) as List<String>
         parentName = args.parentName
         instanceName = clusterService.localName
     }
