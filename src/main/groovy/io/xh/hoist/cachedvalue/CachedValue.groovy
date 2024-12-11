@@ -59,8 +59,7 @@ class CachedValue<V> implements LogSupport {
 
     private final String loggerName
     private final ITopic<CachedValueEntry<V>> topic
-    private CachedValueEntry<V> entry = new CachedValueEntry<V>(null, loggerName)
-
+    private CachedValueEntry<V> entry = CachedValueEntry.UNINITIALIZED_CACHE_VALUE_ENTRY
 
     /** @internal - do not construct directly - use {@link BaseService#createCachedValue}. */
     @NamedVariant
@@ -236,7 +235,6 @@ class CachedValue<V> implements LogSupport {
                 name     : name,
                 type     : 'CachedValue' + (replicate ? ' (replicated)' : ''),
                 hashCode : hashCode ? Integer.toHexString(hashCode) : null,
-                // FIXME: the timestamp is out of sync if a CachedValue is "uninitialized" (no put() or getOrCreate() call has been made)
                 timestamp: timestamp
             ]
         if (val instanceof Collection || val instanceof Map) {
