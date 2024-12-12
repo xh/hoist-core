@@ -2,6 +2,11 @@
 
 ## 27.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL - new feedback email config.)
+
+* Apps require a new `xhEmailFeedback` config, allowing different recipients for feedback versus
+  support requests.
+
 ## 26.0.0 - 2024-12-02
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL - change to runOnInstance signature.)
