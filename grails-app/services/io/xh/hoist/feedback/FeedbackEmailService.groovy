@@ -26,7 +26,7 @@ class FeedbackEmailService extends BaseService {
     // Implementation
     //------------------------
     private void emailFeedback(Feedback fb) {
-        def to = emailService.parseMailConfig('xhEmailSupport'),
+        def to = emailService.parseMailConfig('xhEmailFeedback'),
             subject = "${Utils.appName} feedback"
 
         if (to) {
