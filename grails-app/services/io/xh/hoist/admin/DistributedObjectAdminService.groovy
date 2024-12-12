@@ -33,6 +33,7 @@ class DistributedObjectAdminService extends BaseService {
     }
 
     private List<DistributedObjectInfo> listDistributedObjects() {
+        // Services and their resources
         Map<String, BaseService> svcs = grailsApplication.mainContext.getBeansOfType(BaseService.class, false, false)
         def resourceObjs = svcs.collectMany { _, svc ->
             def svcName = svc.class.getName()
@@ -44,7 +45,7 @@ class DistributedObjectAdminService extends BaseService {
                     comparisonFields: svc.comparisonFields,
                     adminStats: svc.adminStats
                 ),
-                // Resources, excluding DistributedObject
+                // Resources, excluding those that are also DistributedObject
                 *svc.resources.findAll { k, v -> !(v instanceof DistributedObject)}.collect { k, v ->
                     new DistributedObjectInfo(
                         name: svc.hzName(k),
@@ -73,6 +74,7 @@ class DistributedObjectAdminService extends BaseService {
         def all = clusterService.distributedObjects
         names.each { name ->
             def obj = all.find { it.getName() == name }
+            /** Keep in sync with frontend clear set - `DistributedObjectsModel.clearableTypes`. */
             if (obj instanceof ReplicatedMap ||
                 obj instanceof IMap ||
                 obj instanceof CacheProxy ||
