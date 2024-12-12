@@ -234,7 +234,7 @@ class CachedValue<V> implements LogSupport {
             ret = [
                 name     : name,
                 type     : 'CachedValue' + (replicate ? ' (replicated)' : ''),
-                hashCode : hashCode ? Integer.toHexString(hashCode) : null,
+                hashCode : hashCode ? HexFormat.of().toHexDigits(hashCode) : null,
                 timestamp: timestamp
             ]
         if (val instanceof Collection || val instanceof Map) {

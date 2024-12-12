@@ -40,7 +40,6 @@ class DistributedObjectAdminService extends BaseService {
                 // Services themselves
                 new DistributedObjectInfo(
                     name: svcName,
-                    parentName: svcName.startsWith('io.xh.hoist') ? 'Hoist': 'App',
                     type: 'Service',
                     comparisonFields: svc.comparisonFields,
                     adminStats: svc.adminStats
@@ -49,32 +48,18 @@ class DistributedObjectAdminService extends BaseService {
                 *svc.resources.findAll { k, v -> !(v instanceof DistributedObject)}.collect { k, v ->
                     new DistributedObjectInfo(
                         name: svc.hzName(k),
-                        parentName: svcName,
                         comparisonFields: v.hasProperty('comparisonFields') ? v.comparisonFields : null,
                         adminStats: v.hasProperty('adminStats') ? v.adminStats : null
                     )
                 }
             ]
         },
-            hzObjs = [
-                // Hibernate cache groupings
-                new DistributedObjectInfo(
-                    name: 'Hibernate (App)',
-                    parentName: 'App',
-                    type: 'Hibernate'
-                ),
-                new DistributedObjectInfo(
-                    name: 'Hibernate (Hoist)',
-                    parentName: 'Hoist',
-                    type: 'Hibernate'
-                ),
-                // Distributed objects
-                *clusterService
+        // Distributed objects
+            hzObjs = clusterService
                     .hzInstance
                     .distributedObjects
                     .findAll { !(it instanceof ExecutorServiceProxy) }
                     .collect { getInfoForObject(it) }
-            ]
 
         return [*hzObjs, *resourceObjs].findAll{ it } as List<DistributedObjectInfo>
     }
@@ -116,7 +101,6 @@ class DistributedObjectAdminService extends BaseService {
             case ReplicatedMap:
                 def stats = obj.getReplicatedMapStats()
                 return new DistributedObjectInfo(
-                    name: obj.getName(),
                     comparisonFields: ['size'],
                     adminStats: [
                         name          : obj.getName(),
@@ -133,7 +117,6 @@ class DistributedObjectAdminService extends BaseService {
             case IMap:
                 def stats = obj.getLocalMapStats()
                 return new DistributedObjectInfo(
-                    name: obj.getName(),
                     comparisonFields: ['size'],
                     adminStats: [
                         name           : obj.getName(),
@@ -153,7 +136,6 @@ class DistributedObjectAdminService extends BaseService {
             case ISet:
                 def stats = obj.getLocalSetStats()
                 return new DistributedObjectInfo(
-                    name: obj.getName(),
                     comparisonFields: ['size'],
                     adminStats: [
                         name          : obj.getName(),
@@ -166,7 +148,6 @@ class DistributedObjectAdminService extends BaseService {
             case ITopic:
                 def stats = obj.getLocalTopicStats()
                 return new DistributedObjectInfo(
-                    name: obj.getName(),
                     adminStats: [
                         name                 : obj.getName(),
                         type                 : 'Topic',
@@ -176,7 +157,6 @@ class DistributedObjectAdminService extends BaseService {
                 )
             case RingbufferProxy:
                 return new DistributedObjectInfo(
-                    name: obj.getName(),
                     adminStats: [
                         name    : obj.getName(),
                         type    : 'Ringbuffer',
@@ -187,14 +167,11 @@ class DistributedObjectAdminService extends BaseService {
             case CacheProxy:
                 def evictionConfig = obj.cacheConfig.evictionConfig,
                     expiryPolicy = obj.cacheConfig.expiryPolicyFactory.create(),
-                    stats = obj.localCacheStatistics,
-                    name = obj.getName()
+                    stats = obj.localCacheStatistics
                 return new DistributedObjectInfo(
-                    name: name,
-                    parentName: "Hibernate (${name.startsWith('io.xh.hoist') ? 'Hoist': 'App'})",
                     comparisonFields: ['size'],
                     adminStats: [
-                        name              : name,
+                        name              : obj.getName(),
                         type              : 'Hibernate Cache',
                         size              : obj.size(),
                         lastUpdateTime    : stats.lastUpdateTime ?: null,
@@ -213,7 +190,6 @@ class DistributedObjectAdminService extends BaseService {
                 )
             default:
                 return new DistributedObjectInfo(
-                    name: obj.getName(),
                     adminStats: [
                         name: obj.getName(),
                         type: obj.class.toString()

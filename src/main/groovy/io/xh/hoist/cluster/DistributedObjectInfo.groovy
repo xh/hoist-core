@@ -5,10 +5,10 @@ import io.xh.hoist.json.JSONFormat
 import static io.xh.hoist.util.Utils.getClusterService
 
 class DistributedObjectInfo implements JSONFormat {
-    // Absolute name of the object, use `svc.hzName(name)` on relative-named objects
+    // Absolute name of the object, make sure to use `svc.hzName(name)` on relative-named objects
     String name
-    // Absolute name of the parent
-    String parentName
+    // Type of object
+    String type
     // Admin stats of the object
     Map adminStats
     // Admin stat fields to compare, if any
@@ -16,14 +16,12 @@ class DistributedObjectInfo implements JSONFormat {
     // Name of the cluster instance this data was collected from
     String instanceName
 
-    String getType() { adminStats?.type }
-
     DistributedObjectInfo(Map args) {
-        name = args.name
         adminStats = (args.adminStats ?: Collections.emptyMap()) as Map
         comparisonFields = (args.comparisonFields ?: Collections.emptyList()) as List<String>
-        parentName = args.parentName
         instanceName = clusterService.localName
+        name = args.name ?: adminStats.name
+        type = args.type ?: adminStats.type
     }
 
     boolean isMatching(DistributedObjectInfo other) {
@@ -42,7 +40,6 @@ class DistributedObjectInfo implements JSONFormat {
         return [
             name: name,
             type: type,
-            parentName: parentName,
             instanceName: instanceName,
             comparisonFields: comparisonFields,
             adminStats: adminStats

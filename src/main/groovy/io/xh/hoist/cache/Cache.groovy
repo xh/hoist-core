@@ -226,7 +226,7 @@ class Cache<K, V> implements LogSupport {
                 type           : 'Cache' + (replicate ? ' (replicated)' : ''),
                 count          : size(),
                 latestTimestamp: _map.max { it.value.dateEntered }?.value?.dateEntered,
-                hashCode       : hashCode ? Integer.toHexString(hashCode) : null,
+                hashCode       : hashCode ? HexFormat.of().toHexDigits(hashCode) : null,
                 lastCullTime   : cullTimer.lastRunCompleted
         ]
         return ret
