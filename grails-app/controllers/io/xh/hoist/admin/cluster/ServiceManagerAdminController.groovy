@@ -7,7 +7,7 @@
 package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.cluster.ClusterRequest
+import io.xh.hoist.cluster.ClusterJsonRequest
 import io.xh.hoist.security.Access
 
 import static io.xh.hoist.util.Utils.appContext
@@ -18,7 +18,7 @@ class ServiceManagerAdminController extends BaseController {
     def listServices(String instance) {
         runOnInstance(new ListServices(), instance)
     }
-    static class ListServices extends ClusterRequest {
+    static class ListServices extends ClusterJsonRequest {
         def doCall() {
             appContext.serviceManagerService.listServices()
         }
@@ -28,7 +28,7 @@ class ServiceManagerAdminController extends BaseController {
         def task = new GetStats(name: name)
         runOnInstance(task, instance)
     }
-    static class GetStats extends ClusterRequest {
+    static class GetStats extends ClusterJsonRequest {
         String name
         def doCall() {
             appContext.serviceManagerService.getStats(name)
@@ -40,7 +40,7 @@ class ServiceManagerAdminController extends BaseController {
         def task = new ClearCaches(names: params.list('names'))
         instance ? runOnInstance(task, instance) : runOnAllInstances(task)
     }
-    static class ClearCaches extends ClusterRequest {
+    static class ClearCaches extends ClusterJsonRequest {
         List<String> names
 
         def doCall() {

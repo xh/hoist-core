@@ -7,7 +7,7 @@
 package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.cluster.ClusterRequest
+import io.xh.hoist.cluster.ClusterJsonRequest
 import io.xh.hoist.security.Access
 
 import static io.xh.hoist.util.Utils.appContext
@@ -19,9 +19,9 @@ class DistributedObjectAdminController extends BaseController {
         runOnInstance(new GetDistributedObjectsReport(), instance)
     }
 
-    static class GetDistributedObjectsReport extends ClusterRequest {
+    static class GetDistributedObjectsReport extends ClusterJsonRequest {
         def doCall() {
-            appContext.distributedObjectAdminService.getDistributedObjectsReport().formatForJSON()
+            appContext.distributedObjectAdminService.getDistributedObjectsReport()
         }
     }
 
@@ -30,7 +30,7 @@ class DistributedObjectAdminController extends BaseController {
         runOnInstance(new ClearObjects(names: params.list('names')), instance)
     }
 
-    static class ClearObjects extends ClusterRequest {
+    static class ClearObjects extends ClusterJsonRequest {
         List<String> names
 
         def doCall() {
@@ -44,7 +44,7 @@ class DistributedObjectAdminController extends BaseController {
         runOnInstance(new ClearHibernateCaches(), instance)
     }
 
-    static class ClearHibernateCaches extends ClusterRequest {
+    static class ClearHibernateCaches extends ClusterJsonRequest {
         def doCall() {
             appContext.distributedObjectAdminService.clearHibernateCaches()
             return [success: true]

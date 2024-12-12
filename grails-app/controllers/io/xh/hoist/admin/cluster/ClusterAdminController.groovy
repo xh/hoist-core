@@ -8,7 +8,7 @@
 package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.cluster.ClusterRequest
+import io.xh.hoist.cluster.ClusterJsonRequest
 import io.xh.hoist.security.Access
 import io.xh.hoist.util.Utils
 
@@ -41,7 +41,7 @@ class ClusterAdminController extends BaseController {
         // Wait enough to let async call below complete
         sleep(5 * SECONDS)
     }
-    static class ShutdownInstance extends ClusterRequest {
+    static class ShutdownInstance extends ClusterJsonRequest {
         def doCall() {
             // Run async to allow this call to successfully return.
             task {

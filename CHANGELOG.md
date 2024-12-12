@@ -1,30 +1,48 @@
 # Changelog
 
-## 26.0-SNAPSHOT - unreleased
+## 27.0-SNAPSHOT - unreleased
+
+## 26.0.0 - 2024-12-02
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL - change to runOnInstance signature.)
+
+### 🎁 New Features
+
+* `BaseController.runOnInstance` now performs the json serialization on the target instance. This
+  allows lighter-weight remote endpoint executions that do not require object serialization.
+  Applications must now provide a `ClusterJsonRequest` to this method rather than a `ClusterRequest`
 
 ### ⚙️ Technical
-* Align all-built in log names to have form "App-Cluster-xxx.log"
+
+* Update built-in logs to follow a consistent format for their filenames:
+  `[appCode]-[instanceName]-[app|track|monitor].log`.
 
 ## 25.0.0 - 2024-11-15
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
-* Dynamic configuration for distributed hazelcast objects is no longer supported -- all configuration
-  must be in place before an instance is started, per Hazelcast documentation.  Therefore the
+
+* Dynamic configuration for distributed hazelcast objects is no longer supported -- all
+  configuration
+  must be in place before an instance is started, per Hazelcast documentation. Therefore the
   `ClusterService.configureXXX` methods have been removed, and have been replaced by support for
-  specifying a static closure `ClusterService.configureCluster`.  This is not expected to have a
+  specifying a static closure `ClusterService.configureCluster`. This is not expected to have a
   practical impact on any existing applications.
 
-
 ### 🐞 Bug Fixes
+
 * Fix to issue with a `Timer` interval specified as a config names failing to update dynamically.
 
 ### ⚙️ Technical
+
 * Increased max length of `Role.category` string to 100 chars.
 * Requires column modification to `xh_role` table with the following SQL or equivalent:
+
 ```mysql
 -- MySQL
-ALTER TABLE `xh_role` CHANGE COLUMN `category` `category` VARCHAR(100) null
+ALTER TABLE `xh_role`
+    CHANGE COLUMN `category` `category` VARCHAR(100) null
 ```
+
 ```sql
 -- SQL Server
 ALTER TABLE xh_role ALTER COLUMN category VARCHAR(100) null
