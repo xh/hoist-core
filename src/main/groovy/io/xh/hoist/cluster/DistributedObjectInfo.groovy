@@ -15,6 +15,8 @@ class DistributedObjectInfo implements JSONFormat {
     List<String> comparisonFields
     // Name of the cluster instance this data was collected from
     String instanceName
+    // Error encountered while collecting this object's data
+    String error
 
     DistributedObjectInfo(Map args) {
         adminStats = (args.adminStats ?: Collections.emptyMap()) as Map
@@ -22,11 +24,10 @@ class DistributedObjectInfo implements JSONFormat {
         instanceName = clusterService.localName
         name = args.name ?: adminStats.name
         type = args.type ?: adminStats.type
+        error = args.error
     }
 
     boolean isMatching(DistributedObjectInfo other) {
-        if (!this.isComparableWith(other)) throw new RuntimeException("Cannot compare different objects: ${this.name} and ${other.name}.")
-
         return this.comparisonFields == other.comparisonFields && this.comparisonFields.every { field ->
             this.adminStats[field] == other.adminStats[field]
         }

@@ -36,22 +36,12 @@ class DistributedObjectAdminService extends BaseService {
         // Services and their resources
         Map<String, BaseService> svcs = grailsApplication.mainContext.getBeansOfType(BaseService.class, false, false)
         def resourceObjs = svcs.collectMany { _, svc ->
-            def svcName = svc.class.getName()
             [
                 // Services themselves
-                new DistributedObjectInfo(
-                    name: svcName,
-                    type: 'Service',
-                    comparisonFields: svc.comparisonFields,
-                    adminStats: svc.adminStats
-                ),
+                getInfo(obj: svc, name: svc.class.getName(), type: 'Service'),
                 // Resources, excluding those that are also DistributedObject
                 *svc.resources.findAll { k, v -> !(v instanceof DistributedObject)}.collect { k, v ->
-                    new DistributedObjectInfo(
-                        name: svc.hzName(k),
-                        comparisonFields: v.hasProperty('comparisonFields') ? v.comparisonFields : null,
-                        adminStats: v.hasProperty('adminStats') ? v.adminStats : null
-                    )
+                    getInfo(obj: v, name: svc.hzName(k))
                 }
             ]
         },
@@ -96,6 +86,29 @@ class DistributedObjectAdminService extends BaseService {
 
     Map getAdminStatsForObject(DistributedObject obj) {
         return getInfoForObject(obj)?.adminStats
+    }
+
+    DistributedObjectInfo getInfo(Map args) {
+        def obj = args.obj,
+            comparisonFields = null,
+            adminStats = null,
+            error = null
+
+        try {
+            comparisonFields = obj.hasProperty('comparisonFields') ? obj.comparisonFields : null
+            adminStats = obj.hasProperty('adminStats') ? obj.adminStats : null
+        } catch (Exception e) {
+            def msg = 'Error extracting admin stats'
+            logError(msg, e)
+            error = "$msg | $e.message"
+        }
+
+        return new DistributedObjectInfo(
+            comparisonFields: comparisonFields,
+            adminStats: adminStats,
+            error: error,
+            *: args
+        )
     }
 
     DistributedObjectInfo getInfoForObject(DistributedObject obj) {
