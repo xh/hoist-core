@@ -4,50 +4,29 @@
  *
  * Copyright © 2022 Extremely Heavy Industries Inc.
  */
-package io.xh.hoist.admin.cluster
+package io.xh.hoist.admin
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.cluster.ClusterJsonRequest
 import io.xh.hoist.security.Access
-
-import static io.xh.hoist.util.Utils.appContext
 
 @Access(['HOIST_ADMIN_READER'])
 class DistributedObjectAdminController extends BaseController {
+    def distributedObjectAdminService
 
-    def getDistributedObjectsReport(String instance) {
-        runOnInstance(new GetDistributedObjectsReport(), instance)
-    }
-
-    static class GetDistributedObjectsReport extends ClusterJsonRequest {
-        def doCall() {
-            appContext.distributedObjectAdminService.getDistributedObjectsReport()
-        }
+    def getDistributedObjectsReport() {
+        renderJSON(distributedObjectAdminService.getDistributedObjectsReport())
     }
 
     @Access(['HOIST_ADMIN'])
-    def clearObjects(String instance) {
-        runOnInstance(new ClearObjects(names: params.list('names')), instance)
-    }
-
-    static class ClearObjects extends ClusterJsonRequest {
-        List<String> names
-
-        def doCall() {
-            appContext.distributedObjectAdminService.clearObjects(names)
-            return [success: true]
-        }
+    def clearObjects() {
+        def req = parseRequestJSON()
+        distributedObjectAdminService.clearObjects(req.names)
+        renderJSON([success: true])
     }
 
     @Access(['HOIST_ADMIN'])
-    def clearHibernateCaches(String instance) {
-        runOnInstance(new ClearHibernateCaches(), instance)
-    }
-
-    static class ClearHibernateCaches extends ClusterJsonRequest {
-        def doCall() {
-            appContext.distributedObjectAdminService.clearHibernateCaches()
-            return [success: true]
-        }
+    def clearHibernateCaches() {
+        distributedObjectAdminService.clearHibernateCaches()
+        renderJSON([success: true])
     }
 }
