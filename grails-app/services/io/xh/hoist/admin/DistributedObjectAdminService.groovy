@@ -71,11 +71,7 @@ class DistributedObjectAdminService extends BaseService {
         names.each { name ->
             def obj = all.find { it.getName() == name }
             /** Keep in sync with frontend clear set - `DistributedObjectsModel.clearableTypes`. */
-            if (obj instanceof ReplicatedMap ||
-                obj instanceof IMap ||
-                obj instanceof CacheProxy ||
-                obj instanceof ISet
-            ) {
+            if (obj instanceof CacheProxy) {
                 obj.clear()
                 logInfo("Cleared " + name)
             } else {
