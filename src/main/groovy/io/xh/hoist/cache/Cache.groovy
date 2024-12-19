@@ -220,21 +220,18 @@ class Cache<K, V> implements LogSupport {
     // Implementation
     //------------------------
     Map getAdminStats() {
-        def hashCode = _map?.hashCode(),
-            ret = [
+         [
                 name           : name,
                 type           : 'Cache' + (replicate ? ' (replicated)' : ''),
                 count          : size(),
                 latestTimestamp: _map.max { it.value.dateEntered }?.value?.dateEntered,
-                hashCode       : hashCode ? HexFormat.of().toHexDigits(hashCode) : null,
                 lastCullTime   : cullTimer.lastRunCompleted
         ]
-        return ret
     }
 
     List getComparisonFields() {
         if (!replicate) return null
-        return ['count', 'latestTimestamp', 'hashCode']
+        return ['count', 'latestTimestamp']
     }
 
     Logger getInstanceLog() {

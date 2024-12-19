@@ -227,14 +227,11 @@ class CachedValue<V> implements LogSupport {
         LoggerFactory.getLogger(loggerName)
     }
 
-
     Map getAdminStats() {
         def val = get(),
-            hashCode = val?.hashCode(),
             ret = [
                 name     : name,
                 type     : 'CachedValue' + (replicate ? ' (replicated)' : ''),
-                hashCode : hashCode ? HexFormat.of().toHexDigits(hashCode) : null,
                 timestamp: timestamp
             ]
         if (val instanceof Collection || val instanceof Map) {
@@ -247,7 +244,7 @@ class CachedValue<V> implements LogSupport {
         if (!replicate) return null
 
         def val = get(),
-            ret = ['timestamp' , 'hashCode']
+            ret = ['timestamp']
         if (val instanceof Collection || val instanceof Map) {
             ret << 'size'
         }
