@@ -2,6 +2,16 @@
 
 ## 27.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - Hoist React update)
+
+* Requires `hoist-react >= 71` to support enhanced Distributed Objects page.
+
+### 🎁 New Features
+
+* `DistributedObjectAdminService` now compares certain `adminState` fields of distributed objects
+  between instances. Implement `BaseService.getComparisonFields()` to enumerate custom fields to
+  compare.
+
 ## 26.0.0 - 2024-12-02
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL - change to runOnInstance signature.)

@@ -30,6 +30,8 @@ class CachedValueEntry<T> implements KryoSerializable, LogSupport {
         this.uuid = UUID.randomUUID()
     }
 
+    static final UNINITIALIZED_CACHE_VALUE_ENTRY = new CachedValueEntry()
+
     CachedValueEntry() {}
 
     void write(Kryo kryo, Output output) {
