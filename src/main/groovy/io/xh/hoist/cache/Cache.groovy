@@ -71,7 +71,6 @@ class Cache<K, V> implements LogSupport {
      */
     public final boolean serializeOldValue
 
-
     private final String loggerName
     private final Map<K, CacheEntry<V>> _map
     private final Timer cullTimer
@@ -100,7 +99,7 @@ class Cache<K, V> implements LogSupport {
         // Allow fine grain logging for this within namespace of owning service
         loggerName = "${svc.instanceLog.name}.Cache[$name]"
 
-        _map = useCluster ? hzInstance.getReplicatedMap(svc.hzName(name)) : new ConcurrentHashMap()
+        _map = useCluster ? hzInstance.getReplicatedMap('xhcache.' + svc.hzName(name)) : new ConcurrentHashMap()
         cullTimer = new Timer(
             name: 'cullEntries',
             owner: this,
@@ -209,7 +208,7 @@ class Cache<K, V> implements LogSupport {
 
         withDebug("Waiting for cache entry value at '$key'") {
             for (def startTime = currentTimeMillis(); !intervalElapsed(timeout, startTime); sleep(interval)) {
-                if (getEntry(key)) return;
+                if (getEntry(key)) return
             }
 
             String msg = timeoutMessage ?: "Timed out after ${timeout}ms waiting for cached entry at '$key'"
@@ -221,13 +220,18 @@ class Cache<K, V> implements LogSupport {
     // Implementation
     //------------------------
     Map getAdminStats() {
-        [
-            name           : name,
-            type           : 'Cache' + (replicate ? ' (replicated)' : ''),
-            count          : size(),
-            latestTimestamp: _map.max { it.value.dateEntered }?.value?.dateEntered,
-            lastCullTime   : cullTimer.lastRunCompleted
+         [
+                name           : name,
+                type           : 'Cache' + (replicate ? ' (replicated)' : ''),
+                count          : size(),
+                latestTimestamp: _map.max { it.value.dateEntered }?.value?.dateEntered,
+                lastCullTime   : cullTimer.lastRunCompleted
         ]
+    }
+
+    List getComparisonFields() {
+        if (!replicate) return null
+        return ['count', 'latestTimestamp']
     }
 
     Logger getInstanceLog() {

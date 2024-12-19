@@ -59,8 +59,7 @@ class CachedValue<V> implements LogSupport {
 
     private final String loggerName
     private final ITopic<CachedValueEntry<V>> topic
-    private CachedValueEntry<V> entry = new CachedValueEntry<V>(null, loggerName)
-
+    private CachedValueEntry<V> entry = CachedValueEntry.UNINITIALIZED_CACHE_VALUE_ENTRY
 
     /** @internal - do not construct directly - use {@link BaseService#createCachedValue}. */
     @NamedVariant
@@ -228,7 +227,6 @@ class CachedValue<V> implements LogSupport {
         LoggerFactory.getLogger(loggerName)
     }
 
-
     Map getAdminStats() {
         def val = get(),
             ret = [
@@ -238,6 +236,17 @@ class CachedValue<V> implements LogSupport {
             ]
         if (val instanceof Collection || val instanceof Map) {
             ret.size = val.size()
+        }
+        return ret
+    }
+
+    List getComparisonFields() {
+        if (!replicate) return null
+
+        def val = get(),
+            ret = ['timestamp']
+        if (val instanceof Collection || val instanceof Map) {
+            ret << 'size'
         }
         return ret
     }
