@@ -30,6 +30,11 @@ class JsonBlobService extends BaseService implements DataBinder {
     }
 
     @ReadOnly
+    JsonBlob find(String type, String name, String username = username) {
+        JsonBlob.findByTypeAndNameAndOwnerAndArchivedDate(type, name, username, 0)
+    }
+
+    @ReadOnly
     List<JsonBlob> list(String type, String username = username) {
         JsonBlob
                 .findAllByTypeAndArchivedDate(type, 0)
@@ -48,15 +53,15 @@ class JsonBlobService extends BaseService implements DataBinder {
     @Transactional
     JsonBlob update(String token, Map data, String username = username) {
         def blob = get(token, username)
-        if (data) {
-            data = [*: data, lastUpdatedBy: username]
-            if (data.containsKey('value')) data.value = serialize(data.value)
-            if (data.containsKey('meta')) data.meta = serialize(data.meta)
+        return updateInternal(blob, data, username)
+    }
 
-            bindData(blob, data)
-            blob.save()
-        }
-        return blob
+    @Transactional
+    JsonBlob createOrUpdate(String type, String name, Map data, String username = username) {
+        def blob = find(type, name, username)
+        return blob ?
+            updateInternal(blob, data, username) :
+            create([*: data, type: type, name: name, owner: username], username)
     }
 
     @Transactional
@@ -71,6 +76,17 @@ class JsonBlobService extends BaseService implements DataBinder {
     //-------------------------
     // Implementation
     //-------------------------
+    private JsonBlob updateInternal(JsonBlob blob, Map data, String username) {
+        if (!data) return blob
+        data = [*: data, lastUpdatedBy: username]
+        if (data.containsKey('value')) data.value = serialize(data.value)
+        if (data.containsKey('meta')) data.meta = serialize(data.meta)
+
+        bindData(blob, data)
+        blob.save()
+        return blob
+    }
+
     private boolean passesAcl(JsonBlob blob, String username) {
         return blob.acl == '*' || blob.owner == username
     }
