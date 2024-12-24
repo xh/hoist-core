@@ -176,8 +176,8 @@ class XhController extends BaseController {
         renderJSON(ret.formatForClient())
     }
 
-    def findJsonBlob(String type, String name) {
-        def ret = jsonBlobService.find(type, name)
+    def findJsonBlob(String type, String name, String owner) {
+        def ret = jsonBlobService.find(type, name, owner)
         renderJSON(ret?.formatForClient())
     }
 

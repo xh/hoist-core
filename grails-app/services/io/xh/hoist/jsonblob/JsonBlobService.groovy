@@ -20,18 +20,16 @@ class JsonBlobService extends BaseService implements DataBinder {
     @ReadOnly
     JsonBlob get(String token, String username = username) {
         JsonBlob ret = JsonBlob.findByTokenAndArchivedDate(token, 0)
-        if (!ret) {
-            throw new RuntimeException("Active JsonBlob not found with token '$token'")
-        }
-        if (!passesAcl(ret, username)) {
-            throw new NotAuthorizedException("User '$username' does not have access to JsonBlob with token '$token'")
-        }
+        if (!ret) throw new RuntimeException("Active JsonBlob not found with token '$token'")
+        ensureAccess(ret, username)
         return ret
     }
 
     @ReadOnly
-    JsonBlob find(String type, String name, String username = username) {
-        JsonBlob.findByTypeAndNameAndOwnerAndArchivedDate(type, name, username, 0)
+    JsonBlob find(String type, String name, String owner, String username = username) {
+        def ret = JsonBlob.findByTypeAndNameAndOwnerAndArchivedDate(type, name, owner, 0)
+        if (ret) ensureAccess(ret, username)
+        return ret
     }
 
     @ReadOnly
@@ -39,6 +37,12 @@ class JsonBlobService extends BaseService implements DataBinder {
         JsonBlob
                 .findAllByTypeAndArchivedDate(type, 0)
                 .findAll { passesAcl(it, username) }
+    }
+
+    @Transactional
+    JsonBlob update(String token, Map data, String username = username) {
+        def blob = get(token, username)
+        return updateInternal(blob, data, username)
     }
 
     @Transactional
@@ -51,14 +55,8 @@ class JsonBlobService extends BaseService implements DataBinder {
     }
 
     @Transactional
-    JsonBlob update(String token, Map data, String username = username) {
-        def blob = get(token, username)
-        return updateInternal(blob, data, username)
-    }
-
-    @Transactional
     JsonBlob createOrUpdate(String type, String name, Map data, String username = username) {
-        def blob = find(type, name, username)
+        def blob = find(type, name, username, username)
         return blob ?
             updateInternal(blob, data, username) :
             create([*: data, type: type, name: name, owner: username], username)
@@ -89,5 +87,11 @@ class JsonBlobService extends BaseService implements DataBinder {
 
     private boolean passesAcl(JsonBlob blob, String username) {
         return blob.acl == '*' || blob.owner == username
+    }
+
+    private ensureAccess(JsonBlob blob, String username) {
+        if (!passesAcl(blob, username)) {
+            throw new NotAuthorizedException("User '$username' does not have access to JsonBlob with token '${blob.token}'")
+        }
     }
 }
