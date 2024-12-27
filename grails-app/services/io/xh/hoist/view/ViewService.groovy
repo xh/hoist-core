@@ -32,8 +32,8 @@ class ViewService extends BaseService {
     /**
      * Get all the views, and the current view state for a user
      */
-    Map getAllData(String type, String viewInstance) {
-        def blobs = jsonBlobService.list(type).split { it.name == STATE_BLOB_NAME }
+    Map getAllData(String type, String viewInstance, String username = username) {
+        def blobs = jsonBlobService.list(type, username).split { it.name == STATE_BLOB_NAME }
         def (rawState, views) = [blobs[0], blobs[1]]
 
         // Transform state
@@ -54,7 +54,7 @@ class ViewService extends BaseService {
     }
 
     /** Update state for this user */
-    void updateState(String type, String viewInstance, Map update) {
+    void updateState(String type, String viewInstance, Map update, String username = username) {
         def currBlob = jsonBlobService.find(type, STATE_BLOB_NAME, username),
             currValue = parseObject(currBlob?.value),
             newValue = [
@@ -67,34 +67,34 @@ class ViewService extends BaseService {
         if (update.containsKey('userPinned')) newValue.userPinned = update.userPinned
         if (update.containsKey('autoSave')) newValue.autoSave = update.autoSave
 
-        jsonBlobService.createOrUpdate(type, STATE_BLOB_NAME, [value: newValue])
+        jsonBlobService.createOrUpdate(type, STATE_BLOB_NAME, [value: newValue], username)
     }
 
     //---------------------------
     // Individual View management
     //----------------------------
     /** Fetch the latest version of a view. */
-    Map get(String token) {
-        jsonBlobService.get(token).formatForClient(true)
+    Map get(String token, String username = username) {
+        jsonBlobService.get(token, username).formatForClient(true)
     }
 
     /** Fetch the latest version of a view. */
-    Map create(Map data) {
-        def ret = jsonBlobService.create(
+    Map create(Map data, String username = username) {
+        def ret = jsonBlobService.create([
             type: data.type,
             name: data.name,
             description: data.description,
             acl: data.isShared ? '*' : null,
             meta: [group: data.group, isShared: data.isShared],
             value: data.value
-        )
+        ], username)
         trackChange('Created View', ret)
         ret.formatForClient(true)
     }
 
     /** Update a views metadata */
-    Map updateInfo(String token, Map data) {
-        def existing = jsonBlobService.get(token),
+    Map updateInfo(String token, Map data, String username = username) {
+        def existing = jsonBlobService.get(token, username),
             existingMeta = parseObject(existing.meta),
             isGlobal = existingMeta.isGlobal,
             isShared = data.containsKey('isShared') ? data.isShared : existingMeta.isShared;
@@ -107,15 +107,16 @@ class ViewService extends BaseService {
                 meta: isGlobal ?
                     [group: data.group, isDefaultPinned: !!data.isDefaultPinned]:
                     [group: data.group, isShared: !!data.isShared],
-            ]
+            ],
+            username
         )
         trackChange('Updated View Info', ret)
         ret.formatForClient(true)
     }
 
     /** Update a views value */
-    Map updateValue(String token, Map value) {
-        def ret = jsonBlobService.update(token, [value: value]);
+    Map updateValue(String token, Map value, String username = username) {
+        def ret = jsonBlobService.update(token, [value: value], username);
         if (ret.owner == null) {
             trackChange('Updated Global View definition', ret);
         }
@@ -123,10 +124,10 @@ class ViewService extends BaseService {
     }
 
     /** Make a view global */
-    Map makeGlobal(String token) {
-        def existing = jsonBlobService.get(token),
+    Map makeGlobal(String token, String username = username) {
+        def existing = jsonBlobService.get(token, username),
             meta = parseObject(existing.meta)?.findAll { it.key != 'isShared' },
-            ret = jsonBlobService.update(token, [owner: null, acl: '*', meta: meta])
+            ret = jsonBlobService.update(token, [owner: null, acl: '*', meta: meta], username)
 
         this.trackChange('Made View Global', ret)
         ret.formatForClient(true)
@@ -134,11 +135,11 @@ class ViewService extends BaseService {
 
 
     /** Bulk Delete views */
-    void delete(List<String> tokens) {
+    void delete(List<String> tokens, String username = username) {
         List<Exception> failures = []
         tokens.each {
             try {
-                jsonBlobService.archive(it)
+                jsonBlobService.archive(it, username)
             } catch (Exception e) {
                 failures << e
                 logError('Failed to delete View', [token: it], e)
