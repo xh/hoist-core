@@ -197,7 +197,7 @@ class XhController extends BaseController {
     }
 
     def createOrUpdateJsonBlob(String type, String name, String update) {
-        def ret = jsonBlobService.createOrUpdate(type, name,  parseObject(update))
+        def ret = jsonBlobService.createOrUpdate(type, name, parseObject(update))
         renderJSON(ret.formatForClient())
     }
 

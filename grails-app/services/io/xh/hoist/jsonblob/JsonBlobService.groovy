@@ -75,13 +75,14 @@ class JsonBlobService extends BaseService implements DataBinder {
     // Implementation
     //-------------------------
     private JsonBlob updateInternal(JsonBlob blob, Map data, String username) {
-        if (!data) return blob
-        data = [*: data, lastUpdatedBy: username]
-        if (data.containsKey('value')) data.value = serialize(data.value)
-        if (data.containsKey('meta')) data.meta = serialize(data.meta)
+        if (data) {
+            data = [*: data, lastUpdatedBy: username]
+            if (data.containsKey('value')) data.value = serialize(data.value)
+            if (data.containsKey('meta')) data.meta = serialize(data.meta)
 
-        bindData(blob, data)
-        blob.save()
+            bindData(blob, data)
+            blob.save()
+        }
         return blob
     }
 

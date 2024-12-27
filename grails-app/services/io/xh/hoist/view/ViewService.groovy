@@ -135,17 +135,22 @@ class ViewService extends BaseService {
 
     /** Bulk Delete views */
     void delete(List<String> tokens) {
-        def successCount = 0
+        List<Exception> failures = []
         tokens.each {
             try {
                 jsonBlobService.archive(it)
-                successCount++;
             } catch (Exception e) {
+                failures << e
                 logError('Failed to delete View', [token: it], e)
             }
         }
+        def successCount = tokens.size() - failures.size()
         if (successCount) {
-            trackChange('Deleted Views', [count: successCount]);
+            trackChange('Deleted Views', [count: successCount])
+        }
+
+        if (failures) {
+            throw new RuntimeException("Failed to delete ${failures.size()} view(s)", failures.first())
         }
     }
 
