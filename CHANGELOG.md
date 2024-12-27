@@ -8,8 +8,8 @@
 
 ### 🎁 New Features
 
-* `BaseController.runOnInstance` now performs the json serialization on the target instance. This
-  allows lighter-weight remote endpoint executions that do not require object serialization.
+* `BaseController.runOnInstance` and `BaseController.runOnPrimary` now performs the json serialization on the
+  target instance. This allows lighter-weight remote endpoint executions that do not require object serialization.
   Applications must now provide a `ClusterJsonRequest` to this method rather than a `ClusterRequest`
 
 ### ⚙️ Technical
