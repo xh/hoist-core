@@ -78,7 +78,7 @@ class ViewService extends BaseService {
         jsonBlobService.get(token, username).formatForClient(true)
     }
 
-    /** Fetch the latest version of a view. */
+    /** Create a new view. */
     Map create(Map data, String username = username) {
         def ret = jsonBlobService.create([
             type: data.type,
