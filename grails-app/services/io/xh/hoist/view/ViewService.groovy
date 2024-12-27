@@ -56,7 +56,7 @@ class ViewService extends BaseService {
     /** Update state for this user */
     void updateState(String type, String viewInstance, Map update) {
         def currBlob = jsonBlobService.find(type, STATE_BLOB_NAME, username),
-            currValue = parseObject(currBlob.value),
+            currValue = parseObject(currBlob?.value),
             newValue = [
                 currentView: currValue?.currentView ?: [:],
                 userPinned : currValue?.userPinned ?: [:],
