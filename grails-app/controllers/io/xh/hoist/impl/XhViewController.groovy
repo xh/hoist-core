@@ -26,8 +26,7 @@ class XhViewController extends BaseController {
     }
 
     def updateState(String type, String viewInstance) {
-        viewService.updateState(type, viewInstance, parseRequestJSON())
-        renderJSON([success: true])
+        renderJSON(viewService.updateState(type, viewInstance, parseRequestJSON()))
     }
 
     //---------------------------

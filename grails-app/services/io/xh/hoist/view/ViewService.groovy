@@ -36,25 +36,14 @@ class ViewService extends BaseService {
         def blobs = jsonBlobService.list(type, username).split { it.name == STATE_BLOB_NAME }
         def (rawState, views) = [blobs[0], blobs[1]]
 
-        // Transform state
-        rawState = rawState ? parseObject(rawState[0].value) : null
-        def state = [
-            userPinned: rawState?.userPinned ?: [:],
-            autoSave: rawState?.autoSave ?: false
+        return [
+            state: getStateFromBlob(rawState ? rawState.first() : null, viewInstance),
+            views: views*.formatForClient(false)
         ]
-        Map currentView = rawState?.currentView as Map
-        if (currentView?.containsKey(viewInstance)) {
-            state.currentView = currentView[viewInstance]
-        }
-
-        // Transform views
-        views = views*.formatForClient(false)
-
-        return [state: state, views: views]
     }
 
     /** Update state for this user */
-    void updateState(String type, String viewInstance, Map update, String username = username) {
+    Map updateState(String type, String viewInstance, Map update, String username = username) {
         def currBlob = jsonBlobService.find(type, STATE_BLOB_NAME, username, username),
             currValue = parseObject(currBlob?.value),
             newValue = [
@@ -64,10 +53,11 @@ class ViewService extends BaseService {
             ]
 
         if (update.containsKey('currentView')) newValue.currentView[viewInstance] = update.currentView
-        if (update.containsKey('userPinned')) newValue.userPinned = update.userPinned
+        if (update.containsKey('userPinned')) newValue.userPinned = currValue.userPinned + update.userPinned
         if (update.containsKey('autoSave')) newValue.autoSave = update.autoSave
 
-        jsonBlobService.createOrUpdate(type, STATE_BLOB_NAME, [value: newValue], username)
+        def blob = jsonBlobService.createOrUpdate(type, STATE_BLOB_NAME, [value: newValue], username)
+        return getStateFromBlob(blob, viewInstance)
     }
 
     //---------------------------
@@ -81,13 +71,23 @@ class ViewService extends BaseService {
     /** Create a new view. */
     Map create(Map data, String username = username) {
         def ret = jsonBlobService.create([
-            type: data.type,
-            name: data.name,
+            type       : data.type,
+            name       : data.name,
             description: data.description,
-            acl: data.isShared ? '*' : null,
-            meta: [group: data.group, isShared: data.isShared],
-            value: data.value
+            acl        : data.isShared ? '*' : null,
+            meta       : [group: data.group, isShared: data.isShared],
+            value      : data.value
         ], username)
+
+        if (data.isPinned) {
+            updateState(
+                data.type as String,
+                'default',
+                [userPinned: [(ret.token): data.isPinned]],
+                username
+            )
+        }
+
         trackChange('Created View', ret)
         ret.formatForClient(true)
     }
@@ -102,10 +102,10 @@ class ViewService extends BaseService {
         def ret = jsonBlobService.update(
             token,
             [
-                *: data,
-                acl: isGlobal || isShared ? '*' : null,
+                *   : data,
+                acl : isGlobal || isShared ? '*' : null,
                 meta: isGlobal ?
-                    [group: data.group, isDefaultPinned: !!data.isDefaultPinned]:
+                    [group: data.group, isDefaultPinned: !!data.isDefaultPinned] :
                     [group: data.group, isShared: !!data.isShared],
             ],
             username
@@ -167,4 +167,19 @@ class ViewService extends BaseService {
                 data
         )
     }
+
+    private Map getStateFromBlob(JsonBlob blob, String viewInstance) {
+        def rawState = parseObject(blob?.value),
+            ret = [
+                userPinned: rawState?.userPinned ?: [:],
+                autoSave  : rawState?.autoSave ?: false
+            ]
+        Map currentView = rawState?.currentView as Map
+        if (currentView?.containsKey(viewInstance)) {
+            ret.currentView = currentView[viewInstance]
+        }
+        return ret
+    }
+
+
 }
