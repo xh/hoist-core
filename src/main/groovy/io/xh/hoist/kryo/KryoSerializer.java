@@ -1,3 +1,9 @@
+/*
+ * This file belongs to Hoist, an application development toolkit
+ * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
+ *
+ * Copyright © 2025 Extremely Heavy Industries Inc.
+ */
 package io.xh.hoist.kryo;
 
 
@@ -24,8 +30,7 @@ import static java.lang.ThreadLocal.withInitial;
 
 /**
  * A Hazelcast Serializer that uses Kryo.
- *
- * Simplification of strategy from https://github.com/jerrinot/subzero
+ * Simplification of strategy from https://github.com/jerrinot/subzero.
  */
 class KryoSerializer<T> implements StreamSerializer<T>, HazelcastInstanceAware {
 
