@@ -53,7 +53,7 @@ class ViewService extends BaseService {
             ]
 
         if (update.containsKey('currentView')) newValue.currentView[viewInstance] = update.currentView
-        if (update.containsKey('userPinned')) newValue.userPinned = currValue.userPinned + update.userPinned
+        if (update.containsKey('userPinned')) (newValue.userPinned as Map).putAll(update.userPinned as Map)
         if (update.containsKey('autoSave')) newValue.autoSave = update.autoSave
 
         def blob = jsonBlobService.createOrUpdate(type, STATE_BLOB_NAME, [value: newValue], username)
@@ -96,7 +96,7 @@ class ViewService extends BaseService {
     Map updateInfo(String token, Map data, String username = username) {
         def existing = jsonBlobService.get(token, username),
             existingMeta = parseObject(existing.meta),
-            isGlobal = existingMeta.isGlobal,
+            isGlobal = !existing.owner,
             isShared = data.containsKey('isShared') ? data.isShared : existingMeta.isShared;
 
         def ret = jsonBlobService.update(
