@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2023 Extremely Heavy Industries Inc.
+ * Copyright © 2025 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.view
@@ -16,7 +16,19 @@ import io.xh.hoist.track.TrackService
 import static io.xh.hoist.json.JSONParser.parseObject
 
 /**
- * Manage all View state for Hoist's built-in client-side views
+ * Service to manage state for the Hoist React `ViewManager` component.
+ *
+ * Views are intended to store application-defined state - e.g. persisted grid or dashboard layouts.
+ * They are persisted as JSONBlobs, with a `type` - e.g. "portfolioGrid" - defined by the app
+ * developer to distinguish a library of views that should be loaded together into a view manager
+ * for selection by the user.
+ *
+ * An optional `viewInstance` parameter can be used to distinguish between multiple view managers
+ * used within a single app that should all display the same `type` of view, but maintain distinct
+ * preferences as to the last-selected view.
+ *
+ * Provides read/update access to both saved views themselves as well as an additional state blob
+ * to track user-specific preferences across views for the given type.
  */
 @CompileStatic
 class ViewService extends BaseService {
@@ -24,14 +36,13 @@ class ViewService extends BaseService {
     JsonBlobService jsonBlobService
     TrackService trackService
 
+    /** Name for system-managed sidecar blob to store user-specific state/preferences. */
     static final String STATE_BLOB_NAME = 'xhUserState';
 
     //----------------------------
     // ViewManager state + support
     //-----------------------------
-    /**
-     * Get all the views, and the current view state for a user
-     */
+    /** Get all accessible views (without value) + user-specific state. */
     Map getAllData(String type, String viewInstance, String username = username) {
         def blobs = jsonBlobService.list(type, username).split { it.name == STATE_BLOB_NAME }
         def (rawState, views) = [blobs[0], blobs[1]]
@@ -42,8 +53,16 @@ class ViewService extends BaseService {
         ]
     }
 
-    /** Update state for this user */
-    Map updateState(String type, String viewInstance, Map update, String username = username) {
+    /**
+     * Update user-specific state/preferences for this view type:
+     *      - `currentView` - the last-selected view for this user, keyed by `viewInstance`
+     *      - `userPinned` - map of view tokens to booleans, recording explicit pinning/unpinning of views by the user.
+     *      - `autoSave` - boolean indicating whether the user has enabled auto-save for this view type.
+     *
+     * These user preferences are stored alongside and loaded/refreshed with views to keep them in
+     * sync with the views themselves.
+     */
+    void updateState(String type, String viewInstance, Map update, String username = username) {
         def currBlob = jsonBlobService.find(type, STATE_BLOB_NAME, username, username),
             currValue = parseObject(currBlob?.value),
             newValue = [
@@ -92,7 +111,7 @@ class ViewService extends BaseService {
         ret.formatForClient(true)
     }
 
-    /** Update a views metadata */
+    /** Update a view's metadata */
     Map updateInfo(String token, Map data, String username = username) {
         def existing = jsonBlobService.get(token, username),
             existingMeta = parseObject(existing.meta),
@@ -114,7 +133,7 @@ class ViewService extends BaseService {
         ret.formatForClient(true)
     }
 
-    /** Update a views value */
+    /** Update a view's value */
     Map updateValue(String token, Map value, String username = username) {
         def ret = jsonBlobService.update(token, [value: value], username);
         if (ret.owner == null) {
@@ -129,10 +148,9 @@ class ViewService extends BaseService {
             meta = parseObject(existing.meta)?.findAll { it.key != 'isShared' },
             ret = jsonBlobService.update(token, [owner: null, acl: '*', meta: meta], username)
 
-        this.trackChange('Made View Global', ret)
+        trackChange('Made View Global', ret)
         ret.formatForClient(true)
     }
-
 
     /** Bulk Delete views */
     void delete(List<String> tokens, String username = username) {
@@ -154,6 +172,7 @@ class ViewService extends BaseService {
             throw new RuntimeException("Failed to delete ${failures.size()} view(s)", failures.first())
         }
     }
+
 
     //--------------------
     // Implementation

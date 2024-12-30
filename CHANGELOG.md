@@ -2,35 +2,37 @@
 
 ## 27.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Added server-side APIs for the new Hoist React `ViewManager` component. Note this Hoist Core
+  release will be required by `hoist-react >= 71`.
+
 ## 26.0.0 - 2024-12-02
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL - change to runOnInstance signature.)
 
-### 🎁 New Features
-
-* `BaseController.runOnInstance` and `BaseController.runOnPrimary` now performs the json serialization on the
-  target instance. This allows lighter-weight remote endpoint executions that do not require object serialization.
-  Applications must now provide a `ClusterJsonRequest` to this method rather than a `ClusterRequest`
+* `BaseController.runOnInstance` and `BaseController.runOnPrimary` now performs JSON serialization
+  on the target instance. This allows lighter-weight remote endpoint executions that do not require
+  object serialization. Note apps must provide a `ClusterJsonRequest` when calling these methods.
 
 ### ⚙️ Technical
 
-* Update built-in logs to follow a consistent format for their filenames:
+* Updated built-in logs to follow a consistent format for their filenames:
   `[appCode]-[instanceName]-[app|track|monitor].log`.
 
 ## 25.0.0 - 2024-11-15
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
 
-* Dynamic configuration for distributed hazelcast objects is no longer supported -- all
-  configuration
-  must be in place before an instance is started, per Hazelcast documentation. Therefore the
-  `ClusterService.configureXXX` methods have been removed, and have been replaced by support for
-  specifying a static closure `ClusterService.configureCluster`. This is not expected to have a
-  practical impact on any existing applications.
+* Removed support for dynamic configuration of distributed Hazelcast objects. All configuration
+  must be in place before an instance is started, per Hazelcast documentation.
+  * Removed `ClusterService.configureXXX` methods, replaced by support for specifying a static
+    `ClusterService.configureCluster` closure.
+  * Not expected to impact any existing applications.
 
 ### 🐞 Bug Fixes
 
-* Fix to issue with a `Timer` interval specified as a config names failing to update dynamically.
+* Fixed issue where a `Timer` interval specified as an App Config name failed to update dynamically.
 
 ### ⚙️ Technical
 
@@ -2052,8 +2054,6 @@ exposing them to the application as a map.
 
 ------------------------------------------
 
-Copyright © 2024 Extremely Heavy Industries Inc. - all rights reserved
-
-------------------------------------------
-
 📫☎️🌎 info@xh.io | https://xh.io
+
+Copyright © 2025 Extremely Heavy Industries Inc.

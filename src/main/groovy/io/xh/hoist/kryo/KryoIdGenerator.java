@@ -1,3 +1,9 @@
+/*
+ * This file belongs to Hoist, an application development toolkit
+ * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
+ *
+ * Copyright © 2025 Extremely Heavy Industries Inc.
+ */
 package io.xh.hoist.kryo;
 
 
@@ -8,8 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A thread safe generator for serializer ids.
- *
- * Simplification of class from https://github.com/jerrinot/subzero
+ * Simplification of class from https://github.com/jerrinot/subzero.
  */
 public class KryoIdGenerator {
     private static final int BASE_ID = 6000;
