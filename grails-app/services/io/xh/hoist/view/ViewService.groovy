@@ -62,7 +62,7 @@ class ViewService extends BaseService {
      * These user preferences are stored alongside and loaded/refreshed with views to keep them in
      * sync with the views themselves.
      */
-    void updateState(String type, String viewInstance, Map update, String username = username) {
+    Map updateState(String type, String viewInstance, Map update, String username = username) {
         def currBlob = jsonBlobService.find(type, STATE_BLOB_NAME, username, username),
             currValue = parseObject(currBlob?.value),
             newValue = [
