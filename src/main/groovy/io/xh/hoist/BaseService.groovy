@@ -327,7 +327,11 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      */
     Map getAdminStats(){[:]}
 
-    List<String> getComparisonFields(){[]}
+    /**
+     * A list of keys of the getAdminStats() map above that should be actively compared between
+     * instances by the Hoist admin client.
+     */
+    List<String> getComparisonFields() {[]}
 
     /**
      * Return a map of specified config values, appropriate for including in
