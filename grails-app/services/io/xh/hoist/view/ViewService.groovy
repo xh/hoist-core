@@ -114,18 +114,22 @@ class ViewService extends BaseService {
     /** Update a view's metadata */
     Map updateInfo(String token, Map data, String username = username) {
         def existing = jsonBlobService.get(token, username),
-            existingMeta = parseObject(existing.meta),
-            isGlobal = !existing.owner,
-            isShared = data.containsKey('isShared') ? data.isShared : existingMeta.isShared;
+            meta = parseObject(existing.meta) ?: [:],
+            core = [:]
+
+            data.each { k, v ->
+                ['group', 'isShared', 'isDefaultPinned'].contains(k) ?
+                    (meta[k] = v) :
+                    (core[k] = v)
+            }
+
 
         def ret = jsonBlobService.update(
             token,
             [
-                *   : data,
-                acl : isGlobal || isShared ? '*' : null,
-                meta: isGlobal ?
-                    [group: data.group, isDefaultPinned: !!data.isDefaultPinned] :
-                    [group: data.group, isShared: !!data.isShared],
+                *: core,
+                meta: meta,
+                acl: !existing.owner || meta.isShared ? '*' : null
             ],
             username
         )
