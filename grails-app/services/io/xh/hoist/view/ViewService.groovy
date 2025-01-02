@@ -117,12 +117,13 @@ class ViewService extends BaseService {
             meta = parseObject(existing.meta) ?: [:],
             core = [:]
 
-            data.each { k, v ->
-                ['group', 'isShared', 'isDefaultPinned'].contains(k) ?
-                    (meta[k] = v) :
-                    (core[k] = v)
+        data.each { k, v ->
+            if (['name', 'description'].contains(k)) {
+                core[k] = v
+            } else if (['group', 'isShared', 'isDefaultPinned'].contains(k)) {
+                meta[k] = v
             }
-
+        }
 
         def ret = jsonBlobService.update(
             token,
