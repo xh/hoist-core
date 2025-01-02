@@ -65,7 +65,7 @@ class CachedValue<V> implements LogSupport {
 
     private final String loggerName
     private final ITopic<CachedValueEntry<V>> topic
-    private CachedValueEntry<V> entry = CachedValueEntry.UNINITIALIZED_CACHE_VALUE_ENTRY
+    private CachedValueEntry<V> entry = CachedValueEntry.createUninitializedCachedValueEntry(loggerName)
 
     /** @internal - do not construct directly - use {@link BaseService#createCachedValue}. */
     @NamedVariant
@@ -247,8 +247,7 @@ class CachedValue<V> implements LogSupport {
     }
 
     List getComparisonFields() {
-        if (!replicate) return null
-
+        if (!replicate) return []
         def val = get(),
             ret = ['timestamp']
         if (val instanceof Collection || val instanceof Map) {

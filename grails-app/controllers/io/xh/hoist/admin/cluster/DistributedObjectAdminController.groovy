@@ -18,14 +18,14 @@ class DistributedObjectAdminController extends BaseController {
     }
 
     @Access(['HOIST_ADMIN'])
-    def clearObjects() {
+    def clearHibernateCaches() {
         def req = parseRequestJSON()
-        distributedObjectAdminService.clearObjects(req.names)
+        distributedObjectAdminService.clearHibernateCaches(req.names)
         renderJSON([success: true])
     }
 
     @Access(['HOIST_ADMIN'])
-    def clearHibernateCaches() {
+    def clearAllHibernateCaches() {
         distributedObjectAdminService.clearHibernateCaches()
         renderJSON([success: true])
     }

@@ -30,9 +30,17 @@ class CachedValueEntry<T> implements KryoSerializable, LogSupport {
         this.uuid = UUID.randomUUID()
     }
 
-    static final UNINITIALIZED_CACHE_VALUE_ENTRY = new CachedValueEntry()
+    // Returns a default null entry that will be consistent between clusters without replication.
+    static CachedValueEntry createUninitializedCachedValueEntry(String loggerName) {
+        return new CachedValueEntry(loggerName)
+    }
 
-    CachedValueEntry() {}
+    private CachedValueEntry(String loggerName) {
+        this.dateEntered = 0L // Serialized to a `long` - cannot be null.
+        this.loggerName = loggerName
+        this.value = null
+        this.uuid = null
+    }
 
     void write(Kryo kryo, Output output) {
         output.writeLong(dateEntered)

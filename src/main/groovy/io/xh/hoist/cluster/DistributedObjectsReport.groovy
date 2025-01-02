@@ -31,14 +31,13 @@ class DistributedObjectsReport implements JSONFormat {
     }
 
     private Map<String, List<List<String>>> createBreaks() {
-        Map<String, List<List<String>>> breaks = [:]
+        Map<String, List<List<String>>> breaks = [:].withDefault { [] }
         info.groupBy { it.name }.each { name, infoObjs ->
             [infoObjs, infoObjs].eachCombination { a, b ->
                 // Skip comparing objects to themselves.
                 if (a === b) return
 
                 if (!a.isMatching(b)) {
-                    if (!breaks[name]) breaks[name] = []
                     breaks[name].push([a.instanceName, b.instanceName])
                 }
             }

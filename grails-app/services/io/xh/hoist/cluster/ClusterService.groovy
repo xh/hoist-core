@@ -67,7 +67,12 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     }
 
     void init() {
-        adjustPrimaryStatus()
+        logInfo("Using cluster config ${clusterConfig.class.getCanonicalName()}")
+        logInfo(multiInstanceEnabled
+            ? 'Multi-instance is enabled - instances will attempt to cluster.'
+            : 'Multi-instance is disabled - instances will avoid clustering.'
+        )
+
         cluster.addMembershipListener([
             memberAdded  : { MembershipEvent e -> adjustPrimaryStatus(e.members) },
             memberRemoved: { MembershipEvent e -> adjustPrimaryStatus(e.members) }
@@ -185,10 +190,8 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         def clazz
         try {
             clazz = Class.forName(Utils.appPackage + '.ClusterConfig')
-            System.out.println("ClusterService [INFO] | Found custom ClusterConfig at ${Utils.appPackage + '.ClusterConfig'}")
         } catch (ClassNotFoundException e) {
             clazz = Class.forName('io.xh.hoist.ClusterConfig')
-            System.out.println("ClusterService [INFO] | No custom ClusterConfig found at ${Utils.appPackage + '.ClusterConfig'} | Using default.")
         }
         return (clazz.getConstructor().newInstance() as ClusterConfig)
     }
@@ -204,8 +207,8 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     Map getAdminStats() {[
         clusterId   : cluster.clusterState.id,
         instanceName: instanceName,
-        primaryName  : primaryName,
-        isPrimary    : isPrimary,
+        primaryName : primaryName,
+        isPrimary   : isPrimary,
         members     : cluster.members.collect { it.getAttribute('instanceName') }
     ]}
 

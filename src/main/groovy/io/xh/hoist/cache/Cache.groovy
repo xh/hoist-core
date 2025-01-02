@@ -230,8 +230,7 @@ class Cache<K, V> implements LogSupport {
     }
 
     List getComparisonFields() {
-        if (!replicate) return null
-        return ['count', 'latestTimestamp']
+        replicate ? ['count', 'latestTimestamp'] : []
     }
 
     Logger getInstanceLog() {

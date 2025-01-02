@@ -7,13 +7,9 @@ import static io.xh.hoist.util.Utils.getClusterService
 class DistributedObjectInfo implements JSONFormat {
     // Absolute name of the object, make sure to use `svc.hzName(name)` on relative-named objects
     String name
-    // Type of object
     String type
-    // Admin stats of the object
     Map adminStats
-    // Admin stat fields to compare, if any
     List<String> comparisonFields
-    // Name of the cluster instance this data was collected from
     String instanceName
     // Error encountered while collecting this object's data
     String error

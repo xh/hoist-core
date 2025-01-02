@@ -66,24 +66,22 @@ class DistributedObjectAdminService extends BaseService {
         }
     }
 
-    void clearObjects(List<String> names) {
-        def all = clusterService.distributedObjects
+    // Clear all Hibernate caches, or a specific list of caches by name.
+    void clearHibernateCaches(List<String> names = null) {
+        def hibernateCaches = clusterService.distributedObjects.findAll { it instanceof CacheProxy }
+        if (!names) {
+            names = hibernateCaches.collect { it.getName() }
+        }
+
         names.each { name ->
-            def obj = all.find { it.getName() == name }
-            /** Keep in sync with frontend clear set - `DistributedObjectsModel.clearableTypes`. */
-            if (obj instanceof CacheProxy) {
+            def obj = hibernateCaches.find { it.getName() == name }
+            if (obj) {
                 obj.clear()
                 logInfo("Cleared " + name)
             } else {
                 logWarn('Cannot clear object - unsupported type', name)
             }
         }
-    }
-
-    void clearHibernateCaches() {
-        appContext.beanDefinitionNames
-            .findAll { it.startsWith('sessionFactory') }
-            .each { appContext.getBean(it)?.cache?.evictAllRegions() }
     }
 
     Map getAdminStatsForObject(DistributedObject obj) {
@@ -102,7 +100,7 @@ class DistributedObjectAdminService extends BaseService {
         } catch (Exception e) {
             def msg = 'Error extracting admin stats'
             logError(msg, e)
-            error = "$msg | $e.message"
+            error = "$msg | ${e.message}"
         }
 
         return new DistributedObjectInfo(
