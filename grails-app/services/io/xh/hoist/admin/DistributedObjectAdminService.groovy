@@ -44,10 +44,10 @@ class DistributedObjectAdminService extends BaseService {
         def resourceObjs = svcs.collectMany { _, svc ->
             [
                 // Services themselves
-                getInfo(obj: svc, name: svc.class.getName(), type: 'Service'),
+                getHoistInfo(svc, name: svc.class.getName(), type: 'Service'),
                 // Resources, excluding those that are also DistributedObject
                 *svc.resources.findAll { k, v -> !(v instanceof DistributedObject)}.collect { k, v ->
-                    getInfo(obj: v, name: svc.hzName(k))
+                    getHoistInfo(v, name: svc.hzName(k))
                 }
             ]
         },
@@ -56,7 +56,7 @@ class DistributedObjectAdminService extends BaseService {
                     .hzInstance
                     .distributedObjects
                     .findAll { !(it instanceof ExecutorServiceProxy) }
-                    .collect { getInfoForObject(it) }
+                    .collect { getHzInfo(it) }
 
         return [*hzObjs, *resourceObjs].findAll{ it } as List<DistributedObjectInfo>
     }
@@ -84,13 +84,25 @@ class DistributedObjectAdminService extends BaseService {
         }
     }
 
-    Map getAdminStatsForObject(DistributedObject obj) {
-        return getInfoForObject(obj)?.adminStats
+    // No named arg overloads
+    DistributedObjectInfo getInfo(def obj) {
+        getInfo([:], obj)
     }
 
-    DistributedObjectInfo getInfo(Map args) {
-        def obj = args.obj,
-            comparisonFields = null,
+    DistributedObjectInfo getHoistInfo(def obj) {
+        getHoistInfo([:], obj)
+    }
+
+    DistributedObjectInfo getHzInfo(DistributedObject obj) {
+        getHzInfo([:], obj)
+    }
+
+    DistributedObjectInfo getInfo(Map overrides, def obj) {
+        obj instanceof DistributedObject ? getHzInfo(overrides, obj) : getHoistInfo(overrides, obj)
+    }
+
+    DistributedObjectInfo getHoistInfo(Map overrides, def obj) {
+        def comparisonFields = null,
             adminStats = null,
             error = null
 
@@ -107,11 +119,11 @@ class DistributedObjectAdminService extends BaseService {
             comparisonFields: comparisonFields,
             adminStats: adminStats,
             error: error,
-            *: args
+            *: overrides
         )
     }
 
-    DistributedObjectInfo getInfoForObject(DistributedObject obj) {
+    DistributedObjectInfo getHzInfo(Map overrides, DistributedObject obj) {
         switch (obj) {
             case ReplicatedMap:
                 def stats = obj.getReplicatedMapStats()
@@ -127,7 +139,8 @@ class DistributedObjectAdminService extends BaseService {
                         hits          : stats.hits,
                         gets          : stats.getOperationCount,
                         puts          : stats.putOperationCount
-                    ]
+                    ],
+                    *: overrides
                 )
             case IMap:
                 def stats = obj.getLocalMapStats()
@@ -146,7 +159,8 @@ class DistributedObjectAdminService extends BaseService {
                         sets           : stats.setOperationCount,
                         puts           : stats.putOperationCount,
                         nearCache      : getNearCacheStats(stats.nearCacheStats),
-                    ]
+                    ],
+                    *: overrides
                 )
             case ISet:
                 def stats = obj.getLocalSetStats()
@@ -158,7 +172,8 @@ class DistributedObjectAdminService extends BaseService {
                         size          : obj.size(),
                         lastUpdateTime: stats.lastUpdateTime ?: null,
                         lastAccessTime: stats.lastAccessTime ?: null,
-                    ]
+                    ],
+                    *: overrides
                 )
             case ITopic:
                 def stats = obj.getLocalTopicStats()
@@ -168,7 +183,8 @@ class DistributedObjectAdminService extends BaseService {
                         type                 : 'Topic',
                         publishOperationCount: stats.publishOperationCount,
                         receiveOperationCount: stats.receiveOperationCount
-                    ]
+                    ],
+                    *: overrides
                 )
             case RingbufferProxy:
                 return new DistributedObjectInfo(
@@ -177,7 +193,8 @@ class DistributedObjectAdminService extends BaseService {
                         type    : 'Ringbuffer',
                         size    : obj.size(),
                         capacity: obj.capacity()
-                    ]
+                    ],
+                    *: overrides
                 )
             case CacheProxy:
                 def evictionConfig = obj.cacheConfig.evictionConfig,
@@ -201,14 +218,16 @@ class DistributedObjectAdminService extends BaseService {
                             evictionPolicy: evictionConfig.evictionPolicy,
                             expiryPolicy  : formatExpiryPolicy(expiryPolicy)
                         ]
-                    ]
+                    ],
+                    *: overrides
                 )
             default:
                 return new DistributedObjectInfo(
                     adminStats: [
                         name: obj.getName(),
                         type: obj.class.toString()
-                    ]
+                    ],
+                    *: overrides
                 )
         }
     }

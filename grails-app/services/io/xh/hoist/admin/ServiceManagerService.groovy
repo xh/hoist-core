@@ -50,10 +50,7 @@ class ServiceManagerService extends BaseService {
         svc.resources
             .findAll { !it.key.startsWith('xh_') }  // skip hoist implementation objects
             .collect { k, v ->
-                Map stats = v instanceof DistributedObject ?
-                    distributedObjectAdminService.getAdminStatsForObject(v) :
-                    v.adminStats
-
+                Map stats = distributedObjectAdminService.getInfo(v)?.adminStats
                 // rely on the name (key) service knows, i.e avoid HZ prefix
                 return [*: stats, name: k]
             }
