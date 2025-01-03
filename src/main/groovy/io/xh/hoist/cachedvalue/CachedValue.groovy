@@ -12,6 +12,7 @@ import com.hazelcast.topic.Message
 import com.hazelcast.topic.ReliableMessageListener
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
+import io.xh.hoist.AdminStats
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.log.LogSupport
@@ -30,7 +31,7 @@ import static java.lang.System.currentTimeMillis
  * Similar to {@link io.xh.hoist.cache.Cache}, but a single value that can be read, written, and expired.
  * Like Cache, this object supports replication across the cluster.
  */
-class CachedValue<V> implements LogSupport {
+class CachedValue<V> implements LogSupport, AdminStats {
 
     /** Service using this object. */
     public final BaseService svc
@@ -246,7 +247,7 @@ class CachedValue<V> implements LogSupport {
         return ret
     }
 
-    List getComparisonFields() {
+    List<String> getComparableAdminStats() {
         if (!replicate) return []
         def val = get(),
             ret = ['timestamp']
@@ -255,5 +256,4 @@ class CachedValue<V> implements LogSupport {
         }
         return ret
     }
-
 }

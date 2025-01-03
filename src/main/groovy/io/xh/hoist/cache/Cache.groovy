@@ -10,6 +10,7 @@ import com.hazelcast.replicatedmap.ReplicatedMap
 import groovy.transform.CompileStatic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
+import io.xh.hoist.AdminStats
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.log.LogSupport
@@ -31,7 +32,7 @@ import static java.lang.System.currentTimeMillis
  * A key-value Cache, with support for optional entry TTL and replication across a cluster.
  */
 @CompileStatic
-class Cache<K, V> implements LogSupport {
+class Cache<K, V> implements LogSupport, AdminStats {
 
     /** Service using this object. */
     public final BaseService svc
@@ -229,7 +230,7 @@ class Cache<K, V> implements LogSupport {
         ]
     }
 
-    List getComparisonFields() {
+    List<String> getComparableAdminStats() {
         replicate ? ['count', 'latestTimestamp'] : []
     }
 
