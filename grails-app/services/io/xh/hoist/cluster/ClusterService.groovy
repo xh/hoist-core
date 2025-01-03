@@ -73,6 +73,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
             : 'Multi-instance is disabled - instances will avoid clustering.'
         )
 
+        adjustPrimaryStatus()
         cluster.addMembershipListener([
             memberAdded  : { MembershipEvent e -> adjustPrimaryStatus(e.members) },
             memberRemoved: { MembershipEvent e -> adjustPrimaryStatus(e.members) }
@@ -178,6 +179,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
                 logInfo("I have become the primary instance. All hail me, '$instanceName'") :
                 logInfo('I am no longer the primary instance.')
         }
+
     }
 
     private Member getMember(String instanceName) {
