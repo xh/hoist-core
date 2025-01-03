@@ -64,7 +64,7 @@ class HzAdminStats implements AdminStats {
                     gets           : stats.getOperationCount,
                     sets           : stats.setOperationCount,
                     puts           : stats.putOperationCount,
-                    nearCache      : getNearCacheStats(stats.nearCacheStats),
+                    nearCache      : getNearCacheStats(stats.nearCacheStats)
                 ]
                 break
             case ISet:
@@ -75,7 +75,7 @@ class HzAdminStats implements AdminStats {
                     type          : 'ISet',
                     size          : obj.size(),
                     lastUpdateTime: stats.lastUpdateTime ?: null,
-                    lastAccessTime: stats.lastAccessTime ?: null,
+                    lastAccessTime: stats.lastAccessTime ?: null
                 ]
                 break
             case ITopic:

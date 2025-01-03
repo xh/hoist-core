@@ -15,8 +15,9 @@ class ClusterObjectInfo implements JSONFormat {
     String instanceName
     String error
 
-    ClusterObjectInfo(AdminStats target, Map meta = [:] ) {
+    ClusterObjectInfo(Map config = [:] ) {
         try {
+            def target = config.target as AdminStats
             adminStats = target.adminStats
             comparableAdminStats = target.comparableAdminStats
         } catch (Exception e) {
@@ -24,8 +25,8 @@ class ClusterObjectInfo implements JSONFormat {
             comparableAdminStats = emptyList()
             error = "Error computing admin stats | ${e.message}"
         }
-        name = meta.name ?: adminStats.name
-        type = meta.type ?: adminStats.type
+        name = config.name ?: adminStats.name
+        type = config.type ?: adminStats.type
         instanceName = clusterService.localName
     }
 

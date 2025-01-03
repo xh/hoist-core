@@ -56,10 +56,10 @@ class ClusterObjectsService extends BaseService {
         Map<String, BaseService> svcs = grailsApplication.mainContext.getBeansOfType(BaseService.class, false, false)
         def hoistObjs = svcs.collectMany { _, svc ->
             [
-                new ClusterObjectInfo(svc, [name: svc.class.name, type: 'Service']),
+                new ClusterObjectInfo(name: svc.class.name, type: 'Service', target: svc),
                 *svc.resources
                     .findAll { k, v -> v instanceof AdminStats }
-                    .collect { k, v -> new ClusterObjectInfo(v as AdminStats, [name: svc.hzName(k)]) }
+                    .collect { k, v -> new ClusterObjectInfo(name: svc.hzName(k), target: v) }
             ]
         }
 
@@ -68,7 +68,7 @@ class ClusterObjectsService extends BaseService {
             .hzInstance
             .distributedObjects
             .findAll { !(it instanceof ExecutorServiceProxy) }
-            .collect { new ClusterObjectInfo(new HzAdminStats(it)) }
+            .collect { new ClusterObjectInfo(target: new HzAdminStats(it)) }
 
         return (hzObjs + hoistObjs) as List<ClusterObjectInfo>
     }
