@@ -10,23 +10,23 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
 
 @Access(['HOIST_ADMIN_READER'])
-class DistributedObjectAdminController extends BaseController {
-    def distributedObjectAdminService
+class ClusterObjectsAdminController extends BaseController {
+    def clusterObjectsService
 
-    def getDistributedObjectsReport() {
-        renderJSON(distributedObjectAdminService.getDistributedObjectsReport())
+    def getClusterObjectsReport() {
+        renderJSON(clusterObjectsService.getClusterObjectsReport())
     }
 
     @Access(['HOIST_ADMIN'])
     def clearHibernateCaches() {
         def req = parseRequestJSON()
-        distributedObjectAdminService.clearHibernateCaches(req.names)
+        clusterObjectsService.clearHibernateCaches(req.names)
         renderJSON([success: true])
     }
 
     @Access(['HOIST_ADMIN'])
     def clearAllHibernateCaches() {
-        distributedObjectAdminService.clearHibernateCaches()
+        clusterObjectsService.clearHibernateCaches()
         renderJSON([success: true])
     }
 }
