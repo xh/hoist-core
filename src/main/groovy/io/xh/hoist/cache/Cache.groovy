@@ -223,7 +223,8 @@ class Cache<K, V> implements LogSupport, AdminStats {
     Map getAdminStats() {
          [
                 name           : name,
-                type           : 'Cache' + (replicate ? ' (replicated)' : ''),
+                type           : 'Cache',
+                replicate      : replicate,
                 count          : size(),
                 latestTimestamp: _map.max { it.value.dateEntered }?.value?.dateEntered,
                 lastCullTime   : cullTimer.lastRunCompleted

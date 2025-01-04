@@ -238,7 +238,8 @@ class CachedValue<V> implements LogSupport, AdminStats {
         def val = get(),
             ret = [
                 name     : name,
-                type     : 'CachedValue' + (replicate ? ' (replicated)' : ''),
+                type     : 'CachedValue',
+                replicate: replicate,
                 timestamp: timestamp
             ]
         if (val instanceof Collection || val instanceof Map) {
