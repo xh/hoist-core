@@ -4,15 +4,14 @@
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - Hoist React update)
 
-* Requires `hoist-react >= 71` to support enhanced Distributed Objects page.
+* Requires `hoist-react >= 71` to support enhanced cluster state monitoring.
 
 ### 🎁 New Features
 
 * Added server-side APIs for the new Hoist React `ViewManager` component. Note this Hoist Core
   release will be required by `hoist-react >= 71`.
-* `DistributedObjectAdminService` now compares certain `adminState` fields of distributed objects
-  between instances. Implement `BaseService.getComparisonFields()` to enumerate custom fields to
-  compare.
+* New support tools for easily comparing state of objects (Hoist and Hazelcast native) across cluster.
+  Provide new `AdminState` interface to support this functionality.
 
 ## 26.0.0 - 2024-12-02
 
