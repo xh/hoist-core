@@ -67,6 +67,12 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     }
 
     void init() {
+        logInfo("Using cluster config ${clusterConfig.class.getCanonicalName()}")
+        logInfo(multiInstanceEnabled
+            ? 'Multi-instance is enabled - instances will attempt to cluster.'
+            : 'Multi-instance is disabled - instances will avoid clustering.'
+        )
+
         adjustPrimaryStatus()
         cluster.addMembershipListener([
             memberAdded  : { MembershipEvent e -> adjustPrimaryStatus(e.members) },
@@ -173,6 +179,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
                 logInfo("I have become the primary instance. All hail me, '$instanceName'") :
                 logInfo('I am no longer the primary instance.')
         }
+
     }
 
     private Member getMember(String instanceName) {
@@ -202,8 +209,8 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     Map getAdminStats() {[
         clusterId   : cluster.clusterState.id,
         instanceName: instanceName,
-        primaryName  : primaryName,
-        isPrimary    : isPrimary,
+        primaryName : primaryName,
+        isPrimary   : isPrimary,
         members     : cluster.members.collect { it.getAttribute('instanceName') }
     ]}
 

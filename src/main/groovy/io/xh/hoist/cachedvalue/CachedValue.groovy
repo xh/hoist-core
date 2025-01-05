@@ -12,6 +12,7 @@ import com.hazelcast.topic.Message
 import com.hazelcast.topic.ReliableMessageListener
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
+import io.xh.hoist.AdminStats
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.log.LogSupport
@@ -30,7 +31,7 @@ import static java.lang.System.currentTimeMillis
  * Similar to {@link io.xh.hoist.cache.Cache}, but a single value that can be read, written, and expired.
  * Like Cache, this object supports replication across the cluster.
  */
-class CachedValue<V> implements LogSupport {
+class CachedValue<V> implements LogSupport, AdminStats {
 
     /** Service using this object. */
     public final BaseService svc
@@ -65,8 +66,7 @@ class CachedValue<V> implements LogSupport {
 
     private final String loggerName
     private final ITopic<CachedValueEntry<V>> topic
-    private CachedValueEntry<V> entry = new CachedValueEntry<V>(null, loggerName)
-
+    private CachedValueEntry<V> entry = CachedValueEntry.createUninitializedCachedValueEntry(loggerName)
 
     /** @internal - do not construct directly - use {@link BaseService#createCachedValue}. */
     @NamedVariant
@@ -234,12 +234,12 @@ class CachedValue<V> implements LogSupport {
         LoggerFactory.getLogger(loggerName)
     }
 
-
     Map getAdminStats() {
         def val = get(),
             ret = [
                 name     : name,
-                type     : 'CachedValue' + (replicate ? ' (replicated)' : ''),
+                type     : 'CachedValue',
+                replicate: replicate,
                 timestamp: timestamp
             ]
         if (val instanceof Collection || val instanceof Map) {
@@ -248,4 +248,13 @@ class CachedValue<V> implements LogSupport {
         return ret
     }
 
+    List<String> getComparableAdminStats() {
+        if (!replicate) return []
+        def val = get(),
+            ret = ['timestamp']
+        if (val instanceof Collection || val instanceof Map) {
+            ret << 'size'
+        }
+        return ret
+    }
 }

@@ -10,6 +10,7 @@ import com.hazelcast.replicatedmap.ReplicatedMap
 import groovy.transform.CompileStatic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
+import io.xh.hoist.AdminStats
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.log.LogSupport
@@ -31,7 +32,7 @@ import static java.lang.System.currentTimeMillis
  * A key-value Cache, with support for optional entry TTL and replication across a cluster.
  */
 @CompileStatic
-class Cache<K, V> implements LogSupport {
+class Cache<K, V> implements LogSupport, AdminStats {
 
     /** Service using this object. */
     public final BaseService svc
@@ -71,7 +72,6 @@ class Cache<K, V> implements LogSupport {
      */
     public final boolean serializeOldValue
 
-
     private final String loggerName
     private final Map<K, CacheEntry<V>> _map
     private final Timer cullTimer
@@ -100,7 +100,7 @@ class Cache<K, V> implements LogSupport {
         // Allow fine grain logging for this within namespace of owning service
         loggerName = "${svc.instanceLog.name}.Cache[$name]"
 
-        _map = useCluster ? hzInstance.getReplicatedMap(svc.hzName(name)) : new ConcurrentHashMap()
+        _map = useCluster ? hzInstance.getReplicatedMap('xhcache.' + svc.hzName(name)) : new ConcurrentHashMap()
         cullTimer = new Timer(
             name: 'cullEntries',
             owner: this,
@@ -209,7 +209,7 @@ class Cache<K, V> implements LogSupport {
 
         withDebug("Waiting for cache entry value at '$key'") {
             for (def startTime = currentTimeMillis(); !intervalElapsed(timeout, startTime); sleep(interval)) {
-                if (getEntry(key)) return;
+                if (getEntry(key)) return
             }
 
             String msg = timeoutMessage ?: "Timed out after ${timeout}ms waiting for cached entry at '$key'"
@@ -221,13 +221,18 @@ class Cache<K, V> implements LogSupport {
     // Implementation
     //------------------------
     Map getAdminStats() {
-        [
-            name           : name,
-            type           : 'Cache' + (replicate ? ' (replicated)' : ''),
-            count          : size(),
-            latestTimestamp: _map.max { it.value.dateEntered }?.value?.dateEntered,
-            lastCullTime   : cullTimer.lastRunCompleted
+         [
+                name           : name,
+                type           : 'Cache',
+                replicate      : replicate,
+                count          : size(),
+                latestTimestamp: _map.max { it.value.dateEntered }?.value?.dateEntered,
+                lastCullTime   : cullTimer.lastRunCompleted
         ]
+    }
+
+    List<String> getComparableAdminStats() {
+        replicate ? ['count', 'latestTimestamp'] : []
     }
 
     Logger getInstanceLog() {

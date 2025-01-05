@@ -15,7 +15,6 @@ import io.xh.hoist.util.Utils
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 
 import static grails.async.Promises.task
-
 import static java.lang.Thread.sleep
 
 @Access(['HOIST_ADMIN_READER'])
