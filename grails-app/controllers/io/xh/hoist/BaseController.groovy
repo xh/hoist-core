@@ -106,7 +106,7 @@ abstract class BaseController implements LogSupport, IdentitySupport {
      * Run a task on *all* instances.
      * Renders a Map of instance name to ClusterResponse.
      */
-    protected void runOnAllInstances(ClusterRequest task) {
+    protected void runOnAllInstances(ClusterJsonRequest task) {
         renderJSON(clusterService.submitToAllInstances(task))
     }
 
