@@ -1,23 +1,23 @@
 # Changelog
 
-## 27.0-SNAPSHOT - unreleased
+## 27.0.0 - 2025-01-07
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - Hoist React update)
 
-* Requires `hoist-react >= 71` to support enhanced cluster state monitoring.
+* Requires (and required by) `hoist-react >= 71` to support enhanced cluster state monitoring and
+  view management features.
 
 ### 🎁 New Features
 
-* Added server-side APIs for the new Hoist React `ViewManager` component. Note this Hoist Core
-  release will be required by `hoist-react >= 71`.
-* New support tools for easily comparing state of objects (Hoist and Hazelcast native) across cluster.
-  Provide new `AdminState` interface to support this functionality.
+* Added server-side APIs for the new Hoist React `ViewManager` component.
+* Improved support for easily comparing state of objects (Hoist and Hazelcast native) across members
+  of a cluster. Provided a new `AdminState` interface to support this functionality.
 
 ## 26.0.0 - 2024-12-02
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL - change to runOnInstance signature.)
 
-* `BaseController.runOnInstance` and `BaseController.runOnPrimary` now performs JSON serialization
+* Optimized `BaseController.runOnInstance()` and `runOnPrimary()` to perform JSON serialization
   on the target instance. This allows lighter-weight remote endpoint executions that do not require
   object serialization. Note apps must provide a `ClusterJsonRequest` when calling these methods.
 
