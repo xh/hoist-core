@@ -1,5 +1,7 @@
 # Changelog
 
+## 28.0-SNAPSHOT - unreleased
+
 ## 27.0.0 - 2025-01-08
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - Hoist React update)
