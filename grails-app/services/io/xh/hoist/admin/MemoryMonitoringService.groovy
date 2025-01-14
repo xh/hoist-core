@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2023 Extremely Heavy Industries Inc.
+ * Copyright © 2025 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.admin
@@ -40,7 +40,6 @@ class MemoryMonitoringService extends BaseService {
     private Date _lastInfoLogged
     private final String blobOwner = 'xhMemoryMonitoringService'
     private final static String blobType =  isProduction ? 'xhMemorySnapshots' : "xhMemorySnapshots_$appEnvironment"
-    private String blobToken
 
     void init() {
         createTimer(
@@ -211,19 +210,14 @@ class MemoryMonitoringService extends BaseService {
 
     private void persistSnapshots() {
         try {
-            if (blobToken) {
-                jsonBlobService.update(blobToken, [value: snapshots], blobOwner)
-            } else {
-                def blob = jsonBlobService.create([
-                    name : clusterService.instanceName,
-                    type : blobType,
-                    value: snapshots
-                ], blobOwner)
-                blobToken = blob.token
-            }
+            jsonBlobService.createOrUpdate(
+                blobType,
+                clusterService.instanceName,
+                [value: snapshots],
+                blobOwner
+            )
         } catch (Exception e) {
             logError('Failed to persist memory snapshots', e)
-            blobToken = null
         }
     }
 

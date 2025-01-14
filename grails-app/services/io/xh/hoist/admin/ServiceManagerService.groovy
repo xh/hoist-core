@@ -2,18 +2,18 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2023 Extremely Heavy Industries Inc.
+ * Copyright © 2025 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.admin
 
 import com.hazelcast.core.DistributedObject
+import io.xh.hoist.AdminStats
 import io.xh.hoist.BaseService
 
 class ServiceManagerService extends BaseService {
 
-    def grailsApplication,
-        clusterAdminService
+    def grailsApplication
 
     Collection<Map> listServices() {
         getServicesInternal().collect { name, svc ->
@@ -47,18 +47,18 @@ class ServiceManagerService extends BaseService {
     // Implementation
     //----------------------
     private List getResourceStats(BaseService svc) {
+        def ret = []
         svc.resources
             .findAll { !it.key.startsWith('xh_') }  // skip hoist implementation objects
-            .collect { k, v ->
-                Map stats = v instanceof DistributedObject ?
-                    clusterAdminService.getAdminStatsForObject(v) :
-                    v.adminStats
-
+            .each { k, v ->
+                AdminStats stats = null
+                if (v instanceof AdminStats) stats = v
+                if (v instanceof DistributedObject) stats = new HzAdminStats(v)
                 // rely on the name (key) service knows, i.e avoid HZ prefix
-                return [*: stats, name: k]
+                if (stats) ret << [*: stats.adminStats, name: k]
             }
+        return ret
     }
-
 
     private Map<String, BaseService> getServicesInternal() {
         return grailsApplication.mainContext.getBeansOfType(BaseService.class, false, false)

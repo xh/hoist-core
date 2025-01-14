@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2023 Extremely Heavy Industries Inc.
+ * Copyright © 2025 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.impl
@@ -176,6 +176,11 @@ class XhController extends BaseController {
         renderJSON(ret.formatForClient())
     }
 
+    def findJsonBlob(String type, String name, String owner) {
+        def ret = jsonBlobService.find(type, name, owner)
+        renderJSON(ret?.formatForClient())
+    }
+
     def listJsonBlobs(String type, boolean includeValue) {
         def ret = jsonBlobService.list(type)
         renderJSON(ret*.formatForClient(includeValue))
@@ -188,6 +193,11 @@ class XhController extends BaseController {
 
     def updateJsonBlob(String token, String update) {
         def ret = jsonBlobService.update(token, parseObject(update))
+        renderJSON(ret.formatForClient())
+    }
+
+    def createOrUpdateJsonBlob(String type, String name, String update) {
+        def ret = jsonBlobService.createOrUpdate(type, name, parseObject(update))
         renderJSON(ret.formatForClient())
     }
 

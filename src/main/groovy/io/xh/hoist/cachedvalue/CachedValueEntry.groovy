@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2023 Extremely Heavy Industries Inc.
+ * Copyright © 2025 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.cachedvalue
@@ -30,7 +30,17 @@ class CachedValueEntry<T> implements KryoSerializable, LogSupport {
         this.uuid = UUID.randomUUID()
     }
 
-    CachedValueEntry() {}
+    // Returns a default null entry that will be consistent between clusters without replication.
+    static CachedValueEntry createUninitializedCachedValueEntry(String loggerName) {
+        return new CachedValueEntry(loggerName)
+    }
+
+    private CachedValueEntry(String loggerName) {
+        this.dateEntered = 0L // Serialized to a `long` - cannot be null.
+        this.loggerName = loggerName
+        this.value = null
+        this.uuid = null
+    }
 
     void write(Kryo kryo, Output output) {
         output.writeLong(dateEntered)

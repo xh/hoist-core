@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2023 Extremely Heavy Industries Inc.
+ * Copyright © 2025 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist
@@ -53,7 +53,7 @@ import static io.xh.hoist.cluster.ClusterService.hzInstance
  * will be associated with this service for the purposes of logging and management via the
  * Hoist admin console.
  */
-abstract class BaseService implements LogSupport, IdentitySupport, DisposableBean {
+abstract class BaseService implements LogSupport, IdentitySupport, DisposableBean, AdminStats {
 
     IdentityService identityService
     ClusterService clusterService
@@ -326,6 +326,9 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * included here and will be automatically included by the framework.
      */
     Map getAdminStats(){[:]}
+
+
+    List<String> getComparableAdminStats() {[]}
 
     /**
      * Return a map of specified config values, appropriate for including in

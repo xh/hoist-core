@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2023 Extremely Heavy Industries Inc.
+ * Copyright © 2025 Extremely Heavy Industries Inc.
  */
 package io.xh.hoist.jsonblob
 
@@ -20,12 +20,15 @@ class JsonBlobService extends BaseService implements DataBinder {
     @ReadOnly
     JsonBlob get(String token, String username = username) {
         JsonBlob ret = JsonBlob.findByTokenAndArchivedDate(token, 0)
-        if (!ret) {
-            throw new RuntimeException("Active JsonBlob not found with token '$token'")
-        }
-        if (!passesAcl(ret, username)) {
-            throw new NotAuthorizedException("User '$username' does not have access to JsonBlob with token '$token'")
-        }
+        if (!ret) throw new RuntimeException("Active JsonBlob not found with token '$token'")
+        ensureAccess(ret, username)
+        return ret
+    }
+
+    @ReadOnly
+    JsonBlob find(String type, String name, String owner, String username = username) {
+        def ret = JsonBlob.findByTypeAndNameAndOwnerAndArchivedDate(type, name, owner, 0)
+        if (ret) ensureAccess(ret, username)
         return ret
     }
 
@@ -34,6 +37,12 @@ class JsonBlobService extends BaseService implements DataBinder {
         JsonBlob
                 .findAllByTypeAndArchivedDate(type, 0)
                 .findAll { passesAcl(it, username) }
+    }
+
+    @Transactional
+    JsonBlob update(String token, Map data, String username = username) {
+        def blob = get(token, username)
+        return updateInternal(blob, data, username)
     }
 
     @Transactional
@@ -46,17 +55,11 @@ class JsonBlobService extends BaseService implements DataBinder {
     }
 
     @Transactional
-    JsonBlob update(String token, Map data, String username = username) {
-        def blob = get(token, username)
-        if (data) {
-            data = [*: data, lastUpdatedBy: username]
-            if (data.containsKey('value')) data.value = serialize(data.value)
-            if (data.containsKey('meta')) data.meta = serialize(data.meta)
-
-            bindData(blob, data)
-            blob.save()
-        }
-        return blob
+    JsonBlob createOrUpdate(String type, String name, Map data, String username = username) {
+        def blob = find(type, name, username, username)
+        return blob ?
+            updateInternal(blob, data, username) :
+            create([*: data, type: type, name: name, owner: username], username)
     }
 
     @Transactional
@@ -71,7 +74,25 @@ class JsonBlobService extends BaseService implements DataBinder {
     //-------------------------
     // Implementation
     //-------------------------
+    private JsonBlob updateInternal(JsonBlob blob, Map data, String username) {
+        if (data) {
+            data = [*: data, lastUpdatedBy: username]
+            if (data.containsKey('value')) data.value = serialize(data.value)
+            if (data.containsKey('meta')) data.meta = serialize(data.meta)
+
+            bindData(blob, data)
+            blob.save()
+        }
+        return blob
+    }
+
     private boolean passesAcl(JsonBlob blob, String username) {
         return blob.acl == '*' || blob.owner == username
+    }
+
+    private ensureAccess(JsonBlob blob, String username) {
+        if (!passesAcl(blob, username)) {
+            throw new NotAuthorizedException("User '$username' does not have access to JsonBlob with token '${blob.token}'")
+        }
     }
 }

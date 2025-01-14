@@ -2,14 +2,13 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2023 Extremely Heavy Industries Inc.
+ * Copyright © 2025 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.admin
 
 import io.xh.hoist.BaseService
 import io.xh.hoist.exception.DataNotAvailableException
-import io.xh.hoist.util.DateTimeUtils
 import org.apache.tomcat.jdbc.pool.DataSource as PooledDataSource
 import org.apache.tomcat.jdbc.pool.PoolConfiguration
 import org.springframework.boot.jdbc.DataSourceUnwrapper
@@ -37,7 +36,7 @@ class ConnectionPoolMonitoringService extends BaseService {
         createTimer(
             name: 'takeSnapshot',
             runFn: this.&takeSnapshot,
-            interval: {enabled ? config.snapshotInterval * DateTimeUtils.SECONDS: -1}
+            interval: {enabled ? config.snapshotInterval * SECONDS: -1}
         )
     }
 

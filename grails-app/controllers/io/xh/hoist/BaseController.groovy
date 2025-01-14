@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2023 Extremely Heavy Industries Inc.
+ * Copyright © 2025 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist
@@ -106,7 +106,7 @@ abstract class BaseController implements LogSupport, IdentitySupport {
      * Run a task on *all* instances.
      * Renders a Map of instance name to ClusterResponse.
      */
-    protected void runOnAllInstances(ClusterRequest task) {
+    protected void runOnAllInstances(ClusterJsonRequest task) {
         renderJSON(clusterService.submitToAllInstances(task))
     }
 
