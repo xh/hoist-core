@@ -2,8 +2,11 @@
 
 ## 28.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - requires Java 17 for Hazelcast)
+
 ### ⚙️ Technical
 * Minor Grails upgrades
+* Hazelcast upgrade 5.3.7 -> 5.5.0
 
 ## 27.0.0 - 2025-01-08
 
