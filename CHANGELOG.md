@@ -4,6 +4,10 @@
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - requires Java 17 for Hazelcast)
 
+### 🐞 Bug Fixes
+
+* Fixed `JsonBlob` unique name validation which also affected `Views`.
+
 ### ⚙️ Technical
 * Minor Grails upgrades
 * Hazelcast upgrade 5.3.7 -> 5.5.0
