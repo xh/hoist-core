@@ -412,13 +412,13 @@ implementation of this monitoring API for both Hoist and non-Hoist based applica
 ## Development setup
 
 ### Hot reloading.
-Hot reloading is supported for both Java11 and Java17 using the java hotswap agent.  Please
+Hot reloading is supported for Java17 using the java hotswap agent.  Please
 see http://hotswapagent.org/ and https://github.com/HotswapProjects/HotswapAgent for details on
 how to setup.
 
 Please note that the following is needed for running in this mode.  **See the toolbox application
 for an example of this setup.**
-- A specialized hotswap jvm (see links above for setup, available for java11 and java17)
+- A specialized hotswap jvm (see links above for setup, available for java17)
 - The file `groovyReset.jar` in your project or dependencies
 - The following JVM arguments when starting your application:
   `-XX:HotswapAgent=fatjar`, `-XX:+AllowEnhancedClassRedefinition`,
