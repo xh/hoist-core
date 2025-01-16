@@ -41,7 +41,9 @@ class JsonBlob implements JSONFormat {
         type maxSize: 50, blank: false
         owner maxSize: 50, nullable: true, blank: false
         acl nullable: true
-        name maxSize: 255, blank: false, unique: ['owner', 'type', 'archivedDate']
+        name maxSize: 255, blank: false, validator: { val, obj ->
+            isNameUnique(val, obj) ?: 'default.not.unique.message'
+        }
         value validator: {Utils.isJSON(it) ?: 'default.invalid.json.message'}
         meta nullable: true, validator: {Utils.isJSON(it) ?: 'default.invalid.json.message'}
         description nullable: true
@@ -89,5 +91,28 @@ class JsonBlob implements JSONFormat {
         }
 
         return ret
+    }
+
+    //-------------------
+    // Implementation
+    //-------------------
+    private static boolean isNameUnique(String blobName, JsonBlob blob) {
+        // Unique constraint validation across nullable fields can be unreliable.
+        // See https://github.com/grails/grails-data-mapping/issues/1585
+        !(blob.owner != null ?
+            where {
+                name == blobName &&
+                    type == blob.type &&
+                    archivedDate == blob.archivedDate &&
+                    owner == blob.owner &&
+                    token != blob.token
+            } :
+            where {
+                name == blobName &&
+                    type == blob.type &&
+                    archivedDate == blob.archivedDate &&
+                    owner == null &&
+                    token != blob.token
+            })
     }
 }
