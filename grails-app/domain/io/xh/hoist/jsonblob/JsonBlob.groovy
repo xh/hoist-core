@@ -42,26 +42,7 @@ class JsonBlob implements JSONFormat {
         owner maxSize: 50, nullable: true, blank: false
         acl nullable: true
         name maxSize: 255, blank: false, validator: { val, obj ->
-            // Unique constraint validation across nullable fields can be unreliable.
-            // See https://github.com/grails/grails-data-mapping/issues/1585
-
-            if (obj.owner != null) {
-                where {
-                    name == val &&
-                        type == obj.type &&
-                        archivedDate == obj.archivedDate &&
-                        owner == obj.owner &&
-                        token != obj.token
-                }.count() <= 0 ?: 'default.not.unique.message'
-            } else {
-                where {
-                    name == val &&
-                        type == obj.type &&
-                        archivedDate == obj.archivedDate &&
-                        owner == null &&
-                        token != obj.token
-                }.count() <= 0 ?: 'default.not.unique.message'
-            }
+            isNameUnique(val, obj) ?: 'default.not.unique.message'
         }
         value validator: {Utils.isJSON(it) ?: 'default.invalid.json.message'}
         meta nullable: true, validator: {Utils.isJSON(it) ?: 'default.invalid.json.message'}
@@ -110,5 +91,28 @@ class JsonBlob implements JSONFormat {
         }
 
         return ret
+    }
+
+    //-------------------
+    // Implementation
+    //-------------------
+    private static boolean isNameUnique(String blobName, JsonBlob blob) {
+        // Unique constraint validation across nullable fields can be unreliable.
+        // See https://github.com/grails/grails-data-mapping/issues/1585
+        !(blob.owner != null ?
+            where {
+                name == blobName &&
+                    type == blob.type &&
+                    archivedDate == blob.archivedDate &&
+                    owner == blob.owner &&
+                    token != blob.token
+            } :
+            where {
+                name == blobName &&
+                    type == blob.type &&
+                    archivedDate == blob.archivedDate &&
+                    owner == null &&
+                    token != blob.token
+            })
     }
 }
