@@ -2,7 +2,13 @@
 
 ## 28.0-SNAPSHOT - unreleased
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - requires Java 17 for Hazelcast)
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - requires Java 17 and Hoist React 72.x)
+
+### 🎁 New Features
+* Added support for conditional persisting of activity tracking messages based on `TrackSeverity`.
+By default all messages continue to have severity `INFO`, which is the default active level.
+Make tracking more or less verbose by adding an entry to the new `levels` property in
+`TrackService.xhActivityTrackingConfig`.  See TrackService for more info.
 
 ### 🐞 Bug Fixes
 
