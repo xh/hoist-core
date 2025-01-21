@@ -16,6 +16,7 @@ import io.xh.hoist.util.Utils
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
 import static io.xh.hoist.json.JSONSerializer.serialize
+import static io.xh.hoist.track.TrackSeverity.INFO
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 import static grails.async.Promises.task
 import static io.xh.hoist.util.Utils.getCurrentRequest
@@ -31,7 +32,19 @@ import static java.lang.System.currentTimeMillis
  * involve logging queries and tracking if / how often a given feature is actually used.
  *
  * The `xhActivityTrackingConfig` soft-config can be used to configure this service, including
- * disabling it completely. Separately, the `disableTrackLog` *instance* config can be used to
+ * disabling it completely. Use the 'levels' property in this config to set the minimal severity for
+ * persisting any particular message.  Entries in this list will be of the following form, where
+ * the first matching entry for a message will determine the currently active severity to persist:
+ *      levels: [
+ *          [
+ *              username: ['*' or comma-delimited list of usernames],
+ *              category: ['*' or comma-delimited list of categories],
+ *              severity: 'DEBUG'|'INFO'|'WARN'
+ *          ],
+ *          ...
+ *      ]
+ *
+ * Separately, the `disableTrackLog` *instance* config can be used to
  * disable only the *persistence* of new track logs while leaving logging and the admin client UI
  * active / accessible (intended for local development environments).
  */
@@ -66,7 +79,8 @@ class TrackService extends BaseService {
      *      impersonating {String}      - optional, defaults to username if impersonating, null if not.
      *                                    Use this if track will be called in an asynchronous process,
      *                                    outside of a request, where impersonator info not otherwise available.
-     *      severity {String}           - optional, defaults to 'INFO'.
+     *      severity
+     *         {String|TrackSeverity}   - optional, defaults to TrackSeverity.INFO.
      *      url {String}                - optional, url associated with statement
      *      timestamp {long}            - optional, time associated with start of action.  Defaults to current time.
      *      elapsed {int}               - optional, duration of action in millis
@@ -131,7 +145,7 @@ class TrackService extends BaseService {
             correlationId : entry.correlationId,
             msg           : entry.msg,
             elapsed       : entry.elapsed,
-            severity      : entry.severity ?: 'INFO',
+            severity      : parseSeverity(entry.severity),
             data          : entry.data ? serialize(entry.data) : null,
             rawData       : entry.data,
             url           : entry.url,
@@ -184,7 +198,9 @@ class TrackService extends BaseService {
     }
 
     private void persistEntry(Map entry) {
-        if (getInstanceConfig('disableTrackLog') == 'true') return
+        if (getInstanceConfig('disableTrackLog') == 'true' ||
+            getActiveSeverity(entry) > parseSeverity(entry.severity)
+        ) return
 
         String data = entry.data
         if (data?.size() > (conf.maxDataLength as Integer)) {
@@ -201,6 +217,29 @@ class TrackService extends BaseService {
         tl.save()
     }
 
+    private TrackSeverity getActiveSeverity(Map entry) {
+        def username = entry.username as String,
+            cat = entry.category as String,
+            levels = (conf.levels ?: []) as List<Map>
+
+        def match = levels.find {
+            def levUser = it.username as String,
+                levCat = it.category as String
+
+            (levUser == '*' || levUser.contains(username)) && (levCat == '*' || levCat.contains(cat))
+        }
+        return match ? parseSeverity(match.severity) : INFO
+    }
+
+    private TrackSeverity parseSeverity(Object severity) {
+        if (severity instanceof TrackSeverity) return severity
+        if (!severity) return INFO
+        try {
+            return TrackSeverity.valueOf(severity.toString().toUpperCase().trim())
+        } catch (IllegalArgumentException ex) {
+            return INFO
+        }
+    }
 
     Map getAdminStats() {[
         config: configForAdminStats('xhActivityTrackingConfig')
