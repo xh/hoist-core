@@ -4,19 +4,27 @@
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - requires Java 17 and Hoist React 72.x)
 
+* Requires Java 17.
+* Requires `hoist-react >= 72`
+* Minor/patch updates to Groovy, Grails, and Hazelcast (see versions below).
+
 ### 🎁 New Features
+
 * Added support for conditional persisting of activity tracking messages based on `TrackSeverity`.
-By default all messages continue to have severity `INFO`, which is the default active level.
-Make tracking more or less verbose by adding an entry to the new `levels` property in
-`TrackService.xhActivityTrackingConfig`.  See TrackService for more info.
+  By default, all messages continue to have severity `INFO`, which is the default active level.
+  Make tracking more or less verbose by adding an entry to the new `levels` property of the
+  `xhActivityTrackingConfig` app config. See `TrackService.groovy` for more info.
 
 ### 🐞 Bug Fixes
 
-* Fixed `JsonBlob` unique name validation which also affected `Views`.
+* Fixed unique name validation for `JSONBlob` (and therefore saved View Manager views).
 
-### ⚙️ Technical
-* Minor Grails upgrades
-* Hazelcast upgrade 5.3.7 -> 5.5.0
+### 📚 Libraries
+
+* Grails + Grails Gradle plugin `6.2.0 → 6.2.3`
+* GORM `8.1.0 → 8.1.2`
+* Groovy `3.0.21 → 3.0.23`
+* Hazelcast `5.3.7 → 5.5.0`
 
 ## 27.0.0 - 2025-01-08
 
@@ -50,9 +58,9 @@ Make tracking more or less verbose by adding an entry to the new `levels` proper
 
 * Removed support for dynamic configuration of distributed Hazelcast objects. All configuration
   must be in place before an instance is started, per Hazelcast documentation.
-  * Removed `ClusterService.configureXXX` methods, replaced by support for specifying a static
-    `ClusterService.configureCluster` closure.
-  * Not expected to impact any existing applications.
+    * Removed `ClusterService.configureXXX` methods, replaced by support for specifying a static
+      `ClusterService.configureCluster` closure.
+    * Not expected to impact any existing applications.
 
 ### 🐞 Bug Fixes
 
