@@ -20,7 +20,10 @@ class PreferenceJsonSearchAdminController extends BaseController {
 
     def searchByJsonPath() {
         Configuration conf = Configuration.builder()
-            .options(Option.ALWAYS_RETURN_LIST).build()
+            .options(
+                Option.SUPPRESS_EXCEPTIONS,
+                Option.ALWAYS_RETURN_LIST
+            ).build()
 
         List<Preference> jsonPrefs = Preference.findAllByType('json')
         List<UserPreference> userPrefs = jsonPrefs.collect { UserPreference.findAllByPreference(it)  }.flatten()

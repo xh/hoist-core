@@ -19,7 +19,10 @@ class JsonBlobSearchAdminController extends BaseController {
 
     def searchByJsonPath() {
         Configuration conf = Configuration.builder()
-            .options(Option.ALWAYS_RETURN_LIST).build()
+            .options(
+                Option.SUPPRESS_EXCEPTIONS,
+                Option.ALWAYS_RETURN_LIST
+            ).build()
 
         List<JsonBlob> results = JsonBlob.list().findAll { entry ->
             def result = JsonPath.using(conf).parse(entry.value).read(params.path)
