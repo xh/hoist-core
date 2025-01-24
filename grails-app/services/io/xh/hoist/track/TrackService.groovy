@@ -33,8 +33,9 @@ import static java.lang.System.currentTimeMillis
  *
  * The `xhActivityTrackingConfig` soft-config can be used to configure this service, including
  * disabling it completely. Use the 'levels' property in this config to set the minimal severity for
- * persisting any particular message.  Entries in this list will be of the following form, where
+ * persisting any particular message. Entries in this list will be of the following form, where
  * the first matching entry for a message will determine the currently active severity to persist:
+ *
  *      levels: [
  *          [
  *              username: ['*' or comma-delimited list of usernames],
@@ -44,9 +45,9 @@ import static java.lang.System.currentTimeMillis
  *          ...
  *      ]
  *
- * Separately, the `disableTrackLog` *instance* config can be used to
- * disable only the *persistence* of new track logs while leaving logging and the admin client UI
- * active / accessible (intended for local development environments).
+ * Separately, the `disableTrackLog` *instance* config can be used to disable only the *persistence*
+ * of new track logs while leaving logging and the admin client UI active / accessible (intended for
+ * local development environments).
  */
 @CompileStatic
 class TrackService extends BaseService {
