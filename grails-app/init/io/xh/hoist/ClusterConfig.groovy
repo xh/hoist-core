@@ -132,6 +132,8 @@ class ClusterConfig {
      * Hoist Core's `ClientErrorService` for an example.
      */
     protected void createDefaultConfigs(Config config) {
+        config.setProperty('hazelcast.shutdownhook.enabled', 'false')
+        config.setProperty('hazelcast.logging.type', 'slf4j')
         config.getMapConfig('default').with {
             statisticsEnabled = true
             inMemoryFormat = InMemoryFormat.OBJECT
