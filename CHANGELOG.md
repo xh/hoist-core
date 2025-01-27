@@ -1,11 +1,13 @@
 # Changelog
 
-## 28.0-SNAPSHOT - unreleased
+## 29.0-SNAPSHOT - unreleased
+
+## 28.0.0 - 2025-01-27
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - requires Java 17 and Hoist React 72.x)
 
 * Requires Java 17.
-* Requires `hoist-react >= 72`
+* Requires `hoist-react >= 72`s
 * Minor/patch updates to Groovy, Grails, and Hazelcast (see versions below).
 
 ### 🎁 New Features
