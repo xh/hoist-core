@@ -1,5 +1,7 @@
 # Changelog
 
+## 29.0-SNAPSHOT - unreleased
+
 ## 28.0.0 - 2025-01-27
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - requires Java 17 and Hoist React 72.x)
