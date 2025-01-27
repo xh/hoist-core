@@ -7,27 +7,14 @@
 
 package io.xh.hoist.admin
 
-import com.jayway.jsonpath.JsonPath
-import com.jayway.jsonpath.Configuration
-import com.jayway.jsonpath.Option
-import io.xh.hoist.BaseController
 import io.xh.hoist.jsonblob.JsonBlob
 import io.xh.hoist.security.Access
 
 @Access(['HOIST_ADMIN_READER'])
-class JsonBlobSearchAdminController extends BaseController {
+class JsonBlobSearchAdminController extends BaseJsonSearchController {
 
     def searchByJsonPath() {
-        Configuration conf = Configuration.builder()
-            .options(
-                Option.SUPPRESS_EXCEPTIONS,
-                Option.ALWAYS_RETURN_LIST
-            ).build()
-
-        List<JsonBlob> results = JsonBlob.list().findAll { entry ->
-            def result = JsonPath.using(conf).parse(entry.value).read(params.path)
-            return result.size() > 0
-        }
+        List<JsonBlob> results = JsonBlob.list().findAll { hasPathMatch(it.value, params.path) }
 
         def ret = results.collect { it ->
             [
@@ -41,14 +28,4 @@ class JsonBlobSearchAdminController extends BaseController {
         }
         renderJSON(ret)
     }
-
-    def getMatchingNodes(String json, String path, boolean asPathList) {
-        Configuration conf = asPathList
-            ? Configuration.builder().options(Option.AS_PATH_LIST, Option.ALWAYS_RETURN_LIST).build()
-            : Configuration.defaultConfiguration()
-
-        def ret = JsonPath.using(conf).parse(json).read(path)
-        renderJSON(ret)
-    }
-
 }

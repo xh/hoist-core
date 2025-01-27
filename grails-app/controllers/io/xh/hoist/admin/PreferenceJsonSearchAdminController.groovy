@@ -7,30 +7,17 @@
 
 package io.xh.hoist.admin
 
-import com.jayway.jsonpath.Configuration
-import com.jayway.jsonpath.JsonPath
-import com.jayway.jsonpath.Option
-import io.xh.hoist.BaseController
 import io.xh.hoist.pref.Preference
 import io.xh.hoist.pref.UserPreference
 import io.xh.hoist.security.Access
 
 @Access(['HOIST_ADMIN_READER'])
-class PreferenceJsonSearchAdminController extends BaseController {
+class PreferenceJsonSearchAdminController extends BaseJsonSearchController {
 
     def searchByJsonPath() {
-        Configuration conf = Configuration.builder()
-            .options(
-                Option.SUPPRESS_EXCEPTIONS,
-                Option.ALWAYS_RETURN_LIST
-            ).build()
-
         List<Preference> jsonPrefs = Preference.findAllByType('json')
         List<UserPreference> userPrefs = jsonPrefs.collect { UserPreference.findAllByPreference(it)  }.flatten()
-        List<UserPreference> results = userPrefs.findAll { entry ->
-            def result = JsonPath.using(conf).parse(entry.userValue).read(params.path)
-            return result.size() > 0
-        }
+        List<UserPreference> results = userPrefs.findAll { hasPathMatch(it.userValue, params.path) }
 
         def ret = results.collect { it ->
             [
@@ -42,15 +29,6 @@ class PreferenceJsonSearchAdminController extends BaseController {
                 json: it.userValue
             ]
         }
-        renderJSON(ret)
-    }
-
-    def getMatchingNodes(String json, String path, boolean asPathList) {
-        Configuration conf = asPathList
-            ? Configuration.builder().options(Option.AS_PATH_LIST, Option.ALWAYS_RETURN_LIST).build()
-            : Configuration.defaultConfiguration()
-
-        def ret = JsonPath.using(conf).parse(json).read(path)
         renderJSON(ret)
     }
 
