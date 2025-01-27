@@ -7,7 +7,7 @@
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - requires Java 17 and Hoist React 72.x)
 
 * Requires Java 17.
-* Requires `hoist-react >= 72`s
+* Requires `hoist-react >= 72`
 * Minor/patch updates to Groovy, Grails, and Hazelcast (see versions below).
 
 ### 🎁 New Features
