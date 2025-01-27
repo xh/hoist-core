@@ -20,14 +20,18 @@ class BaseJsonSearchController extends BaseController {
             Option.ALWAYS_RETURN_LIST
         ).build()
 
-    private Configuration nodeSearchConf = Configuration.builder()
+    private Configuration nodeSearchPathsConf = Configuration.builder()
         .options(
             Option.AS_PATH_LIST,
             Option.ALWAYS_RETURN_LIST
         ).build()
 
     def getMatchingNodes(String json, String path, boolean asPathList) {
-        def ret = JsonPath.using(nodeSearchConf).parse(json).read(path)
+        Configuration conf = asPathList
+            ? nodeSearchPathsConf
+            : Configuration.defaultConfiguration()
+
+        def ret = JsonPath.using(conf).parse(json).read(path)
         renderJSON(ret)
     }
 
