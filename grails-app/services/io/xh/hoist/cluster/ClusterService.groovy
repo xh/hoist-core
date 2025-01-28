@@ -152,7 +152,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      * Shutdown this instance.
      */
     void shutdownInstance() {
-        logInfo("Initiating shutdown via System.exit.")
+        logInfo('Initiating shutdown via System.exit.')
         System.exit(0)
     }
 

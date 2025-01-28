@@ -65,6 +65,7 @@ class HoistCoreGrailsPlugin extends Plugin {
     void onConfigChange(Map<String, Object> event) {}
 
     void onShutdown(Map<String, Object> event) {
+        // Orchestrate shutdown here. This is *after* all plugin and app Bootstrap.destroy() have run
         Timer.shutdownAll()
         ClusterService.shutdownHazelcast()
     }
