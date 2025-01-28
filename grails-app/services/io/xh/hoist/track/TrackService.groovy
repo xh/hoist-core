@@ -33,8 +33,9 @@ import static java.lang.System.currentTimeMillis
  *
  * The `xhActivityTrackingConfig` soft-config can be used to configure this service, including
  * disabling it completely. Use the 'levels' property in this config to set the minimal severity for
- * persisting any particular message.  Entries in this list will be of the following form, where
+ * persisting any particular message. Entries in this list will be of the following form, where
  * the first matching entry for a message will determine the currently active severity to persist:
+ *
  *      levels: [
  *          [
  *              username: ['*' or comma-delimited list of usernames],
