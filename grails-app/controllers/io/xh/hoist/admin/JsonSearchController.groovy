@@ -27,7 +27,7 @@ class JsonSearchController extends BaseController {
     }
 
     def getMatchingNodes(String json, String path, boolean asPathList) {
-        def ret = jsonSearchService.getMatchingNodes(json, path, asPathList)
+        def ret = jsonSearchService.listMatchingNodes(json, path, asPathList)
         renderJSON(ret)
     }
 }

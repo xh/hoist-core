@@ -28,6 +28,11 @@ class JsonSearchService extends BaseService {
             Option.ALWAYS_RETURN_LIST
         ).build()
 
+    private Configuration nodeSearchValuesConf = Configuration.builder()
+        .options(
+            Option.ALWAYS_RETURN_LIST
+        ).build()
+
     List searchBlobs(String path) {
         List<JsonBlob> matches = JsonBlob.list().findAll { hasPathMatch(it.value, path) }
 
@@ -60,10 +65,10 @@ class JsonSearchService extends BaseService {
         }
     }
 
-    List getMatchingNodes(String json, String path, boolean asPathList) {
+    List listMatchingNodes(String json, String path, boolean asPathList) {
         Configuration conf = asPathList
             ? nodeSearchPathsConf
-            : Configuration.defaultConfiguration()
+            : nodeSearchValuesConf
 
         return JsonPath.using(conf).parse(json).read(path)
     }
