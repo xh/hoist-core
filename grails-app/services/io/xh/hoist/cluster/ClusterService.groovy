@@ -73,7 +73,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         getHzConfig().addListenerConfig(new ListenerConfig())
         hzInstance.lifecycleService.addLifecycleListener([
             stateChanged: { LifecycleEvent e ->
-                // If shutdown *not* initiated by app, need to propagate to app/JVM
+                // If hz shutdown *not* initiated by app, need to propagate to app/JVM
                 if (e.state == SHUTDOWN && !shutdownInProgress) {
                     log.warn('Hazelcast instance has stopped and the app must terminate.  Shutting down JVM')
                     System.exit(0)
@@ -88,7 +88,6 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      */
     static void shutdownHazelcast() {
         shutdownInProgress = true
-        System.println('shutting down spring')
         hzInstance.shutdown()
     }
 

@@ -65,7 +65,6 @@ class HoistCoreGrailsPlugin extends Plugin {
     void onConfigChange(Map<String, Object> event) {}
 
     void onShutdown(Map<String, Object> event) {
-        System.println(event.toMapString())
         Timer.shutdownAll()
         ClusterService.shutdownHazelcast()
     }

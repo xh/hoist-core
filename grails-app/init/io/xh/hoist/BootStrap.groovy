@@ -15,7 +15,6 @@ import java.time.ZoneId
 
 import static io.xh.hoist.util.DateTimeUtils.serverZoneId
 import static io.xh.hoist.BaseService.parallelInit
-import io.xh.hoist.util.Timer
 import static java.lang.Runtime.runtime
 
 class BootStrap implements LogSupport {
@@ -38,15 +37,8 @@ class BootStrap implements LogSupport {
         parallelInit(services)
     }
 
-    def destroy = {
-        logInfo("Instance ${ClusterService.instanceName} shutting down")
-        // Attempt to orchestrate an orderly shutdown, shutting Timers down first, to minimize
-        // spurious errors.  To get this ordering, Hazelcast is also put down explicitly, rather
-        // than via its built-in shutdown hook, which has been disabled.
-        //Timer.shutdownAll()
-        //ClusterService.shutdownHazelcast()
+    def destroy = {}
 
-    }
 
     //------------------------
     // Implementation

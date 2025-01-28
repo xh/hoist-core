@@ -44,9 +44,9 @@ import static java.lang.System.currentTimeMillis
  *          ...
  *      ]
  *
- * Separately, the `disableTrackLog` *instance* config can be used to
- * disable only the *persistence* of new track logs while leaving logging and the admin client UI
- * active / accessible (intended for local development environments).
+ * Separately, the `disableTrackLog` *instance* config can be used to disable only the *persistence*
+ * of new track logs while leaving logging and the admin client UI active / accessible (intended for
+ * local development environments).
  */
 @CompileStatic
 class TrackService extends BaseService {
