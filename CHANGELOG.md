@@ -2,6 +2,11 @@
 
 ## 29.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* Ensure that if Hazelcast instance is shut down, entire app is shutdown as well.  Also improved
+  general handling of system shutdown.
+
 ## 28.0.0 - 2025-01-27
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - requires Java 17 and Hoist React 72.x)
