@@ -74,6 +74,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         hzInstance.lifecycleService.addLifecycleListener([
             stateChanged: { LifecycleEvent e ->
                 // If hz shutdown *not* initiated by app, need to propagate to app/JVM
+                // This has been seen consistently on non-primary node after an OOM. (Jan 2025)
                 if (e.state == SHUTDOWN && !shutdownInProgress) {
                     log.warn('Hazelcast instance has stopped and the app must terminate.  Shutting down JVM')
                     System.exit(0)
