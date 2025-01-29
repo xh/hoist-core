@@ -2,6 +2,16 @@
 
 ## 29.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Added new endpoints to support searching the contents of `JSONBlob` entries, JSON-based user
+  preferences, and JSON-based app configs.
+
+### 📚 Libraries
+
+* json-patch `added @ 1.13`
+* json-path `added @ 2.9`
+
 ## 28.0.0 - 2025-01-27
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - requires Java 17 and Hoist React 72.x)
