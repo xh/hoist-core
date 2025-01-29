@@ -48,7 +48,7 @@ import static java.lang.System.currentTimeMillis
 class Timer implements LogSupport {
 
     private static Long CONFIG_INTERVAL = 15 * SECONDS
-    private static boolean isShutdown = false
+    private static boolean shutdownInProgress = false
 
     /** Name for this timer.  Should be unique within the context of owner for the purpose of logging. **/
     final String name
@@ -140,7 +140,7 @@ class Timer implements LogSupport {
      * Called by framework during application shutdown.
      */
     static void shutdownAll() {
-        isShutdown = true
+        shutdownInProgress = true
         executorService.shutdownNow()
     }
 
@@ -236,7 +236,7 @@ class Timer implements LogSupport {
     // Implementation
     //------------------------
     private void doRun() {
-        if (isShutdown || (primaryOnly && !Utils.clusterService.isPrimary)) return
+        if (shutdownInProgress || (primaryOnly && !Utils.clusterService.isPrimary)) return
 
         _isRunning = true
         _lastRunStarted = currentTimeMillis()
@@ -308,7 +308,7 @@ class Timer implements LogSupport {
     }
 
     private void onConfigTimer() {
-        if (isShutdown) return
+        if (shutdownInProgress) return
         try {
             intervalMs = calcIntervalMs()
             timeoutMs = calcTimeoutMs()
@@ -331,7 +331,7 @@ class Timer implements LogSupport {
     // frequently enough to pickup forceRun reasonably fast. Tighten down for the rare fast timer.
     //-------------------------------------------------------------------------------------------
     private void onCoreTimer() {
-        if (!isShutdown && !isRunning && (forceRun || intervalHasElapsed())) {
+        if (!shutdownInProgress && !isRunning && (forceRun || intervalHasElapsed())) {
             boolean wasForced = forceRun
             doRun()
             if (wasForced) forceRun = false
