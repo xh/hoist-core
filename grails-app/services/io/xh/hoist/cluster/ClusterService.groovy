@@ -22,6 +22,7 @@ import org.springframework.context.ApplicationListener
 import java.util.concurrent.Callable
 
 import static com.hazelcast.core.LifecycleEvent.LifecycleState.SHUTDOWN
+import static org.slf4j.LoggerFactory.getLogger
 
 class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent> {
 
@@ -76,7 +77,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
                 // If hz shutdown *not* initiated by app, need to propagate to app/JVM
                 // This has been seen consistently on non-primary node after an OOM. (Jan 2025)
                 if (e.state == SHUTDOWN && !shutdownInProgress) {
-                    log.warn('Hazelcast instance has stopped and the app must terminate.  Shutting down JVM')
+                    getLogger(this).warn('Hazelcast instance has stopped and the app must terminate.  Shutting down JVM')
                     System.exit(0)
                 }
             }
@@ -88,6 +89,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      * @internal
      */
     static void shutdownHazelcast() {
+        getLogger(this).info('Shutting down Hazelcast instance.')
         shutdownInProgress = true
         hzInstance.shutdown()
     }
@@ -153,7 +155,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      * Shutdown this instance.
      */
     void shutdownInstance() {
-        logInfo('Initiating shutdown via System.exit.')
+        logInfo('Initiating shutdown via System.exit')
         System.exit(0)
     }
 

@@ -29,6 +29,7 @@ import static io.xh.hoist.util.Utils.configService
 import static io.xh.hoist.util.Utils.getExceptionHandler
 import static java.lang.Math.max
 import static java.lang.System.currentTimeMillis
+import static org.slf4j.LoggerFactory.getLogger
 
 /**
  * Hoist's implementation of an interval-based Timer, for running tasks on a repeated interval.
@@ -140,6 +141,7 @@ class Timer implements LogSupport {
      * Called by framework during application shutdown.
      */
     static void shutdownAll() {
+        getLogger(this).info('Shutting down all Hoist Timers')
         shutdownInProgress = true
         executorService.shutdownNow()
     }
