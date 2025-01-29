@@ -21,6 +21,11 @@ class JsonSearchController extends BaseController {
         renderJSON(ret)
     }
 
+    def searchConfigs() {
+        def ret = jsonSearchService.searchConfigs(params.path)
+        renderJSON(ret)
+    }
+
     def searchUserPreferences() {
         def ret = jsonSearchService.searchUserPreferences(params.path)
         renderJSON(ret)

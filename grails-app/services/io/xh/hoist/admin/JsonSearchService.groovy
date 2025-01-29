@@ -11,6 +11,7 @@ import com.jayway.jsonpath.Configuration
 import com.jayway.jsonpath.JsonPath
 import com.jayway.jsonpath.Option
 import io.xh.hoist.BaseService
+import io.xh.hoist.config.AppConfig
 import io.xh.hoist.jsonblob.JsonBlob
 import io.xh.hoist.pref.Preference
 import io.xh.hoist.pref.UserPreference
@@ -38,10 +39,26 @@ class JsonSearchService extends BaseService {
 
         return matches.collect { it ->
             [
+                id: it.id,
                 type: it.type,
                 token: it.token,
                 name: it.name,
                 owner: it.owner,
+                lastUpdated: it.lastUpdated,
+                json: it.value
+            ]
+        }
+    }
+
+    List searchConfigs(String path) {
+        List<AppConfig> jsonConfigs = AppConfig.findAllByValueType('json')
+        List<AppConfig> results = jsonConfigs.findAll { hasPathMatch(it.value, path) }
+
+        return results.collect { it ->
+            [
+                id: it.id,
+                name: it.name,
+                groupName: it.groupName,
                 lastUpdated: it.lastUpdated,
                 json: it.value
             ]
