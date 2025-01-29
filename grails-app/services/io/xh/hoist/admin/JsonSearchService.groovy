@@ -82,12 +82,11 @@ class JsonSearchService extends BaseService {
         }
     }
 
-    List listMatchingNodes(String json, String path, boolean asPathList) {
-        Configuration conf = asPathList
-            ? nodeSearchPathsConf
-            : nodeSearchValuesConf
-
-        return JsonPath.using(conf).parse(json).read(path)
+    Map findMatchingNodes(String json, String path) {
+        return [
+            paths: JsonPath.using(nodeSearchPathsConf).parse(json).read(path),
+            values: JsonPath.using(nodeSearchValuesConf).parse(json).read(path)
+        ]
     }
 
     private boolean hasPathMatch(String json, String path) {
