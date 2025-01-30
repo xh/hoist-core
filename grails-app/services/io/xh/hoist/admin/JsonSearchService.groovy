@@ -9,6 +9,7 @@ package io.xh.hoist.admin
 
 import com.jayway.jsonpath.Configuration
 import com.jayway.jsonpath.JsonPath
+import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.AppConfig
 import io.xh.hoist.jsonblob.JsonBlob
@@ -46,6 +47,7 @@ class JsonSearchService extends BaseService {
         .options(ALWAYS_RETURN_LIST)
         .build()
 
+    @ReadOnly
     List<Map> searchBlobs(String path) {
         List<JsonBlob> matches = JsonBlob.findAllByArchivedDate(0)
             .findAll { hasPathMatch(it.value, path) }
@@ -63,6 +65,7 @@ class JsonSearchService extends BaseService {
         }
     }
 
+    @ReadOnly
     List<Map> searchConfigs(String path) {
         List<AppConfig> results = AppConfig.findAllByValueType('json')
             .findAll { hasPathMatch(it.value, path) }
@@ -78,6 +81,7 @@ class JsonSearchService extends BaseService {
         }
     }
 
+    @ReadOnly
     List<Map> searchUserPreferences(String path) {
         List<Preference> jsonPrefs = Preference.findAllByType('json')
         List<UserPreference> results = UserPreference.findAllByPreferenceInList(jsonPrefs)
@@ -102,6 +106,10 @@ class JsonSearchService extends BaseService {
         ]
     }
 
+
+    //---------------------
+    // Implementation
+    //---------------------
     private boolean hasPathMatch(String json, String path) {
         def result = JsonPath.using(matchSearchConf).parse(json).read(path)
         return result.size() > 0
