@@ -9,12 +9,15 @@ package io.xh.hoist.admin
 
 import com.jayway.jsonpath.Configuration
 import com.jayway.jsonpath.JsonPath
-import com.jayway.jsonpath.Option
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.AppConfig
 import io.xh.hoist.jsonblob.JsonBlob
 import io.xh.hoist.pref.Preference
 import io.xh.hoist.pref.UserPreference
+
+import static com.jayway.jsonpath.Option.ALWAYS_RETURN_LIST
+import static com.jayway.jsonpath.Option.AS_PATH_LIST
+import static com.jayway.jsonpath.Option.SUPPRESS_EXCEPTIONS
 
 /**
  * Service to provide searching of Hoist artifacts that persist JSON data via JSON Path expressions.
@@ -28,28 +31,26 @@ import io.xh.hoist.pref.UserPreference
  * See https://github.com/json-path/JsonPath/blob/master/README.md for syntax help.
  */
 class JsonSearchService extends BaseService {
-    private Configuration matchSearchConf = Configuration.builder()
-        .options(
-            Option.SUPPRESS_EXCEPTIONS,
-            Option.ALWAYS_RETURN_LIST
-        ).build()
+    private Configuration matchSearchConf = Configuration
+        .builder()
+        .options(SUPPRESS_EXCEPTIONS, ALWAYS_RETURN_LIST)
+        .build()
 
-    private Configuration nodeSearchPathsConf = Configuration.builder()
-        .options(
-            Option.AS_PATH_LIST,
-            Option.ALWAYS_RETURN_LIST
-        ).build()
+    private Configuration nodeSearchPathsConf = Configuration
+        .builder()
+        .options(AS_PATH_LIST, ALWAYS_RETURN_LIST)
+        .build()
 
-    private Configuration nodeSearchValuesConf = Configuration.builder()
-        .options(
-            Option.ALWAYS_RETURN_LIST
-        ).build()
+    private Configuration nodeSearchValuesConf = Configuration
+        .builder()
+        .options(ALWAYS_RETURN_LIST)
+        .build()
 
     List<Map> searchBlobs(String path) {
         List<JsonBlob> matches = JsonBlob.findAllByArchivedDate(0)
             .findAll { hasPathMatch(it.value, path) }
 
-        return matches.collect { it ->
+        return matches.collect {
             [
                 id         : it.id,
                 type       : it.type,
@@ -66,7 +67,7 @@ class JsonSearchService extends BaseService {
         List<AppConfig> results = AppConfig.findAllByValueType('json')
             .findAll { hasPathMatch(it.value, path) }
 
-        return results.collect { it ->
+        return results.collect {
             [
                 id         : it.id,
                 name       : it.name,
@@ -82,7 +83,7 @@ class JsonSearchService extends BaseService {
         List<UserPreference> results = UserPreference.findAllByPreferenceInList(jsonPrefs)
             .findAll { hasPathMatch(it.userValue, path) }
 
-        return results.collect { it ->
+        return results.collect {
             [
                 id         : it.id,
                 name       : it.preference.name,
