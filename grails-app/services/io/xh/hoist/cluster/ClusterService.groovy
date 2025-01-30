@@ -5,10 +5,13 @@ import com.hazelcast.cluster.Member
 import com.hazelcast.cluster.MembershipEvent
 import com.hazelcast.cluster.MembershipListener
 import com.hazelcast.config.Config
+import com.hazelcast.config.ListenerConfig
 import com.hazelcast.core.DistributedObject
 import com.hazelcast.core.Hazelcast
 import com.hazelcast.core.HazelcastInstance
 import com.hazelcast.core.IExecutorService
+import com.hazelcast.core.LifecycleEvent
+import com.hazelcast.core.LifecycleListener
 import io.xh.hoist.BaseService
 import io.xh.hoist.ClusterConfig
 import io.xh.hoist.exception.InstanceNotFoundException
@@ -17,6 +20,9 @@ import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.ApplicationListener
 
 import java.util.concurrent.Callable
+
+import static com.hazelcast.core.LifecycleEvent.LifecycleState.SHUTDOWN
+import static org.slf4j.LoggerFactory.getLogger
 
 class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent> {
 
@@ -42,6 +48,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     static HazelcastInstance hzInstance
 
     private static ClusterConfig clusterConfig
+    private static boolean shutdownInProgress
 
     static {
         // Create cluster/instance identifiers statically so logging can access early in lifecycle
@@ -62,8 +69,29 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      * Called by Framework to initialize the Hazelcast instance.
      * @internal
      */
-    static initializeInstance() {
+    static void initializeHazelcast() {
         hzInstance = Hazelcast.newHazelcastInstance(clusterConfig.createConfig())
+        getHzConfig().addListenerConfig(new ListenerConfig())
+        hzInstance.lifecycleService.addLifecycleListener([
+            stateChanged: { LifecycleEvent e ->
+                // If hz shutdown *not* initiated by app, need to propagate to app/JVM
+                // This has been seen consistently on non-primary node after an OOM. (Jan 2025)
+                if (e.state == SHUTDOWN && !shutdownInProgress) {
+                    getLogger(this).warn('Hazelcast instance has stopped and the app must terminate.  Shutting down JVM')
+                    System.exit(0)
+                }
+            }
+        ] as LifecycleListener)
+    }
+
+    /**
+     * Called by Framework to shutdown the underlying Hazelcast instance.
+     * @internal
+     */
+    static void shutdownHazelcast() {
+        getLogger(this).info('Shutting down Hazelcast instance.')
+        shutdownInProgress = true
+        hzInstance.shutdown()
     }
 
     void init() {
@@ -127,6 +155,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      * Shutdown this instance.
      */
     void shutdownInstance() {
+        logInfo('Initiating shutdown via System.exit')
         System.exit(0)
     }
 

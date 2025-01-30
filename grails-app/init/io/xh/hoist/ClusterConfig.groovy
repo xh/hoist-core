@@ -132,6 +132,12 @@ class ClusterConfig {
      * Hoist Core's `ClientErrorService` for an example.
      */
     protected void createDefaultConfigs(Config config) {
+
+        config.setProperty('hazelcast.logging.type', 'slf4j')
+
+        // Hoist core will orchestrate hz shutdown from its own hook: See HoistCoreGrailsPlugin
+        config.setProperty('hazelcast.shutdownhook.enabled', 'false')
+
         config.getMapConfig('default').with {
             statisticsEnabled = true
             inMemoryFormat = InMemoryFormat.OBJECT

@@ -7,6 +7,11 @@
 * Added new endpoints to support searching the contents of `JSONBlob` entries, JSON-based user
   preferences, and JSON-based app configs.
 
+### ⚙️ Technical
+
+* Generally improved the handling of system shutdown - in particular, ensure that if an app's
+  Hazelcast instance unexpectedly terminates, the entire app shuts down with it.
+
 ### 📚 Libraries
 
 * json-patch `added @ 1.13`

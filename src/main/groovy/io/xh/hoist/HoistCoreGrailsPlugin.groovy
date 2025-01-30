@@ -10,6 +10,7 @@ package io.xh.hoist
 import grails.plugins.Plugin
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.exception.ExceptionHandler
+import io.xh.hoist.util.Timer
 import io.xh.hoist.websocket.HoistWebSocketConfigurer
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.core.Ordered
@@ -34,7 +35,7 @@ class HoistCoreGrailsPlugin extends Plugin {
 
     Closure doWithSpring() {
         {->
-            ClusterService.initializeInstance()
+            ClusterService.initializeHazelcast()
 
             hoistFilter(FilterRegistrationBean) {
                 filter = bean(HoistFilter)
@@ -63,6 +64,9 @@ class HoistCoreGrailsPlugin extends Plugin {
 
     void onConfigChange(Map<String, Object> event) {}
 
-    void onShutdown(Map<String, Object> event) {}
-
+    void onShutdown(Map<String, Object> event) {
+        // Orchestrate shutdown here. This is *after* all plugin and app Bootstrap.destroy() have run
+        Timer.shutdownAll()
+        ClusterService.shutdownHazelcast()
+    }
 }

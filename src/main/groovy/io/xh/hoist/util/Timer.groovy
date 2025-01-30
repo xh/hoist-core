@@ -29,6 +29,7 @@ import static io.xh.hoist.util.Utils.configService
 import static io.xh.hoist.util.Utils.getExceptionHandler
 import static java.lang.Math.max
 import static java.lang.System.currentTimeMillis
+import static org.slf4j.LoggerFactory.getLogger
 
 /**
  * Hoist's implementation of an interval-based Timer, for running tasks on a repeated interval.
@@ -48,6 +49,7 @@ import static java.lang.System.currentTimeMillis
 class Timer implements LogSupport {
 
     private static Long CONFIG_INTERVAL = 15 * SECONDS
+    private static boolean shutdownInProgress = false
 
     /** Name for this timer.  Should be unique within the context of owner for the purpose of logging. **/
     final String name
@@ -133,6 +135,16 @@ class Timer implements LogSupport {
     // Args from Grails 3.0 async promise implementation
     static ExecutorService executorService = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>())
 
+    /**
+     * Attempts to stop executing all running timers, and cancels any upcoming runs.
+     *
+     * Called by framework during application shutdown.
+     */
+    static void shutdownAll() {
+        getLogger(this).info('Shutting down all Hoist Timers')
+        shutdownInProgress = true
+        executorService.shutdownNow()
+    }
 
     /**
      * Applications should not typically use this constructor directly. Timers are typically
@@ -226,7 +238,7 @@ class Timer implements LogSupport {
     // Implementation
     //------------------------
     private void doRun() {
-        if (primaryOnly && !Utils.clusterService.isPrimary) return
+        if (shutdownInProgress || (primaryOnly && !Utils.clusterService.isPrimary)) return
 
         _isRunning = true
         _lastRunStarted = currentTimeMillis()
@@ -298,6 +310,7 @@ class Timer implements LogSupport {
     }
 
     private void onConfigTimer() {
+        if (shutdownInProgress) return
         try {
             intervalMs = calcIntervalMs()
             timeoutMs = calcTimeoutMs()
@@ -320,7 +333,7 @@ class Timer implements LogSupport {
     // frequently enough to pickup forceRun reasonably fast. Tighten down for the rare fast timer.
     //-------------------------------------------------------------------------------------------
     private void onCoreTimer() {
-        if (!isRunning && (forceRun || intervalHasElapsed())) {
+        if (!shutdownInProgress && !isRunning && (forceRun || intervalHasElapsed())) {
             boolean wasForced = forceRun
             doRun()
             if (wasForced) forceRun = false
