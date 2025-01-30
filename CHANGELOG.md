@@ -2,10 +2,20 @@
 
 ## 29.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Added new endpoints to support searching the contents of `JSONBlob` entries, JSON-based user
+  preferences, and JSON-based app configs.
+
 ### ⚙️ Technical
 
-* Ensure that if Hazelcast instance is shut down, entire app is shutdown as well.  Also improved
-  general handling of system shutdown.
+* Generally improved the handling of system shutdown - in particular, ensure that if an app's
+  Hazelcast instance unexpectedly terminates, the entire app shuts down with it.
+
+### 📚 Libraries
+
+* json-patch `added @ 1.13`
+* json-path `added @ 2.9`
 
 ## 28.0.0 - 2025-01-27
 
