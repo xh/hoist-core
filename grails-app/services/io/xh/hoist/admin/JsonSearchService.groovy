@@ -46,56 +46,57 @@ class JsonSearchService extends BaseService {
         ).build()
 
     List<Map> searchBlobs(String path) {
-        List<JsonBlob> matches = JsonBlob.list().findAll { hasPathMatch(it.value, path) }
+        List<JsonBlob> matches = JsonBlob.findAllByArchivedDate(0)
+            .findAll { hasPathMatch(it.value, path) }
 
         return matches.collect { it ->
             [
-                id: it.id,
-                type: it.type,
-                token: it.token,
-                name: it.name,
-                owner: it.owner,
+                id         : it.id,
+                type       : it.type,
+                token      : it.token,
+                name       : it.name,
+                owner      : it.owner,
                 lastUpdated: it.lastUpdated,
-                json: it.value
+                json       : it.value
             ]
         }
     }
 
     List<Map> searchConfigs(String path) {
-        List<AppConfig> jsonConfigs = AppConfig.findAllByValueType('json')
-        List<AppConfig> results = jsonConfigs.findAll { hasPathMatch(it.value, path) }
+        List<AppConfig> results = AppConfig.findAllByValueType('json')
+            .findAll { hasPathMatch(it.value, path) }
 
         return results.collect { it ->
             [
-                id: it.id,
-                name: it.name,
-                groupName: it.groupName,
+                id         : it.id,
+                name       : it.name,
+                groupName  : it.groupName,
                 lastUpdated: it.lastUpdated,
-                json: it.value
+                json       : it.value
             ]
         }
     }
 
     List<Map> searchUserPreferences(String path) {
         List<Preference> jsonPrefs = Preference.findAllByType('json')
-        List<UserPreference> userPrefs = UserPreference.findAllByPreferenceInList(jsonPrefs)
-        List<UserPreference> results = userPrefs.findAll { hasPathMatch(it.userValue, path) }
+        List<UserPreference> results = UserPreference.findAllByPreferenceInList(jsonPrefs)
+            .findAll { hasPathMatch(it.userValue, path) }
 
         return results.collect { it ->
             [
-                id: it.id,
-                name: it.preference.name,
-                groupName: it.preference.groupName,
-                owner: it.username,
+                id         : it.id,
+                name       : it.preference.name,
+                groupName  : it.preference.groupName,
+                owner      : it.username,
                 lastUpdated: it.lastUpdated,
-                json: it.userValue
+                json       : it.userValue
             ]
         }
     }
 
     Map findMatchingNodes(String json, String path) {
         return [
-            paths: JsonPath.using(nodeSearchPathsConf).parse(json).read(path),
+            paths : JsonPath.using(nodeSearchPathsConf).parse(json).read(path),
             values: JsonPath.using(nodeSearchValuesConf).parse(json).read(path)
         ]
     }
