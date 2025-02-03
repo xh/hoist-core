@@ -159,7 +159,7 @@ class LdapService extends BaseService {
         config.useMatchingRuleInChain ?
             // See class-level comment regarding this AD-specific query
             searchMany("(|(memberOf=$dn) (memberOf:1.2.840.113556.1.4.1941:=$dn))", LdapPerson, strictMode) :
-            lookupGroupMembersRecursive(dn, strictMode)
+            lookupGroupMembersRecursive(dn, strictMode).unique { it.distinguishedname }
     }
 
     private List<LdapPerson> lookupGroupMembersRecursive(
