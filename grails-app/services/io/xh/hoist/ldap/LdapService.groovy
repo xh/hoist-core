@@ -21,21 +21,21 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
  *          - timeoutMs - time to wait for any individual search to resolve.
  *          - cacheExpireSecs - length of time to cache results.  Set to -1 to disable caching.
  *          - skipTlsCertVerification - true to accept untrusted certificates when binding
- *          - servers - list of servers to be queried, each containing:
- *              - host
- *              - baseUserDn
- *              - baseGroupDn
+ *          - useMatchingRuleInChain - true to use Microsoft Active Directory's proprietary
+ *           "LDAP_MATCHING_RULE_IN_CHAIN" rule (the magic `1.2.840.113556.1.4.1941` string below).
+ *           This can be a more efficient way to resolve users in nested groups but should be used
+ *           with caution, as it can trigger a large database walk, which has a significant
+ *           performance impact that is unnecessary when queries are not expected to return deeply
+ *           nested groups.
+*           - servers - list of servers to be queried, each containing:
+*              - host
+*              - baseUserDn
+*              - baseGroupDn
  *     - 'xhLdapUsername' - dn of query user.
  *     - 'xhLdapPassword' - password for user
  *
  * This service will cache results, per server, for the configured interval.
  * This service may return partial results if any particular server fails to return results.
- *
- * Note that the implementation of `lookupGroupMembers()` is currently specific to Microsoft Active
- * Directory, due to the use of the proprietary "LDAP_MATCHING_RULE_IN_CHAIN" rule OID (the magic
- * `1.2.840.113556.1.4.1941` string below). This is an efficient way to resolve users in nested
- * groups, but would require an alternate implementation if this service is required to work with
- * more generic LDAP deployments.
  */
 class LdapService extends BaseService {
 
@@ -156,8 +156,24 @@ class LdapService extends BaseService {
     }
 
     private List<LdapPerson> lookupGroupMembersInternal(String dn, boolean strictMode) {
-        // See class-level comment regarding this AD-specific query
-        searchMany("(|(memberOf=$dn) (memberOf:1.2.840.113556.1.4.1941:=$dn))", LdapPerson, strictMode)
+        config.useMatchingRuleInChain ?
+            // See class-level comment regarding this AD-specific query
+            searchMany("(|(memberOf=$dn) (memberOf:1.2.840.113556.1.4.1941:=$dn))", LdapPerson, strictMode) :
+            lookupGroupMembersRecursive(dn, strictMode)
+    }
+
+    private List<LdapPerson> lookupGroupMembersRecursive(
+        String dn,
+        boolean strictMode,
+        Set<String> visitedGroups = new HashSet<String>()
+    ) {
+        if (!visitedGroups.add(dn)) return []
+        List<LdapPerson> users = searchMany("(memberOf=$dn)", LdapPerson, strictMode)
+        List<LdapGroup> groups = searchMany("(memberOf=$dn)", LdapGroup, strictMode)
+        groups.each { LdapGroup group ->
+            users.addAll(lookupGroupMembersRecursive(group.distinguishedname, strictMode, visitedGroups))
+        }
+        return users
     }
 
     private <T extends LdapObject> List<T> doQuery(Map server, String baseFilter, Class<T> objType, boolean strictMode) {

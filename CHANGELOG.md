@@ -2,10 +2,16 @@
 
 ## 29.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - LDAP search behavior change)
+
+* `LdapService` no longer uses `LDAP_MATCHING_RULE_IN_CHAIN` by default. See change to
+  `xhLdapConfig` if you need to revert to the previous behavior (not expected in most cases).
+
 ### 🎁 New Features
 
 * Added new endpoints to support searching the contents of `JSONBlob` entries, JSON-based user
   preferences, and JSON-based app configs.
+* Added `xhLdapConfig.useMatchingRuleInChain` flag to enable use of `LDAP_MATCHING_RULE_IN_CHAIN`.
 
 ### ⚙️ Technical
 

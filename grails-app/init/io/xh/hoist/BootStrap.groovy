@@ -233,6 +233,7 @@ class BootStrap implements LogSupport {
                     enabled: false,
                     timeoutMs: 60000,
                     cacheExpireSecs: 300,
+                    useMatchingRuleInChain: false,
                     servers: [
                         [
                             host: '',
