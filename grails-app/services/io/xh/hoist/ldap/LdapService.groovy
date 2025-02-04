@@ -156,24 +156,28 @@ class LdapService extends BaseService {
     }
 
     private List<LdapPerson> lookupGroupMembersInternal(String dn, boolean strictMode) {
+        // See class-level comment regarding this AD-specific query
         config.useMatchingRuleInChain ?
-            // See class-level comment regarding this AD-specific query
             searchMany("(|(memberOf=$dn) (memberOf:1.2.840.113556.1.4.1941:=$dn))", LdapPerson, strictMode) :
-            lookupGroupMembersRecursive(dn, strictMode).unique { it.distinguishedname }
+            lookupMembersRecursive(dn, strictMode).values().asList()
     }
 
-    private List<LdapPerson> lookupGroupMembersRecursive(
+    private Map<String, LdapPerson> lookupMembersRecursive(
         String dn,
         boolean strictMode,
-        Set<String> visitedGroups = new HashSet<String>()
+        Map<String, LdapPerson> members = new HashMap(),
+        Set<String> visited = new HashSet<String>()
     ) {
-        if (!visitedGroups.add(dn)) return []
-        List<LdapPerson> users = searchMany("(memberOf=$dn)", LdapPerson, strictMode)
-        List<LdapGroup> groups = searchMany("(memberOf=$dn)", LdapGroup, strictMode)
-        groups.each { LdapGroup group ->
-            users.addAll(lookupGroupMembersRecursive(group.distinguishedname, strictMode, visitedGroups))
+        if (visited.add(dn)) {
+            // Add direct users
+            searchMany("(memberOf=$dn)", LdapPerson, strictMode)
+                .each { members[it.distinguishedname] = it}
+
+            // Recursively add nested groups
+            searchMany("(memberOf=$dn)", LdapGroup, strictMode)
+                .each {lookupMembersRecursive(it.distinguishedname, strictMode, members, visited)}
         }
-        return users
+        return members
     }
 
     private <T extends LdapObject> List<T> doQuery(Map server, String baseFilter, Class<T> objType, boolean strictMode) {
