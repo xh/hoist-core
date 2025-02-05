@@ -140,7 +140,7 @@ class LdapService extends BaseService {
      * @return true if the password is valid and the test connection succeeds
      */
     boolean authenticate(String username, String password) {
-        withTrace(["Attempting LDAP bind to authenticate user", [username: username]]) {
+        withDebug(["Attempting LDAP bind to authenticate user", [username: username]]) {
             for (Map server in config.servers) {
                 String host = server.host
                 List<LdapPerson> matches = doQuery(server, "(sAMAccountName=$username)", LdapPerson, true)
@@ -150,6 +150,7 @@ class LdapService extends BaseService {
                     try (def conn = createConnection(host)) {
                         conn.bind(user.distinguishedname, password)
                         conn.unBind()
+                        logDebug('Authentication successful', [username: username])
                         return true
                     } catch (LdapAuthenticationException ignored) {
                         logDebug('Authentication failed, incorrect credentials', [username: username])
