@@ -1,13 +1,14 @@
 package io.xh.hoist.ldap
 
+
 import io.xh.hoist.BaseService
 import io.xh.hoist.cache.Cache
 import org.apache.directory.api.ldap.model.entry.Attribute
-import org.apache.directory.api.ldap.model.message.SearchScope
 import org.apache.directory.api.ldap.model.exception.LdapAuthenticationException
+import org.apache.directory.api.ldap.model.message.SearchScope
 import org.apache.directory.ldap.client.api.LdapConnectionConfig
-import org.apache.directory.ldap.client.api.NoVerificationTrustManager
 import org.apache.directory.ldap.client.api.LdapNetworkConnection
+import org.apache.directory.ldap.client.api.NoVerificationTrustManager
 
 import static grails.async.Promises.task
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
@@ -53,15 +54,21 @@ class LdapService extends BaseService {
     }
 
     LdapPerson lookupUser(String sName) {
-        searchOne("(sAMAccountName=$sName) ", LdapPerson, true)
+        withDebug(["Looking up user", [sAMAccountName: sName]]) {
+            searchOne("(sAMAccountName=$sName) ", LdapPerson, true)
+        }
     }
 
     List<LdapPerson> lookupGroupMembers(String dn) {
-        lookupGroupMembersInternal(dn, true)
+        withDebug(["Looking up group members", [dn: dn]]) {
+            lookupGroupMembersInternal(dn, true)
+        }
     }
 
     List<LdapGroup> findGroups(String sNamePart) {
-        searchMany("(sAMAccountName=*$sNamePart*)", LdapGroup, true)
+        withDebug("Finding groups with name matching *$sNamePart") {
+            searchMany("(sAMAccountName=*$sNamePart*)", LdapGroup, true)
+        }
     }
 
     /**
@@ -71,8 +78,11 @@ class LdapService extends BaseService {
      *      otherwise, failed lookups will be logged, and resolved as null.
      */
     Map<String, LdapGroup> lookupGroups(Set<String> dns, boolean strictMode = false) {
-        dns.collectEntries { dn -> [dn, task { lookupGroupInternal(dn, strictMode) }] }
-            .collectEntries { [it.key, it.value.get()] }
+        withDebug(["Looking up groups", [dns: dns, strictMode: strictMode]]) {
+            dns.collectEntries { dn -> [dn, task { lookupGroupInternal(dn, strictMode) }] }
+                .collectEntries { [it.key, it.value.get()] } as Map<String, LdapGroup>
+        }
+
     }
 
     /**
@@ -82,8 +92,10 @@ class LdapService extends BaseService {
      *      otherwise, failed lookups will be logged, and resolved as an empty list.
      */
     Map<String, List<LdapPerson>> lookupGroupMembers(Set<String> dns, boolean strictMode = false) {
-        dns.collectEntries { dn -> [dn, task { lookupGroupMembersInternal(dn, strictMode) }] }
-            .collectEntries { [it.key, it.value.get()] }
+        withDebug(["Looking up group members", [dns: dns, strictMode: strictMode]]) {
+            dns.collectEntries { dn -> [dn, task { lookupGroupMembersInternal(dn, strictMode) }] }
+                .collectEntries { [it.key, it.value.get()] } as Map<String, List<LdapPerson>>
+        }
     }
 
     /**
@@ -128,24 +140,27 @@ class LdapService extends BaseService {
      * @return true if the password is valid and the test connection succeeds
      */
     boolean authenticate(String username, String password) {
-        for (Map server in config.servers) {
-            String host = server.host
-            List<LdapPerson> matches = doQuery(server, "(sAMAccountName=$username)", LdapPerson, true)
-            if (matches) {
-                if (matches.size() > 1) throw new RuntimeException("Multiple user records found for $username")
-                LdapPerson user = matches.first()
-                try (def conn = createConnection(host)) {
-                    conn.bind(user.distinguishedname, password)
-                    conn.unBind()
-                    return true
-                } catch (LdapAuthenticationException ignored) {
-                    logDebug('Authentication failed, incorrect credentials', [username: username])
-                    return false
+        withDebug(["Attempting LDAP bind to authenticate user", [username: username]]) {
+            for (Map server in config.servers) {
+                String host = server.host
+                List<LdapPerson> matches = doQuery(server, "(sAMAccountName=$username)", LdapPerson, true)
+                if (matches) {
+                    if (matches.size() > 1) throw new RuntimeException("Multiple user records found for $username")
+                    LdapPerson user = matches.first()
+                    try (def conn = createConnection(host)) {
+                        conn.bind(user.distinguishedname, password)
+                        conn.unBind()
+                        logDebug('Authentication successful', [username: username])
+                        return true
+                    } catch (LdapAuthenticationException ignored) {
+                        logDebug('Authentication failed, incorrect credentials', [username: username])
+                        return false
+                    }
                 }
             }
+            logDebug('Authentication failed, no user found', [username: username])
+            return false
         }
-        logDebug('Authentication failed, no user found', [username: username])
-        return false
     }
 
     //----------------------
@@ -192,7 +207,7 @@ class LdapService extends BaseService {
         List<T> ret = cache.get(key)
         if (ret != null) return ret
 
-        withDebug(["Querying LDAP", [host: host, filter: filter]]) {
+        withTrace(["Querying LDAP", [host: host, filter: filter]]) {
             try (def conn = createConnection(host)) {
                 String baseDn = isPerson ? server.baseUserDn : server.baseGroupDn
                 String[] keys = objType.keys.toArray() as String[]
