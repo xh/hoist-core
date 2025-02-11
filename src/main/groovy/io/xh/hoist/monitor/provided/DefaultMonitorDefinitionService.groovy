@@ -114,8 +114,8 @@ class DefaultMonitorDefinitionService extends BaseService {
             return
         }
 
-        def queryUser = result.getRequiredParam('queryUser'),
-            user = ldapService.lookupUser(queryUser),
+        def queryUser = result.getRequiredParam('queryUser') as String,
+            user = ldapService.lookupUserByName(queryUser),
             startTime = currentTimeMillis()
 
         if (!user) {

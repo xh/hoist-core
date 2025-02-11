@@ -53,29 +53,67 @@ class LdapService extends BaseService {
         config.enabled
     }
 
-    LdapPerson lookupUser(String sName) {
-        withDebug(["Looking up user", [sAMAccountName: sName]]) {
-            searchOne("(sAMAccountName=$sName) ", LdapPerson, true)
+    /**
+     * Search for persons with a sAMAccountName that contains the given string.
+     * @param sNamePart - partial sAMAccountName, matches anywhere in user name.
+     */
+    List<LdapPerson> findUsers(String sNamePart) {
+        withDebug("Finding users with sAMAccountName containing *$sNamePart*") {
+            searchMany("(sAMAccountName=*$sNamePart*)", LdapPerson, true)
         }
     }
 
-    List<LdapPerson> lookupGroupMembers(String dn) {
-        withDebug(["Looking up group members", [dn: dn]]) {
-            lookupGroupMembersInternal(dn, true)
+    /**
+     * Lookup a single person using their full DistinguishedName.
+     */
+    LdapPerson lookupUser(String dn) {
+        withDebug(["Looking up user", [dn: dn]]) {
+            searchOne("(distinguishedName=$dn)", LdapPerson, true)
         }
     }
 
+    /**
+     * Lookup a single person using their sAMAccountName.
+     */
+    LdapPerson lookupUserByName(String sAMAccountName) {
+        withDebug(["Looking up user", [sAMAccountName: sAMAccountName]]) {
+            searchOne("(sAMAccountName=$sAMAccountName)", LdapPerson, true)
+        }
+    }
+
+    /**
+     * Search for groups with a sAMAccountName that contains the given string.
+     * @param sNamePart - partial sAMAccountName, matches anywhere in group name.
+     */
     List<LdapGroup> findGroups(String sNamePart) {
-        withDebug("Finding groups with name matching *$sNamePart") {
+        withDebug("Finding groups with sAMAccountName containing *$sNamePart*") {
             searchMany("(sAMAccountName=*$sNamePart*)", LdapGroup, true)
         }
     }
 
     /**
-     * Lookup a number of groups in parallel.
-     * @param dns - set of distinguished names.
-     * @param strictMode - if true, this method will throw if any lookups fail,
-     *      otherwise, failed lookups will be logged, and resolved as null.
+     * Lookup a single group using its full DistinguishedName.
+     */
+    LdapGroup lookupGroup(String dn) {
+        withDebug(["Looking up group", [dn: dn]]) {
+            searchOne("(distinguishedName=$dn)", LdapGroup, true)
+        }
+    }
+
+    /**
+     * Lookup a single group using its sAMAccountName.
+     */
+    LdapGroup lookupGroupByName(String sAMAccountName) {
+        withDebug(["Looking up group", [sAMAccountName: sAMAccountName]]) {
+            searchOne("(sAMAccountName=$sAMAccountName)", LdapGroup, true)
+        }
+    }
+
+    /**
+     * Lookup a number of groups in parallel using their full DistinguishedNames.
+     * @param dns - set of DistinguishedNames.
+     * @param strictMode - if true this method will throw if any lookups fail.
+     *      If false (default), failed lookups will be logged and returned as null.
      */
     Map<String, LdapGroup> lookupGroups(Set<String> dns, boolean strictMode = false) {
         withDebug(["Looking up groups", [dns: dns, strictMode: strictMode]]) {
@@ -86,10 +124,19 @@ class LdapService extends BaseService {
     }
 
     /**
-     * Lookup group members for a number of groups in parallel.
-     * @param dns - set of distinguished names.
-     * @param strictMode - if true, this method will throw if any lookups fail,
-     *      otherwise, failed lookups will be logged, and resolved as an empty list.
+     * Lookup (LdapPerson) group members for a single group using its full DistinguishedName.
+     */
+    List<LdapPerson> lookupGroupMembers(String dn) {
+        withDebug(["Looking up group members", [dn: dn]]) {
+            lookupGroupMembersInternal(dn, true)
+        }
+    }
+
+    /**
+     * Lookup (LdapPerson) members for multiple groups in parallel using the groups' DistinguishedNames.
+     * @param dns - set of DistinguishedNames.
+     * @param strictMode - if true this method will throw if any lookups fail.
+     *      If false (default), failed lookups will be logged and returned with an empty list.
      */
     Map<String, List<LdapPerson>> lookupGroupMembers(Set<String> dns, boolean strictMode = false) {
         withDebug(["Looking up group members", [dns: dns, strictMode: strictMode]]) {
@@ -235,7 +282,7 @@ class LdapService extends BaseService {
         ret.ldapHost = host
         ret.ldapPort = ret.defaultLdapPort
         ret.timeout = config.timeoutMs as Long
-        ret.useTls = true
+        ret.useTls = false
 
         if (config.skipTlsCertVerification) {
             ret.setTrustManagers(new NoVerificationTrustManager())
