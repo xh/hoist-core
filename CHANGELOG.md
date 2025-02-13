@@ -2,19 +2,19 @@
 
 ## 29.0-SNAPSHOT - unreleased
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - LDAP search behavior change)
-
-* `LdapService` no longer uses `LDAP_MATCHING_RULE_IN_CHAIN` by default. See change to
-  `xhLdapConfig` if you need to revert to the previous behavior (not expected in most cases).
-
 ### 🎁 New Features
 
 * Added new endpoints to support searching the contents of `JSONBlob` entries, JSON-based user
-  preferences, and JSON-based app configs.
+  preferences, and JSON-based app configs. (A UI for this has been added to the Admin Console in
+  `hoist-react >= 72.1`.)
 * Added `xhLdapConfig.useMatchingRuleInChain` flag to enable use of `LDAP_MATCHING_RULE_IN_CHAIN`.
 
 ### ⚙️ Technical
 
+* ⚠️Updated `LdapService` to no longer use `LDAP_MATCHING_RULE_IN_CHAIN` by default when resolving
+  nested group memberships. The service now uses recursive lookups into child groups, which perform
+  better under most conditions. A new `xhLdapConfig.useMatchingRuleInChain` config flag can be used
+  to revert to the previous behavior.
 * Generally improved the handling of system shutdown - in particular, ensure that if an app's
   Hazelcast instance unexpectedly terminates, the entire app shuts down with it.
 
