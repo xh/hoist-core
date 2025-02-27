@@ -87,7 +87,7 @@ class LogViewerAdminController extends BaseController {
             return
         }
 
-        render(ret)
+        render(ret.value)
     }
 
     static class Download extends ClusterRequest<Map> {
