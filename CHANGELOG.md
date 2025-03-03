@@ -2,6 +2,8 @@
 
 ## 29.0-SNAPSHOT - unreleased
 
+* Enhance exception handling in `JSONClient` to capture messages returned as raw strings.
+
 ## 28.1.0 - 2025-02-13
 
 ### 🎁 New Features
