@@ -8,10 +8,7 @@
 package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.cluster.ClusterJsonRequest
 import io.xh.hoist.security.Access
-
-import static io.xh.hoist.util.Utils.appContext
 
 @Access(['HOIST_ADMIN_READER'])
 class MemoryMonitorAdminController extends BaseController {
@@ -19,46 +16,31 @@ class MemoryMonitorAdminController extends BaseController {
     def memoryMonitoringService
 
     def snapshots(String instance) {
-        runOnInstance(new Snapshots(), instance)
-    }
-    static class Snapshots extends ClusterJsonRequest {
-        def doCall() {
-            appContext.memoryMonitoringService.snapshots
-        }
+        def ret = memoryMonitoringService.runOnInstance('getSnapshots', instance: instance, asJson: true)
+        renderClusterJSON(ret)
     }
 
     @Access(['HOIST_ADMIN'])
     def takeSnapshot(String instance) {
-        runOnInstance(new TakeSnapshot(), instance)
+        def ret = memoryMonitoringService.runOnInstance('takeSnapshot', instance: instance, asJson: true)
+        renderClusterJSON(ret)
     }
-    static class TakeSnapshot extends ClusterJsonRequest {
-        def doCall() {
-            appContext.memoryMonitoringService.takeSnapshot()
-        }
-    }
-
 
     @Access(['HOIST_ADMIN'])
     def requestGc(String instance) {
-        runOnInstance(new RequestGc(), instance)
-    }
-    static class RequestGc extends ClusterJsonRequest {
-        def doCall() {
-            appContext.memoryMonitoringService.requestGc()
-        }
+        def ret = memoryMonitoringService.runOnInstance('requestGc', instance: instance, asJson: true)
+        renderClusterJSON(ret)
     }
 
     @Access(['HOIST_ADMIN'])
     def dumpHeap(String filename, String instance) {
-        runOnInstance(new DumpHeap(filename: filename), instance)
-    }
-    static class DumpHeap extends ClusterJsonRequest {
-        String filename
-
-        def doCall() {
-            appContext.memoryMonitoringService.dumpHeap(filename)
-            return [success: true]
-        }
+        def ret = memoryMonitoringService.runOnInstance(
+            'dumpHeap',
+            args: [filename],
+            instance: instance,
+            asJson: true
+        )
+        renderClusterJSON(ret)
     }
 
     def availablePastInstances() {

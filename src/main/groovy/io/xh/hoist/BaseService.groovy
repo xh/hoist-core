@@ -19,7 +19,9 @@ import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
 import io.xh.hoist.cache.Cache
 import io.xh.hoist.cachedvalue.CachedValue
+import io.xh.hoist.cluster.ClusterResult
 import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.cluster.ClusterTask
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.IdentitySupport
@@ -289,6 +291,48 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     protected boolean getIsPrimary() {
         clusterService.isPrimary
     }
+
+    /**
+     * Run a service method on a specific cluster instance.
+     */
+    @NamedVariant
+    protected ClusterResult runOnInstance(
+        String method,
+        @NamedParam(required = false) List args = [],
+        @NamedParam(required = false) boolean asJson = false,
+        @NamedParam(required = true) String instance
+    ) {
+        ClusterTask task = new ClusterTask(this, method, args, asJson)
+        return clusterService.submitToInstance(task, instance)
+    }
+
+    /**
+     * Run a service method on the primary instance, returning the result or throwing
+     * a serialized exception.
+     */
+    @NamedVariant
+    protected ClusterResult runOnPrimary(
+        String method,
+        @NamedParam(required = false) List args = [],
+        @NamedParam(required = false) boolean asJson = false
+    ) {
+        runOnInstance(method, args: args, asJson: asJson, instance: clusterService.primaryName)
+    }
+
+    /**
+     * Run a service method on *all* cluster instance.
+     *
+     * Renders a Map of instance name to ClusterResponse.
+     */
+    protected Map<String, ClusterResult> runOnAllInstances(
+        String method,
+        @NamedParam(required = false) List args = [],
+        @NamedParam(required = false) boolean asJson = false
+    ) {
+        def task = new ClusterTask(this, method, args, asJson)
+        clusterService.submitToAllInstances(task) as Map<String, ClusterResult>
+    }
+
 
     //-----------------------------------
     // Core template methods for override

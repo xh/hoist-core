@@ -34,10 +34,10 @@ class LogArchiveService extends BaseService {
         )
     }
 
-    List<String> archiveLogs(Integer daysThreshold) {
+    Map archiveLogs(Integer daysThreshold) {
         if (!config.archiveFolder) {
             logWarn("Log archiving disabled due to incomplete / disabled xhLogArchiveConfig entry")
-            return []
+            return [archived: []]
         }
 
         File logDir = logReaderService.logDir
@@ -66,7 +66,7 @@ class LogArchiveService extends BaseService {
             }
         }
 
-        return archivedFilenames
+        return [archived: archivedFilenames]
     }
 
 

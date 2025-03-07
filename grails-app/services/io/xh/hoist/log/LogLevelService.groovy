@@ -12,8 +12,6 @@ import io.xh.hoist.BaseService
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.Level
-import io.xh.hoist.cluster.ClusterRequest
-import io.xh.hoist.util.Utils
 import org.slf4j.LoggerFactory
 
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
@@ -83,12 +81,7 @@ class LogLevelService extends BaseService {
     }
 
     void noteLogLevelChanged() {
-        clusterService.submitToAllInstances (new CalculateAdjustments())
-    }
-    static class CalculateAdjustments extends ClusterRequest {
-        def doCall() {
-            Utils.appContext.logLevelService.calculateAdjustments()
-        }
+        runOnAllInstances('calculateAdjustments')
     }
 
     //------------------------

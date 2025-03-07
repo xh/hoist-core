@@ -7,46 +7,27 @@
 package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.cluster.ClusterJsonRequest
 import io.xh.hoist.security.Access
-
-import static io.xh.hoist.util.Utils.appContext
 
 @Access(['HOIST_ADMIN_READER'])
 class ConnectionPoolMonitorAdminController extends BaseController {
 
-    def snapshots(String instance) {
-        runOnInstance(new Snapshots(), instance)
-    }
-    static class Snapshots extends ClusterJsonRequest {
-        def doCall() {
-            def svc = appContext.connectionPoolMonitoringService
-            return [
-                enabled          : svc.enabled,
-                snapshots        : svc.snapshots,
-                poolConfiguration: svc.poolConfiguration
-            ]
-        }
-    }
+    def connectionPoolMonitoringService
 
+    def snapshots(String instance) {
+        def ret = connectionPoolMonitoringService.runOnInstance('getSnapshotsForAdmin', instance: instance, asJson: true)
+        renderClusterJSON(ret)
+    }
 
     @Access(['HOIST_ADMIN'])
     def takeSnapshot(String instance) {
-        runOnInstance(new TakeSnapshot(), instance)
-    }
-    static class TakeSnapshot extends ClusterJsonRequest {
-        def doCall() {
-            appContext.connectionPoolMonitoringService.takeSnapshot()
-        }
+        def ret = connectionPoolMonitoringService.runOnInstance('takeSnapshot', instance: instance, asJson: true)
+        renderClusterJSON(ret)
     }
 
     @Access(['HOIST_ADMIN'])
-    def resetStats() {
-        runOnInstance(new ResetStats())
-    }
-    static class ResetStats extends ClusterJsonRequest {
-        def doCall() {
-            appContext.connectionPoolMonitoringService.resetStats()
-        }
+    def resetStats(String instance) {
+        def ret = connectionPoolMonitoringService.runOnInstance('resetStats', instance: instance, asJson: true)
+        renderClusterJSON(ret)
     }
 }

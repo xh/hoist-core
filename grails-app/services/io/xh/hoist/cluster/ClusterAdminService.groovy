@@ -26,14 +26,8 @@ class ClusterAdminService extends BaseService {
         ]
     }
 
-    static class AdminStatsTask extends ClusterRequest {
-        def doCall() {
-            return appContext.clusterAdminService.adminStats
-        }
-    }
-
     Collection<Map> getAllStats() {
-        clusterService.submitToAllInstances(new AdminStatsTask())
+        runOnAllInstances('getAdminStats')
             .collect { name, result ->
                 def ret = [
                     name   : name,
