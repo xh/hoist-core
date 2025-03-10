@@ -9,6 +9,7 @@ package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
+import static io.xh.hoist.util.ClusterUtils.runOnInstance
 
 @Access(['HOIST_ADMIN_READER'])
 class MemoryMonitorAdminController extends BaseController {
@@ -16,26 +17,26 @@ class MemoryMonitorAdminController extends BaseController {
     def memoryMonitoringService
 
     def snapshots(String instance) {
-        def ret = memoryMonitoringService.runOnInstance('getSnapshots', instance: instance, asJson: true)
+        def ret = runOnInstance(memoryMonitoringService.&getSnapshots, instance: instance, asJson: true)
         renderClusterJSON(ret)
     }
 
     @Access(['HOIST_ADMIN'])
     def takeSnapshot(String instance) {
-        def ret = memoryMonitoringService.runOnInstance('takeSnapshot', instance: instance, asJson: true)
+        def ret = runOnInstance(memoryMonitoringService.&takeSnapshot, instance: instance, asJson: true)
         renderClusterJSON(ret)
     }
 
     @Access(['HOIST_ADMIN'])
     def requestGc(String instance) {
-        def ret = memoryMonitoringService.runOnInstance('requestGc', instance: instance, asJson: true)
+        def ret = runOnInstance(memoryMonitoringService.&requestGc, instance: instance, asJson: true)
         renderClusterJSON(ret)
     }
 
     @Access(['HOIST_ADMIN'])
     def dumpHeap(String filename, String instance) {
-        def ret = memoryMonitoringService.runOnInstance(
-            'dumpHeap',
+        def ret = runOnInstance(
+            memoryMonitoringService.&dumpHeap,
             args: [filename],
             instance: instance,
             asJson: true

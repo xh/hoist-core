@@ -10,6 +10,7 @@ package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
+import static io.xh.hoist.util.ClusterUtils.runOnInstance
 
 @Access(['HOIST_ADMIN_READER'])
 class LogViewerAdminController extends BaseController {
@@ -18,7 +19,7 @@ class LogViewerAdminController extends BaseController {
     def logArchiveService
 
     def listFiles(String instance) {
-        def ret = logReaderService.runOnInstance('listFiles', instance: instance, asJson: true)
+        def ret = runOnInstance(logReaderService.&listFiles, instance: instance, asJson: true)
         renderClusterJSON(ret)
     }
 
@@ -30,8 +31,8 @@ class LogViewerAdminController extends BaseController {
         Boolean caseSensitive,
         String instance
     ) {
-        def ret = logReaderService.runOnInstance(
-            'getFile',
+        def ret = runOnInstance(
+            logReaderService.&getFile,
             args: [filename, startLine, maxLines, pattern, caseSensitive],
             instance: instance,
             asJson: true
@@ -40,7 +41,7 @@ class LogViewerAdminController extends BaseController {
     }
 
     def download(String filename, String instance) {
-        def ret = logReaderService.runOnInstance('get', args: [filename], instance: instance)
+        def ret = runOnInstance(logReaderService.&get, args: [filename], instance: instance)
 
         if (ret.exception) {
             // Just render exception, was already logged on target instance
@@ -62,8 +63,8 @@ class LogViewerAdminController extends BaseController {
      */
     @Access(['HOIST_ADMIN'])
     def deleteFiles(String instance) {
-        def ret = logReaderService.runOnInstance(
-            'deleteFiles',
+        def ret = runOnInstance(
+            logReaderService.&deleteFiles,
             args: [params.list('filenames')],
             instance: instance,
             asJson: true
@@ -77,8 +78,8 @@ class LogViewerAdminController extends BaseController {
      */
     @Access(['HOIST_ADMIN'])
     def archiveLogs(Integer daysThreshold, String instance) {
-        def ret = logArchiveService.runOnInstance(
-            'archiveLogs',
+        def ret = runOnInstance(
+            logArchiveService.&archiveLogs,
             args: [daysThreshold],
             instance: instance,
             asJson: true

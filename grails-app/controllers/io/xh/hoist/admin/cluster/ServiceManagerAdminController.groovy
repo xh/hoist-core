@@ -8,6 +8,8 @@ package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
+import static io.xh.hoist.util.ClusterUtils.runOnInstance
+import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 
 @Access(['HOIST_ADMIN_READER'])
 class ServiceManagerAdminController extends BaseController {
@@ -15,13 +17,13 @@ class ServiceManagerAdminController extends BaseController {
     def serviceManagerService
 
     def listServices(String instance) {
-        def ret = serviceManagerService.runOnInstance('listServices', instance: instance, asJson: true)
+        def ret = runOnInstance(serviceManagerService.&listServices, instance: instance, asJson: true)
         renderClusterJSON(ret)
     }
 
     def getStats(String instance, String name) {
-        def ret = serviceManagerService.runOnInstance(
-            'getStats',
+        def ret = runOnInstance(
+            serviceManagerService.&getStats,
             args: [name],
             instance: instance,
             asJson: true
@@ -33,16 +35,16 @@ class ServiceManagerAdminController extends BaseController {
     def clearCaches(String instance) {
         def names = params.list('names')
         if (instance) {
-            def ret = serviceManagerService.runOnInstance(
-                'clearCaches',
+            def ret = runOnInstance(
+                serviceManagerService.&clearCaches,
                 args: [names],
                 instance: instance,
                 asJson: true
             )
             renderClusterJSON(ret)
         } else {
-            def ret = serviceManagerService.runOnAllInstances(
-                'clearCaches',
+            def ret = runOnAllInstances(
+                serviceManagerService.&clearCaches,
                 args: [names],
                 asJson: true
             )

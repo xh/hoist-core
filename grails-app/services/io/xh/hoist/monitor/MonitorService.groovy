@@ -18,6 +18,7 @@ import static AggregateMonitorResult.emptyResults
 import static AggregateMonitorResult.newResults
 import static grails.util.Environment.isDevelopmentMode
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
+import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 
 
 /**
@@ -89,7 +90,7 @@ class MonitorService extends BaseService {
     private void runMonitors() {
         // Gather per-instance results from across the cluster
         Map<String, List<MonitorResult>> newChecks =
-            monitorEvalService.runOnAllInstances('runAllMonitors')
+           runOnAllInstances(monitorEvalService.&runAllMonitors)
                 .collectMany {it.value.value as List<MonitorResult> ?: []}
                 .groupBy { it.code }
 

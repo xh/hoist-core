@@ -11,6 +11,7 @@ import com.hazelcast.executor.impl.ExecutorServiceProxy
 import io.xh.hoist.AdminStats
 import io.xh.hoist.BaseService
 
+import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 import static java.lang.System.currentTimeMillis
 
 class ClusterObjectsService extends BaseService {
@@ -18,7 +19,7 @@ class ClusterObjectsService extends BaseService {
 
     ClusterObjectsReport getClusterObjectsReport() {
         def startTimestamp = currentTimeMillis(),
-            info = runOnAllInstances('listClusterObjects').collectMany { it.value.value }
+            info = runOnAllInstances(this.&listClusterObjects).collectMany { it.value.value }
 
         return new ClusterObjectsReport(
             info: info,

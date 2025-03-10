@@ -15,6 +15,7 @@ import ch.qos.logback.classic.Level
 import org.slf4j.LoggerFactory
 
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
+import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 
 class LogLevelService extends BaseService {
 
@@ -81,7 +82,7 @@ class LogLevelService extends BaseService {
     }
 
     void noteLogLevelChanged() {
-        runOnAllInstances('calculateAdjustments')
+        runOnAllInstances(this.&calculateAdjustments)
     }
 
     //------------------------

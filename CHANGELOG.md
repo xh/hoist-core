@@ -12,8 +12,8 @@ code with all identity and auth information about the user triggering the action
 the syntax has been simplified substantially to avoid the need for creating extra inner classes
 and the need to capture all parameters explicitly.
 
-See the new signatures for `BaseService.runOnInstance`, `BaseService.runOnPrimary` and
-`BaseService.runOnAllInstances` for more information.  In most cases, the transition to using this
+See the new methods for `ClusterUtils.runOnInstance`, `ClusterUtils.runOnPrimary` and
+`ClusterUtils.runOnAllInstances` for more information.  In most cases, the transition to using this
 method should be mechanical, and a simplification from the use of the previous API.
 
 ## 28.1.0 - 2025-02-13

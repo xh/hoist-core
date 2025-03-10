@@ -10,6 +10,8 @@ package io.xh.hoist.admin.cluster
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
 
+import static io.xh.hoist.util.ClusterUtils.runOnInstance
+
 @Access(['HOIST_ADMIN_READER'])
 class ClusterAdminController extends BaseController {
 
@@ -30,7 +32,7 @@ class ClusterAdminController extends BaseController {
             data: [instance: instance]
         )
         logWarn('Initiated Instance Shutdown', [instance: instance])
-        def ret = clusterService.runOnInstance('shutdownInstance', instance: instance, asJson: true)
+        def ret = runOnInstance(clusterService.&shutdownInstance, instance: instance, asJson: true)
         renderClusterJSON(ret)
     }
 }
