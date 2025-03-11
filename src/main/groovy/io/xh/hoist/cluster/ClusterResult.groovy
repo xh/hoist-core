@@ -1,7 +1,7 @@
 package io.xh.hoist.cluster
 
-class ClusterResponse<T> {
-    T value
+class ClusterResult {
+    Object value
     Throwable exception
 }
 

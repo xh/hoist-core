@@ -7,45 +7,48 @@
 package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.cluster.ClusterJsonRequest
 import io.xh.hoist.security.Access
-
-import static io.xh.hoist.util.Utils.appContext
+import static io.xh.hoist.util.ClusterUtils.runOnInstance
+import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 
 @Access(['HOIST_ADMIN_READER'])
 class ServiceManagerAdminController extends BaseController {
 
+    def serviceManagerService
+
     def listServices(String instance) {
-        runOnInstance(new ListServices(), instance)
-    }
-    static class ListServices extends ClusterJsonRequest {
-        def doCall() {
-            appContext.serviceManagerService.listServices()
-        }
+        def ret = runOnInstance(serviceManagerService.&listServices, instance: instance, asJson: true)
+        renderClusterJSON(ret)
     }
 
     def getStats(String instance, String name) {
-        def task = new GetStats(name: name)
-        runOnInstance(task, instance)
-    }
-    static class GetStats extends ClusterJsonRequest {
-        String name
-        def doCall() {
-            appContext.serviceManagerService.getStats(name)
-        }
+        def ret = runOnInstance(
+            serviceManagerService.&getStats,
+            args: [name],
+            instance: instance,
+            asJson: true
+        )
+        renderClusterJSON(ret)
     }
 
     @Access(['HOIST_ADMIN'])
     def clearCaches(String instance) {
-        def task = new ClearCaches(names: params.list('names'))
-        instance ? runOnInstance(task, instance) : runOnAllInstances(task)
-    }
-    static class ClearCaches extends ClusterJsonRequest {
-        List<String> names
-
-        def doCall() {
-            appContext.serviceManagerService.clearCaches(names)
-            return [success: true]
+        def names = params.list('names')
+        if (instance) {
+            def ret = runOnInstance(
+                serviceManagerService.&clearCaches,
+                args: [names],
+                instance: instance,
+                asJson: true
+            )
+            renderClusterJSON(ret)
+        } else {
+            def ret = runOnAllInstances(
+                serviceManagerService.&clearCaches,
+                args: [names],
+                asJson: true
+            )
+            renderJSON(ret)
         }
     }
 }

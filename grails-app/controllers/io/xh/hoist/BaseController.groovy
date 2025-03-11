@@ -9,9 +9,7 @@ package io.xh.hoist
 
 import grails.async.Promise
 import groovy.transform.CompileStatic
-import io.xh.hoist.cluster.ClusterJsonRequest
-import io.xh.hoist.cluster.ClusterJsonResponse
-import io.xh.hoist.cluster.ClusterRequest
+import io.xh.hoist.cluster.ClusterResult
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.json.JSONParser
@@ -83,31 +81,16 @@ abstract class BaseController implements LogSupport, IdentitySupport {
         return input ? Encode.forHtmlContent(input) : input
     }
 
-
     /**
-     * Run a task on a specific cluster instance, rendering result to response.
+     * Render a JSON ClusterResult to the Request object
      *
-     * Note:  Any exception that occurs is assumed to be logged on the target instance
-     * and will not be logged on the instance running this action.
+     * Note - ClusterResult should be created with flag 'asJson'
      */
-    protected void runOnInstance(ClusterJsonRequest task, String instance) {
-        ClusterJsonResponse ret = clusterService.submitToInstance(task, instance)
-        response.setStatus(ret.httpStatus)
+    protected String renderClusterJSON(ClusterResult result) {
+        def ret = result.value as Map
         response.setContentType('application/json; charset=UTF-8')
+        response.setStatus(ret.httpStatus as Integer)
         render(ret.json)
-    }
-
-    /** Run a task on the primary cluster instance. */
-    protected void runOnPrimary(ClusterJsonRequest task) {
-        runOnInstance(task, clusterService.primaryName)
-    }
-
-    /**
-     * Run a task on *all* instances.
-     * Renders a Map of instance name to ClusterResponse.
-     */
-    protected void runOnAllInstances(ClusterJsonRequest task) {
-        renderJSON(clusterService.submitToAllInstances(task))
     }
 
     protected Promise runAsync(Closure c) {

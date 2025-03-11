@@ -19,9 +19,10 @@ import io.xh.hoist.util.Utils
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.ApplicationListener
 
-import java.util.concurrent.Callable
-
 import static com.hazelcast.core.LifecycleEvent.LifecycleState.SHUTDOWN
+import static grails.async.Promises.task
+import static io.xh.hoist.util.DateTimeUtils.getSECONDS
+import static java.lang.Thread.sleep
 import static org.slf4j.LoggerFactory.getLogger
 
 class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent> {
@@ -49,6 +50,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
 
     private static ClusterConfig clusterConfig
     private static boolean shutdownInProgress
+    private IExecutorService taskExecutor
 
     static {
         // Create cluster/instance identifiers statically so logging can access early in lifecycle
@@ -107,6 +109,10 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
             memberRemoved: { MembershipEvent e -> adjustPrimaryStatus(e.members) }
         ] as MembershipListener)
 
+        // Separate thread pool from 'default' Hz thread pool for executing
+        // (enhanced) BaseClusterRequests
+        taskExecutor = hzInstance.getExecutorService('xhexecutor')
+
         super.init()
     }
 
@@ -155,8 +161,12 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      * Shutdown this instance.
      */
     void shutdownInstance() {
-        logInfo('Initiating shutdown via System.exit')
-        System.exit(0)
+        // Run async to allow this method to return.
+        task {
+            logInfo('Initiating shutdown via System.exit')
+            sleep(1 * SECONDS)
+            System.exit(0)
+        }
     }
 
     /**
@@ -176,16 +186,24 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     //------------------------
     // Distributed execution
     //------------------------
-    IExecutorService getExecutorService() {
-        return hzInstance.getExecutorService('default')
+    /**
+     * Submit a task to an instance.
+     *
+     * Not typically called directly.
+     * @see BaseService#runOnInstance and BaseService#runOnAllInstances instead.
+     */
+    ClusterResult submitToInstance(ClusterTask clusterRequest, String instance) {
+        taskExecutor.submitToMember(clusterRequest, getMember(instance)).get()
     }
 
-    <T> T submitToInstance(Callable<T> c, String instance) {
-        executorService.submitToMember(c, getMember(instance)).get()
-    }
-
-    <T> Map<String, T> submitToAllInstances(Callable<T> c) {
-        executorService
+    /**
+     * Submit a task to all instances.
+     *
+     * Not typically called directly.
+     * @see BaseService#runOnAllInstances and BaseService#runOnAllInstances instead.
+     */
+    Map<String, ClusterResult> submitToAllInstances(ClusterTask c) {
+        taskExecutor
             .submitToAllMembers(c)
             .collectEntries { member, f -> [member.getAttribute('instanceName'), f.get()] }
     }

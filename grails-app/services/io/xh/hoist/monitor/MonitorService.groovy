@@ -9,10 +9,8 @@ package io.xh.hoist.monitor
 
 import grails.compiler.GrailsCompileStatic
 import grails.gorm.transactions.ReadOnly
-import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
 import io.xh.hoist.cachedvalue.CachedValue
-import io.xh.hoist.cluster.ClusterRequest
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.util.Timer
 
@@ -20,7 +18,8 @@ import static AggregateMonitorResult.emptyResults
 import static AggregateMonitorResult.newResults
 import static grails.util.Environment.isDevelopmentMode
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
-import static io.xh.hoist.util.Utils.getAppContext
+import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
+
 
 /**
  * Coordinates application status monitoring across all cluster instances. The primary instance
@@ -38,6 +37,7 @@ class MonitorService extends BaseService {
 
     ConfigService configService
     MonitorReportService monitorReportService
+    MonitorEvalService monitorEvalService
 
     // Shared state for all servers to read - gathered by primary from all instances.
     // Map of monitor code to aggregated (cross-instance) results.
@@ -52,7 +52,7 @@ class MonitorService extends BaseService {
         timer = createTimer(
             name: 'runMonitors',
             runFn: this.&runMonitors,
-            interval: {monitorInterval},
+            interval: { monitorInterval },
             delay: startupDelay,
             primaryOnly: true
         )
@@ -89,10 +89,10 @@ class MonitorService extends BaseService {
     //------------------
     private void runMonitors() {
         // Gather per-instance results from across the cluster
-        Map<String, List<MonitorResult>> newChecks = clusterService
-            .submitToAllInstances(new RunAllMonitorsTask())
-            .collectMany { instance, response -> (response.value ?: []) }
-            .groupBy { it.code }
+        Map<String, List<MonitorResult>> newChecks =
+           runOnAllInstances(monitorEvalService.&runAllMonitors)
+                .collectMany {it.value.value as List<MonitorResult> ?: []}
+                .groupBy { it.code }
 
         // Merge with existing results and save
         Map<String, AggregateMonitorResult> prevResults = _results.get()
@@ -103,13 +103,6 @@ class MonitorService extends BaseService {
 
         // Report the canonical results from public getter
         monitorReportService.noteResultsUpdated(results)
-    }
-
-    @CompileDynamic
-    static class RunAllMonitorsTask extends ClusterRequest<List<MonitorResult>> {
-        List<MonitorResult> doCall() {
-            return appContext.monitorEvalService.runAllMonitors()
-        }
     }
 
     private Integer getMonitorInterval() {

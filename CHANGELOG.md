@@ -2,6 +2,20 @@
 
 ## 29.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - update to remote execution syntax)
+
+### 🎁 New Features
+
+* Hoist-Core v29 includes a much improved mechanism for running code on specific instances, or
+across all instances in the cluster.  Most importantly, the new mechanism now provides the remote
+code with all identity and auth information about the user triggering the action.  In addition,
+the syntax has been simplified substantially to avoid the need for creating extra inner classes
+and the need to capture all parameters explicitly.
+
+See the new methods for `ClusterUtils.runOnInstance`, `ClusterUtils.runOnPrimary` and
+`ClusterUtils.runOnAllInstances` for more information.  In most cases, the transition to using this
+method should be mechanical, and a simplification from the use of the previous API.
+
 ## 28.1.0 - 2025-02-13
 
 ### 🎁 New Features
