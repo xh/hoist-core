@@ -16,6 +16,12 @@ See the new methods for `ClusterUtils.runOnInstance`, `ClusterUtils.runOnPrimary
 `ClusterUtils.runOnAllInstances` for more information.  In most cases, the transition to using this
 method should be mechanical, and a simplification from the use of the previous API.
 
+### ⚙️ Technical
+
+* Modified `BaseAuthenticationService` to convert `whitelistURIs` from a property to a getter, to
+  support targeted implementation overrides of just the URIs themselves, without having to override
+  `isWhitelist()`.
+
 ## 28.1.0 - 2025-02-13
 
 ### 🎁 New Features

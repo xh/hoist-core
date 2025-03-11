@@ -159,12 +159,14 @@ abstract class BaseAuthenticationService extends BaseService {
      * that URI as otherwise SSO-based apps will not have a first shot at installing a user on the
      * session within their completeAuthentication() implementations.
      */
-    protected List<String> whitelistURIs = [
-        '/ping',  // legacy alias for /xh/ping (via UrlMappings)
-        '/xh/login',
-        '/xh/logout',
-        '/xh/ping',
-        '/xh/version',
-        '/xh/authConfig'
-    ]
+    protected List<String> getWhitelistURIs() {
+        return [
+            '/ping',  // legacy alias for /xh/ping (via UrlMappings)
+            '/xh/login',
+            '/xh/logout',
+            '/xh/ping',
+            '/xh/version',
+            '/xh/authConfig'
+        ]
+    }
 }
