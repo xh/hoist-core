@@ -189,8 +189,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     /**
      * Submit a task to an instance.
      *
-     * Not typically called directly.
-     * @see BaseService#runOnInstance and BaseService#runOnAllInstances instead.
+     * Not typically called directly. Use ClusterUtils#runOnInstance instead.
      */
     ClusterResult submitToInstance(ClusterTask clusterRequest, String instance) {
         taskExecutor.submitToMember(clusterRequest, getMember(instance)).get()
@@ -199,8 +198,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     /**
      * Submit a task to all instances.
      *
-     * Not typically called directly.
-     * @see BaseService#runOnAllInstances and BaseService#runOnAllInstances instead.
+     * Not typically called directly. Use ClusterUtils#runOnAllInstances instead.
      */
     Map<String, ClusterResult> submitToAllInstances(ClusterTask c) {
         taskExecutor

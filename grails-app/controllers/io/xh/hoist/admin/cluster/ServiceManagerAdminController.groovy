@@ -8,8 +8,8 @@ package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
-import static io.xh.hoist.util.ClusterUtils.runOnInstance
-import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
+import static io.xh.hoist.util.ClusterUtils.runOnInstanceAsJson
+import static io.xh.hoist.util.ClusterUtils.runOnAllInstancesAsJson
 
 @Access(['HOIST_ADMIN_READER'])
 class ServiceManagerAdminController extends BaseController {
@@ -17,17 +17,12 @@ class ServiceManagerAdminController extends BaseController {
     def serviceManagerService
 
     def listServices(String instance) {
-        def ret = runOnInstance(serviceManagerService.&listServices, instance: instance, asJson: true)
+        def ret = runOnInstanceAsJson(serviceManagerService.&listServices, instance)
         renderClusterJSON(ret)
     }
 
     def getStats(String instance, String name) {
-        def ret = runOnInstance(
-            serviceManagerService.&getStats,
-            args: [name],
-            instance: instance,
-            asJson: true
-        )
+        def ret = runOnInstanceAsJson(serviceManagerService.&getStats, instance, [name])
         renderClusterJSON(ret)
     }
 
@@ -35,19 +30,10 @@ class ServiceManagerAdminController extends BaseController {
     def clearCaches(String instance) {
         def names = params.list('names')
         if (instance) {
-            def ret = runOnInstance(
-                serviceManagerService.&clearCaches,
-                args: [names],
-                instance: instance,
-                asJson: true
-            )
+            def ret = runOnInstanceAsJson(serviceManagerService.&clearCaches, instance, [names])
             renderClusterJSON(ret)
         } else {
-            def ret = runOnAllInstances(
-                serviceManagerService.&clearCaches,
-                args: [names],
-                asJson: true
-            )
+            def ret = runOnAllInstancesAsJson(serviceManagerService.&clearCaches, [names])
             renderJSON(ret)
         }
     }

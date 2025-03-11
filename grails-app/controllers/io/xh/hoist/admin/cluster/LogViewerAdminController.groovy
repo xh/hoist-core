@@ -10,7 +10,9 @@ package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
+import static io.xh.hoist.util.ClusterUtils.runOnInstanceAsJson
 import static io.xh.hoist.util.ClusterUtils.runOnInstance
+
 
 @Access(['HOIST_ADMIN_READER'])
 class LogViewerAdminController extends BaseController {
@@ -19,7 +21,7 @@ class LogViewerAdminController extends BaseController {
     def logArchiveService
 
     def listFiles(String instance) {
-        def ret = runOnInstance(logReaderService.&listFiles, instance: instance, asJson: true)
+        def ret = runOnInstanceAsJson(logReaderService.&listFiles, instance)
         renderClusterJSON(ret)
     }
 
@@ -31,17 +33,16 @@ class LogViewerAdminController extends BaseController {
         Boolean caseSensitive,
         String instance
     ) {
-        def ret = runOnInstance(
+        def ret = runOnInstanceAsJson(
             logReaderService.&getFile,
-            args: [filename, startLine, maxLines, pattern, caseSensitive],
-            instance: instance,
-            asJson: true
+            instance,
+            [filename, startLine, maxLines, pattern, caseSensitive]
         )
         renderClusterJSON(ret)
     }
 
     def download(String filename, String instance) {
-        def ret = runOnInstance(logReaderService.&get, args: [filename], instance: instance)
+        def ret = runOnInstance(logReaderService.&get, instance, [filename])
 
         if (ret.exception) {
             // Just render exception, was already logged on target instance
@@ -63,12 +64,7 @@ class LogViewerAdminController extends BaseController {
      */
     @Access(['HOIST_ADMIN'])
     def deleteFiles(String instance) {
-        def ret = runOnInstance(
-            logReaderService.&deleteFiles,
-            args: [params.list('filenames')],
-            instance: instance,
-            asJson: true
-        )
+        def ret = runOnInstanceAsJson(logReaderService.&deleteFiles, instance, [params.list('filenames')])
         renderClusterJSON(ret)
     }
 
@@ -78,12 +74,7 @@ class LogViewerAdminController extends BaseController {
      */
     @Access(['HOIST_ADMIN'])
     def archiveLogs(Integer daysThreshold, String instance) {
-        def ret = runOnInstance(
-            logArchiveService.&archiveLogs,
-            args: [daysThreshold],
-            instance: instance,
-            asJson: true
-        )
+        def ret = runOnInstanceAsJson(logArchiveService.&archiveLogs, instance, [daysThreshold])
         renderClusterJSON(ret)
     }
 }

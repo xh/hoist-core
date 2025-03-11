@@ -1,7 +1,5 @@
 package io.xh.hoist.util
 
-import groovy.transform.NamedParam
-import groovy.transform.NamedVariant
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterResult
 import io.xh.hoist.cluster.ClusterTask
@@ -16,48 +14,64 @@ class ClusterUtils {
      *  @param c, MethodClosure for a method on a BaseService instance.
      *      Use the groovy .& operator for convenient access, e.g. `fooService.&bar`
      */
-    @NamedVariant
-    static ClusterResult runOnInstance(
-        Closure c,
-        @NamedParam(required = false) List args = [],
-        @NamedParam(required = false) boolean asJson = false,
-        @NamedParam(required = true) String instance
-    ) {
-        def task = createTask(c, args, asJson)
-        clusterService.submitToInstance(task, instance)
+    static ClusterResult runOnInstance(Closure c, String instance, List args = []) {
+        clusterService.submitToInstance(createTask(c, args, false), instance)
     }
 
     /**
-     * Run a service method on the primary instance, returning the result or throwing
-     * a serialized exception.
+     * Run a service method on a specific cluster instance, returning the values as Json.
+     *
+     *  @param c, MethodClosure for a method on a BaseService instance.
+     *      Use the groovy .& operator for convenient access, e.g. `fooService.&bar`
+     */
+    static ClusterResult runOnInstanceAsJson(Closure c, String instance, List args = []) {
+        clusterService.submitToInstance(createTask(c, args, true), instance)
+    }
+
+
+    /**
+     * Run a service method on the primary instance, returning the result or an exception.
      *
      * @param c, MethodClosure for a method on a BaseService instance.
      *      Use the groovy .& operator for convenient access, e.g. `fooService.&bar`
      */
-    @NamedVariant
-    static ClusterResult runOnPrimary(
-        Closure c,
-        @NamedParam(required = false) List args = [],
-        @NamedParam(required = false) boolean asJson = false
-    ) {
-        runOnInstance(c, args: args, asJson: asJson, instance: clusterService.primaryName)
+    static ClusterResult runOnPrimary(Closure c, List args = []) {
+        runOnInstance(c, clusterService.primaryName, args)
     }
 
     /**
-     * Run a service method on *all* cluster instance.
+     * Run a service method on the primary instance, returning the result or a serialized exception
+     * in Json Form.
+     *
+     * @param c, MethodClosure for a method on a BaseService instance.
+     *      Use the groovy .& operator for convenient access, e.g. `fooService.&bar`
+     */
+    static ClusterResult runOnPrimaryAsJson(Closure c, List args = []) {
+        runOnInstanceAsJson(c, clusterService.primaryName, args)
+    }
+
+    /**
+     * Run a service method on *all* cluster instances.
+     *
+     * @param c, MethodClosure for a method on a BaseService instance.
+     *      Use the groovy .& operator for convenient access, e.g. `fooService.&bar`
+     *
+     * Renders a Map of instance name to ClusterResponse.  Re
+     */
+    static Map<String, ClusterResult> runOnAllInstances(Closure c, List args = []) {
+        clusterService.submitToAllInstances(createTask(c, args, false)) as Map<String, ClusterResult>
+    }
+
+    /**
+     * Run a service method on *all* cluster instance, returning results as JSON
      *
      * @param c, MethodClosure for a method on a BaseService instance.
      *      Use the groovy .& operator for convenient access, e.g. `fooService.&bar`
      *
      * Renders a Map of instance name to ClusterResponse.
      */
-    static Map<String, ClusterResult> runOnAllInstances(
-        Closure c,
-        @NamedParam(required = false) List args = [],
-        @NamedParam(required = false) boolean asJson = false
-    ) {
-        def task = createTask(c, args, asJson)
-        clusterService.submitToAllInstances(task) as Map<String, ClusterResult>
+    static Map<String, ClusterResult> runOnAllInstancesAsJson(Closure c, List args = []) {
+        clusterService.submitToAllInstances(createTask(c, args, true)) as Map<String, ClusterResult>
     }
 
     private static ClusterTask createTask(Closure c, List args, boolean asJson) {

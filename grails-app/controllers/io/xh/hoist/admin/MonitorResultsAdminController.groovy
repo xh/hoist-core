@@ -9,7 +9,7 @@ package io.xh.hoist.admin
 
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
-import static io.xh.hoist.util.ClusterUtils.runOnPrimary
+import static io.xh.hoist.util.ClusterUtils.runOnPrimaryAsJson
 
 @Access(['HOIST_ADMIN_READER'])
 class MonitorResultsAdminController extends BaseController {
@@ -22,7 +22,7 @@ class MonitorResultsAdminController extends BaseController {
 
     @Access(['HOIST_ADMIN'])
     def forceRunAllMonitors() {
-        def ret = runOnPrimary(monitorService.&forceRun, asJson: true)
+        def ret = runOnPrimaryAsJson(monitorService.&forceRun)
         renderClusterJSON(ret)
     }
 }
