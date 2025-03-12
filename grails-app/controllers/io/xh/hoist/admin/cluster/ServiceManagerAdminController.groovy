@@ -7,45 +7,34 @@
 package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.cluster.ClusterJsonRequest
 import io.xh.hoist.security.Access
-
-import static io.xh.hoist.util.Utils.appContext
+import static io.xh.hoist.util.ClusterUtils.runOnInstanceAsJson
+import static io.xh.hoist.util.ClusterUtils.runOnAllInstancesAsJson
 
 @Access(['HOIST_ADMIN_READER'])
 class ServiceManagerAdminController extends BaseController {
 
+    def serviceManagerService
+
     def listServices(String instance) {
-        runOnInstance(new ListServices(), instance)
-    }
-    static class ListServices extends ClusterJsonRequest {
-        def doCall() {
-            appContext.serviceManagerService.listServices()
-        }
+        def ret = runOnInstanceAsJson(serviceManagerService.&listServices, instance)
+        renderClusterJSON(ret)
     }
 
     def getStats(String instance, String name) {
-        def task = new GetStats(name: name)
-        runOnInstance(task, instance)
-    }
-    static class GetStats extends ClusterJsonRequest {
-        String name
-        def doCall() {
-            appContext.serviceManagerService.getStats(name)
-        }
+        def ret = runOnInstanceAsJson(serviceManagerService.&getStats, instance, [name])
+        renderClusterJSON(ret)
     }
 
     @Access(['HOIST_ADMIN'])
     def clearCaches(String instance) {
-        def task = new ClearCaches(names: params.list('names'))
-        instance ? runOnInstance(task, instance) : runOnAllInstances(task)
-    }
-    static class ClearCaches extends ClusterJsonRequest {
-        List<String> names
-
-        def doCall() {
-            appContext.serviceManagerService.clearCaches(names)
-            return [success: true]
+        def names = params.list('names')
+        if (instance) {
+            def ret = runOnInstanceAsJson(serviceManagerService.&clearCaches, instance, [names])
+            renderClusterJSON(ret)
+        } else {
+            def ret = runOnAllInstancesAsJson(serviceManagerService.&clearCaches, [names])
+            renderJSON(ret)
         }
     }
 }
