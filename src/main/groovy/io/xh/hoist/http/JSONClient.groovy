@@ -8,9 +8,9 @@
 package io.xh.hoist.http
 
 import groovy.transform.CompileStatic
-import groovy.util.logging.Slf4j
 import io.xh.hoist.exception.ExternalHttpException
 import io.xh.hoist.json.JSONParser
+import io.xh.hoist.util.StringUtils
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
@@ -146,32 +146,44 @@ class JSONClient {
     }
 
     // Attempt to parse a reasonable exception from failed response, but never actually throw if not possible.
-    private Throwable parseException(CloseableHttpResponse response){
+    private Throwable parseException(CloseableHttpResponse response) {
         try {
-            def ex = JSONParser.parseObject(response.entity.content),
-                className = ex?.className,
-                msg = ex?.message
+            String content = response.entity.content.getText().trim()
+            if (!content) return null
 
-            // Message is required
-            if (msg instanceof String) {
+            // [1] We have a valid json object (preferred)
+            Map obj = safeParseObject(content)
+            if (obj) {
+                String msg = obj.message instanceof String ? obj.message : 'Unknown Error'
 
                 // Try to rehydrate exception of certain known and present classes
+                def className = obj.className
                 if (className instanceof String &&
-                        (className.contains('io.xh.hoist') || className.contains('java.lang'))) {
+                    (className.contains('io.xh.hoist') || className.contains('java.lang'))) {
                     def cls = this.class.classLoader.loadClass(className),
                         constructor = cls?.getConstructor(String)
-
                     if (constructor) {
                         return (Throwable) constructor.newInstance(msg)
                     }
-
                 }
-                // otherwise fall back to a runtime exception...
+                // otherwise use a runtime exception.
                 return new RuntimeException(msg)
             }
-        } catch (Exception ignored) {}
 
-        return null
+            // [2] Or just interpret content as a raw string message
+            return new RuntimeException(StringUtils.elide(content, 255))
+        } catch (Exception ignored) {
+            // [3] ..but in the worst case, just return null
+            return null
+        }
+    }
+
+    private Map safeParseObject(String s) {
+        try {
+            return JSONParser.parseObject(s)
+        } catch (Exception ignored) {
+            return null
+        }
     }
 
 }
