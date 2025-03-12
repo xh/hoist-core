@@ -154,10 +154,10 @@ class JSONClient {
             // [1] We have a valid json object (preferred)
             Map obj = safeParseObject(content)
             if (obj) {
-                String msg = obj.msg instanceof String ? obj.msg : 'Unknown Error'
+                String msg = obj.message instanceof String ? obj.message : 'Unknown Error'
 
                 // Try to rehydrate exception of certain known and present classes
-                def className = obj.class
+                def className = obj.className
                 if (className instanceof String &&
                     (className.contains('io.xh.hoist') || className.contains('java.lang'))) {
                     def cls = this.class.classLoader.loadClass(className),
