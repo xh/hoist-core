@@ -1,6 +1,6 @@
 # Changelog
 
-## 29.0-SNAPSHOT - unreleased
+## 29.0.0 - 2025-03-13
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - update to remote execution syntax)
 
