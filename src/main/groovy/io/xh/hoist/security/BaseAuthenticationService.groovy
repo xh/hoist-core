@@ -22,7 +22,6 @@ import static java.util.Collections.emptyMap
 import static org.apache.hc.core5.http.HttpStatus.SC_SERVER_ERROR
 
 
-
 /**
  * Abstract base service for processing and confirming user authentications and evaluating incoming
  * requests to determine if authentication is either complete or not required.
@@ -158,6 +157,8 @@ abstract class BaseAuthenticationService extends BaseService {
      * Note that this deliberately does *not* contain the authStatus check URI. We do not whitelist
      * that URI as otherwise SSO-based apps will not have a first shot at installing a user on the
      * session within their completeAuthentication() implementations.
+     *
+     * Implementations can mutate to add custom entries but should take care to leave these in place.
      */
     protected List<String> whitelistURIs = [
         '/ping',  // legacy alias for /xh/ping (via UrlMappings)
@@ -167,4 +168,10 @@ abstract class BaseAuthenticationService extends BaseService {
         '/xh/version',
         '/xh/authConfig'
     ]
+
+    @Override
+    Map getAdminStats() { [whitelistURIs: whitelistURIs] }
+
+    @Override
+    List<String> getComparableAdminStats() { ['whitelistURIs'] }
 }
