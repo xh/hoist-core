@@ -290,6 +290,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         clusterService.isPrimary
     }
 
+
     //-----------------------------------
     // Core template methods for override
     //-----------------------------------

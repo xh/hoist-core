@@ -54,6 +54,14 @@ class ConnectionPoolMonitoringService extends BaseService {
         return _snapshots
     }
 
+    Map getSnapshotsForAdmin() {
+        return [
+            enabled          : enabled,
+            snapshots        : snapshots,
+            poolConfiguration: poolConfiguration
+        ]
+    }
+
     Map getLatestSnapshot() {
         return _snapshots?.max { it.key }?.value
     }

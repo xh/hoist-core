@@ -5,6 +5,7 @@ import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.util.Utils.appContext
 import static io.xh.hoist.util.Utils.getExceptionHandler
+import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 
 /**
  * Reports on all instances within the current Hazelcast cluster, including a general list of all
@@ -26,14 +27,8 @@ class ClusterAdminService extends BaseService {
         ]
     }
 
-    static class AdminStatsTask extends ClusterRequest {
-        def doCall() {
-            return appContext.clusterAdminService.adminStats
-        }
-    }
-
     Collection<Map> getAllStats() {
-        clusterService.submitToAllInstances(new AdminStatsTask())
+        runOnAllInstances(this.&getAdminStats)
             .collect { name, result ->
                 def ret = [
                     name   : name,

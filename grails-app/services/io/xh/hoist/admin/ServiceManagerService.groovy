@@ -11,6 +11,8 @@ import com.hazelcast.core.DistributedObject
 import io.xh.hoist.AdminStats
 import io.xh.hoist.BaseService
 
+import static io.xh.hoist.util.Utils.isSensitiveParamName
+
 class ServiceManagerService extends BaseService {
 
     def grailsApplication
@@ -42,6 +44,16 @@ class ServiceManagerService extends BaseService {
             }
         }
     }
+
+    Map getEnvironmentProperties() {
+        return [
+            environment: System.getenv().collectEntries {
+                [it.key, isSensitiveParamName(it.key) ? '*****' : it.value]
+            },
+            properties: System.properties
+        ]
+    }
+
 
     //----------------------
     // Implementation

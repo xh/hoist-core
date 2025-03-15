@@ -7,9 +7,11 @@
 
 package io.xh.hoist.log
 
+import groovy.io.FileType
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.configuration.LogbackConfig
 import io.xh.hoist.exception.RoutineRuntimeException
 import org.apache.commons.io.input.ReversedLinesFileReader
 import java.nio.file.Paths
@@ -22,29 +24,43 @@ class LogReaderService extends BaseService {
 
     ConfigService configService
 
+
+    /**
+     * Return meta data about available log files for client.
+     */
+    Map listFiles() {
+        def logRootPath = logDir.absolutePath,
+            files = availableFiles.collect {
+                [
+                    filename    : it.key,
+                    size        : it.value.size(),
+                    lastModified: it.value.lastModified()
+                ]
+            }
+        return [files: files, logRootPath: logRootPath]
+    }
+
     /**
      * Fetch the (selected) contents of a log file for viewing in the admin console.
      * @param filename - (required) Filename to be read
      * @param startLine - (optional) line number of file to start at; if null or zero or negative, will return tail of file
      * @param maxLines - (optional) number of lines to return
      * @param pattern - (optional) only lines matching pattern will be returned
-     * @return - List of elements of the form [linenumber, text] for the requested lines
      */
-    List readFile(String filename, Integer startLine, Integer maxLines, String pattern, Boolean caseSensitive) {
-        if (!configService.getBool('xhEnableLogViewer')) {
-            throw new RuntimeException("Log Viewer disabled. See 'xhEnableLogViewer' config.")
-        }
-
-        return withDebug([
-            _msg: 'Reading log file',
-            _filename: filename,
-            startLine: startLine,
-            maxLines: maxLines,
-            pattern: pattern,
+    Map getFile(String filename, Integer startLine, Integer maxLines, String pattern, Boolean caseSensitive) {
+        if (!availableFiles[filename]) throwUnavailable(filename)
+        def content = withDebug([
+            _msg         : 'Reading log file',
+            _filename    : filename,
+            startLine    : startLine,
+            maxLines     : maxLines,
+            pattern      : pattern,
             caseSensitive: caseSensitive
         ]) {
             doRead(filename, startLine, maxLines, pattern, caseSensitive)
         }
+
+        return [success: true, filename: filename, content: content]
     }
 
 
@@ -52,14 +68,28 @@ class LogReaderService extends BaseService {
      * Fetch the raw contents of a log file for direct download.
      */
     File get(String filename) {
+        if (!availableFiles[filename]) throwUnavailable(filename)
         def ret = new File(logRootPath, filename)
-        if (!ret.exists()) throw new FileNotFoundException()
+        if (!ret.exists()) throwUnavailable(filename)
         return ret
     }
 
     File getLogDir() {
         return new File(Paths.get(logRootPath).toString())
     }
+
+    void deleteFiles(List<String> filenames) {
+        def available = availableFiles
+
+        filenames.each { filename ->
+            def toDelete = available[filename]
+            if (!toDelete) throwUnavailable(filename)
+
+            def deleted = toDelete.delete()
+            if (!deleted) logWarn("Failed to delete log: '$filename'.")
+        }
+    }
+
 
     //------------------------
     // Implementation
@@ -71,7 +101,7 @@ class LogReaderService extends BaseService {
             ret = new ArrayList(maxLines),
             file = new File(logRootPath, filename)
 
-        if (!file.exists()) throw new FileNotFoundException()
+        if (!file.exists()) throwUnavailable(filename)
 
         long maxEndTime = currentTimeMillis() + configService.getLong('xhLogSearchTimeoutMs', 5000)
 
@@ -137,6 +167,26 @@ class LogReaderService extends BaseService {
             throw new RoutineRuntimeException('Query took too long. Log search aborted.')
         }
     }
+
+    private Map<String, File> getAvailableFiles() {
+        def baseDir = new File(LogbackConfig.logRootPath),
+            basePath = baseDir.toPath()
+
+        List<File> files = []
+        baseDir.eachFileRecurse(FileType.FILES) {
+            def matches = it.name ==~ /.*\.log/
+            if (matches) files << it
+        }
+
+        files.collectEntries { File f ->
+            [basePath.relativize(f.toPath()).toString(), f]
+        }
+    }
+
+    private void throwUnavailable(String filename) {
+        throw new RoutineRuntimeException("Filename not valid or available: $filename")
+    }
+
 
     Map getAdminStats() {[
         config: configForAdminStats('xhEnableLogViewer', 'xhLogSearchTimeoutMs')
