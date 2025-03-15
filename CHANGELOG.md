@@ -2,6 +2,11 @@
 
 ## 29.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Added a new default status monitor to alert on any reported discrepancies across replicated
+  objects within a cluster.
+
 ## 28.1.0 - 2025-02-13
 
 ### 🎁 New Features
