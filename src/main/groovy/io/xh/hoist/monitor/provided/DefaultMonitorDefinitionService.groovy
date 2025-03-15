@@ -37,6 +37,7 @@ import static java.lang.System.currentTimeMillis
  */
 class DefaultMonitorDefinitionService extends BaseService {
 
+    def getClusterObjectsService() { Utils.appContext.clusterObjectsService }
     def getConfigService() { Utils.configService }
     def getDataSource() {Utils.dataSource}
     def getLdapService() { Utils.ldapService}
@@ -126,6 +127,17 @@ class DefaultMonitorDefinitionService extends BaseService {
         result.metric = currentTimeMillis() - startTime
     }
 
+    def xhClusterObjectBreaksMonitor(MonitorResult result) {
+        if (!clusterService.getMultiInstanceEnabled()) {
+            result.status = INACTIVE
+            result.message = 'Multi-instance mode not enabled'
+            return
+        }
+
+        def rpt = clusterObjectsService.getClusterObjectsReport()
+        result.metric = rpt.breaks.size()
+    }
+
     /**
      * Ensure that the required soft-config entry for this service has been created, along with a
      * minimal set of required Hoist monitors. Called by init() on app startup.
@@ -200,6 +212,16 @@ class DefaultMonitorDefinitionService extends BaseService {
                 active: true,
                 params: '{\n\t"queryUser": "admin"\n}',
                 notes: 'Reports time taken to query Hoist LdapService for the configured user, to test connectivity to an external directory (if enabled).'
+            ],
+            [
+                code: 'xhClusterObjectBreaksMonitor',
+                name: 'Multi-Instance Discrepancies',
+                metricType: 'Ceil',
+                warnThreshold: 0,
+                failThreshold: 1,
+                metricUnit: 'breaks',
+                active: true,
+                notes: 'Queries the status of all distributed objects across a cluster and alerts if any breaks (discrepancies between comparable stats on an object) are reported across any instances.'
             ]
         ])
     }
