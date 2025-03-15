@@ -18,6 +18,10 @@ See the new methods for `ClusterUtils.runOnInstance`, `ClusterUtils.runOnPrimary
 `ClusterUtils.runOnAllInstances` for more information.  In most cases, the transition to using this
 method should be mechanical, and a simplification from the use of the previous API.
 
+### 🐞 Bug Fixes
+
+* Fixed broken log file downloads from the Admin Console.
+
 ## 28.1.0 - 2025-02-13
 
 ### 🎁 New Features
