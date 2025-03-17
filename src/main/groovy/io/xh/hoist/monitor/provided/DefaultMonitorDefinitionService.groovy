@@ -127,7 +127,7 @@ class DefaultMonitorDefinitionService extends BaseService {
         result.metric = currentTimeMillis() - startTime
     }
 
-    def xhClusterObjectBreaksMonitor(MonitorResult result) {
+    def xhClusterBreaksMonitor(MonitorResult result) {
         if (!clusterService.getMultiInstanceEnabled()) {
             result.status = INACTIVE
             result.message = 'Multi-instance mode not enabled'
@@ -214,7 +214,7 @@ class DefaultMonitorDefinitionService extends BaseService {
                 notes: 'Reports time taken to query Hoist LdapService for the configured user, to test connectivity to an external directory (if enabled).'
             ],
             [
-                code: 'xhClusterObjectBreaksMonitor',
+                code: 'xhClusterBreaksMonitor',
                 name: 'Multi-Instance Discrepancies',
                 metricType: 'Ceil',
                 warnThreshold: 0,
