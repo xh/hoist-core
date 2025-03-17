@@ -2,6 +2,11 @@
 
 ## 30.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Added a new default status monitor to alert on any reported discrepancies across replicated
+  objects within a cluster.
+
 ## 29.0.0 - 2025-03-13
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - update to remote execution syntax)
