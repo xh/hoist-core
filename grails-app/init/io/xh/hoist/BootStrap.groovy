@@ -73,7 +73,7 @@ class BootStrap implements LogSupport {
                     logData: false,
                     maxDataLength: 2000,
                     maxRows: [default: 10000, limit: 25000, options: [1000, 5000, 10000, 25000]],
-                    levels: [[user: '*', category: '*', severity: 'INFO']]
+                    levels: [[username: '*', category: '*', severity: 'INFO']]
                 ],
                 clientVisible: true,
                 groupName: 'xh.io',
