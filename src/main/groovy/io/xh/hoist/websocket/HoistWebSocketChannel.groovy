@@ -41,6 +41,8 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
     private Integer receivedMessageCount = 0
     private Instant lastReceivedTime
 
+    private String clientAppVersion
+
     HoistWebSocketChannel(WebSocketSession webSocketSession) {
         Map conf = getConfig()
         def sendTimeLimit = (int) conf.sendTimeLimitMs,
@@ -94,6 +96,10 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
         return configService.getMap('xhWebSocketConfig')
     }
 
+    void setClientAppVersion(String version) {
+        this.clientAppVersion = version;
+    }
+
     Map formatForJSON() {
         return [
             key: key,
@@ -104,7 +110,8 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
             sentMessageCount: sentMessageCount,
             lastSentTime: lastSentTime,
             receivedMessageCount: receivedMessageCount,
-            lastReceivedTime: lastReceivedTime
+            lastReceivedTime: lastReceivedTime,
+            clientAppVersion: clientAppVersion
         ]
     }
 }
