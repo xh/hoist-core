@@ -9,8 +9,8 @@ package io.xh.hoist
 
 import grails.async.Promise
 import groovy.transform.CompileStatic
-import io.xh.hoist.cluster.ClusterResult
 import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.cluster.JsonClusterResult
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONSerializer
@@ -23,6 +23,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import static grails.async.web.WebPromises.task
+import static org.apache.hc.core5.http.HttpStatus.SC_NO_CONTENT
+import static org.apache.hc.core5.http.HttpStatus.SC_OK
 
 @CompileStatic
 abstract class BaseController implements LogSupport, IdentitySupport {
@@ -40,7 +42,7 @@ abstract class BaseController implements LogSupport, IdentitySupport {
      * @param o - object to be serialized.
      */
     protected void renderJSON(Object o){
-        response.setContentType('application/json; charset=UTF-8')
+        response.contentType = 'application/json; charset=UTF-8'
         render (JSONSerializer.serialize(o))
     }
 
@@ -82,15 +84,30 @@ abstract class BaseController implements LogSupport, IdentitySupport {
     }
 
     /**
-     * Render a JSON ClusterResult to the Request object
-     *
-     * Note - ClusterResult should be created with flag 'asJson'
+     * Render a JsonClusterResult to the Request object
      */
-    protected String renderClusterJSON(ClusterResult result) {
-        def ret = result.value as Map
-        response.setContentType('application/json; charset=UTF-8')
-        response.setStatus(ret.httpStatus as Integer)
-        render(ret.json)
+    protected void renderClusterJSON(JsonClusterResult result) {
+        response.contentType = 'application/json; charset=UTF-8'
+        if (result.exception) {
+            response.status = result.exceptionStatusCode
+            render(result.exception)
+        } else if (!result.valueIsVoid) {
+            response.status = SC_OK
+            render(result.value)
+        } else {
+            response.status = SC_NO_CONTENT
+        }
+    }
+
+
+    /**
+     * Render an empty, successful response.
+     */
+    protected void renderSuccess() {
+        // Content type not strictly needed -- this type provides consistency with the rest of the
+        // api and in particular what would be returned for an exception on the same endpoint.
+        response.contentType = 'application/json; charset=UTF-8'
+        response.status = SC_NO_CONTENT
     }
 
     protected Promise runAsync(Closure c) {

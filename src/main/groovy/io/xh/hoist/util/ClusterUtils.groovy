@@ -3,6 +3,7 @@ package io.xh.hoist.util
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterResult
 import io.xh.hoist.cluster.ClusterTask
+import io.xh.hoist.cluster.JsonClusterResult
 import org.codehaus.groovy.runtime.MethodClosure
 import static io.xh.hoist.util.Utils.getClusterService
 
@@ -24,7 +25,7 @@ class ClusterUtils {
      *  @param c, MethodClosure for a method on a BaseService instance.
      *      Use the groovy .& operator for convenient access, e.g. `fooService.&bar`
      */
-    static ClusterResult runOnInstanceAsJson(Closure c, String instance, List args = []) {
+    static JsonClusterResult runOnInstanceAsJson(Closure c, String instance, List args = []) {
         clusterService.submitToInstance(createTask(c, args, true), instance)
     }
 
@@ -46,7 +47,7 @@ class ClusterUtils {
      * @param c, MethodClosure for a method on a BaseService instance.
      *      Use the groovy .& operator for convenient access, e.g. `fooService.&bar`
      */
-    static ClusterResult runOnPrimaryAsJson(Closure c, List args = []) {
+    static JsonClusterResult runOnPrimaryAsJson(Closure c, List args = []) {
         runOnInstanceAsJson(c, clusterService.primaryName, args)
     }
 
@@ -70,8 +71,8 @@ class ClusterUtils {
      *
      * Renders a Map of instance name to ClusterResponse.
      */
-    static Map<String, ClusterResult> runOnAllInstancesAsJson(Closure c, List args = []) {
-        clusterService.submitToAllInstances(createTask(c, args, true)) as Map<String, ClusterResult>
+    static Map<String, JsonClusterResult> runOnAllInstancesAsJson(Closure c, List args = []) {
+        clusterService.submitToAllInstances(createTask(c, args, true)) as Map<String, JsonClusterResult>
     }
 
     private static ClusterTask createTask(Closure c, List args, boolean asJson) {

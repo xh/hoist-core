@@ -7,6 +7,15 @@
 * Added a new default status monitor to alert on any reported discrepancies across replicated
   objects within a cluster.
 
+* New `BaseController.renderSuccess()` method for convenient rendering of successful responses
+without content (Status Code 204).  This method is intended as a replacement for the deprecated
+pattern of sending a JSON response of `[success:true]`.
+
+### ⚙️ Technical
+* Improvements to the implementation of `BaseController.renderClusterJSON`:  If the underlying
+service method does not return a value, a no content response (Status Code 204) will now be
+returned to the client.
+
 ## 29.0.0 - 2025-03-13
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - update to remote execution syntax)

@@ -8,7 +8,6 @@ import java.util.concurrent.Callable
 
 import static io.xh.hoist.util.Utils.*
 import static io.xh.hoist.json.JSONSerializer.serialize
-import static org.apache.hc.core5.http.HttpStatus.SC_OK
 
 /**
  * Serializable task for executing remote service calls across the cluster.
@@ -16,7 +15,7 @@ import static org.apache.hc.core5.http.HttpStatus.SC_OK
  * Includes support for trampolining verified user identity to remote server, and
  * structured exception handling.
  */
-class ClusterTask implements Callable<ClusterResult>, LogSupport {
+class ClusterTask implements Callable<BaseClusterResult>, LogSupport {
 
     final String svc
     final String method
@@ -34,7 +33,7 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
         authUsername = identityService.authUsername
     }
 
-    ClusterResult call() {
+    BaseClusterResult call() {
         identityService.threadUsername.set(username)
         identityService.threadAuthUsername.set(authUsername)
 
@@ -42,11 +41,14 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
             if (!instanceReady) {
                 throw new InstanceNotAvailableException('Instance not available and may be initializing.')
             }
-            def service = appContext.getBean(Class.forName(svc)),
-                value = service.invokeMethod(method, args.toArray())
+            def clazz = Class.forName(svc),
+                service = appContext.getBean(clazz),
+                value = service.invokeMethod(method, args.toArray()),
+                valueIsVoid = value !== null ? false : clazz.methods.find{it.name == method}?.returnType == Void.TYPE
+
             return asJson ?
-                new ClusterResult(value: [httpStatus: SC_OK, json: serialize(value)]) :
-                new ClusterResult(value: value)
+                new JsonClusterResult(value: serialize(value), valueIsVoid: valueIsVoid) :
+                new ClusterResult(value: value, valueIsVoid: valueIsVoid)
 
         } catch (Throwable t) {
             try {
@@ -59,7 +61,7 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
                 // Even logging failing -- just catch quietly and return neatly to calling member.
             }
             return asJson ?
-                new ClusterResult(value: [httpStatus: exceptionHandler.getHttpStatus(t), json: serialize(t)] ):
+                new JsonClusterResult(exception: serialize(t), exceptionStatusCode: exceptionHandler.getHttpStatus(t)) :
                 new ClusterResult(exception: t)
         } finally {
             identityService.threadUsername.set(null)
@@ -67,5 +69,3 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
         }
     }
 }
-
-

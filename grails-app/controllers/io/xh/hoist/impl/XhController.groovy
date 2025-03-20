@@ -85,12 +85,12 @@ class XhController extends BaseController {
 
     def impersonate(String username) {
         identityService.impersonate(username)
-        renderJSON(success: true)
+        renderSuccess()
     }
 
     def endImpersonate() {
         identityService.endImpersonate()
-        renderJSON(success: true)
+        renderSuccess()
     }
 
     //------------------------
@@ -101,7 +101,7 @@ class XhController extends BaseController {
         def payload = parseRequestJSON([safeEncode: true]),
             entries =  payload.entries as List
         trackService.trackAll(entries)
-        renderJSON(success: true)
+        renderSuccess()
     }
 
     //------------------------
@@ -158,13 +158,13 @@ class XhController extends BaseController {
                 logError("Failed to recover pref '$key'", e)
             }
         }
-        renderJSON(success: true)
+        renderSuccess()
     }
 
     def clearPrefs() {
         ensureClientUsernameMatchesSession()
         prefService.clearPreferences()
-        renderJSON(success: true)
+        renderSuccess()
     }
 
 
@@ -246,7 +246,7 @@ class XhController extends BaseController {
             query.userAlerted as Boolean,
             query.correlationId as String
         )
-        renderJSON(success: true)
+        renderSuccess()
     }
 
 
@@ -260,7 +260,7 @@ class XhController extends BaseController {
             safeEncode(msg),
             safeEncode(appVersion)
         )
-        renderJSON(success: true)
+        renderSuccess()
     }
 
 

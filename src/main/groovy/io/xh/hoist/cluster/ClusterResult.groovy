@@ -1,8 +1,8 @@
 package io.xh.hoist.cluster
 
-class ClusterResult {
+
+class ClusterResult implements BaseClusterResult {
     Object value
-    Throwable exception
+    boolean valueIsVoid
+    Exception exception
 }
-
-

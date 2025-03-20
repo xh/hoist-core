@@ -28,7 +28,6 @@ class PreferenceDiffAdminController extends BaseController {
     def applyRemoteValues() {
         def records = params.get('records')
         prefDiffService.applyRemoteValues(JSONParser.parseArray(records))
-
-        renderJSON(success: true)
+        renderSuccess()
     }
 }
