@@ -15,7 +15,7 @@ import static io.xh.hoist.json.JSONSerializer.serialize
  * Includes support for trampolining verified user identity to remote server, and
  * structured exception handling.
  */
-class ClusterTask implements Callable<BaseClusterResult>, LogSupport {
+class ClusterTask implements Callable<ClusterResult>, LogSupport {
 
     final String svc
     final String method
@@ -33,7 +33,7 @@ class ClusterTask implements Callable<BaseClusterResult>, LogSupport {
         authUsername = identityService.authUsername
     }
 
-    BaseClusterResult call() {
+    ClusterResult call() {
         identityService.threadUsername.set(username)
         identityService.threadAuthUsername.set(authUsername)
 
@@ -46,9 +46,7 @@ class ClusterTask implements Callable<BaseClusterResult>, LogSupport {
                 value = service.invokeMethod(method, args.toArray()),
                 valueIsVoid = value !== null ? false : clazz.methods.find{it.name == method}?.returnType == Void.TYPE
 
-            return asJson ?
-                new JsonClusterResult(value: serialize(value), valueIsVoid: valueIsVoid) :
-                new ClusterResult(value: value, valueIsVoid: valueIsVoid)
+            return new ClusterResult(value: asJson && !valueIsVoid ? serialize(value) : value)
 
         } catch (Throwable t) {
             try {
@@ -60,9 +58,7 @@ class ClusterTask implements Callable<BaseClusterResult>, LogSupport {
             } catch (Exception e) {
                 // Even logging failing -- just catch quietly and return neatly to calling member.
             }
-            return asJson ?
-                new JsonClusterResult(exception: serialize(t), exceptionStatusCode: exceptionHandler.getHttpStatus(t)) :
-                new ClusterResult(exception: t)
+            return new ClusterResult(exception: new ClusterTaskException(t))
         } finally {
             identityService.threadUsername.set(null)
             identityService.threadAuthUsername.set(null)

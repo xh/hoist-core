@@ -10,7 +10,7 @@ package io.xh.hoist
 import grails.async.Promise
 import groovy.transform.CompileStatic
 import io.xh.hoist.cluster.ClusterService
-import io.xh.hoist.cluster.JsonClusterResult
+import io.xh.hoist.cluster.ClusterResult
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONSerializer
@@ -84,18 +84,36 @@ abstract class BaseController implements LogSupport, IdentitySupport {
     }
 
     /**
-     * Render a JsonClusterResult to the Request object
+     * Render a ClusterResult to the Request object as Json.
+     *
+     * If the result's value is a string, it will be assumed to be Json and rendered as is.
+     * Otherwise it will be serialized as needed.  The former is the most efficient, and typical
+     * use of this method; to get ClusterResults in this form, be sure to use the appropriate
+     * variants of ClusterUtils, e.g. `ClusterUtils.runOnXXXAsJson`.
      */
-    protected void renderClusterJSON(JsonClusterResult result) {
-        response.contentType = 'application/json; charset=UTF-8'
-        if (result.exception) {
-            response.status = result.exceptionStatusCode
-            render(result.exception)
-        } else if (!result.valueIsVoid) {
-            response.status = SC_OK
-            render(result.value)
+    protected void renderClusterJSON(ClusterResult result) {
+        def contentType = 'application/json; charset=UTF-8',
+            exception = result.exception,
+            value = result.value
+
+        if (exception) {
+            render(
+                text: exception.causeAsJson,
+                status: exception.causeStatusCode,
+                contentType: contentType
+            )
         } else {
-            response.status = SC_NO_CONTENT
+            value != null ?
+                render(
+                    text: value instanceof String ? value : JSONSerializer.serialize(value),
+                    status: SC_OK,
+                    contentType: contentType
+                ) :
+                render(
+                    text: null,
+                    status: SC_NO_CONTENT,
+                    contentType: contentType
+                )
         }
     }
 
@@ -106,8 +124,7 @@ abstract class BaseController implements LogSupport, IdentitySupport {
     protected void renderSuccess() {
         // Content type not strictly needed -- this type provides consistency with the rest of the
         // api and in particular what would be returned for an exception on the same endpoint.
-        response.contentType = 'application/json; charset=UTF-8'
-        response.status = SC_NO_CONTENT
+        render(text: null, status: SC_NO_CONTENT, contentType: 'application/json; charset=UTF-8')
     }
 
     protected Promise runAsync(Closure c) {
