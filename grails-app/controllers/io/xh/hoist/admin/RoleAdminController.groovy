@@ -47,7 +47,7 @@ class RoleAdminController extends BaseController {
         ensureHoistRoleManager()
         Map roleSpec = parseRequestJSON()
         defaultRoleUpdateService.delete(roleSpec.name)
-        renderJSON(success: true)
+        renderSuccess()
     }
 
     def usersForDirectoryGroup(String name) {

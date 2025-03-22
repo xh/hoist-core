@@ -9,8 +9,8 @@ package io.xh.hoist
 
 import grails.async.Promise
 import groovy.transform.CompileStatic
-import io.xh.hoist.cluster.ClusterResult
 import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.cluster.ClusterResult
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONSerializer
@@ -23,6 +23,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import static grails.async.web.WebPromises.task
+import static org.apache.hc.core5.http.HttpStatus.SC_NO_CONTENT
+import static org.apache.hc.core5.http.HttpStatus.SC_OK
 
 @CompileStatic
 abstract class BaseController implements LogSupport, IdentitySupport {
@@ -40,7 +42,7 @@ abstract class BaseController implements LogSupport, IdentitySupport {
      * @param o - object to be serialized.
      */
     protected void renderJSON(Object o){
-        response.setContentType('application/json; charset=UTF-8')
+        response.contentType = 'application/json; charset=UTF-8'
         render (JSONSerializer.serialize(o))
     }
 
@@ -82,15 +84,47 @@ abstract class BaseController implements LogSupport, IdentitySupport {
     }
 
     /**
-     * Render a JSON ClusterResult to the Request object
+     * Render a ClusterResult to the Request object as Json.
      *
-     * Note - ClusterResult should be created with flag 'asJson'
+     * If the result's value is a string, it will be assumed to be Json and rendered as is.
+     * Otherwise it will be serialized as needed.  The former is the most efficient, and typical
+     * use of this method; to get ClusterResults in this form, be sure to use the appropriate
+     * variants of ClusterUtils, e.g. `ClusterUtils.runOnXXXAsJson`.
      */
-    protected String renderClusterJSON(ClusterResult result) {
-        def ret = result.value as Map
-        response.setContentType('application/json; charset=UTF-8')
-        response.setStatus(ret.httpStatus as Integer)
-        render(ret.json)
+    protected void renderClusterJSON(ClusterResult result) {
+        def contentType = 'application/json; charset=UTF-8',
+            exception = result.exception,
+            value = result.value
+
+        if (exception) {
+            render(
+                text: exception.causeAsJson,
+                status: exception.causeStatusCode,
+                contentType: contentType
+            )
+        } else {
+            value != null ?
+                render(
+                    text: value instanceof String ? value : JSONSerializer.serialize(value),
+                    status: SC_OK,
+                    contentType: contentType
+                ) :
+                render(
+                    text: null,
+                    status: SC_NO_CONTENT,
+                    contentType: contentType
+                )
+        }
+    }
+
+
+    /**
+     * Render an empty, successful response.
+     */
+    protected void renderSuccess() {
+        // Content type not strictly needed -- this type provides consistency with the rest of the
+        // api and in particular what would be returned for an exception on the same endpoint.
+        render(text: null, status: SC_NO_CONTENT, contentType: 'application/json; charset=UTF-8')
     }
 
     protected Promise runAsync(Closure c) {

@@ -60,7 +60,7 @@ class LogReaderService extends BaseService {
             doRead(filename, startLine, maxLines, pattern, caseSensitive)
         }
 
-        return [success: true, filename: filename, content: content]
+        return [filename: filename, content: content]
     }
 
 

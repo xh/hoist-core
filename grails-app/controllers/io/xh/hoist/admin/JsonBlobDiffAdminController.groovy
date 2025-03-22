@@ -26,8 +26,7 @@ class JsonBlobDiffAdminController extends BaseController {
     def applyRemoteValues() {
         def records = params.get('records')
         jsonBlobDiffService.applyRemoteValues(JSONParser.parseArray(records))
-
-        renderJSON(success: true)
+        renderSuccess()
     }
 
 }

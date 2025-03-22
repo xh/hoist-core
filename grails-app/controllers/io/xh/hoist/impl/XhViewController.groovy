@@ -42,7 +42,7 @@ class XhViewController extends BaseController {
 
     def delete(String tokens) {
         viewService.delete(tokens.split(',').toList())
-        renderJSON([success: true])
+        renderSuccess()
     }
 
     def updateInfo(String token) {
