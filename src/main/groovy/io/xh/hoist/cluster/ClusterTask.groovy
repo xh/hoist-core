@@ -8,7 +8,6 @@ import java.util.concurrent.Callable
 
 import static io.xh.hoist.util.Utils.*
 import static io.xh.hoist.json.JSONSerializer.serialize
-import static org.apache.hc.core5.http.HttpStatus.SC_OK
 
 /**
  * Serializable task for executing remote service calls across the cluster.
@@ -42,11 +41,12 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
             if (!instanceReady) {
                 throw new InstanceNotAvailableException('Instance not available and may be initializing.')
             }
-            def service = appContext.getBean(Class.forName(svc)),
-                value = service.invokeMethod(method, args.toArray())
-            return asJson ?
-                new ClusterResult(value: [httpStatus: SC_OK, json: serialize(value)]) :
-                new ClusterResult(value: value)
+            def clazz = Class.forName(svc),
+                service = appContext.getBean(clazz),
+                value = service.invokeMethod(method, args.toArray()),
+                valueIsVoid = value !== null ? false : clazz.methods.find{it.name == method}?.returnType == Void.TYPE
+
+            return new ClusterResult(value: asJson && !valueIsVoid ? serialize(value) : value)
 
         } catch (Throwable t) {
             try {
@@ -58,14 +58,10 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
             } catch (Exception e) {
                 // Even logging failing -- just catch quietly and return neatly to calling member.
             }
-            return asJson ?
-                new ClusterResult(value: [httpStatus: exceptionHandler.getHttpStatus(t), json: serialize(t)] ):
-                new ClusterResult(exception: t)
+            return new ClusterResult(exception: new ClusterTaskException(t))
         } finally {
             identityService.threadUsername.set(null)
             identityService.threadAuthUsername.set(null)
         }
     }
 }
-
-

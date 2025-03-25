@@ -21,12 +21,12 @@ class ClusterObjectsAdminController extends BaseController {
     def clearHibernateCaches() {
         def req = parseRequestJSON()
         clusterObjectsService.clearHibernateCaches(req.names)
-        renderJSON([success: true])
+        renderSuccess()
     }
 
     @Access(['HOIST_ADMIN'])
     def clearAllHibernateCaches() {
         clusterObjectsService.clearHibernateCaches()
-        renderJSON([success: true])
+        renderSuccess()
     }
 }
