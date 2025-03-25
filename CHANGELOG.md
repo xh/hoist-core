@@ -11,6 +11,8 @@
 without content (Status Code 204).  This method is intended as a replacement for the deprecated
 pattern of sending a JSON response of `[success:true]`.
 
+* Support for reporting Client Version in Admin WebSockets tab.
+
 ### ⚙️ Technical
 * Improvements to the implementation of `BaseController.renderClusterJSON`:  If the underlying
 service method does not return a value, a no content response (Status Code 204) will now be

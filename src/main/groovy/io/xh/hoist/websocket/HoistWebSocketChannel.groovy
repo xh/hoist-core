@@ -34,7 +34,9 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
     final WebSocketSession session
     final String authUsername
     final String apparentUsername
+    final String clientAppVersion
     final Instant createdTime
+
 
     private Integer sentMessageCount = 0
     private Instant lastSentTime
@@ -43,12 +45,14 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
 
     HoistWebSocketChannel(WebSocketSession webSocketSession) {
         Map conf = getConfig()
+        Map queryParams = getQueryParams(webSocketSession.uri.query)
         def sendTimeLimit = (int) conf.sendTimeLimitMs,
             bufferSizeLimit = (int) conf.bufferSizeLimitBytes
         logDebug("Creating managed socket session", [sendTimeLimit: sendTimeLimit, bufferSizeLimit: bufferSizeLimit])
         session = new ConcurrentWebSocketSessionDecorator(webSocketSession, sendTimeLimit, bufferSizeLimit)
         authUsername = getAuthUsernameFromSession()
         apparentUsername = getApparentUsernameFromSession()
+        clientAppVersion = queryParams.clientAppVersion
         createdTime = Instant.now()
     }
 
@@ -90,6 +94,15 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
         return (String) session.attributes[IdentityService.APPARENT_USER_KEY] ?: 'unknownUser'
     }
 
+    private Map<String, String> getQueryParams(String query) {
+        if (!query) return [:]
+        query.split('&')
+            .collectEntries {
+                def kv = it.split('=')
+                kv.length === 2 ? [kv[0], kv[1]] : [kv[0], '']
+            }
+    }
+
     private Map getConfig() {
         return configService.getMap('xhWebSocketConfig')
     }
@@ -104,7 +117,8 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
             sentMessageCount: sentMessageCount,
             lastSentTime: lastSentTime,
             receivedMessageCount: receivedMessageCount,
-            lastReceivedTime: lastReceivedTime
+            lastReceivedTime: lastReceivedTime,
+            clientAppVersion: clientAppVersion
         ]
     }
 }
