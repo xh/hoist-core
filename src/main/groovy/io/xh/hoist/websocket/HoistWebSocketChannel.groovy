@@ -52,6 +52,8 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
         authUsername = getAuthUsernameFromSession()
         apparentUsername = getApparentUsernameFromSession()
         createdTime = Instant.now()
+        Map queryParams = getSocketConnectionQueryParams(webSocketSession.uri.query)
+        clientAppVersion = queryParams.get("clientAppVersion")
     }
 
     String getKey() {
@@ -92,12 +94,25 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
         return (String) session.attributes[IdentityService.APPARENT_USER_KEY] ?: 'unknownUser'
     }
 
-    private Map getConfig() {
-        return configService.getMap('xhWebSocketConfig')
+    private static Map<String, String> getSocketConnectionQueryParams(String query) {
+        Map<String, String> params = new HashMap<>();
+        if (!query) return params;
+
+        List<String> queryParams = query.split("&") as List<String>
+        for (String param: queryParams) {
+            String[] kv = param.split("=");
+            if (kv.length === 2) {
+                params.put(kv[0], kv[1])
+            } else {
+                params.put(kv[0], "")
+            }
+        }
+
+        return params;
     }
 
-    void setClientAppVersion(String version) {
-        this.clientAppVersion = version;
+    private Map getConfig() {
+        return configService.getMap('xhWebSocketConfig')
     }
 
     Map formatForJSON() {

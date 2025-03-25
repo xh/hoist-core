@@ -137,9 +137,6 @@ class WebSocketService extends BaseService implements EventPublisher {
         def msgJSON = deserialize(message)
 
         if (msgJSON.topic == HEARTBEAT_TOPIC) {
-            def msgClientVersion = msgJSON.clientAppVersion;
-            channel.setClientAppVersion(msgClientVersion as String)
-
             sendMessage(channel, HEARTBEAT_TOPIC, 'pong')
         } else {
             notify(MSG_RECEIVED_EVENT, [channel: channel, topic: msgJSON.topic, data: msgJSON.data])
