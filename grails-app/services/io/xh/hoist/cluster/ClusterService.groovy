@@ -227,8 +227,8 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         if (_isPrimary != newIsPrimary) {
             _isPrimary = newIsPrimary
             logInfo(_isPrimary ?
-                "Assuming the role of primary instance. All hail me, '${instanceName}'" :
-                "Abdicating the role of primary instance. Primary is '${newPrimary.getAttribute('instanceName')}'"
+                "Assuming the role of PRIMARY instance. All hail me, '${instanceName}'" :
+                "Assuming the role of SECONDARY instance. Primary is '${newPrimary.getAttribute('instanceName')}'"
             )
         }
     }
