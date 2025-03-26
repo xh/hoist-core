@@ -97,25 +97,31 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     }
 
     void init() {
-        logInfo("Using cluster config ${clusterConfig.class.getCanonicalName()}")
+        logInfo("Using cluster config ${clusterConfig.class.canonicalName}")
         logInfo(multiInstanceEnabled
             ? 'Multi-instance is enabled - instances will attempt to cluster.'
             : 'Multi-instance is disabled - instances will avoid clustering.'
         )
+        def clusterSize = cluster.members.size(),
+            primary = this.primary
+        _isPrimary = primary.localMember()
+        logInfo(_isPrimary ?
+            "Joining a cluster of $clusterSize as the PRIMARY instance. All hail me, '${instanceName}'" :
+            "Joining a cluster of $clusterSize as a SECONDARY instance. Primary is '${primary.getAttribute('instanceName')}'"
+        )
 
-        adjustPrimaryStatus()
         cluster.addMembershipListener([
-            memberAdded  : { MembershipEvent e -> adjustPrimaryStatus(e.members) },
-            memberRemoved: { MembershipEvent e -> adjustPrimaryStatus(e.members) }
+            memberAdded  : { MembershipEvent e -> onMembershipChanged(e.members) },
+            memberRemoved: { MembershipEvent e -> onMembershipChanged(e.members) }
         ] as MembershipListener)
 
-        // Separate thread pool from 'default' Hz thread pool for executing
-        // (enhanced) BaseClusterRequests
+        // Separate thread pool from 'default' Hz thread pool for executing BaseClusterRequests
         taskExecutor = hzInstance.getExecutorService('xhexecutor')
 
         super.init()
     }
 
+    // Managed via event handlers. Cache for lightweight definition of isPrimary and change logging.
     private boolean _isPrimary = false
 
 
@@ -148,7 +154,6 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
 
     /** Is the local instance the primary instance? */
     boolean getIsPrimary() {
-        // Cache until we ensure our implementation lightweight enough -- also supports logging.
         return _isPrimary
     }
 
@@ -213,18 +218,19 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         hzInstance.cluster
     }
 
-    private void adjustPrimaryStatus(Set<Member> members = cluster.members) {
+    private void onMembershipChanged(Set<Member> members) {
         // Accept members explicitly to avoid race conditions when responding to MembershipEvents
         // (see https://docs.hazelcast.org/docs/4.0/javadoc/com/hazelcast/cluster/MembershipEvent.html)
         // Not sure if we ever abdicate, could network failures cause the primary to leave and rejoin cluster?
-        def newIsPrimary = members.iterator().next().localMember()
+        def newPrimary = members.iterator().next(),
+            newIsPrimary = newPrimary.localMember()
         if (_isPrimary != newIsPrimary) {
             _isPrimary = newIsPrimary
-            _isPrimary ?
-                logInfo("I have become the primary instance. All hail me, '$instanceName'") :
-                logInfo('I am no longer the primary instance.')
+            logInfo(_isPrimary ?
+                "Assuming the role of PRIMARY instance. All hail me, '${instanceName}'" :
+                "Assuming the role of SECONDARY instance. Primary is '${newPrimary.getAttribute('instanceName')}'"
+            )
         }
-
     }
 
     private Member getMember(String instanceName) {
