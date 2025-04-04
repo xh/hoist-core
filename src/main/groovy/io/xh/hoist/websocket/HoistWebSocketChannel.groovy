@@ -12,10 +12,12 @@ import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
+import org.springframework.util.MultiValueMap
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator
+import org.springframework.web.util.UriComponentsBuilder
 
 import java.time.Instant
 
@@ -44,15 +46,17 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
     private Instant lastReceivedTime
 
     HoistWebSocketChannel(WebSocketSession webSocketSession) {
-        Map conf = getConfig()
-        Map queryParams = getQueryParams(webSocketSession.uri.query)
-        def sendTimeLimit = (int) conf.sendTimeLimitMs,
+        def conf = getConfig(),
+            queryParams = getQueryParams(webSocketSession.uri),
+            sendTimeLimit = (int) conf.sendTimeLimitMs,
             bufferSizeLimit = (int) conf.bufferSizeLimitBytes
+
         logDebug("Creating managed socket session", [sendTimeLimit: sendTimeLimit, bufferSizeLimit: bufferSizeLimit])
+
         session = new ConcurrentWebSocketSessionDecorator(webSocketSession, sendTimeLimit, bufferSizeLimit)
         authUsername = getAuthUsernameFromSession()
         apparentUsername = getApparentUsernameFromSession()
-        clientAppVersion = queryParams.clientAppVersion
+        clientAppVersion = queryParams.getFirst('clientAppVersion')
         createdTime = Instant.now()
     }
 
@@ -94,13 +98,8 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
         return (String) session.attributes[IdentityService.APPARENT_USER_KEY] ?: 'unknownUser'
     }
 
-    private Map<String, String> getQueryParams(String query) {
-        if (!query) return [:]
-        query.split('&')
-            .collectEntries {
-                def kv = it.split('=')
-                kv.length === 2 ? [kv[0], kv[1]] : [kv[0], '']
-            }
+    private MultiValueMap<String, String> getQueryParams(URI uri) {
+        UriComponentsBuilder.fromUri(uri).build().queryParams
     }
 
     private Map getConfig() {
