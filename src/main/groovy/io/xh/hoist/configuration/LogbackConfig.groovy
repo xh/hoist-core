@@ -65,9 +65,13 @@ class LogbackConfig {
 
     /**
      * Layout used for logging client-side tracking results to a dedicated log.
-     * String or a Closure that produces a Layout
+     * String or a Closure that produces a Layout.
+     *
+     * Note that for the purposes of this log, we skip writing metadata, especially log timestamp,
+     * These are application events that are reported with debouncing.  They contain their own
+     * timestamp and are ordered by that.  See TrackLoggingService.
      */
-    static Object trackLayout = '%d{HH:mm:ss.SSS} | %instance | %m%n'
+    static Object trackLayout = '%m%n'
 
 
     /**
@@ -119,10 +123,11 @@ class LogbackConfig {
             logger('io.xh', INFO)
             logger(Utils.appPackage, INFO)
 
-            // Loggers for MonitoringService and TrackService.
-            // Do not duplicate in main log file, but write to stdout
+            // Dedicated non-appending Loggers for monitoring and tracking
             logger('io.xh.hoist.monitor.MonitorEvalService', INFO, [monitorLogName, 'stdout'], false)
-            logger('io.xh.hoist.track.TrackService', INFO, [trackLogName, 'stdout'], false)
+            logger('io.xh.hoist.track.TrackLoggingService', INFO, ['stdout'], false)
+            logger('io.xh.hoist.track.TrackLoggingService.Log', INFO, [trackLogName], false)
+
 
             // Quiet noisy loggers
             logger('org.springframework', ERROR)

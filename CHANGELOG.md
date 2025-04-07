@@ -18,6 +18,10 @@ pattern of sending a JSON response of `[success:true]`.
 service method does not return a value, a no content response (Status Code 204) will now be
 returned to the client.
 
+* Improvement to the logging of Track entries to account for client-side debouncing.  The dedicated
+logs for these items (e.g. "app-xxxxxx-track.log") now displays the actual event time rather
+than the time they were recorded on the server.
+
 ## 29.0.0 - 2025-03-13
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - update to remote execution syntax)
