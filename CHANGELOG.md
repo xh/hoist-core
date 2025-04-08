@@ -6,21 +6,19 @@
 
 * Added a new default status monitor to alert on any reported discrepancies across replicated
   objects within a cluster.
-
-* New `BaseController.renderSuccess()` method for convenient rendering of successful responses
-without content (Status Code 204).  This method is intended as a replacement for the deprecated
-pattern of sending a JSON response of `[success:true]`.
-
-* Support for reporting Client Version in Admin WebSockets tab.
+* Defined new `BaseController.renderSuccess()` method for convenient rendering of successful
+  responses without content (HTTP 204). This method is intended as a replacement for the deprecated
+  pattern of calling `renderJSON(success:true)`.
+* Added support for reporting the client app version in the Admin Console > WebSockets tab.
 
 ### ⚙️ Technical
-* Improvements to the implementation of `BaseController.renderClusterJSON`:  If the underlying
-service method does not return a value, a no content response (Status Code 204) will now be
-returned to the client.
 
-* Improvement to the logging of Track entries to account for client-side debouncing.  The dedicated
-logs for these items (e.g. "app-xxxxxx-track.log") now displays the actual event time rather
-than the time they were recorded on the server.
+* Improved the implementation of `BaseController.renderClusterJSON`: if the underlying service
+  method does not return a value, a no content response (Status Code 204) will now be returned to
+  the client.
+* Improved logging of activity tracking entries to account for client-side debouncing. The dedicated
+  logs for these items (e.g. `app-xxxxxx-track.log`) now display the actual event time, rather
+  than the time they were recorded on the server.
 
 ## 29.0.0 - 2025-03-13
 
@@ -29,14 +27,13 @@ than the time they were recorded on the server.
 ### 🎁 New Features
 
 * Hoist-Core v29 includes a much improved mechanism for running code on specific instances, or
-across all instances in the cluster.  Most importantly, the new mechanism now provides the remote
-code with all identity and auth information about the user triggering the action.  In addition,
-the syntax has been simplified substantially to avoid the need for creating extra inner classes
-and the need to capture all parameters explicitly.
-
-See the new methods for `ClusterUtils.runOnInstance`, `ClusterUtils.runOnPrimary` and
-`ClusterUtils.runOnAllInstances` for more information.  In most cases, the transition to using this
-method should be mechanical, and a simplification from the use of the previous API.
+  across all instances in the cluster. Most importantly, the new mechanism now provides the remote
+  code with all identity and auth information about the user triggering the action. In addition,
+  the syntax has been simplified substantially to avoid the need for creating extra inner classes
+  and the need to capture all parameters explicitly.
+* See the new methods for `ClusterUtils.runOnInstance`, `ClusterUtils.runOnPrimary` and
+  `ClusterUtils.runOnAllInstances` for more information. In most cases, the transition to using this
+  method should be mechanical, and a simplification from the use of the previous API.
 
 ### 🐞 Bug Fixes
 
