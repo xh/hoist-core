@@ -68,8 +68,9 @@ class LogbackConfig {
      * String or a Closure that produces a Layout.
      *
      * Note that for the purposes of this log, we skip writing metadata, especially log timestamp,
-     * These are application events that are reported with debouncing.  They contain their own
-     * timestamp and are ordered by that.  See TrackLoggingService.
+     * These are application events that are reported with debouncing - they contain their own
+     * timestamp and are given special handling by {@link io.xh.hoist.track.TrackLoggingService}
+     * to preserve the order of events.
      */
     static Object trackLayout = '%m%n'
 
