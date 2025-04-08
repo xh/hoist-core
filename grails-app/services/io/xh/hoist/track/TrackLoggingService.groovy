@@ -10,34 +10,34 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 
 /**
+ * Specialized support for writing activity tracking entries produced by {@link TrackService} to
+ * both a dedicated log file and stdout.
  *
- * @internal
- *
- * Specialized support for lagging all Track log entries, inserting them in a dedicated log,
- * as well into the main console log.
- *
- * This service handles the fact that entries may arrive late and out-of-order due to client
+ * This service handles the fact that entries may arrive late and out-of-order due to client-
  * side debouncing. For the dedicated log, we use a buffer before insertion that allows us to
- * restore the sort order, and use the timestamp property as the label for the log line.
+ * restore the sort order and use the timestamp property as the label for the log line.
  *
  * For the standard output log, we insert them immediately (with a secondary timestamp property) to
  * get them as close as possible to their actual occurrence time within the global flow.
  *
  * This class uses a PriorityBlockingQueue. We drain the queue on subsequent tracking statements,
  * AND timer to ensure timely and reliable logging/draining.
+ *
+ * @internal - not intended for direct use by applications.
  */
 class TrackLoggingService extends BaseService {
 
     ConfigService configService
 
-    private PriorityBlockingQueue<TrackLogEntry> queue = new PriorityBlockingQueue()
+    private Long DEBOUNCE_INTERVAL = 30 * SECONDS
+    private PriorityBlockingQueue<TrackLogEntry> queue = new PriorityBlockingQueue<TrackLogEntry>()
     SimpleLogger orderedLog = new SimpleLogger(this.class.canonicalName + '.Log')
 
     void init() {
         createTimer(
             name: 'trackLogger',
             runFn: this.&drainQueue,
-            interval: 30 * SECONDS
+            interval: DEBOUNCE_INTERVAL
         )
         super.init()
     }
@@ -57,7 +57,7 @@ class TrackLoggingService extends BaseService {
     }
 
     synchronized private void drainQueue() {
-        for (def e = queue.peek(); e && intervalElapsed(30 * SECONDS, e.timestamp); e = queue.peek()) {
+        for (def e = queue.peek(); e && intervalElapsed(DEBOUNCE_INTERVAL, e.timestamp); e = queue.peek()) {
             def entry = queue.remove()
             try {
                 orderedLog.logInfo(entry.logData)
