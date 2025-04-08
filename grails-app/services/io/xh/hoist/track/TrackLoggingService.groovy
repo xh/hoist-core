@@ -56,13 +56,13 @@ class TrackLoggingService extends BaseService {
         return configService.getMap('xhActivityTrackingConfig')
     }
 
-    synchronized private void drainQueue() {
+    private synchronized void drainQueue() {
         for (def e = queue.peek(); e && intervalElapsed(DEBOUNCE_INTERVAL, e.timestamp); e = queue.peek()) {
             def entry = queue.remove()
             try {
                 orderedLog.logInfo(entry.logData)
             } catch (Throwable t) {
-                logError('Failed to drain queue and log Track Entry.', t)
+                logError('Failed to log Track Entry.', t)
             }
         }
     }
@@ -71,12 +71,17 @@ class TrackLoggingService extends BaseService {
         queue.clear()
     }
 
+    Map getAdminStats() {[
+        config: configForAdminStats('xhActivityTrackingConfig'),
+        queue: queue.size()
+    ]}
+
     //-------------------------------------------------
     // Internal Class to support sorting
     //-------------------------------------------------
     private class TrackLogEntry implements Comparable {
-        Long timestamp
-        Map logData
+        final Long timestamp
+        final Map logData
 
         TrackLogEntry(Map data) {
             timestamp = data.timestamp as Long
