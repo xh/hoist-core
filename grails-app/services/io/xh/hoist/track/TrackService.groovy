@@ -53,6 +53,7 @@ import static java.lang.System.currentTimeMillis
 class TrackService extends BaseService {
 
     ConfigService configService
+    TrackLoggingService trackLoggingService
 
     /**
      * Create a new track log entry. Username, browser info, and datetime will be set automatically.
@@ -113,7 +114,7 @@ class TrackService extends BaseService {
                     entries.each {
                         try {
                             persistEntry(it)
-                            logEntry(it)
+                            trackLoggingService.logEntry(it)
                         } catch (Exception e) {
                             logError('Exception writing track log', e)
                         }
@@ -163,44 +164,9 @@ class TrackService extends BaseService {
         ]
     }
 
-    private void logEntry(Map entry) {
-        // Log core info,
-        String name = entry.username
-        if (entry.impersonating) name += " (as ${entry.impersonating})"
-        Map<String, Object> msgParts = [
-            _user         : name,
-            _category     : entry.category,
-            _msg          : entry.msg,
-            _correlationId: entry.correlationId,
-            _elapsedMs    : entry.elapsed,
-        ].findAll { it.value != null } as Map<String, Object>
-
-        // Log app data, if requested/configured.
-        def data = entry.rawData,
-            logData = entry.logData
-        if (data && (data instanceof Map)) {
-            logData = logData != null
-                ? logData
-                : conf.logData != null
-                ? conf.logData
-                : false
-
-            if (logData) {
-                Map<String, Object> dataParts = data as Map<String, Object>
-                dataParts = dataParts.findAll { k, v ->
-                    (logData === true || (logData as List).contains(k)) &&
-                        !(v instanceof Map || v instanceof List)
-                }
-                msgParts.putAll(dataParts)
-            }
-        }
-
-        logInfo(msgParts)
-    }
-
     private void persistEntry(Map entry) {
         if (getInstanceConfig('disableTrackLog') == 'true' ||
-            getActiveSeverity(entry) > parseSeverity(entry.severity)
+            getActiveSeverity(entry) > (entry.severity as TrackSeverity)
         ) return
 
         String data = entry.data
