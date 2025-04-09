@@ -41,6 +41,9 @@
 
 * Fixed broken log file downloads from the Admin Console.
 
+* Enhance exception handling in `JSONClient` to capture messages returned as raw strings.
+
+
 ## 28.1.0 - 2025-02-13
 
 ### 🎁 New Features
