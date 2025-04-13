@@ -36,9 +36,11 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
     final WebSocketSession session
     final String authUsername
     final String apparentUsername
-    final String clientAppVersion
+    final String appBuild
+    final String appVersion
     final Instant createdTime
-
+    final String loadId
+    final String tabId
 
     private Integer sentMessageCount = 0
     private Instant lastSentTime
@@ -56,7 +58,10 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
         session = new ConcurrentWebSocketSessionDecorator(webSocketSession, sendTimeLimit, bufferSizeLimit)
         authUsername = getAuthUsernameFromSession()
         apparentUsername = getApparentUsernameFromSession()
-        clientAppVersion = queryParams.getFirst('clientAppVersion')
+        appVersion = queryParams.getFirst('appVersion')
+        appBuild = queryParams.getFirst('appBuild')
+        loadId = queryParams.getFirst('loadId')
+        tabId = queryParams.getFirst('tabId')
         createdTime = Instant.now()
     }
 
@@ -117,7 +122,10 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
             lastSentTime: lastSentTime,
             receivedMessageCount: receivedMessageCount,
             lastReceivedTime: lastReceivedTime,
-            clientAppVersion: clientAppVersion
+            appVersion: appVersion,
+            appBuild: appBuild,
+            loadId: loadId,
+            tabId: tabId,
         ]
     }
 }
