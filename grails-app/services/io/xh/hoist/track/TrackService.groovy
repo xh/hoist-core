@@ -152,6 +152,8 @@ class TrackService extends BaseService {
             rawData       : entry.data,
             url           : entry.url,
             appVersion    : entry.appVersion ?: Utils.appVersion,
+            loadId        : entry.loadId,
+            tabId         : entry.tabId,
             timestamp     : entry.timestamp ?: currentTimeMillis(),
 
 

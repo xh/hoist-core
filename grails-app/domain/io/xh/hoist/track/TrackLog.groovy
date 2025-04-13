@@ -24,6 +24,8 @@ class TrackLog implements JSONFormat {
     String data
     String appVersion
     String appEnvironment
+    String loadId
+    String tabId
     String url
     String instance
     Integer elapsed
@@ -56,6 +58,8 @@ class TrackLog implements JSONFormat {
         data(nullable: true, validator: { Utils.isJSON(it) ?: 'default.invalid.json.message'})
         appVersion(nullable: true, maxSize: 100)
         appEnvironment(nullable: true, maxSize: 100)
+        loadId(nullable: true, maSize: 8)
+        tabId(nullable: true, maxSize: 8)
         url(nullable: true, maxSize: 500)
         instance(nullable: true, maxSize: 50)
         elapsed(nullable: true)
@@ -81,6 +85,8 @@ class TrackLog implements JSONFormat {
                 impersonating: impersonating,
                 appVersion    : appVersion,
                 appEnvironment: appEnvironment,
+                loadId        : loadId,
+                tabId         : tabId,
                 url           : url,
                 instance:     instance
         ]
