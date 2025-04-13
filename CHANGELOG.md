@@ -4,7 +4,7 @@
 
 ### 🎁 New Features
 
-* Support for reporting App Build, TabID and Client ID in websocket admin page
+* Support for reporting 'App Build', 'TabId' and 'LoadId' in websocket admin page.
 
 ## 29.1.0 - 2025-04-08
 
