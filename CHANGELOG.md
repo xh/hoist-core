@@ -1,5 +1,7 @@
 # Changelog
 
+## 30.0-SNAPSHOT - unreleased
+
 ## 29.2.0 - 2025-04-14
 
 ### 🎁 New Features
