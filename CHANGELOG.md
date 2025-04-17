@@ -2,6 +2,10 @@
 
 ## 30.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* Support for new consolidated clients tab in Hoist-react v73.
+
 ## 29.2.0 - 2025-04-14
 
 ### 🎁 New Features
