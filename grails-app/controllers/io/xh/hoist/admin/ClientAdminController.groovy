@@ -8,10 +8,11 @@
 package io.xh.hoist.admin
 
 import io.xh.hoist.BaseController
+import static io.xh.hoist.json.JSONParser.parseArray
 import io.xh.hoist.security.Access
 
+import static io.xh.hoist.util.ClusterUtils.runOnAllInstancesAsJson
 import static io.xh.hoist.util.ClusterUtils.runOnInstanceAsJson
-import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 
 @Access(['HOIST_ADMIN_READER'])
 class ClientAdminController extends BaseController {
@@ -19,8 +20,9 @@ class ClientAdminController extends BaseController {
     def webSocketService
 
     def allClients() {
-        def ret = runOnAllInstances(webSocketService.&getAllChannels)
-        ret = ret.collectMany {it.value.value}
+        // Need to serialize the complex WebSocketsSessions as JSON -- parse and rejoin here
+        def ret = runOnAllInstancesAsJson(webSocketService.&getAllChannels)
+            .collectMany { it.value.value ? parseArray(it.value.value) : null}
         renderJSON(ret)
     }
 
