@@ -141,7 +141,9 @@ class ViewService extends BaseService {
     /** Update a view's value */
     Map updateValue(String token, Map value, String username = username) {
         def ret = jsonBlobService.update(token, [value: value], username);
-        trackChange('Updated View definition', ret);
+        if (ret.owner == null) {
+            trackChange('Updated Global View definition', ret);
+        }
         ret.formatForClient(true)
     }
 
