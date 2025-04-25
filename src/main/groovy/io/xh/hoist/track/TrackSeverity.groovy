@@ -8,5 +8,5 @@ package io.xh.hoist.track
  */
 
 enum TrackSeverity {
-    DEBUG, INFO, WARN
+    DEBUG, INFO, WARN, ERROR
 }
