@@ -8,10 +8,12 @@ package io.xh.hoist.admin
 
 import com.hazelcast.cache.impl.CacheProxy
 import com.hazelcast.executor.impl.ExecutorServiceProxy
+
 import io.xh.hoist.AdminStats
 import io.xh.hoist.BaseService
 
-import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
+import static io.xh.hoist.json.JSONParser.parseArray
+import static io.xh.hoist.util.ClusterUtils.runOnAllInstancesAsJson
 import static java.lang.System.currentTimeMillis
 
 class ClusterObjectsService extends BaseService {
@@ -19,13 +21,9 @@ class ClusterObjectsService extends BaseService {
 
     ClusterObjectsReport getClusterObjectsReport() {
         def startTimestamp = currentTimeMillis(),
-            info = runOnAllInstances(this.&listClusterObjects).collectMany { it.value.value }
+            info = runOnAllInstancesAsJson(this.&listClusterObjects).collectMany { parseArray(it.value.value) }
 
-        return new ClusterObjectsReport(
-            info: info,
-            startTimestamp: startTimestamp,
-            endTimestamp: currentTimeMillis()
-        )
+        return new ClusterObjectsReport(info, startTimestamp, currentTimeMillis())
     }
 
     /**
