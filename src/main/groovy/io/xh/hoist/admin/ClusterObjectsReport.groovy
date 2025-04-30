@@ -2,6 +2,13 @@ package io.xh.hoist.admin
 
 import io.xh.hoist.json.JSONFormat
 
+/**
+ * A consolidated report sourced from serialized {@link ClusterObjectInfo} objects.
+ * These are DTOs to report on a distributed object with state that is useful to inspect
+ * via the Admin Console and/or reconcile across different instances in the cluster.
+ *
+ * @see ClusterObjectsService
+ */
 class ClusterObjectsReport implements JSONFormat {
 
     // List of all of the distributed object data from all of the instances in the cluster.
