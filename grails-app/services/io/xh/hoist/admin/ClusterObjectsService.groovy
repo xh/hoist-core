@@ -11,28 +11,39 @@ import com.hazelcast.executor.impl.ExecutorServiceProxy
 import io.xh.hoist.AdminStats
 import io.xh.hoist.BaseService
 
-import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
+import static io.xh.hoist.json.JSONParser.parseArray
+import static io.xh.hoist.util.ClusterUtils.runOnAllInstancesAsJson
 import static java.lang.System.currentTimeMillis
 
+/**
+ * Service to harvest and report on information about distributed objects replicated across a
+ * Hazelcast cluster. Powers the Cluster > Objects tab within the Hoist Admin Console.
+ *
+ * "Cluster Objects" include instances of Hoist services and any {@link AdminStats} they
+ * expose as well as their managed {@link BaseService#resources} such as Caches, CachedValues,
+ * and Timers created via the provided factories. Info on Hazelcast's built-in DistributedObjects
+ * are also included, as well as Hibernate caches.
+ *
+ * This service also exposes Hoist's admin API for clearing Hibernate caches.
+ */
 class ClusterObjectsService extends BaseService {
     def grailsApplication
 
     ClusterObjectsReport getClusterObjectsReport() {
         def startTimestamp = currentTimeMillis(),
-            info = runOnAllInstances(this.&listClusterObjects).collectMany { it.value.value }
+            info = runOnAllInstancesAsJson(this.&listClusterObjects)
+                .collectMany { parseArray(it.value.value) }
 
-        return new ClusterObjectsReport(
-            info: info,
-            startTimestamp: startTimestamp,
-            endTimestamp: currentTimeMillis()
-        )
+        return new ClusterObjectsReport(info, startTimestamp, currentTimeMillis())
     }
 
     /**
      * Clear all Hibernate caches, or a specific list of caches by name.
      */
     void clearHibernateCaches(List<String> names = null) {
-        def caches = clusterService.distributedObjects.findAll {it instanceof CacheProxy}
+        def caches = clusterService.distributedObjects
+            .findAll { it instanceof CacheProxy }
+
         names ?= caches*.name
         names.each { name ->
             def obj = caches.find { it.name == name }

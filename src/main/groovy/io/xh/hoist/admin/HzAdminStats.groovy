@@ -21,8 +21,8 @@ import static java.util.Collections.emptyMap
  */
 class HzAdminStats implements AdminStats {
 
-    private Map _stats = emptyMap()
-    private List<String> _comparables = emptyList()
+    private Map _stats
+    private List<String> _comparables
 
     Map getAdminStats() {
         _stats
@@ -80,6 +80,7 @@ class HzAdminStats implements AdminStats {
                 break
             case ITopic:
                 def stats = obj.getLocalTopicStats()
+                _comparables = []
                 _stats = [
                     name                 : obj.getName(),
                     type                 : 'Topic',
@@ -88,6 +89,7 @@ class HzAdminStats implements AdminStats {
                 ]
                 break
             case RingbufferProxy:
+                _comparables = []
                 _stats = [
                     name    : obj.getName(),
                     type    : 'Ringbuffer',
@@ -119,6 +121,7 @@ class HzAdminStats implements AdminStats {
                 ]
                 break
             default:
+                _comparables = []
                 _stats = [
                     name: obj.getName(),
                     type: obj.class.toString()

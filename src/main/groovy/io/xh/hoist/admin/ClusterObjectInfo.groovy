@@ -2,12 +2,11 @@ package io.xh.hoist.admin
 
 import io.xh.hoist.AdminStats
 import io.xh.hoist.json.JSONFormat
+import io.xh.hoist.log.LogSupport
 
 import static io.xh.hoist.util.Utils.getClusterService
-import static java.util.Collections.emptyList
-import static java.util.Collections.emptyMap
 
-class ClusterObjectInfo implements JSONFormat {
+class ClusterObjectInfo implements JSONFormat, LogSupport {
     String name   // Absolute name. Make sure to use `svc.hzName(name)` on relative-named objects
     String type
     Map adminStats
@@ -21,18 +20,14 @@ class ClusterObjectInfo implements JSONFormat {
             adminStats = target.adminStats
             comparableAdminStats = target.comparableAdminStats
         } catch (Exception e) {
-            adminStats = emptyMap()
-            comparableAdminStats = emptyList()
+            adminStats = [:]
+            comparableAdminStats = []
             error = "Error computing admin stats | ${e.message}"
+            logError("Error computing admin stats", [_name: name], e)
         }
         name = config.name ?: adminStats.name
         type = config.type ?: adminStats.type
         instanceName = clusterService.localName
-    }
-
-    boolean isMatching(ClusterObjectInfo other) {
-        comparableAdminStats == other.comparableAdminStats &&
-            comparableAdminStats.every { f -> adminStats[f] == other.adminStats[f]}
     }
 
     Map formatForJSON() {
