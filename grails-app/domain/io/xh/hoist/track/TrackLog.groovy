@@ -46,7 +46,12 @@ class TrackLog implements JSONFormat {
         table 'xh_track_log'
         cache true
         data type: 'text'
+
+        // Indices on commonly queried fields
+        username index: 'idx_xh_track_log_username'
         dateCreated index: 'idx_xh_track_log_date_created'
+        category index: 'idx_xh_track_log_category'
+        tabId index: 'idx_xh_track_log_tab_id'
 
         // TrackService sets dateCreated explicitly, to match actual time tracked on client.
         autoTimestamp false
