@@ -2,6 +2,22 @@
 
 ## 30.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - DB column additions)
+
+* Requires minor DB schema additions to support new `TrackLog` properties (see below).
+
+### 🎁 New Features
+
+* Added `tabId` and `loadId` properties to `TrackLog`. These new identifiers will be provided by
+  clients running `hoist-react >= 73.0` and disambiguate tracking activity for users with multiple
+  browser tabs and multiple full refreshes/restarts of a client app within the same tab.
+    * ⚠ NOTE this requires two new columns in the `xh_track_log` table. Review and run the
+      following SQL, modified as needed for the particular database you are using:
+      ```sql
+      ALTER TABLE `xh_track_log` ADD COLUMN `tab_id` VARCHAR(8) NULL;
+      ALTER TABLE `xh_track_log` ADD COLUMN `load_id` VARCHAR(8) NULL;
+      ```
+
 ### ⚙️ Technical
 
 * Support for new consolidated clients tab in Hoist-react v73.
@@ -11,7 +27,8 @@
 
 ### 🎁 New Features
 
-* Support for reporting 'App Build', 'TabId' and 'LoadId' in websocket admin page.
+* Added relay of `appBuild`, `tabId`, and `loadId` from client WebSocket sessions, for viewing
+  in the Hoist Admin Console's "Clients > Connections" tab.
 
 ## 29.1.0 - 2025-04-08
 
@@ -237,7 +254,7 @@ ALTER TABLE xh_role ALTER COLUMN category VARCHAR(100) null
 
 ## 21.0.0 - 2024-09-03
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - latest Hoist React + DB col additions)
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - latest Hoist React + DB column additions)
 
 * Requires `hoist-react >= 67.0.0`.
 * Requires minor DB schema additions (see below).
