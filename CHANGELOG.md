@@ -2,6 +2,17 @@
 
 ## 30.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* Support for new consolidated clients tab in Hoist-react v73.
+* Harden `ClusterObjectReport` against issues with serialization.
+
+## 29.2.0 - 2025-04-14
+
+### 🎁 New Features
+
+* Support for reporting 'App Build', 'TabId' and 'LoadId' in websocket admin page.
+
 ## 29.1.0 - 2025-04-08
 
 ### 🎁 New Features

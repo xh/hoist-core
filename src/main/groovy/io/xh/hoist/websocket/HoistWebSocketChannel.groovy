@@ -8,6 +8,7 @@
 package io.xh.hoist.websocket
 
 import groovy.transform.CompileStatic
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser
@@ -36,9 +37,12 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
     final WebSocketSession session
     final String authUsername
     final String apparentUsername
-    final String clientAppVersion
+    final String appBuild
+    final String appVersion
     final Instant createdTime
-
+    final String loadId
+    final String tabId
+    final String instance
 
     private Integer sentMessageCount = 0
     private Instant lastSentTime
@@ -56,7 +60,11 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
         session = new ConcurrentWebSocketSessionDecorator(webSocketSession, sendTimeLimit, bufferSizeLimit)
         authUsername = getAuthUsernameFromSession()
         apparentUsername = getApparentUsernameFromSession()
-        clientAppVersion = queryParams.getFirst('clientAppVersion')
+        appVersion = queryParams.getFirst('appVersion')
+        appBuild = queryParams.getFirst('appBuild')
+        instance = ClusterService.instanceName
+        loadId = queryParams.getFirst('loadId')
+        tabId = queryParams.getFirst('tabId')
         createdTime = Instant.now()
     }
 
@@ -117,7 +125,11 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
             lastSentTime: lastSentTime,
             receivedMessageCount: receivedMessageCount,
             lastReceivedTime: lastReceivedTime,
-            clientAppVersion: clientAppVersion
+            appVersion: appVersion,
+            appBuild: appBuild,
+            instance: instance,
+            loadId: loadId,
+            tabId: tabId,
         ]
     }
 }
