@@ -1,6 +1,6 @@
 # Changelog
 
-## 30.0-SNAPSHOT - unreleased
+## 30.0.0 - 2025-05-05
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - DB column additions)
 
