@@ -237,15 +237,8 @@ class XhController extends BaseController {
     //------------------------
     def submitError() {
         ensureClientUsernameMatchesSession()
-        def entry= parseRequestJSON([safeEncode: true])
+        def entry = parseRequestJSON([safeEncode: true])
         clientErrorService.submit(entry)
-            query.msg as String,
-            query.error as String,
-            query.appVersion as String,
-            query.url as String,
-            query.userAlerted as Boolean,
-            query.correlationId as String
-        )
         renderSuccess()
     }
 
