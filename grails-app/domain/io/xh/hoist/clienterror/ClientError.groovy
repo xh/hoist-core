@@ -13,20 +13,8 @@ import static io.xh.hoist.util.DateTimeUtils.appDay
 
 class ClientError implements JSONFormat {
 
-    String correlationId
-    String username
-    String msg
     String error
-    String browser
-    String device
-    String userAgent
-    String appVersion
-    String appEnvironment
-    String url
-    String instance
     boolean userAlerted = false
-    Date dateCreated
-    String impersonating
 
     static mapping = {
         table 'xh_client_error'

@@ -86,6 +86,8 @@ class TrackService extends BaseService {
      *      url {String}                - optional, url associated with statement
      *      timestamp {long}            - optional, time associated with start of action.  Defaults to current time.
      *      elapsed {int}               - optional, duration of action in millis
+     *      tabId {string}              - unique client-side tabId
+     *      loadId {string}             - unique client-side loadId
      */
     void track(Map entry) {
         trackAll([entry])
@@ -142,7 +144,7 @@ class TrackService extends BaseService {
         return [
             // From submission
             username      : entry.username ?: authUsername,
-            impersonating : entry.impersonating ?: (identityService.isImpersonating() ? username : null),
+            impersonating : entry.impersonating ?: (identityService.impersonating ? username : null),
             category      : entry.category ?: 'Default',
             correlationId : entry.correlationId,
             msg           : entry.msg,
@@ -150,7 +152,7 @@ class TrackService extends BaseService {
             severity      : parseSeverity(entry.severity),
             data          : entry.data ? serialize(entry.data) : null,
             rawData       : entry.data,
-            url           : entry.url,
+            url           : entry.url?.toString()?.take(500),
             appVersion    : entry.appVersion ?: Utils.appVersion,
             loadId        : entry.loadId,
             tabId         : entry.tabId,

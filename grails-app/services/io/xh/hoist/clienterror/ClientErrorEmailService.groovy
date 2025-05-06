@@ -38,7 +38,7 @@ class ClientErrorEmailService extends BaseService {
     //------------------
     private String formatSingle(Map ce, boolean withDetails = true) {
         def parts = [],
-            errorText = ce.error,
+            errorText = ce.data,
             errorJSON = safeParseJSON(errorText)
 
         def errorSummary = errorJSON ? errorJSON.message : errorText
