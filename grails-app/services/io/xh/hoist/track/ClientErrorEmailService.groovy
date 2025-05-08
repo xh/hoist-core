@@ -11,11 +11,10 @@ import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.email.EmailService
-import io.xh.hoist.json.JSONParser
-import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.util.DateTimeUtils
 import io.xh.hoist.util.Utils
-import io.xh.hoist.util.StringUtils
+
+import static io.xh.hoist.json.JSONSerializer.serializePretty
 import static io.xh.hoist.util.Utils.appName
 import io.xh.hoist.util.Timer
 
@@ -83,14 +82,10 @@ class ClientErrorEmailService extends BaseService {
 
     private String formatSingle(TrackLog tl, boolean withDetails = true) {
         def parts = [],
-            dataObj = safeParseJSON(tl.data),
-            errorObj = dataObj?.error as Map,
-            errorSummary = errorObj.message ?: errorObj.name ?: 'Client Error'
-
-        errorSummary = StringUtils.elide(errorSummary as String, 80)
+            dataObj = tl.dataAsObject
 
         def metaText = [
-            "Error: ${errorSummary}",
+            "Error: ${tl.errorSummary}",
             "User: ${tl.username}" + (tl.impersonating ? " (as ${tl.impersonating})" : ''),
             "App: ${appName} (${Utils.appCode})",
             "Version: ${tl.appVersion}",
@@ -104,7 +99,7 @@ class ClientErrorEmailService extends BaseService {
         parts << metaText
         parts << dataObj?.userMessage
         if (withDetails) {
-            parts << (errorObj ? '<pre>' + JSONSerializer.serializePretty(errorObj) + '</pre>' : null)
+            parts << (dataObj?.error ? '<pre>' + serializePretty(dataObj.error) + '</pre>' : null)
         }
         return parts.findAll().join('<br/><br/>')
     }
@@ -114,14 +109,6 @@ class ClientErrorEmailService extends BaseService {
             .sort { -it.dateCreated.date }
             .collect { formatSingle(it, false) }
             .join('<br/><br/><hr/><br/>')
-    }
-
-    private Map safeParseJSON(String errorText) {
-        try {
-            return JSONParser.parseObject(errorText)
-        } catch (Exception ignored) {
-            return null
-        }
     }
 
     Map getAdminStats() {[

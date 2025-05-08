@@ -36,13 +36,14 @@ class FeedbackEmailService extends BaseService {
     private void emailFeedback(TrackLog tl) {
         def to = toAddress,
             subject = "${Utils.appName} feedback"
+        logInfo('Forwarding feedback email', [from: tl.username, to: to])
         if (to) {
             emailService.sendEmail(async: true, to: to, subject: subject, html: formatHtml(tl))
         }
     }
 
     private String formatHtml(TrackLog tl) {
-        def msgText = safeParseJSON(tl.data)?.userMessage,
+        def msgText = tl.dataAsObject?.userMessage,
             metaText = [
                     "User: ${tl.username}",
                     "App: ${Utils.appName} (${Utils.appCode})",
@@ -53,16 +54,7 @@ class FeedbackEmailService extends BaseService {
                     "Submitted: ${tl.dateCreated.format('dd-MMM-yyyy HH:mm:ss')}"
             ].join('<br/>')
 
-        return [msgText, metaText].findAll{it}.join('<br/><br/>')
-    }
-
-
-    private Map safeParseJSON(String errorText) {
-        try {
-            return JSONParser.parseObject(errorText)
-        } catch (Exception ignored) {
-            return null
-        }
+        return [msgText, metaText].findAll().join('<br/><br/>')
     }
 
     Map getAdminStats() {[

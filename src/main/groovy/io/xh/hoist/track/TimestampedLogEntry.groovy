@@ -1,0 +1,15 @@
+package io.xh.hoist.track
+
+/**
+ * Class to support sorting of data for logging.
+ *
+ * @internal
+ */
+class TimestampedLogEntry implements Comparable {
+    Map message
+    Long timestamp
+
+    int compareTo(Object o) {
+        timestamp <=> o.timestamp
+    }
+}

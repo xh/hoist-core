@@ -16,11 +16,9 @@ import io.xh.hoist.util.Utils
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
 import static io.xh.hoist.json.JSONSerializer.serialize
-import static io.xh.hoist.track.TrackSeverity.INFO
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 import static grails.async.Promises.task
 import static io.xh.hoist.util.Utils.getCurrentRequest
-import static java.lang.System.currentTimeMillis
 
 /**
  * Service for tracking user activity within the application. This service provides a server-side
@@ -30,6 +28,10 @@ import static java.lang.System.currentTimeMillis
  *
  * The choice of which activities to track is up to application developers. Typical use-cases
  * involve logging queries and tracking if / how often a given feature is actually used.
+ *
+ * When a TrackLog entry is received by the server, the server-side event 'xhTrackReceived' will
+ * be published on the cluster.  Services in the cluster may use this for notification or monitoring
+ * of app activity.
  *
  * The `xhActivityTrackingConfig` soft-config can be used to configure this service, including
  * disabling it completely. Use the 'levels' property in this config to set the minimal severity for
@@ -54,6 +56,8 @@ class TrackService extends BaseService {
 
     ConfigService configService
     TrackLoggingService trackLoggingService
+
+    private boolean persistenceEnabled = getInstanceConfig('disableTrackLog') != 'true'
 
     /**
      * Create a new track log entry. Username, browser info, and datetime will be set automatically.
@@ -111,14 +115,21 @@ class TrackService extends BaseService {
             entries = entries.collect {prepareEntry(it)}
 
             // Persist and log on new thread to avoid delay.
+            def topic = getTopic('xhTrackReceived')
             task {
                 TrackLog.withTransaction {
                     entries.each {
                         try {
-                            persistEntry(it)
-                            trackLoggingService.logEntry(it)
+                            TimestampedLogEntry logEntry = createLogEntry(it)
+                            trackLoggingService.logEntry(logEntry)
+
+                            TrackLog tl = createTrackLog(it)
+                            if (persistenceEnabled && isSeverityActive(tl)) {
+                                tl.save()
+                            }
+                            topic.publishAsync(tl)
                         } catch (Exception e) {
-                            logError('Exception writing track log', e)
+                            logError('Exception recording track log', e)
                         }
                     }
                 }
@@ -149,14 +160,14 @@ class TrackService extends BaseService {
             correlationId : entry.correlationId,
             msg           : entry.msg,
             elapsed       : entry.elapsed,
-            severity      : parseSeverity(entry.severity),
+            severity      : TrackSeverity.parse(entry.severity as String),
             data          : entry.data ? serialize(entry.data) : null,
             rawData       : entry.data,
             url           : entry.url?.toString()?.take(500),
             appVersion    : entry.appVersion ?: Utils.appVersion,
             loadId        : entry.loadId,
             tabId         : entry.tabId,
-            timestamp     : entry.timestamp ?: currentTimeMillis(),
+            dateCreated   : entry.timestamp ? new Date(entry.timestamp as Long) : new Date(),
 
 
             // From request/context
@@ -168,11 +179,7 @@ class TrackService extends BaseService {
         ]
     }
 
-    private void persistEntry(Map entry) {
-        if (getInstanceConfig('disableTrackLog') == 'true' ||
-            getActiveSeverity(entry) > (entry.severity as TrackSeverity)
-        ) return
-
+    private TrackLog createTrackLog(Map entry) {
         String data = entry.data
         if (data?.size() > (conf.maxDataLength as Integer)) {
             logTrace(
@@ -184,13 +191,50 @@ class TrackService extends BaseService {
         }
 
         TrackLog tl = new TrackLog(entry)
-        tl.dateCreated = new Date(entry.timestamp as Long)
-        tl.save()
+        tl.dateCreated = entry.dateCreated as Date
+        return tl
     }
 
-    private TrackSeverity getActiveSeverity(Map entry) {
-        def username = entry.username as String,
-            cat = entry.category as String,
+    private TimestampedLogEntry createLogEntry(Map entry) {
+        // Log core info,
+        String name = entry.username
+        Date dateCreated = entry.dateCreated as Date
+
+        if (entry.impersonating) name += " (as ${entry.impersonating})"
+        Map<String, Object> message = [
+            _timestamp    : dateCreated.format('yyyy-MM-dd HH:mm:ss.SSS'),
+            _user         : name,
+            _category     : entry.category,
+            _msg          : entry.msg,
+            _correlationId: entry.correlationId,
+            _elapsedMs    : entry.elapsed,
+        ].findAll { it.value != null } as Map<String, Object>
+
+        // Log app data, if requested/configured.
+        def data = entry.rawData,
+            logData = entry.logData
+        if (data && (data instanceof Map)) {
+            logData = logData != null
+                ? logData
+                : conf.logData != null
+                ? conf.logData
+                : false
+
+            if (logData) {
+                Map<String, Object> dataParts = data as Map<String, Object>
+                dataParts = dataParts.findAll { k, v ->
+                    (logData === true || (logData as List).contains(k)) &&
+                        !(v instanceof Map || v instanceof List)
+                }
+                message.putAll(dataParts)
+            }
+        }
+        return new TimestampedLogEntry(message: message, timestamp: dateCreated.time)
+    }
+
+    private boolean isSeverityActive(TrackLog tl) {
+        def username = tl.username as String,
+            cat = tl.category as String,
             levels = (conf.levels ?: []) as List<Map>
 
         def match = levels.find {
@@ -199,20 +243,12 @@ class TrackService extends BaseService {
 
             (levUser == '*' || levUser.contains(username)) && (levCat == '*' || levCat.contains(cat))
         }
-        return match ? parseSeverity(match.severity) : INFO
-    }
 
-    private TrackSeverity parseSeverity(Object severity) {
-        if (severity instanceof TrackSeverity) return severity
-        if (!severity) return INFO
-        try {
-            return TrackSeverity.valueOf(severity.toString().toUpperCase().trim())
-        } catch (IllegalArgumentException ex) {
-            return INFO
-        }
+        return TrackSeverity.parse(match?.severity as String) <= TrackSeverity.parse(tl.severity)
     }
 
     Map getAdminStats() {[
-        config: configForAdminStats('xhActivityTrackingConfig')
+        config: configForAdminStats('xhActivityTrackingConfig'),
+        persistanceEnabled: persistenceEnabled
     ]}
 }
