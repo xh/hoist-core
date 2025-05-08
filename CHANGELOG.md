@@ -3,15 +3,18 @@
 ## 31.0-SNAPSHOT - unreleased
 
 ### 🎁 New Features
+
 * Client Error reports and user feedback have been consolidated into the new tracking system for
   more integrated and powerful reporting.
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - may require event handling adjustment)
-* The `xhFeedbackReceived` and `xhClientErrroReceived` events have been removed.  Clients should
+
+* The `xhFeedbackReceived` and `xhClientErrorReceived` events have been removed. Clients should
   use the `xhTrackReceived` event instead, and filter messages based on the `TrackLog.category`
   property.
 
 ### ⚙️ Technical
+
 * The `xh_feedback` and `xh_client_error` tables are obsolete and may be archived or removed from
   the application database.
 

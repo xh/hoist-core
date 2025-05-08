@@ -86,12 +86,7 @@ class TrackLog implements JSONFormat {
         url(nullable: true, maxSize: 500)
     }
 
-    //----------------------------------------------------------
-    // Convenience getters
-    //---------------------------------------------------------
-    /**
-     * Get the parsed data, or null
-     */
+    /** Get the parsed `data`, or null. */
     Map getDataAsObject() {
         try {
             return JSONParser.parseObject(data)
@@ -100,12 +95,10 @@ class TrackLog implements JSONFormat {
         }
     }
 
-    /**
-     * For a TrackLog that represents a Client Error, get a summary of the error message,
-     */
+    /** For a TrackLog that represents a Client Error, get a summary of the error message, */
     String getErrorSummary() {
         def dataObj = dataAsObject,
-            errorObj = dataObj?.error as Map,
+            errorObj = dataObj?.error as Map ?: [:],
             errorSummary = errorObj.message ?: errorObj.name ?: 'Client Error'
         return elide(errorSummary as String, 80)
     }

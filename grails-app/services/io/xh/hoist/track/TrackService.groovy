@@ -30,7 +30,7 @@ import static io.xh.hoist.util.Utils.getCurrentRequest
  * involve logging queries and tracking if / how often a given feature is actually used.
  *
  * When a TrackLog entry is received by the server, the server-side event 'xhTrackReceived' will
- * be published on the cluster.  Services in the cluster may use this for notification or monitoring
+ * be published on the cluster. Services in the cluster may use this for notification or monitoring
  * of app activity.
  *
  * The `xhActivityTrackingConfig` soft-config can be used to configure this service, including
@@ -112,7 +112,7 @@ class TrackService extends BaseService {
         // Always fail quietly, and never interrupt real work.
         try {
             // Normalize data within thread to gather context
-            entries = entries.collect {prepareEntry(it)}
+            entries = entries.collect { prepareEntry(it) }
 
             // Persist and log on new thread to avoid delay.
             def topic = getTopic('xhTrackReceived')
@@ -247,8 +247,10 @@ class TrackService extends BaseService {
         return TrackSeverity.parse(match?.severity as String) <= TrackSeverity.parse(tl.severity)
     }
 
-    Map getAdminStats() {[
-        config: configForAdminStats('xhActivityTrackingConfig'),
-        persistanceEnabled: persistenceEnabled
-    ]}
+    Map getAdminStats() {
+        [
+            config            : configForAdminStats('xhActivityTrackingConfig'),
+            persistanceEnabled: persistenceEnabled
+        ]
+    }
 }
