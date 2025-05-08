@@ -12,11 +12,9 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.alertbanner.AlertBannerService
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.clienterror.ClientErrorService
 import io.xh.hoist.exception.NotFoundException
 import io.xh.hoist.exception.SessionMismatchException
 import io.xh.hoist.export.GridExportImplService
-import io.xh.hoist.feedback.FeedbackService
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.jsonblob.JsonBlobService
 import io.xh.hoist.pref.PrefService
@@ -34,9 +32,7 @@ import static io.xh.hoist.json.JSONParser.parseObject
 class XhController extends BaseController {
 
     AlertBannerService alertBannerService
-    ClientErrorService clientErrorService
     ConfigService configService
-    FeedbackService feedbackService
     GridExportImplService gridExportImplService
     JsonBlobService jsonBlobService
     PrefService prefService
@@ -231,37 +227,6 @@ class XhController extends BaseController {
         renderJSON(environmentService.environmentPoll())
     }
 
-
-    //------------------------
-    // Client Errors
-    //------------------------
-    def submitError() {
-        ensureClientUsernameMatchesSession()
-        def query = parseRequestJSON([safeEncode: true])
-        clientErrorService.submit(
-            query.msg as String,
-            query.error as String,
-            query.appVersion as String,
-            query.url as String,
-            query.userAlerted as Boolean,
-            query.correlationId as String
-        )
-        renderSuccess()
-    }
-
-
-
-    //------------------------
-    // Feedback
-    //------------------------
-    def submitFeedback(String msg, String appVersion) {
-        ensureClientUsernameMatchesSession()
-        feedbackService.submit(
-            safeEncode(msg),
-            safeEncode(appVersion)
-        )
-        renderSuccess()
-    }
 
 
     //----------------------

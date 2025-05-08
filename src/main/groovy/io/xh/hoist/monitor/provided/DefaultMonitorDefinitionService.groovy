@@ -14,7 +14,6 @@ import io.xh.hoist.BaseService
 import io.xh.hoist.monitor.Monitor
 import io.xh.hoist.monitor.MonitorResult
 import io.xh.hoist.util.Utils
-import io.xh.hoist.clienterror.ClientError
 import io.xh.hoist.track.TrackLog
 
 import static io.xh.hoist.monitor.MonitorStatus.FAIL
@@ -78,7 +77,7 @@ class DefaultMonitorDefinitionService extends BaseService {
         def lookback = result.getRequiredParam('lookbackMinutes') * MINUTES,
             cutoffDate = new Date(currentTimeMillis() - lookback)
 
-        result.metric = ClientError.countByDateCreatedGreaterThan(cutoffDate)
+        result.metric = TrackLog.countByDateCreatedGreaterThanAndCategory(cutoffDate, 'Client Error')
     }
 
     @ReadOnly

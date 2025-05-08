@@ -113,15 +113,15 @@ class DefaultRoleUpdateService extends BaseService {
         roles.each { roleName ->
             Role role = Role.get(roleName)
             role.category = category
-            role.save(flush:true)
+            role.save(flush: true)
             updatedRoles.push(role)
         }
         trackService.track(
             msg: "Updated ${roles.size()} roles.",
             category: 'Audit',
             data: [
-                roles                 : roles,
-                category              : category
+                roles   : roles,
+                category: category
             ]
         )
         return updatedRoles
@@ -153,6 +153,9 @@ class DefaultRoleUpdateService extends BaseService {
         role.save(flush: true)
 
         if (isUpdate) {
+            trackService.track([
+
+            ])
             trackService.track(
                 msg: "Edited role: '${roleSpec.name}'",
                 category: 'Audit',

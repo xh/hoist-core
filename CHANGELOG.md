@@ -2,6 +2,23 @@
 
 ## 31.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Client Error reports and user feedback have been consolidated into the new tracking system for
+  more integrated and powerful reporting.
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - may require event handling adjustment)
+
+* The `xhFeedbackReceived` and `xhClientErrorReceived` events have been removed. Clients should
+  use the `xhTrackReceived` event instead, and filter messages based on the `TrackLog.category`
+  property.
+
+### ⚙️ Technical
+
+* The `xh_feedback` and `xh_client_error` tables are obsolete and may be removed from
+  the application database.  Please note the content in these tables will no longer be available in
+  your app.  Please archive or migrate as appropriate if needed for historical queries.
+
 ## 30.0.0 - 2025-05-05
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - DB column additions)
@@ -441,9 +458,8 @@ Please contact XH to review your app's readiness for multi-instance operation!
 * Server-side events raised by Hoist are now implemented as cluster-wide Hazelcast messages rather
   than single-server Grails events. Any app code that listens to these events
   via `BaseService.subscribe` must update to `BaseService.subscribeToTopic`. Check for:
-    * `xhClientErrorReceived`
     * `xhConfigChanged`
-    * `xhFeedbackReceived`
+    * `xhTrackLogReceived`
     * `xhMonitorStatusReport`
 * The `exceptionRenderer` singleton has been simplified and renamed as `xhExceptionHandler`. This
   change was needed to better support cross-cluster exception handling. This object is used by

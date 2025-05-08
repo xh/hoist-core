@@ -1,7 +1,7 @@
 package io.xh.hoist.track
 
+import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
-import io.xh.hoist.config.ConfigService
 import io.xh.hoist.log.SimpleLogger
 
 import java.util.concurrent.PriorityBlockingQueue
@@ -25,12 +25,11 @@ import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
  *
  * @internal - not intended for direct use by applications.
  */
+@CompileStatic
 class TrackLoggingService extends BaseService {
 
-    ConfigService configService
-
     private Long DEBOUNCE_INTERVAL = 30 * SECONDS
-    private PriorityBlockingQueue<TrackLogEntry> queue = new PriorityBlockingQueue<TrackLogEntry>()
+    private PriorityBlockingQueue<TimestampedLogEntry> queue = new PriorityBlockingQueue<TimestampedLogEntry>()
     SimpleLogger orderedLog = new SimpleLogger(this.class.canonicalName + '.Log')
 
     void init() {
@@ -42,9 +41,8 @@ class TrackLoggingService extends BaseService {
         super.init()
     }
 
-    void logEntry(Map rawEntry) {
-        def entry = new TrackLogEntry(rawEntry)
-        logInfo(entry.logData)
+    void logEntry(TimestampedLogEntry entry) {
+        logInfo(entry.message)
         queue.add(entry)
         drainQueue()
     }
@@ -52,15 +50,11 @@ class TrackLoggingService extends BaseService {
     //-----------------
     // Implementation
     //-----------------
-    private Map getConf() {
-        return configService.getMap('xhActivityTrackingConfig')
-    }
-
     private synchronized void drainQueue() {
         for (def e = queue.peek(); e && intervalElapsed(DEBOUNCE_INTERVAL, e.timestamp); e = queue.peek()) {
             def entry = queue.remove()
             try {
-                orderedLog.logInfo(entry.logData)
+                orderedLog.logInfo(entry.message)
             } catch (Throwable t) {
                 logError('Failed to log Track Entry.', t)
             }
@@ -72,59 +66,6 @@ class TrackLoggingService extends BaseService {
     }
 
     Map getAdminStats() {[
-        config: configForAdminStats('xhActivityTrackingConfig'),
         queue: queue.size()
     ]}
-
-    //-------------------------------------------------
-    // Internal Class to support sorting
-    //-------------------------------------------------
-    private class TrackLogEntry implements Comparable {
-        final Long timestamp
-        final Map logData
-
-        TrackLogEntry(Map data) {
-            timestamp = data.timestamp as Long
-            logData = toLogData(data)
-        }
-
-        int compareTo(Object o) {
-            timestamp <=> o.timestamp
-        }
-
-        private Map toLogData(Map entry) {
-            // Log core info,
-            String name = entry.username
-            if (entry.impersonating) name += " (as ${entry.impersonating})"
-            Map<String, Object> msgParts = [
-                _timestamp    : new Date(entry.timestamp).format('yyyy-MM-dd HH:mm:ss.SSS'),
-                _user         : name,
-                _category     : entry.category,
-                _msg          : entry.msg,
-                _correlationId: entry.correlationId,
-                _elapsedMs    : entry.elapsed,
-            ].findAll { it.value != null } as Map<String, Object>
-
-            // Log app data, if requested/configured.
-            def data = entry.rawData,
-                logData = entry.logData
-            if (data && (data instanceof Map)) {
-                logData = logData != null
-                    ? logData
-                    : conf.logData != null
-                    ? conf.logData
-                    : false
-
-                if (logData) {
-                    Map<String, Object> dataParts = data as Map<String, Object>
-                    dataParts = dataParts.findAll { k, v ->
-                        (logData === true || (logData as List).contains(k)) &&
-                            !(v instanceof Map || v instanceof List)
-                    }
-                    msgParts.putAll(dataParts)
-                }
-            }
-            msgParts
-        }
-    }
 }

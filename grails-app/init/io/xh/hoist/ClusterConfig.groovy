@@ -128,8 +128,15 @@ class ClusterConfig {
      * Hibernate caches. See toolbox's `Phase` object for examples.
      *
      * - a static 'configureCluster' property on Grails Service to allow services to provide
-     * configuration for any custom hazelcast structures that they will user.  See
-     * Hoist Core's `ClientErrorService` for an example.
+     * configuration for any custom hazelcast structures that they will user.  For example,
+     * a service may configure a custom collection as follows:
+     *
+     *      static configureCluster = { Config c ->
+     *           c.getMapConfig(hzName('myCollection', this)).with {
+     *               evictionConfig.size = 100
+     *           }
+     *       }
+     *     private IMap<String, Map> myCollection = createIMap('myCollection')
      */
     protected void createDefaultConfigs(Config config) {
 

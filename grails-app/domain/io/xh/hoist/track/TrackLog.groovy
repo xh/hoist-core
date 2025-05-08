@@ -8,9 +8,11 @@
 package io.xh.hoist.track
 
 import io.xh.hoist.json.JSONFormat
+import io.xh.hoist.json.JSONParser
 import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.util.DateTimeUtils.appDay
+import static io.xh.hoist.util.StringUtils.*
 
 class TrackLog implements JSONFormat {
 
@@ -84,6 +86,23 @@ class TrackLog implements JSONFormat {
         url(nullable: true, maxSize: 500)
     }
 
+    /** Get the parsed `data`, or null. */
+    Map getDataAsObject() {
+        try {
+            return JSONParser.parseObject(data)
+        } catch (Exception ignored) {
+            return null
+        }
+    }
+
+    /** For a TrackLog that represents a Client Error, get a summary of the error message, */
+    String getErrorSummary() {
+        def dataObj = dataAsObject,
+            errorObj = dataObj?.error as Map ?: [:],
+            errorSummary = errorObj.message ?: errorObj.name ?: 'Client Error'
+        return elide(errorSummary as String, 80)
+    }
+
     Map formatForJSON() {
         return [
             id            : id,
@@ -108,5 +127,4 @@ class TrackLog implements JSONFormat {
             url           : url
         ]
     }
-
 }
