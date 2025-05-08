@@ -15,8 +15,9 @@
 
 ### ⚙️ Technical
 
-* The `xh_feedback` and `xh_client_error` tables are obsolete and may be archived or removed from
-  the application database.
+* The `xh_feedback` and `xh_client_error` tables are obsolete and may be removed from
+  the application database.  Please note the content in these tables will no longer be available in
+  your app.  Please archive or migrate as appropriate if needed for historical queries.
 
 ## 30.0.0 - 2025-05-05
 
