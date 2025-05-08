@@ -8,6 +8,8 @@
 package io.xh.hoist.track
 
 import groovy.transform.CompileStatic
+import groovy.transform.NamedParam
+import groovy.transform.NamedVariant
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ConfigService
@@ -60,41 +62,67 @@ class TrackService extends BaseService {
     private boolean persistenceEnabled = getInstanceConfig('disableTrackLog') != 'true'
 
     /**
-     * Create a new track log entry. Username, browser info, and datetime will be set automatically.
-     * @param msg
+     * Create a new track log entry.
      */
-    void track(String msg) {
-        track(msg: msg)
-    }
+    @NamedVariant
+    void track(
 
-    /**
-     * Create a new track log entry. Username, browser info, and datetime will be set automatically.
-     *
-     *   @param entry
-     *      msg {String}                - required, identifier of action being tracked
-     *      category {String}           - optional, grouping category. Defaults to 'Default'
-     *      correlationId {String}      - optional, correlation ID for tracking related actions
-     *      data {Object}               - optional, object with related data to be serialized as JSON
-     *      logData {boolean|String[]}  - optional, true or list of keys to log values from data.
-     *                                    Defaults to value in `xhActivityTrackingConfig` or false.
-     *                                    Note that only primitive values will be logged (nested objects
-     *                                    or lists will be ignored, even if their key is specified).
-     *      username {String}           - optional, defaults to currently authenticated user.
-     *                                    Use this if track will be called in an asynchronous process,
-     *                                    outside of a request, where username not otherwise available.
-     *      impersonating {String}      - optional, defaults to username if impersonating, null if not.
-     *                                    Use this if track will be called in an asynchronous process,
-     *                                    outside of a request, where impersonator info not otherwise available.
-     *      severity
-     *         {String|TrackSeverity}   - optional, defaults to TrackSeverity.INFO.
-     *      url {String}                - optional, url associated with statement
-     *      timestamp {long}            - optional, time associated with start of action.  Defaults to current time.
-     *      elapsed {int}               - optional, duration of action in millis
-     *      tabId {string}              - unique client-side tabId
-     *      loadId {string}             - unique client-side loadId
-     */
-    void track(Map entry) {
-        trackAll([entry])
+        // Core parameters
+        /** A concise description of whatever action being tracked. */
+        @NamedParam(required = true) String msg,
+        /** Category for organizing and querying over related actions. */
+        @NamedParam String category = 'Default',
+        /** The severity of this message. Defaults to TrackSeverity.INFO.*/
+        @NamedParam Object severity = TrackSeverity.INFO,
+        /** Additional data payload to store with the track log (will be serialized as JSON). */
+        @NamedParam Object data = null,
+        /** A list of keys from the data object to log, `true` to log all key/values. Default false. */
+        @NamedParam Object logData = null,
+        /** Optional Correlation Id */
+        @NamedParam String correlationId = null,
+        /** Time associated with the start of the action. Defaults to now. */
+        @NamedParam Long timestamp = null,
+        /** Duration of the tracked action in milliseconds, if applicable. */
+        @NamedParam Integer elapsed = null,
+
+        // For setting on async processes, not typically used.
+        /**
+         * The username of the user associated with this action. Defaults to currently authenticated
+         * user, but can be specified to capture user when called from an async process, outside the
+         * context of a request.
+         */
+        @NamedParam String username = null,
+        /**
+         * If impersonating, the username of the user being impersonated. Set automatically when
+         * applicable, provided here for async usage outside of a request (as with `username`).
+         */
+        @NamedParam String impersonating = null,
+
+        // From client-side, for internal use.
+        /** Client-side tabId, maintained by hoist-react for the life of a browser tab. */
+        @NamedParam String tabId = null,
+        /** Client-side loadId, maintained by hoist-react for each load of the client app. */
+        @NamedParam String loadId = null,
+        /** Client-side url of the app performing the activity. */
+        @NamedParam String url = null
+    ) {
+        trackAll([
+            [
+                msg          : msg,
+                category     : category,
+                correlationId: correlationId,
+                data         : data,
+                logData      : logData,
+                username     : username,
+                impersonating: impersonating,
+                severity     : severity,
+                url          : url,
+                timestamp    : timestamp,
+                elapsed      : elapsed,
+                tabId        : tabId,
+                loadId       : loadId
+            ]
+        ] as Collection<Map>)
     }
 
     /**
