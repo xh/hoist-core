@@ -21,6 +21,7 @@ import static io.xh.hoist.json.JSONSerializer.serialize
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 import static grails.async.Promises.task
 import static io.xh.hoist.util.Utils.getCurrentRequest
+import static io.xh.hoist.util.DateTimeUtils.MINUTES
 
 /**
  * Service for tracking user activity within the application. This service provides a server-side
@@ -56,10 +57,13 @@ import static io.xh.hoist.util.Utils.getCurrentRequest
 @CompileStatic
 class TrackService extends BaseService {
 
+    static clearCachesConfigs = []
     ConfigService configService
     TrackLoggingService trackLoggingService
 
-    private boolean persistenceEnabled = getInstanceConfig('disableTrackLog') != 'true'
+    private final boolean persistenceDisabled = getInstanceConfig('disableTrackLog') == 'true'
+    private boolean persistenceDisabledByLoad = false
+    private RateMonitor rateMonitor = createRateMonitor()
 
     /**
      * Create a new track log entry.
@@ -136,32 +140,38 @@ class TrackService extends BaseService {
             logTrace("Tracking disabled via config.")
             return
         }
+        applyRateLimiting(entries);
+
+        def doPersist = !persistenceDisabled && !persistenceDisabledByLoad,
+            topic = getTopic('xhTrackReceived')
 
         // Always fail quietly, and never interrupt real work.
         try {
             // Normalize data within thread to gather context
             entries = entries.collect { prepareEntry(it) }
 
-            // Persist and log on new thread to avoid delay.
-            def topic = getTopic('xhTrackReceived')
-            task {
-                TrackLog.withTransaction {
-                    entries.each {
-                        try {
-                            TimestampedLogEntry logEntry = createLogEntry(it)
-                            trackLoggingService.logEntry(logEntry)
+            def processFn = {
+                entries.each {
+                    try {
+                        TimestampedLogEntry logEntry = createLogEntry(it)
+                        trackLoggingService.logEntry(logEntry)
 
-                            TrackLog tl = createTrackLog(it)
-                            if (persistenceEnabled && isSeverityActive(tl)) {
-                                tl.save()
-                            }
-                            topic.publishAsync(tl)
-                        } catch (Exception e) {
-                            logError('Exception recording track log', e)
+                        TrackLog tl = createTrackLog(it)
+                        if (doPersist && isSeverityActive(tl)) {
+                            tl.save()
                         }
+                        topic.publishAsync(tl)
+                    } catch (Exception e) {
+                        logError('Exception recording track log', e)
                     }
                 }
             }
+
+            // Process on new thread to avoid delay, only create transaction if needed.
+            doPersist ?
+                task { TrackLog.withTransaction(processFn) }:
+                task(processFn)
+
         } catch (Exception e) {
             logError('Exception writing track log', e)
         }
@@ -275,10 +285,40 @@ class TrackService extends BaseService {
         return TrackSeverity.parse(match?.severity as String) <= TrackSeverity.parse(tl.severity)
     }
 
+    private RateMonitor createRateMonitor() {
+        new RateMonitor('rateMonitor', conf.maxEntriesPerMin as Long ?: 1000, 1 * MINUTES, this)
+    }
+
+    private boolean applyRateLimiting(Collection<Map> entries) {
+        rateMonitor.noteRequest(entries.size())
+        if (!persistenceDisabledByLoad && rateMonitor.limitExceeded) {
+            logError(
+                'Track persistence disabled due to non-compliant load',
+                [entriesPerMinute: rateMonitor.maxPeriodRequests]
+            )
+            persistenceDisabledByLoad = true
+        } else if (persistenceDisabledByLoad && rateMonitor.successStreak >= 2) {
+            logInfo(
+                'Track persistence being re-enabled after multiple periods of compliant load.',
+                [compliantMins: rateMonitor.successStreak]
+            )
+            persistenceDisabledByLoad = false
+        }
+    }
+
+    void clearCaches() {
+        // Do not clear persistenceDisabledByLoad intentionally. This will
+        // allow clearing caches in a response situation, without re-opening the flood gates
+        rateMonitor = createRateMonitor()
+        super.clearCaches()
+    }
+
     Map getAdminStats() {
         [
             config            : configForAdminStats('xhActivityTrackingConfig'),
-            persistanceEnabled: persistenceEnabled
+            persistanceDisabled: persistenceDisabled,
+            peristanceDisabledByLoad: persistenceDisabledByLoad,
+            rateMonitor: rateMonitor
         ]
     }
 }
