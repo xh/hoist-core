@@ -71,6 +71,7 @@ class BootStrap implements LogSupport {
                 defaultValue: [
                     clientHealthReport: [intervalMins: -1],
                     enabled: true,
+                    maxEntriesPerMin: 500,
                     levels: [[username: '*', category: '*', severity: 'INFO']],
                     logData: false,
                     maxDataLength: 2000,
