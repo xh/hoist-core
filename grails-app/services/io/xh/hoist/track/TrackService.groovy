@@ -13,6 +13,7 @@ import groovy.transform.NamedVariant
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.util.RateMonitor
 import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.browser.Utils.getBrowser
@@ -57,13 +58,18 @@ import static io.xh.hoist.util.DateTimeUtils.MINUTES
 @CompileStatic
 class TrackService extends BaseService {
 
-    static clearCachesConfigs = []
+    static clearCachesConfigs = ['xhActivityTrackingConfig']
     ConfigService configService
     TrackLoggingService trackLoggingService
 
     private final boolean persistenceDisabled = getInstanceConfig('disableTrackLog') == 'true'
-    private boolean persistenceDisabledByLoad = false
-    private RateMonitor rateMonitor = createRateMonitor()
+    private boolean rateLimitActive = false
+    private RateMonitor rateMonitor
+
+    void init() {
+        rateMonitor = createRateMonitor()
+        super.init()
+    }
 
     /**
      * Create a new track log entry.
@@ -142,7 +148,7 @@ class TrackService extends BaseService {
         }
         applyRateLimiting(entries);
 
-        def doPersist = !persistenceDisabled && !persistenceDisabledByLoad,
+        def doPersist = !persistenceDisabled && !rateLimitActive,
             topic = getTopic('xhTrackReceived')
 
         // Always fail quietly, and never interrupt real work.
@@ -290,25 +296,24 @@ class TrackService extends BaseService {
     }
 
     private boolean applyRateLimiting(Collection<Map> entries) {
-        rateMonitor.noteRequest(entries.size())
-        if (!persistenceDisabledByLoad && rateMonitor.limitExceeded) {
+        rateMonitor.noteRequests(entries.size())
+        if (!rateLimitActive && rateMonitor.limitExceeded) {
             logError(
                 'Track persistence disabled due to non-compliant load',
-                [entriesPerMinute: rateMonitor.maxPeriodRequests]
+                [entriesPerMin: rateMonitor.maxPeriodRequests]
             )
-            persistenceDisabledByLoad = true
-        } else if (persistenceDisabledByLoad && rateMonitor.successStreak >= 2) {
+            rateLimitActive = true
+        } else if (rateLimitActive && rateMonitor.periodsInCompliance >= 2) {
             logInfo(
                 'Track persistence being re-enabled after multiple periods of compliant load.',
-                [compliantMins: rateMonitor.successStreak]
+                [compliantMins: rateMonitor.periodsInCompliance]
             )
-            persistenceDisabledByLoad = false
+            rateLimitActive = false
         }
     }
 
     void clearCaches() {
-        // Do not clear persistenceDisabledByLoad intentionally. This will
-        // allow clearing caches in a response situation, without re-opening the flood gates
+        // Do *not* clear rateLimitActive. Allow clearCaches usage in critical response situations.
         rateMonitor = createRateMonitor()
         super.clearCaches()
     }
@@ -317,7 +322,7 @@ class TrackService extends BaseService {
         [
             config            : configForAdminStats('xhActivityTrackingConfig'),
             persistanceDisabled: persistenceDisabled,
-            peristanceDisabledByLoad: persistenceDisabledByLoad,
+            rateLimitActive: rateLimitActive,
             rateMonitor: rateMonitor
         ]
     }

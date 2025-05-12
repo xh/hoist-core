@@ -1,8 +1,7 @@
-package io.xh.hoist.track
+package io.xh.hoist.util
 
 import io.xh.hoist.AdminStats
 import io.xh.hoist.BaseService
-import io.xh.hoist.util.Timer
 
 /**
  * Simple fixed-window rate limiter with period history.
@@ -12,14 +11,14 @@ class RateMonitor implements AdminStats {
     /** Length of period in ms */
     final long periodLength
 
-    /** Maximum Requests allowed during the period. */
+    /** Maximum requests allowed during the period. */
     final long maxPeriodRequests
 
     /** Requests that occurred in this period. */
     long periodRequests
 
     /** Number of periods the rate has remained has under max. */
-    long successStreak = 0
+    long periodsInCompliance = 0
 
     /** Has the max rate been exceeded during the period **/
     boolean getLimitExceeded() {
@@ -35,16 +34,20 @@ class RateMonitor implements AdminStats {
         this.timer = owner.createTimer(name: name, runFn: this.&onTimer, interval: periodLength)
     }
 
-    void noteRequest(int numbRequests = 1) {
-        periodRequests += numbRequests
-        if (limitExceeded) successStreak = 0;
+    void noteRequest(){
+        noteRequests(1)
+    }
+
+    void noteRequests(int count) {
+        periodRequests += count
+        if (limitExceeded) periodsInCompliance = 0;
     }
 
     //---------------------
     // Implementation
     //---------------------
     private onTimer() {
-        successStreak = !limitExceeded ? successStreak + 1 : 0
+        periodsInCompliance = !limitExceeded ? periodsInCompliance + 1 : 0
         periodRequests = 0
     }
 
@@ -53,7 +56,7 @@ class RateMonitor implements AdminStats {
             config: [periodLength: periodLength, maxPeriodRequests: maxPeriodRequests],
             periodRequests: periodRequests,
             limitExceeded: limitExceeded,
-            successStreak: successStreak
+            successStreak: periodsInCompliance
         ]
     }
 
