@@ -66,16 +66,15 @@ class ExceptionHandler {
     /**
      * Produce a one-line summary string for an exception.
      *
-     * The default implementation is designed to yield meaningful information within a one-line summary.
-     *
-     * For more detailed exception rendering, users will need to log the entire exception, typically via
-     * using "TRACE" mode.
+     * The default implementation is designed to yield meaningful information within a one-line \
+     * summary. For more detailed exception rendering, users will need to log the entire exception,
+     * typically by setting an applicable logger level to `TRACE`.
      */
     String summaryTextForThrowable(Throwable t) {
         summaryTextInternal(t, true)
     }
 
-    /** HttpStatus dode for this exception. */
+    /** The {@link org.apache.hc.core5.http.HttpStatus} code for this exception. */
     int getHttpStatus(Throwable t) {
         if (t instanceof HttpException && !(t instanceof ExternalHttpException)) {
             return ((HttpException) t).statusCode
