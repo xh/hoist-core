@@ -67,7 +67,7 @@ class TrackService extends BaseService {
     private RateMonitor rateMonitor
 
     void init() {
-        rateMonitor = createRateMonitor()
+        rateMonitor = new RateMonitor('rateMonitor', maxEntriesPerMin, 1 * MINUTES, this)
         super.init()
     }
 
@@ -183,13 +183,20 @@ class TrackService extends BaseService {
         }
     }
 
-    Boolean getEnabled() {
+    boolean getEnabled() {
         return conf.enabled == true
     }
+
+    Long getMaxEntriesPerMin() {
+        return conf.maxEntriesPerMin as Long ?: 1000
+    }
+
 
     Map getConf() {
         return configService.getMap('xhActivityTrackingConfig')
     }
+
+
 
     //-------------------------
     // Implementation
@@ -291,10 +298,6 @@ class TrackService extends BaseService {
         return TrackSeverity.parse(match?.severity as String) <= TrackSeverity.parse(tl.severity)
     }
 
-    private RateMonitor createRateMonitor() {
-        new RateMonitor('rateMonitor', conf.maxEntriesPerMin as Long ?: 1000, 1 * MINUTES, this)
-    }
-
     private boolean applyRateLimiting(Collection<Map> entries) {
         rateMonitor.noteRequests(entries.size())
         if (!rateLimitActive && rateMonitor.limitExceeded) {
@@ -314,7 +317,7 @@ class TrackService extends BaseService {
 
     void clearCaches() {
         // Do *not* clear rateLimitActive. Allow clearCaches usage in critical response situations.
-        rateMonitor = createRateMonitor()
+        rateMonitor.setMaxPeriodRequests(maxEntriesPerMin)
         super.clearCaches()
     }
 

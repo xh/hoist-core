@@ -11,27 +11,40 @@ class RateMonitor implements AdminStats {
     /** Length of period in ms */
     final long periodLength
 
-    /** Maximum requests allowed during the period. */
-    final long maxPeriodRequests
+    private long _maxPeriodRequests
+    private long _periodRequests = 0
+    private long _periodsInCompliance = 0
+    private Timer _timer
 
-    /** Requests that occurred in this period. */
-    long periodRequests
+    /** Requests that occurred in this period */
+    long getPeriodRequests() {
+        return _periodRequests
+    }
 
-    /** Number of periods the rate has remained has under max. */
-    long periodsInCompliance = 0
+    /** Maximum requests allowed during the period */
+    long getMaxPeriodRequests() {
+        return _maxPeriodRequests
+    }
+
+    /** Periods for which the rate has not exceeded the maximum */
+    long getPeriodsInCompliance() {
+        return _periodsInCompliance
+    }
+
+    void setMaxPeriodRequests(long maxPeriodRequests) {
+        this._maxPeriodRequests = maxPeriodRequests
+        if (limitExceeded) _periodsInCompliance = 0;
+    }
 
     /** Has the max rate been exceeded during the period **/
     boolean getLimitExceeded() {
         return periodRequests > maxPeriodRequests
     }
 
-    private Timer timer
-
-
     RateMonitor(String name, long maxPeriodRequests, long periodLength, BaseService owner) {
-        this.maxPeriodRequests = maxPeriodRequests
         this.periodLength = periodLength
-        this.timer = owner.createTimer(name: name, runFn: this.&onTimer, interval: periodLength)
+        this._maxPeriodRequests = maxPeriodRequests
+        this._timer = owner.createTimer(name: name, runFn: this.&onTimer, interval: periodLength)
     }
 
     void noteRequest(){
@@ -39,16 +52,16 @@ class RateMonitor implements AdminStats {
     }
 
     void noteRequests(int count) {
-        periodRequests += count
-        if (limitExceeded) periodsInCompliance = 0;
+        _periodRequests += count
+        if (limitExceeded) _periodsInCompliance = 0;
     }
 
     //---------------------
     // Implementation
     //---------------------
     private onTimer() {
-        periodsInCompliance = !limitExceeded ? periodsInCompliance + 1 : 0
-        periodRequests = 0
+        _periodsInCompliance = !limitExceeded ? _periodsInCompliance + 1 : 0
+        _periodRequests = 0
     }
 
     Map getAdminStats() {
@@ -56,7 +69,7 @@ class RateMonitor implements AdminStats {
             config: [periodLength: periodLength, maxPeriodRequests: maxPeriodRequests],
             periodRequests: periodRequests,
             limitExceeded: limitExceeded,
-            successStreak: periodsInCompliance
+            periodsInCompliance: periodsInCompliance
         ]
     }
 
