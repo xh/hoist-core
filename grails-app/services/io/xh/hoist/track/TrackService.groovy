@@ -13,6 +13,7 @@ import groovy.transform.NamedVariant
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.util.RateMonitor
 import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.browser.Utils.getBrowser
@@ -21,6 +22,7 @@ import static io.xh.hoist.json.JSONSerializer.serialize
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 import static grails.async.Promises.task
 import static io.xh.hoist.util.Utils.getCurrentRequest
+import static io.xh.hoist.util.DateTimeUtils.MINUTES
 
 /**
  * Service for tracking user activity within the application. This service provides a server-side
@@ -56,10 +58,18 @@ import static io.xh.hoist.util.Utils.getCurrentRequest
 @CompileStatic
 class TrackService extends BaseService {
 
+    static clearCachesConfigs = ['xhActivityTrackingConfig']
     ConfigService configService
     TrackLoggingService trackLoggingService
 
-    private boolean persistenceEnabled = getInstanceConfig('disableTrackLog') != 'true'
+    private final boolean persistenceDisabled = getInstanceConfig('disableTrackLog') == 'true'
+    private boolean rateLimitActive = false
+    private RateMonitor rateMonitor
+
+    void init() {
+        rateMonitor = new RateMonitor('rateMonitor', maxEntriesPerMin, 1 * MINUTES, this)
+        super.init()
+    }
 
     /**
      * Create a new track log entry.
@@ -136,44 +146,57 @@ class TrackService extends BaseService {
             logTrace("Tracking disabled via config.")
             return
         }
+        applyRateLimiting(entries);
+
+        def doPersist = !persistenceDisabled && !rateLimitActive,
+            topic = getTopic('xhTrackReceived')
 
         // Always fail quietly, and never interrupt real work.
         try {
             // Normalize data within thread to gather context
             entries = entries.collect { prepareEntry(it) }
 
-            // Persist and log on new thread to avoid delay.
-            def topic = getTopic('xhTrackReceived')
-            task {
-                TrackLog.withTransaction {
-                    entries.each {
-                        try {
-                            TimestampedLogEntry logEntry = createLogEntry(it)
-                            trackLoggingService.logEntry(logEntry)
+            def processFn = {
+                entries.each {
+                    try {
+                        TimestampedLogEntry logEntry = createLogEntry(it)
+                        trackLoggingService.logEntry(logEntry)
 
-                            TrackLog tl = createTrackLog(it)
-                            if (persistenceEnabled && isSeverityActive(tl)) {
-                                tl.save()
-                            }
-                            topic.publishAsync(tl)
-                        } catch (Exception e) {
-                            logError('Exception recording track log', e)
+                        TrackLog tl = createTrackLog(it)
+                        if (doPersist && isSeverityActive(tl)) {
+                            tl.save()
                         }
+                        topic.publishAsync(tl)
+                    } catch (Exception e) {
+                        logError('Exception recording track log', e)
                     }
                 }
             }
+
+            // Process on new thread to avoid delay, only create transaction if needed.
+            doPersist ?
+                task { TrackLog.withTransaction(processFn) }:
+                task(processFn)
+
         } catch (Exception e) {
             logError('Exception writing track log', e)
         }
     }
 
-    Boolean getEnabled() {
+    boolean getEnabled() {
         return conf.enabled == true
     }
+
+    Long getMaxEntriesPerMin() {
+        return conf.maxEntriesPerMin as Long ?: 1000
+    }
+
 
     Map getConf() {
         return configService.getMap('xhActivityTrackingConfig')
     }
+
+
 
     //-------------------------
     // Implementation
@@ -275,10 +298,35 @@ class TrackService extends BaseService {
         return TrackSeverity.parse(match?.severity as String) <= TrackSeverity.parse(tl.severity)
     }
 
+    private boolean applyRateLimiting(Collection<Map> entries) {
+        rateMonitor.noteRequests(entries.size())
+        if (!rateLimitActive && rateMonitor.limitExceeded) {
+            logError(
+                'Track persistence disabled due to non-compliant load',
+                [entriesPerMin: rateMonitor.maxPeriodRequests]
+            )
+            rateLimitActive = true
+        } else if (rateLimitActive && rateMonitor.periodsInCompliance >= 2) {
+            logInfo(
+                'Track persistence being re-enabled after multiple periods of compliant load.',
+                [compliantMins: rateMonitor.periodsInCompliance]
+            )
+            rateLimitActive = false
+        }
+    }
+
+    void clearCaches() {
+        // Do *not* clear rateLimitActive. Allow clearCaches usage in critical response situations.
+        rateMonitor.setMaxPeriodRequests(maxEntriesPerMin)
+        super.clearCaches()
+    }
+
     Map getAdminStats() {
         [
             config            : configForAdminStats('xhActivityTrackingConfig'),
-            persistanceEnabled: persistenceEnabled
+            persistanceDisabled: persistenceDisabled,
+            rateLimitActive: rateLimitActive,
+            rateMonitor: rateMonitor
         ]
     }
 }
