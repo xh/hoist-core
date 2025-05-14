@@ -43,11 +43,9 @@ class TrackLoggingService extends BaseService {
     }
 
     void logEntry(TimestampedLogEntry entry) {
-        // Write directly to main log,  Get as close as possible to timestamp and make actual time of timestamp available
-        writeLog(this, entry.severity, [
-            _timestamp: entry.timestamp.format('HH:mm:ss.SSS'),
-            *:entry.message
-        ])
+        // Write directly to main log. Get as close as possible to sort order of actual
+        // Actual time is also included in the message
+        writeLog(this, entry.severity, entry.message)
         queue.add(entry)
         drainQueue()
     }
@@ -59,11 +57,12 @@ class TrackLoggingService extends BaseService {
         for (def e = queue.peek(); e && intervalElapsed(DEBOUNCE_INTERVAL, e.timestamp); e = queue.peek()) {
             def entry = queue.remove()
             try {
-                // Write directly to dedicated log  Add timestamp, severity as this log has a very minimal layout
+                // Write directly to dedicated log.  Show actual timestamp and severity at
+                // *beginning* as this log has a minimal layout with only the message.
                 writeLog(orderedLog, entry.severity, [
                     _timestamp: entry.timestamp.format('yyyy-MM-dd HH:mm:ss.SSS'),
                     _severity: entry.severity,
-                    *:entry.message
+                    *:entry.message.findAll{it.key != '_timestamp'}
                 ])
             } catch (Throwable t) {
                 logError('Failed to log Track Entry.', t)

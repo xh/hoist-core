@@ -256,6 +256,7 @@ class TrackService extends BaseService {
             _category     : entry.category,
             _msg          : entry.msg,
             _correlationId: entry.correlationId,
+            _timestamp    : dateCreated.format('HH:mm:ss.SSS'),
             _elapsedMs    : entry.elapsed,
         ].findAll { it.value != null } as Map<String, Object>
 
