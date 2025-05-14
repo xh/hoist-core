@@ -6,8 +6,9 @@ package io.xh.hoist.track
  * @internal
  */
 class TimestampedLogEntry implements Comparable {
+    TrackSeverity severity
     Map message
-    Long timestamp
+    Date timestamp
 
     int compareTo(Object o) {
         timestamp <=> o.timestamp

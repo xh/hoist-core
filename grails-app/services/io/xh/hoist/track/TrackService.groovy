@@ -197,7 +197,6 @@ class TrackService extends BaseService {
     }
 
 
-
     //-------------------------
     // Implementation
     //-------------------------
@@ -253,7 +252,6 @@ class TrackService extends BaseService {
 
         if (entry.impersonating) name += " (as ${entry.impersonating})"
         Map<String, Object> message = [
-            _timestamp    : dateCreated.format('yyyy-MM-dd HH:mm:ss.SSS'),
             _user         : name,
             _category     : entry.category,
             _msg          : entry.msg,
@@ -280,7 +278,11 @@ class TrackService extends BaseService {
                 message.putAll(dataParts)
             }
         }
-        return new TimestampedLogEntry(message: message, timestamp: dateCreated.time)
+        return new TimestampedLogEntry(
+            severity: entry.severity as TrackSeverity,
+            message: message,
+            timestamp: dateCreated
+        )
     }
 
     private boolean isSeverityActive(TrackLog tl) {
@@ -324,7 +326,7 @@ class TrackService extends BaseService {
     Map getAdminStats() {
         [
             config            : configForAdminStats('xhActivityTrackingConfig'),
-            persistanceDisabled: persistenceDisabled,
+            persistenceDisabled: persistenceDisabled,
             rateLimitActive: rateLimitActive,
             rateMonitor: rateMonitor
         ]

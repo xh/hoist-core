@@ -2,6 +2,7 @@ package io.xh.hoist.track
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
+import io.xh.hoist.log.LogSupport
 import io.xh.hoist.log.SimpleLogger
 
 import java.util.concurrent.PriorityBlockingQueue
@@ -42,7 +43,11 @@ class TrackLoggingService extends BaseService {
     }
 
     void logEntry(TimestampedLogEntry entry) {
-        logInfo(entry.message)
+        // Write directly to main log,  Get as close as possible to timestamp and make actual time of timestamp available
+        writeLog(this, entry.severity, [
+            _timestamp: entry.timestamp.format('HH:mm:ss.SSS'),
+            *:entry.message
+        ])
         queue.add(entry)
         drainQueue()
     }
@@ -54,10 +59,34 @@ class TrackLoggingService extends BaseService {
         for (def e = queue.peek(); e && intervalElapsed(DEBOUNCE_INTERVAL, e.timestamp); e = queue.peek()) {
             def entry = queue.remove()
             try {
-                orderedLog.logInfo(entry.message)
+                // Write directly to dedicated log  Add timestamp, severity as this log has a very minimal layout
+                writeLog(orderedLog, entry.severity, [
+                    _timestamp: entry.timestamp.format('yyyy-MM-dd HH:mm:ss.SSS'),
+                    _severity: entry.severity,
+                    *:entry.message
+                ])
             } catch (Throwable t) {
                 logError('Failed to log Track Entry.', t)
             }
+        }
+    }
+
+    private writeLog(LogSupport logSupport, TrackSeverity severity, Object message) {
+        switch (severity) {
+            case TrackSeverity.DEBUG:
+                logSupport.logDebug(message)
+                break
+            case TrackSeverity.INFO:
+                logSupport.logInfo(message)
+                break
+            case TrackSeverity.WARN:
+                logSupport.logWarn(message)
+                break
+            case TrackSeverity.ERROR:
+                logSupport.logError(message)
+                break
+            default:
+                logSupport.logInfo(message)
         }
     }
 
