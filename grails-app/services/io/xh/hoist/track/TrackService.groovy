@@ -93,7 +93,7 @@ class TrackService extends BaseService {
         /** Time associated with the start of the action. Defaults to now. */
         @NamedParam Long timestamp = null,
         /** Duration of the tracked action in milliseconds, if applicable. */
-        @NamedParam Integer elapsed = null,
+        @NamedParam Long elapsed = null,
 
         // For setting on async processes, not typically used.
         /**
