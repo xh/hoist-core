@@ -2,22 +2,24 @@
 
 ## 31.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - requires Hoist React 73.x + possible event handling adjustment)
+
+* Requires (and required by) `hoist-react >= 73` to support consolidation of client errors and
+  feedback into activity tracking.
+* Removed `xhFeedbackReceived` and `xhClientErrorReceived` events. Advanced usages that listen for
+  either event should subscribe to `xhTrackReceived` instead and filter messages based on the
+  `TrackLog.category` property.
+
 ### 🎁 New Features
 
 * Client Error reports and user feedback have been consolidated into the new tracking system for
   more integrated and powerful reporting.
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - may require event handling adjustment)
-
-* The `xhFeedbackReceived` and `xhClientErrorReceived` events have been removed. Clients should
-  use the `xhTrackReceived` event instead, and filter messages based on the `TrackLog.category`
-  property.
-
 ### ⚙️ Technical
 
 * The `xh_feedback` and `xh_client_error` tables are obsolete and may be removed from
-  the application database.  Please note the content in these tables will no longer be available in
-  your app.  Please archive or migrate as appropriate if needed for historical queries.
+  the application database. Please note the content in these tables will no longer be available in
+  your app - archive or migrate as appropriate if needed for historical queries.
 
 ## 30.0.0 - 2025-05-05
 
