@@ -1,5 +1,7 @@
 # Changelog
 
+## 32.0-SNAPSHOT - unreleased
+
 ## 31.0.0 - 2025-05-16
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - requires Hoist React 73.x + possible event handling adjustment)
