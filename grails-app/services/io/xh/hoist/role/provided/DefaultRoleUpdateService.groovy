@@ -153,9 +153,6 @@ class DefaultRoleUpdateService extends BaseService {
         role.save(flush: true)
 
         if (isUpdate) {
-            trackService.track([
-
-            ])
             trackService.track(
                 msg: "Edited role: '${roleSpec.name}'",
                 category: 'Audit',
