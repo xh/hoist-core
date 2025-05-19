@@ -1,6 +1,10 @@
 # Changelog
 
-## 32.0-SNAPSHOT - unreleased
+## 31.0.1 - 2025-05-19
+
+### 🐞 Bug Fixes
+
+* Fixed issue blocking role membership updates when using the Hoist-provided `DefaultRoleService`.
 
 ## 31.0.0 - 2025-05-16
 
