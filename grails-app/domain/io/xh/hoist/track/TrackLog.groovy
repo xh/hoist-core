@@ -103,6 +103,11 @@ class TrackLog implements JSONFormat {
         return elide(errorSummary as String, 80)
     }
 
+    /** True if created via automated error reporting from a Hoist React client. */
+    boolean getIsClientError() {
+        return category == 'Client Error'
+    }
+
     Map formatForJSON() {
         return [
             id            : id,
