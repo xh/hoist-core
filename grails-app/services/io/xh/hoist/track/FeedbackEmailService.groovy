@@ -22,7 +22,7 @@ class FeedbackEmailService extends BaseService {
 
     EmailService emailService
 
-    private String getToAddress() { emailService.parseMailConfig('xhEmailSupport') }
+    private List<String> getToAddress() { emailService.parseMailConfig('xhEmailSupport') }
 
     private int emailsSent = 0
 

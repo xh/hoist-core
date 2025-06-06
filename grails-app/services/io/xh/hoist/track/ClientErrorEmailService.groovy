@@ -31,7 +31,7 @@ class ClientErrorEmailService extends BaseService {
         configService.getMap('xhClientErrorConfig').intervalMins as Integer * DateTimeUtils.MINUTES
     }
 
-    private String getToAddress() { emailService.parseMailConfig('xhEmailSupport') }
+    private List<String> getToAddress() { emailService.parseMailConfig('xhEmailSupport') }
 
     private Timer timer
     private int emailsSent = 0
