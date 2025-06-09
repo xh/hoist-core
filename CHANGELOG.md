@@ -1,6 +1,9 @@
 # Changelog
 
-## 32.0-SNAPSHOT - unreleased
+## 31.0.2 - 2025-06-09
+
+### 🐞 Bug Fixes
+* Fixed issue preventing sending of email notifications of client errors.
 
 ## 31.0.1 - 2025-05-19
 
