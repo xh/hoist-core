@@ -1,5 +1,7 @@
 # Changelog
 
+## 32.0-SNAPSHOT - unreleased
+
 ## 31.0.3 - 2025-06-27
 
 ### ⚙️ Technical
