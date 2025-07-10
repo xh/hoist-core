@@ -16,6 +16,9 @@ import static io.xh.hoist.util.StringUtils.*
 
 class TrackLog implements JSONFormat {
 
+    static int MAX_MSG_LENGTH = 255
+    static int MAX_URL_LENGTH = 500
+
     // End user info
     String username
     String impersonating
@@ -68,7 +71,7 @@ class TrackLog implements JSONFormat {
         impersonating(nullable: true, maxSize: 50)
 
         category(maxSize: 100)
-        msg(maxSize: 255)
+        msg(maxSize: MAX_MSG_LENGTH)
         data(nullable: true, validator: { Utils.isJSON(it) ?: 'default.invalid.json.message' })
         elapsed(nullable: true)
 
@@ -83,7 +86,7 @@ class TrackLog implements JSONFormat {
 
         appVersion(nullable: true, maxSize: 100)
         appEnvironment(nullable: true, maxSize: 100)
-        url(nullable: true, maxSize: 500)
+        url(nullable: true, maxSize: MAX_URL_LENGTH)
     }
 
     /** Get the parsed `data`, or null. */
