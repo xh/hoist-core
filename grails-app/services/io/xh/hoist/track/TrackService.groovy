@@ -21,6 +21,7 @@ import static io.xh.hoist.browser.Utils.getDevice
 import static io.xh.hoist.json.JSONSerializer.serialize
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 import static grails.async.Promises.task
+import static io.xh.hoist.util.StringUtils.elide
 import static io.xh.hoist.util.Utils.getCurrentRequest
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 
@@ -230,6 +231,7 @@ class TrackService extends BaseService {
     }
 
     private TrackLog createTrackLog(Map entry) {
+        // Truncate dynamic app data to fit DB constraints and avoid throwing for data/msg/url
         String data = entry.data
         if (data?.size() > (conf.maxDataLength as Integer)) {
             logTrace(
@@ -239,7 +241,10 @@ class TrackService extends BaseService {
             )
             entry.data = null
         }
+        entry.msg = elide(entry.msg as String, TrackLog.MAX_MSG_LENGTH)
+        entry.url = elide(entry.url as String, TrackLog.MAX_URL_LENGTH)
 
+        // Create entity, with manually supplied date created
         TrackLog tl = new TrackLog(entry)
         tl.dateCreated = entry.dateCreated as Date
         return tl
