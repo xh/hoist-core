@@ -12,14 +12,11 @@ import grails.web.databinding.DataBinder
 import io.xh.hoist.BaseService
 import io.xh.hoist.exception.NotAuthorizedException
 import org.grails.datastore.mapping.query.api.BuildableCriteria
-import org.hibernate.SessionFactory
 
 import static io.xh.hoist.json.JSONSerializer.serialize
 import static java.lang.System.currentTimeMillis
 
 class JsonBlobService extends BaseService implements DataBinder {
-
-    SessionFactory sessionFactory
 
     @ReadOnly
     JsonBlob get(String token, String username = username) {
