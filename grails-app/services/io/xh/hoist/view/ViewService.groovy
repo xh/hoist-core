@@ -64,7 +64,6 @@ class ViewService extends BaseService {
      */
     Map updateState(String type, String viewInstance, Map update, String username = username) {
         def currBlob = jsonBlobService.find(type, STATE_BLOB_NAME, username, username),
-            allTokens = jsonBlobService.listTokens(type, username),
             currValue = parseObject(currBlob?.value),
             newValue = [
                 currentView: currValue?.currentView ?: [:],
@@ -78,6 +77,7 @@ class ViewService extends BaseService {
 
         // Ensure that userPinned only contains tokens for views that exist
         if (newValue.userPinned) {
+            def allTokens = jsonBlobService.listTokens(type, username)
             newValue.userPinned = (newValue.userPinned as Map<String, Boolean>)
                 .findAll { it.key in allTokens }
         }
