@@ -2,6 +2,9 @@
 
 ## 32.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+* View Manager: cull archived/deleted view tokens from userPinned list when xhUserState is updated.
+
 ## 31.0.3 - 2025-06-27
 
 ### ⚙️ Technical
