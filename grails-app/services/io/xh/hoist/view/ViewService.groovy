@@ -78,7 +78,7 @@ class ViewService extends BaseService {
 
         // Ensure that userPinned only contains tokens for views that exist
         if (newValue.userPinned) {
-            newValue.userPinned = (newValue.userPinned as Map<String, Boolean >)
+            newValue.userPinned = (newValue.userPinned as Map<String, Boolean>)
                 .findAll { it.key in allTokens }
         }
 
