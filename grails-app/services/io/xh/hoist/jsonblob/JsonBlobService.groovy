@@ -44,12 +44,12 @@ class JsonBlobService extends BaseService implements DataBinder {
     }
 
     /**
-     * List all tokens for a given type, filtered by owner and access.
+     * List all tokens for active views of a given type, filtered by owner and access.
      */
     @ReadOnly
     List<String> listTokens(String type, String username = username) {
         BuildableCriteria c = JsonBlob.createCriteria()
-        List<String> ret = c.list {
+        c {
             projections {
                 property('token')
             }
@@ -60,8 +60,6 @@ class JsonBlobService extends BaseService implements DataBinder {
                 eq('owner', username)
             }
         }
-
-        return ret
     }
 
     @Transactional
