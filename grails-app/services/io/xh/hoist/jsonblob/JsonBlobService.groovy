@@ -11,10 +11,8 @@ import grails.gorm.transactions.Transactional
 import grails.web.databinding.DataBinder
 import io.xh.hoist.BaseService
 import io.xh.hoist.exception.NotAuthorizedException
-import org.hibernate.Criteria
+import org.grails.datastore.mapping.query.api.BuildableCriteria
 import org.hibernate.SessionFactory
-import org.hibernate.criterion.Projections
-import org.hibernate.criterion.Restrictions
 
 import static io.xh.hoist.json.JSONSerializer.serialize
 import static java.lang.System.currentTimeMillis
@@ -50,18 +48,20 @@ class JsonBlobService extends BaseService implements DataBinder {
      */
     @ReadOnly
     List<String> listTokens(String type, String username = username) {
-        def session = sessionFactory.currentSession
-        Criteria c = session.createCriteria(JsonBlob)
-        c.setProjection(
-            Projections.property('token')
-        )
-        c.add(Restrictions.eq('type', type))
-        c.add(Restrictions.eq('archivedDate', 0L))
-        c.add(Restrictions.or(
-            Restrictions.eq('acl', '*'),
-            Restrictions.eq('owner', username)
-        ))
-        c.list() as List<String>
+        BuildableCriteria c = JsonBlob.createCriteria()
+        List<String> ret = c.list {
+            projections {
+                property('token')
+            }
+            eq('type', type)
+            eq('archivedDate', 0L)
+            or {
+                eq('acl', '*')
+                eq('owner', username)
+            }
+        }
+
+        return ret
     }
 
     @Transactional
