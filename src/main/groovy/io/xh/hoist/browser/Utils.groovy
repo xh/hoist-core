@@ -15,6 +15,7 @@ import javax.servlet.http.HttpServletRequest
 class Utils {
 
     private static Map<String, Browser> BROWSERS_MATCHERS = [
+            'Island': ISLAND,   // Island must come before chrome
             'Firefox': FIREFOX, // Firefox must come before "; rv" to prevent identification as IE
             'EdgiOS': EDGE,     // iOS Edge
             'EdgA': EDGE,       // Android Edge

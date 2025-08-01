@@ -13,7 +13,8 @@ enum Browser {
     EDGE('Microsoft Edge'),
     FIREFOX('Firefox'),
     IE('Internet Explorer'),
-    OPERA('Chrome'),
+    ISLAND('Island'),
+    OPERA('Opera'),
     SAFARI('Safari'),
     IOS_HOMESCREEN('iOS Homescreen'),
     OTHER('Unknown')
