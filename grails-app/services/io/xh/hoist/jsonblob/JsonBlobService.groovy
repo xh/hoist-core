@@ -40,9 +40,7 @@ class JsonBlobService extends BaseService implements DataBinder {
                 .findAll { passesAcl(it, username) }
     }
 
-    /**
-     * List all tokens for active views of a given type, filtered by owner and access.
-     */
+    /** List all tokens for active blobs of a given type. */
     @ReadOnly
     List<String> listTokens(String type, String username = username) {
         BuildableCriteria c = JsonBlob.createCriteria()

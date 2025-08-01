@@ -77,9 +77,8 @@ class ViewService extends BaseService {
 
         // Ensure that userPinned only contains tokens for views that exist
         if (newValue.userPinned) {
-            def allTokens = jsonBlobService.listTokens(type, username)
-            newValue.userPinned = (newValue.userPinned as Map<String, Boolean>)
-                .findAll { it.key in allTokens }
+            Map userPinned = newValue.userPinned as Map
+            userPinned.keySet().retainAll(jsonBlobService.listTokens(type, username))
         }
 
         def blob = jsonBlobService.createOrUpdate(type, STATE_BLOB_NAME, [value: newValue], username)
