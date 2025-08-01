@@ -75,6 +75,12 @@ class ViewService extends BaseService {
         if (update.containsKey('userPinned')) (newValue.userPinned as Map).putAll(update.userPinned as Map)
         if (update.containsKey('autoSave')) newValue.autoSave = update.autoSave
 
+        // Ensure that userPinned only contains tokens for views that exist
+        if (newValue.userPinned) {
+            Map userPinned = newValue.userPinned as Map
+            userPinned.keySet().retainAll(jsonBlobService.listTokens(type, username))
+        }
+
         def blob = jsonBlobService.createOrUpdate(type, STATE_BLOB_NAME, [value: newValue], username)
         return getStateFromBlob(blob, viewInstance)
     }

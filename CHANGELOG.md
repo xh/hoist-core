@@ -3,8 +3,9 @@
 ## 32.0-SNAPSHOT - unreleased
 
 ### ⚙️ Technical
-
+* Cull obsolete ViewManager state for deleted views.
 * Add support for recognizing `Island` browser
+
 
 ## 31.0.3 - 2025-06-27
 

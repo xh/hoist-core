@@ -11,6 +11,7 @@ import grails.gorm.transactions.Transactional
 import grails.web.databinding.DataBinder
 import io.xh.hoist.BaseService
 import io.xh.hoist.exception.NotAuthorizedException
+import org.grails.datastore.mapping.query.api.BuildableCriteria
 
 import static io.xh.hoist.json.JSONSerializer.serialize
 import static java.lang.System.currentTimeMillis
@@ -37,6 +38,23 @@ class JsonBlobService extends BaseService implements DataBinder {
         JsonBlob
                 .findAllByTypeAndArchivedDate(type, 0)
                 .findAll { passesAcl(it, username) }
+    }
+
+    /** List all tokens for active blobs of a given type. */
+    @ReadOnly
+    List<String> listTokens(String type, String username = username) {
+        BuildableCriteria c = JsonBlob.createCriteria()
+        c {
+            projections {
+                property('token')
+            }
+            eq('type', type)
+            eq('archivedDate', 0L)
+            or {
+                eq('acl', '*')
+                eq('owner', username)
+            }
+        }
     }
 
     @Transactional
