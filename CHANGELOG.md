@@ -2,6 +2,11 @@
 
 ## 32.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Updated ViewManager to set newly promoted global views to be "pinned by default" for all users,
+  avoiding an extra step for the common case where a global view should be readily visible to all.
+
 ## 31.1.0 - 2025-08-07
 
 ### ⚙️ Technical

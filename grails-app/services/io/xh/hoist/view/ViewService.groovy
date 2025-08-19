@@ -156,8 +156,14 @@ class ViewService extends BaseService {
     /** Make a view global */
     Map makeGlobal(String token, String username = username) {
         def existing = jsonBlobService.get(token, username),
-            meta = parseObject(existing.meta)?.findAll { it.key != 'isShared' },
-            ret = jsonBlobService.update(token, [owner: null, acl: '*', meta: meta], username)
+            meta = parseObject(existing.meta)?.findAll { it.key != 'isShared' } ?: [:]
+
+        // When promoting to a global view, pin to all user menus by default, w/expectation that
+        // the newly global view should be seen by all users in their menu. The user promoting the
+        // view still has option to turn this off if not desired.
+        meta.isDefaultPinned = true
+
+        def ret = jsonBlobService.update(token, [owner: null, acl: '*', meta: meta], username)
 
         trackChange('Made View Global', ret)
         ret.formatForClient(true)
