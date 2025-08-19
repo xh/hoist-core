@@ -2,6 +2,11 @@
 
 ## 32.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* Support clearing basic view state via hoist-react `restoreDefaultsAsync`
+  (requires hoist-react v76)
+
 ## 31.1.0 - 2025-08-07
 
 ### ⚙️ Technical
