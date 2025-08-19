@@ -85,6 +85,11 @@ class ViewService extends BaseService {
         return getStateFromBlob(blob, viewInstance)
     }
 
+    Map clearAllState() {
+        jsonBlobService.deleteByNameAndOwner(STATE_BLOB_NAME, username)
+    }
+
+
     //---------------------------
     // Individual View management
     //----------------------------

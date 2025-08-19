@@ -57,6 +57,15 @@ class JsonBlobService extends BaseService implements DataBinder {
         }
     }
 
+    /** Delete all blobs with a given name for an owner. */
+    @Transactional
+    void deleteByNameAndOwner(String name, String owner) {
+        JsonBlob.deleteAll(
+            JsonBlob.findAllByNameAndOwner(name, owner)
+        )
+    }
+
+
     @Transactional
     JsonBlob update(String token, Map data, String username = username) {
         def blob = get(token, username)

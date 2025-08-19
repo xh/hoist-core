@@ -29,6 +29,10 @@ class XhViewController extends BaseController {
         renderJSON(viewService.updateState(type, viewInstance, parseRequestJSON()))
     }
 
+    def clearAllState() {
+        renderJSON(viewService.clearAllState())
+    }
+
     //---------------------------
     // Individual View management
     //----------------------------
