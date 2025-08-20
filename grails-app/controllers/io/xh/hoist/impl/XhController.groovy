@@ -166,7 +166,6 @@ class XhController extends BaseController {
             prefService.clearPreferences()
             viewService.clearAllState()
         }
-
         renderSuccess()
     }
 

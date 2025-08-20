@@ -2,6 +2,8 @@
 
 ## 32.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - requires hoist-react v76)
+
 ### ⚙️ Technical
 
 * Support clearing basic view state via hoist-react `restoreDefaultsAsync`
