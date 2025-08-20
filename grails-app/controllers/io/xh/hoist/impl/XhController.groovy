@@ -18,12 +18,14 @@ import io.xh.hoist.export.GridExportImplService
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.jsonblob.JsonBlobService
 import io.xh.hoist.pref.PrefService
+import io.xh.hoist.pref.Preference
 import io.xh.hoist.security.AccessAll
 import io.xh.hoist.security.BaseAuthenticationService
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.util.Utils
+import io.xh.hoist.view.ViewService
 
 import static io.xh.hoist.json.JSONParser.parseObject
 
@@ -36,6 +38,7 @@ class XhController extends BaseController {
     GridExportImplService gridExportImplService
     JsonBlobService jsonBlobService
     PrefService prefService
+    ViewService viewService
     TrackService trackService
     EnvironmentService environmentService
     BaseUserService userService
@@ -157,12 +160,15 @@ class XhController extends BaseController {
         renderSuccess()
     }
 
-    def clearPrefs() {
+    def clearUserState() {
         ensureClientUsernameMatchesSession()
-        prefService.clearPreferences()
+        Preference.withNewTransaction {
+            prefService.clearPreferences()
+            viewService.clearAllState()
+        }
+
         renderSuccess()
     }
-
 
     //------------------------
     // Json Blobs
@@ -225,18 +231,6 @@ class XhController extends BaseController {
 
     def environmentPoll() {
         renderJSON(environmentService.environmentPoll())
-    }
-
-
-
-    //----------------------
-    // Alert Banner
-    //----------------------
-    /**
-     * @deprecated - used by hoist-react <= 67, now nested within {@link #environmentPoll}.
-     */
-    def alertBanner() {
-        renderJSON(alertBannerService.alertBanner)
     }
 
 
