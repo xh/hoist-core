@@ -9,7 +9,6 @@ package io.xh.hoist.impl
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseController
-import io.xh.hoist.alertbanner.AlertBannerService
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.exception.NotFoundException
@@ -33,7 +32,6 @@ import static io.xh.hoist.json.JSONParser.parseObject
 @CompileStatic
 class XhController extends BaseController {
 
-    AlertBannerService alertBannerService
     ConfigService configService
     GridExportImplService gridExportImplService
     JsonBlobService jsonBlobService
@@ -166,6 +164,13 @@ class XhController extends BaseController {
             prefService.clearPreferences()
             viewService.clearAllState()
         }
+        renderSuccess()
+    }
+
+    /** @deprecated.  Required by hoist-react <=v.75 */
+    def clearPrefs() {
+        ensureClientUsernameMatchesSession()
+        prefService.clearPreferences()
         renderSuccess()
     }
 
