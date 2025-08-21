@@ -56,7 +56,7 @@ class Utils {
         'macOS': MAC
     ]
 
-    private static <T> T findMatch(Map<String, T> targets, String header) {
+    private static <T> T findMatch(String header, Map<String, T> targets) {
         header ? targets.find {header.contains(it.key) }?.value : null
     }
 }
