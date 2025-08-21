@@ -16,7 +16,6 @@ enum Browser {
     ISLAND('Island'),
     OPERA('Opera'),
     SAFARI('Safari'),
-    IOS_HOMESCREEN('iOS Homescreen'),
     OTHER('Unknown')
 
     final String displayName

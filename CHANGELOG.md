@@ -4,6 +4,11 @@
 
 ### ⚙️ Technical
 
+### 🎁 New Features
+* Improved support for parsing browsers and devices.  Hoist now consults the new `Sec-Ch-UA` and
+  `Sec-Ch-UA-Platform` http headers as well as `User-Agent`.  We have also removed an obsolete
+   special workarounds for detecting iOS Homescreen apps.
+
 * Support clearing basic view state via hoist-react `restoreDefaultsAsync`
   (requires hoist-react v76)
 
