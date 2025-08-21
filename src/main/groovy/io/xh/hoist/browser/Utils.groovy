@@ -14,21 +14,17 @@ import javax.servlet.http.HttpServletRequest
 
 class Utils {
 
-    //----------------------
-    // Public Entry points
-    //----------------------
     static Browser getBrowser(HttpServletRequest request) {
         if (!request) return null
         def ua = request?.getHeader('User-Agent'),
             uaHint = request?.getHeader('Sec-Ch-UA')
-        findMatch(uaHint, BROWSER_MATCHERS) ?: findMatch(ua, BROWSER_MATCHERS) ?: Device.OTHER
+        findMatch(uaHint, BROWSER_MATCHERS) ?: findMatch(ua, BROWSER_MATCHERS) ?: Browser.OTHER
     }
 
     static Device getDevice(HttpServletRequest request) {
         if (!request) return null
         def ua = request.getHeader('User-Agent'),
             uaPlatformHint = request.getHeader('Sec-Ch-UA-Platform')
-
         findMatch(ua, DEVICE_MATCHERS) ?: findMatch(uaPlatformHint, DEVICE_MATCHERS) ?: Device.OTHER
     }
 
