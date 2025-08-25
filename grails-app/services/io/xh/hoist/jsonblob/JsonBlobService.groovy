@@ -51,7 +51,7 @@ class JsonBlobService extends BaseService implements DataBinder {
             eq('type', type)
             eq('archivedDate', 0L)
             or {
-                eq('acl', '*')
+                like('acl', '*')
                 eq('owner', username)
             }
         }

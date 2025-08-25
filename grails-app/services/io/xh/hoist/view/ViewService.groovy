@@ -131,7 +131,7 @@ class ViewService extends BaseService {
         data.each { k, v ->
             if (['name', 'description'].contains(k)) {
                 core[k] = v
-            } else if (['group', 'isShared', 'isDefaultPinned'].contains(k)) {
+            } else if (['group', 'isShared'].contains(k)) {
                 meta[k] = v
             }
         }
