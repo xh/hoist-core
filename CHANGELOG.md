@@ -9,7 +9,8 @@
 
 ### 🐞 Bug Fixes
 
-* Fix issue with JsonBlobService when running on Sybase.
+* Fix issue with JsonBlobService when running with Sybase Database
+
 
 ## 31.1.0 - 2025-08-07
 
