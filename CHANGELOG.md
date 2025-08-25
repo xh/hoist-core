@@ -7,6 +7,10 @@
 * Support clearing basic view state via hoist-react `restoreDefaultsAsync`
   (requires hoist-react v76)
 
+### 🐞 Bug Fixes
+
+* Fix issue with JsonBlobService when running on Sybase.
+
 ## 31.1.0 - 2025-08-07
 
 ### ⚙️ Technical
