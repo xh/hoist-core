@@ -101,13 +101,13 @@ class ViewService extends BaseService {
     /** Create a new view. */
     Map create(Map data, String username = username) {
         def ret = jsonBlobService.create([
-                type       : data.type,
-                name       : data.name,
-                description: data.description,
+            type       : data.type,
+            name       : data.name,
+            description: data.description,
             acl        : data.isShared ? '*' : null,
             meta       : [group: data.group, isShared: data.isShared],
-                value      : data.value
-            ], username)
+            value      : data.value
+        ], username)
 
         if (data.isPinned) {
             updateState(
