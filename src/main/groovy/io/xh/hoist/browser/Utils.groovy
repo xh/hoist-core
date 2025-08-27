@@ -17,15 +17,15 @@ class Utils {
     static Browser getBrowser(HttpServletRequest request) {
         if (!request) return null
         def ua = request.getHeader('User-Agent'),
-            uaHint = request.getHeader('Sec-Ch-UA')
-        findMatch(uaHint, BROWSER_MATCHERS) ?: findMatch(ua, BROWSER_MATCHERS) ?: Browser.OTHER
+            uaHints = request.getHeaders('Sec-Ch-UA')?.toList().join(';')
+        findMatch(uaHints, BROWSER_MATCHERS) ?: findMatch(ua, BROWSER_MATCHERS) ?: Browser.OTHER
     }
 
     static Device getDevice(HttpServletRequest request) {
         if (!request) return null
         def ua = request.getHeader('User-Agent'),
-            uaPlatformHint = request.getHeader('Sec-Ch-UA-Platform')
-        findMatch(uaPlatformHint, DEVICE_MATCHERS) ?: findMatch(ua, DEVICE_MATCHERS) ?: Device.OTHER
+            uaPlatformHints = request.getHeaders('Sec-Ch-UA-Platform')?.toList().join(';');
+        findMatch(uaPlatformHints, DEVICE_MATCHERS) ?: findMatch(ua, DEVICE_MATCHERS) ?: Device.OTHER
     }
 
     //--------------------
