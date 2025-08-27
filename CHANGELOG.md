@@ -1,13 +1,20 @@
 # Changelog
 
-## 31.2.0 - 2025-08-27
+## 32.0.0 - 2025-08-27
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - removed methods unlikely to be used)
+
+* This version of hoist standardizes and improves how we recognize browsers and devices to use
+  additional standard 'hint' HTTP headers (see below).  As part of this change, the detection
+  utilities in `io.xh.hoist.browser.Utils` was greatly simplified, and several unsupportable
+  methods were removed.
 
 ### ⚙️ Technical
 
 ### 🎁 New Features
-* Improved support for parsing browsers and devices.  Hoist now consults the new `Sec-Ch-UA` and
-  `Sec-Ch-UA-Platform` http headers as well as `User-Agent`.  We have also removed an obsolete
-   special workarounds for detecting iOS Homescreen apps.
+* Improved support for parsing browsers and devices.  Hoist now consults the standard `Sec-Ch-UA`
+  and `Sec-Ch-UA-Platform` http headers as well as `User-Agent`.  We have also removed an obsolete
+  special workaround for detecting iOS Homescreen apps.
 
 * Support clearing basic view state via hoist-react `restoreDefaultsAsync`
   (requires hoist-react v76)
