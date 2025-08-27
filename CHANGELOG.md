@@ -1,6 +1,6 @@
 # Changelog
 
-## 32.0-SNAPSHOT - unreleased
+## 31.2.0 - 2025-08-27
 
 ### ⚙️ Technical
 
@@ -11,6 +11,12 @@
 
 * Support clearing basic view state via hoist-react `restoreDefaultsAsync`
   (requires hoist-react v76)
+* Improve efficiency of available view loading in ViewService.
+
+### 🐞 Bug Fixes
+
+* Fix issue with JsonBlobService when running with Sybase Database
+
 
 ## 31.1.0 - 2025-08-07
 
