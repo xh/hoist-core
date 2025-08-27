@@ -1,12 +1,12 @@
 # Changelog
 
-## 31.1.1 -2025-08-27
+## 31.2.0 -2025-08-27
 
 ### ⚙️ Technical
 
 * Support clearing basic view state via hoist-react `restoreDefaultsAsync`
   (requires hoist-react v76)
-* Improve efficiency of available view loading.
+* Improve efficiency of available view loading in ViewService.
 
 ### 🐞 Bug Fixes
 
