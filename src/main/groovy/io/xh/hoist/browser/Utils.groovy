@@ -16,8 +16,8 @@ class Utils {
 
     static Browser getBrowser(HttpServletRequest request) {
         if (!request) return null
-        def ua = request?.getHeader('User-Agent'),
-            uaHint = request?.getHeader('Sec-Ch-UA')
+        def ua = request.getHeader('User-Agent'),
+            uaHint = request.getHeader('Sec-Ch-UA')
         findMatch(uaHint, BROWSER_MATCHERS) ?: findMatch(ua, BROWSER_MATCHERS) ?: Browser.OTHER
     }
 
@@ -25,9 +25,12 @@ class Utils {
         if (!request) return null
         def ua = request.getHeader('User-Agent'),
             uaPlatformHint = request.getHeader('Sec-Ch-UA-Platform')
-        findMatch(ua, DEVICE_MATCHERS) ?: findMatch(uaPlatformHint, DEVICE_MATCHERS) ?: Device.OTHER
+        findMatch(uaPlatformHint, DEVICE_MATCHERS) ?: findMatch(ua, DEVICE_MATCHERS) ?: Device.OTHER
     }
 
+    //--------------------
+    // Implementation
+    //--------------------
     private static Map<String, Browser> BROWSER_MATCHERS = [
             'Island': ISLAND,   // Island must come before chrome
             'Firefox': FIREFOX, // Firefox must come before "; rv" to prevent identification as IE
