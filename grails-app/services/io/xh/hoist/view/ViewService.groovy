@@ -100,20 +100,26 @@ class ViewService extends BaseService {
 
     /** Create a new view. */
     Map create(Map data, String username = username) {
-        def ret = jsonBlobService.create([
-            type       : data.type,
-            name       : data.name,
-            description: data.description,
-            acl        : data.isShared ? '*' : null,
-            meta       : [group: data.group, isShared: data.isShared],
-            value      : data.value
-        ], username)
+        def isShared = data.isShared,
+            isGlobal = data.isGlobal,
+            isPinned = data.isPinned,
+            meta = isGlobal ? [group: data.group] : [group: data.group, isShared: isShared]
 
-        if (data.isPinned) {
+        def ret = jsonBlobService.create([
+                type       : data.type,
+                name       : data.name,
+                description: data.description,
+                owner      : isGlobal ? null : username,
+                acl        : isGlobal || isShared  ? '*' : null,
+                meta       : meta,
+                value      : data.value
+            ], username)
+
+        if (isPinned) {
             updateState(
                 data.type as String,
                 'default',
-                [userPinned: [(ret.token): data.isPinned]],
+                [userPinned: [(ret.token): isPinned]],
                 username
             )
         }
@@ -131,20 +137,28 @@ class ViewService extends BaseService {
         data.each { k, v ->
             if (['name', 'description'].contains(k)) {
                 core[k] = v
-            } else if (['group', 'isShared'].contains(k)) {
+            } else if (['group'].contains(k)) {
                 meta[k] = v
             }
         }
 
-        def ret = jsonBlobService.update(
-            token,
-            [
-                *: core,
-                meta: meta,
-                acl: !existing.owner || meta.isShared ? '*' : null
-            ],
-            username
-        )
+        if (data.containsKey('isGlobal') || data.containsKey('isShared')) {
+            if (data.isGlobal) {
+                meta = meta.findAll { it.key != 'isShared' }
+                core.owner = null
+                core.acl = '*'
+            } else if (data.isShared) {
+                meta.isShared = data.isShared
+                core.owner = username
+                core.acl = '*'
+            } else {
+                meta.isShared = false
+                core.owner = existing.owner ?: username
+                core.acl = null
+            }
+        }
+
+        def ret = jsonBlobService.update(token, [*: core, meta: meta], username)
         trackChange('Updated View Info', ret)
         ret.formatForClient(true)
     }

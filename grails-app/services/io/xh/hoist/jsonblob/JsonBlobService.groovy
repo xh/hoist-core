@@ -60,7 +60,15 @@ class JsonBlobService extends BaseService implements DataBinder {
 
     @Transactional
     JsonBlob create(Map data, String username = username) {
-        data = [*: data, owner: username, lastUpdatedBy: username]
+        data = [*: data, lastUpdatedBy: username]
+
+        if (data.containsKey('owner') && data.owner == null) {
+            data.owner = null
+            data.acl = '*'
+        } else {
+            data.owner = username
+        }
+
         if (data.containsKey('value')) data.value = serialize(data.value)
         if (data.containsKey('meta')) data.meta = serialize(data.meta)
 
@@ -72,7 +80,7 @@ class JsonBlobService extends BaseService implements DataBinder {
         def blob = find(type, name, username, username)
         return blob ?
             updateInternal(blob, data, username) :
-            create([*: data, type: type, name: name, owner: username], username)
+            create([*: data, type: type, name: name], username)
     }
 
     @Transactional
