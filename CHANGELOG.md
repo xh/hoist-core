@@ -1,5 +1,7 @@
 # Changelog
 
+## 33.0-SNAPSHOT - unreleased
+
 ## 32.0.0 - 2025-08-28
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - removed methods unlikely to be used)
