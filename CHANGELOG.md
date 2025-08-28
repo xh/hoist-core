@@ -1,6 +1,6 @@
 # Changelog
 
-## 32.0.0 - 2025-08-27
+## 32.0.0 - 2025-08-28
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - removed methods unlikely to be used)
 
@@ -23,7 +23,6 @@
 ### 🐞 Bug Fixes
 
 * Fix issue with JsonBlobService when running with Sybase Database
-
 
 ## 31.1.0 - 2025-08-07
 
