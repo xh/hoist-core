@@ -2,6 +2,13 @@
 
 ## 33.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - requires hoist-react v76)
+
+### 🎁 New Features
+* Allow improved editing of Views visibility by hoist-react v76.
+* Enhance JsonBlobService to allow creating blobs with specific `owner`
+
+
 ## 32.0.0 - 2025-08-28
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - removed methods unlikely to be used)
@@ -11,8 +18,6 @@
   utilities in `io.xh.hoist.browser.Utils` was greatly simplified, and several unsupportable
   methods were removed.
 
-### ⚙️ Technical
-
 ### 🎁 New Features
 * Improved support for parsing browsers and devices.  Hoist now consults the standard `Sec-Ch-UA`
   and `Sec-Ch-UA-Platform` http headers as well as `User-Agent`.  We have also removed an obsolete
@@ -21,10 +26,6 @@
 * Support clearing basic view state via hoist-react `restoreDefaultsAsync`
   (requires hoist-react v76)
 * Improve efficiency of available view loading in ViewService.
-
-### 🐞 Bug Fixes
-
-* Fix issue with JsonBlobService when running with Sybase Database
 
 ### 🐞 Bug Fixes
 

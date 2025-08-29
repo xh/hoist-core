@@ -172,16 +172,6 @@ class ViewService extends BaseService {
         ret.formatForClient(true)
     }
 
-    /** Make a view global */
-    Map makeGlobal(String token, String username = username) {
-        def existing = jsonBlobService.get(token, username),
-            meta = parseObject(existing.meta)?.findAll { it.key != 'isShared' },
-            ret = jsonBlobService.update(token, [owner: null, acl: '*', meta: meta], username)
-
-        trackChange('Made View Global', ret)
-        ret.formatForClient(true)
-    }
-
     /** Bulk Delete views */
     void delete(List<String> tokens, String username = username) {
         List<Exception> failures = []
