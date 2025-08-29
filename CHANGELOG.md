@@ -1,5 +1,16 @@
 # Changelog
 
+## 33.0-SNAPSHOT - unreleased
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - exception handling syntax )
+
+### ⚙️ Technical
+
+* Improvements to app lifecycle, including support of cleaner shutdown.  New property
+  `ClusterService.instanceState` and enhancements to `ClusterService.shutdownInstance`.
+* Improvement to exception handling to avoid throwing secondary exceptions during system
+  shutdown.
+
 ## 32.0.0 - 2025-08-27
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - removed methods unlikely to be used)
@@ -9,7 +20,6 @@
   utilities in `io.xh.hoist.browser.Utils` was greatly simplified, and several unsupportable
   methods were removed.
 
-### ⚙️ Technical
 
 ### 🎁 New Features
 * Improved support for parsing browsers and devices.  Hoist now consults the standard `Sec-Ch-UA`

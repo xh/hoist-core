@@ -21,7 +21,7 @@ import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static io.xh.hoist.util.Utils.getAppEnvironment
 import static io.xh.hoist.util.Utils.isProduction
-import static io.xh.hoist.util.Utils.startupTime
+import static io.xh.hoist.cluster.ClusterService.startupTime
 import static io.xh.hoist.util.DateTimeUtils.HOURS
 import static java.lang.Runtime.getRuntime
 import static java.lang.System.currentTimeMillis

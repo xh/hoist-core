@@ -26,7 +26,6 @@ import java.util.concurrent.TimeoutException
 import static io.xh.hoist.cluster.ClusterService.multiInstanceEnabled
 import static io.xh.hoist.util.DateTimeUtils.*
 import static io.xh.hoist.util.Utils.configService
-import static io.xh.hoist.util.Utils.getExceptionHandler
 import static java.lang.Math.max
 import static java.lang.System.currentTimeMillis
 import static org.slf4j.LoggerFactory.getLogger
@@ -270,8 +269,8 @@ class Timer implements LogSupport {
         ]
         if (throwable) {
             try {
-                _lastRunStats.error = exceptionHandler.summaryTextForThrowable(throwable)
-                exceptionHandler.handleException(
+                _lastRunStats.error = Utils.exceptionHandler.summaryTextForThrowable(throwable)
+                Utils.handleException(
                     exception: throwable,
                     logTo: this,
                     logMessage: "Failure in '$name'"

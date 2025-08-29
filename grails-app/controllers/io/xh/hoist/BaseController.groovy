@@ -11,13 +11,13 @@ import grails.async.Promise
 import groovy.transform.CompileStatic
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.cluster.ClusterResult
-import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
 import io.xh.hoist.user.IdentitySupport
+import io.xh.hoist.util.Utils
 import org.owasp.encoder.Encode
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -31,7 +31,6 @@ abstract class BaseController implements LogSupport, IdentitySupport {
 
     IdentityService identityService
     ClusterService clusterService
-    ExceptionHandler xhExceptionHandler
 
     /**
      * Render an object to JSON.
@@ -150,7 +149,7 @@ abstract class BaseController implements LogSupport, IdentitySupport {
     }
 
     private void handleUncaughtInternal(Throwable t) {
-        xhExceptionHandler.handleException(
+        Utils.handleException(
             exception: t,
             logTo: this,
             logMessage: [_action: actionName],

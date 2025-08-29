@@ -14,18 +14,19 @@ import com.hazelcast.core.LifecycleEvent
 import com.hazelcast.core.LifecycleListener
 import io.xh.hoist.BaseService
 import io.xh.hoist.ClusterConfig
+import io.xh.hoist.exception.InstanceNotAvailableException
 import io.xh.hoist.exception.InstanceNotFoundException
 import io.xh.hoist.util.Utils
+import org.springframework.boot.SpringApplication
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.ApplicationListener
 
 import static com.hazelcast.core.LifecycleEvent.LifecycleState.SHUTDOWN
 import static grails.async.Promises.task
-import static io.xh.hoist.util.DateTimeUtils.getSECONDS
-import static java.lang.Thread.sleep
+import static io.xh.hoist.cluster.InstanceState.*
 import static org.slf4j.LoggerFactory.getLogger
 
-class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent> {
+class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent>  {
 
     /**
      * Name of Hazelcast cluster.
@@ -48,8 +49,13 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      */
     static HazelcastInstance hzInstance
 
+    //----------------------------------
+    // Instance Start/Ready Lifecycle
+    //----------------------------------
+    static final Date startupTime = new Date()
+    static InstanceState instanceState = STARTING
+
     private static ClusterConfig clusterConfig
-    private static boolean shutdownInProgress
     private IExecutorService taskExecutor
 
     static {
@@ -76,11 +82,11 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         getHzConfig().addListenerConfig(new ListenerConfig())
         hzInstance.lifecycleService.addLifecycleListener([
             stateChanged: { LifecycleEvent e ->
-                // If hz shutdown *not* initiated by app, need to propagate to app/JVM
+                // If hz shutdown *not* initiated by app, need to propagate to app
                 // This has been seen consistently on non-primary node after an OOM. (Jan 2025)
-                if (e.state == SHUTDOWN && !shutdownInProgress) {
-                    getLogger(this).warn('Hazelcast instance has stopped and the app must terminate.  Shutting down JVM')
-                    System.exit(0)
+                if (e.state == SHUTDOWN && instanceState != STOPPING) {
+                    getLogger(this).warn('Hazelcast has unexpectedly stopped.  Terminating App.')
+                    shutdownInstance()
                 }
             }
         ] as LifecycleListener)
@@ -92,7 +98,6 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      */
     static void shutdownHazelcast() {
         getLogger(this).info('Shutting down Hazelcast instance.')
-        shutdownInProgress = true
         hzInstance.shutdown()
     }
 
@@ -124,11 +129,6 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     // Managed via event handlers. Cache for lightweight definition of isPrimary and change logging.
     private boolean _isPrimary = false
 
-
-    /**
-     * Is this instance ready for requests?
-     */
-    boolean isReady = false
 
     /**
      * The Hazelcast member representing the 'primary' instance.
@@ -163,14 +163,15 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     }
 
     /**
-     * Shutdown this instance.
+     * Shutdown this instance of the app.
+     *
+     * @param delay - optional delay to allow in progress requests to complete cleanly.
      */
-    void shutdownInstance() {
-        // Run async to allow this method to return.
+    void shutdownInstance(Integer delayMs = 0) {
+        instanceState = STOPPING
         task {
-            logInfo('Initiating shutdown via System.exit')
-            sleep(1 * SECONDS)
-            System.exit(0)
+            if (delayMs) Thread.sleep(delayMs)
+            SpringApplication.exit(Utils.appContext)
         }
     }
 
@@ -209,6 +210,15 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         taskExecutor
             .submitToAllMembers(c)
             .collectEntries { member, f -> [member.getAttribute('instanceName'), f.get()] }
+    }
+
+    void ensureRunning() {
+        switch (instanceState) {
+            case STOPPING:
+                throw new InstanceNotAvailableException('Server shutting down.')
+            case STARTING:
+                throw new InstanceNotAvailableException('Server may be initializing. Please try again shortly.')
+        }
     }
 
     //------------------------------------
@@ -254,7 +264,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     }
 
     void onApplicationEvent(ApplicationReadyEvent event) {
-       isReady = true
+       instanceState = RUNNING
     }
 
     Map getAdminStats() {[
@@ -264,5 +274,6 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         isPrimary   : isPrimary,
         members     : cluster.members.collect { it.getAttribute('instanceName') }
     ]}
+
 
 }

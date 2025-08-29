@@ -8,16 +8,15 @@
 package io.xh.hoist
 
 import groovy.transform.CompileStatic
-import io.xh.hoist.exception.InstanceNotAvailableException
 import io.xh.hoist.log.LogSupport
+import io.xh.hoist.util.Utils
 
 import javax.servlet.*
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
 import static io.xh.hoist.util.Utils.authenticationService
-import static io.xh.hoist.util.Utils.exceptionHandler
-import static io.xh.hoist.util.Utils.instanceReady
+import static io.xh.hoist.util.Utils.getClusterService
 
 /**
  * Main Filter for all requests in Hoist.
@@ -37,16 +36,12 @@ class HoistFilter implements Filter, LogSupport {
         HttpServletResponse httpResponse = (HttpServletResponse) response
 
         try {
-            // Need to be *ready* before even attempting auth.
-            if (!instanceReady) {
-                throw new InstanceNotAvailableException('Application may be initializing. Please try again shortly.')
-            }
-
+            clusterService.ensureRunning()
             if (authenticationService.allowRequest(httpRequest, httpResponse)) {
                 chain.doFilter(request, response)
             }
         } catch (Throwable t) {
-            exceptionHandler.handleException(
+            Utils.handleException(
                 exception: t,
                 renderTo: httpResponse,
                 logTo: this

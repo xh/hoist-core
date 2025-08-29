@@ -38,20 +38,30 @@ class ExceptionHandler {
      *
      * Used by BaseController, ClusterRequest, Timer, and AccessInterceptor to handle
      * otherwise unhandled exception.
+     *
+     * @internal -- Applications should call Utils.handleException instead
      */
-    @NamedVariant
     void handleException(
-        @NamedParam(required = true) Throwable exception,
-        @NamedParam HttpServletResponse renderTo,
-        @NamedParam LogSupport logTo,
-        @NamedParam Object logMessage
-    ) {
+        Throwable exception,
+        HttpServletResponse renderTo,
+        LogSupport logTo,
+        Object logMessage
+    ){
         exception = preprocess(exception)
+
+        // Our rich logging can itself fail, especially around shutdown,etc. Fallback to simpler
+        // logging to avoid muddying waters
         if (logTo) {
-            if (logMessage) {
-                shouldLogDebug(exception) ? logTo.logDebug(logMessage, exception) : logTo.logError(logMessage, exception)
-            } else {
-                shouldLogDebug(exception) ? logTo.logDebug(exception) : logTo.logError(exception)
+            def shouldDebug = shouldLogDebug(exception)
+            try {
+                logMessage ?
+                    (shouldDebug ? logTo.logDebug(logMessage, exception) : logTo.logError(logMessage, exception)) :
+                    (shouldDebug ? logTo.logDebug(exception) : logTo.logError(exception))
+            } catch (Throwable t) {
+                def logger = logTo.instanceLog,
+                    message = exception.message ?: 'Unknown Exception'
+                shouldDebug ? logger.debug(message) : logger.error(message)
+                logger.error('Hoist Logging failed: ' + t.message)
             }
         }
 

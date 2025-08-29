@@ -13,11 +13,11 @@ import io.xh.hoist.exception.NotAuthenticatedException
 import io.xh.hoist.exception.NotAuthorizedException
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
+import io.xh.hoist.util.Utils
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
-import static io.xh.hoist.util.Utils.getExceptionHandler
 import static java.util.Collections.emptyMap
 import static org.apache.hc.core5.http.HttpStatus.SC_SERVER_ERROR
 
@@ -120,7 +120,7 @@ abstract class BaseAuthenticationService extends BaseService {
             return true
         } catch (Throwable e) {
             // Do *not* render auth exception to unverified client. Log and return opaque response
-            exceptionHandler.handleException(exception: e, logTo: this)
+            Utils.handleException(exception: e, logTo: this)
             response.setStatus(e instanceof HttpException ? e.statusCode : SC_SERVER_ERROR)
             response.flushBuffer()
             return false
