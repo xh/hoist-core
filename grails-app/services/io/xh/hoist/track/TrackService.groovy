@@ -202,7 +202,6 @@ class TrackService extends BaseService {
     // Implementation
     //-------------------------
     private Map prepareEntry(Map entry) {
-        String userAgent = currentRequest?.getHeader('User-Agent')
         return [
             // From submission
             username      : entry.username ?: authUsername,
@@ -224,9 +223,9 @@ class TrackService extends BaseService {
             // From request/context
             instance      : ClusterService.instanceName,
             appEnvironment: Utils.appEnvironment,
-            userAgent     : userAgent,
-            browser       : getBrowser(userAgent),
-            device        : getDevice(userAgent)
+            userAgent     : currentRequest?.getHeader('User-Agent'),
+            browser       : getBrowser(currentRequest),
+            device        : getDevice(currentRequest)
         ]
     }
 
