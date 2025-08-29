@@ -11,6 +11,9 @@ import java.util.zip.InflaterInputStream
 
 import static java.lang.System.currentTimeMillis
 
+/**
+ * @internal
+ */
 class TestUtils {
     static testSerialization(Object obj, Class clazz, LogSupport logSupport, Map opts) {
         Kryo kryo = new Kryo()
