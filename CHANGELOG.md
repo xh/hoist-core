@@ -14,13 +14,13 @@
 * Improved support for parsing browsers and devices by consulting the standard `Sec-Ch-UA` and
   `Sec-Ch-UA-Platform` HTTP headers as well as `User-Agent`.
 * Removed an obsolete workaround for detecting iOS Homescreen apps.
-* Support clearing basic view state via `restoreDefaultsAsync` in `hoist-react >= 76`.
+* Added support for clearing basic view state via `restoreDefaultsAsync` in `hoist-react >= 76`.
 * Improved performance of loading accessible `JsonBlob` objects for a user, including the common
   use case of loading available `ViewManager` views.
 
 ### 🐞 Bug Fixes
 
-* Fix issue with JsonBlobService when running with Sybase Database
+* Fixed issue with JsonBlobService when running with Sybase Database
 
 ## 31.1.0 - 2025-08-07
 
