@@ -159,6 +159,17 @@ class ViewService extends BaseService {
         }
 
         def ret = jsonBlobService.update(token, [*: core, meta: meta], username)
+
+        if (data.containsKey('isPinned')) {
+            updateState(
+                data.type as String,
+                'default',
+                [userPinned: [(ret.token): data.isPinned]],
+                username
+            )
+        }
+
+
         trackChange('Updated View Info', ret)
         ret.formatForClient(true)
     }
