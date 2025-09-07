@@ -102,7 +102,6 @@ class ViewService extends BaseService {
     Map create(Map data, String username = username) {
         def isShared = data.isShared,
             isGlobal = data.isGlobal,
-            isPinned = data.isPinned,
             meta = isGlobal ? [group: data.group] : [group: data.group, isShared: isShared]
 
         def ret = jsonBlobService.create([
@@ -115,11 +114,11 @@ class ViewService extends BaseService {
                 value      : data.value
             ], username)
 
-        if (isPinned) {
+        if (data.containsKey('isPinned')) {
             updateState(
                 data.type as String,
                 'default',
-                [userPinned: [(ret.token): isPinned]],
+                [userPinned: [(ret.token): data.isPinned]],
                 username
             )
         }
