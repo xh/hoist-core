@@ -4,13 +4,15 @@
 
 ## 32.0.0 - 2025-08-28
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - removed methods unlikely to be used)
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - removed methods unlikely to be used, requires hoist-react v76)
 
 * Standardized and improved how we recognize browsers and devices (see below), simplifying the
   detection utilities in `io.xh.hoist.browser.Utils` and removing several unsupportable methods.
 
 ### 🎁 New Features
 
+* Allow improved editing of Views visibility by hoist-react v76.
+* Enhance JsonBlobService to allow creating blobs with specific `owner`
 * Improved support for parsing browsers and devices by consulting the standard `Sec-Ch-UA` and
   `Sec-Ch-UA-Platform` HTTP headers as well as `User-Agent`.
 * Removed an obsolete workaround for detecting iOS Homescreen apps.

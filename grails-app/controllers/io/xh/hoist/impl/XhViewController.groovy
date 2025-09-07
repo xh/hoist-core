@@ -52,8 +52,4 @@ class XhViewController extends BaseController {
     def updateValue(String token) {
         renderJSON(viewService.updateValue(token, parseRequestJSON()))
     }
-
-    def makeGlobal(String token) {
-        renderJSON(viewService.makeGlobal(token))
-    }
 }
