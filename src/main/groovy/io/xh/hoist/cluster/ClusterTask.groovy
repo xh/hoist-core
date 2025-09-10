@@ -1,6 +1,7 @@
 package io.xh.hoist.cluster
 
 import io.xh.hoist.BaseService
+import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.exception.InstanceNotAvailableException
 import io.xh.hoist.log.LogSupport
 
@@ -38,9 +39,7 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
         identityService.threadAuthUsername.set(authUsername)
 
         try {
-            if (!instanceReady) {
-                throw new InstanceNotAvailableException('Instance not available and may be initializing.')
-            }
+            clusterService.ensureRunning()
             def clazz = Class.forName(svc),
                 service = appContext.getBean(clazz),
                 value = service.invokeMethod(method, args.toArray()),
@@ -49,15 +48,11 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
             return new ClusterResult(value: asJson && !valueIsVoid ? serialize(value) : value)
 
         } catch (Throwable t) {
-            try {
-                exceptionHandler.handleException(
-                    exception: t,
-                    logTo: this,
-                    logMessage: [_action: this.class.simpleName]
-                )
-            } catch (Exception e) {
-                // Even logging failing -- just catch quietly and return neatly to calling member.
-            }
+            handleException(
+                exception: t,
+                logTo: this,
+                logMessage: [_action: this.class.simpleName]
+            )
             return new ClusterResult(exception: new ClusterTaskException(t))
         } finally {
             identityService.threadUsername.set(null)

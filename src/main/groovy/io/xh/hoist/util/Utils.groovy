@@ -7,14 +7,12 @@
 
 package io.xh.hoist.util
 
-import com.esotericsoftware.kryo.Kryo
-import com.esotericsoftware.kryo.io.Input
-import com.esotericsoftware.kryo.io.Output
-import com.esotericsoftware.kryo.serializers.JavaSerializer
 import grails.config.Config
 import grails.util.Environment
 import grails.util.Holders
 import grails.util.Metadata
+import groovy.transform.NamedParam
+import groovy.transform.NamedVariant
 import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
@@ -31,15 +29,13 @@ import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.user.IdentityService
 import io.xh.hoist.websocket.WebSocketService
 import org.grails.web.servlet.mvc.GrailsWebRequest
+
 import org.springframework.context.ApplicationContext
 import org.springframework.web.context.request.RequestContextHolder
 
 import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpServletResponse
 import javax.sql.DataSource
-import java.util.zip.DeflaterOutputStream
-import java.util.zip.InflaterInputStream
-
-import static java.lang.System.currentTimeMillis
 
 class Utils {
 
@@ -85,20 +81,6 @@ class Utils {
         return Environment.isDevelopmentMode()
     }
 
-    //------------------
-    // App Start/Ready
-    //------------------
-    static final Date startupTime = new Date()
-
-    /** True if the app instance is running and ready to start handling requests. */
-    static boolean isInstanceReady() {
-        try {
-            return clusterService?.isReady
-        } catch (Throwable ignored) {
-            // We expect this to be routine for very premature calls to app - fail quietly.
-            return false
-        }
-    }
 
     //------------------
     // Service Accessors
@@ -176,6 +158,38 @@ class Utils {
         return (ExceptionHandler) appContext.xhExceptionHandler
     }
 
+
+    /**
+     * Sanitizes, pre-processes, and logs exception.
+     *
+     * Used by BaseController, ClusterRequest, Timer, and AccessInterceptor to handle
+     * otherwise unhandled exception.
+     *
+     *  @see ExceptionHandler, which may be overridden to customize this behavior.
+     */
+    @NamedVariant
+    static handleException(
+        @NamedParam(required = true) Throwable exception,
+        @NamedParam HttpServletResponse renderTo,
+        @NamedParam LogSupport logTo,
+        @NamedParam Object logMessage
+    ) {
+        try {
+            exceptionHandler.handleException(exception, renderTo, logTo, logMessage)
+        } catch (Throwable t) {
+            // Backup -- don't muddy waters if handler fails or not available (e.g. during shutdown)
+            if (logTo) {
+                logTo.instanceLog.error(exception.message ?: 'Unknown Exception')
+            }
+            if (renderTo) {
+                renderTo.setStatus(500)
+                renderTo.setContentType('application/json')
+                renderTo.flushBuffer()
+            }
+        }
+    }
+
+
     //------------------
     // Validation/Parsing
     //------------------
@@ -225,39 +239,9 @@ class Utils {
         c.call()
     }
 
-
-    static testSerialization(Object obj, Class clazz, LogSupport logSupport, Map opts) {
-        Kryo kryo = new Kryo()
-        kryo.registrationRequired = false
-        if (opts.java) {
-            kryo.register(clazz, new JavaSerializer())
-        }
-        kryo.reset()
-        kryo.setReferences(opts.refs)
-        ByteArrayOutputStream byteStream = new ByteArrayOutputStream(32 * 1024)
-
-        Long startTime = currentTimeMillis()
-        OutputStream outputStream = byteStream
-        if (opts.compress) outputStream = new DeflaterOutputStream(outputStream)
-        Output output = new Output(outputStream)
-        kryo.writeObject(output, obj);
-        output.close()
-        Long serializeTime = currentTimeMillis()
-
-        InputStream inputStream = new ByteArrayInputStream(byteStream.toByteArray())
-        if (opts.compress) inputStream = new InflaterInputStream(inputStream)
-        Input input = new Input(inputStream)
-        Object object2 = kryo.readObject(input, clazz)
-        Long endTime = currentTimeMillis()
-
-        logSupport.logInfo(
-            opts,
-            "(${serializeTime - startTime}/${endTime - serializeTime})ms",
-            "${(byteStream.size() / 1000000).round(2)}MB",
-            "${endTime - startTime}ms"
-        )
-    }
-
+    //----------------------
+    // Implementation
+    //------------------------
     private static terms = null
     private static List<String> getSensitiveParams() {
         if (terms == null) {
@@ -265,5 +249,4 @@ class Utils {
         }
         return terms
     }
-
 }

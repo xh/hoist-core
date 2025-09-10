@@ -2,12 +2,18 @@
 
 ## 33.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - exception handling syntax )
+
+### ⚙️ Technical
+
+* Improvements to app lifecycle, including support of cleaner shutdown.  New property
+  `ClusterService.instanceState` and enhancements to `ClusterService.shutdownInstance`.
+* Improvement to exception handling to avoid throwing secondary exceptions during system
+  shutdown.
+
 ## 32.0.0 - 2025-08-28
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - removed methods unlikely to be used, requires hoist-react v76)
-
-* Standardized and improved how we recognize browsers and devices (see below), simplifying the
-  detection utilities in `io.xh.hoist.browser.Utils` and removing several unsupportable methods.
 
 ### 🎁 New Features
 

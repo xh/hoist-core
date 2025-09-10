@@ -8,11 +8,11 @@
 package io.xh.hoist.security
 
 import groovy.transform.CompileStatic
-import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.exception.NotAuthorizedException
 import io.xh.hoist.exception.NotFoundException
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.IdentityService
+import io.xh.hoist.util.Utils
 import io.xh.hoist.websocket.HoistWebSocketConfigurer
 
 import java.lang.reflect.Method
@@ -23,7 +23,6 @@ import static org.springframework.util.ReflectionUtils.findMethod
 class AccessInterceptor implements LogSupport {
 
     IdentityService identityService
-    ExceptionHandler xhExceptionHandler
 
     AccessInterceptor() {
         matchAll()
@@ -61,7 +60,7 @@ class AccessInterceptor implements LogSupport {
                 "You do not have the required role(s) for this action. Currently logged in as: $username."
             )
         } catch (Exception e) {
-            xhExceptionHandler.handleException(
+            Utils.handleException(
                 exception: e,
                 logMessage: [controller: controllerClass?.name, action: actionName],
                 logTo: this,

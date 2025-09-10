@@ -1,10 +1,11 @@
 package io.xh.hoist.cluster
 
 import io.xh.hoist.BaseService
-import io.xh.hoist.util.Utils
+import io.xh.hoist.cluster.ClusterService
 
+import static io.xh.hoist.cluster.InstanceState.RUNNING
 import static io.xh.hoist.util.Utils.appContext
-import static io.xh.hoist.util.Utils.getExceptionHandler
+import static io.xh.hoist.util.Utils.handleException
 import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 
 /**
@@ -19,11 +20,12 @@ class ClusterAdminService extends BaseService {
             name          : clusterService.instanceName,
             address       : clusterService.localMember.address.toString(),
             isPrimary     : clusterService.isPrimary,
-            isReady       : clusterService.isReady,
             memory        : appContext.memoryMonitoringService.latestSnapshot,
             connectionPool: appContext.connectionPoolMonitoringService.latestSnapshot,
             wsConnections : appContext.webSocketService.allChannels.size(),
-            startupTime   : Utils.startupTime
+            startupTime   : ClusterService.startupTime,
+            instanceState : ClusterService.instanceState,
+            isReady       : ClusterService.instanceState == RUNNING
         ]
     }
 
@@ -37,7 +39,7 @@ class ClusterAdminService extends BaseService {
                 if (result.value) {
                     ret << result.value
                 } else {
-                    exceptionHandler.handleException(
+                    handleException(
                         exception: result.exception,
                         logTo: this,
                         logMessage: "Exception getting stats for $name"

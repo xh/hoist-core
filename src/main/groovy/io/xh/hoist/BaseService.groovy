@@ -20,7 +20,6 @@ import groovy.transform.NamedVariant
 import io.xh.hoist.cache.Cache
 import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.cluster.ClusterService
-import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.IdentitySupport
 import io.xh.hoist.util.Timer
@@ -34,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 
+import static io.xh.hoist.util.Utils.handleException
 import static grails.async.Promises.task
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
@@ -57,9 +57,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
     IdentityService identityService
     ClusterService clusterService
-
-    ExceptionHandler xhExceptionHandler
-
     Date initializedDate = null
     Date lastCachesCleared = null
 
@@ -108,9 +105,9 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
             }
         } catch (ExecutionException ee) {
             // Show the underlying init() exception instead of the ExecutionException
-            xhExceptionHandler.handleException(exception: ee.cause, logTo: this)
+            handleException(exception: ee.cause, logTo: this)
         } catch (Throwable t) {
-            xhExceptionHandler.handleException(exception: t, logTo: this)
+            handleException(exception: t, logTo: this)
         } finally {
             initializedDate = new Date()
         }
