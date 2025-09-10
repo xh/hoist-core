@@ -11,46 +11,43 @@
 * Improvement to exception handling to avoid throwing secondary exceptions during system
   shutdown.
 
-## 32.0.0 - 2025-08-27
+## 32.0.0 - 2025-08-28
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - removed methods unlikely to be used)
-
-* This version of hoist standardizes and improves how we recognize browsers and devices to use
-  additional standard 'hint' HTTP headers (see below).  As part of this change, the detection
-  utilities in `io.xh.hoist.browser.Utils` was greatly simplified, and several unsupportable
-  methods were removed.
-
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - removed methods unlikely to be used, requires hoist-react v76)
 
 ### 🎁 New Features
-* Improved support for parsing browsers and devices.  Hoist now consults the standard `Sec-Ch-UA`
-  and `Sec-Ch-UA-Platform` http headers as well as `User-Agent`.  We have also removed an obsolete
-  special workaround for detecting iOS Homescreen apps.
 
-* Support clearing basic view state via hoist-react `restoreDefaultsAsync`
-  (requires hoist-react v76)
-* Improve efficiency of available view loading in ViewService.
+* Allow improved editing of Views visibility by hoist-react v76.
+* Enhance JsonBlobService to allow creating blobs with specific `owner`
+* Improved support for parsing browsers and devices by consulting the standard `Sec-Ch-UA` and
+  `Sec-Ch-UA-Platform` HTTP headers as well as `User-Agent`.
+* Removed an obsolete workaround for detecting iOS Homescreen apps.
+* Added support for clearing basic view state via `restoreDefaultsAsync` in `hoist-react >= 76`.
+* Improved performance of loading accessible `JsonBlob` objects for a user, including the common
+  use case of loading available `ViewManager` views.
 
 ### 🐞 Bug Fixes
 
-* Fix issue with JsonBlobService when running with Sybase Database
-
+* Fixed issue with JsonBlobService when running with Sybase Database
 
 ## 31.1.0 - 2025-08-07
 
 ### ⚙️ Technical
-* Cull obsolete ViewManager state for deleted views.
-* Add support for recognizing `Island` browser
+
+* Improved `ViewManager` to remove deleted/archived views from user-specific lists of pinned views.
+* Added support for recognizing the secure `Island` browser.
 
 ## 31.0.3 - 2025-06-27
 
 ### ⚙️ Technical
 
-* Performance improvements for Cache lookup
+* Improved the performance of `Cache` lookups.
 
 ## 31.0.2 - 2025-06-09
 
 ### 🐞 Bug Fixes
-* Fixed issue preventing sending of email notifications of client errors.
+
+* Fixed issue blocking email notifications of client errors.
 
 ## 31.0.1 - 2025-05-19
 
@@ -70,8 +67,8 @@
 
 ### 🎁 New Features
 
-* Client Error reports and user feedback have been consolidated into the new tracking system for
-  more integrated and powerful reporting.
+* Consolidated client error reports and user feedback into the upgraded Activity Tracking module,
+  enabling more integrated and powerful reporting on this data.
 
 ### ⚙️ Technical
 
