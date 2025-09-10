@@ -52,15 +52,14 @@ class ExceptionHandler {
         // Our rich logging can itself fail, especially around shutdown,etc. Fallback to simpler
         // logging to avoid muddying waters
         if (logTo) {
-            def shouldDebug = shouldLogDebug(exception)
+            def shouldDebug = shouldLogDebug(exception),
+                doLog = shouldDebug ? logTo.&logDebug : logTo.&logError
             try {
-                logMessage ?
-                    (shouldDebug ? logTo.logDebug(logMessage, exception) : logTo.logError(logMessage, exception)) :
-                    (shouldDebug ? logTo.logDebug(exception) : logTo.logError(exception))
+                logMessage ? doLog(logMessage, exception) : doLog(exception)
             } catch (Throwable t) {
-                def logger = logTo.instanceLog,
-                    message = exception.message ?: 'Unknown Exception'
-                shouldDebug ? logger.debug(message) : logger.error(message)
+                def logger = logTo.instanceLog
+                doLog = shouldDebug ? logger.&debug : logger.&error
+                doLog(exception.message ?: 'Unknown Exception')
                 logger.error('Hoist Logging failed: ' + t.message)
             }
         }
