@@ -167,7 +167,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      *
      * @param delay - optional delay to allow in progress requests to complete cleanly.
      */
-    void shutdownInstance(Integer delayMs = 0) {
+    void shutdownInstance(Long delayMs = 0) {
         instanceState = STOPPING
         task {
             if (delayMs) Thread.sleep(delayMs)

@@ -33,7 +33,7 @@ class ClusterAdminController extends BaseController {
             data: [instance: instance]
         )
         logWarn('Initiated Instance Shutdown', [instance: instance])
-        def ret = runOnInstanceAsJson(clusterService.&shutdownInstance(5*SECONDS), instance)
+        def ret = runOnInstanceAsJson(clusterService.&shutdownInstance, instance, [5*SECONDS])
         renderClusterJSON(ret)
     }
 }
