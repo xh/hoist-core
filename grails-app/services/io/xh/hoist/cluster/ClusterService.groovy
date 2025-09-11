@@ -198,7 +198,12 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      * Not typically called directly. Use ClusterUtils#runOnInstance instead.
      */
     ClusterResult submitToInstance(ClusterTask clusterRequest, String instance) {
-        taskExecutor.submitToMember(clusterRequest, getMember(instance)).get()
+        try {
+            taskExecutor.submitToMember(clusterRequest, getMember(instance)).get()
+        } catch (Throwable t) {
+            // task catches issue on instance. Catch deeper hz issue here
+            return new ClusterResult(exception: new ClusterTaskException(t))
+        }
     }
 
     /**
@@ -207,9 +212,16 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      * Not typically called directly. Use ClusterUtils#runOnAllInstances instead.
      */
     Map<String, ClusterResult> submitToAllInstances(ClusterTask c) {
-        taskExecutor
-            .submitToAllMembers(c)
-            .collectEntries { member, f -> [member.getAttribute('instanceName'), f.get()] }
+        def results = taskExecutor.submitToAllMembers(c)
+        results.collectEntries { member, f ->
+            def name = member.getAttribute('instanceName')
+            try {
+                return [name, f.get()]
+            } catch (Throwable t) {
+                // task catches issue on instance. Catch deeper hz issue here
+                return [name, new ClusterResult(exception: new ClusterTaskException(t))]
+            }
+        }
     }
 
     void ensureRunning() {

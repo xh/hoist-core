@@ -1,13 +1,15 @@
 package io.xh.hoist.cluster
 
 import io.xh.hoist.BaseService
-import io.xh.hoist.environment.EnvironmentService
-import io.xh.hoist.exception.InstanceNotAvailableException
+
 import io.xh.hoist.log.LogSupport
 
 import java.util.concurrent.Callable
 
-import static io.xh.hoist.util.Utils.*
+import io.xh.hoist.util.Utils
+import static io.xh.hoist.util.Utils.getIdentityService
+import static io.xh.hoist.util.Utils.getClusterService
+import static io.xh.hoist.util.Utils.getAppContext
 import static io.xh.hoist.json.JSONSerializer.serialize
 
 /**
@@ -48,7 +50,7 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
             return new ClusterResult(value: asJson && !valueIsVoid ? serialize(value) : value)
 
         } catch (Throwable t) {
-            handleException(
+            Utils.handleException(
                 exception: t,
                 logTo: this,
                 logMessage: [_action: this.class.simpleName]

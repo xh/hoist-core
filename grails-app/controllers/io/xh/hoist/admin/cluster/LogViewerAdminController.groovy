@@ -12,7 +12,7 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
 import static io.xh.hoist.util.ClusterUtils.runOnInstanceAsJson
 import static io.xh.hoist.util.ClusterUtils.runOnInstance
-import static io.xh.hoist.util.Utils.handleException
+import io.xh.hoist.util.Utils
 
 
 @Access(['HOIST_ADMIN_READER'])
@@ -47,7 +47,7 @@ class LogViewerAdminController extends BaseController {
 
         if (ret.exception) {
             // Just render exception, was already logged on target instance
-            handleException(exception: ret.exception, renderTo: response)
+            Utils.handleException(exception: ret.exception, renderTo: response)
             return
         }
         def file = ret.value as File

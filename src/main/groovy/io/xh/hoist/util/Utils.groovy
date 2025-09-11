@@ -168,7 +168,7 @@ class Utils {
      *  @see ExceptionHandler, which may be overridden to customize this behavior.
      */
     @NamedVariant
-    static handleException(
+    static void handleException(
         @NamedParam(required = true) Throwable exception,
         @NamedParam HttpServletResponse renderTo,
         @NamedParam LogSupport logTo,
