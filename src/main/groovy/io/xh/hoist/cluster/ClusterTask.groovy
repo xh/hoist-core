@@ -1,12 +1,10 @@
 package io.xh.hoist.cluster
 
 import io.xh.hoist.BaseService
-
 import io.xh.hoist.log.LogSupport
-
+import io.xh.hoist.util.Utils
 import java.util.concurrent.Callable
 
-import io.xh.hoist.util.Utils
 import static io.xh.hoist.util.Utils.getIdentityService
 import static io.xh.hoist.util.Utils.getClusterService
 import static io.xh.hoist.util.Utils.getAppContext

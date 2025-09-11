@@ -1,9 +1,9 @@
 package io.xh.hoist.cluster
 
 import io.xh.hoist.BaseService
+import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.cluster.InstanceState.RUNNING
-import io.xh.hoist.util.Utils
 import static io.xh.hoist.util.Utils.appContext
 import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 

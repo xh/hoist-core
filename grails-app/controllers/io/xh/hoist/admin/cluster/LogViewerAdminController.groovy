@@ -10,9 +10,9 @@ package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
+import io.xh.hoist.util.Utils
 import static io.xh.hoist.util.ClusterUtils.runOnInstanceAsJson
 import static io.xh.hoist.util.ClusterUtils.runOnInstance
-import io.xh.hoist.util.Utils
 
 
 @Access(['HOIST_ADMIN_READER'])
