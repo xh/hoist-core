@@ -23,6 +23,7 @@ import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.IdentitySupport
 import io.xh.hoist.util.Timer
+import io.xh.hoist.util.Utils
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
 import org.slf4j.Logger
@@ -33,7 +34,6 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 
-import static io.xh.hoist.util.Utils.handleException
 import static grails.async.Promises.task
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
@@ -105,9 +105,9 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
             }
         } catch (ExecutionException ee) {
             // Show the underlying init() exception instead of the ExecutionException
-            handleException(exception: ee.cause, logTo: this)
+            Utils.handleException(exception: ee.cause, logTo: this)
         } catch (Throwable t) {
-            handleException(exception: t, logTo: this)
+            Utils.handleException(exception: t, logTo: this)
         } finally {
             initializedDate = new Date()
         }

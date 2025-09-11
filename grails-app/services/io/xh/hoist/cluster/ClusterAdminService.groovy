@@ -1,11 +1,10 @@
 package io.xh.hoist.cluster
 
 import io.xh.hoist.BaseService
-import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.cluster.InstanceState.RUNNING
 import static io.xh.hoist.util.Utils.appContext
-import static io.xh.hoist.util.Utils.handleException
 import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 
 /**
@@ -39,7 +38,7 @@ class ClusterAdminService extends BaseService {
                 if (result.value) {
                     ret << result.value
                 } else {
-                    handleException(
+                    Utils.handleException(
                         exception: result.exception,
                         logTo: this,
                         logMessage: "Exception getting stats for $name"

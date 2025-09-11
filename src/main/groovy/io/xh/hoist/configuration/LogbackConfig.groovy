@@ -17,6 +17,7 @@ import ch.qos.logback.core.rolling.RollingFileAppender
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.log.ClusterInstanceConverter
+import io.xh.hoist.log.LogSupportConverter
 import io.xh.hoist.util.Utils
 import java.nio.file.Paths
 
@@ -25,7 +26,6 @@ import static ch.qos.logback.classic.Level.ERROR
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.WARN
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
-import io.xh.hoist.log.LogSupportConverter;
 
 /**
  * This class supports the default logging configuration in Hoist.

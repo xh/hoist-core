@@ -9,7 +9,7 @@ package io.xh.hoist
 
 import grails.validation.ValidationException
 import io.xh.hoist.json.JSONParser
-import static io.xh.hoist.util.Utils.handleException
+import io.xh.hoist.util.Utils
 
 abstract class RestController extends BaseController {
 
@@ -73,7 +73,7 @@ abstract class RestController extends BaseController {
                     successCount++
                 } catch (Exception e) {
                     failCount++
-                    handleException(
+                    Utils.handleException(
                         exception: e,
                         logMessage: "Exception updating ${id}",
                         logTo: this
