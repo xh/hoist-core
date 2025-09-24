@@ -33,6 +33,7 @@ class Utils {
     //--------------------
     private static Map<String, Browser> BROWSER_MATCHERS = [
             'Island': ISLAND,   // Island must come before chrome
+            'GoodAccess': GOOD,       // Island must come before chrome and safari
             'Firefox': FIREFOX, // Firefox must come before "; rv" to prevent identification as IE
             'Edge': EDGE,       // Desktop Edge
             'EdgiOS': EDGE,     // iOS Edge

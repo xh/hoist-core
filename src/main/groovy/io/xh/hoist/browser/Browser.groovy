@@ -16,6 +16,7 @@ enum Browser {
     ISLAND('Island'),
     OPERA('Opera'),
     SAFARI('Safari'),
+    GOOD('Good'),
     OTHER('Unknown')
 
     final String displayName
