@@ -38,7 +38,7 @@ dependencies {
     // Grails 7.0 REST Plugin Defaults + Other Grails Plugins
     //-------------------------------------------------------
     profile "org.apache.grails.profiles:plugin"
-    developmentOnly "org.springframework.boot:spring-boot-devtools" // Spring Boot DevTools may cause performance slowdowns or compatibility issues on larger applications
+    developmentOnly "org.springframework.boot:spring-boot-devtools"
     //implementation "io.github.virtualdogbert:logback-groovy-config:1.12.4"
     api platform("org.apache.grails:grails-bom:$grailsVersion")
     api "org.apache.grails:grails-async"
@@ -58,24 +58,20 @@ dependencies {
     api "org.springframework.boot:spring-boot-starter-tomcat"
     api "org.springframework.boot:spring-boot-starter-validation"
 
-
     console "org.apache.grails:grails-console"
     runtimeOnly "com.zaxxer:HikariCP"
 
     //api "org.apache.grails.plugin:mail"
-
-    //runtimeOnly "org.glassfish.web:el-impl:2.2.1-b05"
-    //runtimeOnly "javax.xml.bind:jaxb-api:2.3.1"
 
     //--------------------
     // Hoist Additions
     //--------------------
     api "com.hazelcast:hazelcast"
     implementation "javax.cache:cache-api"
-    implementation 'org.fusesource.jansi:jansi:2.4.0'
+    implementation "org.fusesource.jansi:jansi"
 
     api "org.apache.tomcat:tomcat-jdbc"
-   // api "org.codehaus.groovy:groovy-dateutil:${groovy.version}"
+    api "org.apache.groovy:groovy-dateutil"
 
     api "org.hibernate.orm:hibernate-jcache"
 
