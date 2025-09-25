@@ -66,6 +66,7 @@ dependencies {
     //--------------------
     // Hoist Additions
     //--------------------
+    api 'jakarta.servlet:jakarta.servlet-api'
     api "com.hazelcast:hazelcast"
     implementation "javax.cache:cache-api"
     implementation "org.fusesource.jansi:jansi"
