@@ -46,6 +46,7 @@ dependencies {
     api "org.apache.grails:grails-data-hibernate5"
     api "org.apache.grails:grails-databinding"
     api "org.apache.grails:grails-events"
+    api "org.apache.grails:grails-gsp"
     api "org.apache.grails:grails-interceptors"
     api "org.apache.grails:grails-logging"
     api "org.apache.grails:grails-quartz:4.0.0-M3"
@@ -60,7 +61,7 @@ dependencies {
     console "org.apache.grails:grails-console"
     runtimeOnly "com.zaxxer:HikariCP"
 
-    //api "org.apache.grails.plugin:mail"
+    api "org.grails.plugins:grails-mail:5.0.2"
 
     //--------------------
     // Hoist Additions
