@@ -49,7 +49,6 @@ dependencies {
     api "org.apache.grails:grails-interceptors"
     api "org.apache.grails:grails-logging"
     api "org.apache.grails:grails-quartz:4.0.0-M3"
-    api "org.apache.grails:grails-rest-transforms"
     api "org.apache.grails:grails-services"
     api "org.apache.grails:grails-url-mappings"
     api "org.apache.grails:grails-web-boot"
@@ -66,10 +65,8 @@ dependencies {
     //--------------------
     // Hoist Additions
     //--------------------
-    api 'jakarta.servlet:jakarta.servlet-api'
     api "com.hazelcast:hazelcast"
     implementation "javax.cache:cache-api"
-    implementation "org.fusesource.jansi:jansi"
 
     api "org.apache.tomcat:tomcat-jdbc"
     api "org.apache.groovy:groovy-dateutil"
