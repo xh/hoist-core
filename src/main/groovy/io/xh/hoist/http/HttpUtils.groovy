@@ -9,7 +9,7 @@ package io.xh.hoist.http
 
 import groovy.transform.CompileStatic
 
-import javax.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpServletResponse
 
 @CompileStatic
 class HttpUtils {

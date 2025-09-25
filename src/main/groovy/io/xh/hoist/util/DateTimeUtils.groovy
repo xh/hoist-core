@@ -9,6 +9,7 @@ package io.xh.hoist.util
 
 import groovy.transform.CompileStatic
 
+import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -108,4 +109,7 @@ class DateTimeUtils {
         Date.from(localDate.atTime(LocalTime.MAX).atZone(serverZoneId).toInstant())
     }
 
+    static String formatDate(Date d, String format) {
+        new SimpleDateFormat(format).format(d)
+    }
 }

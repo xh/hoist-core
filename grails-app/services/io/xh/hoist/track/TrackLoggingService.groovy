@@ -8,6 +8,7 @@ import io.xh.hoist.log.SimpleLogger
 import java.util.concurrent.PriorityBlockingQueue
 
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static io.xh.hoist.util.DateTimeUtils.formatDate
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 
 /**
@@ -60,7 +61,7 @@ class TrackLoggingService extends BaseService {
                 // Write directly to dedicated log.  Show actual timestamp and severity at
                 // *beginning* as this log has a minimal layout with only the message.
                 writeLog(orderedLog, entry.severity, [
-                    _timestamp: entry.timestamp.format('yyyy-MM-dd HH:mm:ss.SSS'),
+                    _timestamp: formatDate(entry.timestamp, 'yyyy-MM-dd HH:mm:ss.SSS'),
                     _severity: entry.severity,
                     *:entry.message.findAll{it.key != '_timestamp'}
                 ])

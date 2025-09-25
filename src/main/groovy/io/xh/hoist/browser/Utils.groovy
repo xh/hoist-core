@@ -10,7 +10,7 @@ package io.xh.hoist.browser
 import static io.xh.hoist.browser.Browser.*
 import static io.xh.hoist.browser.Device.*
 
-import javax.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletRequest
 
 class Utils {
 

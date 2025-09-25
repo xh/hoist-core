@@ -9,12 +9,10 @@ package io.xh.hoist.exception
 
 import grails.util.GrailsUtil
 import groovy.transform.CompileStatic
-import groovy.transform.NamedParam
-import groovy.transform.NamedVariant
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
 
-import javax.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpServletResponse
 import java.util.concurrent.ExecutionException
 
 import static org.apache.hc.core5.http.HttpStatus.SC_BAD_REQUEST

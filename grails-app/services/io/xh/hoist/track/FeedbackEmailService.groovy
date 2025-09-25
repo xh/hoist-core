@@ -12,6 +12,7 @@ import io.xh.hoist.BaseService
 import io.xh.hoist.email.EmailService
 import io.xh.hoist.util.Utils
 
+import static io.xh.hoist.util.DateTimeUtils.formatDate
 import static io.xh.hoist.util.Utils.appName
 
 /**
@@ -59,7 +60,7 @@ class FeedbackEmailService extends BaseService {
                 "Environment: ${tl.appEnvironment}",
                 "Browser: ${tl.browser}",
                 "Device: ${tl.device}",
-                "Submitted: ${tl.dateCreated.format('dd-MMM-yyyy HH:mm:ss')}"
+                "Submitted: ${formatDate(tl.dateCreated,'dd-MMM-yyyy HH:mm:ss')}"
             ].join('<br/>')
 
         return [msgText, metaText].findAll().join('<br/><br/>')

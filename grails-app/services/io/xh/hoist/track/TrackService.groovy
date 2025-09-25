@@ -19,6 +19,7 @@ import io.xh.hoist.util.Utils
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
 import static io.xh.hoist.json.JSONSerializer.serialize
+import static io.xh.hoist.util.DateTimeUtils.formatDate
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 import static grails.async.Promises.task
 import static io.xh.hoist.util.StringUtils.elide
@@ -260,7 +261,7 @@ class TrackService extends BaseService {
             _category     : entry.category,
             _msg          : entry.msg,
             _correlationId: entry.correlationId,
-            _timestamp    : dateCreated.format('HH:mm:ss.SSS'),
+            _timestamp    : formatDate(dateCreated, 'HH:mm:ss.SSS'),
             _elapsedMs    : entry.elapsed,
         ].findAll { it.value != null } as Map<String, Object>
 

@@ -75,7 +75,7 @@ class EnvironmentService extends BaseService {
         ]
 
         hoistGrailsPlugins.each {it ->
-            ret[it.name + 'Version'] = it.version
+            ret[it.name + 'Version'] = '32.0-SNAPSHOT'
         }
 
         if (authUser.isHoistAdminReader) {

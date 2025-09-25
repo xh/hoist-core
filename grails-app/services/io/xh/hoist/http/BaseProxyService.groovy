@@ -9,7 +9,7 @@ package io.xh.hoist.http
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
-import org.apache.catalina.connector.ClientAbortException
+//import org.apache.catalina.connector.ClientAbortException
 import org.apache.hc.core5.http.HttpResponse
 import org.apache.hc.client5.http.entity.UrlEncodedFormEntity
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse
@@ -23,8 +23,8 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
 import org.apache.hc.core5.http.io.entity.StringEntity
 import org.apache.hc.core5.http.message.BasicNameValuePair
 
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 
 @CompileStatic
 abstract class BaseProxyService extends BaseService {
@@ -79,8 +79,8 @@ abstract class BaseProxyService extends BaseService {
             sourceResponse.entity?.writeTo(response.outputStream)
 
             response.flushBuffer()
-        } catch (ClientAbortException ignored) {
-            logDebug("Client has aborted request to [$endpoint] - ignoring")
+       // } catch (ClientAbortException ignored) {
+          //  logDebug("Client has aborted request to [$endpoint] - ignoring")
         } catch (Throwable t) {
             // Log ...and rethrow exception for normal handling, if not too late
             logError("Error occurred during proxy streaming of [$endpoint]", t)

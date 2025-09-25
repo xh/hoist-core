@@ -15,8 +15,8 @@ import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
 import io.xh.hoist.util.Utils
 
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 
 import static java.util.Collections.emptyMap
 import static org.apache.hc.core5.http.HttpStatus.SC_SERVER_ERROR
