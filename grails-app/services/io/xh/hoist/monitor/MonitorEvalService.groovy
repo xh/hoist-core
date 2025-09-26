@@ -19,6 +19,7 @@ import java.util.concurrent.TimeoutException
 import static grails.async.Promises.task
 import static io.xh.hoist.monitor.MonitorStatus.*
 import static java.util.concurrent.TimeUnit.SECONDS
+import static io.xh.hoist.util.Utils.getExceptionHandler
 
 /**
  * Coordinates the execution and immediate evaluation of status monitors on a single instance,
@@ -92,7 +93,7 @@ class MonitorEvalService extends BaseService {
                                     e.message ?: e.class.name
                                  )
             result.status = FAIL
-            result.exception = xhExceptionHandler.summaryTextForThrowable(e)
+            result.exception = exceptionHandler.summaryTextForThrowable(e)
         } finally {
             def endTime = new Date()
             result.date = endTime
