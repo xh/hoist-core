@@ -20,6 +20,8 @@ class ApplicationConfig {
     static void defaultConfig(Script script) {
         withDelegate(script) {
 
+           // logging.config = 'classpath:logback-lee.groovy'
+
             hoist {
                 // Read by WebSocketService to determine if WS support should generally be enabled.
                 enableWebSockets = true
