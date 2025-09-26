@@ -1,6 +1,6 @@
 # Changelog
 
-## 33.0-SNAPSHOT - unreleased
+## 33.0.0 - 2025-09-26
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - exception handling syntax )
 
