@@ -39,7 +39,6 @@ dependencies {
     //-------------------------------------------------------
     profile "org.apache.grails.profiles:plugin"
     developmentOnly "org.springframework.boot:spring-boot-devtools"
-    //implementation "io.github.virtualdogbert:logback-groovy-config:1.12.4"
     api platform("org.apache.grails:grails-bom:$grailsVersion")
     api "org.apache.grails:grails-async"
     api "org.apache.grails:grails-core"
@@ -66,6 +65,11 @@ dependencies {
     //--------------------
     // Hoist Additions
     //--------------------
+    implementation ("io.github.virtualdogbert:logback-groovy-config:1.14.5") {
+        exclude group: 'org.codehaus.groovy'
+        exclude group: 'ch.qos.logback'
+    }
+
     api "com.hazelcast:hazelcast"
     implementation "javax.cache:cache-api"
 

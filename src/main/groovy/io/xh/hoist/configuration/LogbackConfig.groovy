@@ -183,7 +183,7 @@ class LogbackConfig {
             appender(name, RollingFileAppender) {
                 file = fileName + '.log'
                 encoder = LogbackConfig.createEncoder(config.layout ?: dailyLayout, context)
-                rollingPolicy(TimeBasedRollingPolicy) { fileNamePattern = fileName + ".%d{yyyy-MM-dd}.log" }
+                rollingPolicy = new TimeBasedRollingPolicy().tap {fileNamePattern = "${fileName}.%d{yyyy-MM-dd}.log"}
             }
         }
     }
@@ -205,7 +205,7 @@ class LogbackConfig {
             appender(name, RollingFileAppender) {
                 file = fileName + '.log'
                 encoder = LogbackConfig.createEncoder(config.layout ?: monthlyLayout, context)
-                rollingPolicy(TimeBasedRollingPolicy)   {fileNamePattern = fileName + ".%d{yyyy-MM}.log"}
+                rollingPolicy = new TimeBasedRollingPolicy().tap {fileNamePattern = "${fileName}.%d{yyyy-MM}.log"}
             }
         }
     }
