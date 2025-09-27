@@ -24,6 +24,7 @@ import org.springframework.context.ApplicationListener
 import static com.hazelcast.core.LifecycleEvent.LifecycleState.SHUTDOWN
 import static grails.async.Promises.task
 import static io.xh.hoist.cluster.InstanceState.*
+import static io.xh.hoist.util.Utils.createCustomOrDefault
 import static org.slf4j.LoggerFactory.getLogger
 
 class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent>  {
@@ -61,7 +62,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     static {
         // Create cluster/instance identifiers statically so logging can access early in lifecycle
         if (Utils.appCode) {  // ... do not create during build
-            clusterConfig = createConfig()
+            clusterConfig = createCustomOrDefault(Utils.appPackage + '.ClusterConfig', ClusterConfig)
             clusterName = clusterConfig.clusterName
             instanceName = clusterConfig.instanceName
             System.setProperty('io.xh.hoist.hzInstanceName', instanceName)

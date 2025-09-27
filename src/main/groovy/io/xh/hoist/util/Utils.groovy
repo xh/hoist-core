@@ -159,6 +159,16 @@ class Utils {
     }
 
 
+    static <T> T createCustomOrDefault(String customClassName, Class<T> clazz) {
+        try {
+            def customClass = Class.forName(customClassName)
+            return customClass.getConstructor().newInstance() as T
+        } catch (ClassNotFoundException e) {
+            return clazz.getConstructor().newInstance()
+        }
+    }
+
+
     /**
      * Sanitizes, pre-processes, and logs exception.
      *

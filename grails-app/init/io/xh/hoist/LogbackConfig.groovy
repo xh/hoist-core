@@ -22,28 +22,29 @@ import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.log.ClusterInstanceConverter
 import io.xh.hoist.log.LogSupportConverter
 import io.xh.hoist.util.Utils
+import org.slf4j.LoggerFactory
+
 import java.nio.file.Paths
 
 import static ch.qos.logback.classic.Level.OFF
 import static ch.qos.logback.classic.Level.ERROR
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.WARN
+import static ch.qos.logback.core.CoreConstants.PATTERN_RULE_REGISTRY
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 import static org.slf4j.Logger.ROOT_LOGGER_NAME
 
 /**
  * This class supports the default logging configuration in Hoist.
  *
- * Apps wishing to customize logging should create a subclass of this class and
- * override its configureLogging() endpoint.
+ * Apps wishing to customize logging should create a subclass of this class in their
+ * 'Config' directory and override the configureLogging() method.
  */
 class LogbackConfig {
 
     private static String _logRootPath = null
 
-
-    /** Internal, set by framework */
-    public LoggerContext context = null
+    private final LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory()
     private Map<String, Appender> appenders = [:];
 
     /**
@@ -90,12 +91,9 @@ class LogbackConfig {
      * dedicated logs for Hoist's built-in activity tracking and status monitoring.
      *
      * It will also setup default logging levels logging levels for application, Hoist, and select
-     * third-party packages. Note that these logging levels can be overwritten statically by
-     * applications in logback.groovy.
-     *
-     * Applications should override this m
+     * third-party packages.
      */
-    void configLogging() {
+    void configureLogging() {
         def appLogRoot = "${Utils.appCode}-${ClusterService.instanceName}",
             appLogName = "$appLogRoot-app",
             trackLogName = "$appLogRoot-track",
@@ -181,12 +179,12 @@ class LogbackConfig {
         def fileName = Paths.get(logRootPath, subdir, name).toString()
 
         def ret = new RollingFileAppender()
-        ret.context = context
+        ret.context = loggerContext
         ret.name = name
         ret.file = fileName + ".log"
         ret.encoder = createEncoder(layout)
         ret.rollingPolicy = new TimeBasedRollingPolicy().tap {
-            context = context
+            it.context = context
             fileNamePattern = fileName + ".%d{yyyy-MM-dd}.log"
             parent = ret
             start()
@@ -206,12 +204,12 @@ class LogbackConfig {
         def fileName = Paths.get(logRootPath, subdir, name).toString()
 
         def ret = new RollingFileAppender()
-        ret.context = context
+        ret.context = loggerContext
         ret.name = name
         ret.file = fileName + ".log"
         ret.encoder = createEncoder(layout)
         ret.rollingPolicy = new TimeBasedRollingPolicy().tap {
-            context = context
+            context = loggerContext
             fileNamePattern = fileName + ".%d{yyyy-MM}.log"
             parent = ret
             start()
@@ -228,8 +226,9 @@ class LogbackConfig {
      */
     protected Appender consoleAppender(String name, Object layout = stdoutLayout) {
         def ret = new ConsoleAppender()
+        ret.context = loggerContext
         ret.name = name
-        ret.encoder = createEncoder(stdoutLayout)
+        ret.encoder = createEncoder(layout)
         ret.start()
         return appenders[name] = ret
     }
@@ -247,7 +246,7 @@ class LogbackConfig {
         } else {
             ret = new LayoutWrappingEncoder()
             Layout layout = layoutSpec.call();
-            layout.context = context
+            layout.context = loggerContext
             layout.start();
             ret.layout = layout
         }
@@ -265,7 +264,7 @@ class LogbackConfig {
      * Set the level for a package or class, and assign to appenders.
      */
     protected Logger logger(String name, Level level, List<String> appenderNames = [], Boolean additivity = null) {
-        Logger ret = context.getLogger(name)
+        Logger ret = loggerContext.getLogger(name)
         ret.level = level
         for (aName in appenderNames) {
             Appender appender = appenders[aName]
@@ -285,10 +284,10 @@ class LogbackConfig {
     void conversionRule(String conversionWord, Class converterClass) {
         String converterClassName = converterClass.name
 
-        Map<String, String> ruleRegistry = (Map) context.getObject(CoreConstants.PATTERN_RULE_REGISTRY);
+        Map<String, String> ruleRegistry = (Map) loggerContext.getObject(PATTERN_RULE_REGISTRY);
         if (ruleRegistry == null) {
-            ruleRegistry = new HashMap<String, String>()
-            context.putObject(CoreConstants.PATTERN_RULE_REGISTRY, ruleRegistry)
+            ruleRegistry = new HashMap()
+            loggerContext.putObject(PATTERN_RULE_REGISTRY, ruleRegistry)
         }
         ruleRegistry[conversionWord] = converterClassName
     }

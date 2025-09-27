@@ -15,6 +15,7 @@ import java.time.ZoneId
 
 import static io.xh.hoist.util.DateTimeUtils.serverZoneId
 import static io.xh.hoist.BaseService.parallelInit
+import static io.xh.hoist.util.Utils.createCustomOrDefault
 import static java.lang.Runtime.runtime
 
 class BootStrap implements LogSupport {
@@ -25,6 +26,7 @@ class BootStrap implements LogSupport {
         prefService
 
     def init = {servletContext ->
+        initLogging()
         logStartupMsg()
         ensureRequiredConfigsCreated()
         ensureRequiredPrefsCreated()
@@ -381,4 +383,8 @@ class BootStrap implements LogSupport {
         }
     }
 
+    private void initLogging() {
+        def logbackConfig = createCustomOrDefault(Utils.appPackage + '.LogbackConfig', LogbackConfig)
+        logbackConfig.configureLogging()
+    }
 }
