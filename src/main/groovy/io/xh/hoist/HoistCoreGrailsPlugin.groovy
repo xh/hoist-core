@@ -17,26 +17,27 @@ import io.xh.hoist.websocket.HoistWebSocketConfigurer
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.core.Ordered
 
+import static io.xh.hoist.util.Utils.createCustomOrDefault
+
 class HoistCoreGrailsPlugin extends Plugin {
 
-    def grailsVersion = '6.0.0 > *'
-    def pluginExcludes = []
-
+    def grailsVersion = '7.0.0-RC2'
     def title = 'hoist-core'
     def author = 'Extremely Heavy'
     def authorEmail = 'info@xh.io'
     def description = 'Rapid Web Application Delivery System.'
-    def profiles = ['web']
-
-    // URL to the plugin's documentation
+    def profiles = ['rest-api']
     def documentation = 'https://github.com/xh/hoist-core/blob/master/README.md'
     def organization = [name: 'Extremely Heavy', url: 'https://xh.io']
     def scm = [url: 'https://github.com/xh/hoist-core']
-    def observe = ["services"]
 
 
     Closure doWithSpring() {
         {->
+            // Configure logging asap -- before this we rely on defaults in ApplicationConfig.groovy
+            def logbackConfig = createCustomOrDefault(Utils.appPackage + '.LogbackConfig', LogbackConfig)
+            logbackConfig.configure()
+
             ClusterService.initializeHazelcast()
 
             hoistFilter(FilterRegistrationBean) {

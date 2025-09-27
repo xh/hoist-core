@@ -1,4 +1,0 @@
-<configuration>
-    <!-- Prevent default spring boot logging configuration.  Hoist handles this in groovy. -->
-    <property name="org.springframework.boot.logging.LoggingSystem" value="true"/>
-</configuration>

@@ -15,7 +15,6 @@ import java.time.ZoneId
 
 import static io.xh.hoist.util.DateTimeUtils.serverZoneId
 import static io.xh.hoist.BaseService.parallelInit
-import static io.xh.hoist.util.Utils.createCustomOrDefault
 import static java.lang.Runtime.runtime
 
 class BootStrap implements LogSupport {
@@ -26,7 +25,6 @@ class BootStrap implements LogSupport {
         prefService
 
     def init = {servletContext ->
-        initLogging()
         logStartupMsg()
         ensureRequiredConfigsCreated()
         ensureRequiredPrefsCreated()
@@ -381,10 +379,5 @@ class BootStrap implements LogSupport {
         if (confZoneId != serverZoneId) {
             throw new IllegalStateException("JVM TimeZone of '${serverZoneId}' does not match value of '${confZoneId}' required by xhExpectedServerTimeZone config. Set JVM arg '-Duser.timezone=${confZoneId}' to change the JVM Zone, or update the config value in the database.")
         }
-    }
-
-    private void initLogging() {
-        def logbackConfig = createCustomOrDefault(Utils.appPackage + '.LogbackConfig', LogbackConfig)
-        logbackConfig.configureLogging()
     }
 }

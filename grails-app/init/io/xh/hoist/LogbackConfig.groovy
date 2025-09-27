@@ -31,46 +31,54 @@ import static ch.qos.logback.classic.Level.ERROR
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.WARN
 import static ch.qos.logback.core.CoreConstants.PATTERN_RULE_REGISTRY
-import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 import static org.slf4j.Logger.ROOT_LOGGER_NAME
 
 /**
  * This class supports the default logging configuration in Hoist.
  *
  * Apps wishing to customize logging should create a subclass of this class in their
- * 'Config' directory and override the configureLogging() method.
+ * 'Config' directory and override the configureLogging() method. See exampleConfigureLogging()
+ * below for an example.
  */
-class LogbackConfig {
+class LogbackConfig  {
 
     private static String _logRootPath = null
 
-    private final LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory()
-    private Map<String, Appender> appenders = [:];
+    protected LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory()
+    protected Map<String, Appender> appenders = [:]
 
     /**
      * Layout used for for logging to stdout
      * String or a Closure that produces a Layout
      */
-    static Object stdoutLayout = '%d{yyyy-MM-dd HH:mm:ss.SSS} | %instance | %c{0} [%p] | %m%n'
+    protected String getStdoutLayout() {
+        '%d{yyyy-MM-dd HH:mm:ss.SSS} | %instance | %c{0} [%p] | %m%n'
+    }
 
     /**
      * Layout for logs created by dailyLog() function
      * String or a Closure that produces a Layout
      * This layout will be used by the built-in rolling daily log provided by hoist.
      */
-    static Object dailyLayout = '%d{HH:mm:ss.SSS} | %instance | %c{0} [%p] | %m%n'
+    protected String getDailyLayout() {
+        '%d{HH:mm:ss.SSS} | %instance | %c{0} [%p] | %m%n'
+    }
 
     /**
      * Layout for logs created by monthlyLog() function
      * String or a Closure that produces a Layout
      */
-    static Object monthlyLayout = '%d{MM-dd HH:mm:ss.SSS} | %instance | %c{0} [%p] | %m%n'
+    protected String getMonthlyLayout() {
+        '%d{MM-dd HH:mm:ss.SSS} | %instance | %c{0} [%p] | %m%n'
+    }
 
     /**
      * Layout used for logging monitor results to a dedicated log.
      * String or a Closure that produces a Layout
      */
-    static Object monitorLayout = '%d{HH:mm:ss.SSS} | %instance | %m%n'
+    protected String getMonitorLayout() {
+        '%d{HH:mm:ss.SSS} | %instance | %m%n'
+    }
 
     /**
      * Layout used for logging client-side tracking results to a dedicated log.
@@ -81,11 +89,49 @@ class LogbackConfig {
      * timestamp and are given special handling by {@link io.xh.hoist.track.TrackLoggingService}
      * to preserve the order of events.
      */
-    static Object trackLayout = '%m%n'
+    protected String getTrackLayout() {
+        '%m%n'
+    }
 
 
     /**
-     * Main entry point.
+     * Return the logging directory path - [tomcatHome]/logs/[appName]-logs by default.
+     * Apps can specify a custom directory via a `-Dio.xh.hoist.log.path` JavaOpt or a
+     * `logPath` instance config entry.
+     */
+    static String getLogRootPath() {
+        if (!_logRootPath) {
+            def customPath = System.getProperty('io.xh.hoist.log.path') //?: getInstanceConfig('logPath')
+            if (customPath) {
+                _logRootPath = customPath
+            } else {
+                def tomcatHomeDir = System.getProperty('catalina.base', ''),
+                    logSubDir = tomcatHomeDir ? 'logs' : ''
+
+                _logRootPath = Paths.get(tomcatHomeDir, logSubDir, "${Utils.appCode}-logs").toString()
+            }
+        }
+        return _logRootPath
+    }
+
+    /**
+     * Setup all configuration, with fallback handling .
+     */
+    final void configure() {
+        try {
+            loggerContext.reset()
+            configureLogging()
+        } catch (Throwable t) {
+            loggerContext.reset()
+            consoleAppender('stdout', '%d{yyyy-MM-dd HH:mm:ss.SSS} | %c{0} [%p] | %m%n')
+            root(INFO, ['stdout'])
+            loggerContext.getLogger(this.class).error('Logging Configuration failed, falling back to console logging', t)
+        }
+    }
+
+
+    /**
+     * Main template method for override
      *
      * This function sets up "built-in" appenders for stdout, a daily rolling log, and additional
      * dedicated logs for Hoist's built-in activity tracking and status monitoring.
@@ -93,7 +139,7 @@ class LogbackConfig {
      * It will also setup default logging levels logging levels for application, Hoist, and select
      * third-party packages.
      */
-    void configureLogging() {
+    protected void configureLogging() {
         def appLogRoot = "${Utils.appCode}-${ClusterService.instanceName}",
             appLogName = "$appLogRoot-app",
             trackLogName = "$appLogRoot-track",
@@ -145,26 +191,6 @@ class LogbackConfig {
         logger('StackTrace', OFF)
     }
 
-    /**
-     * Return the logging directory path - [tomcatHome]/logs/[appName]-logs by default.
-     * Apps can specify a custom directory via a `-Dio.xh.hoist.log.path` JavaOpt or a
-     * `logPath` instance config entry.
-     */
-    static String getLogRootPath() {
-        if (!_logRootPath) {
-            def customPath = System.getProperty('io.xh.hoist.log.path') ?: getInstanceConfig('logPath')
-            if (customPath) {
-                _logRootPath = customPath
-            } else {
-                def tomcatHomeDir = System.getProperty('catalina.base', ''),
-                    logSubDir = tomcatHomeDir ? 'logs' : ''
-
-                _logRootPath = Paths.get(tomcatHomeDir, logSubDir, "${Utils.appCode}-logs").toString()
-            }
-        }
-        return _logRootPath
-    }
-
     //--------------------
     // Helpers
     //---------------------
@@ -175,7 +201,7 @@ class LogbackConfig {
      * @param subdir - subdirectory within main logging directory to place log (optional)
      * @param layout - string or Logback layout to be used.  Defaults to dailyLayout (optional)
      */
-    Appender dailyLog(String name, Object layout = dailyLayout, String subdir = '') {
+    protected Appender dailyLog(String name, Object layout = dailyLayout, String subdir = '') {
         def fileName = Paths.get(logRootPath, subdir, name).toString()
 
         def ret = new RollingFileAppender()
@@ -184,7 +210,7 @@ class LogbackConfig {
         ret.file = fileName + ".log"
         ret.encoder = createEncoder(layout)
         ret.rollingPolicy = new TimeBasedRollingPolicy().tap {
-            it.context = context
+            context = owner.loggerContext
             fileNamePattern = fileName + ".%d{yyyy-MM-dd}.log"
             parent = ret
             start()
@@ -209,7 +235,7 @@ class LogbackConfig {
         ret.file = fileName + ".log"
         ret.encoder = createEncoder(layout)
         ret.rollingPolicy = new TimeBasedRollingPolicy().tap {
-            context = loggerContext
+            context = owner.loggerContext
             fileNamePattern = fileName + ".%d{yyyy-MM}.log"
             parent = ret
             start()
@@ -251,7 +277,7 @@ class LogbackConfig {
             ret.layout = layout
         }
 
-        ret.context = context
+        ret.context = loggerContext
         ret.start()
         return ret
     }
@@ -281,7 +307,7 @@ class LogbackConfig {
     /**
      * Register a conversion word.
      */
-    void conversionRule(String conversionWord, Class converterClass) {
+    protected void conversionRule(String conversionWord, Class converterClass) {
         String converterClassName = converterClass.name
 
         Map<String, String> ruleRegistry = (Map) loggerContext.getObject(PATTERN_RULE_REGISTRY);
@@ -290,5 +316,38 @@ class LogbackConfig {
             loggerContext.putObject(PATTERN_RULE_REGISTRY, ruleRegistry)
         }
         ruleRegistry[conversionWord] = converterClassName
+    }
+
+    /**
+     * An example config for your subclass
+     */
+    protected void exampleConfig() {
+        // Typically invoke super configuration
+        // super.configureLogging()
+
+        // 2) Change default logging levels - ROOT default is 'warn'
+        logger('com.mycompany', INFO)
+        logger('com.mycompany.mychattyservice', ERROR)
+
+        // 3) Setup dedicated logs and route specific java packages to them.
+        // Example here sets up a monthly rolling log for order related activity.
+        monthlyLog('order-tracking')
+        logger('com.mycompany.orders.orderservice', INFO, ['order-tracking'])
+
+
+        // 4) Create a json formatted log.
+        //
+        //  Include the following in build.gradle.  Alternatively, consider logstash-logback-encoder
+        //  compile "ch.qos.logback.contrib:logback-json-classic"
+        //  compile "ch.qos.logback.contrib:logback-jackson"
+        //  def jsonLayout = {
+        //    def ret = new JsonLayout()
+        //    ret.jsonFormatter = new JacksonJsonFormatter()
+        //    ret.jsonFormatter.prettyPrint = true
+        //    ret.timestampFormat = 'yyyy-MM-dd HH:mm:ss.SSS'
+        //    return ret
+        // }
+        // monthlyLog('json-log', jsonLayout)
+        // logger('com.mycompany.foo', INFO, ['json-log'])
     }
 }
