@@ -22,10 +22,8 @@ class ApplicationConfig {
 
             // Default logging level for early console logging during startup.
             // See `init/LogBack.groovy` for information on how to customize hoist logging
-            logging.level {
-                root = 'warn'
-                io.xh.hoist = 'info'
-            }
+            logging.level.root = 'warn'
+            logging.level.io.xh.hoist = 'info'
 
             hoist {
                 // Read by WebSocketService to determine if WS support should generally be enabled.

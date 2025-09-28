@@ -118,14 +118,17 @@ class LogbackConfig  {
      * Setup all configuration, with fallback handling .
      */
     final void configure() {
+        def name = this.class.canonicalName
         try {
             loggerContext.reset()
             configureLogging()
+            loggerContext.getLogger(this.class).info("Logging configuration succeeded | $name")
         } catch (Throwable t) {
             loggerContext.reset()
+            appenders.clear()
             consoleAppender('stdout', '%d{yyyy-MM-dd HH:mm:ss.SSS} | %c{0} [%p] | %m%n')
             root(INFO, ['stdout'])
-            loggerContext.getLogger(this.class).error('Logging Configuration failed, falling back to console logging', t)
+            loggerContext.getLogger(this.class).error("Logging configuration failed. Falling back to console logging | $name", t)
         }
     }
 
