@@ -202,18 +202,6 @@ class MemoryMonitoringService extends BaseService {
         ]
     }
 
-    private Map getConfig() {
-        return configService.getMap('xhMemoryMonitoringConfig')
-    }
-
-    private boolean getPreservePastInstances() {
-        return config.preservePastInstances && !getIsLocalDevelopment()
-    }
-
-    private double roundTo2DP(v) {
-        return Math.round(v * 100) / 100
-    }
-
     private void persistSnapshots() {
         try {
             jsonBlobService.createOrUpdate(
@@ -230,14 +218,29 @@ class MemoryMonitoringService extends BaseService {
     @Transactional
     private cullPersisted() {
         def all = jsonBlobService.list(blobType, blobOwner).sort { it.lastUpdated },
-            maxKeep = config.maxPastInstances != null ? Math.max(config.maxPastInstances, 0) : 5,
-            toDelete = all.dropRight(maxKeep)
+            toDelete = all.dropRight(maxPastInstances)
 
         if (toDelete) {
             withInfo(['Deleting memory snapshots', [count: toDelete.size()]]) {
                 toDelete.each { it.delete() }
             }
         }
+    }
+
+    private Map getConfig() {
+        return configService.getMap('xhMemoryMonitoringConfig')
+    }
+
+    private boolean getPreservePastInstances() {
+        return config.preservePastInstances && !getIsLocalDevelopment()
+    }
+
+    private int getMaxPastInstances() {
+        return config.maxPastInstances != null ? Math.max(config.maxPastInstances as int, 0) : 5
+    }
+
+    private double roundTo2DP(v) {
+        return Math.round(v * 100) / 100
     }
 
     void clearCaches() {
