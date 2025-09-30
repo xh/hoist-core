@@ -6,7 +6,7 @@
 
 ### ⚙️ Technical
 Hoist Core v34 is a major framework upgrade version, with underlying upgrades to Grails 7.0,
-Spring Boot 3.5, Spring 6.2, Groovy 4.0. and Gradle 8.14.  With this release grails is officially
+Spring Boot 3.5, Spring 6.2, Groovy 4.0. and Gradle 8.14 and Java 21   With this release grails is officially
 part of the Apache Foundation.  The main required changes to applications are the following:
 
   * Change to logging config to accommodate the latest version of LogBack, and its removal of the groovy DSL.
@@ -16,6 +16,7 @@ part of the Apache Foundation.  The main required changes to applications are th
     Misc. updates and simplification to `build.gradle` and `gradle.properties` to adapt to Gradle 8.
     See toolbox for an example of these changes.
   * Changes of various core imports from `javax` to `jakarta`.
+  * Java 21 is now the recommended JVM for Hoist.  Java 17 is still supported.
 
 See the grails documentation at  https://docs.grails.org/7.0.0-RC2/guide/upgrading.html#upgrading60x
 for more information.

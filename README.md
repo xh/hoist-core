@@ -400,7 +400,7 @@ implementation of this monitoring API for both Hoist and non-Hoist based applica
 ## Development setup
 
 ### Hot reloading.
-Hot reloading is supported for Java17 using the java hotswap agent.  Please
+Hot reloading is supported for Java 17 and Java 21 using the java hotswap agent.  Please
 see http://hotswapagent.org/ and https://github.com/HotswapProjects/HotswapAgent for details on
 how to setup.
 
