@@ -20,6 +20,7 @@ import static io.xh.hoist.json.JSONParser.parseObject
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static io.xh.hoist.util.Utils.getAppEnvironment
+import static io.xh.hoist.util.Utils.getIsLocalDevelopment
 import static io.xh.hoist.util.Utils.isProduction
 import static io.xh.hoist.cluster.ClusterService.startupTime
 import static io.xh.hoist.util.DateTimeUtils.HOURS
@@ -39,7 +40,7 @@ class MemoryMonitoringService extends BaseService {
     private Map<Long, Map> _snapshots = new ConcurrentHashMap()
     private Date _lastInfoLogged
     private final String blobOwner = 'xhMemoryMonitoringService'
-    private final static String blobType =  isProduction ? 'xhMemorySnapshots' : "xhMemorySnapshots_$appEnvironment"
+    private final static String blobType = isProduction ? 'xhMemorySnapshots' : "xhMemorySnapshots_$appEnvironment"
 
     void init() {
         createTimer(
@@ -111,7 +112,7 @@ class MemoryMonitoringService extends BaseService {
             logDebug(newSnap)
         }
 
-        if (config.preservePastInstances) persistSnapshots()
+        if (preservePastInstances) persistSnapshots()
 
         return newSnap
     }
@@ -132,7 +133,8 @@ class MemoryMonitoringService extends BaseService {
      * Get list of past instances for which snapshots are available.
      */
     List<Map> availablePastInstances() {
-        if (!config.preservePastInstances) return []
+        if (!preservePastInstances) return []
+
         jsonBlobService
             .list(blobType, blobOwner)
             .findAll { !clusterService.isMember(it.name) }
@@ -202,6 +204,10 @@ class MemoryMonitoringService extends BaseService {
 
     private Map getConfig() {
         return configService.getMap('xhMemoryMonitoringConfig')
+    }
+
+    private boolean getPreservePastInstances() {
+        return config.preservePastInstances && !getIsLocalDevelopment()
     }
 
     private double roundTo2DP(v) {
