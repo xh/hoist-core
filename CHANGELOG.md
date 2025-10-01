@@ -2,6 +2,11 @@
 
 ## 34.0-SNAPSHOT - unreleased
 
+
+### 🐞 Bug Fixes
+
+* Restore display of Timers in Service AdminStats.
+
 ## 33.0.0 - 2025-09-26
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - exception handling syntax )

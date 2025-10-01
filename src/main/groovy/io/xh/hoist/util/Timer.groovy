@@ -225,7 +225,8 @@ class Timer implements LogSupport, AdminStats {
     Map getAdminStats() {
         [
             name      : name,
-            type      : 'Timer' + (primaryOnly ? ' (primary only)' : ''),
+            type      : 'Timer',
+            primaryOnly: primaryOnly,
             intervalMs: intervalMs,
             isRunning : isRunning,
             startTime : isRunning ? _lastRunStarted : null,
