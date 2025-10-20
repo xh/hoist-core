@@ -10,6 +10,7 @@ package io.xh.hoist.util
 import com.hazelcast.replicatedmap.ReplicatedMap
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
+import io.xh.hoist.AdminStats
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.log.LogSupport
 import org.slf4j.Logger
@@ -45,7 +46,7 @@ import static org.slf4j.LoggerFactory.getLogger
  * A common pattern would be to have the primary instance run a Timer-based job to load data into
  * a cache, with the cache then replicated across the cluster.
  */
-class Timer implements LogSupport {
+class Timer implements LogSupport, AdminStats {
 
     private static Long CONFIG_INTERVAL = 15 * SECONDS
     private static boolean shutdownInProgress = false
@@ -224,7 +225,8 @@ class Timer implements LogSupport {
     Map getAdminStats() {
         [
             name      : name,
-            type      : 'Timer' + (primaryOnly ? ' (primary only)' : ''),
+            type      : 'Timer',
+            primaryOnly: primaryOnly,
             intervalMs: intervalMs,
             isRunning : isRunning,
             startTime : isRunning ? _lastRunStarted : null,
@@ -232,8 +234,10 @@ class Timer implements LogSupport {
         ].findAll { it.value != null }
     }
 
-
-    //------------------------
+    List<String> getComparableAdminStats() {
+        return []
+    }
+//------------------------
     // Implementation
     //------------------------
     private void doRun() {

@@ -21,6 +21,9 @@ part of the Apache Foundation.  The main required changes to applications are th
 See the grails documentation at  https://docs.grails.org/7.0.0-RC2/guide/upgrading.html#upgrading60x
 for more information.
 
+### 🐞 Bug Fixes
+* Restore display of Timers in Service AdminStats.
+
 
 ## 33.0.0 - 2025-09-26
 
