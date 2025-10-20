@@ -21,8 +21,8 @@ import static io.xh.hoist.util.Utils.createCustomOrDefault
 
 class HoistCoreGrailsPlugin extends Plugin {
 
-    def grailsVersion = '7.0.0-RC2'
-    def version = '33.0-SNAPSHOT'
+    def grailsVersion = '7.0.0'
+    def version = '34.0-SNAPSHOT'
     def title = 'hoist-core'
     def author = 'Extremely Heavy'
     def authorEmail = 'info@xh.io'

@@ -48,7 +48,6 @@ dependencies {
     api "org.apache.grails:grails-gsp"
     api "org.apache.grails:grails-interceptors"
     api "org.apache.grails:grails-logging"
-    api "org.apache.grails:grails-quartz:4.0.0-M3"
     api "org.apache.grails:grails-services"
     api "org.apache.grails:grails-url-mappings"
     api "org.apache.grails:grails-web-boot"
@@ -61,6 +60,7 @@ dependencies {
     runtimeOnly "com.zaxxer:HikariCP"
 
     api "org.grails.plugins:grails-mail:5.0.2"
+    api "org.apache.grails:grails-quartz:4.0.0"
 
     //--------------------
     // Hoist Additions
