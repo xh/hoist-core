@@ -55,10 +55,6 @@ dependencies {
     api "org.springframework.boot:spring-boot-starter-logging"
     api "org.springframework.boot:spring-boot-starter-tomcat"
     api "org.springframework.boot:spring-boot-starter-validation"
-
-    console "org.apache.grails:grails-console"
-    runtimeOnly "com.zaxxer:HikariCP"
-
     api "org.grails.plugins:grails-mail:5.0.2"
     api "org.apache.grails:grails-quartz:4.0.0"
 
