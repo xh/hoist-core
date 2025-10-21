@@ -95,4 +95,86 @@ bootJar.enabled = false
 tasks.bootRun.doFirst {
     throw new RuntimeException('The bootRun task is not supported in hoist-core. If running in a "wrapper" config, ensure you run the task from your app, not the top-level wrapper.')
 }
+//------------------------
+// Maven publishing
+// This is a modified version of the gradle configs setup by the Grails plugin publishing plugin
+// https://github.com/grails/grails-core/blob/master/grails-gradle-plugin/src/main/groovy/org/grails/gradle/plugin/publishing/GrailsCentralPublishGradlePlugin.groovy
+// The default behavior assumes publishing of non-snapshot builds only to the paid (if private) Bintray system
+//------------------------
+java {
+    withSourcesJar()
+}
 
+apply plugin:'maven-publish'
+publishing {
+    publications {
+        hoistCore(MavenPublication) {
+            artifactId 'hoist-core'
+
+            pom.withXml {
+                Node pomNode = asNode()
+                if (pomNode.dependencyManagement) {
+                    pomNode.dependencyManagement[0].replaceNode {}
+                }
+
+                pomNode.children().last() + {
+                    delegate.name 'hoist-core'
+                    delegate.description "Extremely Heavy Industry's toolkit for enterprise web applications."
+                    delegate.url 'https://xh.io'
+                    delegate.organization {
+                        delegate.name 'Extremely Heavy Industries'
+                        delegate.url 'https://xh.io'
+                    }
+                    delegate.scm {
+                        delegate.url "https://github.com/xh/hoist-core"
+                        delegate.connection "scm:git@github.com:xh/hoist-core.git"
+                        delegate.developerConnection "scm:git@github.com:xh/hoist-core.git"
+                    }
+                    delegate.issueManagement {
+                        delegate.system "GitHub"
+                        delegate.url "https://github.com/xh/hoist-core/issues"
+                    }
+                    delegate.developers {
+                        delegate.developer {
+                            delegate.id 'xh'
+                            delegate.name 'Extremely Heavy Industries'
+                            delegate.email 'info@xh.io'
+                        }
+                    }
+                }
+
+                pomNode.dependencies.dependency.findAll {
+                    it.version.text().isEmpty()
+                }.each {
+                    it.replaceNode {}
+                }
+            }
+
+            from components.java
+
+            def groovyOutputDir = sourceSets.main.output.classesDirs.files.find{it.path.contains('/groovy/')}
+            artifact source: "${groovyOutputDir}/META-INF/grails-plugin.xml",
+                classifier: 'plugin',
+                extension: 'xml'
+        }
+    }
+    repositories {
+        maven {
+            name 'xhRepo'
+            def repoEndpoint = version.endsWith('-SNAPSHOT') ? 'snapshots' : 'releases'
+            url "https://repo.xh.io/content/repositories/$repoEndpoint/"
+            credentials {
+                username project.findProperty('xhRepoDeployUser')
+                password project.findProperty('xhRepoDeployPassword')
+            }
+        }
+    }
+}
+
+task publishHoistCore(dependsOn: 'publishHoistCorePublicationToxhRepoRepository') {
+    group 'xhio'
+    description 'Publishes a build to repo.xh.io.'
+    doLast {
+        println "Hoist $version published to repo.xh.io!"
+    }
+}
