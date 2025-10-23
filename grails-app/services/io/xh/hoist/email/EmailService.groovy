@@ -92,7 +92,7 @@ class EmailService extends BaseService {
                 devContext << Utils.appEnvironment.displayName.toUpperCase();
             }
             if (override) {
-                devContext << (toSpec.size() > 1 ? "for ${toSpec.size()} receipients" : "for ${toSpec.first()}")
+                devContext << (toSpec.size() > 1 ? "for ${toSpec.size()} recipients" : "for ${toSpec.first()}")
             }
             if (devContext) {
                 subjectUse += " [${devContext.join(', ')}]"
