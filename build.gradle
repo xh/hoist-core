@@ -20,9 +20,9 @@ plugins {
 // Not Published to Gradle Plugin Portal
 apply plugin: "org.apache.grails.gradle.grails-web"
 
-version xhReleaseVersion
+version = xhReleaseVersion
 
-group 'io.xh'
+group = 'io.xh'
 
 
 repositories {
@@ -55,7 +55,7 @@ dependencies {
     api "org.springframework.boot:spring-boot-starter-logging"
     api "org.springframework.boot:spring-boot-starter-tomcat"
     api "org.springframework.boot:spring-boot-starter-validation"
-    api "org.grails.plugins:grails-mail:5.0.2"
+    api "org.grails.plugins:grails-mail:5.0.3"
     api "org.apache.grails:grails-quartz:4.0.0"
 
     //--------------------
@@ -120,7 +120,7 @@ apply plugin:'maven-publish'
 publishing {
     publications {
         hoistCore(MavenPublication) {
-            artifactId 'hoist-core'
+            artifactId = 'hoist-core'
 
             pom.withXml {
                 Node pomNode = asNode()
@@ -171,20 +171,20 @@ publishing {
     }
     repositories {
         maven {
-            name 'xhRepo'
+            name = 'xhRepo'
             def repoEndpoint = version.endsWith('-SNAPSHOT') ? 'snapshots' : 'releases'
-            url "https://repo.xh.io/content/repositories/$repoEndpoint/"
+            url = "https://repo.xh.io/content/repositories/$repoEndpoint/"
             credentials {
-                username project.findProperty('xhRepoDeployUser')
-                password project.findProperty('xhRepoDeployPassword')
+                username = project.findProperty('xhRepoDeployUser')
+                password = project.findProperty('xhRepoDeployPassword')
             }
         }
     }
 }
 
 task publishHoistCore(dependsOn: 'publishHoistCorePublicationToXhRepoRepository') {
-    group 'xhio'
-    description 'Publishes a build to repo.xh.io.'
+    group = 'xhio'
+    description = 'Publishes a build to repo.xh.io.'
     doLast {
         println "Hoist $version published to repo.xh.io!"
     }

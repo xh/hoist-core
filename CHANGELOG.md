@@ -2,14 +2,15 @@
 
 ## 34.0-SNAPSHOT - unreleased
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - upgrade to Grails/Gradle/Spring.  New logging config)
+### 💥 Breaking Changes (upgrade difficulty: 🟢 Medium - upgrade to Grails/Gradle/Spring.New logging config)
 
 ### ⚙️ Technical
 Hoist Core v34 is a major framework upgrade version, with underlying upgrades to Grails 7.0,
-Spring Boot 3.5, Spring 6.2, Groovy 4.0. and Gradle 8.14 and Java 21   With this release grails is officially
-part of the Apache Foundation.  The main required changes to applications are the following:
+Spring Boot 3.5, Spring 6.2, Groovy 4.0, Gradle 8.14, Tomcat 10.1, and Java 21.   With this
+release grails is officially part of the Apache Foundation.  The main required changes to
+applications are the following:
 
-  * Change to logging config to accommodate the latest version of LogBack, and its removal of the groovy DSL.
+  * Change to logging config to accommodate the latest version of Logback, and its removal of the groovy DSL.
     In order to allow hoist apps to continue to seamlessly provide configuration via groovy, we have replicated
     the functionality of the logback DSL in methods on LogConfig.groovy.  Any custom logback.groovy scripts
     should be moved to an override of `LogConfig` class. See `LogConfig.` for more details.
@@ -18,7 +19,7 @@ part of the Apache Foundation.  The main required changes to applications are th
   * Changes of various core imports from `javax` to `jakarta`.
   * Java 21 is now the recommended JVM for Hoist.  Java 17 is still supported.
 
-See the grails documentation at  https://docs.grails.org/7.0.0-RC2/guide/upgrading.html#upgrading60x
+See the grails documentation at  https://docs.grails.org/7.0.0/guide/upgrading.html#upgrading60x
 for more information.
 
 ### 🐞 Bug Fixes
