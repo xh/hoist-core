@@ -1,5 +1,8 @@
 package io.xh.hoist.util;
 
+import java.util.*;
+import java.util.function.Function;
+
 /**
  * Hoist tools for creating/manipulating collections in Java using groovy
  * like syntax.Useful for applications with large datasets and high performance

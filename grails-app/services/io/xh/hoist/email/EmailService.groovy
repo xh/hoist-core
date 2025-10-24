@@ -63,7 +63,7 @@ class EmailService extends BaseService {
                 filter = parseMailConfig('xhEmailFilter'),
                 toSpec = filterAddresses(formatAddresses(args.to), filter),
                 ccSpec = filterAddresses(formatAddresses(args.cc), filter),
-                bccSpec = filterAddresses(formatAddresses(args.cc), filter)
+                bccSpec = filterAddresses(formatAddresses(args.bcc), filter)
 
             List<String> toUse = override ? override : toSpec
             List<String> ccUse = override ? [] : ccSpec
@@ -114,11 +114,11 @@ class EmailService extends BaseService {
                 if (bccUse) {
                     bcc bccUse.toArray()
                 }
-                if (markImportant) {
-                    headers(
-                        Importance: 'High',
-                        X-MSMail-Priority: 'High'
-                        X-Priority: 1
+                if (args.markImportant) {
+                    headers (
+                        'Importance': 'High',
+                        'X-MSMail-Priority': 'High',
+                        'X-Priority': 1
                     )
                 }
 
