@@ -32,8 +32,10 @@ class EmailService extends BaseService {
      * @param args
      *      to {String or List}     - required, email address(es) of recipient(s)
      *      from {String}           - optional, sender address, defaults to config
-     *      cc {String or List}     - optional, cc recipients;
+     *      cc {String or List}     - optional, cc recipients
+     *      bcc {String or List}    - optional, bcc recipients
      *      subject {String}        - optional
+     *      markImportant {boolean} - optional, to mark email as important via standard headers, default false
      *      async {Boolean}         - option to send email asynchronously, defaults to false
      *      doLog {Boolean}         - option to log email information on send, defaults to true
      *      logIdentifier {String}  - optional, string to append to log message, defaults to subject
@@ -60,10 +62,12 @@ class EmailService extends BaseService {
             def override = parseMailConfig('xhEmailOverride'),
                 filter = parseMailConfig('xhEmailFilter'),
                 toSpec = filterAddresses(formatAddresses(args.to), filter),
-                ccSpec = filterAddresses(formatAddresses(args.cc), filter)
+                ccSpec = filterAddresses(formatAddresses(args.cc), filter),
+                bccSpec = filterAddresses(formatAddresses(args.bcc), filter)
 
             List<String> toUse = override ? override : toSpec
             List<String> ccUse = override ? [] : ccSpec
+            List<String> bccUse = override ? [] : bccSpec
             String fromUse = args.from ? formatAddresses(args.from)[0] : parseMailConfig('xhEmailDefaultSender')[0]
             String subjectUse = args.subject ?: ''
             List<Map> attachments = parseAttachments(args.attachments)
@@ -107,6 +111,17 @@ class EmailService extends BaseService {
                 if (ccUse) {
                     cc ccUse.toArray()
                 }
+                if (bccUse) {
+                    bcc bccUse.toArray()
+                }
+                if (args.markImportant) {
+                    headers (
+                        'Importance': 'High',
+                        'X-MSMail-Priority': 'High',
+                        'X-Priority': 1
+                    )
+                }
+
                 subject subjectUse.take(255)
 
                 if (args.containsKey('html')) {
