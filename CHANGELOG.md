@@ -10,21 +10,29 @@ Spring Boot 3.5, Spring 6.2, Groovy 4.0, Gradle 8.14, Tomcat 10.1, and Java 21. 
 release grails is officially part of the Apache Foundation.  The main required changes to
 applications are the following:
 
-  * Change to logging config to accommodate the latest version of Logback, and its removal of the groovy DSL.
-    In order to allow hoist apps to continue to seamlessly provide configuration via groovy, we have replicated
-    the functionality of the logback DSL in methods on LogConfig.groovy.  Any custom logback.groovy scripts
-    should be moved to an override of `LogbackConfig` class. See `LogbackConfig.` for more details.
-    Misc. updates and simplification to `build.gradle` and `gradle.properties` to adapt to Gradle 8.
-    See toolbox for an example of these changes.
-  * Changes of various core imports from `javax` to `jakarta`.
-  * Java 17 and Java 21 are both now supported JDKs.
+* Change to logging config to accommodate the latest version of Logback, and its removal of the groovy DSL.
+  In order to allow hoist apps to continue to seamlessly provide configuration via groovy, we have replicated
+  the functionality of the logback DSL in methods on LogConfig.groovy.  Any custom logback.groovy scripts
+  should be moved to an override of `LogbackConfig` class. See `LogbackConfig.` for more details.
+  Misc. updates and simplification to `build.gradle` and `gradle.properties` to adapt to Gradle 8.
+  See toolbox for an example of these changes.
+* Changes of various core imports from `javax` to `jakarta`.
+* Java 17 and Java 21 are both now supported JDKs.
 
 See the grails documentation at  https://docs.grails.org/7.0.0/guide/upgrading.html#upgrading60x
 for more information.
 
-### 🐞 Bug Fixes
-* Restore display of Timers in Service AdminStats.
 
+## 33.1.0 - 2025-10-24
+
+### 🎁 New Features
+
+* `EmailService.sendEmail` now supports `bcc` and `markImportant` properties.
+*  New `CollectionUtils` with java utilities for efficient collection creation.
+
+### 🐞 Bug Fixes
+
+* Restore display of Timers in Service AdminStats.
 
 ## 33.0.0 - 2025-09-26
 
