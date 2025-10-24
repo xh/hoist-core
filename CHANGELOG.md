@@ -2,6 +2,10 @@
 
 ## 34.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* `EmailService.sendEmail` now supports `bcc` and `markImportant` properties.
+*  New `CollectionUtils` with java utilities for efficient collection creation.
 
 ### 🐞 Bug Fixes
 
