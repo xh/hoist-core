@@ -22,6 +22,8 @@ applications are the following:
 See the grails documentation at  https://docs.grails.org/7.0.0/guide/upgrading.html#upgrading60x
 for more information.
 
+* Enhance exception handling in `JSONClient` to capture messages returned as raw strings.
+
 
 ## 33.1.0 - 2025-10-24
 
@@ -178,8 +180,6 @@ for more information.
 ### 🐞 Bug Fixes
 
 * Fixed broken log file downloads from the Admin Console.
-
-* Enhance exception handling in `JSONClient` to capture messages returned as raw strings.
 
 
 ## 28.1.0 - 2025-02-13
