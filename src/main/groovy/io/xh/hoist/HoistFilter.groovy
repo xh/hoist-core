@@ -11,9 +11,9 @@ import groovy.transform.CompileStatic
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.util.Utils
 
-import javax.servlet.*
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
+import jakarta.servlet.*
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 
 import static io.xh.hoist.util.Utils.authenticationService
 import static io.xh.hoist.util.Utils.getClusterService

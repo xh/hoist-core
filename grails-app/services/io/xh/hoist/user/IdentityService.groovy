@@ -14,8 +14,8 @@ import io.xh.hoist.security.BaseAuthenticationService
 import io.xh.hoist.track.TrackService
 import static io.xh.hoist.util.Utils.getCurrentRequest
 
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpSession
 
 /**
  * Primary service for retrieving the logged-in HoistUser (aka the application user), with support

@@ -33,8 +33,8 @@ import org.grails.web.servlet.mvc.GrailsWebRequest
 import org.springframework.context.ApplicationContext
 import org.springframework.web.context.request.RequestContextHolder
 
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 import javax.sql.DataSource
 
 class Utils {
@@ -44,27 +44,27 @@ class Utils {
     //------------------
     /** Internal short name of the application - lowercase, no spaces. */
     static String getAppCode() {
-        return Metadata.current.getProperty('info.xh.appCode', String).orElse(null)
+        return Metadata.current.getProperty('info.xh.appCode', String, null)
     }
 
     /** Internal package name of the application - lowercase, no spaces. */
     static String getAppPackage() {
-        return Metadata.current.getProperty('info.xh.appPackage', String).orElse(null)
+        return Metadata.current.getProperty('info.xh.appPackage', String, null)
     }
 
     /** User-facing display name of the application - proper case, can include spaces. */
     static String getAppName() {
-        return Metadata.current.getProperty('info.xh.appName', String).orElse(null)
+        return Metadata.current.getProperty('info.xh.appName', String, null)
     }
 
     /** Current version, either SemVer x.y.z format or x.y-SNAPSHOT. */
     static String getAppVersion() {
-        return Metadata.current.getProperty('info.app.version', String).orElse(null)
+        return Metadata.current.getProperty('info.app.version', String, null)
     }
 
     /** Git commit hash or other identifier set at build time. */
     static String getAppBuild() {
-        return Metadata.current.getProperty('info.xh.appBuild', String).orElse(null)
+        return Metadata.current.getProperty('info.xh.appBuild', String, null)
     }
 
     /** Hoist AppEnvironment of the current deployment, distinct from Grails environment. */
@@ -156,6 +156,16 @@ class Utils {
 
     static ExceptionHandler getExceptionHandler() {
         return (ExceptionHandler) appContext.xhExceptionHandler
+    }
+
+
+    static <T> T createCustomOrDefault(String customClassName, Class<T> clazz) {
+        try {
+            def customClass = Class.forName(customClassName)
+            return customClass.getConstructor().newInstance() as T
+        } catch (ClassNotFoundException e) {
+            return clazz.getConstructor().newInstance()
+        }
     }
 
 
