@@ -13,9 +13,6 @@ import io.xh.hoist.AdminStats
 import javax.cache.expiry.Duration
 import javax.cache.expiry.ExpiryPolicy
 
-import static java.util.Collections.emptyList
-import static java.util.Collections.emptyMap
-
 /**
  * Admin stats for Hazelcast built-in objects.
  */

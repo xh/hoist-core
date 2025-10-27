@@ -20,6 +20,11 @@ class ApplicationConfig {
     static void defaultConfig(Script script) {
         withDelegate(script) {
 
+            // Default logging level for early console logging during startup.
+            // See `init/LogBack.groovy` for information on how to customize hoist logging
+            logging.level.root = 'warn'
+            logging.level.io.xh.hoist = 'info'
+
             hoist {
                 // Read by WebSocketService to determine if WS support should generally be enabled.
                 enableWebSockets = true
@@ -38,11 +43,8 @@ class ApplicationConfig {
             }
 
             grails {
-                project.groupId = appPackage
                 app.context = '/'
-                resources.pattern = '/**'
 
-                profile = 'rest-api'
                 cors {
                     enabled = true
                     allowCredentials = true
@@ -70,8 +72,6 @@ class ApplicationConfig {
                 }
 
                 controllers {
-                    defaultScope = 'singleton'
-
                     // Increase limits to 20mb to support large grid exports, other file uploads.
                     upload {
                         maxFileSize = 20971520
@@ -79,14 +79,8 @@ class ApplicationConfig {
                     }
                 }
 
-                urlmapping.cache.maxsize = 1000
-                converters.encoding = 'UTF-8'
-                enable.native2ascii = true
                 web.disable.multipart = false
-                exceptionresolver.params.exclude = ['password', 'pin']
-
                 gorm {
-                    reactor.events = false
                     failOnError = true
                 }
             }

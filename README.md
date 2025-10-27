@@ -174,9 +174,8 @@ Implementations of this method must lookup and/or create a User class which impl
 logged in user. Applications can choose to enhance their own user class with any additional details,
 managed via the app or sourced from systems such as Active Directory / LDAP.
 
-While not included in Hoist directly, NTLM / SSO can be supported via integration with the
-[Jespa library](https://www.ioplex.com/), commonly done via a
-[custom plugin](#custom-plugins-for-enterprise-deployments).
+While not included in Hoist directly, OAuth can be supported via integration with libraries such as
+MSAL.  This is commonly done via a [custom plugin](#custom-plugins-for-enterprise-deployments).
 
 Once authentication is complete, `IdentityService` is the primary server-side Service for getting a
 reference to the current user. Hoist's client side code calls a dedicated endpoint to verify and
@@ -401,7 +400,7 @@ implementation of this monitoring API for both Hoist and non-Hoist based applica
 ## Development setup
 
 ### Hot reloading.
-Hot reloading is supported for Java17 using the java hotswap agent.  Please
+Hot reloading is supported for Java 17 and Java 21 using the java hotswap agent.  Please
 see http://hotswapagent.org/ and https://github.com/HotswapProjects/HotswapAgent for details on
 how to setup.
 
