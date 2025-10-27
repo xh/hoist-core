@@ -148,7 +148,7 @@ class JSONClient {
     // Attempt to parse a reasonable exception from failed response, but never actually throw if not possible.
     private Throwable parseException(CloseableHttpResponse response) {
         try {
-            String content = response.entity.content.getText().trim()
+            String content = response.entity.content?.getText()?.trim()
             if (!content) return null
 
             // [1] We have a valid json object (preferred)
