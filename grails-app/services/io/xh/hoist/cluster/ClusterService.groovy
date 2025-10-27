@@ -14,18 +14,20 @@ import com.hazelcast.core.LifecycleEvent
 import com.hazelcast.core.LifecycleListener
 import io.xh.hoist.BaseService
 import io.xh.hoist.ClusterConfig
+import io.xh.hoist.exception.InstanceNotAvailableException
 import io.xh.hoist.exception.InstanceNotFoundException
 import io.xh.hoist.util.Utils
+import org.springframework.boot.SpringApplication
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.ApplicationListener
 
 import static com.hazelcast.core.LifecycleEvent.LifecycleState.SHUTDOWN
 import static grails.async.Promises.task
-import static io.xh.hoist.util.DateTimeUtils.getSECONDS
-import static java.lang.Thread.sleep
+import static io.xh.hoist.cluster.InstanceState.*
+import static io.xh.hoist.util.Utils.createCustomOrDefault
 import static org.slf4j.LoggerFactory.getLogger
 
-class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent> {
+class ClusterService extends BaseService implements ApplicationListener<ApplicationReadyEvent>  {
 
     /**
      * Name of Hazelcast cluster.
@@ -48,14 +50,19 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      */
     static HazelcastInstance hzInstance
 
+    //----------------------------------
+    // Instance Start/Ready Lifecycle
+    //----------------------------------
+    static final Date startupTime = new Date()
+    static InstanceState instanceState = STARTING
+
     private static ClusterConfig clusterConfig
-    private static boolean shutdownInProgress
     private IExecutorService taskExecutor
 
     static {
         // Create cluster/instance identifiers statically so logging can access early in lifecycle
         if (Utils.appCode) {  // ... do not create during build
-            clusterConfig = createConfig()
+            clusterConfig = createCustomOrDefault(Utils.appPackage + '.ClusterConfig', ClusterConfig)
             clusterName = clusterConfig.clusterName
             instanceName = clusterConfig.instanceName
             System.setProperty('io.xh.hoist.hzInstanceName', instanceName)
@@ -76,11 +83,11 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         getHzConfig().addListenerConfig(new ListenerConfig())
         hzInstance.lifecycleService.addLifecycleListener([
             stateChanged: { LifecycleEvent e ->
-                // If hz shutdown *not* initiated by app, need to propagate to app/JVM
+                // If hz shutdown *not* initiated by app, need to propagate to app
                 // This has been seen consistently on non-primary node after an OOM. (Jan 2025)
-                if (e.state == SHUTDOWN && !shutdownInProgress) {
-                    getLogger(this).warn('Hazelcast instance has stopped and the app must terminate.  Shutting down JVM')
-                    System.exit(0)
+                if (e.state == SHUTDOWN && instanceState != STOPPING) {
+                    getLogger(this).warn('Hazelcast has unexpectedly stopped.  Terminating App.')
+                    shutdownInstance()
                 }
             }
         ] as LifecycleListener)
@@ -92,37 +99,37 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      */
     static void shutdownHazelcast() {
         getLogger(this).info('Shutting down Hazelcast instance.')
-        shutdownInProgress = true
         hzInstance.shutdown()
     }
 
     void init() {
-        logInfo("Using cluster config ${clusterConfig.class.getCanonicalName()}")
+        logInfo("Using cluster config ${clusterConfig.class.canonicalName}")
         logInfo(multiInstanceEnabled
             ? 'Multi-instance is enabled - instances will attempt to cluster.'
             : 'Multi-instance is disabled - instances will avoid clustering.'
         )
+        def clusterSize = cluster.members.size(),
+            primary = this.primary
+        _isPrimary = primary.localMember()
+        logInfo(_isPrimary ?
+            "Joining a cluster of $clusterSize as the PRIMARY instance. All hail me, '${instanceName}'" :
+            "Joining a cluster of $clusterSize as a SECONDARY instance. Primary is '${primary.getAttribute('instanceName')}'"
+        )
 
-        adjustPrimaryStatus()
         cluster.addMembershipListener([
-            memberAdded  : { MembershipEvent e -> adjustPrimaryStatus(e.members) },
-            memberRemoved: { MembershipEvent e -> adjustPrimaryStatus(e.members) }
+            memberAdded  : { MembershipEvent e -> onMembershipChanged(e.members) },
+            memberRemoved: { MembershipEvent e -> onMembershipChanged(e.members) }
         ] as MembershipListener)
 
-        // Separate thread pool from 'default' Hz thread pool for executing
-        // (enhanced) BaseClusterRequests
+        // Separate thread pool from 'default' Hz thread pool for executing BaseClusterRequests
         taskExecutor = hzInstance.getExecutorService('xhexecutor')
 
         super.init()
     }
 
+    // Managed via event handlers. Cache for lightweight definition of isPrimary and change logging.
     private boolean _isPrimary = false
 
-
-    /**
-     * Is this instance ready for requests?
-     */
-    boolean isReady = false
 
     /**
      * The Hazelcast member representing the 'primary' instance.
@@ -148,7 +155,6 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
 
     /** Is the local instance the primary instance? */
     boolean getIsPrimary() {
-        // Cache until we ensure our implementation lightweight enough -- also supports logging.
         return _isPrimary
     }
 
@@ -158,14 +164,15 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     }
 
     /**
-     * Shutdown this instance.
+     * Shutdown this instance of the app.
+     *
+     * @param delay - optional delay to allow in progress requests to complete cleanly.
      */
-    void shutdownInstance() {
-        // Run async to allow this method to return.
+    void shutdownInstance(Long delayMs = 0) {
+        instanceState = STOPPING
         task {
-            logInfo('Initiating shutdown via System.exit')
-            sleep(1 * SECONDS)
-            System.exit(0)
+            if (delayMs) Thread.sleep(delayMs)
+            SpringApplication.exit(Utils.appContext)
         }
     }
 
@@ -192,7 +199,12 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      * Not typically called directly. Use ClusterUtils#runOnInstance instead.
      */
     ClusterResult submitToInstance(ClusterTask clusterRequest, String instance) {
-        taskExecutor.submitToMember(clusterRequest, getMember(instance)).get()
+        try {
+            taskExecutor.submitToMember(clusterRequest, getMember(instance)).get()
+        } catch (Throwable t) {
+            // task catches issue on instance. Catch deeper hz issue here
+            return new ClusterResult(exception: new ClusterTaskException(t))
+        }
     }
 
     /**
@@ -201,9 +213,25 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      * Not typically called directly. Use ClusterUtils#runOnAllInstances instead.
      */
     Map<String, ClusterResult> submitToAllInstances(ClusterTask c) {
-        taskExecutor
-            .submitToAllMembers(c)
-            .collectEntries { member, f -> [member.getAttribute('instanceName'), f.get()] }
+        def results = taskExecutor.submitToAllMembers(c)
+        results.collectEntries { member, f ->
+            def name = member.getAttribute('instanceName')
+            try {
+                return [name, f.get()]
+            } catch (Throwable t) {
+                // task catches issue on instance. Catch deeper hz issue here
+                return [name, new ClusterResult(exception: new ClusterTaskException(t))]
+            }
+        }
+    }
+
+    void ensureRunning() {
+        switch (instanceState) {
+            case STOPPING:
+                throw new InstanceNotAvailableException('Server shutting down.')
+            case STARTING:
+                throw new InstanceNotAvailableException('Server may be initializing. Please try again shortly.')
+        }
     }
 
     //------------------------------------
@@ -213,18 +241,19 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         hzInstance.cluster
     }
 
-    private void adjustPrimaryStatus(Set<Member> members = cluster.members) {
+    private void onMembershipChanged(Set<Member> members) {
         // Accept members explicitly to avoid race conditions when responding to MembershipEvents
         // (see https://docs.hazelcast.org/docs/4.0/javadoc/com/hazelcast/cluster/MembershipEvent.html)
         // Not sure if we ever abdicate, could network failures cause the primary to leave and rejoin cluster?
-        def newIsPrimary = members.iterator().next().localMember()
+        def newPrimary = members.iterator().next(),
+            newIsPrimary = newPrimary.localMember()
         if (_isPrimary != newIsPrimary) {
             _isPrimary = newIsPrimary
-            _isPrimary ?
-                logInfo("I have become the primary instance. All hail me, '$instanceName'") :
-                logInfo('I am no longer the primary instance.')
+            logInfo(_isPrimary ?
+                "Assuming the role of PRIMARY instance. All hail me, '${instanceName}'" :
+                "Assuming the role of SECONDARY instance. Primary is '${newPrimary.getAttribute('instanceName')}'"
+            )
         }
-
     }
 
     private Member getMember(String instanceName) {
@@ -233,22 +262,12 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         return ret
     }
 
-    private static ClusterConfig createConfig() {
-        def clazz
-        try {
-            clazz = Class.forName(Utils.appPackage + '.ClusterConfig')
-        } catch (ClassNotFoundException e) {
-            clazz = Class.forName('io.xh.hoist.ClusterConfig')
-        }
-        return (clazz.getConstructor().newInstance() as ClusterConfig)
-    }
-
     private static Config getHzConfig() {
         hzInstance.config
     }
 
     void onApplicationEvent(ApplicationReadyEvent event) {
-       isReady = true
+       instanceState = RUNNING
     }
 
     Map getAdminStats() {[
@@ -258,5 +277,6 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         isPrimary   : isPrimary,
         members     : cluster.members.collect { it.getAttribute('instanceName') }
     ]}
+
 
 }

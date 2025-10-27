@@ -28,8 +28,7 @@ class ConfigDiffAdminController extends BaseController {
     def applyRemoteValues() {
         def records = params.get('records')
         configDiffService.applyRemoteValues(JSONParser.parseArray(records))
-
-        renderJSON(success: true)
+        renderSuccess()
     }
 
 }

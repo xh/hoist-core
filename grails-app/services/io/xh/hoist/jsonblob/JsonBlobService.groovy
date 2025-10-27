@@ -32,11 +32,24 @@ class JsonBlobService extends BaseService implements DataBinder {
         return ret
     }
 
+    /** List all active blobs of a given type available to a user. */
     @ReadOnly
     List<JsonBlob> list(String type, String username = username) {
-        JsonBlob
-                .findAllByTypeAndArchivedDate(type, 0)
-                .findAll { passesAcl(it, username) }
+        accessibleBlobs(type, username) as List<JsonBlob>
+    }
+
+    /** List tokens for active blobs of a given type available to a user.  */
+    @ReadOnly
+    List<String> listTokens(String type, String username = username) {
+        accessibleBlobs(type, username, 'token') as List<String>
+    }
+
+    /** Delete all blobs with a given name for an owner. */
+    @Transactional
+    void deleteByNameAndOwner(String name, String owner) {
+        JsonBlob.deleteAll(
+            JsonBlob.findAllByNameAndOwner(name, owner)
+        )
     }
 
     @Transactional
@@ -47,7 +60,8 @@ class JsonBlobService extends BaseService implements DataBinder {
 
     @Transactional
     JsonBlob create(Map data, String username = username) {
-        data = [*: data, owner: username, lastUpdatedBy: username]
+        data = [owner: username, *: data, lastUpdatedBy: username]
+
         if (data.containsKey('value')) data.value = serialize(data.value)
         if (data.containsKey('meta')) data.meta = serialize(data.meta)
 
@@ -59,7 +73,7 @@ class JsonBlobService extends BaseService implements DataBinder {
         def blob = find(type, name, username, username)
         return blob ?
             updateInternal(blob, data, username) :
-            create([*: data, type: type, name: name, owner: username], username)
+            create([*: data, type: type, name: name], username)
     }
 
     @Transactional
@@ -86,6 +100,7 @@ class JsonBlobService extends BaseService implements DataBinder {
         return blob
     }
 
+
     private boolean passesAcl(JsonBlob blob, String username) {
         return blob.acl == '*' || blob.owner == username
     }
@@ -93,6 +108,21 @@ class JsonBlobService extends BaseService implements DataBinder {
     private ensureAccess(JsonBlob blob, String username) {
         if (!passesAcl(blob, username)) {
             throw new NotAuthorizedException("User '$username' does not have access to JsonBlob with token '${blob.token}'")
+        }
+    }
+
+    private Object accessibleBlobs(String type, String username, String projection = null) {
+        JsonBlob.createCriteria().list {
+            eq('type', type)
+            eq('archivedDate', 0L)
+            or {
+                eq('owner', username)
+                like('acl', '*') // Use like for sybase text col compat
+            }
+
+            if (projection) {
+                projections { property(projection) }
+            }
         }
     }
 }

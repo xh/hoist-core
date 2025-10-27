@@ -9,6 +9,7 @@ package io.xh.hoist
 
 import grails.validation.ValidationException
 import io.xh.hoist.json.JSONParser
+import io.xh.hoist.util.Utils
 
 abstract class RestController extends BaseController {
 
@@ -25,7 +26,7 @@ abstract class RestController extends BaseController {
             def obj = restTargetVal.newInstance(data)
             doCreate(obj, data)
             noteChange(obj, 'CREATE')
-            renderJSON(success:true, data:obj)
+            renderJSON(data:obj)
         }
     }
 
@@ -33,7 +34,7 @@ abstract class RestController extends BaseController {
         restTargetVal.withTransaction {
             def query = params.query ? JSONParser.parseObject(params.query) : [:],
                 ret = params.id ? [restTargetVal.get(params.id)] : doList(query)
-            renderJSON(success:true, data:ret)
+            renderJSON(data:ret)
         }
     }
 
@@ -46,7 +47,7 @@ abstract class RestController extends BaseController {
             try {
                 doUpdate(obj, data)
                 noteChange(obj, 'UPDATE')
-                renderJSON(success:true, data:obj)
+                renderJSON(data:obj)
             } catch (ValidationException ex) {
                 obj.discard()
                 throw ex
@@ -72,7 +73,7 @@ abstract class RestController extends BaseController {
                     successCount++
                 } catch (Exception e) {
                     failCount++
-                    xhExceptionHandler.handleException(
+                    Utils.handleException(
                         exception: e,
                         logMessage: "Exception updating ${id}",
                         logTo: this
@@ -89,7 +90,7 @@ abstract class RestController extends BaseController {
             def obj = restTargetVal.get(params.id)
             doDelete(obj)
             noteChange(obj, 'DELETE')
-            renderJSON(success:true)
+            renderSuccess()
         }
     }
 

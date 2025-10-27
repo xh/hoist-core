@@ -53,9 +53,9 @@ class DateTimeUtils {
      */
     static Long asEpochMilli(Object timestamp) {
         if (timestamp == null) return null
+        if (timestamp instanceof Long) return (Long) timestamp
         if (timestamp instanceof Date) return ((Date) timestamp).time
         if (timestamp instanceof Instant) return ((Instant) timestamp).toEpochMilli()
-        if (timestamp instanceof Long) return (Long) timestamp
         throw new IllegalArgumentException("Invalid timestamp: ${timestamp}")
     }
 

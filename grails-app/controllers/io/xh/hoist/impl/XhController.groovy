@@ -9,23 +9,22 @@ package io.xh.hoist.impl
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseController
-import io.xh.hoist.alertbanner.AlertBannerService
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.clienterror.ClientErrorService
 import io.xh.hoist.exception.NotFoundException
 import io.xh.hoist.exception.SessionMismatchException
 import io.xh.hoist.export.GridExportImplService
-import io.xh.hoist.feedback.FeedbackService
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.jsonblob.JsonBlobService
 import io.xh.hoist.pref.PrefService
+import io.xh.hoist.pref.Preference
 import io.xh.hoist.security.AccessAll
 import io.xh.hoist.security.BaseAuthenticationService
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.util.Utils
+import io.xh.hoist.view.ViewService
 
 import static io.xh.hoist.json.JSONParser.parseObject
 
@@ -33,13 +32,11 @@ import static io.xh.hoist.json.JSONParser.parseObject
 @CompileStatic
 class XhController extends BaseController {
 
-    AlertBannerService alertBannerService
-    ClientErrorService clientErrorService
     ConfigService configService
-    FeedbackService feedbackService
     GridExportImplService gridExportImplService
     JsonBlobService jsonBlobService
     PrefService prefService
+    ViewService viewService
     TrackService trackService
     EnvironmentService environmentService
     BaseUserService userService
@@ -85,12 +82,12 @@ class XhController extends BaseController {
 
     def impersonate(String username) {
         identityService.impersonate(username)
-        renderJSON(success: true)
+        renderSuccess()
     }
 
     def endImpersonate() {
         identityService.endImpersonate()
-        renderJSON(success: true)
+        renderSuccess()
     }
 
     //------------------------
@@ -101,7 +98,7 @@ class XhController extends BaseController {
         def payload = parseRequestJSON([safeEncode: true]),
             entries =  payload.entries as List
         trackService.trackAll(entries)
-        renderJSON(success: true)
+        renderSuccess()
     }
 
     //------------------------
@@ -158,15 +155,24 @@ class XhController extends BaseController {
                 logError("Failed to recover pref '$key'", e)
             }
         }
-        renderJSON(success: true)
+        renderSuccess()
     }
 
+    def clearUserState() {
+        ensureClientUsernameMatchesSession()
+        Preference.withNewTransaction {
+            prefService.clearPreferences()
+            viewService.clearAllState()
+        }
+        renderSuccess()
+    }
+
+    /** @deprecated.  Required by hoist-react <=v.75 */
     def clearPrefs() {
         ensureClientUsernameMatchesSession()
         prefService.clearPreferences()
-        renderJSON(success: true)
+        renderSuccess()
     }
-
 
     //------------------------
     // Json Blobs
@@ -229,49 +235,6 @@ class XhController extends BaseController {
 
     def environmentPoll() {
         renderJSON(environmentService.environmentPoll())
-    }
-
-
-    //------------------------
-    // Client Errors
-    //------------------------
-    def submitError() {
-        ensureClientUsernameMatchesSession()
-        def query = parseRequestJSON([safeEncode: true])
-        clientErrorService.submit(
-            query.msg as String,
-            query.error as String,
-            query.appVersion as String,
-            query.url as String,
-            query.userAlerted as Boolean,
-            query.correlationId as String
-        )
-        renderJSON(success: true)
-    }
-
-
-
-    //------------------------
-    // Feedback
-    //------------------------
-    def submitFeedback(String msg, String appVersion) {
-        ensureClientUsernameMatchesSession()
-        feedbackService.submit(
-            safeEncode(msg),
-            safeEncode(appVersion)
-        )
-        renderJSON(success: true)
-    }
-
-
-    //----------------------
-    // Alert Banner
-    //----------------------
-    /**
-     * @deprecated - used by hoist-react <= 67, now nested within {@link #environmentPoll}.
-     */
-    def alertBanner() {
-        renderJSON(alertBannerService.alertBanner)
     }
 
 

@@ -28,29 +28,35 @@ class TrackLogAdminService extends BaseService {
 
         def maxDefault = conf.maxRows.default as Integer,
             maxLimit = conf.maxRows.limit as Integer
-
         maxRows = [(maxRows ? maxRows : maxDefault), maxLimit].min()
 
-        def session = sessionFactory.currentSession
-        Criteria c = session.createCriteria(TrackLog)
-        c.maxResults = maxRows
-        c.addOrder(desc('dateCreated'))
-        if (startDay && endDay) {
-            c.add(between('dateCreated', appStartOfDay(startDay), appEndOfDay(endDay)))
+        withDebug(["Querying activity", [maxRows: maxRows]]) {
+            def session = sessionFactory.currentSession
+            Criteria c = session.createCriteria(TrackLog)
+            c.maxResults = maxRows
+            c.addOrder(desc('dateCreated'))
+            if (startDay && endDay) {
+                c.add(between('dateCreated', appStartOfDay(startDay), appEndOfDay(endDay)))
+            }
+            if (filter) {
+                c.add(filter.criterion)
+            }
+            c.list() as List<TrackLog>
         }
-        if (filter) {
-            c.add(filter.criterion)
-        }
-        c.list() as List<TrackLog>
     }
 
     @ReadOnly
-    Map lookups() {[
-        category: distinctVals('category'),
-        browser: distinctVals('browser'),
-        device: distinctVals('device'),
-        username: distinctVals('username')
-    ] }
+    Map lookups() {
+        withDebug("Loading lookups") {
+            return [
+                appVersion: distinctVals('appVersion'),
+                browser: distinctVals('browser'),
+                category: distinctVals('category'),
+                device: distinctVals('device'),
+                username: distinctVals('username')
+            ]
+        }
+    }
 
     //------------------------
     // Implementation

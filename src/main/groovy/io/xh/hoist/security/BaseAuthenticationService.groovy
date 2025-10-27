@@ -13,14 +13,13 @@ import io.xh.hoist.exception.NotAuthenticatedException
 import io.xh.hoist.exception.NotAuthorizedException
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
+import io.xh.hoist.util.Utils
 
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 
-import static io.xh.hoist.util.Utils.getExceptionHandler
 import static java.util.Collections.emptyMap
 import static org.apache.hc.core5.http.HttpStatus.SC_SERVER_ERROR
-
 
 
 /**
@@ -121,7 +120,7 @@ abstract class BaseAuthenticationService extends BaseService {
             return true
         } catch (Throwable e) {
             // Do *not* render auth exception to unverified client. Log and return opaque response
-            exceptionHandler.handleException(exception: e, logTo: this)
+            Utils.handleException(exception: e, logTo: this)
             response.setStatus(e instanceof HttpException ? e.statusCode : SC_SERVER_ERROR)
             response.flushBuffer()
             return false
@@ -158,6 +157,8 @@ abstract class BaseAuthenticationService extends BaseService {
      * Note that this deliberately does *not* contain the authStatus check URI. We do not whitelist
      * that URI as otherwise SSO-based apps will not have a first shot at installing a user on the
      * session within their completeAuthentication() implementations.
+     *
+     * Implementations can mutate to add custom entries but should take care to leave these in place.
      */
     protected List<String> whitelistURIs = [
         '/ping',  // legacy alias for /xh/ping (via UrlMappings)
@@ -167,4 +168,10 @@ abstract class BaseAuthenticationService extends BaseService {
         '/xh/version',
         '/xh/authConfig'
     ]
+
+    @Override
+    Map getAdminStats() { [whitelistURIs: whitelistURIs] }
+
+    @Override
+    List<String> getComparableAdminStats() { ['whitelistURIs'] }
 }

@@ -11,6 +11,7 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.security.Access
 
 import static io.xh.hoist.util.ClusterUtils.runOnInstanceAsJson
+import static io.xh.hoist.util.DateTimeUtils.SECONDS
 
 @Access(['HOIST_ADMIN_READER'])
 class ClusterAdminController extends BaseController {
@@ -32,7 +33,7 @@ class ClusterAdminController extends BaseController {
             data: [instance: instance]
         )
         logWarn('Initiated Instance Shutdown', [instance: instance])
-        def ret = runOnInstanceAsJson(clusterService.&shutdownInstance, instance)
+        def ret = runOnInstanceAsJson(clusterService.&shutdownInstance, instance, [5*SECONDS])
         renderClusterJSON(ret)
     }
 }

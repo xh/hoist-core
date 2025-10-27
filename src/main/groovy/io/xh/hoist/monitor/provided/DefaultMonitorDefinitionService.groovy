@@ -14,7 +14,6 @@ import io.xh.hoist.BaseService
 import io.xh.hoist.monitor.Monitor
 import io.xh.hoist.monitor.MonitorResult
 import io.xh.hoist.util.Utils
-import io.xh.hoist.clienterror.ClientError
 import io.xh.hoist.track.TrackLog
 
 import static io.xh.hoist.monitor.MonitorStatus.FAIL
@@ -37,6 +36,7 @@ import static java.lang.System.currentTimeMillis
  */
 class DefaultMonitorDefinitionService extends BaseService {
 
+    def getClusterObjectsService() { Utils.appContext.clusterObjectsService }
     def getConfigService() { Utils.configService }
     def getDataSource() {Utils.dataSource}
     def getLdapService() { Utils.ldapService}
@@ -77,7 +77,7 @@ class DefaultMonitorDefinitionService extends BaseService {
         def lookback = result.getRequiredParam('lookbackMinutes') * MINUTES,
             cutoffDate = new Date(currentTimeMillis() - lookback)
 
-        result.metric = ClientError.countByDateCreatedGreaterThan(cutoffDate)
+        result.metric = TrackLog.countByDateCreatedGreaterThanAndCategory(cutoffDate, 'Client Error')
     }
 
     @ReadOnly
@@ -124,6 +124,17 @@ class DefaultMonitorDefinitionService extends BaseService {
         }
 
         result.metric = currentTimeMillis() - startTime
+    }
+
+    def xhClusterBreaksMonitor(MonitorResult result) {
+        if (!clusterService.getMultiInstanceEnabled()) {
+            result.status = INACTIVE
+            result.message = 'Multi-instance mode not enabled'
+            return
+        }
+
+        def rpt = clusterObjectsService.getClusterObjectsReport()
+        result.metric = rpt.breaks.size()
     }
 
     /**
@@ -200,6 +211,16 @@ class DefaultMonitorDefinitionService extends BaseService {
                 active: true,
                 params: '{\n\t"queryUser": "admin"\n}',
                 notes: 'Reports time taken to query Hoist LdapService for the configured user, to test connectivity to an external directory (if enabled).'
+            ],
+            [
+                code: 'xhClusterBreaksMonitor',
+                name: 'Multi-Instance Discrepancies',
+                metricType: 'Ceil',
+                warnThreshold: 0,
+                failThreshold: 1,
+                metricUnit: 'breaks',
+                active: true,
+                notes: 'Queries the status of all distributed objects across a cluster and alerts if any breaks (discrepancies between comparable stats on an object) are reported across any instances.'
             ]
         ])
     }

@@ -8,14 +8,17 @@
 package io.xh.hoist.websocket
 
 import groovy.transform.CompileStatic
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
+import org.springframework.util.MultiValueMap
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator
+import org.springframework.web.util.UriComponentsBuilder
 
 import java.time.Instant
 
@@ -34,7 +37,12 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
     final WebSocketSession session
     final String authUsername
     final String apparentUsername
+    final String appBuild
+    final String appVersion
     final Instant createdTime
+    final String loadId
+    final String tabId
+    final String instance
 
     private Integer sentMessageCount = 0
     private Instant lastSentTime
@@ -42,13 +50,21 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
     private Instant lastReceivedTime
 
     HoistWebSocketChannel(WebSocketSession webSocketSession) {
-        Map conf = getConfig()
-        def sendTimeLimit = (int) conf.sendTimeLimitMs,
+        def conf = getConfig(),
+            queryParams = getQueryParams(webSocketSession.uri),
+            sendTimeLimit = (int) conf.sendTimeLimitMs,
             bufferSizeLimit = (int) conf.bufferSizeLimitBytes
+
         logDebug("Creating managed socket session", [sendTimeLimit: sendTimeLimit, bufferSizeLimit: bufferSizeLimit])
+
         session = new ConcurrentWebSocketSessionDecorator(webSocketSession, sendTimeLimit, bufferSizeLimit)
         authUsername = getAuthUsernameFromSession()
         apparentUsername = getApparentUsernameFromSession()
+        appVersion = queryParams.getFirst('appVersion')
+        appBuild = queryParams.getFirst('appBuild')
+        instance = ClusterService.instanceName
+        loadId = queryParams.getFirst('loadId')
+        tabId = queryParams.getFirst('tabId')
         createdTime = Instant.now()
     }
 
@@ -90,6 +106,10 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
         return (String) session.attributes[IdentityService.APPARENT_USER_KEY] ?: 'unknownUser'
     }
 
+    private MultiValueMap<String, String> getQueryParams(URI uri) {
+        UriComponentsBuilder.fromUri(uri).build().queryParams
+    }
+
     private Map getConfig() {
         return configService.getMap('xhWebSocketConfig')
     }
@@ -104,7 +124,12 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
             sentMessageCount: sentMessageCount,
             lastSentTime: lastSentTime,
             receivedMessageCount: receivedMessageCount,
-            lastReceivedTime: lastReceivedTime
+            lastReceivedTime: lastReceivedTime,
+            appVersion: appVersion,
+            appBuild: appBuild,
+            instance: instance,
+            loadId: loadId,
+            tabId: tabId,
         ]
     }
 }

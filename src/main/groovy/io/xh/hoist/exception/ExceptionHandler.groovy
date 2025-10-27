@@ -9,12 +9,10 @@ package io.xh.hoist.exception
 
 import grails.util.GrailsUtil
 import groovy.transform.CompileStatic
-import groovy.transform.NamedParam
-import groovy.transform.NamedVariant
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
 
-import javax.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpServletResponse
 import java.util.concurrent.ExecutionException
 
 import static org.apache.hc.core5.http.HttpStatus.SC_BAD_REQUEST
@@ -38,20 +36,29 @@ class ExceptionHandler {
      *
      * Used by BaseController, ClusterRequest, Timer, and AccessInterceptor to handle
      * otherwise unhandled exception.
+     *
+     * @internal -- Applications should call Utils.handleException instead
      */
-    @NamedVariant
     void handleException(
-        @NamedParam(required = true) Throwable exception,
-        @NamedParam HttpServletResponse renderTo,
-        @NamedParam LogSupport logTo,
-        @NamedParam Object logMessage
-    ) {
+        Throwable exception,
+        HttpServletResponse renderTo,
+        LogSupport logTo,
+        Object logMessage
+    ){
         exception = preprocess(exception)
+
+        // Our rich logging can itself fail, especially around shutdown,etc. Fallback to simpler
+        // logging to avoid muddying waters
         if (logTo) {
-            if (logMessage) {
-                shouldLogDebug(exception) ? logTo.logDebug(logMessage, exception) : logTo.logError(logMessage, exception)
-            } else {
-                shouldLogDebug(exception) ? logTo.logDebug(exception) : logTo.logError(exception)
+            def shouldDebug = shouldLogDebug(exception),
+                doLog = shouldDebug ? logTo.&logDebug : logTo.&logError
+            try {
+                logMessage ? doLog(logMessage, exception) : doLog(exception)
+            } catch (Throwable t) {
+                def logger = logTo.instanceLog
+                doLog = shouldDebug ? logger.&debug : logger.&error
+                doLog(exception.message ?: 'Unknown Exception')
+                logger.error('Hoist Logging failed: ' + t.message)
             }
         }
 
@@ -66,16 +73,15 @@ class ExceptionHandler {
     /**
      * Produce a one-line summary string for an exception.
      *
-     * The default implementation is designed to yield meaningful information within a one-line summary.
-     *
-     * For more detailed exception rendering, users will need to log the entire exception, typically via
-     * using "TRACE" mode.
+     * The default implementation is designed to yield meaningful information within a one-line \
+     * summary. For more detailed exception rendering, users will need to log the entire exception,
+     * typically by setting an applicable logger level to `TRACE`.
      */
     String summaryTextForThrowable(Throwable t) {
         summaryTextInternal(t, true)
     }
 
-    /** HttpStatus dode for this exception. */
+    /** The {@link org.apache.hc.core5.http.HttpStatus} code for this exception. */
     int getHttpStatus(Throwable t) {
         if (t instanceof HttpException && !(t instanceof ExternalHttpException)) {
             return ((HttpException) t).statusCode

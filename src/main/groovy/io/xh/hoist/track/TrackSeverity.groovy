@@ -8,5 +8,14 @@ package io.xh.hoist.track
  */
 
 enum TrackSeverity {
-    DEBUG, INFO, WARN
+    DEBUG, INFO, WARN, ERROR
+
+    static TrackSeverity parse(String s) {
+        if (!s) return INFO
+        try {
+            return TrackSeverity.valueOf(s.toUpperCase().trim())
+        } catch (IllegalArgumentException ex) {
+            return INFO
+        }
+    }
 }

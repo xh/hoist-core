@@ -11,11 +11,12 @@ import groovy.io.FileType
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.configuration.LogbackConfig
+import io.xh.hoist.LogbackConfig
 import io.xh.hoist.exception.RoutineRuntimeException
 import org.apache.commons.io.input.ReversedLinesFileReader
 import java.nio.file.Paths
-import static io.xh.hoist.configuration.LogbackConfig.logRootPath
+import static io.xh.hoist.LogbackConfig.getLogRootPath
+
 import static java.lang.System.currentTimeMillis
 import java.util.regex.Pattern
 
@@ -60,7 +61,7 @@ class LogReaderService extends BaseService {
             doRead(filename, startLine, maxLines, pattern, caseSensitive)
         }
 
-        return [success: true, filename: filename, content: content]
+        return [filename: filename, content: content]
     }
 
 

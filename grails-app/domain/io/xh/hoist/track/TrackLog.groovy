@@ -8,36 +8,57 @@
 package io.xh.hoist.track
 
 import io.xh.hoist.json.JSONFormat
+import io.xh.hoist.json.JSONParser
 import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.util.DateTimeUtils.appDay
+import static io.xh.hoist.util.StringUtils.*
 
 class TrackLog implements JSONFormat {
 
+    static int MAX_MSG_LENGTH = 255
+    static int MAX_URL_LENGTH = 500
+
+    // End user info
     String username
+    String impersonating
+
+    // Core tracking data
+    Date dateCreated
     String category
-    String correlationId
     String msg
+    String data
+    Integer elapsed
+    String severity
+
+    // Identifiers
+    String correlationId
+    String loadId
+    String tabId
+    String instance
+
+    // Client browser info
     String browser
     String device
     String userAgent
-    String data
+
+    // Client app info
     String appVersion
     String appEnvironment
     String url
-    String instance
-    Integer elapsed
-    String severity
-    Date dateCreated
-    String impersonating
 
     static mapping = {
         table 'xh_track_log'
         cache true
         data type: 'text'
-        dateCreated index: 'idx_xh_track_log_date_created'
 
-        // We will manually set dateCreated in TrackService, which is bulk generating these
+        // Indices on commonly queried fields
+        username index: 'idx_xh_track_log_username'
+        dateCreated index: 'idx_xh_track_log_date_created'
+        category index: 'idx_xh_track_log_category'
+        tabId index: 'idx_xh_track_log_tab_id'
+
+        // TrackService sets dateCreated explicitly, to match actual time tracked on client.
         autoTimestamp false
     }
 
@@ -46,44 +67,72 @@ class TrackLog implements JSONFormat {
     }
 
     static constraints = {
-        msg(maxSize: 255)
         username(maxSize: 50)
+        impersonating(nullable: true, maxSize: 50)
+
         category(maxSize: 100)
-        browser(nullable: true, maxSize: 100)
+        msg(maxSize: MAX_MSG_LENGTH)
+        data(nullable: true, validator: { Utils.isJSON(it) ?: 'default.invalid.json.message' })
+        elapsed(nullable: true)
+
         correlationId(nullable: true, maxSize: 100)
+        loadId(nullable: true, maxSize: 8)
+        tabId(nullable: true, maxSize: 8)
+        instance(nullable: true, maxSize: 50)
+
+        browser(nullable: true, maxSize: 100)
         device(nullable: true, maxSize: 100)
         userAgent(nullable: true)
-        data(nullable: true, validator: { Utils.isJSON(it) ?: 'default.invalid.json.message'})
+
         appVersion(nullable: true, maxSize: 100)
         appEnvironment(nullable: true, maxSize: 100)
-        url(nullable: true, maxSize: 500)
-        instance(nullable: true, maxSize: 50)
-        elapsed(nullable: true)
-        impersonating(nullable: true, maxSize: 50)
+        url(nullable: true, maxSize: MAX_URL_LENGTH)
     }
 
+    /** Get the parsed `data`, or null. */
+    Map getDataAsObject() {
+        try {
+            return JSONParser.parseObject(data)
+        } catch (Exception ignored) {
+            return null
+        }
+    }
+
+    /** For a TrackLog that represents a Client Error, get a summary of the error message, */
+    String getErrorSummary() {
+        def dataObj = dataAsObject,
+            errorObj = dataObj?.error as Map ?: [:],
+            errorSummary = errorObj.message ?: errorObj.name ?: 'Client Error'
+        return elide(errorSummary as String, 80)
+    }
+
+    /** True if created via automated error reporting from a Hoist React client. */
+    boolean getIsClientError() {
+        return category == 'Client Error'
+    }
 
     Map formatForJSON() {
         return [
-                id: id,
-                correlationId: correlationId,
-                dateCreated: dateCreated,
-                day: appDay(dateCreated),
-                username: username,
-                browser: browser,
-                device: device,
-                userAgent: userAgent,
-                category: category,
-                msg: msg,
-                data: data,
-                elapsed: elapsed,
-                severity: severity,
-                impersonating: impersonating,
-                appVersion    : appVersion,
-                appEnvironment: appEnvironment,
-                url           : url,
-                instance:     instance
+            id            : id,
+            username      : username,
+            impersonating : impersonating,
+            dateCreated   : dateCreated,
+            day           : appDay(dateCreated),
+            category      : category,
+            msg           : msg,
+            data          : data,
+            elapsed       : elapsed,
+            severity      : severity,
+            correlationId : correlationId,
+            loadId        : loadId,
+            tabId         : tabId,
+            instance      : instance,
+            browser       : browser,
+            device        : device,
+            userAgent     : userAgent,
+            appVersion    : appVersion,
+            appEnvironment: appEnvironment,
+            url           : url
         ]
     }
-
 }

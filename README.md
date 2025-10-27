@@ -174,9 +174,8 @@ Implementations of this method must lookup and/or create a User class which impl
 logged in user. Applications can choose to enhance their own user class with any additional details,
 managed via the app or sourced from systems such as Active Directory / LDAP.
 
-While not included in Hoist directly, NTLM / SSO can be supported via integration with the
-[Jespa library](https://www.ioplex.com/), commonly done via a
-[custom plugin](#custom-plugins-for-enterprise-deployments).
+While not included in Hoist directly, OAuth can be supported via integration with libraries such as
+MSAL.  This is commonly done via a [custom plugin](#custom-plugins-for-enterprise-deployments).
 
 Once authentication is complete, `IdentityService` is the primary server-side Service for getting a
 reference to the current user. Hoist's client side code calls a dedicated endpoint to verify and
@@ -301,8 +300,6 @@ Hoist level.
 | Class/File            |               Note               |                                          Link                                          |
 |-----------------------|----------------------------------|:--------------------------------------------------------------------------------------:|
 | `TrackLog.groovy`     | Domain object for track entries  |               [🏗](grails-app/domain/io/xh/hoist/track/TrackLog.groovy)                |
-| `ClientError.groovy`  | Domain object for error reports  |           [🏗](grails-app/domain/io/xh/hoist/clienterror/ClientError.groovy)           |
-| `Feedback.groovy`     | Domain object for user feedback  |              [🏗](grails-app/domain/io/xh/hoist/feedback/Feedback.groovy)              |
 | `TrackService.groovy` | Server-side API to log activity  |            [🏗](grails-app/services/io/xh/hoist/track/TrackService.groovy)             |
 | `TrackService.ts`     | Hoist-React API to log activity  |        [⚛️](https://github.com/xh/hoist-react/blob/master/svc/TrackService.ts)         |
 | `ExceptionHandler.ts` | Hoist-React API to track errors  | [⚛️](https://github.com/xh/hoist-react/blob/master/core/exception/ExceptionHandler.ts) |
@@ -322,21 +319,12 @@ On the client-side, a `track()` method is added to the Promise prototype to prov
 tracking for asynchronous requests - e.g. tracking a particular API call. This method provides
 built-in timing of the call and saves as 'TrackLog.elapsed'.
 
-#### Client Errors
+#### Client Errors and Feedback
 
-💥 The `ClientError` object provides a special variation on tracking to handle exception reports
-posted by the client applications. See `ExceptionHandler.ts` for the hoist-react entry point to this
-service. Note that the `ClientErrorService` on the server fires an `xhClientErrorReceived` event,
-which is listened to be the related `ClientErrorEmailService` to automatically send error reports to
-the configured `xhEmailSupport` email address. Custom services can also listen to these events to
-e.g. send other notifications via instant message, or raise an issue in a ticketing system.
-
-#### Feedback
-
-💬 A simple model is also included for collecting and storing feedback (in the form of
-simple messages) submitted by end-users directly from the application. A `FeedbackService` fires a
-similar event and is listened to by a built-in service that will email out report notifications.
-
+💥 Specialized support exists for tracking messages of category "Client Error" and "Feedback".
+These messages are produced by the built-in exception handling and Feedback component in Hoist
+React. When properly configured Hoist will send email and email digest notifications of these
+messages to the configured support email.
 
 ### Emailing
 
@@ -412,7 +400,7 @@ implementation of this monitoring API for both Hoist and non-Hoist based applica
 ## Development setup
 
 ### Hot reloading.
-Hot reloading is supported for Java17 using the java hotswap agent.  Please
+Hot reloading is supported for Java 17 and Java 21 using the java hotswap agent.  Please
 see http://hotswapagent.org/ and https://github.com/HotswapProjects/HotswapAgent for details on
 how to setup.
 

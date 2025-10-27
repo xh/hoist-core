@@ -122,7 +122,7 @@ class Cache<K, V> implements LogSupport, AdminStats {
     /** @returns the cached Entry at key.  */
     CacheEntry<V> getEntry(K key) {
         def ret = _map[key]
-        if (ret && shouldExpire(ret)) {
+        if (ret != null && shouldExpire(ret)) {
             remove(key)
             return null
         }
@@ -132,7 +132,7 @@ class Cache<K, V> implements LogSupport, AdminStats {
     /** @returns cached value for key, or lazily creates if needed.  */
     V getOrCreate(K key, Closure<V> c) {
         CacheEntry<V> entry = _map[key]
-        if (!entry || shouldExpire(entry)) {
+        if (entry == null || shouldExpire(entry)) {
             def val = c(key)
             put(key, val)
             return val
@@ -166,7 +166,8 @@ class Cache<K, V> implements LogSupport, AdminStats {
 
     /** @returns the timestamp of the cached Entry at key.  */
     Long getTimestamp(K key) {
-        return getEntryTimestamp(_map[key])
+        def entry = _map[key]
+        return entry != null ? getEntryTimestamp(entry) : null
     }
 
     /**
@@ -263,20 +264,18 @@ class Cache<K, V> implements LogSupport, AdminStats {
     }
 
     private boolean shouldExpire(CacheEntry<V> entry) {
-        if (expireFn) return expireFn.call(entry)
+        if (expireFn != null) return expireFn.call(entry)
 
-        if (expireTime) {
+        if (expireTime != null) {
             Long timestamp = getEntryTimestamp(entry),
                  expire = (expireTime instanceof Closure ?  expireTime.call() : expireTime) as Long
-            return intervalElapsed(expire, timestamp)
+            return currentTimeMillis() > timestamp + expire
         }
         return false
     }
 
     private Long getEntryTimestamp(CacheEntry<V> entry) {
-        if (!entry) return null
-        if (timestampFn) return asEpochMilli(timestampFn.call(entry.value))
-        return entry.dateEntered
+        return timestampFn != null ? asEpochMilli(timestampFn.call(entry.value)) : entry.dateEntered
     }
 
     private void fireOnChange(Object key, V oldValue, V value) {

@@ -8,19 +8,22 @@
 package io.xh.hoist.track
 
 import groovy.transform.CompileStatic
+import groovy.transform.NamedParam
+import groovy.transform.NamedVariant
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.util.RateMonitor
 import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
 import static io.xh.hoist.json.JSONSerializer.serialize
-import static io.xh.hoist.track.TrackSeverity.INFO
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 import static grails.async.Promises.task
+import static io.xh.hoist.util.StringUtils.elide
 import static io.xh.hoist.util.Utils.getCurrentRequest
-import static java.lang.System.currentTimeMillis
+import static io.xh.hoist.util.DateTimeUtils.MINUTES
 
 /**
  * Service for tracking user activity within the application. This service provides a server-side
@@ -30,6 +33,10 @@ import static java.lang.System.currentTimeMillis
  *
  * The choice of which activities to track is up to application developers. Typical use-cases
  * involve logging queries and tracking if / how often a given feature is actually used.
+ *
+ * When a TrackLog entry is received by the server, the server-side event 'xhTrackReceived' will
+ * be published on the cluster. Services in the cluster may use this for notification or monitoring
+ * of app activity.
  *
  * The `xhActivityTrackingConfig` soft-config can be used to configure this service, including
  * disabling it completely. Use the 'levels' property in this config to set the minimal severity for
@@ -52,42 +59,81 @@ import static java.lang.System.currentTimeMillis
 @CompileStatic
 class TrackService extends BaseService {
 
+    static clearCachesConfigs = ['xhActivityTrackingConfig']
     ConfigService configService
+    TrackLoggingService trackLoggingService
 
-    /**
-     * Create a new track log entry. Username, browser info, and datetime will be set automatically.
-     * @param msg
-     */
-    void track(String msg) {
-        track(msg: msg)
+    private final boolean persistenceDisabled = getInstanceConfig('disableTrackLog') == 'true'
+    private boolean rateLimitActive = false
+    private RateMonitor rateMonitor
+
+    void init() {
+        rateMonitor = new RateMonitor('rateMonitor', maxEntriesPerMin, 1 * MINUTES, this)
+        super.init()
     }
 
     /**
-     * Create a new track log entry. Username, browser info, and datetime will be set automatically.
-     *
-     *   @param entry
-     *      msg {String}                - required, identifier of action being tracked
-     *      category {String}           - optional, grouping category. Defaults to 'Default'
-     *      correlationId {String}      - optional, correlation ID for tracking related actions
-     *      data {Object}               - optional, object with related data to be serialized as JSON
-     *      logData {boolean|String[]}  - optional, true or list of keys to log values from data.
-     *                                    Defaults to value in `xhActivityTrackingConfig` or false.
-     *                                    Note that only primitive values will be logged (nested objects
-     *                                    or lists will be ignored, even if their key is specified).
-     *      username {String}           - optional, defaults to currently authenticated user.
-     *                                    Use this if track will be called in an asynchronous process,
-     *                                    outside of a request, where username not otherwise available.
-     *      impersonating {String}      - optional, defaults to username if impersonating, null if not.
-     *                                    Use this if track will be called in an asynchronous process,
-     *                                    outside of a request, where impersonator info not otherwise available.
-     *      severity
-     *         {String|TrackSeverity}   - optional, defaults to TrackSeverity.INFO.
-     *      url {String}                - optional, url associated with statement
-     *      timestamp {long}            - optional, time associated with start of action.  Defaults to current time.
-     *      elapsed {int}               - optional, duration of action in millis
+     * Create a new track log entry.
      */
-    void track(Map entry) {
-        trackAll([entry])
+    @NamedVariant
+    void track(
+
+        // Core parameters
+        /** A concise description of whatever action being tracked. */
+        @NamedParam(required = true) String msg,
+        /** Category for organizing and querying over related actions. */
+        @NamedParam String category = 'Default',
+        /** The severity of this message. Defaults to TrackSeverity.INFO.*/
+        @NamedParam Object severity = TrackSeverity.INFO,
+        /** Additional data payload to store with the track log (will be serialized as JSON). */
+        @NamedParam Object data = null,
+        /** A list of keys from the data object to log, `true` to log all key/values. Default false. */
+        @NamedParam Object logData = null,
+        /** Optional Correlation Id */
+        @NamedParam String correlationId = null,
+        /** Time associated with the start of the action. Defaults to now. */
+        @NamedParam Long timestamp = null,
+        /** Duration of the tracked action in milliseconds, if applicable. */
+        @NamedParam Long elapsed = null,
+
+        // For setting on async processes, not typically used.
+        /**
+         * The username of the user associated with this action. Defaults to currently authenticated
+         * user, but can be specified to capture user when called from an async process, outside the
+         * context of a request.
+         */
+        @NamedParam String username = null,
+        /**
+         * If impersonating, the username of the user being impersonated. Set automatically when
+         * applicable, provided here for async usage outside of a request (as with `username`).
+         */
+        @NamedParam String impersonating = null,
+
+        // From client-side, for internal use.
+        /** Client-side tabId, maintained by hoist-react for the life of a browser tab. */
+        @NamedParam String tabId = null,
+        /** Client-side loadId, maintained by hoist-react for each load of the client app. */
+        @NamedParam String loadId = null,
+        /** Client-side url of the app performing the activity. */
+        @NamedParam String url = null
+    ) {
+        trackAll([
+            [
+                msg          : msg,
+                category     : category,
+                correlationId: correlationId,
+                data         : data,
+                logData      : logData,
+                username     : username,
+                impersonating: impersonating,
+                severity     : severity,
+                url          : url,
+                timestamp    : timestamp,
+                elapsed      : elapsed,
+                tabId        : tabId,
+                loadId       : loadId
+            ]
+        ] as Collection<Map>)
     }
 
     /**
@@ -101,77 +147,120 @@ class TrackService extends BaseService {
             logTrace("Tracking disabled via config.")
             return
         }
+        applyRateLimiting(entries);
+
+        def doPersist = !persistenceDisabled && !rateLimitActive,
+            topic = getTopic('xhTrackReceived')
 
         // Always fail quietly, and never interrupt real work.
         try {
             // Normalize data within thread to gather context
-            entries = entries.collect {prepareEntry(it)}
+            entries = entries.collect { prepareEntry(it) }
 
-            // Persist and log on new thread to avoid delay.
-            task {
-                TrackLog.withTransaction {
-                    entries.each {
-                        try {
-                            persistEntry(it)
-                            logEntry(it)
-                        } catch (Exception e) {
-                            logError('Exception writing track log', e)
+            def processFn = {
+                entries.each {
+                    try {
+                        TimestampedLogEntry logEntry = createLogEntry(it)
+                        trackLoggingService.logEntry(logEntry)
+
+                        TrackLog tl = createTrackLog(it)
+                        if (doPersist && isSeverityActive(tl)) {
+                            tl.save()
                         }
+                        topic.publishAsync(tl)
+                    } catch (Exception e) {
+                        logError('Exception recording track log', e)
                     }
                 }
             }
+
+            // Process on new thread to avoid delay, only create transaction if needed.
+            doPersist ?
+                task { TrackLog.withTransaction(processFn) }:
+                task(processFn)
+
         } catch (Exception e) {
             logError('Exception writing track log', e)
         }
     }
 
-    Boolean getEnabled() {
+    boolean getEnabled() {
         return conf.enabled == true
     }
+
+    Long getMaxEntriesPerMin() {
+        return conf.maxEntriesPerMin as Long ?: 1000
+    }
+
 
     Map getConf() {
         return configService.getMap('xhActivityTrackingConfig')
     }
 
+
     //-------------------------
     // Implementation
     //-------------------------
     private Map prepareEntry(Map entry) {
-        String userAgent = currentRequest?.getHeader('User-Agent')
         return [
             // From submission
             username      : entry.username ?: authUsername,
-            impersonating : entry.impersonating ?: (identityService.isImpersonating() ? username : null),
+            impersonating : entry.impersonating ?: (identityService.impersonating ? username : null),
             category      : entry.category ?: 'Default',
             correlationId : entry.correlationId,
             msg           : entry.msg,
             elapsed       : entry.elapsed,
-            severity      : parseSeverity(entry.severity),
+            severity      : TrackSeverity.parse(entry.severity as String),
             data          : entry.data ? serialize(entry.data) : null,
             rawData       : entry.data,
-            url           : entry.url,
+            url           : entry.url?.toString()?.take(500),
             appVersion    : entry.appVersion ?: Utils.appVersion,
-            timestamp     : entry.timestamp ?: currentTimeMillis(),
+            loadId        : entry.loadId,
+            tabId         : entry.tabId,
+            dateCreated   : entry.timestamp ? new Date(entry.timestamp as Long) : new Date(),
 
 
             // From request/context
             instance      : ClusterService.instanceName,
             appEnvironment: Utils.appEnvironment,
-            userAgent     : userAgent,
-            browser       : getBrowser(userAgent),
-            device        : getDevice(userAgent)
+            userAgent     : currentRequest?.getHeader('User-Agent'),
+            browser       : getBrowser(currentRequest),
+            device        : getDevice(currentRequest)
         ]
     }
 
-    private void logEntry(Map entry) {
+    private TrackLog createTrackLog(Map entry) {
+        // Truncate dynamic app data to fit DB constraints and avoid throwing for data/msg/url
+        String data = entry.data
+        if (data?.size() > (conf.maxDataLength as Integer)) {
+            logTrace(
+                "Track log with message [$entry.msg] includes ${data.size()} chars of JSON data",
+                "exceeds limit of ${conf.maxDataLength}",
+                "data will not be persisted"
+            )
+            entry.data = null
+        }
+        entry.msg = elide(entry.msg as String, TrackLog.MAX_MSG_LENGTH)
+        entry.url = elide(entry.url as String, TrackLog.MAX_URL_LENGTH)
+
+        // Create entity, with manually supplied date created
+        TrackLog tl = new TrackLog(entry)
+        tl.dateCreated = entry.dateCreated as Date
+        return tl
+    }
+
+    private TimestampedLogEntry createLogEntry(Map entry) {
         // Log core info,
         String name = entry.username
+        Date dateCreated = entry.dateCreated as Date
+
         if (entry.impersonating) name += " (as ${entry.impersonating})"
-        Map<String, Object> msgParts = [
+        Map<String, Object> message = [
             _user         : name,
             _category     : entry.category,
             _msg          : entry.msg,
             _correlationId: entry.correlationId,
+            _timestamp    : dateCreated.format('HH:mm:ss.SSS'),
             _elapsedMs    : entry.elapsed,
         ].findAll { it.value != null } as Map<String, Object>
 
@@ -191,36 +280,19 @@ class TrackService extends BaseService {
                     (logData === true || (logData as List).contains(k)) &&
                         !(v instanceof Map || v instanceof List)
                 }
-                msgParts.putAll(dataParts)
+                message.putAll(dataParts)
             }
         }
-
-        logInfo(msgParts)
+        return new TimestampedLogEntry(
+            severity: entry.severity as TrackSeverity,
+            message: message,
+            timestamp: dateCreated
+        )
     }
 
-    private void persistEntry(Map entry) {
-        if (getInstanceConfig('disableTrackLog') == 'true' ||
-            getActiveSeverity(entry) > parseSeverity(entry.severity)
-        ) return
-
-        String data = entry.data
-        if (data?.size() > (conf.maxDataLength as Integer)) {
-            logTrace(
-                "Track log with message [$entry.msg] includes ${data.size()} chars of JSON data",
-                "exceeds limit of ${conf.maxDataLength}",
-                "data will not be persisted"
-            )
-            entry.data = null
-        }
-
-        TrackLog tl = new TrackLog(entry)
-        tl.dateCreated = new Date(entry.timestamp as Long)
-        tl.save()
-    }
-
-    private TrackSeverity getActiveSeverity(Map entry) {
-        def username = entry.username as String,
-            cat = entry.category as String,
+    private boolean isSeverityActive(TrackLog tl) {
+        def username = tl.username as String,
+            cat = tl.category as String,
             levels = (conf.levels ?: []) as List<Map>
 
         def match = levels.find {
@@ -229,20 +301,39 @@ class TrackService extends BaseService {
 
             (levUser == '*' || levUser.contains(username)) && (levCat == '*' || levCat.contains(cat))
         }
-        return match ? parseSeverity(match.severity) : INFO
+
+        return TrackSeverity.parse(match?.severity as String) <= TrackSeverity.parse(tl.severity)
     }
 
-    private TrackSeverity parseSeverity(Object severity) {
-        if (severity instanceof TrackSeverity) return severity
-        if (!severity) return INFO
-        try {
-            return TrackSeverity.valueOf(severity.toString().toUpperCase().trim())
-        } catch (IllegalArgumentException ex) {
-            return INFO
+    private boolean applyRateLimiting(Collection<Map> entries) {
+        rateMonitor.noteRequests(entries.size())
+        if (!rateLimitActive && rateMonitor.limitExceeded) {
+            logError(
+                'Track persistence disabled due to non-compliant load',
+                [entriesPerMin: rateMonitor.maxPeriodRequests]
+            )
+            rateLimitActive = true
+        } else if (rateLimitActive && rateMonitor.periodsInCompliance >= 2) {
+            logInfo(
+                'Track persistence being re-enabled after multiple periods of compliant load.',
+                [compliantMins: rateMonitor.periodsInCompliance]
+            )
+            rateLimitActive = false
         }
     }
 
-    Map getAdminStats() {[
-        config: configForAdminStats('xhActivityTrackingConfig')
-    ]}
+    void clearCaches() {
+        // Do *not* clear rateLimitActive. Allow clearCaches usage in critical response situations.
+        rateMonitor.setMaxPeriodRequests(maxEntriesPerMin)
+        super.clearCaches()
+    }
+
+    Map getAdminStats() {
+        [
+            config            : configForAdminStats('xhActivityTrackingConfig'),
+            persistenceDisabled: persistenceDisabled,
+            rateLimitActive: rateLimitActive,
+            rateMonitor: rateMonitor
+        ]
+    }
 }

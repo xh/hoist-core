@@ -20,10 +20,10 @@ import groovy.transform.NamedVariant
 import io.xh.hoist.cache.Cache
 import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.cluster.ClusterService
-import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.IdentitySupport
 import io.xh.hoist.util.Timer
+import io.xh.hoist.util.Utils
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
 import org.slf4j.Logger
@@ -57,9 +57,6 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
     IdentityService identityService
     ClusterService clusterService
-
-    ExceptionHandler xhExceptionHandler
-
     Date initializedDate = null
     Date lastCachesCleared = null
 
@@ -81,7 +78,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * @param timeout - maximum time to wait for each service to init (in ms).
      */
     static void parallelInit(Collection<BaseService> services, Long timeout = 30 * SECONDS) {
-        def allTasks = services.collect {svc ->
+        def allTasks = services.collect { svc ->
             task { svc.initialize(timeout) }
         }
         Promises.waitAll(allTasks)
@@ -108,9 +105,9 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
             }
         } catch (ExecutionException ee) {
             // Show the underlying init() exception instead of the ExecutionException
-            xhExceptionHandler.handleException(exception: ee.cause, logTo: this)
+            Utils.handleException(exception: ee.cause, logTo: this)
         } catch (Throwable t) {
-            xhExceptionHandler.handleException(exception: t, logTo: this)
+            Utils.handleException(exception: t, logTo: this)
         } finally {
             initializedDate = new Date()
         }
@@ -145,15 +142,15 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * @param name - must be unique across all Caches, Timers and distributed Hazelcast objects
      * associated with this service.
      */
-     <K, V> ReplicatedMap<K, V> createReplicatedMap(String name) {
-         addResource(name, hzInstance.getReplicatedMap(hzName(name)))
-     }
+    <K, V> ReplicatedMap<K, V> createReplicatedMap(String name) {
+        addResource(name, hzInstance.getReplicatedMap(hzName(name)))
+    }
 
     /**
      * Get a reference to an existing or new Hazelcast topic.
      * To subscribe to events fired by other services on a topic, use {@link #subscribeToTopic}.
      */
-     <M> ITopic<M> getTopic(String id) {
+    <M> ITopic<M> getTopic(String id) {
         hzInstance.getTopic(id)
     }
 
@@ -208,7 +205,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      */
     <K, V> Cache<K, V> createCache(Map mp) {
         // Cannot use @NamedVariant, as incompatible with generics. We'll still get run-time checks.
-        addResource(mp.name as String, new Cache([*:mp, svc: this]))
+        addResource(mp.name as String, new Cache([*: mp, svc: this]))
     }
 
     /**
@@ -219,7 +216,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      */
     <T> CachedValue<T> createCachedValue(Map mp) {
         // Cannot use @NamedVariant, as incompatible with generics. We'll still get run-time checks.
-        addResource(mp.name as String, new CachedValue([*:mp, svc: this]))
+        addResource(mp.name as String, new CachedValue([*: mp, svc: this]))
     }
 
     /**
@@ -236,7 +233,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * hot-reloading scenario where multiple instances of singleton services may be created.
      */
     protected void subscribe(String eventName, Closure c) {
-       appContext.eventBus.subscribe(eventName) {Object... args ->
+        appContext.eventBus.subscribe(eventName) { Object... args ->
             if (destroyed) return
             try {
                 logDebug("Receiving event '$eventName'")
@@ -320,16 +317,29 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     }
 
     /**
-     * Return meta data about this service for troubleshooting and monitoring.
-     * This data will be exposed via the Hoist admin client.
+     * Return any interesting summary data that might be useful to see on this service from the
+     * Hoist Admin Console for troubleshooting or monitoring.
      *
-     * Note that information about service timers and distributed objects does not need to be
-     * included here and will be automatically included by the framework.
+     * Note that information about service Timers, Caches, and CachedValues does *not* need to be
+     * included here - those objects are automatically reported by the framework.
+     *
+     * @see AdminStats
      */
-    Map getAdminStats(){[:]}
+    Map getAdminStats() { [:] }
 
 
-    List<String> getComparableAdminStats() {[]}
+    /**
+     * Keys for all stats returned by getAdminStats() that can be compared for equality across
+     * multiple instances in a cluster. This drives the "Cross-instance comparisons" reporting in
+     * the Admin Console "Cluster > Objects" tab.
+     *
+     * Override this method on services if you a) are running in a multi-instance cluster, and
+     * b) have stats with values that can be reliably compared and are expected to be the same
+     * across all instances.
+     *
+     * @see AdminStats
+     */
+    List<String> getComparableAdminStats() { [] }
 
     /**
      * Return a map of specified config values, appropriate for including in
@@ -342,19 +352,23 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     //--------------------
     // Implemented methods
     //--------------------
-    boolean isInitialized() {initializedDate != null}
-    boolean isDestroyed()   {_destroyed}
+    boolean isInitialized() { initializedDate != null }
 
-    HoistUser getUser()         {identityService.user}
-    String getUsername()        {identityService.username}
-    HoistUser getAuthUser()     {identityService.authUser}
-    String getAuthUsername()    {identityService.authUsername}
+    boolean isDestroyed() { _destroyed }
+
+    HoistUser getUser() { identityService.user }
+
+    String getUsername() { identityService.username }
+
+    HoistUser getAuthUser() { identityService.authUser }
+
+    String getAuthUsername() { identityService.authUsername }
 
     protected void setupClearCachesConfigs() {
         Set deps = new HashSet()
         for (Class clazz = getClass(); clazz; clazz = clazz.superclass) {
             def list = GrailsClassUtils.getStaticFieldValue(clazz, 'clearCachesConfigs')
-            list.each {deps << it}
+            list.each { deps << it }
         }
 
         if (deps) {
@@ -382,7 +396,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * Hazelcast distributed objects using the methods in this class.
      */
     String hzName(String name) {
-       hzName(name, this.class)
+        hzName(name, this.class)
     }
 
     static String hzName(String name, Class clazz) {

@@ -33,6 +33,7 @@ class EnvironmentService extends BaseService {
 
     static clearCachesConfigs = ['xhAppTimeZone']
 
+
     /**
      * Official TimeZone for this application - e.g. the zone of the head office or trading center.
      *
@@ -101,7 +102,6 @@ class EnvironmentService extends BaseService {
             pollConfig  : configService.getMap('xhEnvPollConfig')
         ]
     }
-
 
     //---------------------
     // Implementation

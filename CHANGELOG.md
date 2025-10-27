@@ -1,20 +1,183 @@
 # Changelog
 
-## 29.0-SNAPSHOT - unreleased
+## 34.0-SNAPSHOT - unreleased
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 Medium - upgrade to Grails/Gradle/Spring.New logging config)
+
+### ⚙️ Technical
+Hoist Core v34 is a major framework upgrade version, with underlying upgrades to Grails 7.0,
+Spring Boot 3.5, Spring 6.2, Groovy 4.0, Gradle 8.14, Tomcat 10.1, and Java 21.   With this
+release grails is officially part of the Apache Foundation.  The main required changes to
+applications are the following:
+
+* Change to logging config to accommodate the latest version of Logback, and its removal of the groovy DSL.
+  In order to allow hoist apps to continue to seamlessly provide configuration via groovy, we have replicated
+  the functionality of the logback DSL in methods on LogConfig.groovy.  Any custom logback.groovy scripts
+  should be moved to an override of `LogbackConfig` class. See `LogbackConfig.` for more details.
+  Misc. updates and simplification to `build.gradle` and `gradle.properties` to adapt to Gradle 8.
+  See toolbox for an example of these changes.
+* Changes of various core imports from `javax` to `jakarta`.
+* Java 17 and Java 21 are both now supported JDKs.
+
+See the grails documentation at  https://docs.grails.org/7.0.0/guide/upgrading.html#upgrading60x
+for more information.
+
+
+## 33.1.0 - 2025-10-24
+
+### 🎁 New Features
+
+* `EmailService.sendEmail` now supports `bcc` and `markImportant` properties.
+*  New `CollectionUtils` with java utilities for efficient collection creation.
+
+### 🐞 Bug Fixes
+
+* Restore display of Timers in Service AdminStats.
+
+## 33.0.0 - 2025-09-26
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - exception handling syntax )
+
+### ⚙️ Technical
+
+* Improvements to app lifecycle, including support of cleaner shutdown.  New property
+  `ClusterService.instanceState` and enhancements to `ClusterService.shutdownInstance`.
+* Improvement to exception handling to avoid throwing secondary exceptions during system
+  shutdown.
+
+## 32.0.0 - 2025-08-28
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - removed methods unlikely to be used, requires hoist-react v76)
+
+### 🎁 New Features
+
+* Allow improved editing of Views visibility by hoist-react v76.
+* Enhance JsonBlobService to allow creating blobs with specific `owner`
+* Improved support for parsing browsers and devices by consulting the standard `Sec-Ch-UA` and
+  `Sec-Ch-UA-Platform` HTTP headers as well as `User-Agent`.
+* Removed an obsolete workaround for detecting iOS Homescreen apps.
+* Added support for clearing basic view state via `restoreDefaultsAsync` in `hoist-react >= 76`.
+* Improved performance of loading accessible `JsonBlob` objects for a user, including the common
+  use case of loading available `ViewManager` views.
+
+### 🐞 Bug Fixes
+
+* Fixed issue with JsonBlobService when running with Sybase Database
+
+## 31.1.0 - 2025-08-07
+
+### ⚙️ Technical
+
+* Improved `ViewManager` to remove deleted/archived views from user-specific lists of pinned views.
+* Added support for recognizing the secure `Island` browser.
+
+## 31.0.3 - 2025-06-27
+
+### ⚙️ Technical
+
+* Improved the performance of `Cache` lookups.
+
+## 31.0.2 - 2025-06-09
+
+### 🐞 Bug Fixes
+
+* Fixed issue blocking email notifications of client errors.
+
+## 31.0.1 - 2025-05-19
+
+### 🐞 Bug Fixes
+
+* Fixed issue blocking role membership updates when using the Hoist-provided `DefaultRoleService`.
+
+## 31.0.0 - 2025-05-16
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - requires Hoist React 73.x + possible event handling adjustment)
+
+* Requires (and required by) `hoist-react >= 73` to support consolidation of client errors and
+  feedback into activity tracking.
+* Removed `xhFeedbackReceived` and `xhClientErrorReceived` events. Advanced usages that listen for
+  either event should subscribe to `xhTrackReceived` instead and filter messages based on the
+  `TrackLog.category` property.
+
+### 🎁 New Features
+
+* Consolidated client error reports and user feedback into the upgraded Activity Tracking module,
+  enabling more integrated and powerful reporting on this data.
+
+### ⚙️ Technical
+
+* The `xh_feedback` and `xh_client_error` tables are obsolete and may be removed from
+  the application database. Please note the content in these tables will no longer be available in
+  your app - archive or migrate as appropriate if needed for historical queries.
+
+## 30.0.0 - 2025-05-05
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - DB column additions)
+
+* Requires minor DB schema additions to support new `TrackLog` properties (see below).
+
+### 🎁 New Features
+
+* Added `tabId` and `loadId` properties to `TrackLog`. These new identifiers will be provided by
+  clients running `hoist-react >= 73.0` and disambiguate tracking activity for users with multiple
+  browser tabs and multiple full refreshes/restarts of a client app within the same tab.
+    * ⚠ NOTE this requires two new columns in the `xh_track_log` table. Review and run the
+      following SQL, modified as needed for the particular database you are using:
+      ```sql
+      ALTER TABLE `xh_track_log` ADD COLUMN `tab_id` VARCHAR(8) NULL;
+      ALTER TABLE `xh_track_log` ADD COLUMN `load_id` VARCHAR(8) NULL;
+      ```
+
+### ⚙️ Technical
+
+* Support for new consolidated clients tab in Hoist-react v73.
+* Harden `ClusterObjectReport` against issues with serialization.
+
+## 29.2.0 - 2025-04-14
+
+### 🎁 New Features
+
+* Added relay of `appBuild`, `tabId`, and `loadId` from client WebSocket sessions, for viewing
+  in the Hoist Admin Console's "Clients > Connections" tab.
+
+## 29.1.0 - 2025-04-08
+
+### 🎁 New Features
+
+* Added a new default status monitor to alert on any reported discrepancies across replicated
+  objects within a cluster.
+* Defined new `BaseController.renderSuccess()` method for convenient rendering of successful
+  responses without content (HTTP 204). This method is intended as a replacement for the deprecated
+  pattern of calling `renderJSON(success:true)`.
+* Added support for reporting the client app version in the Admin Console > WebSockets tab.
+
+### ⚙️ Technical
+
+* Improved the implementation of `BaseController.renderClusterJSON`: if the underlying service
+  method does not return a value, a no content response (Status Code 204) will now be returned to
+  the client.
+* Improved logging of activity tracking entries to account for client-side debouncing. The dedicated
+  logs for these items (e.g. `app-xxxxxx-track.log`) now display the actual event time, rather
+  than the time they were recorded on the server.
+
+## 29.0.0 - 2025-03-13
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - update to remote execution syntax)
 
 ### 🎁 New Features
 
 * Hoist-Core v29 includes a much improved mechanism for running code on specific instances, or
-across all instances in the cluster.  Most importantly, the new mechanism now provides the remote
-code with all identity and auth information about the user triggering the action.  In addition,
-the syntax has been simplified substantially to avoid the need for creating extra inner classes
-and the need to capture all parameters explicitly.
+  across all instances in the cluster. Most importantly, the new mechanism now provides the remote
+  code with all identity and auth information about the user triggering the action. In addition,
+  the syntax has been simplified substantially to avoid the need for creating extra inner classes
+  and the need to capture all parameters explicitly.
+* See the new methods for `ClusterUtils.runOnInstance`, `ClusterUtils.runOnPrimary` and
+  `ClusterUtils.runOnAllInstances` for more information. In most cases, the transition to using this
+  method should be mechanical, and a simplification from the use of the previous API.
 
-See the new methods for `ClusterUtils.runOnInstance`, `ClusterUtils.runOnPrimary` and
-`ClusterUtils.runOnAllInstances` for more information.  In most cases, the transition to using this
-method should be mechanical, and a simplification from the use of the previous API.
+### 🐞 Bug Fixes
+
+* Fixed broken log file downloads from the Admin Console.
 
 * Enhance exception handling in `JSONClient` to capture messages returned as raw strings.
 
@@ -204,7 +367,7 @@ ALTER TABLE xh_role ALTER COLUMN category VARCHAR(100) null
 
 ## 21.0.0 - 2024-09-03
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - latest Hoist React + DB col additions)
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - latest Hoist React + DB column additions)
 
 * Requires `hoist-react >= 67.0.0`.
 * Requires minor DB schema additions (see below).
@@ -389,9 +552,8 @@ Please contact XH to review your app's readiness for multi-instance operation!
 * Server-side events raised by Hoist are now implemented as cluster-wide Hazelcast messages rather
   than single-server Grails events. Any app code that listens to these events
   via `BaseService.subscribe` must update to `BaseService.subscribeToTopic`. Check for:
-    * `xhClientErrorReceived`
     * `xhConfigChanged`
-    * `xhFeedbackReceived`
+    * `xhTrackLogReceived`
     * `xhMonitorStatusReport`
 * The `exceptionRenderer` singleton has been simplified and renamed as `xhExceptionHandler`. This
   change was needed to better support cross-cluster exception handling. This object is used by
