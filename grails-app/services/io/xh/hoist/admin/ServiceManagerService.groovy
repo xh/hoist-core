@@ -21,6 +21,7 @@ class ServiceManagerService extends BaseService {
         getServicesInternal().collect { name, svc ->
             return [
                 name: name,
+                className: svc.class.canonicalName,
                 initializedDate: svc.initializedDate,
                 lastCachesCleared: svc.lastCachesCleared
             ]
