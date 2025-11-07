@@ -1,5 +1,10 @@
 # Changelog
 
+## 33.2.0 - 2025-11-10
+
+### 🎁 New Features
+* `FieldFilter` implementation now supports `not begins` and `not ends` operators.
+
 ## 33.1.0 - 2025-10-24
 
 ### 🎁 New Features
