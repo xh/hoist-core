@@ -4,6 +4,9 @@
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 Medium - upgrade to Grails/Gradle/Spring.New logging config)
 
+### 🎁 New Features
+* `FieldFilter` implementation now supports `not begins` and `not ends` operators.
+
 ### ⚙️ Technical
 Hoist Core v34 is a major framework upgrade version, with underlying upgrades to Grails 7.0,
 Spring Boot 3.5, Spring 6.2, Groovy 4.0, Gradle 8.14, Tomcat 10.1, and Java 21.   With this
