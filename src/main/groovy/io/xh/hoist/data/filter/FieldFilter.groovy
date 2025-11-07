@@ -33,9 +33,9 @@ class FieldFilter extends Filter implements JSONFormat {
     final Object value
 
     /** All available operators. */
-    static OPERATORS = ['=', '!=', '>', '>=', '<', '<=', 'like', 'not like', 'begins', 'ends', 'includes', 'excludes']
+    static OPERATORS = ['=', '!=', '>', '>=', '<', '<=', 'like', 'not like', 'begins', 'not begins', 'ends', 'not ends', 'includes', 'excludes']
     /** All operators that support testing multiple candidate `value`s (where this.value *can be* a collection). */
-    static MULTI_VAL_OPERATORS = ['=', '!=', 'like', 'not like', 'begins', 'ends', 'includes', 'excludes']
+    static MULTI_VAL_OPERATORS = ['=', '!=', 'like', 'not like', 'begins', 'not begins', 'ends', 'not ends', 'includes', 'excludes']
 
     FieldFilter(String field, String op, Object value) {
         if (!field) {
@@ -101,8 +101,12 @@ class FieldFilter extends Filter implements JSONFormat {
                 return and(vals.collect { not(ilike(field, it as String, ANYWHERE)) })
             case 'begins':
                 return or(vals.collect { ilike(field, it as String, START) })
+            case 'not begins':
+                return and(vals.collect { not(ilike(field, it as String, START)) })
             case 'ends':
                 return or(vals.collect { ilike(field, it as String, END) })
+            case 'not ends':
+                return and(vals.collect { not(ilike(field, it as String, END)) })
             case 'includes':
             case 'excludes':
                 throw new RuntimeException('Unsupported operator for Criteria Filter')
@@ -168,11 +172,23 @@ class FieldFilter extends Filter implements JSONFormat {
                     def v = it[field]
                     return v != null && regExps.any { re -> re.matcher(v).find() }
                 }
+            case 'not begins':
+                def regExps = vals.collect { v -> ~/(?i)^$v/ }
+                return {
+                    def v = it[field]
+                    return v != null && !regExps.any { re -> re.matcher(v).find() }
+                }
             case 'ends':
                 def regExps = vals.collect { v -> ~/(?i)$v$/ }
                 return {
                     def v = it[field]
                     return v != null && regExps.any { re -> re.matcher(v).find() }
+                }
+            case 'not ends':
+                def regExps = vals.collect { v -> ~/(?i)$v$/ }
+                return {
+                    def v = it[field]
+                    return v != null && !regExps.any { re -> re.matcher(v).find() }
                 }
             case 'includes':
                 return {
