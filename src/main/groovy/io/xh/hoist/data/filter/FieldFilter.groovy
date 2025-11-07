@@ -14,7 +14,6 @@ import org.hibernate.criterion.Restrictions
 import static org.hibernate.criterion.MatchMode.ANYWHERE
 import static org.hibernate.criterion.MatchMode.END
 import static org.hibernate.criterion.MatchMode.START
-import static org.hibernate.criterion.Restrictions.and
 import static org.hibernate.criterion.Restrictions.ge
 import static org.hibernate.criterion.Restrictions.gt
 import static org.hibernate.criterion.Restrictions.ilike
