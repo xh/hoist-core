@@ -102,7 +102,7 @@ class FieldFilter extends Filter implements JSONFormat {
             case 'begins':
                 return or(vals.collect { ilike(field, it as String, START) })
             case 'not begins':
-                return and(vals.collect {not(ilike(field, it as String, START)) })
+                return and(vals.collect { not(ilike(field, it as String, START)) })
             case 'ends':
                 return or(vals.collect { ilike(field, it as String, END) })
             case 'not ends':
