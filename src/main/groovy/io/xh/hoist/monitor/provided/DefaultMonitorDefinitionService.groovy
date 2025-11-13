@@ -28,10 +28,10 @@ import static java.lang.System.currentTimeMillis
  *
  * Applications using this default implementation must either:
  *
- *  1) Define a `MonitoringDefinitionService` class that extends this class.
+ *  1) Define a `MonitorDefinitionService` class that extends this class.
  *     Allows for overriding its protected methods to customize behavior.
  *
- *  2) Register this class directly as `monitoringDefinitionService` via `resources.groovy`,
+ *  2) Register this class directly as `monitorDefinitionService` via `resources.groovy`,
  *     if no app-specific monitors are required.
  */
 class DefaultMonitorDefinitionService extends BaseService {
