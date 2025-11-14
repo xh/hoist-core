@@ -121,10 +121,11 @@ class PrefService extends BaseService {
 
     /**
      * Check a list of core preferences required for Hoist/application operation - ensuring that
-     * these prefs are present and that their values and local flags are as expected. Will create
-     * missing prefs with supplied default values if not found.
+     * these prefs are present and that their types are as expected if so.
      *
-     * @param requiredPrefs - map of prefName to map of [type, defaultValue, local, note]
+     * Will create missing prefs with supplied default values if not found.
+     *
+     * @param requiredPrefs - map of prefName to map of `[type, groupName, defaultValue, note]`
      */
     @Transactional
     void ensureRequiredPrefsCreated(Map<String, Map> requiredPrefs) {
@@ -135,8 +136,8 @@ class PrefService extends BaseService {
             def currPref = currPrefs.find { it.name == prefName },
                 valType = prefDefaults.type,
                 defaultVal = prefDefaults.defaultValue,
-                local = prefDefaults.local ?: false,
-            // Mismatch on notes <> note vs. AppConfig - stuck with singular "note" for the API to this method
+                // Mismatch on notes <> note vs. AppConfig - stuck with singular "note" for
+                // this API for consistency with ensureRequiredConfigsCreated()
                 notes = prefDefaults.note ?: ''
 
             if (!currPref) {
