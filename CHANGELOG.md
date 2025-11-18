@@ -19,7 +19,7 @@ applications are the following:
 * Changes of various core imports from `javax` to `jakarta`.
 * Java 17 and Java 21 are both now supported JDKs.
 
-See the grails documentation at  https://docs.grails.org/7.0.2/guide/upgrading.html#upgrading60x
+See the grails documentation at  https://docs.grails.org/7.0.0/guide/upgrading.html#upgrading60x
 for more information.
 
 * Enhance exception handling in `JSONClient` to capture messages returned as raw strings.
