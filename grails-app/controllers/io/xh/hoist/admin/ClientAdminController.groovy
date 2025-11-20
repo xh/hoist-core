@@ -22,7 +22,7 @@ class ClientAdminController extends BaseController {
     def allClients() {
         // Need to serialize the complex WebSocketsSessions as JSON -- parse and rejoin here
         def ret = runOnAllInstancesAsJson(webSocketService.&getAllChannels)
-            .collectMany { it.value.value ? parseArray(it.value.value) : null}
+            .collectMany { it.value.exception ? [] : parseArray(it.value.value)}
         renderJSON(ret)
     }
 

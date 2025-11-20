@@ -203,6 +203,14 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
             taskExecutor.submitToMember(clusterRequest, getMember(instance)).get()
         } catch (Throwable t) {
             // task catches issue on instance. Catch deeper hz issue here
+            Utils.handleException(
+                exception: t,
+                logTo: this,
+                logMessage: [
+                    'Error transferring task result',
+                    [sourceInstance: instance, svc: c.svc, method: c.method]
+                ]
+            )
             return new ClusterResult(exception: new ClusterTaskException(t))
         }
     }
@@ -220,6 +228,11 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
                 return [name, f.get()]
             } catch (Throwable t) {
                 // task catches issue on instance. Catch deeper hz issue here
+                Utils.handleException(
+                    exception: t,
+                    logTo: this,
+                    logMessage: ['Error transferring task result', [sourceInstance: name, svc: c.svc, method: c.method]]
+                )
                 return [name, new ClusterResult(exception: new ClusterTaskException(t))]
             }
         }

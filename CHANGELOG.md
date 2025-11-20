@@ -29,6 +29,10 @@ for more information.
 
 * Enhance exception handling in `JSONClient` to capture messages returned as raw strings.
 
+### 🐞 Bug Fixes
+
+* Improve exception handling in admin client for sibling instances during startup.
+
 ## 33.2.0 - 2025-11-10
 
 ### 🎁 New Features
