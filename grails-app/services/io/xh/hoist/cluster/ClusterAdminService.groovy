@@ -31,20 +31,11 @@ class ClusterAdminService extends BaseService {
     Collection<Map> getAllStats() {
         runOnAllInstances(this.&getAdminStats)
             .collect { name, result ->
-                def ret = [
+                [
                     name   : name,
-                    isReady: false
+                    isReady: false,
+                    *:(result.value ?: [:])
                 ]
-                if (result.value) {
-                    ret << result.value
-                } else {
-                    Utils.handleException(
-                        exception: result.exception,
-                        logTo: this,
-                        logMessage: "Exception getting stats for $name"
-                    )
-                }
-                return ret
             }
     }
 
