@@ -32,8 +32,9 @@ class ClusterObjectsService extends BaseService {
     ClusterObjectsReport getClusterObjectsReport() {
         def startTimestamp = currentTimeMillis(),
             info = runOnAllInstancesAsJson(this.&listClusterObjects)
-                .collectMany { parseArray(it.value.value) }
-
+                .collectMany { key, value ->
+                   value.exception ? [] : parseArray(value.value as String)
+                }
         return new ClusterObjectsReport(info, startTimestamp, currentTimeMillis())
     }
 
