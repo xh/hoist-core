@@ -1,5 +1,7 @@
 # Changelog
 
+## 35.0-SNAPSHOT - unreleased
+
 ## 34.0.0 - 2025-11-20
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟠 Medium - upgrade to Grails/Gradle/Spring. New logging config)
