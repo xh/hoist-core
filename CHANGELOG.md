@@ -2,7 +2,7 @@
 
 ## 34.0.0 - 2025-11-20
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 Medium - upgrade to Grails/Gradle/Spring.New logging config)
+### 💥 Breaking Changes (upgrade difficulty: 🟠 Medium - upgrade to Grails/Gradle/Spring. New logging config)
 
 ### ⚙️ Technical
 Hoist Core v34 is a major framework upgrade version, with underlying upgrades to Grails 7.0,
