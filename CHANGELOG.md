@@ -1,14 +1,14 @@
 # Changelog
 
-## 34.0-SNAPSHOT - unreleased
+## 34.0.0 - 2025-11-20
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 Medium - upgrade to Grails/Gradle/Spring.New logging config)
 
 ### ⚙️ Technical
 Hoist Core v34 is a major framework upgrade version, with underlying upgrades to Grails 7.0,
-Spring Boot 3.5, Spring 6.2, Groovy 4.0, Gradle 8.14, Tomcat 10.1, and Java 21.   With this
-release grails is officially part of the Apache Foundation.  The main required changes to
-applications are the following:
+Spring Boot 3.5, Spring 6.2, Groovy 4.0, Gradle 8.14, Tomcat 10.1.   With this release grails is
+officially part of the Apache Foundation.  The main required changes to applications are the
+following:
 
 * Change to logging config to accommodate the latest version of Logback, and its removal of the groovy DSL.
   In order to allow hoist apps to continue to seamlessly provide configuration via groovy, we have replicated
@@ -17,10 +17,15 @@ applications are the following:
   Misc. updates and simplification to `build.gradle` and `gradle.properties` to adapt to Gradle 8.
   See toolbox for an example of these changes.
 * Changes of various core imports from `javax` to `jakarta`.
-* Java 17 and Java 21 are both now supported JDKs.
+* The usage of the deprecated `request.JSON` property in controllers is no longer supported.
+* Applications should be using the  `BaseController` methods `parseRequestJSON` and
+  `parseRequestJSONArray` instead. These methods use the Hoist standard customization to jackson
+   JSON parsing.
 
 See the grails documentation at  https://docs.grails.org/7.0.2/guide/upgrading.html#upgrading60x
 for more information.
+
+### 🎁 New Features
 
 * Enhance exception handling in `JSONClient` to capture messages returned as raw strings.
 
