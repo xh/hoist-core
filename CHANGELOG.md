@@ -1,6 +1,6 @@
 # Changelog
 
-## 34.0.0 - 2025-11-20
+## 34.0.1 - 2025-11-24
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟠 Medium - upgrade to Grails/Gradle/Spring. New logging config)
 
