@@ -4,7 +4,7 @@
 
 ### 🎁 New Features
 
-* Support for identifying `clientAuthCode` in `HoistWebSocketChannel`.
+* Support for tracking `clientAppCode` in admin activity tracking.
 
 ## 34.0.1 - 2025-11-24
 
