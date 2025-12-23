@@ -17,6 +17,7 @@ import javax.sql.DataSource
 import java.util.concurrent.ConcurrentHashMap
 
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static io.xh.hoist.util.Utils.asSanitizedJSON
 import static java.lang.System.currentTimeMillis
 
 /**
@@ -58,7 +59,7 @@ class ConnectionPoolMonitoringService extends BaseService {
         return [
             enabled          : enabled,
             snapshots        : snapshots,
-            poolConfiguration: poolConfiguration
+            poolConfiguration: asSanitizedJSON(poolConfiguration)
         ]
     }
 

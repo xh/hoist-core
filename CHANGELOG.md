@@ -2,6 +2,9 @@
 
 ## 35.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+* Improve sanitization of database connection attributes in admin client.
+
 ## 34.0.1 - 2025-11-24
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟠 Medium - upgrade to Grails/Gradle/Spring. New logging config)
