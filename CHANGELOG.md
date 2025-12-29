@@ -2,7 +2,12 @@
 
 ## 35.0-SNAPSHOT - unreleased
 
+### 🐞 Bug Fixes
+
+* Supports deletion of large numbers of log files via POST (requires hoist-react upgrade)
+
 ### ⚙️ Technical
+
 * Improve sanitization of database connection attributes in admin client.
 
 ## 34.0.1 - 2025-11-24

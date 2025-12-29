@@ -65,7 +65,8 @@ class LogViewerAdminController extends BaseController {
      */
     @Access(['HOIST_ADMIN'])
     def deleteFiles(String instance) {
-        def ret = runOnInstanceAsJson(logReaderService.&deleteFiles, instance, [params.list('filenames')])
+        def filenames = parseRequestJSONArray(safeEncode: true) ?: params.list('filenames'),
+            ret = runOnInstanceAsJson(logReaderService.&deleteFiles, instance, [filenames])
         renderClusterJSON(ret)
     }
 
