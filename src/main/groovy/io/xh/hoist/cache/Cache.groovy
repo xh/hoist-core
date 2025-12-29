@@ -41,7 +41,7 @@ class Cache<K, V> implements LogSupport, AdminStats {
     public final String name
 
     /**
-     * Closure { CacheEntry<V> -> Boolean } to determine if an entry should be expired (optional).
+     * Closure { CacheEntry<K, V> -> Boolean } to determine if an entry should be expired (optional).
      */
     public final Closure<Boolean> expireFn
 
