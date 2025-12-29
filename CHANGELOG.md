@@ -2,6 +2,12 @@
 
 ## 35.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟠 trivial, types only)
+
+* The generic signature of `CacheEntry` has changed to support a generic key type, rather than just
+ string.  Apps that are declaring this type will need to be adjusted to make the key type explicit
+
+
 ### 🐞 Bug Fixes
 
 * Supports deletion of large numbers of log files via POST (requires hoist-react upgrade)
@@ -9,6 +15,7 @@
 ### ⚙️ Technical
 
 * Improve sanitization of database connection attributes in admin client.
+
 
 ## 34.0.1 - 2025-11-24
 
