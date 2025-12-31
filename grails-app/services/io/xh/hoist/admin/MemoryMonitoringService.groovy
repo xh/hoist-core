@@ -105,11 +105,13 @@ class MemoryMonitoringService extends BaseService {
             _snapshots.remove(oldest.key)
         }
 
-        if (intervalElapsed(1 * HOURS, _lastInfoLogged)) {
-            logInfo(newSnap)
-            _lastInfoLogged = new Date()
-        } else {
-            logDebug(newSnap)
+        if (config.writeToLog !== false) {
+            if (intervalElapsed(1 * HOURS, _lastInfoLogged)) {
+                logInfo(newSnap)
+                _lastInfoLogged = new Date()
+            } else {
+                logDebug(newSnap)
+            }
         }
 
         if (preservePastInstances) persistSnapshots()

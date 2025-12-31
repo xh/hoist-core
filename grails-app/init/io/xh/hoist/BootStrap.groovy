@@ -274,7 +274,8 @@ class BootStrap implements LogSupport {
                     maxSnapshots: 1440,
                     heapDumpDir: null,
                     preservePastInstances: true,
-                    maxPastInstances: 10
+                    maxPastInstances: 10,
+                    writeToLog: true
                 ],
                 clientVisible: true,
                 groupName: 'xh.io',
