@@ -82,9 +82,4 @@ class AccessInterceptor implements LogSupport {
 
         return upgradeHeader == 'websocket' && uri?.endsWith(HoistWebSocketConfigurer.WEBSOCKET_PATH)
     }
-
-    private getMethodAnnotation(Method md) {
-
-    }
-
 }
