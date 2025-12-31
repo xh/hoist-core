@@ -15,6 +15,7 @@ import io.xh.hoist.user.IdentityService
 import io.xh.hoist.util.Utils
 import io.xh.hoist.websocket.HoistWebSocketConfigurer
 
+import java.lang.annotation.Annotation
 import java.lang.reflect.Method
 
 import static org.springframework.util.ReflectionUtils.findMethod
@@ -23,6 +24,8 @@ import static org.springframework.util.ReflectionUtils.findMethod
 class AccessInterceptor implements LogSupport {
 
     IdentityService identityService
+
+    static List<Class<? extends Annotation>> annotations = [Access, RequiresAll, RequiresAny, AccessAll]
 
     AccessInterceptor() {
         matchAll()
@@ -43,16 +46,16 @@ class AccessInterceptor implements LogSupport {
             Method method = clazz && actionNm ? findMethod(clazz, actionNm) : null
             if (!method) throw new NotFoundException()
 
-            // Eval @Access annotations, return true if allowed, or throw 403 (Forbidden).
-            def access = method.getAnnotation(Access) ?:
-                method.getAnnotation(AccessAll) ?:
-                    clazz.getAnnotation(Access) as Access ?:
-                        clazz.getAnnotation(AccessAll) as AccessAll
-
-            if (access instanceof AccessAll ||
-                    (access instanceof Access && identityService.user.hasAllRoles(access.value()))
-            ) {
-                return true
+            // Eval @security annotations, return true if allowed, or throw 403 (Forbidden).
+            def ann = annotations.find {method.getAnnotation(it)} ?: annotations.find {clazz.getAnnotation(it)}
+            switch (ann) {
+                case AccessAll: return true
+                case Access:
+                    return identityService.user.hasAllRoles(ann.value())
+                case RequiresAll:
+                    return identityService.user.hasAllRoles(ann.value())
+                case RequiresAny:
+                    return identityService.user.hasAnyRole(ann.value())
             }
 
             def username = identityService.username ?: 'UNKNOWN'
@@ -78,6 +81,10 @@ class AccessInterceptor implements LogSupport {
             uri = req?.requestURI
 
         return upgradeHeader == 'websocket' && uri?.endsWith(HoistWebSocketConfigurer.WEBSOCKET_PATH)
+    }
+
+    private getMethodAnnotation(Method md) {
+
     }
 
 }

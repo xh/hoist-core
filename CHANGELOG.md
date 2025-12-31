@@ -7,6 +7,10 @@
 * The generic signature of `CacheEntry` has changed to support a generic key type, rather than just
  string.  Apps that are declaring this type will need to be adjusted to make the key type explicit
 
+### 🎁 New Features
+
+* Introduces new security annotations `@RequiresAll` and `@RequiresAny` for more convenient
+specification of multiple required roles.
 
 ### 🐞 Bug Fixes
 

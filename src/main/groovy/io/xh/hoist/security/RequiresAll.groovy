@@ -7,21 +7,17 @@
 
 package io.xh.hoist.security
 
-import java.lang.annotation.ElementType
-import java.lang.annotation.Inherited
-import java.lang.annotation.Retention
-import java.lang.annotation.RetentionPolicy
-import java.lang.annotation.Target
+import java.lang.annotation.*
 
 /**
  * Controller annotation to list roles required to execute any action.
  * Current user must have ALL roles listed to access.
- * Equivalent to @RequiresAll.
+ * Equivalent to @Access.
  */
 @Inherited
 @Target([ElementType.METHOD, ElementType.TYPE])
 @Retention(RetentionPolicy.RUNTIME)
-@interface Access {
-    /** Array of role names to restrict access to.*/
+@interface RequiresAll {
+    /** Array of role names required. */
     String[] value() default []
 }

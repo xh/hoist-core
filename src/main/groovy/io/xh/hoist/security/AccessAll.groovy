@@ -11,7 +11,6 @@ import java.lang.annotation.*
 
 /**
  * Controller annotation to indicate that any user can access, regardless of roles.
- * @see AccessInterceptor
  */
 @Inherited
 @Target([ElementType.METHOD, ElementType.TYPE])

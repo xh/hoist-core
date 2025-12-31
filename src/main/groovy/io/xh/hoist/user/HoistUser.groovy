@@ -56,6 +56,10 @@ trait HoistUser implements JSONFormat {
         return roles.containsAll(requiredRoles)
     }
 
+    boolean hasAnyRole(String[] requiredRoles) {
+        return requiredRoles.any {hasRole(it)}
+    }
+
     boolean getIsHoistAdmin() {
         return hasRole('HOIST_ADMIN')
     }
