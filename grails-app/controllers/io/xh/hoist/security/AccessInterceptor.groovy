@@ -46,17 +46,12 @@ class AccessInterceptor implements LogSupport {
             Method method = clazz && actionNm ? findMethod(clazz, actionNm) : null
             if (!method) throw new NotFoundException()
 
-            // Eval @security annotations, return true if allowed, or throw 403 (Forbidden).
+            // Eval security annotations, return true if allowed, or throw 403 (Forbidden).
             def ann = annotations.find {method.getAnnotation(it)} ?: annotations.find {clazz.getAnnotation(it)}
-            switch (ann) {
-                case AccessAll: return true
-                case Access:
-                    return identityService.user.hasAllRoles(ann.value())
-                case RequiresAll:
-                    return identityService.user.hasAllRoles(ann.value())
-                case RequiresAny:
-                    return identityService.user.hasAnyRole(ann.value())
-            }
+            if (ann instanceof AccessAll) return true
+            if (ann instanceof Access) return identityService.user.hasAllRoles(ann.value())
+            if (ann instanceof RequiresAll) return identityService.user.hasAllRoles(ann.value())
+            if (ann instanceof RequiresAny) return identityService.user.hasAnyRole(ann.value())
 
             def username = identityService.username ?: 'UNKNOWN'
             throw new NotAuthorizedException(
