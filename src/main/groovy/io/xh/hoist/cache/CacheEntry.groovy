@@ -19,15 +19,15 @@ import org.slf4j.LoggerFactory
 import static java.lang.System.currentTimeMillis
 
 @CompileStatic
-class CacheEntry<T> implements KryoSerializable, LogSupport {
-    String key
+class CacheEntry<K, T> implements KryoSerializable, LogSupport {
+    K key
     T value
     Long dateEntered
     String loggerName
 
     boolean serializeValue
 
-    CacheEntry(String key, T value, String loggerName) {
+    CacheEntry(K key, T value, String loggerName) {
         this.key = key
         this.value = value
         this.dateEntered = currentTimeMillis()
@@ -41,7 +41,7 @@ class CacheEntry<T> implements KryoSerializable, LogSupport {
         output.writeBoolean(serializeValue)
         if (!serializeValue) return
 
-        output.writeString(key)
+        kryo.writeClassAndObject(output, key)
         output.writeLong(dateEntered)
         output.writeString(loggerName)
         withSingleTrace('Serializing') {
@@ -53,7 +53,7 @@ class CacheEntry<T> implements KryoSerializable, LogSupport {
         serializeValue = input.readBoolean()
         if (!serializeValue) return
 
-        key = input.readString()
+        key =  kryo.readClassAndObject(input) as K
         dateEntered = input.readLong()
         loggerName = input.readString()
         withSingleTrace('Deserializing') {

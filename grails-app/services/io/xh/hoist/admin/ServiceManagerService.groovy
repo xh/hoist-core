@@ -11,7 +11,7 @@ import com.hazelcast.core.DistributedObject
 import io.xh.hoist.AdminStats
 import io.xh.hoist.BaseService
 
-import static io.xh.hoist.util.Utils.isSensitiveParamName
+import static io.xh.hoist.util.Utils.asSanitizedJSON
 
 class ServiceManagerService extends BaseService {
 
@@ -47,12 +47,10 @@ class ServiceManagerService extends BaseService {
     }
 
     Map getEnvironmentProperties() {
-        return [
-            environment: System.getenv().collectEntries {
-                [it.key, isSensitiveParamName(it.key) ? '*****' : it.value]
-            },
+        return asSanitizedJSON(
+            environment: System.getenv(),
             properties: System.properties
-        ]
+        )
     }
 
 

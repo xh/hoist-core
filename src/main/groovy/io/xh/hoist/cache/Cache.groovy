@@ -41,7 +41,7 @@ class Cache<K, V> implements LogSupport, AdminStats {
     public final String name
 
     /**
-     * Closure { CacheEntry<V> -> Boolean } to determine if an entry should be expired (optional).
+     * Closure { CacheEntry<K, V> -> Boolean } to determine if an entry should be expired (optional).
      */
     public final Closure<Boolean> expireFn
 
@@ -73,7 +73,7 @@ class Cache<K, V> implements LogSupport, AdminStats {
     public final boolean serializeOldValue
 
     private final String loggerName
-    private final Map<K, CacheEntry<V>> _map
+    private final Map<K, CacheEntry<K, V>> _map
     private final Timer cullTimer
 
 
@@ -120,7 +120,7 @@ class Cache<K, V> implements LogSupport, AdminStats {
     }
 
     /** @returns the cached Entry at key.  */
-    CacheEntry<V> getEntry(K key) {
+    CacheEntry<K, V> getEntry(K key) {
         def ret = _map[key]
         if (ret != null && shouldExpire(ret)) {
             remove(key)
@@ -131,7 +131,7 @@ class Cache<K, V> implements LogSupport, AdminStats {
 
     /** @returns cached value for key, or lazily creates if needed.  */
     V getOrCreate(K key, Closure<V> c) {
-        CacheEntry<V> entry = _map[key]
+        CacheEntry<K, V> entry = _map[key]
         if (entry == null || shouldExpire(entry)) {
             def val = c(key)
             put(key, val)
@@ -152,7 +152,7 @@ class Cache<K, V> implements LogSupport, AdminStats {
         if (obj == null) {
             _map.remove(key)
         } else {
-            _map.put(key, new CacheEntry(key.toString(), obj, loggerName))
+            _map.put(key, new CacheEntry(key, obj, loggerName))
         }
         if (!useCluster) fireOnChange(this, oldEntry?.value, obj)
     }
@@ -263,7 +263,7 @@ class Cache<K, V> implements LogSupport, AdminStats {
         }
     }
 
-    private boolean shouldExpire(CacheEntry<V> entry) {
+    private boolean shouldExpire(CacheEntry<K, V> entry) {
         if (expireFn != null) return expireFn.call(entry)
 
         if (expireTime != null) {
@@ -274,7 +274,7 @@ class Cache<K, V> implements LogSupport, AdminStats {
         return false
     }
 
-    private Long getEntryTimestamp(CacheEntry<V> entry) {
+    private Long getEntryTimestamp(CacheEntry<K, V> entry) {
         return timestampFn != null ? asEpochMilli(timestampFn.call(entry.value)) : entry.dateEntered
     }
 

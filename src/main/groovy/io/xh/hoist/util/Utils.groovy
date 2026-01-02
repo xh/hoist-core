@@ -20,6 +20,7 @@ import io.xh.hoist.config.ConfigService
 import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.json.JSONParser
+import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.ldap.LdapService
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.pref.PrefService
@@ -226,6 +227,14 @@ class Utils {
         throw new RuntimeException('Unable to parse boolean value')
     }
 
+    /**
+     * Output the Json format of an object, with the values for any "sensitive" param
+     * names redacted.
+     */
+    static Map asSanitizedJSON(Object obj) {
+        def map = JSONParser.parseObject(JSONSerializer.serialize(obj))
+        deepSanitizeMap(map)
+    }
 
     //------------------
     // Misc/Other
@@ -258,5 +267,16 @@ class Utils {
             terms = grailsConfig.getProperty('hoist.sensitiveParamTerms', ArrayList.class) as List<String>
         }
         return terms
+    }
+
+    private static Map deepSanitizeMap(Map map) {
+        map.collectEntries {key, val ->
+            if (isSensitiveParamName(key.toString())) {
+                val = '******'
+            } else if (val instanceof Map) {
+                val = deepSanitizeMap(val)
+            }
+            return [key, val]
+        }
     }
 }
