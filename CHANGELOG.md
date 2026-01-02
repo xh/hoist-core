@@ -17,6 +17,12 @@
 * Improve sanitization of database connection attributes in admin client.
 
 
+
+### 📚 Libraries
+
+* org.apache.poi  `4.1.2` ->  `5.5.1`
+* commons-io:commons-io `2.20.0` -> `2.21.0`
+
 ## 34.0.1 - 2025-11-24
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟠 Medium - upgrade to Grails/Gradle/Spring. New logging config)
