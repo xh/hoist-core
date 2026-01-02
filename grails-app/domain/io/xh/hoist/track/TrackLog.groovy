@@ -36,6 +36,7 @@ class TrackLog implements JSONFormat {
     String loadId
     String tabId
     String instance
+    String clientAppCode
 
     // Client browser info
     String browser
@@ -57,6 +58,7 @@ class TrackLog implements JSONFormat {
         dateCreated index: 'idx_xh_track_log_date_created'
         category index: 'idx_xh_track_log_category'
         tabId index: 'idx_xh_track_log_tab_id'
+        clientAppCode index: 'idx_xh_track_log_client_app_code'
 
         // TrackService sets dateCreated explicitly, to match actual time tracked on client.
         autoTimestamp false
@@ -79,6 +81,7 @@ class TrackLog implements JSONFormat {
         loadId(nullable: true, maxSize: 8)
         tabId(nullable: true, maxSize: 8)
         instance(nullable: true, maxSize: 50)
+        clientAppCode(nullable: true, maxSize: 50)
 
         browser(nullable: true, maxSize: 100)
         device(nullable: true, maxSize: 100)
@@ -127,6 +130,7 @@ class TrackLog implements JSONFormat {
             loadId        : loadId,
             tabId         : tabId,
             instance      : instance,
+            clientAppCode : clientAppCode,
             browser       : browser,
             device        : device,
             userAgent     : userAgent,
