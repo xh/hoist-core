@@ -2342,6 +2342,5 @@ exposing them to the application as a map.
 
 ------------------------------------------
 
-📫☎️🌎 info@xh.io | https://xh.io
-
-Copyright © 2025 Extremely Heavy Industries Inc.
+☎️ info@xh.io | <https://xh.io>
+Copyright © 2026 Extremely Heavy Industries Inc.

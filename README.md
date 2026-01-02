@@ -431,6 +431,6 @@ additional features and services provided by the framework.
 🙏 Thanks for your patience, and for reading this far!
 
 ------------------------------------------
-📫☎️🌎 info@xh.io | https://xh.io
 
-Copyright © 2025 Extremely Heavy Industries Inc.
+☎️ info@xh.io | <https://xh.io>
+Copyright © 2026 Extremely Heavy Industries Inc.
