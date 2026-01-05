@@ -6,14 +6,13 @@
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL, types only)
 
-* The generic signature of `CacheEntry` has changed to support a generic key type, rather than just
- string.  Apps that are declaring this type will need to be adjusted to make the key type explicit.
-
-  * Added `clientAppCode` properties to `TrackLog`. These new identifiers will be provided by
-    clients running `hoist-react >= 79.0` and disambiguate tracking activity for apps with multiple
-    client apps
+* Updated the generic signature of `CacheEntry` to support a generic key type, rather than just
+  string. Apps that are declaring this type will need to be adjusted to make the key type explicit.
+* Added `clientAppCode` properties to `TrackLog`. These new identifiers will be provided by
+  clients running `hoist-react >= 79.0` and disambiguate tracking activity for apps with multiple
+  client apps.
     * ⚠ NOTE this requires anew columns in the `xh_track_log` table. Review and run the
-        following SQL, modified as needed for the particular database you are using:
+      following SQL, modified as needed for the particular database you are using:
         ```sql
           ALTER TABLE `xh_track_log` ADD COLUMN `client_app_code` VARCHAR(50) NULL;
         ```
@@ -24,34 +23,38 @@
 
 ### 🎁 New Features
 
-* Support for tracking `clientAppCode` in admin activity tracking.
+* Added `clientAppCode` to Admin Activity Tracking logs.
 
 ### 🐞 Bug Fixes
 
-* Supports deletion of large numbers of log files via POST (requires hoist-react upgrade)
+* Fixed support for deletion of large numbers of log files via POST (requires `hoist-react >= 79`).
 
 ### ⚙️ Technical
 
-* Improve sanitization of database connection attributes in admin client.
+* Improved sanitization of database connection attributes displayed in the Admin Console.
 
 ### 📚 Libraries
 
-* org.apache.poi  `4.1.2` ->  `5.5.1`
-* commons-io:commons-io `2.20.0` -> `2.21.0`
+* org.apache.poi `4.1.2 → 5.5.1`
+* commons-io `2.20.0 → 2.21.0`
 
 ## 34.0.1 - 2025-11-24
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟠 Medium - upgrade to Grails/Gradle/Spring. New logging config)
 
 ### ⚙️ Technical
+
 Hoist Core v34 is a major framework upgrade version, with underlying upgrades to Grails 7.0,
-Spring Boot 3.5, Spring 6.2, Groovy 4.0, Gradle 8.14, Tomcat 10.1.   With this release grails is
-officially part of the Apache Foundation.  The main required changes to applications are the
+Spring Boot 3.5, Spring 6.2, Groovy 4.0, Gradle 8.14, Tomcat 10.1. With this release grails is
+officially part of the Apache Foundation. The main required changes to applications are the
 following:
 
-* Change to logging config to accommodate the latest version of Logback, and its removal of the groovy DSL.
-  In order to allow hoist apps to continue to seamlessly provide configuration via groovy, we have replicated
-  the functionality of the logback DSL in methods on LogConfig.groovy.  Any custom logback.groovy scripts
+* Change to logging config to accommodate the latest version of Logback, and its removal of the
+  groovy DSL.
+  In order to allow hoist apps to continue to seamlessly provide configuration via groovy, we have
+  replicated
+  the functionality of the logback DSL in methods on LogConfig.groovy. Any custom logback.groovy
+  scripts
   should be moved to an override of `LogbackConfig` class. See `LogbackConfig.` for more details.
   Misc. updates and simplification to `build.gradle` and `gradle.properties` to adapt to Gradle 8.
   See toolbox for an example of these changes.
@@ -59,7 +62,7 @@ following:
 * The usage of the deprecated `request.JSON` property in controllers is no longer supported.
 * Applications should be using the  `BaseController` methods `parseRequestJSON` and
   `parseRequestJSONArray` instead. These methods use the Hoist standard customization to jackson
-   JSON parsing.
+  JSON parsing.
 
 See the grails documentation at  https://docs.grails.org/7.0.2/guide/upgrading.html#upgrading60x
 for more information.
@@ -75,6 +78,7 @@ for more information.
 ## 33.2.0 - 2025-11-10
 
 ### 🎁 New Features
+
 * `FieldFilter` implementation now supports `not begins` and `not ends` operators.
 
 ## 33.1.0 - 2025-10-24
@@ -82,7 +86,7 @@ for more information.
 ### 🎁 New Features
 
 * `EmailService.sendEmail` now supports `bcc` and `markImportant` properties.
-*  New `CollectionUtils` with java utilities for efficient collection creation.
+* New `CollectionUtils` with java utilities for efficient collection creation.
 
 ### 🐞 Bug Fixes
 
@@ -94,7 +98,7 @@ for more information.
 
 ### ⚙️ Technical
 
-* Improvements to app lifecycle, including support of cleaner shutdown.  New property
+* Improvements to app lifecycle, including support of cleaner shutdown. New property
   `ClusterService.instanceState` and enhancements to `ClusterService.shutdownInstance`.
 * Improvement to exception handling to avoid throwing secondary exceptions during system
   shutdown.
@@ -232,7 +236,6 @@ for more information.
 ### 🐞 Bug Fixes
 
 * Fixed broken log file downloads from the Admin Console.
-
 
 ## 28.1.0 - 2025-02-13
 
