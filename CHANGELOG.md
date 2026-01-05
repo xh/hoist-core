@@ -1,5 +1,7 @@
 # Changelog
 
+## 36.0-SNAPSHOT - unreleased
+
 ## 35.0.0 - 2026-01-05
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL, types only)
