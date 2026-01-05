@@ -1,8 +1,8 @@
 # Changelog
 
-## 35.0-SNAPSHOT - unreleased
+## 35.0.0 - 2026-01-05
 
-### 💥 Breaking Changes (upgrade difficulty: 🟠 trivial, types only)
+### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL, types only)
 
 * The generic signature of `CacheEntry` has changed to support a generic key type, rather than just
  string.  Apps that are declaring this type will need to be adjusted to make the key type explicit.
@@ -31,8 +31,6 @@
 ### ⚙️ Technical
 
 * Improve sanitization of database connection attributes in admin client.
-
-
 
 ### 📚 Libraries
 
