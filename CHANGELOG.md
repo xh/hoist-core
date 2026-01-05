@@ -21,16 +21,9 @@
           CREATE index idx_xh_track_log_client_app_code on xh_track_log
         ```
 
-### 🎁 New Features
-
-* Added `clientAppCode` to Admin Activity Tracking logs.
-
 ### 🐞 Bug Fixes
 
 * Fixed support for deletion of large numbers of log files via POST (requires `hoist-react >= 79`).
-
-### ⚙️ Technical
-
 * Improved sanitization of database connection attributes displayed in the Admin Console.
 
 ### 📚 Libraries
