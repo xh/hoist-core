@@ -7,9 +7,12 @@
 
 package io.xh.hoist.websocket
 
+import grails.async.Promise
 import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
+import io.xh.hoist.cluster.ClusterResult
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.user.IdentityService
@@ -21,6 +24,8 @@ import java.util.concurrent.ConcurrentHashMap
 
 import static grails.async.Promises.task
 import static grails.async.Promises.waitAll
+import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
+import static io.xh.hoist.util.ClusterUtils.runOnInstance
 import static io.xh.hoist.util.Utils.grailsConfig
 
 
@@ -73,7 +78,16 @@ class WebSocketService extends BaseService implements EventPublisher {
      * @param data - message contents, to be serialized as JSON.
      */
     void pushToChannel(String channelKey, String topic, Object data) {
-        pushToChannels([channelKey], topic, data)
+        def instance = getInstanceNameFromKey(channelKey)
+        if (instance == ClusterService.instanceName) {
+            def channels = getLocalChannelsForKeys([channelKey])
+            if (channels) {
+                def textMessage = serialize(topic, data)
+                channels.first().sendMessage(textMessage)
+            }
+        } else {
+            runOnInstance(this.&pushToChannel, instance, [channelKey, topic, data])
+        }
     }
 
     /**
@@ -82,32 +96,97 @@ class WebSocketService extends BaseService implements EventPublisher {
      */
     void pushToChannels(Collection<String> channelKeys, String topic, Object data) {
         if (!channelKeys) return
-
-        def textMessage = serialize(topic, data),
-            channels = getChannelsForKeys(channelKeys)
-
         // The single channel case is extremely common, so avoid async overhead.
         // Note that we are relying on channel.sendMessage to catch/timeout.
-        if (channels.size() == 1) {
-            channels.first().sendMessage(textMessage)
-        } else {
-            def tasks = channels.collect { c -> task { c.sendMessage(textMessage) } }
-            waitAll(tasks)
+        if (channelKeys.size() == 1) {
+            pushToChannel(channelKeys.first(), topic, data)
         }
+        def channelKeysByInstance = channelKeys.groupBy {getInstanceNameFromKey(it) }
+        List<Promise> tasks = []
+        channelKeysByInstance.each { String instance, List<String> instanceChannelKeys ->
+            if (instance == ClusterService.instanceName) {
+                def channels = getLocalChannelsForKeys(instanceChannelKeys)
+                if (!channels) return
+                def textMessage = serialize(topic, data)
+                channels.each { c ->
+                    tasks.push(task { c.sendMessage(textMessage) })
+                }
+            } else {
+                tasks.push(task { runOnInstance(this.&pushToChannels, instance, [instanceChannelKeys, topic, data]) })
+            }
+        }
+        waitAll(tasks)
     }
 
     /**
-     * Return all actively connected client sessions. Intended primarily for internal / admin use.
+     * Pushes the message to all instances, to push into their own channels.
+     */
+    void pushToAllClusterChannels(String topic, Object data) {
+        pushToChannels(allClusterChannelKeys, topic, data)
+    }
+
+    /**
+     * Runs the when clause on all instances, pushing the message to every channel that passes it.
+     */
+    void pushToAllClusterChannelsWhere(String topic, Object data, Closure<Boolean> when) {
+        runOnAllInstances(this.&pushToAllChannelsWhere, [topic, data, when])
+    }
+
+    /**
+     * Runs the when clause against all local channels on this instance, and pushes the message to all that pass.
+     */
+    void pushToAllChannelsWhere(String topic, Object data, Closure<Boolean> when) {
+        def channels = allChannels.findAll { when.call(it) }
+        pushToChannels(channels.collect { it.key}, topic, data)
+    }
+
+    /**
+     * Return all locally connected client sessions. Intended primarily for internal / admin use.
      */
     Collection<HoistWebSocketChannel> getAllChannels() {
         _channels.values()
     }
 
     /**
+     * Return all locally connected client session keys.
+     */
+    Collection<String> getAllChannelKeys() {
+        _channels.values().collect { it.key }
+    }
+
+    /**
+     * Return all channel keys in the entire cluster.
+     */
+    Collection<String> getAllClusterChannelKeys() {
+        return runOnAllInstances(this.&getAllChannelKeys).collectMany { String instance, ClusterResult result ->
+            result.value as List<String> ?: []
+        }
+    }
+
+    /**
      * Verifies that a particular channel remains actively connected and registered.
      */
     boolean hasChannel(String channelKey) {
-        return allChannels*.key.contains(channelKey)
+        // If connected to this instance.
+        if (isLocalInstance(channelKey)) {
+            return allChannels*.key.contains(channelKey)
+        }
+        // Otherwise, ask relevant instance.
+        return runOnInstance(this.&hasChannel, getInstanceNameFromKey(channelKey), [channelKey])
+    }
+
+    /**
+     * True if the channel key belongs to this instance.
+     */
+    boolean isLocalInstance(String channelKey) {
+        return getInstanceNameFromKey(channelKey) == ClusterService.instanceName
+    }
+
+    /**
+     * Parses the channelKey String to extract the instance name from the end.
+     */
+    String getInstanceNameFromKey(String channelKey) {
+        return channelKey.substring(channelKey.indexOf('.'))
     }
 
     //------------------------
@@ -159,7 +238,7 @@ class WebSocketService extends BaseService implements EventPublisher {
         return JSONParser.parseObject(message.payload)
     }
 
-    private Collection<HoistWebSocketChannel> getChannelsForKeys(Collection<String> channelKeys) {
+    private Collection<HoistWebSocketChannel> getLocalChannelsForKeys(Collection<String> channelKeys) {
         allChannels.findAll{channelKeys.contains(it.key)}
     }
 

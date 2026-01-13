@@ -71,7 +71,7 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
     }
 
     String getKey() {
-        return "${authUsername}@${session.id}"
+        return "${authUsername}@${session.id}.${instance}"
     }
 
     HoistUser getUser()         {getApparentUser()}
