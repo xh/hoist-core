@@ -25,7 +25,7 @@ class AccessInterceptor implements LogSupport {
 
     IdentityService identityService
 
-    static List<Class<? extends Annotation>> annotations = [Access, RequiresAll, RequiresAny, AccessAll]
+    static List<Class<? extends Annotation>> annotations = [Access, RequiresEvery, RequiresAny, AccessAll]
 
     AccessInterceptor() {
         matchAll()
@@ -51,7 +51,7 @@ class AccessInterceptor implements LogSupport {
             if (
                 (ann instanceof AccessAll) ||
                 (ann instanceof Access && identityService.user.hasAllRoles(ann.value())) ||
-                (ann instanceof RequiresAll && identityService.user.hasAllRoles(ann.value())) ||
+                (ann instanceof RequiresEvery && identityService.user.hasAllRoles(ann.value())) ||
                 (ann instanceof RequiresAny && identityService.user.hasAnyRole(ann.value()))
             ) return true
 

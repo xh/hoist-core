@@ -16,7 +16,7 @@ import java.lang.annotation.Target
 /**
  * Controller annotation to list roles required to execute any action.
  * Current user must have ALL roles listed to access.
- * Equivalent to @RequiresAll.
+ * Equivalent to @RequiresEvery.
  */
 @Inherited
 @Target([ElementType.METHOD, ElementType.TYPE])

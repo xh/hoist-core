@@ -17,7 +17,7 @@ import java.lang.annotation.*
 @Inherited
 @Target([ElementType.METHOD, ElementType.TYPE])
 @Retention(RetentionPolicy.RUNTIME)
-@interface RequiresAll {
+@interface RequiresEvery {
     /** Array of role names required. */
     String[] value() default []
 }

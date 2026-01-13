@@ -203,19 +203,24 @@ has a built-in management UI in Hoist React. `DefaultRoleService` may be customi
 applications that require a fully custom solution, `BaseRoleService` establishes the minimal required
 API contract and may be subclassed directly.
 
-Server-side endpoints (Controllers) can be restricted to users with a given role or roles via the
-`@Access` annotation, e.g. a controller that should be accessible only to users with an "EDITOR"
-role could be decorated as such:
+Server-side endpoints (Controllers and their non-private methods) can be restricted to users with a
+given role or roles via the `@RequiresEvery` or `@RequiresAny` annotations, e.g. a controller that
+should be accessible to users with either the "READER" or "EDITOR" roles with specific endpoints
+restricted only to users with their corresponding role:
 
 ```
-@Access(['EDITOR'])
+@RequiresAny(['READER', 'EDITOR'])
 class ReportController extends BaseController {
+    @RequiresEvery(['READER])
+    def listReport() { ... }
+
+    @RequiresEvery(['EDITOR'])
     def saveReport(params) { ... }
 }
 ```
 
 The `@AccessAll` annotation allows any user access. A controller endpoint must be decorated with one
-or the other of these annotations or an exception will be thrown.
+of these annotations or an exception will be thrown.
 
 #### Impersonation
 

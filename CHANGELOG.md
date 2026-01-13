@@ -9,7 +9,7 @@
 
 ### 🎁 New Features
 
-* Introduces new security annotations `@RequiresAll` and `@RequiresAny` for more convenient
+* Introduces new security annotations `@RequiresEvery` and `@RequiresAny` for more convenient
 specification of multiple required roles.
 
 ### 🐞 Bug Fixes
