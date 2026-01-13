@@ -10,6 +10,8 @@ package io.xh.hoist.websocket
 import grails.async.Promise
 import grails.events.EventPublisher
 import groovy.transform.CompileStatic
+import groovy.transform.stc.ClosureParams
+import groovy.transform.stc.SimpleType
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterResult
 import io.xh.hoist.cluster.ClusterService
@@ -128,14 +130,22 @@ class WebSocketService extends BaseService implements EventPublisher {
     /**
      * Runs the when clause on all instances, pushing the message to every channel that passes it.
      */
-    void pushToAllClusterChannelsWhere(String topic, Object data, Closure<Boolean> when) {
+    void pushToAllClusterChannelsWhere(
+        String topic,
+        Object data,
+        @ClosureParams(value = SimpleType, options = ["io.xh.hoist.websocket.HoistWebSocketChannel"]) Closure<Boolean> when
+    ) {
         runOnAllInstances(this.&pushToAllChannelsWhere, [topic, data, when])
     }
 
     /**
      * Runs the when clause against all local channels on this instance, and pushes the message to all that pass.
      */
-    void pushToAllChannelsWhere(String topic, Object data, Closure<Boolean> when) {
+    void pushToAllChannelsWhere(
+        String topic,
+        Object data,
+        @ClosureParams(value = SimpleType, options = ["io.xh.hoist.websocket.HoistWebSocketChannel"]) Closure<Boolean> when
+    ) {
         def channels = allChannels.findAll { when.call(it) }
         pushToChannels(channels.collect { it.key}, topic, data)
     }
