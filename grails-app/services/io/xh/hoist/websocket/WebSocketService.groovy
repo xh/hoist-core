@@ -196,7 +196,7 @@ class WebSocketService extends BaseService implements EventPublisher {
      * Parses the channelKey String to extract the instance name from the end.
      */
     String getInstanceNameFromKey(String channelKey) {
-        return channelKey.substring(channelKey.indexOf('.'))
+        return channelKey.substring(channelKey.indexOf('|') + 1)
     }
 
     //------------------------

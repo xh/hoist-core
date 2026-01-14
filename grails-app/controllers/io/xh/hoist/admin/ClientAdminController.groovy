@@ -28,7 +28,7 @@ class ClientAdminController extends BaseController {
 
     @Access(['HOIST_ADMIN'])
     def pushToClient(String channelKey, String topic, String message, String instance) {
-        def ret = runOnInstanceAsJson(webSocketService.&pushToChannel, instance, [channelKey, topic, message])
-        renderClusterJSON(ret)
+        def ret = webSocketService.pushToChannel(channelKey, topic, message)
+        renderJSON(ret)
     }
 }
