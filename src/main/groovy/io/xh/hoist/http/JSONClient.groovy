@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2025 Extremely Heavy Industries Inc.
+ * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.http
@@ -16,6 +16,7 @@ import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
 import org.apache.hc.client5.http.impl.classic.HttpClients
 
+import static io.xh.hoist.util.StringUtils.elide
 import static org.apache.hc.core5.http.HttpStatus.SC_NO_CONTENT
 import static org.apache.hc.core5.http.HttpStatus.SC_OK
 
@@ -153,8 +154,10 @@ class JSONClient {
 
             // [1] We have a valid json object (preferred)
             Map obj = safeParseObject(content)
+            int MAX_MSG_LEN = 255
             if (obj) {
-                String msg = obj.message instanceof String ? obj.message : 'Unknown Error'
+                String msg = obj.message instanceof String ? obj.message : content
+                msg = elide(msg, MAX_MSG_LEN)
 
                 // Try to rehydrate exception of certain known and present classes
                 def className = obj.className
@@ -171,7 +174,7 @@ class JSONClient {
             }
 
             // [2] Or just interpret content as a raw string message
-            return new RuntimeException(StringUtils.elide(content, 255))
+            return new RuntimeException(elide(content, MAX_MSG_LEN))
         } catch (Exception ignored) {
             // [3] ..but in the worst case, just return null
             return null

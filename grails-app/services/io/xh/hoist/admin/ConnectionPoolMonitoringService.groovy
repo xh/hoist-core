@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2025 Extremely Heavy Industries Inc.
+ * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.admin
@@ -17,6 +17,8 @@ import javax.sql.DataSource
 import java.util.concurrent.ConcurrentHashMap
 
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static io.xh.hoist.util.DateTimeUtils.getHOURS
+import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static io.xh.hoist.util.Utils.asSanitizedJSON
 import static java.lang.System.currentTimeMillis
 
@@ -30,6 +32,7 @@ class ConnectionPoolMonitoringService extends BaseService {
         dataSource
 
     private Map<Long, Map> _snapshots = new ConcurrentHashMap()
+    private Date _lastInfoLogged
     private PooledDataSource _pooledDataSource
     private boolean unwrapAttempted = false
 
@@ -81,8 +84,13 @@ class ConnectionPoolMonitoringService extends BaseService {
             _snapshots.remove(oldest.key)
         }
 
-        if (config.writeToLog) {
-            logInfo(newSnap)
+        if (config.writeToLog !== false) {
+            if (intervalElapsed(1 * HOURS, _lastInfoLogged)) {
+                logInfo(newSnap)
+                _lastInfoLogged = new Date()
+            } else {
+                logDebug(newSnap)
+            }
         }
 
         return newSnap

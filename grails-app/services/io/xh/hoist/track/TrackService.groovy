@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2025 Extremely Heavy Industries Inc.
+ * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.track
@@ -109,7 +109,9 @@ class TrackService extends BaseService {
          */
         @NamedParam String impersonating = null,
 
-        // From client-side, for internal use.
+        // From client-side for internal use.
+        /** Client-side app. */
+        @NamedParam String clientAppCode = null,
         /** Client-side tabId, maintained by hoist-react for the life of a browser tab. */
         @NamedParam String tabId = null,
         /** Client-side loadId, maintained by hoist-react for each load of the client app. */
@@ -130,6 +132,7 @@ class TrackService extends BaseService {
                 url          : url,
                 timestamp    : timestamp,
                 elapsed      : elapsed,
+                clientAppCode: clientAppCode,
                 tabId        : tabId,
                 loadId       : loadId
             ]
@@ -217,6 +220,7 @@ class TrackService extends BaseService {
             appVersion    : entry.appVersion ?: Utils.appVersion,
             loadId        : entry.loadId,
             tabId         : entry.tabId,
+            clientAppCode : entry.clientAppCode,
             dateCreated   : entry.timestamp ? new Date(entry.timestamp as Long) : new Date(),
 
 

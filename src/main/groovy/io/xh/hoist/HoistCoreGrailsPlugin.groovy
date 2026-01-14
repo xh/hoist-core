@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2025 Extremely Heavy Industries Inc.
+ * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist
@@ -22,7 +22,7 @@ import static io.xh.hoist.util.Utils.createCustomOrDefault
 class HoistCoreGrailsPlugin extends Plugin {
 
     def grailsVersion = '7.0.4'
-    def version = '35.0-SNAPSHOT'
+    def version = '36.0-SNAPSHOT'
     def title = 'hoist-core'
     def author = 'Extremely Heavy'
     def authorEmail = 'info@xh.io'

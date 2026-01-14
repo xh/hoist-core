@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2025 Extremely Heavy Industries Inc.
+ * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.admin
@@ -105,11 +105,13 @@ class MemoryMonitoringService extends BaseService {
             _snapshots.remove(oldest.key)
         }
 
-        if (intervalElapsed(1 * HOURS, _lastInfoLogged)) {
-            logInfo(newSnap)
-            _lastInfoLogged = new Date()
-        } else {
-            logDebug(newSnap)
+        if (config.writeToLog !== false) {
+            if (intervalElapsed(1 * HOURS, _lastInfoLogged)) {
+                logInfo(newSnap)
+                _lastInfoLogged = new Date()
+            } else {
+                logDebug(newSnap)
+            }
         }
 
         if (preservePastInstances) persistSnapshots()

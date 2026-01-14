@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2025 Extremely Heavy Industries Inc.
+ * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.websocket
@@ -42,6 +42,7 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
     final Instant createdTime
     final String loadId
     final String tabId
+    final String clientAppCode
     final String instance
 
     private Integer sentMessageCount = 0
@@ -62,9 +63,10 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
         apparentUsername = getApparentUsernameFromSession()
         appVersion = queryParams.getFirst('appVersion')
         appBuild = queryParams.getFirst('appBuild')
-        instance = ClusterService.instanceName
         loadId = queryParams.getFirst('loadId')
         tabId = queryParams.getFirst('tabId')
+        clientAppCode = queryParams.getFirst('clientAppCode')
+        instance = ClusterService.instanceName
         createdTime = Instant.now()
     }
 
@@ -127,9 +129,10 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
             lastReceivedTime: lastReceivedTime,
             appVersion: appVersion,
             appBuild: appBuild,
+            clientAppCode: clientAppCode,
             instance: instance,
             loadId: loadId,
-            tabId: tabId,
+            tabId: tabId
         ]
     }
 }

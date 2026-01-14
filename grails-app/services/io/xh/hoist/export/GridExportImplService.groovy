@@ -2,7 +2,7 @@
  * This file belongs to Hoist, an application development toolkit
  * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
  *
- * Copyright © 2025 Extremely Heavy Industries Inc.
+ * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
 package io.xh.hoist.export
@@ -16,6 +16,7 @@ import org.apache.poi.ss.usermodel.VerticalAlignment
 import org.apache.poi.ss.util.AreaReference
 import org.apache.poi.ss.util.CellReference
 import org.apache.poi.ss.SpreadsheetVersion
+import org.apache.poi.xssf.usermodel.DefaultIndexedColorMap
 import org.apache.poi.xssf.usermodel.XSSFCellStyle
 import org.apache.poi.xssf.usermodel.XSSFColor
 import org.apache.poi.xssf.usermodel.XSSFTable
@@ -148,8 +149,8 @@ class GridExportImplService extends BaseService {
             AreaReference tableRange = new AreaReference(new CellReference(0, 0), new CellReference(Math.max(1, tableRows - 1), tableColumns - 1), SpreadsheetVersion.EXCEL2007)
             CTTable table = xssfTable.getCTTable()
             table.setRef(tableRange.formatAsString())
-            table.setDisplayName('Export')
-            table.setName('Export')
+            table.setDisplayName('ExportTable')
+            table.setName('ExportTable')
             table.setId(1L)
 
             // Style table
@@ -309,9 +310,13 @@ class GridExportImplService extends BaseService {
 
         // Get byte array
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
-        wb.write(outputStream)
+        try {
+            wb.write(outputStream)
+        } finally {
+            wb.close()
+            if (useStreamingAPI) wb.dispose()
+        }
         outputStream.close()
-        if (useStreamingAPI) wb.dispose()
         return outputStream.toByteArray()
     }
 
@@ -326,8 +331,8 @@ class GridExportImplService extends BaseService {
         // Excel thinks of background colors as patterned "Fills", which each have their own
         // background and foreground colors. A solid background is `FillPatternType.SOLID_FOREGROUND`.
         if (colorGroup) {
-            style.setFillForegroundColor(new XSSFColor(colorGroup));
-            style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            style.setFillForegroundColor(new XSSFColor(colorGroup, new DefaultIndexedColorMap()))
+            style.setFillPattern(FillPatternType.SOLID_FOREGROUND)
         }
 
         return style
