@@ -11,6 +11,7 @@ import groovy.transform.CompileStatic
 import io.xh.hoist.exception.NotAuthorizedException
 import io.xh.hoist.exception.NotFoundException
 import io.xh.hoist.log.LogSupport
+import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
 import io.xh.hoist.util.Utils
 import io.xh.hoist.websocket.HoistWebSocketConfigurer
@@ -25,7 +26,13 @@ class AccessInterceptor implements LogSupport {
 
     IdentityService identityService
 
-    static List<Class<? extends Annotation>> annotations = [Access, RequiresEvery, RequiresAny, AccessAll]
+    static List<Class<? extends Annotation>> annotations = [
+        Access,
+        AccessRequiresRole,
+        AccessRequiresAllRoles,
+        AccessRequiresAnyRole,
+        AccessAll
+    ]
 
     AccessInterceptor() {
         matchAll()
@@ -41,6 +48,7 @@ class AccessInterceptor implements LogSupport {
             }
 
             // Get controller method, or throw 404 (Not Found).
+            HoistUser user = identityService.user
             Class clazz = controllerClass?.clazz
             String actionNm = actionName ?: controllerClass?.defaultAction
             Method method = clazz && actionNm ? findMethod(clazz, actionNm) : null
@@ -50,12 +58,13 @@ class AccessInterceptor implements LogSupport {
             def ann = annotations.findResult {method.getAnnotation(it)} ?: annotations.findResult {clazz.getAnnotation(it)}
             if (
                 (ann instanceof AccessAll) ||
-                (ann instanceof Access && identityService.user.hasAllRoles(ann.value())) ||
-                (ann instanceof RequiresEvery && identityService.user.hasAllRoles(ann.value())) ||
-                (ann instanceof RequiresAny && identityService.user.hasAnyRole(ann.value()))
+                (ann instanceof AccessRequiresRole && user?.hasRole(ann.value() as String)) ||
+                (ann instanceof AccessRequiresAnyRole  && user?.hasAnyRole(ann.value() as String[])) ||
+                (ann instanceof AccessRequiresAllRoles && user?.hasAllRoles(ann.value() as String[])) ||
+                (ann instanceof Access && user?.hasAllRoles(ann.value() as String[]))
             ) return true
 
-            def username = identityService.username ?: 'UNKNOWN'
+            def username = user?.username ?: 'UNKNOWN'
             throw new NotAuthorizedException(
                 "You do not have the required role(s) for this action. Currently logged in as: $username."
             )

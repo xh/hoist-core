@@ -7,11 +7,12 @@
 package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.security.Access
+import io.xh.hoist.security.AccessRequiresRole
+
 import static io.xh.hoist.util.ClusterUtils.runOnInstanceAsJson
 import static io.xh.hoist.util.ClusterUtils.runOnAllInstancesAsJson
 
-@Access(['HOIST_ADMIN_READER'])
+@AccessRequiresRole('HOIST_ADMIN_READER')
 class ServiceManagerAdminController extends BaseController {
 
     def serviceManagerService
@@ -26,7 +27,7 @@ class ServiceManagerAdminController extends BaseController {
         renderClusterJSON(ret)
     }
 
-    @Access(['HOIST_ADMIN'])
+    @AccessRequiresRole('HOIST_ADMIN')
     def clearCaches(String instance) {
         def names = params.list('names')
         if (instance) {

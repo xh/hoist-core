@@ -7,9 +7,9 @@
 package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.security.Access
+import io.xh.hoist.security.AccessRequiresRole
 
-@Access(['HOIST_ADMIN_READER'])
+@AccessRequiresRole('HOIST_ADMIN_READER')
 class ClusterObjectsAdminController extends BaseController {
     def clusterObjectsService
 
@@ -17,14 +17,14 @@ class ClusterObjectsAdminController extends BaseController {
         renderJSON(clusterObjectsService.getClusterObjectsReport())
     }
 
-    @Access(['HOIST_ADMIN'])
+    @AccessRequiresRole('HOIST_ADMIN')
     def clearHibernateCaches() {
         def req = parseRequestJSON()
         clusterObjectsService.clearHibernateCaches(req.names)
         renderSuccess()
     }
 
-    @Access(['HOIST_ADMIN'])
+    @AccessRequiresRole('HOIST_ADMIN')
     def clearAllHibernateCaches() {
         clusterObjectsService.clearHibernateCaches()
         renderSuccess()

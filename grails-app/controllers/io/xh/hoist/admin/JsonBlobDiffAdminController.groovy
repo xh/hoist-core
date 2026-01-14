@@ -11,8 +11,9 @@ import io.xh.hoist.BaseController
 import io.xh.hoist.jsonblob.JsonBlob
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.security.Access
+import io.xh.hoist.security.AccessRequiresRole
 
-@Access(['HOIST_ADMIN_READER'])
+@AccessRequiresRole('HOIST_ADMIN_READER')
 class JsonBlobDiffAdminController extends BaseController {
 
     def jsonBlobDiffService
@@ -22,7 +23,7 @@ class JsonBlobDiffAdminController extends BaseController {
         renderJSON(data: data)
     }
 
-    @Access(['HOIST_ADMIN'])
+    @AccessRequiresRole('HOIST_ADMIN')
     def applyRemoteValues() {
         def records = params.get('records')
         jsonBlobDiffService.applyRemoteValues(JSONParser.parseArray(records))

@@ -8,32 +8,32 @@
 package io.xh.hoist.admin
 
 import io.xh.hoist.RestController
-import io.xh.hoist.security.Access
+import io.xh.hoist.security.AccessRequiresRole
 
-@Access(['HOIST_ADMIN_READER'])
-abstract class AdminRestController extends RestController{
+@AccessRequiresRole('HOIST_ADMIN_READER')
+abstract class AdminRestController extends RestController {
 
-    @Access(['HOIST_ADMIN'])
+    @AccessRequiresRole('HOIST_ADMIN')
     def create() {
         super.create()
     }
 
-    @Access(['HOIST_ADMIN'])
+    @AccessRequiresRole('HOIST_ADMIN')
     def update() {
         super.update()
     }
 
-    @Access(['HOIST_ADMIN'])
+    @AccessRequiresRole('HOIST_ADMIN')
     def bulkUpdate() {
         super.bulkUpdate()
     }
 
-    @Access(['HOIST_ADMIN'])
+    @AccessRequiresRole('HOIST_ADMIN')
     def delete() {
         super.delete()
     }
 
-    @Access(['HOIST_ADMIN'])
+    @AccessRequiresRole('HOIST_ADMIN')
     def bulkDelete() {
         super.bulkDelete()
     }

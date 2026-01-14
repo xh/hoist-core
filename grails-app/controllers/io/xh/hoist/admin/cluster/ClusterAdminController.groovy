@@ -8,12 +8,12 @@
 package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.security.Access
+import io.xh.hoist.security.AccessRequiresRole
 
 import static io.xh.hoist.util.ClusterUtils.runOnInstanceAsJson
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 
-@Access(['HOIST_ADMIN_READER'])
+@AccessRequiresRole('HOIST_ADMIN_READER')
 class ClusterAdminController extends BaseController {
 
     def clusterAdminService,
@@ -23,7 +23,7 @@ class ClusterAdminController extends BaseController {
         renderJSON(clusterAdminService.allStats)
     }
 
-    @Access(['HOIST_ADMIN'])
+    @AccessRequiresRole('HOIST_ADMIN')
     def shutdownInstance(String instance) {
         trackService.track(
             category: 'Cluster Admin',

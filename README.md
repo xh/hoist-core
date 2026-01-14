@@ -184,10 +184,10 @@ fetch core user info, making it easily available to the JS app via a correspondi
 #### Roles and Access
 
 
-| Class/File                         | Note                                        |                             Link                              |
-|------------------------------------|---------------------------------------------|:-------------------------------------------------------------:|
-| `BaseRoleService.groovy`           | App must implement to assign roles to users | [🏗](src/main/groovy/io/xh/hoist/role/BaseRoleService.groovy) |
-| `Access.groovy`                    | Annotation for endpoint security            |   [🏗](src/main/groovy/io/xh/hoist/security/Access.groovy)    |
+| Class/File                 | Note                                        |                                 Link                                 |
+|----------------------------|---------------------------------------------|:--------------------------------------------------------------------:|
+| `BaseRoleService.groovy`   | App must implement to assign roles to users |    [🏗](src/main/groovy/io/xh/hoist/role/BaseRoleService.groovy)     |
+| `AccessRequiresRole.groovy`| Annotation for endpoint security            | [🏗](src/main/groovy/io/xh/hoist/security/AccessRequiresRole.groovy) |
 
 🔒 Structure is provided for application "roles", for use in defining access to various parts of the
 application.  At their core, roles are simply strings -- it is up to the application to determine what
@@ -204,17 +204,18 @@ applications that require a fully custom solution, `BaseRoleService` establishes
 API contract and may be subclassed directly.
 
 Server-side endpoints (Controllers and their non-private methods) can be restricted to users with a
-given role or roles via the `@RequiresEvery` or `@RequiresAny` annotations, e.g. a controller that
+given role or roles via the `@AccessRequiresRole`,  `@AccessRequiresAnyRole` and
+`@AccessRequiresAllRoles` annotations, e.g. a controller that
 should be accessible to users with either the "READER" or "EDITOR" roles with specific endpoints
 restricted only to users with their corresponding role:
 
 ```
-@RequiresAny(['READER', 'EDITOR'])
+@AccessRequiresAnyRole(['READER', 'EDITOR'])
 class ReportController extends BaseController {
-    @RequiresEvery(['READER])
+    @AccessRequiresRole('READER)
     def listReport() { ... }
 
-    @RequiresEvery(['EDITOR'])
+    @AccessRequiresRole('EDITOR')
     def saveReport(params) { ... }
 }
 ```

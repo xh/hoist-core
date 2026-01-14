@@ -4,8 +4,10 @@
 
 ### 🎁 New Features
 
-* Introduces new security annotations `@RequiresEvery` and `@RequiresAny` for more convenient
-specification of multiple required roles.
+* Introduces new security annotations `@AccessRequiresRole`, `@AccessRequiresAllRoles`, and
+  `@AccessRequiresAnyRole`.  These annotations provide a clearer and more flexible specification
+   of access control then then the existing `@Access` annotation.  `@Access` has been deprecated and
+   will be removed in a future version of Hoist.
 
 ## 35.0.0 - 2026-01-05
 

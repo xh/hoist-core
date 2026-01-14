@@ -9,9 +9,9 @@ package io.xh.hoist.admin
 
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.security.Access
+import io.xh.hoist.security.AccessRequiresRole
 
-@Access(['HOIST_ADMIN_READER'])
+@AccessRequiresRole('HOIST_ADMIN_READER')
 class JsonSearchController extends BaseController {
 
     JsonSearchService jsonSearchService
