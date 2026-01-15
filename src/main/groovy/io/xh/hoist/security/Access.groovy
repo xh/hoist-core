@@ -13,14 +13,18 @@ import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
 import java.lang.annotation.Target
 
+
 /**
  * Controller annotation to list roles required to execute any action.
- * Current user must have all roles listed.
- * @see AccessInterceptor
+ * Current user must have ALL roles listed to access.
+ *
+ * @deprecated - use @AccessRequiresRole or @AccessRequiresAllRoles instead.
  */
+@Deprecated
 @Inherited
 @Target([ElementType.METHOD, ElementType.TYPE])
 @Retention(RetentionPolicy.RUNTIME)
 @interface Access {
+    /** Array of role names to restrict access to.*/
     String[] value() default []
 }

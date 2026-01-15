@@ -8,11 +8,11 @@
 package io.xh.hoist.admin
 
 import io.xh.hoist.jsonblob.JsonBlob
-import io.xh.hoist.security.Access
+import io.xh.hoist.security.AccessRequiresRole
 
 import static java.lang.System.currentTimeMillis
 
-@Access(['HOIST_ADMIN_READER'])
+@AccessRequiresRole('HOIST_ADMIN_READER')
 class JsonBlobAdminController extends AdminRestController {
     static restTarget = JsonBlob
     static trackChanges = true

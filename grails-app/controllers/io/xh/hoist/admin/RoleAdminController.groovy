@@ -9,18 +9,18 @@ package io.xh.hoist.admin
 import io.xh.hoist.BaseController
 import io.xh.hoist.role.provided.DefaultRoleService
 import io.xh.hoist.role.provided.Role
-import io.xh.hoist.security.Access
+import io.xh.hoist.security.AccessRequiresRole
 
 import static java.util.Collections.singleton
 
-@Access(['HOIST_ROLE_MANAGER'])
+@AccessRequiresRole('HOIST_ROLE_MANAGER')
 class RoleAdminController extends BaseController {
 
     def defaultRoleAdminService,
         defaultRoleUpdateService,
         roleService
 
-    @Access(['HOIST_ADMIN_READER'])
+    @AccessRequiresRole('HOIST_ADMIN_READER')
     def config() {
         def ret = roleService instanceof DefaultRoleService ?
             [enabled: true, *: defaultRoleAdminService.clientConfig] :
@@ -29,7 +29,7 @@ class RoleAdminController extends BaseController {
         renderJSON(ret)
     }
 
-    @Access(['HOIST_ADMIN_READER'])
+    @AccessRequiresRole('HOIST_ADMIN_READER')
     def list() {
         List<Map> roles = defaultRoleAdminService.list()
         renderJSON(data: roles)

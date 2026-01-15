@@ -10,11 +10,15 @@ package io.xh.hoist.security
 import java.lang.annotation.*
 
 /**
- * Controller annotation to indicate that any user can access, regardless of roles.
+ * Controller annotation to specify a required role to complete an action.
+ * See related annotations:
+ * @see AccessRequiresAllRoles
+ * @see AccessRequiresAnyRole
  */
 @Inherited
 @Target([ElementType.METHOD, ElementType.TYPE])
 @Retention(RetentionPolicy.RUNTIME)
-@interface AccessAll {
-
+@interface AccessRequiresRole {
+    /** Role name to restrict access to.*/
+    String value()
 }

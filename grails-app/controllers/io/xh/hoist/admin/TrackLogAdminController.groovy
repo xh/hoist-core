@@ -9,7 +9,7 @@ package io.xh.hoist.admin
 
 import io.xh.hoist.BaseController
 import io.xh.hoist.data.filter.Filter
-import io.xh.hoist.security.Access
+import io.xh.hoist.security.AccessRequiresRole
 import io.xh.hoist.track.TrackLogAdminService
 
 import java.time.LocalDate
@@ -18,7 +18,7 @@ import static io.xh.hoist.util.DateTimeUtils.appDay
 import static io.xh.hoist.util.DateTimeUtils.parseLocalDate
 
 
-@Access(['HOIST_ADMIN_READER'])
+@AccessRequiresRole('HOIST_ADMIN_READER')
 class TrackLogAdminController extends BaseController {
 
     TrackLogAdminService trackLogAdminService

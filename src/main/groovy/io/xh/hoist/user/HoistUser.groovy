@@ -41,7 +41,7 @@ trait HoistUser implements JSONFormat {
     /**
      * Roles are the primary source of application-level permissions and access.
      *
-     * They are validated against server-side @Access interceptors to secure endpoints and are
+     * They are validated against server-side @AccessXXX interceptors to secure endpoints and are
      * serialized to JS clients for use in client-side logic.
      */
     Set<String> getRoles()  {
@@ -54,6 +54,10 @@ trait HoistUser implements JSONFormat {
 
     boolean hasAllRoles(String[] requiredRoles) {
         return roles.containsAll(requiredRoles)
+    }
+
+    boolean hasAnyRole(String[] requiredRoles) {
+        return requiredRoles.any {hasRole(it)}
     }
 
     boolean getIsHoistAdmin() {

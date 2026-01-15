@@ -8,9 +8,9 @@
 package io.xh.hoist.admin
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.security.Access
+import io.xh.hoist.security.AccessRequiresRole
 
-@Access(['HOIST_ADMIN_READER'])
+@AccessRequiresRole('HOIST_ADMIN_READER')
 class AlertBannerAdminController extends BaseController {
 
     def alertBannerService
@@ -23,13 +23,13 @@ class AlertBannerAdminController extends BaseController {
         renderJSON(alertBannerService.alertPresets)
     }
 
-    @Access(['HOIST_ADMIN'])
+    @AccessRequiresRole('HOIST_ADMIN')
     def setAlertSpec() {
         alertBannerService.setAlertSpec(parseRequestJSON())
         renderSuccess()
     }
 
-    @Access(['HOIST_ADMIN'])
+    @AccessRequiresRole('HOIST_ADMIN')
     def setAlertPresets() {
         alertBannerService.setAlertPresets(parseRequestJSONArray())
         renderSuccess()

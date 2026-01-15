@@ -8,9 +8,9 @@
 package io.xh.hoist.admin
 
 import io.xh.hoist.monitor.Monitor
-import io.xh.hoist.security.Access
+import io.xh.hoist.security.AccessRequiresRole
 
-@Access(['HOIST_ADMIN_READER'])
+@AccessRequiresRole('HOIST_ADMIN_READER')
 class MonitorAdminController extends AdminRestController {
 
     static restTarget = Monitor

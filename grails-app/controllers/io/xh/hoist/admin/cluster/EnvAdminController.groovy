@@ -7,11 +7,12 @@
 package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.security.Access
+import io.xh.hoist.security.AccessRequiresRole
+
 import static io.xh.hoist.util.ClusterUtils.runOnInstanceAsJson
 
 
-@Access(['HOIST_ADMIN_READER'])
+@AccessRequiresRole('HOIST_ADMIN_READER')
 class EnvAdminController extends BaseController {
 
     def serviceManagerService
