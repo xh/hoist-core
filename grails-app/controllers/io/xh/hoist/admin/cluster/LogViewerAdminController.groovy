@@ -9,13 +9,13 @@ package io.xh.hoist.admin.cluster
 
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.security.Access
+import io.xh.hoist.security.AccessRequiresRole
 import io.xh.hoist.util.Utils
 import static io.xh.hoist.util.ClusterUtils.runOnInstanceAsJson
 import static io.xh.hoist.util.ClusterUtils.runOnInstance
 
 
-@Access(['HOIST_ADMIN_READER'])
+@AccessRequiresRole('HOIST_ADMIN_READER')
 class LogViewerAdminController extends BaseController {
 
     def logReaderService
@@ -63,7 +63,7 @@ class LogViewerAdminController extends BaseController {
      * Deletes one or more files from the log directory.
      * @param filenames - (required)
      */
-    @Access(['HOIST_ADMIN'])
+    @AccessRequiresRole('HOIST_ADMIN')
     def deleteFiles(String instance) {
         def filenames = parseRequestJSONArray(safeEncode: true) ?: params.list('filenames'),
             ret = runOnInstanceAsJson(logReaderService.&deleteFiles, instance, [filenames])
@@ -74,7 +74,7 @@ class LogViewerAdminController extends BaseController {
      * Run log archiving process immediately.
      * @param daysThreshold - (optional) min age in days of files to archive - null to use configured default.
      */
-    @Access(['HOIST_ADMIN'])
+    @AccessRequiresRole('HOIST_ADMIN')
     def archiveLogs(Integer daysThreshold, String instance) {
         def ret = runOnInstanceAsJson(logArchiveService.&archiveLogs, instance, [daysThreshold])
         renderClusterJSON(ret)

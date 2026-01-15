@@ -2,10 +2,18 @@
 
 ## 36.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Introduces new security annotations `@AccessRequiresRole`, `@AccessRequiresAllRoles`, and
+  `@AccessRequiresAnyRole`.  These annotations provide a clearer and more flexible specification
+   of access control then then the existing `@Access` annotation.  `@Access` has been deprecated and
+   will be removed in a future version of Hoist.
+
 ## 35.0.0 - 2026-01-05
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL, types only)
 
+### 🎁 New Features
 * Updated the generic signature of `CacheEntry` to support a generic key type, rather than just
   string. Apps that are declaring this type will need to be adjusted to make the key type explicit.
 * Added `clientAppCode` properties to `TrackLog`. These new identifiers will be provided by

@@ -11,10 +11,12 @@ import groovy.transform.CompileStatic
 import io.xh.hoist.exception.NotAuthorizedException
 import io.xh.hoist.exception.NotFoundException
 import io.xh.hoist.log.LogSupport
+import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
 import io.xh.hoist.util.Utils
 import io.xh.hoist.websocket.HoistWebSocketConfigurer
 
+import java.lang.annotation.Annotation
 import java.lang.reflect.Method
 
 import static org.springframework.util.ReflectionUtils.findMethod
@@ -23,6 +25,14 @@ import static org.springframework.util.ReflectionUtils.findMethod
 class AccessInterceptor implements LogSupport {
 
     IdentityService identityService
+
+    static List<Class<? extends Annotation>> annotations = [
+        Access,
+        AccessRequiresRole,
+        AccessRequiresAllRoles,
+        AccessRequiresAnyRole,
+        AccessAll
+    ]
 
     AccessInterceptor() {
         matchAll()
@@ -38,24 +48,23 @@ class AccessInterceptor implements LogSupport {
             }
 
             // Get controller method, or throw 404 (Not Found).
+            HoistUser user = identityService.user
             Class clazz = controllerClass?.clazz
             String actionNm = actionName ?: controllerClass?.defaultAction
             Method method = clazz && actionNm ? findMethod(clazz, actionNm) : null
             if (!method) throw new NotFoundException()
 
-            // Eval @Access annotations, return true if allowed, or throw 403 (Forbidden).
-            def access = method.getAnnotation(Access) ?:
-                method.getAnnotation(AccessAll) ?:
-                    clazz.getAnnotation(Access) as Access ?:
-                        clazz.getAnnotation(AccessAll) as AccessAll
+            // Eval security annotations, return true if allowed, or throw 403 (Forbidden).
+            def ann = annotations.findResult {method.getAnnotation(it)} ?: annotations.findResult {clazz.getAnnotation(it)}
+            if (
+                (ann instanceof AccessAll) ||
+                (ann instanceof AccessRequiresRole && user?.hasRole(ann.value() as String)) ||
+                (ann instanceof AccessRequiresAnyRole  && user?.hasAnyRole(ann.value() as String[])) ||
+                (ann instanceof AccessRequiresAllRoles && user?.hasAllRoles(ann.value() as String[])) ||
+                (ann instanceof Access && user?.hasAllRoles(ann.value() as String[]))
+            ) return true
 
-            if (access instanceof AccessAll ||
-                    (access instanceof Access && identityService.user.hasAllRoles(access.value()))
-            ) {
-                return true
-            }
-
-            def username = identityService.username ?: 'UNKNOWN'
+            def username = user?.username ?: 'UNKNOWN'
             throw new NotAuthorizedException(
                 "You do not have the required role(s) for this action. Currently logged in as: $username."
             )
@@ -79,5 +88,4 @@ class AccessInterceptor implements LogSupport {
 
         return upgradeHeader == 'websocket' && uri?.endsWith(HoistWebSocketConfigurer.WEBSOCKET_PATH)
     }
-
 }

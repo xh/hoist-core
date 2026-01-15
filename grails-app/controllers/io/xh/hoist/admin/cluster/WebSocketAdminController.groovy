@@ -8,10 +8,11 @@
 package io.xh.hoist.admin.cluster
 
 import io.xh.hoist.BaseController
-import io.xh.hoist.security.Access
+import io.xh.hoist.security.AccessRequiresRole
+
 import static io.xh.hoist.util.ClusterUtils.runOnInstanceAsJson
 
-@Access(['HOIST_ADMIN_READER'])
+@AccessRequiresRole('HOIST_ADMIN_READER')
 class WebSocketAdminController extends BaseController {
 
     def webSocketService
@@ -21,7 +22,7 @@ class WebSocketAdminController extends BaseController {
         renderClusterJSON(ret)
     }
 
-    @Access(['HOIST_ADMIN'])
+    @AccessRequiresRole('HOIST_ADMIN')
     def pushToChannel(String channelKey, String topic, String message, String instance) {
         def ret = runOnInstanceAsJson(webSocketService.&pushToChannel, instance, [channelKey, topic, message])
         renderClusterJSON(ret)

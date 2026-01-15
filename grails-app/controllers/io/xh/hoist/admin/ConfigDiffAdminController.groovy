@@ -11,9 +11,9 @@ import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.BaseController
 import io.xh.hoist.config.AppConfig
 import io.xh.hoist.json.JSONParser
-import io.xh.hoist.security.Access
+import io.xh.hoist.security.AccessRequiresRole
 
-@Access(['HOIST_ADMIN_READER'])
+@AccessRequiresRole('HOIST_ADMIN_READER')
 class ConfigDiffAdminController extends BaseController {
 
     def configDiffService
@@ -24,7 +24,7 @@ class ConfigDiffAdminController extends BaseController {
         renderJSON(data: data)
     }
 
-    @Access(['HOIST_ADMIN'])
+    @AccessRequiresRole('HOIST_ADMIN')
     def applyRemoteValues() {
         def records = params.get('records')
         configDiffService.applyRemoteValues(JSONParser.parseArray(records))
