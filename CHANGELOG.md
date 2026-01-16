@@ -13,11 +13,11 @@
   any websocket channel in the cluster, regardless of what server instance the websocket is associated
   with. This changes includes the following:
     * the existing methods `pushToChannel()` and `pushToChannels()` can now be called on
-      any instance of the cluster, and will deliver messages to any client on the cluster, regardless
-      of what instance it resides on.
-    * `hasChannel()` and `getAllChannels()` now refers to all channels in the entire cluster.
-       Use new variants `hasLocalChannel()` and `getLocalChannels()` if you wish to target the local
-       instance.
+      any instance of the cluster, and will deliver messages to any client on the cluster,
+      regardless of what instance it resides on.
+    * `hasChannel()` and `getAllChannels()` now refer to all channels in the entire cluster.
+      Use new variants `hasLocalChannel()` and `getLocalChannels()` if you wish to target the
+      local instance.
     *  New methods `pushToAllChannels()` and `pushToLocalChannels()` have been added.
 
 
