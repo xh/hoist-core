@@ -18,7 +18,7 @@ class WebSocketAdminController extends BaseController {
     def webSocketService
 
     def allChannels(String instance) {
-        def ret = runOnInstanceAsJson(webSocketService.&getAllChannels, instance)
+        def ret = runOnInstanceAsJson(webSocketService.&getLocalChannels, instance)
         renderClusterJSON(ret)
     }
 

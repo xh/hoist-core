@@ -27,7 +27,7 @@ class ClusterAdminService extends BaseService {
             isPrimary     : clusterService.isPrimary,
             memory        : appContext.memoryMonitoringService.latestSnapshot,
             connectionPool: appContext.connectionPoolMonitoringService.latestSnapshot,
-            wsConnections : appContext.webSocketService.allChannels.size(),
+            wsConnections : appContext.webSocketService.localChannels.size(),
             startupTime   : ClusterService.startupTime,
             instanceState : ClusterService.instanceState,
             isReady       : ClusterService.instanceState == RUNNING

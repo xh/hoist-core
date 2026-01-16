@@ -2,12 +2,31 @@
 
 ## 36.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 Medium)
+  * Applications supporting multi-instance should carefully review all websockets usage
+    for appropriate usage of the new API, and understanding the new cross-cluster behavior
+    In some cases, simplifications of apps may be possible.
+  * Other applications using web sockets may need to rename some method calls as described below.
+
 ### 🎁 New Features
+
+* Hoist v36 builds cluster awareness in to `WebSocketService` allowing messages to be easily sent to
+  any client channel in the cluster, regardless of what server instance the web socket is associated
+  with. This changes includes the following:
+    * the existing methods `pushToChannel()` and `pushToChannels()` can now be called on
+      any instance of the cluster, and will deliver messages to any client on the cluster, regardless
+      of what instance it resides on.
+    * New methods `pushToAllChannels()` and `pushToLocalChannels()` have been added.
+    * `hasChannel` now refers to all channels in the cluster.  Use `hasLocalChannel` to query for
+       presence of a channel on the local instance.
+    * `getAllChannels` has been removed from the API.
 
 * Introduces new security annotations `@AccessRequiresRole`, `@AccessRequiresAllRoles`, and
   `@AccessRequiresAnyRole`.  These annotations provide a clearer and more flexible specification
    of access control then then the existing `@Access` annotation.  `@Access` has been deprecated and
    will be removed in a future version of Hoist.
+
+
 
 ## 35.0.0 - 2026-01-05
 
