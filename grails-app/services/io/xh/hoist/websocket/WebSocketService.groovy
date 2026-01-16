@@ -12,7 +12,6 @@ import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONSerializer
-import io.xh.hoist.user.IdentityService
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
@@ -47,12 +46,11 @@ import static io.xh.hoist.util.Utils.grailsConfig
  * service to fire a MSG_RECEIVED_EVENT containing the sender channel, topic, and message data.
  * Application services could listen to and take actions based upon these events as needed.
  *
- * @see HoistWebSocketChannel* @see HoistWebSocketHandler
+ * @see HoistWebSocketChannel
+ * @see HoistWebSocketHandler
  */
 @CompileStatic
 class WebSocketService extends BaseService implements EventPublisher {
-
-    IdentityService identityService
 
     static final String HEARTBEAT_TOPIC = 'xhHeartbeat'
     static final String REG_SUCCESS_TOPIC = 'xhRegistrationSuccess'
@@ -199,7 +197,7 @@ class WebSocketService extends BaseService implements EventPublisher {
     // Implementation
     //------------------------
     private String instanceFromKey(String channelKey) {
-        channelKey.substring(channelKey.indexOf('|') + 1)
+        channelKey.split('\\|')[1]
     }
 
     private void pushToChannelsInternal(TextMessage textMessage, Collection<String> keys) {
@@ -223,11 +221,11 @@ class WebSocketService extends BaseService implements EventPublisher {
 
     private TextMessage serialize(String topic, Object data) {
         def jsonString = JSONSerializer.serialize([topic: topic, data: data])
-        return new TextMessage(jsonString)
+        new TextMessage(jsonString)
     }
 
     private Map deserialize(TextMessage message) {
-        return JSONParser.parseObject(message.payload)
+        JSONParser.parseObject(message.payload)
     }
 
     private Collection<HoistWebSocketChannel> getLocalChannelsForKeys(Collection<String> channelKeys) {

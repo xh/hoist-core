@@ -16,7 +16,7 @@ class ClientAdminController extends BaseController {
     def webSocketService
 
     def allClients() {
-        renderJSON(webSocketService.&getAllChannels)
+        renderJSON(webSocketService.getAllChannels())
     }
 
     @AccessRequiresRole('HOIST_ADMIN')
