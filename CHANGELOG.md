@@ -2,11 +2,10 @@
 
 ## 36.0-SNAPSHOT - unreleased
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 Medium)
+### 💥 Breaking Changes (upgrade difficulty: 🟢 Medium, for apps with multi-instance support.)
   * Applications supporting multi-instance should carefully review all websockets usage
     for appropriate usage of the new API, and understanding the new cross-cluster behavior
     In some cases, simplifications of apps may be possible.
-  * Other applications using web sockets may need to rename some method calls as described below.
 
 ### 🎁 New Features
 
@@ -16,10 +15,11 @@
     * the existing methods `pushToChannel()` and `pushToChannels()` can now be called on
       any instance of the cluster, and will deliver messages to any client on the cluster, regardless
       of what instance it resides on.
-    * New methods `pushToAllChannels()` and `pushToLocalChannels()` have been added.
-    * `hasChannel` now refers to all channels in the cluster.  Use `hasLocalChannel` to query for
-       presence of a channel on the local instance.
-    * `getAllChannels` has been removed from the API.
+    * `hasChannel()` and `getAllChannels()` now refers to all channels in the entire cluster.
+       Use new variants `hasLocalChannel()` and `getLocalChannels()` if you wish to target the local
+       instance.
+    *  New methods `pushToAllChannels()` and `pushToLocalChannels()` have been added.
+
 
 * Introduces new security annotations `@AccessRequiresRole`, `@AccessRequiresAllRoles`, and
   `@AccessRequiresAnyRole`.  These annotations provide a clearer and more flexible specification
