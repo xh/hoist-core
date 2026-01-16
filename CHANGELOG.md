@@ -23,7 +23,7 @@
 
 * Introduces new security annotations `@AccessRequiresRole`, `@AccessRequiresAllRoles`, and
   `@AccessRequiresAnyRole`.  These annotations provide a clearer and more flexible specification
-   of access control then the existing `@Access` annotation.  `@Access` has been deprecated and
+   of access control than the existing `@Access` annotation.  `@Access` has been deprecated and
    will be removed in a future version of Hoist.
 
 
