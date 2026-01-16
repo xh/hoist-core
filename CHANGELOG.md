@@ -11,7 +11,7 @@
 ### 🎁 New Features
 
 * Hoist v36 builds cluster awareness in to `WebSocketService` allowing messages to be easily sent to
-  any client channel in the cluster, regardless of what server instance the web socket is associated
+  any websocket channel in the cluster, regardless of what server instance the websocket is associated
   with. This changes includes the following:
     * the existing methods `pushToChannel()` and `pushToChannels()` can now be called on
       any instance of the cluster, and will deliver messages to any client on the cluster, regardless
@@ -23,7 +23,7 @@
 
 * Introduces new security annotations `@AccessRequiresRole`, `@AccessRequiresAllRoles`, and
   `@AccessRequiresAnyRole`.  These annotations provide a clearer and more flexible specification
-   of access control then then the existing `@Access` annotation.  `@Access` has been deprecated and
+   of access control then the existing `@Access` annotation.  `@Access` has been deprecated and
    will be removed in a future version of Hoist.
 
 
