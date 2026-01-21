@@ -17,14 +17,13 @@ import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
 
 import java.util.concurrent.ConcurrentHashMap
-
-import static grails.async.Promises.task
-import static grails.async.Promises.waitAll
 import static io.xh.hoist.cluster.ClusterService.instanceName
+import static io.xh.hoist.util.AsyncUtils.asyncEach
 import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 import static io.xh.hoist.util.ClusterUtils.runOnAllInstancesAsJson
 import static io.xh.hoist.util.ClusterUtils.runOnInstance
 import static io.xh.hoist.util.Utils.grailsConfig
+import static java.util.Map.Entry
 
 
 /**
@@ -90,17 +89,12 @@ class WebSocketService extends BaseService implements EventPublisher {
         def msg = serialize(topic, data),
             byInstance = channelKeys.groupBy { instanceFromKey(it) }
 
-        // Avoid async overhead for common single instance case.
-        if (byInstance.size() == 1) {
-            def entry = byInstance.entrySet().first()
-            pushToChannelsInternal(msg, entry.key, entry.value)
-        } else {
-            def tasks = byInstance.collect { instance, keys ->
-                task {
-                    pushToChannelsInternal(msg, instance, keys)
-                }
-            }
-            waitAll(tasks)
+        asyncEach(byInstance.entrySet()) { Entry e ->
+            def instance = e.key as String,
+                keys = e.value as List<String>
+            instance == instanceName ?
+                pushInternal(keys, msg) :
+                runOnInstance(this.&pushInternal, instance, [keys, msg])
         }
     }
 
@@ -111,7 +105,7 @@ class WebSocketService extends BaseService implements EventPublisher {
      * caught and logged, and not expected to be thrown.
      */
     void pushToAllChannels(String topic, Object data) {
-        runOnAllInstances(this.&pushToLocalChannelsInternal, [serialize(topic, data), null])
+        runOnAllInstances(this.&pushInternal, [null, serialize(topic, data)])
     }
 
     /**
@@ -121,7 +115,7 @@ class WebSocketService extends BaseService implements EventPublisher {
      * caught and logged, and not expected to be thrown.
      */
     void pushToLocalChannels(String topic, Object data) {
-        pushToLocalChannelsInternal(serialize(topic, data), null)
+        pushInternal(null, serialize(topic, data))
     }
 
     /**
@@ -204,26 +198,11 @@ class WebSocketService extends BaseService implements EventPublisher {
         channelKey.split('\\|')[1]
     }
 
-    private void pushToChannelsInternal(TextMessage textMessage, String instance, Collection<String> channelKeys) {
-       if (instance == instanceName) {
-            pushToLocalChannelsInternal(textMessage, channelKeys)
-       } else {
-            runOnInstance(this.&pushToLocalChannelsInternal, instance, [textMessage, channelKeys])
-       }
-    }
-
-    private void pushToLocalChannelsInternal(TextMessage textMessage, Collection<String> channelKeys) {
+    private void pushInternal(Collection<String> channelKeys, TextMessage textMessage) {
+        // Note that we are relying on channel.sendMessage to catch/timeout
         def channels = channelKeys != null ? getLocalChannelsForKeys(channelKeys) : _channels.values()
-
-        if (!channels) return
-
-        // Note that we are relying on channel.sendMessage to catch/timeout.
-        // Avoid async overhead for common single channel case.
-        if (channels.size() == 1) {
-            channels.first().sendMessage(textMessage)
-        } else {
-            def tasks = channels.collect { c -> task { c.sendMessage(textMessage) } }
-            waitAll(tasks)
+        asyncEach(channels) {HoistWebSocketChannel c ->
+            c.sendMessage(textMessage)
         }
     }
 
