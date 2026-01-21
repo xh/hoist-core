@@ -88,16 +88,20 @@ class WebSocketService extends BaseService implements EventPublisher {
         if (!channelKeys) return
 
         def msg = serialize(topic, data),
-            byInstance = channelKeys.groupBy { instanceFromKey(it) },
-            tasks = byInstance.collect { instance, keys ->
-                task {
-                    instance == instanceName ?
-                        pushToChannelsInternal(msg, keys) :
-                        runOnInstance(this.&pushToChannelsInternal, instance, [msg, keys])
+            byInstance = channelKeys.groupBy { instanceFromKey(it) }
 
+        // Avoid async overhead for common single instance case.
+        if (byInstance.size() == 1) {
+            def entry = byInstance.entrySet().first()
+            pushToChannelsInternal(msg, entry.key, entry.value)
+        } else {
+            def tasks = byInstance.collect { instance, keys ->
+                task {
+                    pushToChannelsInternal(msg, instance, keys)
                 }
             }
-        waitAll(tasks)
+            waitAll(tasks)
+        }
     }
 
     /**
@@ -107,7 +111,7 @@ class WebSocketService extends BaseService implements EventPublisher {
      * caught and logged, and not expected to be thrown.
      */
     void pushToAllChannels(String topic, Object data) {
-        runOnAllInstances(this.&pushToChannelsInternal, [serialize(topic, data), null])
+        runOnAllInstances(this.&pushToLocalChannelsInternal, [serialize(topic, data), null])
     }
 
     /**
@@ -117,7 +121,7 @@ class WebSocketService extends BaseService implements EventPublisher {
      * caught and logged, and not expected to be thrown.
      */
     void pushToLocalChannels(String topic, Object data) {
-        pushToChannelsInternal(serialize(topic, data), null)
+        pushToLocalChannelsInternal(serialize(topic, data), null)
     }
 
     /**
@@ -200,13 +204,21 @@ class WebSocketService extends BaseService implements EventPublisher {
         channelKey.split('\\|')[1]
     }
 
-    private void pushToChannelsInternal(TextMessage textMessage, Collection<String> keys) {
-        def channels = keys != null ? getLocalChannelsForKeys(keys) : _channels.values()
+    private void pushToChannelsInternal(TextMessage textMessage, String instance, Collection<String> channelKeys) {
+       if (instance == instanceName) {
+            pushToLocalChannelsInternal(textMessage, channelKeys)
+       } else {
+            runOnInstance(this.&pushToLocalChannelsInternal, instance, [textMessage, channelKeys])
+       }
+    }
+
+    private void pushToLocalChannelsInternal(TextMessage textMessage, Collection<String> channelKeys) {
+        def channels = channelKeys != null ? getLocalChannelsForKeys(channelKeys) : _channels.values()
 
         if (!channels) return
 
         // Note that we are relying on channel.sendMessage to catch/timeout.
-        // Avoid async overhead for common single channel case
+        // Avoid async overhead for common single channel case.
         if (channels.size() == 1) {
             channels.first().sendMessage(textMessage)
         } else {
