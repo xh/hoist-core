@@ -24,6 +24,7 @@ import java.time.Instant
 
 import static io.xh.hoist.util.Utils.configService
 import static io.xh.hoist.util.Utils.userService
+import static java.util.UUID.randomUUID
 
 /**
  * Managed wrapper around a raw WebSocketSession:
@@ -34,6 +35,7 @@ import static io.xh.hoist.util.Utils.userService
 @CompileStatic
 class HoistWebSocketChannel implements JSONFormat, LogSupport {
 
+    final String key
     final WebSocketSession session
     final String authUsername
     final String apparentUsername
@@ -68,10 +70,7 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
         clientAppCode = queryParams.getFirst('clientAppCode')
         instance = ClusterService.instanceName
         createdTime = Instant.now()
-    }
-
-    String getKey() {
-        return "${authUsername}@${session.id}"
+        key = "$authUsername|$instance|${randomUUID().toString().take(8)}"
     }
 
     HoistUser getUser()         {getApparentUser()}

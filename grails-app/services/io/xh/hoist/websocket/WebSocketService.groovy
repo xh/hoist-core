@@ -12,16 +12,18 @@ import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONSerializer
-import io.xh.hoist.user.IdentityService
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
 
 import java.util.concurrent.ConcurrentHashMap
-
-import static grails.async.Promises.task
-import static grails.async.Promises.waitAll
+import static io.xh.hoist.cluster.ClusterService.instanceName
+import static io.xh.hoist.util.AsyncUtils.asyncEach
+import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
+import static io.xh.hoist.util.ClusterUtils.runOnAllInstancesAsJson
+import static io.xh.hoist.util.ClusterUtils.runOnInstance
 import static io.xh.hoist.util.Utils.grailsConfig
+import static java.util.Map.Entry
 
 
 /**
@@ -48,8 +50,6 @@ import static io.xh.hoist.util.Utils.grailsConfig
  */
 @CompileStatic
 class WebSocketService extends BaseService implements EventPublisher {
-
-    IdentityService identityService
 
     static final String HEARTBEAT_TOPIC = 'xhHeartbeat'
     static final String REG_SUCCESS_TOPIC = 'xhRegistrationSuccess'
@@ -79,40 +79,86 @@ class WebSocketService extends BaseService implements EventPublisher {
     /**
      * Push a message to a collection of channels. Requests to send to an unknown or disconnected
      * client will be silently dropped.
+     *
+     * Method will return, when all servers have completed the task.  Exceptions will be caught and
+     * logged, and not expected to be thrown.
      */
     void pushToChannels(Collection<String> channelKeys, String topic, Object data) {
         if (!channelKeys) return
 
-        def textMessage = serialize(topic, data),
-            channels = getChannelsForKeys(channelKeys)
+        def msg = serialize(topic, data),
+            byInstance = channelKeys.groupBy { instanceFromKey(it) }
 
-        // The single channel case is extremely common, so avoid async overhead.
-        // Note that we are relying on channel.sendMessage to catch/timeout.
-        if (channels.size() == 1) {
-            channels.first().sendMessage(textMessage)
-        } else {
-            def tasks = channels.collect { c -> task { c.sendMessage(textMessage) } }
-            waitAll(tasks)
+        asyncEach(byInstance.entrySet()) { Entry e ->
+            def instance = e.key as String,
+                keys = e.value as List<String>
+            instance == instanceName ?
+                pushInternal(keys, msg) :
+                runOnInstance(this.&pushInternal, instance, [keys, msg])
         }
     }
 
     /**
-     * Return all actively connected client sessions. Intended primarily for internal / admin use.
+     * Push a message to all channels in the cluster.
+     *
+     * Method will return, when all servers have completed the task.  Exceptions will be
+     * caught and logged, and not expected to be thrown.
      */
-    Collection<HoistWebSocketChannel> getAllChannels() {
-        _channels.values()
+    void pushToAllChannels(String topic, Object data) {
+        runOnAllInstances(this.&pushInternal, [null, serialize(topic, data)])
     }
 
     /**
-     * Verifies that a particular channel remains actively connected and registered.
+     * Pushes a message to all channels on the local instance.
+     *
+     * Method will return, when all servers have completed the task.  Exceptions will be
+     * caught and logged, and not expected to be thrown.
      */
+    void pushToLocalChannels(String topic, Object data) {
+        pushInternal(null, serialize(topic, data))
+    }
+
+    /**
+     * Get all channels on the cluster.
+     *
+     * Note that the full WebSocketSession is not serializable across instances,
+     * and so not available. This method will return the JSON serialized version
+     * of the session, containing all of its important metadata. See getLocalChannels()
+     * for a method that will return the full channels on the local instance.
+     *
+     * @returns collection of channels in simplified JSON form.
+     */
+    Collection<Map> getAllChannels() {
+        runOnAllInstancesAsJson(this.&getLocalChannels)
+            .collectMany { it.value.exception ? [] : JSONParser.parseArray(it.value.value as String) }
+            as Collection<Map>
+    }
+
+    /**
+     * Get all channels on the local instance.
+     */
+    Collection<HoistWebSocketChannel> getLocalChannels() {
+        _channels.values()
+    }
+
+    /** Verifies that a channel remains actively connected and registered.*/
     boolean hasChannel(String channelKey) {
-        return allChannels*.key.contains(channelKey)
+        def instance = instanceFromKey(channelKey)
+        if (instance == instanceName) return hasLocalChannel(channelKey)
+
+        def result = runOnInstance(this.&hasLocalChannel, instance, [channelKey])
+        return result.value != null ? result.value as boolean : false
+    }
+
+    /** Verifies that a channel on the local instance remains actively connected and registered.*/
+    boolean hasLocalChannel(String channelKey) {
+        instanceFromKey(channelKey) == instanceName && _channels.any { it.value.key == channelKey}
     }
 
     //------------------------
     // Hoist Entry Points
     //------------------------
+    /** @internal */
     void registerSession(WebSocketSession session) {
         def channel = _channels[session] = new HoistWebSocketChannel(session)
         sendMessage(channel, REG_SUCCESS_TOPIC, [channelKey: channel.key])
@@ -120,6 +166,7 @@ class WebSocketService extends BaseService implements EventPublisher {
         logDebug("Registered session", channel.key)
     }
 
+    /** @internal */
     void unregisterSession(WebSocketSession session, CloseStatus closeStatus) {
         def channel = _channels.remove(session)
         if (channel) {
@@ -128,6 +175,7 @@ class WebSocketService extends BaseService implements EventPublisher {
         }
     }
 
+    /** @internal */
     void onMessage(WebSocketSession session, TextMessage message) {
         def channel = _channels[session]
         if (!channel) return
@@ -146,25 +194,37 @@ class WebSocketService extends BaseService implements EventPublisher {
     //------------------------
     // Implementation
     //------------------------
+    private String instanceFromKey(String channelKey) {
+        channelKey.split('\\|')[1]
+    }
+
+    private void pushInternal(Collection<String> channelKeys, TextMessage textMessage) {
+        // Note that we are relying on channel.sendMessage to catch/timeout
+        def channels = channelKeys != null ? getLocalChannelsForKeys(channelKeys) : _channels.values()
+        asyncEach(channels) {HoistWebSocketChannel c ->
+            c.sendMessage(textMessage)
+        }
+    }
+
     private void sendMessage(HoistWebSocketChannel channel, String topic, Object data) {
         channel.sendMessage(serialize(topic, data))
     }
 
     private TextMessage serialize(String topic, Object data) {
         def jsonString = JSONSerializer.serialize([topic: topic, data: data])
-        return new TextMessage(jsonString)
+        new TextMessage(jsonString)
     }
 
     private Map deserialize(TextMessage message) {
-        return JSONParser.parseObject(message.payload)
+        JSONParser.parseObject(message.payload)
     }
 
-    private Collection<HoistWebSocketChannel> getChannelsForKeys(Collection<String> channelKeys) {
-        allChannels.findAll{channelKeys.contains(it.key)}
+    private Collection<HoistWebSocketChannel> getLocalChannelsForKeys(Collection<String> channelKeys) {
+        localChannels.findAll { channelKeys.contains(it.key) }
     }
 
     void clearCaches() {
-        _channels.values().each{channel ->
+        _channels.values().each { channel ->
             channel.close(CloseStatus.SERVICE_RESTARTED)
         }
         _channels.clear()
