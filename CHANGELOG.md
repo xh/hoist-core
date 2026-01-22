@@ -27,6 +27,9 @@
    will be removed in a future version of Hoist.
 
 
+### 📚 Libraries
+
+* grails `7.0.4 → 7.0.5`
 
 ## 35.0.0 - 2026-01-05
 
