@@ -204,9 +204,9 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
      *
      * Not typically called directly. Use ClusterUtils#runOnInstance instead.
      */
-    ClusterResult submitToInstance(ClusterTask clusterRequest, String instance) {
+    ClusterResult submitToInstance(ClusterTask c, String instance) {
         try {
-            taskExecutor.submitToMember(clusterRequest, getMember(instance)).get()
+            taskExecutor.submitToMember(c, getMember(instance)).get()
         } catch (Throwable t) {
             // task catches issue on instance. Catch deeper hz issue here
             Utils.handleException(
