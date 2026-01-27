@@ -129,13 +129,15 @@ class IdentityService extends BaseService {
     }
 
     /**
-     * Return minimal identify information for confirmed authenticated users.
+     * Returns identify information about user, or null if there is no authenticated user.
+     *
      * Used by client-side web app for identity management.
      */
     Map getClientConfig() {
-        def apparentUser = getUser(),
-            authUser = getAuthUser()
+        def authUser = getAuthUser()
+        if (!authUser) return null
 
+        def apparentUser = getUser()
         return (authUser != apparentUser) ?
             [
                 apparentUser: apparentUser,

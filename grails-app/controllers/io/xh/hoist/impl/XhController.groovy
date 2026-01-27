@@ -14,7 +14,6 @@ import io.xh.hoist.config.ConfigService
 import io.xh.hoist.exception.NotFoundException
 import io.xh.hoist.exception.SessionMismatchException
 import io.xh.hoist.export.GridExportImplService
-import io.xh.hoist.json.JSONParser
 import io.xh.hoist.jsonblob.JsonBlobService
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.pref.Preference
@@ -46,9 +45,6 @@ class XhController extends BaseController {
     //------------------------
     // Identity / Auth
     //------------------------
-    def authStatus() {
-        renderJSON(authenticated: authUser != null)
-    }
 
     /** Whitelisted endpoint to return auth-related settings for client bootstrap. */
     def authConfig() {
@@ -56,13 +52,28 @@ class XhController extends BaseController {
         renderJSON(svc.clientConfig)
     }
 
+    /**
+     * Endpoint to return authentication status of current session.
+     *
+     * If the user is authenticated, will return the authenticated user information
+     * from IdentityService. For non-authenticated user, will return a 401.
+     */
+    def authStatus() {
+        def identity = identityService.clientConfig
+        renderJSON(authenticated: identity != null, identity: identity)
+    }
+
+    /**
+     * @deprecated for hoist-react version 79 or prior, which will use authStatus instead.
+     */
     def getIdentity() {
         renderJSON(identityService.clientConfig)
     }
 
     def login(String username, String password) {
-        def success = identityService.login(username, password)
-        renderJSON(success: success)
+        def success = identityService.login(username, password),
+            identity = identityService.clientConfig
+        renderJSON(success: success, identity: identity)
     }
 
     def logout() {
@@ -137,40 +148,12 @@ class XhController extends BaseController {
         renderJSON(preferences: ret)
     }
 
-    def migrateLocalPrefs(String updates) {
-        ensureClientUsernameMatchesSession()
-        Map prefs = JSONParser.parseObject(updates)
-        prefs.each { k, value ->
-            String key = k.toString()
-            try {
-                if (!prefService.isUnset(key)) return
-                if (value instanceof Map) {
-                    prefService.setMap(key, value)
-                } else if (value instanceof List) {
-                    prefService.setList(key, value)
-                } else {
-                    prefService.setPreference(key, value.toString())
-                }
-            } catch (e) {
-                logError("Failed to recover pref '$key'", e)
-            }
-        }
-        renderSuccess()
-    }
-
     def clearUserState() {
         ensureClientUsernameMatchesSession()
         Preference.withNewTransaction {
             prefService.clearPreferences()
             viewService.clearAllState()
         }
-        renderSuccess()
-    }
-
-    /** @deprecated.  Required by hoist-react <=v.75 */
-    def clearPrefs() {
-        ensureClientUsernameMatchesSession()
-        prefService.clearPreferences()
         renderSuccess()
     }
 

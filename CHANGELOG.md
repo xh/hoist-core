@@ -26,6 +26,10 @@
    of access control than the existing `@Access` annotation.  `@Access` has been deprecated and
    will be removed in a future version of Hoist.
 
+### ⚙️Technical
+
+* Support for more efficient hoist-react client initialization by returning user identity info
+  in existing framework endpoints.
 
 ### 📚 Libraries
 
