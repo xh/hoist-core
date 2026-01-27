@@ -1,30 +1,36 @@
 # Changelog
 
-## 36.0-SNAPSHOT - unreleased
+## 37.0-SNAPSHOT - unreleased
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 Medium, for apps with multi-instance support.)
-  * Applications supporting multi-instance should carefully review all websockets usage
-    for appropriate usage of the new API, and understanding the new cross-cluster behavior
-    In some cases, simplifications of apps may be possible.
+## 36.0.0 - 2026-01-27
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW, excepting multi-instance apps w/websockets)
+
+* Apps leveraging both multi-instance and websockets should review the API changes below and
+  understand the new cross-cluster behavior. In some cases, simplifications of apps may be possible.
 
 ### 🎁 New Features
 
-* Hoist v36 builds cluster awareness in to `WebSocketService` allowing messages to be easily sent to
-  any websocket channel in the cluster, regardless of what server instance the websocket is associated
-  with. This changes includes the following:
-    * the existing methods `pushToChannel()` and `pushToChannels()` can now be called on
-      any instance of the cluster, and will deliver messages to any client on the cluster,
-      regardless of what instance it resides on.
-    * `hasChannel()` and `getAllChannels()` now refer to all channels in the entire cluster.
-      Use new variants `hasLocalChannel()` and `getLocalChannels()` if you wish to target the
-      local instance.
-    *  New methods `pushToAllChannels()` and `pushToLocalChannels()` have been added.
+* Upgraded `WebSocketService` to be multi-instance aware, allowing messages to be sent to any
+  websocket channel in the cluster, regardless of the server instance to which the client is
+  connected.
+    * Existing methods `pushToChannel()` and `pushToChannels()` can now be called on any instance of
+      the cluster, without needing to worry about the instance to which a channel is connected.
+    * Updated methods `hasChannel()` and `getAllChannels()` now check / return all channels in the
+      cluster. Use new variants `hasLocalChannel()` and `getLocalChannels()` if you wish to target
+      the local instance only.
+    * Added new methods `pushToAllChannels()` and `pushToLocalChannels()`.
+* Introduced new security annotations:
+  * `@AccessRequiresRole` - check a single role.
+  * `@AccessRequiresAllRoles` - check a list of roles and require user to have all.
+  * `@AccessRequiresAnyRole` - check a list of roles and require user to have at least one.
+  * ⚠️`@Access` has been deprecated and will be removed in a future version of Hoist. For the
+    most common case where a single role is being checked, use `@AccessRequiresRole` instead.
 
+### 🐞 Bug Fixes
 
-* Introduces new security annotations `@AccessRequiresRole`, `@AccessRequiresAllRoles`, and
-  `@AccessRequiresAnyRole`.  These annotations provide a clearer and more flexible specification
-   of access control than the existing `@Access` annotation.  `@Access` has been deprecated and
-   will be removed in a future version of Hoist.
+* Fixed an issue preventing errors thrown from `ClusterService.submitToInstance()` from being
+  reported with the intended details.
 
 ### ⚙️Technical
 
@@ -40,6 +46,7 @@
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL, types only)
 
 ### 🎁 New Features
+
 * Updated the generic signature of `CacheEntry` to support a generic key type, rather than just
   string. Apps that are declaring this type will need to be adjusted to make the key type explicit.
 * Added `clientAppCode` properties to `TrackLog`. These new identifiers will be provided by
