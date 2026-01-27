@@ -2,6 +2,12 @@
 
 ## 37.0-SNAPSHOT - unreleased
 
+### ⚙️Technical
+
+* Support for more efficient hoist-react client initialization by returning user identity info
+  in existing framework endpoints.
+
+
 ## 36.0.0 - 2026-01-27
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW, excepting multi-instance apps w/websockets)
@@ -31,11 +37,6 @@
 
 * Fixed an issue preventing errors thrown from `ClusterService.submitToInstance()` from being
   reported with the intended details.
-
-### ⚙️Technical
-
-* Support for more efficient hoist-react client initialization by returning user identity info
-  in existing framework endpoints.
 
 ### 📚 Libraries
 
