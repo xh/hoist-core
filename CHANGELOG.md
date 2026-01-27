@@ -1,6 +1,6 @@
 # Changelog
 
-## 36.0-SNAPSHOT - unreleased
+## 36.0.0 - 2026-01-27
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW, excepting multi-instance apps w/websockets)
 
