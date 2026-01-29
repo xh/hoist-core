@@ -15,6 +15,7 @@ import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
 import io.xh.hoist.util.Utils
 import io.xh.hoist.websocket.HoistWebSocketConfigurer
+import jakarta.servlet.http.HttpServletRequest
 
 import java.lang.annotation.Annotation
 import java.lang.reflect.Method
@@ -40,10 +41,8 @@ class AccessInterceptor implements LogSupport {
 
     boolean before() {
         try {
-            // Ignore websockets - these are destined for a non-controller based endpoint
-            // established via a spring-websocket configuration mapping.
-            // Note that websockets are not always enabled by Hoist apps but must be supported here.
-            if (isWebSocketHandshake()) {
+            def req = getRequest()
+            if (isWebSocketHandshake(req) || isActuator(req) ) {
                 return true
             }
 
@@ -81,11 +80,13 @@ class AccessInterceptor implements LogSupport {
     //------------------------
     // Implementation
     //------------------------
-    private boolean isWebSocketHandshake() {
-        def req = getRequest(),
-            upgradeHeader = req?.getHeader('upgrade'),
+    private boolean isWebSocketHandshake(HttpServletRequest req) {
+        def upgradeHeader = req?.getHeader('upgrade'),
             uri = req?.requestURI
+        upgradeHeader == 'websocket' && uri?.endsWith(HoistWebSocketConfigurer.WEBSOCKET_PATH)
+    }
 
-        return upgradeHeader == 'websocket' && uri?.endsWith(HoistWebSocketConfigurer.WEBSOCKET_PATH)
+    private boolean isActuator(HttpServletRequest req) {
+        req?.requestURI.startsWith('/actuator/')
     }
 }
