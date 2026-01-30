@@ -39,7 +39,10 @@ class ApplicationConfig {
             }
 
             management {
-                endpoints.'enabled-by-default' = false
+                endpoints.access.default = 'read-only'
+                endpoint {
+                    health.'show-details' = 'always'
+                }
             }
 
             grails {
