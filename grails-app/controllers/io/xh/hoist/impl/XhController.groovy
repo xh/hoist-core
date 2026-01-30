@@ -63,13 +63,16 @@ class XhController extends BaseController {
         renderJSON(authenticated: identity != null, identity: identity)
     }
 
-    /**
-     * @deprecated for hoist-react version 79 or prior, which will use authStatus instead.
-     */
     def getIdentity() {
         renderJSON(identityService.clientConfig)
     }
 
+    /**
+     * Login a user with username and password.
+     *
+     * If the user is authenticated, will return the authenticated user information
+     * from IdentityService. For non-authenticated user, will return a 401.
+     */
     def login(String username, String password) {
         def success = identityService.login(username, password),
             identity = identityService.clientConfig
