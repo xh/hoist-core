@@ -6,7 +6,7 @@
 
 * Enable underlying support for Spring Boot Actuator Endpoints.
      * Expose these endpoints in your application via configuration in your application.groovy
-        file, e.g. 'management.endpoints.web.exposure.include = "health,info,metrics,prometheus"`
+        file, e.g. 'management.endpoints.web.exposure.include = "health,info,metrics"`
      * See https://docs.spring.io/spring-boot/3.5/reference/actuator/endpoints for more info on
        the available endpoints and how to configure and use them.
 
