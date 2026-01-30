@@ -2,10 +2,18 @@
 
 ## 37.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Enable underlying support for Spring Boot Actuator Endpoints.
+     * Expose these endpoints in your application via configuration in your application.groovy
+        file, e.g. 'management.endpoints.web.exposure.include = "health,info,metrics"`
+     * See https://docs.spring.io/spring-boot/3.5/reference/actuator/endpoints for more info on
+       the available endpoints and how to configure and use them.
+
 ### ⚙️Technical
 
-* Support for more efficient hoist-react client initialization by returning user identity info
-  in existing framework endpoints.
+* Support for more efficient hoist-react client initialization:  return user identity info
+  in existing framework endpoints: `xh/login` and `xh/authStatus`.
 
 
 ## 36.0.0 - 2026-01-27
