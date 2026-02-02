@@ -39,8 +39,7 @@ class ApplicationConfig {
             }
 
             management {
-                endpoints.access.default = 'read-only'
-                endpoint {
+                 endpoint {
                     health.'show-details' = 'always'
                 }
             }
