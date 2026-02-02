@@ -1,8 +1,12 @@
 name: Deploy Release
 
 on:
-    release:
-        types: [published]
+    workflow_dispatch:
+        inputs:
+            xhReleaseVersion:
+                description: 'Release Version'
+                required: true
+                type: string
 
 jobs:
     build:
@@ -32,6 +36,7 @@ jobs:
               SIGNING_KEY_ID: ${{secrets.SIGNING_KEY_ID}}
               SIGNING_PASSWORD: ${{secrets.SIGNING_PASSWORD}}
               SECRING_FILE: ${{ secrets.SECRING_FILE }}
+              XH_RELEASE_VERSION: ${{ inputs.xhReleaseVersion }}
           run: |
               echo $SECRING_FILE | base64 -d > secring.gpg
-              (set -x; ./gradlew -Psigning.secretKeyRingFile="${GITHUB_WORKSPACE}/secring.gpg" publishToSonatype closeSonatypeStagingRepository --no-daemon)
+              (set -x; ./gradlew -Psigning.secretKeyRingFile="${GITHUB_WORKSPACE}/secring.gpg" -PxhReleaseVersion="$XH_RELEASE_VERSION" publishToSonatype closeSonatypeStagingRepository --no-daemon)
