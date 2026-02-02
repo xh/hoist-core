@@ -10,6 +10,11 @@
      * See https://docs.spring.io/spring-boot/3.5/reference/actuator/endpoints for more info on
        the available endpoints and how to configure and use them.
 
+### ⚙️Technical
+
+* Support for more efficient hoist-react client initialization:  return user identity info
+  in existing framework endpoints: `xh/login` and `xh/authStatus`.
+
 
 ## 36.0.0 - 2026-01-27
 
