@@ -1,6 +1,6 @@
 # Changelog
 
-## 36.1.0 - 2028-02-03
+## 36.1.0 - 2026-02-03
 
 ### 🎁 New Features
 
@@ -14,7 +14,6 @@
 
 * Support for more efficient hoist-react client initialization by returning user identity info
   in the `xh/login` and `xh/authStatus` framework endpoints.
-
 
 ## 36.0.0 - 2026-01-27
 
