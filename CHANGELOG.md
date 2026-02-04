@@ -7,10 +7,11 @@
 ### 🎁 New Features
 
 * Enable underlying support for Spring Boot Actuator Endpoints.
-     * Expose these endpoints in your application via configuration in your application.groovy
-        file, e.g. 'management.endpoints.web.exposure.include = "health,info,metrics"`
-     * See https://docs.spring.io/spring-boot/3.5/reference/actuator/endpoints.html for more info on
-       the available endpoints and how to configure and use them.
+    * Expose these endpoints in your application via configuration in your `application.groovy`
+      file, e.g. `management.endpoints.web.exposure.include = "health,info,metrics"`
+    * See
+      the [Spring Docs](https://docs.spring.io/spring-boot/3.5/reference/actuator/endpoints.html)
+      for more info on the available endpoints and how to configure and use them.
 
 ### ⚙️Technical
 
@@ -36,11 +37,11 @@
       the local instance only.
     * Added new methods `pushToAllChannels()` and `pushToLocalChannels()`.
 * Introduced new security annotations:
-  * `@AccessRequiresRole` - check a single role.
-  * `@AccessRequiresAllRoles` - check a list of roles and require user to have all.
-  * `@AccessRequiresAnyRole` - check a list of roles and require user to have at least one.
-  * ⚠️`@Access` has been deprecated and will be removed in a future version of Hoist. For the
-    most common case where a single role is being checked, use `@AccessRequiresRole` instead.
+    * `@AccessRequiresRole` - check a single role.
+    * `@AccessRequiresAllRoles` - check a list of roles and require user to have all.
+    * `@AccessRequiresAnyRole` - check a list of roles and require user to have at least one.
+    * ⚠️`@Access` has been deprecated and will be removed in a future version of Hoist. For the
+      most common case where a single role is being checked, use `@AccessRequiresRole` instead.
 
 ### 🐞 Bug Fixes
 
