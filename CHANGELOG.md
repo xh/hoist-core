@@ -23,7 +23,12 @@
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW, excepting multi-instance apps w/websockets)
 
 * Apps leveraging both multi-instance and websockets should review the API changes below and
-  understand the new cross-cluster behavior. In some cases, simplifications of apps may be possible.
+  understand the new cross-cluster behavior.
+    * ⚠️Look for the pattern where a multi-instance app has code querying / pushing to
+      `allChannels` - e.g. in response to a change to replicated data.
+    * These usages should be updated to query / push to local channels only to avoid duplication
+      of messages. Search for `allChannels` or `getAllChannels()` and replace if appropriate with
+      their local counterparts.
 
 ### 🎁 New Features
 
@@ -32,9 +37,8 @@
   connected.
     * Existing methods `pushToChannel()` and `pushToChannels()` can now be called on any instance of
       the cluster, without needing to worry about the instance to which a channel is connected.
-    * Updated methods `hasChannel()` and `getAllChannels()` now check / return all channels in the
-      cluster. Use new variants `hasLocalChannel()` and `getLocalChannels()` if you wish to target
-      the local instance only.
+    * Updated `hasChannel()` and `getAllChannels()` now check / return all channels in the cluster.
+      Use new variants `hasLocalChannel()` and `getLocalChannels()` to target local instance only.
     * Added new methods `pushToAllChannels()` and `pushToLocalChannels()`.
 * Introduced new security annotations:
     * `@AccessRequiresRole` - check a single role.

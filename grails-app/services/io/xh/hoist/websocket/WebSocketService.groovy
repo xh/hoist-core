@@ -64,8 +64,12 @@ class WebSocketService extends BaseService implements EventPublisher {
     }
 
     /**
-     * Push a message to a connected client, as identified by its channel key. Requests to send to
-     * an unknown or disconnected client will be silently dropped.
+     * Push a message to a connected client, as identified by its channel key.
+     *
+     * Channel can be connected to any instance on the cluster - the implementation will route it
+     * accordingly, with no extra overhead for a local channel.
+     *
+     * Requests to send to an unknown or disconnected client will be silently dropped.
      *
      * @param channelKey - unique client connection identifier, as provided to the caller by the
      *      client via app-specific calls to register its interest in a given topic.
@@ -80,8 +84,16 @@ class WebSocketService extends BaseService implements EventPublisher {
      * Push a message to a collection of channels. Requests to send to an unknown or disconnected
      * client will be silently dropped.
      *
-     * Method will return, when all servers have completed the task.  Exceptions will be caught and
+     * Channels can be connected to any instance on the cluster - the implementation will route them
+     * accordingly, with no extra overhead for local channels.
+     *
+     * Method will return when all instances have completed the task. Exceptions will be caught and
      * logged, and not expected to be thrown.
+     *
+     * @param channelKeys - unique client connection identifiers, as provided to the caller by
+     *      clients via app-specific calls to register their interest in a given topic.
+     * @param topic - app-specific category/tag for message routing and identification.
+     * @param data - message contents, to be serialized as JSON.
      */
     void pushToChannels(Collection<String> channelKeys, String topic, Object data) {
         if (!channelKeys) return
@@ -99,20 +111,22 @@ class WebSocketService extends BaseService implements EventPublisher {
     }
 
     /**
-     * Push a message to all channels in the cluster.
+     * Push a message to all channels in the cluster and return when all instances are complete.
+     * Exceptions will be caught and logged - this method is not expected to throw.
      *
-     * Method will return, when all servers have completed the task.  Exceptions will be
-     * caught and logged, and not expected to be thrown.
+     * @param topic - app-specific category/tag for message routing and identification.
+     * @param data - message contents, to be serialized as JSON.
      */
     void pushToAllChannels(String topic, Object data) {
         runOnAllInstances(this.&pushInternal, [null, serialize(topic, data)])
     }
 
     /**
-     * Pushes a message to all channels on the local instance.
+     * Push a message to all channels on the local instance and return when complete.
+     * Exceptions will be caught and logged - this method is not expected to throw.
      *
-     * Method will return, when all servers have completed the task.  Exceptions will be
-     * caught and logged, and not expected to be thrown.
+     * @param topic - app-specific category/tag for message routing and identification.
+     * @param data - message contents, to be serialized as JSON.
      */
     void pushToLocalChannels(String topic, Object data) {
         pushInternal(null, serialize(topic, data))
@@ -121,12 +135,13 @@ class WebSocketService extends BaseService implements EventPublisher {
     /**
      * Get all channels on the cluster.
      *
-     * Note that the full WebSocketSession is not serializable across instances,
-     * and so not available. This method will return the JSON serialized version
-     * of the session, containing all of its important metadata. See getLocalChannels()
-     * for a method that will return the full channels on the local instance.
+     * Note that `HoistWebSocketChannel` with its embedded `WebSocketSession` is not serializable
+     * across instances, and so cannot be returned here as instances of that class. Instead this
+     * method returns the serialized output of {@link HoistWebSocketChannel#formatForJSON}.
      *
-     * @returns collection of channels in simplified JSON form.
+     * See {@link #getLocalChannels} for a method that will list channels on local instance only.
+     *
+     * @return collection of channels, serialized as Maps.
      */
     Collection<Map> getAllChannels() {
         runOnAllInstancesAsJson(this.&getLocalChannels)
@@ -136,12 +151,20 @@ class WebSocketService extends BaseService implements EventPublisher {
 
     /**
      * Get all channels on the local instance.
+     *
+     * @return collection of channels on this instance.
      */
     Collection<HoistWebSocketChannel> getLocalChannels() {
         _channels.values()
     }
 
-    /** Verifies that a channel remains actively connected and registered.*/
+    /**
+     * Verify that a channel remains actively connected and registered,
+     * locally or with another instance within the cluster.
+     *
+     * @param channelKey - unique client connection identifier.
+     * @return true if channel is connected and registered.
+     */
     boolean hasChannel(String channelKey) {
         def instance = instanceFromKey(channelKey)
         if (instance == instanceName) return hasLocalChannel(channelKey)
@@ -150,9 +173,14 @@ class WebSocketService extends BaseService implements EventPublisher {
         return result.value != null ? result.value as boolean : false
     }
 
-    /** Verifies that a channel on the local instance remains actively connected and registered.*/
+    /**
+     * Verify that a channel on the local instance remains actively connected and registered.
+     *
+     * @param channelKey - unique client connection identifier.
+     * @return true if channel is connected and registered on this instance.
+     */
     boolean hasLocalChannel(String channelKey) {
-        instanceFromKey(channelKey) == instanceName && _channels.any { it.value.key == channelKey}
+        instanceFromKey(channelKey) == instanceName && _channels.any { it.value.key == channelKey }
     }
 
     //------------------------
@@ -201,7 +229,7 @@ class WebSocketService extends BaseService implements EventPublisher {
     private void pushInternal(Collection<String> channelKeys, TextMessage textMessage) {
         // Note that we are relying on channel.sendMessage to catch/timeout
         def channels = channelKeys != null ? getLocalChannelsForKeys(channelKeys) : _channels.values()
-        asyncEach(channels) {HoistWebSocketChannel c ->
+        asyncEach(channels) { HoistWebSocketChannel c ->
             c.sendMessage(textMessage)
         }
     }
@@ -223,6 +251,7 @@ class WebSocketService extends BaseService implements EventPublisher {
         localChannels.findAll { channelKeys.contains(it.key) }
     }
 
+    /** {@inheritDoc} */
     void clearCaches() {
         _channels.values().each { channel ->
             channel.close(CloseStatus.SERVICE_RESTARTED)
