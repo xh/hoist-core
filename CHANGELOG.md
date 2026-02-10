@@ -89,40 +89,50 @@
 
 ## 34.0.1 - 2025-11-24
 
-### 💥 Breaking Changes (upgrade difficulty: 🟠 Medium - upgrade to Grails/Gradle/Spring. New logging config)
+### 💥 Breaking Changes (upgrade difficulty: 🟠 MEDIUM - Grails 7 / Gradle 8 / Tomcat 10 upgrade)
 
-### ⚙️ Technical
+* Hoist Core v34 is a major framework upgrade, moving to Grails 7.0, Spring Boot 3.5, Groovy 4,
+  Gradle 8.14, and Tomcat 10.1. With this release, Grails is officially part of the Apache
+  Foundation. The changes below are required for all applications. See
+  [`docs/v34-upgrade-notes.md`](docs/v34-upgrade-notes.md) for detailed, step-by-step upgrade
+  instructions with before/after code examples.
+* Update Docker base image to `xhio/xh-tomcat:next-tc10-jdk17` for Tomcat 10 / Jakarta EE support.
+* Update Gradle wrapper to `8.14.3` via `gradle-wrapper.properties`.
+* Restructure `build.gradle` to use the new Apache Grails plugin coordinates and BOM-based
+  dependency management:
+    * Buildscript dependencies use `org.apache.grails` (was `org.grails`).
+    * Repository URL changed to `https://repo.grails.org/grails/restricted`.
+    * Use `platform("org.apache.grails:grails-bom:$grailsVersion")` for version management.
+* Clean up `gradle.properties` — remove version properties now managed by the Grails BOM
+  (e.g. `groovyVersion`, `grailsGradlePluginVersion`, `grailsHibernatePluginVersion`,
+  `gormVersion`, `logback.version`).
+* Migrate logging configuration: delete `grails-app/conf/logback.groovy` and create a
+  `LogbackConfig` class in `grails-app/init/` that extends `io.xh.hoist.LogbackConfig`. Override
+  `configureLogging()` for any custom appenders or log levels.
+* Update `javax.servlet` imports to `jakarta.servlet`. Typically only required in
+  `AuthenticationService` and any custom servlet/filter code.
+* Replace usage of the removed `request.JSON` property with `parseRequestJSON()` (returns Map) or
+  `parseRequestJSONArray()` (returns List) from `BaseController`.
 
-Hoist Core v34 is a major framework upgrade version, with underlying upgrades to Grails 7.0,
-Spring Boot 3.5, Spring 6.2, Groovy 4.0, Gradle 8.14, Tomcat 10.1. With this release grails is
-officially part of the Apache Foundation. The main required changes to applications are the
-following:
-
-* Change to logging config to accommodate the latest version of Logback, and its removal of the
-  groovy DSL.
-  In order to allow hoist apps to continue to seamlessly provide configuration via groovy, we have
-  replicated
-  the functionality of the logback DSL in methods on LogConfig.groovy. Any custom logback.groovy
-  scripts
-  should be moved to an override of `LogbackConfig` class. See `LogbackConfig.` for more details.
-  Misc. updates and simplification to `build.gradle` and `gradle.properties` to adapt to Gradle 8.
-  See toolbox for an example of these changes.
-* Changes of various core imports from `javax` to `jakarta`.
-* The usage of the deprecated `request.JSON` property in controllers is no longer supported.
-* Applications should be using the  `BaseController` methods `parseRequestJSON` and
-  `parseRequestJSONArray` instead. These methods use the Hoist standard customization to jackson
-  JSON parsing.
-
-See the grails documentation at  https://docs.grails.org/7.0.2/guide/upgrading.html#upgrading60x
-for more information.
+See the [Grails 7 upgrade guide](https://docs.grails.org/7.0.2/guide/upgrading.html#upgrading60x)
+for additional background on the underlying framework changes.
 
 ### 🎁 New Features
 
-* Enhance exception handling in `JSONClient` to capture messages returned as raw strings.
+* Enhanced exception handling in `JSONClient` to capture messages returned as raw strings.
 
 ### 🐞 Bug Fixes
 
-* Improve exception handling in admin client for sibling instances during startup.
+* Improved exception handling in admin client for sibling instances during startup.
+
+### 📚 Libraries
+
+* Grails `6.2.3 → 7.0`
+* Groovy `3.0.23 → 4.0`
+* Spring Boot `2.7 → 3.5`
+* Tomcat `9.0 → 10.1`
+* Hazelcast `5.5.0 → 5.6.0`
+* Gradle `7.6.4 → 8.14.3`
 
 ## 33.2.0 - 2025-11-10
 
