@@ -3,7 +3,7 @@ name: Deploy Snapshot
 on:
     workflow_dispatch:
     push:
-        branches: [ "develop" ]
+        branches: [ "develop", "mavenCentral" ]
 
 jobs:
     build:
