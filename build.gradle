@@ -181,18 +181,17 @@ publishing {
 }
 
 // Signing artifacts
-ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 ext.'signing.keyId'= project.hasProperty("signing.keyId") ? project.getProperty('signing.keyId') : System.getenv('SIGNING_KEY_ID')
 ext.'signing.secretKeyRingFile' = (project.hasProperty("signing.secretKeyRingFile") ? project.getProperty('signing.secretKeyRingFile') : System.getenv('SIGNING_SECRET_KEY_RING_FILE')) ?: "${System.properties['user.home']}${File.separator}.gnupg${File.separator}secring.gpg"
 ext.'signing.password' = project.hasProperty("signing.password") ? project.getProperty('signing.password') : System.getenv('SIGNING_PASSWORD')
 afterEvaluate {
     signing {
-        required { isReleaseVersion && gradle.taskGraph.hasTask("publish") }
+        required { !version.endsWith("SNAPSHOT") && gradle.taskGraph.hasTask("publish") }
         sign publishing.publications.hoistCore
     }
 }
 tasks.withType(Sign) {
-    onlyIf { isReleaseVersion }
+    onlyIf { !version.endsWith("SNAPSHOT") }
 }
 
 nexusPublishing {
