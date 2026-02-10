@@ -6,7 +6,7 @@
 
 ### 🎁 New Features
 
-* Enable underlying support for Spring Boot Actuator Endpoints.
+* Enabled underlying support for Spring Boot Actuator Endpoints.
     * Expose these endpoints in your application via configuration in your `application.groovy`
       file, e.g. `management.endpoints.web.exposure.include = "health,info,metrics"`
     * See
@@ -15,7 +15,7 @@
 
 ### ⚙️Technical
 
-* Support for more efficient hoist-react client initialization by returning user identity info
+* Added support for more efficient hoist-react client initialization by returning user identity info
   in the `xh/login` and `xh/authStatus` framework endpoints.
 
 ## 36.0.0 - 2026-01-27
@@ -67,7 +67,7 @@
 * Added `clientAppCode` properties to `TrackLog`. These new identifiers will be provided by
   clients running `hoist-react >= 79.0` and disambiguate tracking activity for apps with multiple
   client apps.
-    * ⚠ NOTE this requires anew columns in the `xh_track_log` table. Review and run the
+    * ⚠ NOTE this requires a new column in the `xh_track_log` table. Review and run the
       following SQL, modified as needed for the particular database you are using:
         ```sql
           ALTER TABLE `xh_track_log` ADD COLUMN `client_app_code` VARCHAR(50) NULL;
@@ -138,18 +138,18 @@ for additional background on the underlying framework changes.
 
 ### 🎁 New Features
 
-* `FieldFilter` implementation now supports `not begins` and `not ends` operators.
+* Added `not begins` and `not ends` operator support to `FieldFilter`.
 
 ## 33.1.0 - 2025-10-24
 
 ### 🎁 New Features
 
-* `EmailService.sendEmail` now supports `bcc` and `markImportant` properties.
-* New `CollectionUtils` with java utilities for efficient collection creation.
+* Added `bcc` and `markImportant` support to `EmailService.sendEmail`.
+* Added `CollectionUtils` with Java utilities for efficient collection creation.
 
 ### 🐞 Bug Fixes
 
-* Restore display of Timers in Service AdminStats.
+* Restored display of Timers in Service AdminStats.
 
 ## 33.0.0 - 2025-09-26
 
@@ -157,10 +157,9 @@ for additional background on the underlying framework changes.
 
 ### ⚙️ Technical
 
-* Improvements to app lifecycle, including support of cleaner shutdown. New property
-  `ClusterService.instanceState` and enhancements to `ClusterService.shutdownInstance`.
-* Improvement to exception handling to avoid throwing secondary exceptions during system
-  shutdown.
+* Improved app lifecycle, including cleaner shutdown support. Added
+  `ClusterService.instanceState` property and enhanced `ClusterService.shutdownInstance`.
+* Improved exception handling to avoid throwing secondary exceptions during system shutdown.
 
 ## 32.0.0 - 2025-08-28
 
@@ -168,8 +167,8 @@ for additional background on the underlying framework changes.
 
 ### 🎁 New Features
 
-* Allow improved editing of Views visibility by hoist-react v76.
-* Enhance JsonBlobService to allow creating blobs with specific `owner`
+* Enabled improved editing of Views visibility by hoist-react v76.
+* Enhanced `JsonBlobService` to allow creating blobs with specific `owner`.
 * Improved support for parsing browsers and devices by consulting the standard `Sec-Ch-UA` and
   `Sec-Ch-UA-Platform` HTTP headers as well as `User-Agent`.
 * Removed an obsolete workaround for detecting iOS Homescreen apps.
@@ -179,7 +178,7 @@ for additional background on the underlying framework changes.
 
 ### 🐞 Bug Fixes
 
-* Fixed issue with JsonBlobService when running with Sybase Database
+* Fixed issue with `JsonBlobService` when running with Sybase database.
 
 ## 31.1.0 - 2025-08-07
 
@@ -247,8 +246,8 @@ for additional background on the underlying framework changes.
 
 ### ⚙️ Technical
 
-* Support for new consolidated clients tab in Hoist-react v73.
-* Harden `ClusterObjectReport` against issues with serialization.
+* Added support for new consolidated clients tab in hoist-react v73.
+* Hardened `ClusterObjectReport` against issues with serialization.
 
 ## 29.2.0 - 2025-04-14
 
@@ -283,14 +282,10 @@ for additional background on the underlying framework changes.
 
 ### 🎁 New Features
 
-* Hoist-Core v29 includes a much improved mechanism for running code on specific instances, or
-  across all instances in the cluster. Most importantly, the new mechanism now provides the remote
-  code with all identity and auth information about the user triggering the action. In addition,
-  the syntax has been simplified substantially to avoid the need for creating extra inner classes
-  and the need to capture all parameters explicitly.
-* See the new methods for `ClusterUtils.runOnInstance`, `ClusterUtils.runOnPrimary` and
-  `ClusterUtils.runOnAllInstances` for more information. In most cases, the transition to using this
-  method should be mechanical, and a simplification from the use of the previous API.
+* Improved mechanism for running code on specific instances or across all instances in the cluster.
+  The new API provides remote code with full identity/auth context, and simplifies syntax by
+  removing the need for inner classes and explicit parameter capture. See
+  `ClusterUtils.runOnInstance`, `ClusterUtils.runOnPrimary`, and `ClusterUtils.runOnAllInstances`.
 
 ### 🐞 Bug Fixes
 
@@ -311,8 +306,8 @@ for additional background on the underlying framework changes.
   nested group memberships. The service now uses recursive lookups into child groups, which perform
   better under most conditions. A new `xhLdapConfig.useMatchingRuleInChain` config flag can be used
   to revert to the previous behavior.
-* Generally improved the handling of system shutdown - in particular, ensure that if an app's
-  Hazelcast instance unexpectedly terminates, the entire app shuts down with it.
+* Improved handling of system shutdown — if an app's Hazelcast instance unexpectedly terminates,
+  the entire app now shuts down with it.
 
 ### 📚 Libraries
 
@@ -414,9 +409,9 @@ ALTER TABLE xh_role ALTER COLUMN category VARCHAR(100) null
   request, helping to reduce network overhead for chatty apps.
 * Improved the handling of track log timestamps - these can now be supplied by the client and are no
   longer bound to insert time of DB record. Latest Hoist React uses *start* of the tracked activity.
-* Support for persisting of memory monitoring results
-* New built-in monitor `xhClientErrorsMonitor`
-* New methods `MonitorResult.getParam` and `MonitorResult.getRequiredParam`
+* Added support for persisting memory monitoring results.
+* Added built-in monitor `xhClientErrorsMonitor`.
+* Added `MonitorResult.getParam` and `MonitorResult.getRequiredParam` methods.
 
 ### ⚙️ Technical
 
@@ -539,7 +534,7 @@ ALTER TABLE xh_role ALTER COLUMN category VARCHAR(100) null
 
 ### ⚙️ Technical
 
-* Support for bulk updating of Role categories.
+* Added support for bulk updating of Role categories.
 
 ## 20.3.1 - 2024-07-23
 
@@ -558,11 +553,11 @@ ALTER TABLE xh_role ALTER COLUMN category VARCHAR(100) null
 
 ### ⚙️ Technical
 
-* Remove obsolete, non-functioning GSP support from `EmailService`.
+* Removed obsolete, non-functioning GSP support from `EmailService`.
 
 ### 🐞 Bug Fixes
 
-* Fix to regression with `LdapObject` subclasses not fully populating all keys/properties.
+* Fixed regression with `LdapObject` subclasses not fully populating all keys/properties.
 
 ## 20.2.0 - 2024-06-26
 
@@ -822,8 +817,9 @@ distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.4-bin.zip
 
 ### ⚙️ Technical
 
-* Refactor `DefaultRoleService` for more efficient and straightforward role/user resolution
-* Normalize role member usernames to lowercase and generally tighten up case-insensitive handling.
+* Refactored `DefaultRoleService` for more efficient and straightforward role/user resolution.
+* Normalized role member usernames to lowercase and generally tightened up case-insensitive
+  handling.
 
 ## 18.2.1 - 2024-01-25
 
@@ -837,7 +833,7 @@ distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.4-bin.zip
 
 * Added new `LdapService` to provide out-of-the-box support for querying LDAP groups and users via
   the [Apache Directory](https://directory.apache.org/) library.
-* Ådded `ConfigService.hasConfig()` method to check if a config exists.
+* Added `ConfigService.hasConfig()` method to check if a config exists.
 
 ## 18.1.0 - 2024-01-18
 
@@ -848,7 +844,7 @@ distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.4-bin.zip
   the current behavior where attempting to service requests prematurely can cause arbitrary and
   misleading exceptions.
 
-* Misc. Improvements to `DefaultRoleService` API and documentation.
+* Misc. improvements to `DefaultRoleService` API and documentation.
 
 ## 18.0.1 - 2024-01-16
 
@@ -870,9 +866,9 @@ distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.4-bin.zip
 
 ### ⚙️ Technical
 
-* Add `xh/echoHeaders` utility endpoint. Useful for verifying headers (e.g. `jespa_connection_id`)
+* Added `xh/echoHeaders` utility endpoint. Useful for verifying headers (e.g. `jespa_connection_id`)
   that are installed by or must pass through multiple ingresses/load balancers.
-* Remove HTML tag escaping when parsing alert banner create/update request JSON.
+* Removed HTML tag escaping when parsing alert banner create/update request JSON.
 
 ### 💥 Breaking Changes
 
@@ -885,8 +881,8 @@ distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.4-bin.zip
 
 ### ⚙️ Technical
 
-* Improvement to `BaseProxyService` to better handle exceptions during streaming.
-* Optimization to `WebSocketService` to remove an extra layer of async task wrapping when pushing to
+* Improved `BaseProxyService` to better handle exceptions during streaming.
+* Optimized `WebSocketService` to remove an extra layer of async task wrapping when pushing to
   a single channel.
 
 ### 🐞 Bug Fixes
@@ -946,7 +942,7 @@ It should be fully compatible with Java 11 and Java 17.
 
 ### 🐞 Bug Fixes
 
-* Remove one remaining smart quote to make default notes in default config safer for all DBs.
+* Removed one remaining smart quote to make default notes in default config safer for all DBs.
 
 ## 16.4.2 - 2023-07-31
 
@@ -1020,10 +1016,10 @@ It should be fully compatible with Java 11 and Java 17.
 
 ## 16.1.0 - 2023-04-14
 
-* Enhance MemoryMonitoringService.
-    * Produce and use more appropriate usage metric (used/max)
-    * Produce GC statistics
-    * Support for taking a heap dump
+* Enhanced `MemoryMonitoringService`.
+    * Produces more appropriate usage metric (used/max).
+    * Produces GC statistics.
+    * Added support for taking a heap dump.
 
 ## 16.0.1 - 2023-03-29
 
@@ -1111,7 +1107,7 @@ Version 15 includes changes to support more flexible logging of structured data:
 
 ### 🐞 Bug Fixes
 
-* Allow database connection info to viewed by users with role: `HOIST_ADMIN_READER` and higher.
+* Allowed database connection info to be viewed by users with `HOIST_ADMIN_READER` role and higher.
 
 ## 14.4.0 - 2022-10-19
 
@@ -1144,7 +1140,7 @@ Version 15 includes changes to support more flexible logging of structured data:
 
 ### 🐞 Bug Fixes
 
-* Fix to minor regression in client error emails.
+* Fixed minor regression in client error emails.
 
 ## 14.2.0 - 2022-08-19
 
