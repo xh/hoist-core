@@ -13,7 +13,7 @@
       the [Spring Docs](https://docs.spring.io/spring-boot/3.5/reference/actuator/endpoints.html)
       for more info on the available endpoints and how to configure and use them.
 
-### ⚙️Technical
+### ⚙️ Technical
 
 * Added support for more efficient hoist-react client initialization by returning user identity info
   in the `xh/login` and `xh/authStatus` framework endpoints.
@@ -22,13 +22,18 @@
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW, excepting multi-instance apps w/websockets)
 
-* Apps leveraging both multi-instance and websockets should review the API changes below and
-  understand the new cross-cluster behavior.
-    * ⚠️Look for the pattern where a multi-instance app has code querying / pushing to
-      `allChannels` - e.g. in response to a change to replicated data.
-    * These usages should be updated to query / push to local channels only to avoid duplication
-      of messages. Search for `allChannels` or `getAllChannels()` and replace if appropriate with
-      their local counterparts.
+* See [`docs/v36-upgrade-notes.md`](docs/v36-upgrade-notes.md) for detailed, step-by-step upgrade
+  instructions with before/after code examples.
+* Deprecated `@Access` in favor of new `@AccessRequiresRole`, `@AccessRequiresAllRoles`, and
+  `@AccessRequiresAnyRole` annotations. `@Access` continues to function but should be migrated —
+  see upgrade notes for find-and-replace patterns.
+* Apps leveraging both multi-instance clustering and websockets should review the
+  `WebSocketService` API changes below and understand the new cross-cluster behavior.
+    * `getAllChannels()` now returns `Collection<Map>` (cluster-wide) instead of
+      `Collection<HoistWebSocketChannel>` (local-only). Code accessing channel properties (e.g.
+      `.user`) must be updated — see upgrade notes.
+    * Replace `allChannels`-based broadcast patterns with `pushToAllChannels()` or
+      `pushToLocalChannels()` to avoid message duplication.
 
 ### 🎁 New Features
 
@@ -37,15 +42,14 @@
   connected.
     * Existing methods `pushToChannel()` and `pushToChannels()` can now be called on any instance of
       the cluster, without needing to worry about the instance to which a channel is connected.
-    * Updated `hasChannel()` and `getAllChannels()` now check / return all channels in the cluster.
+    * `hasChannel()` and `getAllChannels()` now check / return all channels in the cluster.
       Use new variants `hasLocalChannel()` and `getLocalChannels()` to target local instance only.
     * Added new methods `pushToAllChannels()` and `pushToLocalChannels()`.
 * Introduced new security annotations:
-    * `@AccessRequiresRole` - check a single role.
-    * `@AccessRequiresAllRoles` - check a list of roles and require user to have all.
-    * `@AccessRequiresAnyRole` - check a list of roles and require user to have at least one.
-    * ⚠️`@Access` has been deprecated and will be removed in a future version of Hoist. For the
-      most common case where a single role is being checked, use `@AccessRequiresRole` instead.
+    * `@AccessRequiresRole` — check a single role.
+    * `@AccessRequiresAllRoles` — check a list of roles and require user to have all.
+    * `@AccessRequiresAnyRole` — check a list of roles and require user to have at least one.
+    * ⚠️ `@Access` has been deprecated and will be removed in a future version of Hoist.
 
 ### 🐞 Bug Fixes
 
@@ -54,7 +58,7 @@
 
 ### 📚 Libraries
 
-* grails `7.0.4 → 7.0.5`
+* Grails `7.0.4 → 7.0.5`
 
 ## 35.0.0 - 2026-01-05
 
