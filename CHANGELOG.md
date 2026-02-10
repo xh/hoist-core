@@ -58,32 +58,37 @@
 
 ## 35.0.0 - 2026-01-05
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL, types only)
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - generic type change + DB column)
+
+* See [`docs/v35-upgrade-notes.md`](docs/v35-upgrade-notes.md) for detailed, step-by-step upgrade
+  instructions with before/after code examples.
+* Updated the generic signature of `CacheEntry` from `CacheEntry<T>` to `CacheEntry<K, T>` to
+  support non-string key types. Adjust any explicit declarations of this type to include the key
+  type parameter.
+* Added `clientAppCode` column to `TrackLog` for tracking activity across multiple client apps.
+  Requires a new `client_app_code` column and index on the `xh_track_log` table — see upgrade
+  notes for SQL.
 
 ### 🎁 New Features
 
-* Updated the generic signature of `CacheEntry` to support a generic key type, rather than just
-  string. Apps that are declaring this type will need to be adjusted to make the key type explicit.
-* Added `clientAppCode` properties to `TrackLog`. These new identifiers will be provided by
-  clients running `hoist-react >= 79.0` and disambiguate tracking activity for apps with multiple
-  client apps.
-    * ⚠ NOTE this requires a new column in the `xh_track_log` table. Review and run the
-      following SQL, modified as needed for the particular database you are using:
-        ```sql
-          ALTER TABLE `xh_track_log` ADD COLUMN `client_app_code` VARCHAR(50) NULL;
-        ```
-      You should also index the new column using appropriate sql for your database, e.g.
-        ```sql
-          CREATE index idx_xh_track_log_client_app_code on xh_track_log
-        ```
+* Enhanced `CacheEntry` to support a generic key type, allowing non-string keys in `Cache`.
+* Added `clientAppCode` to `TrackLog` to disambiguate tracking activity for apps with multiple
+  client apps. Populated by clients running `hoist-react >= 79`.
 
 ### 🐞 Bug Fixes
 
 * Fixed support for deletion of large numbers of log files via POST (requires `hoist-react >= 79`).
 * Improved sanitization of database connection attributes displayed in the Admin Console.
 
+### ⚙️ Technical
+
+* Synchronized logging behavior in `MemoryMonitoringService` and `ConnectionPoolMonitoringService`
+  — info-level output now logged once per hour with debug-level between intervals. Added optional
+  `writeToLog` configuration parameter (defaults to `true`).
+
 ### 📚 Libraries
 
+* Grails `7.0.2 → 7.0.4`
 * org.apache.poi `4.1.2 → 5.5.1`
 * commons-io `2.20.0 → 2.21.0`
 
