@@ -120,6 +120,14 @@ tasks.withType(JavaCompile) {
 // See also "A sample Grails plugin configured to publish to Maven Central"
 // https://github.com/puneetbehl/myplugin/blob/main/build.gradle
 //------------------------
+
+// Signing artifacts
+ext.isReleaseVersion = !version.endsWith('-SNAPSHOT')
+ext.'signing.keyId' = project.hasProperty("signing.keyId") ? project.getProperty('signing.keyId') : System.getenv('SIGNING_KEY_ID')
+ext.'signing.secretKeyRingFile' = (project.hasProperty("signing.secretKeyRingFile") ? project.getProperty('signing.secretKeyRingFile') : System.getenv('SIGNING_SECRET_KEY_RING_FILE')) ?: "${System.properties['user.home']}${File.separator}.gnupg${File.separator}secring.gpg"
+ext.'signing.password' = project.hasProperty("signing.password") ? project.getProperty('signing.password') : System.getenv('SIGNING_PASSWORD')
+
+// Define the hoist core build
 publishing {
     publications {
         hoistCore(MavenPublication) {
@@ -167,10 +175,12 @@ publishing {
                 extension: 'xml'
         }
     }
+
+    // Defines the old xh repo (using the built-in publish plugin).
     repositories {
         maven {
             name = 'xhRepo'
-            def repoEndpoint = version.endsWith('-SNAPSHOT') ? 'snapshots' : 'releases'
+            def repoEndpoint = !isReleaseVersion ? 'snapshots' : 'releases'
             url = "https://repo.xh.io/content/repositories/$repoEndpoint/"
             credentials {
                 username = project.findProperty('xhRepoDeployUser')
@@ -178,37 +188,35 @@ publishing {
             }
         }
     }
-}
 
-// Signing artifacts
-ext.'signing.keyId'= project.hasProperty("signing.keyId") ? project.getProperty('signing.keyId') : System.getenv('SIGNING_KEY_ID')
-ext.'signing.secretKeyRingFile' = (project.hasProperty("signing.secretKeyRingFile") ? project.getProperty('signing.secretKeyRingFile') : System.getenv('SIGNING_SECRET_KEY_RING_FILE')) ?: "${System.properties['user.home']}${File.separator}.gnupg${File.separator}secring.gpg"
-ext.'signing.password' = project.hasProperty("signing.password") ? project.getProperty('signing.password') : System.getenv('SIGNING_PASSWORD')
-afterEvaluate {
-    signing {
-        required { !version.endsWith("SNAPSHOT") && gradle.taskGraph.hasTask("publish") }
-        sign publishing.publications.hoistCore
-    }
-}
-tasks.withType(Sign) {
-    onlyIf { !version.endsWith("SNAPSHOT") }
-}
-
-nexusPublishing {
-    repositories {
-        sonatype {
-            // see https://central.sonatype.org/publish/publish-portal-ossrh-staging-api/#configuration
-            nexusUrl = uri "https://ossrh-staging-api.central.sonatype.com/service/local/"
-            snapshotRepositoryUrl = uri "https://central.sonatype.com/repository/maven-snapshots/"
-            username = project.hasProperty('sonatypeUsername') ? project.getProperty('sonatypeUsername') : System.getenv('SONATYPE_USERNAME')
-            password = project.hasProperty('sonatypePassword') ? project.getProperty('sonatypePassword') : System.getenv('SONATYPE_PASSWORD')
+    // Defines the maven central repository (using the gradle-nexus.publish-plugin).
+    nexusPublishing {
+        repositories {
+            sonatype {
+                // see https://central.sonatype.org/publish/publish-portal-ossrh-staging-api/#configuration
+                nexusUrl = uri "https://ossrh-staging-api.central.sonatype.com/service/local/"
+                snapshotRepositoryUrl = uri "https://central.sonatype.com/repository/maven-snapshots/"
+                username = project.hasProperty('sonatypeUsername') ? project.getProperty('sonatypeUsername') : System.getenv('SONATYPE_USERNAME')
+                password = project.hasProperty('sonatypePassword') ? project.getProperty('sonatypePassword') : System.getenv('SONATYPE_PASSWORD')
+            }
         }
+    }
+
+    // Skip signing for SNAPSHOT releases as there is no need for them to be signed.
+    afterEvaluate {
+        signing {
+            required { isReleaseVersion }
+            sign publishing.publications.hoistCore
+        }
+    }
+    tasks.withType(Sign) {
+        onlyIf { isReleaseVersion }
     }
 }
 
 task publishHoistCore(dependsOn: 'publishHoistCorePublicationToXhRepoRepository') {
     group = 'xhio'
-    description = 'Publishes a build to repo.xh.io.'
+    description = 'Old process used to publish a build to repo.xh.io.'
     doLast {
         println "Hoist $version published to repo.xh.io!"
     }
