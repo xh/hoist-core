@@ -1,6 +1,6 @@
 # Upgrade Notes Template
 
-Use this template when creating `docs/v{NN}-upgrade-notes.md`. Replace all `{placeholders}` with
+Use this template when creating `docs/upgrade-notes/v{NN}-upgrade-notes.md`. Replace all `{placeholders}` with
 actual values. Remove sections that don't apply, and add version-specific sections as needed.
 
 ---

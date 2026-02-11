@@ -78,7 +78,7 @@ Bad:
 For major versions, this section should:
 
 1. **Start** with an overview bullet that summarizes the upgrade and links to the detailed
-   upgrade notes file: `docs/v{NN}-upgrade-notes.md`
+   upgrade notes file: `docs/upgrade-notes/v{NN}-upgrade-notes.md`
 2. **List** every required app-level change as a separate bullet
 3. **Include** a difficulty rating in the header parenthetical
 4. **End** with a link to the relevant framework upgrade guide (if applicable)

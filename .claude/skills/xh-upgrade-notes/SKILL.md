@@ -94,13 +94,13 @@ If the entry needs significant changes, rewrite it following the format in
 
 - Breaking Changes section should have a difficulty rating and list every required app change
 - Each bullet names the specific action concisely — the upgrade notes handle the detail
-- Include a link to the upgrade notes file: `docs/v{NN}-upgrade-notes.md`
+- Include a link to the upgrade notes file: `docs/upgrade-notes/v{NN}-upgrade-notes.md`
 - Include a link to the relevant framework upgrade guide (if applicable)
 - Libraries section lists major dependency version bumps in `old → new` format
 
 ## Phase 3: Write the Upgrade Notes
 
-Create `docs/v{NN}-upgrade-notes.md` following the template in [template.md](template.md).
+Create `docs/upgrade-notes/v{NN}-upgrade-notes.md` following the template in [template.md](template.md).
 
 ### Content Requirements
 
@@ -144,7 +144,7 @@ Launch a Task agent (subagent_type: "general-purpose") with these instructions:
 >    version was applied. Use `git log --oneline` to find the last commit before the upgrade.
 >    Create a temporary branch for the dry run.
 >
-> 2. **Dry run:** Working solely from the upgrade notes file at `docs/v{NN}-upgrade-notes.md`
+> 2. **Dry run:** Working solely from the upgrade notes file at `docs/upgrade-notes/v{NN}-upgrade-notes.md`
 >    and the app's current source, walk through each step as if advising on a real upgrade.
 >    For each step, evaluate:
 >    - Is the instruction clear and unambiguous?
