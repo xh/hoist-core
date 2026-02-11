@@ -17,13 +17,6 @@ The most significant app-level impacts are:
   multi-instance deployment must review their usage of `getAllChannels()` and related methods to
   avoid message duplication and account for the new return types.
 
-## Prerequisites
-
-Before starting, ensure:
-
-- [ ] You are upgrading from hoist-core **v35.x** (the immediately prior major version)
-- [ ] Your app compiles and runs cleanly on v35.x before starting
-
 ## Upgrade Steps
 
 ### 1. Update `gradle.properties`
@@ -290,4 +283,3 @@ After completing all steps:
 ## Reference
 
 - [Toolbox on GitHub](https://github.com/xh/toolbox) -- canonical example of a Hoist app
-- [CHANGELOG](../CHANGELOG.md) -- concise summary of all changes

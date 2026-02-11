@@ -21,8 +21,6 @@ The most significant app-level impacts are:
 
 Before starting, ensure:
 
-- [ ] You are upgrading from hoist-core **v34.x** (the immediately prior major version)
-- [ ] Your app compiles and runs cleanly on v34.x before starting
 - [ ] You have database access to run ALTER TABLE / CREATE INDEX statements (if GORM auto-schema
   updates are not enabled for your environment)
 
@@ -127,4 +125,3 @@ After completing all steps:
 ## Reference
 
 - [Toolbox on GitHub](https://github.com/xh/toolbox) -- canonical example of a Hoist app
-- [CHANGELOG](../CHANGELOG.md) -- concise summary of all changes

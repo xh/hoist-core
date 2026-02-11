@@ -25,9 +25,7 @@ The most significant app-level impacts are:
 
 Before starting, ensure:
 
-- [ ] **{Prerequisite 1}** (e.g. Java version, tool version)
-- [ ] You are upgrading from hoist-core **v{PRIOR}.x** (the immediately prior major version)
-- [ ] Your app compiles and runs cleanly on v{PRIOR}.x before starting
+- [ ] **{Prerequisite 1}** (e.g. Java version, tool version, database access for schema changes)
 
 ## Upgrade Steps
 
@@ -76,7 +74,6 @@ After completing all steps:
 
 - {Link to relevant framework upgrade guide, if applicable}
 - [Toolbox on GitHub](https://github.com/xh/toolbox) -- canonical example of a Hoist app
-- [CHANGELOG](../CHANGELOG.md) -- concise summary of all changes
 ```
 
 ---

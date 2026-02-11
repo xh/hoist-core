@@ -22,8 +22,6 @@ The most significant app-level impacts are:
 Before starting, ensure:
 
 - [ ] **Java 17 or 21** is installed (Java 11 is no longer supported by Grails 7)
-- [ ] You are upgrading from hoist-core **v33.x** (the immediately prior major version)
-- [ ] Your app compiles and runs cleanly on v33.x before starting
 
 ## Upgrade Steps
 
@@ -588,4 +586,3 @@ After completing all steps:
 
 - [Grails 7 Upgrade Guide](https://docs.grails.org/7.0.2/guide/upgrading.html#upgrading60x)
 - [Toolbox on GitHub](https://github.com/xh/toolbox) — canonical example of a Hoist app on v34+
-- [CHANGELOG](../CHANGELOG.md) — concise summary of all changes
