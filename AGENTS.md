@@ -10,7 +10,7 @@ Extremely Heavy Industries (xh.io). It is a **Grails 7 plugin** (not a standalon
 [hoist-react](https://github.com/xh/hoist-react).
 
 - **Language**: Groovy 4 / Java 17
-- **Framework**: Grails 7.0.5 (Spring Boot 3.5, Hibernate 5, GORM)
+- **Framework**: Grails 7.0 (Spring Boot 3.5, Hibernate 5, GORM)
 - **Clustering**: Hazelcast 5.6 for distributed caching, pub/sub, and multi-instance coordination
 - **Package root**: `io.xh.hoist`
 

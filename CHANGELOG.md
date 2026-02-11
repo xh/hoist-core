@@ -2,6 +2,11 @@
 
 ## 37.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* Added experimental support for Claude Code with project documentation (`AGENTS.md`), an
+  `xh-upgrade-notes` skill for generating upgrade guides, and detailed upgrade notes for v34-v36.
+
 ## 36.1.0 - 2026-02-03
 
 ### 🎁 New Features
