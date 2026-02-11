@@ -2,33 +2,43 @@
 
 ## 37.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* Added experimental support for Claude Code with project documentation (`AGENTS.md`), an
+  `xh-upgrade-notes` skill for generating upgrade guides, and detailed upgrade notes for v34-v36.
+
 ## 36.1.0 - 2026-02-03
 
 ### 🎁 New Features
 
-* Enable underlying support for Spring Boot Actuator Endpoints.
+* Enabled underlying support for Spring Boot Actuator Endpoints.
     * Expose these endpoints in your application via configuration in your `application.groovy`
       file, e.g. `management.endpoints.web.exposure.include = "health,info,metrics"`
     * See
       the [Spring Docs](https://docs.spring.io/spring-boot/3.5/reference/actuator/endpoints.html)
       for more info on the available endpoints and how to configure and use them.
 
-### ⚙️Technical
+### ⚙️ Technical
 
-* Support for more efficient hoist-react client initialization by returning user identity info
+* Added support for more efficient hoist-react client initialization by returning user identity info
   in the `xh/login` and `xh/authStatus` framework endpoints.
 
 ## 36.0.0 - 2026-01-27
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW, excepting multi-instance apps w/websockets)
 
-* Apps leveraging both multi-instance and websockets should review the API changes below and
-  understand the new cross-cluster behavior.
-    * ⚠️Look for the pattern where a multi-instance app has code querying / pushing to
-      `allChannels` - e.g. in response to a change to replicated data.
-    * These usages should be updated to query / push to local channels only to avoid duplication
-      of messages. Search for `allChannels` or `getAllChannels()` and replace if appropriate with
-      their local counterparts.
+* See [`docs/upgrade-notes/v36-upgrade-notes.md`](docs/upgrade-notes/v36-upgrade-notes.md) for detailed, step-by-step upgrade
+  instructions with before/after code examples.
+* Deprecated `@Access` in favor of new `@AccessRequiresRole`, `@AccessRequiresAllRoles`, and
+  `@AccessRequiresAnyRole` annotations. `@Access` continues to function but should be migrated —
+  see upgrade notes for find-and-replace patterns.
+* Apps leveraging both multi-instance clustering and websockets should review the
+  `WebSocketService` API changes below and understand the new cross-cluster behavior.
+    * `getAllChannels()` now returns `Collection<Map>` (cluster-wide) instead of
+      `Collection<HoistWebSocketChannel>` (local-only). Code accessing channel properties (e.g.
+      `.user`) must be updated — see upgrade notes.
+    * Replace `allChannels`-based broadcast patterns with `pushToAllChannels()` or
+      `pushToLocalChannels()` to avoid message duplication.
 
 ### 🎁 New Features
 
@@ -37,15 +47,14 @@
   connected.
     * Existing methods `pushToChannel()` and `pushToChannels()` can now be called on any instance of
       the cluster, without needing to worry about the instance to which a channel is connected.
-    * Updated `hasChannel()` and `getAllChannels()` now check / return all channels in the cluster.
+    * `hasChannel()` and `getAllChannels()` now check / return all channels in the cluster.
       Use new variants `hasLocalChannel()` and `getLocalChannels()` to target local instance only.
     * Added new methods `pushToAllChannels()` and `pushToLocalChannels()`.
 * Introduced new security annotations:
-    * `@AccessRequiresRole` - check a single role.
-    * `@AccessRequiresAllRoles` - check a list of roles and require user to have all.
-    * `@AccessRequiresAnyRole` - check a list of roles and require user to have at least one.
-    * ⚠️`@Access` has been deprecated and will be removed in a future version of Hoist. For the
-      most common case where a single role is being checked, use `@AccessRequiresRole` instead.
+    * `@AccessRequiresRole` — check a single role.
+    * `@AccessRequiresAllRoles` — check a list of roles and require user to have all.
+    * `@AccessRequiresAnyRole` — check a list of roles and require user to have at least one.
+    * ⚠️ `@Access` has been deprecated and will be removed in a future version of Hoist.
 
 ### 🐞 Bug Fixes
 
@@ -54,92 +63,107 @@
 
 ### 📚 Libraries
 
-* grails `7.0.4 → 7.0.5`
+* Grails `7.0.4 → 7.0.5`
 
 ## 35.0.0 - 2026-01-05
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 TRIVIAL, types only)
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - generic type change + DB column)
+
+* See [`docs/upgrade-notes/v35-upgrade-notes.md`](docs/upgrade-notes/v35-upgrade-notes.md) for detailed, step-by-step upgrade
+  instructions with before/after code examples.
+* Updated the generic signature of `CacheEntry` from `CacheEntry<T>` to `CacheEntry<K, T>` to
+  support non-string key types. Adjust any explicit declarations of this type to include the key
+  type parameter.
+* Added `clientAppCode` column to `TrackLog` for tracking activity across multiple client apps.
+  Requires a new `client_app_code` column and index on the `xh_track_log` table — see upgrade
+  notes for SQL.
 
 ### 🎁 New Features
 
-* Updated the generic signature of `CacheEntry` to support a generic key type, rather than just
-  string. Apps that are declaring this type will need to be adjusted to make the key type explicit.
-* Added `clientAppCode` properties to `TrackLog`. These new identifiers will be provided by
-  clients running `hoist-react >= 79.0` and disambiguate tracking activity for apps with multiple
-  client apps.
-    * ⚠ NOTE this requires anew columns in the `xh_track_log` table. Review and run the
-      following SQL, modified as needed for the particular database you are using:
-        ```sql
-          ALTER TABLE `xh_track_log` ADD COLUMN `client_app_code` VARCHAR(50) NULL;
-        ```
-      You should also index the new column using appropriate sql for your database, e.g.
-        ```sql
-          CREATE index idx_xh_track_log_client_app_code on xh_track_log
-        ```
+* Enhanced `CacheEntry` to support a generic key type, allowing non-string keys in `Cache`.
+* Added `clientAppCode` to `TrackLog` to disambiguate tracking activity for apps with multiple
+  client apps. Populated by clients running `hoist-react >= 79`.
 
 ### 🐞 Bug Fixes
 
 * Fixed support for deletion of large numbers of log files via POST (requires `hoist-react >= 79`).
 * Improved sanitization of database connection attributes displayed in the Admin Console.
 
+### ⚙️ Technical
+
+* Synchronized logging behavior in `MemoryMonitoringService` and `ConnectionPoolMonitoringService`
+  — info-level output now logged once per hour with debug-level between intervals. Added optional
+  `writeToLog` configuration parameter (defaults to `true`).
+
 ### 📚 Libraries
 
+* Grails `7.0.2 → 7.0.4`
 * org.apache.poi `4.1.2 → 5.5.1`
 * commons-io `2.20.0 → 2.21.0`
 
 ## 34.0.1 - 2025-11-24
 
-### 💥 Breaking Changes (upgrade difficulty: 🟠 Medium - upgrade to Grails/Gradle/Spring. New logging config)
+### 💥 Breaking Changes (upgrade difficulty: 🟠 MEDIUM - Grails 7 / Gradle 8 / Tomcat 10 upgrade)
 
-### ⚙️ Technical
+* Hoist Core v34 is a major framework upgrade, moving to Grails 7.0, Spring Boot 3.5, Groovy 4,
+  Gradle 8.14, and Tomcat 10.1. With this release, Grails is officially part of the Apache
+  Foundation. The changes below are required for all applications. See
+  [`docs/upgrade-notes/v34-upgrade-notes.md`](docs/upgrade-notes/v34-upgrade-notes.md) for detailed, step-by-step upgrade
+  instructions with before/after code examples.
+* Update Docker base image to `xhio/xh-tomcat:next-tc10-jdk17` for Tomcat 10 / Jakarta EE support.
+* Update Gradle wrapper to `8.14.3` via `gradle-wrapper.properties`.
+* Restructure `build.gradle` to use the new Apache Grails plugin coordinates and BOM-based
+  dependency management:
+    * Buildscript dependencies use `org.apache.grails` (was `org.grails`).
+    * Repository URL changed to `https://repo.grails.org/grails/restricted`.
+    * Use `platform("org.apache.grails:grails-bom:$grailsVersion")` for version management.
+* Clean up `gradle.properties` — remove version properties now managed by the Grails BOM
+  (e.g. `groovyVersion`, `grailsGradlePluginVersion`, `grailsHibernatePluginVersion`,
+  `gormVersion`, `logback.version`).
+* Migrate logging configuration: delete `grails-app/conf/logback.groovy` and create a
+  `LogbackConfig` class in `grails-app/init/` that extends `io.xh.hoist.LogbackConfig`. Override
+  `configureLogging()` for any custom appenders or log levels.
+* Update `javax.servlet` imports to `jakarta.servlet`. Typically only required in
+  `AuthenticationService` and any custom servlet/filter code.
+* Replace usage of the removed `request.JSON` property with `parseRequestJSON()` (returns Map) or
+  `parseRequestJSONArray()` (returns List) from `BaseController`.
 
-Hoist Core v34 is a major framework upgrade version, with underlying upgrades to Grails 7.0,
-Spring Boot 3.5, Spring 6.2, Groovy 4.0, Gradle 8.14, Tomcat 10.1. With this release grails is
-officially part of the Apache Foundation. The main required changes to applications are the
-following:
-
-* Change to logging config to accommodate the latest version of Logback, and its removal of the
-  groovy DSL.
-  In order to allow hoist apps to continue to seamlessly provide configuration via groovy, we have
-  replicated
-  the functionality of the logback DSL in methods on LogConfig.groovy. Any custom logback.groovy
-  scripts
-  should be moved to an override of `LogbackConfig` class. See `LogbackConfig.` for more details.
-  Misc. updates and simplification to `build.gradle` and `gradle.properties` to adapt to Gradle 8.
-  See toolbox for an example of these changes.
-* Changes of various core imports from `javax` to `jakarta`.
-* The usage of the deprecated `request.JSON` property in controllers is no longer supported.
-* Applications should be using the  `BaseController` methods `parseRequestJSON` and
-  `parseRequestJSONArray` instead. These methods use the Hoist standard customization to jackson
-  JSON parsing.
-
-See the grails documentation at  https://docs.grails.org/7.0.2/guide/upgrading.html#upgrading60x
-for more information.
+See the [Grails 7 upgrade guide](https://docs.grails.org/7.0.2/guide/upgrading.html#upgrading60x)
+for additional background on the underlying framework changes.
 
 ### 🎁 New Features
 
-* Enhance exception handling in `JSONClient` to capture messages returned as raw strings.
+* Enhanced exception handling in `JSONClient` to capture messages returned as raw strings.
 
 ### 🐞 Bug Fixes
 
-* Improve exception handling in admin client for sibling instances during startup.
+* Improved exception handling in admin client for sibling instances during startup.
+
+### 📚 Libraries
+
+* Grails `6.2.3 → 7.0`
+* Groovy `3.0.23 → 4.0`
+* Spring Boot `2.7 → 3.5`
+* Tomcat `9.0 → 10.1`
+* Hazelcast `5.5.0 → 5.6.0`
+* Gradle `7.6.4 → 8.14.3`
 
 ## 33.2.0 - 2025-11-10
 
 ### 🎁 New Features
 
-* `FieldFilter` implementation now supports `not begins` and `not ends` operators.
+* Added `not begins` and `not ends` operator support to `FieldFilter`.
 
 ## 33.1.0 - 2025-10-24
 
 ### 🎁 New Features
 
-* `EmailService.sendEmail` now supports `bcc` and `markImportant` properties.
-* New `CollectionUtils` with java utilities for efficient collection creation.
+* Added `bcc` and `markImportant` support to `EmailService.sendEmail`.
+* Added `CollectionUtils` with Java utilities for efficient collection creation.
 
 ### 🐞 Bug Fixes
 
-* Restore display of Timers in Service AdminStats.
+* Restored display of Timers in Service AdminStats.
 
 ## 33.0.0 - 2025-09-26
 
@@ -147,10 +171,9 @@ for more information.
 
 ### ⚙️ Technical
 
-* Improvements to app lifecycle, including support of cleaner shutdown. New property
-  `ClusterService.instanceState` and enhancements to `ClusterService.shutdownInstance`.
-* Improvement to exception handling to avoid throwing secondary exceptions during system
-  shutdown.
+* Improved app lifecycle, including cleaner shutdown support. Added
+  `ClusterService.instanceState` property and enhanced `ClusterService.shutdownInstance`.
+* Improved exception handling to avoid throwing secondary exceptions during system shutdown.
 
 ## 32.0.0 - 2025-08-28
 
@@ -158,8 +181,8 @@ for more information.
 
 ### 🎁 New Features
 
-* Allow improved editing of Views visibility by hoist-react v76.
-* Enhance JsonBlobService to allow creating blobs with specific `owner`
+* Enabled improved editing of Views visibility by hoist-react v76.
+* Enhanced `JsonBlobService` to allow creating blobs with specific `owner`.
 * Improved support for parsing browsers and devices by consulting the standard `Sec-Ch-UA` and
   `Sec-Ch-UA-Platform` HTTP headers as well as `User-Agent`.
 * Removed an obsolete workaround for detecting iOS Homescreen apps.
@@ -169,7 +192,7 @@ for more information.
 
 ### 🐞 Bug Fixes
 
-* Fixed issue with JsonBlobService when running with Sybase Database
+* Fixed issue with `JsonBlobService` when running with Sybase database.
 
 ## 31.1.0 - 2025-08-07
 
@@ -237,8 +260,8 @@ for more information.
 
 ### ⚙️ Technical
 
-* Support for new consolidated clients tab in Hoist-react v73.
-* Harden `ClusterObjectReport` against issues with serialization.
+* Added support for new consolidated clients tab in hoist-react v73.
+* Hardened `ClusterObjectReport` against issues with serialization.
 
 ## 29.2.0 - 2025-04-14
 
@@ -273,14 +296,10 @@ for more information.
 
 ### 🎁 New Features
 
-* Hoist-Core v29 includes a much improved mechanism for running code on specific instances, or
-  across all instances in the cluster. Most importantly, the new mechanism now provides the remote
-  code with all identity and auth information about the user triggering the action. In addition,
-  the syntax has been simplified substantially to avoid the need for creating extra inner classes
-  and the need to capture all parameters explicitly.
-* See the new methods for `ClusterUtils.runOnInstance`, `ClusterUtils.runOnPrimary` and
-  `ClusterUtils.runOnAllInstances` for more information. In most cases, the transition to using this
-  method should be mechanical, and a simplification from the use of the previous API.
+* Improved mechanism for running code on specific instances or across all instances in the cluster.
+  The new API provides remote code with full identity/auth context, and simplifies syntax by
+  removing the need for inner classes and explicit parameter capture. See
+  `ClusterUtils.runOnInstance`, `ClusterUtils.runOnPrimary`, and `ClusterUtils.runOnAllInstances`.
 
 ### 🐞 Bug Fixes
 
@@ -301,8 +320,8 @@ for more information.
   nested group memberships. The service now uses recursive lookups into child groups, which perform
   better under most conditions. A new `xhLdapConfig.useMatchingRuleInChain` config flag can be used
   to revert to the previous behavior.
-* Generally improved the handling of system shutdown - in particular, ensure that if an app's
-  Hazelcast instance unexpectedly terminates, the entire app shuts down with it.
+* Improved handling of system shutdown — if an app's Hazelcast instance unexpectedly terminates,
+  the entire app now shuts down with it.
 
 ### 📚 Libraries
 
@@ -404,9 +423,9 @@ ALTER TABLE xh_role ALTER COLUMN category VARCHAR(100) null
   request, helping to reduce network overhead for chatty apps.
 * Improved the handling of track log timestamps - these can now be supplied by the client and are no
   longer bound to insert time of DB record. Latest Hoist React uses *start* of the tracked activity.
-* Support for persisting of memory monitoring results
-* New built-in monitor `xhClientErrorsMonitor`
-* New methods `MonitorResult.getParam` and `MonitorResult.getRequiredParam`
+* Added support for persisting memory monitoring results.
+* Added built-in monitor `xhClientErrorsMonitor`.
+* Added `MonitorResult.getParam` and `MonitorResult.getRequiredParam` methods.
 
 ### ⚙️ Technical
 
@@ -529,7 +548,7 @@ ALTER TABLE xh_role ALTER COLUMN category VARCHAR(100) null
 
 ### ⚙️ Technical
 
-* Support for bulk updating of Role categories.
+* Added support for bulk updating of Role categories.
 
 ## 20.3.1 - 2024-07-23
 
@@ -548,11 +567,11 @@ ALTER TABLE xh_role ALTER COLUMN category VARCHAR(100) null
 
 ### ⚙️ Technical
 
-* Remove obsolete, non-functioning GSP support from `EmailService`.
+* Removed obsolete, non-functioning GSP support from `EmailService`.
 
 ### 🐞 Bug Fixes
 
-* Fix to regression with `LdapObject` subclasses not fully populating all keys/properties.
+* Fixed regression with `LdapObject` subclasses not fully populating all keys/properties.
 
 ## 20.2.0 - 2024-06-26
 
@@ -812,8 +831,9 @@ distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.4-bin.zip
 
 ### ⚙️ Technical
 
-* Refactor `DefaultRoleService` for more efficient and straightforward role/user resolution
-* Normalize role member usernames to lowercase and generally tighten up case-insensitive handling.
+* Refactored `DefaultRoleService` for more efficient and straightforward role/user resolution.
+* Normalized role member usernames to lowercase and generally tightened up case-insensitive
+  handling.
 
 ## 18.2.1 - 2024-01-25
 
@@ -827,7 +847,7 @@ distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.4-bin.zip
 
 * Added new `LdapService` to provide out-of-the-box support for querying LDAP groups and users via
   the [Apache Directory](https://directory.apache.org/) library.
-* Ådded `ConfigService.hasConfig()` method to check if a config exists.
+* Added `ConfigService.hasConfig()` method to check if a config exists.
 
 ## 18.1.0 - 2024-01-18
 
@@ -838,7 +858,7 @@ distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.4-bin.zip
   the current behavior where attempting to service requests prematurely can cause arbitrary and
   misleading exceptions.
 
-* Misc. Improvements to `DefaultRoleService` API and documentation.
+* Misc. improvements to `DefaultRoleService` API and documentation.
 
 ## 18.0.1 - 2024-01-16
 
@@ -860,9 +880,9 @@ distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.4-bin.zip
 
 ### ⚙️ Technical
 
-* Add `xh/echoHeaders` utility endpoint. Useful for verifying headers (e.g. `jespa_connection_id`)
+* Added `xh/echoHeaders` utility endpoint. Useful for verifying headers (e.g. `jespa_connection_id`)
   that are installed by or must pass through multiple ingresses/load balancers.
-* Remove HTML tag escaping when parsing alert banner create/update request JSON.
+* Removed HTML tag escaping when parsing alert banner create/update request JSON.
 
 ### 💥 Breaking Changes
 
@@ -875,8 +895,8 @@ distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.4-bin.zip
 
 ### ⚙️ Technical
 
-* Improvement to `BaseProxyService` to better handle exceptions during streaming.
-* Optimization to `WebSocketService` to remove an extra layer of async task wrapping when pushing to
+* Improved `BaseProxyService` to better handle exceptions during streaming.
+* Optimized `WebSocketService` to remove an extra layer of async task wrapping when pushing to
   a single channel.
 
 ### 🐞 Bug Fixes
@@ -936,7 +956,7 @@ It should be fully compatible with Java 11 and Java 17.
 
 ### 🐞 Bug Fixes
 
-* Remove one remaining smart quote to make default notes in default config safer for all DBs.
+* Removed one remaining smart quote to make default notes in default config safer for all DBs.
 
 ## 16.4.2 - 2023-07-31
 
@@ -1010,10 +1030,10 @@ It should be fully compatible with Java 11 and Java 17.
 
 ## 16.1.0 - 2023-04-14
 
-* Enhance MemoryMonitoringService.
-    * Produce and use more appropriate usage metric (used/max)
-    * Produce GC statistics
-    * Support for taking a heap dump
+* Enhanced `MemoryMonitoringService`.
+    * Produces more appropriate usage metric (used/max).
+    * Produces GC statistics.
+    * Added support for taking a heap dump.
 
 ## 16.0.1 - 2023-03-29
 
@@ -1101,7 +1121,7 @@ Version 15 includes changes to support more flexible logging of structured data:
 
 ### 🐞 Bug Fixes
 
-* Allow database connection info to viewed by users with role: `HOIST_ADMIN_READER` and higher.
+* Allowed database connection info to be viewed by users with `HOIST_ADMIN_READER` role and higher.
 
 ## 14.4.0 - 2022-10-19
 
@@ -1134,7 +1154,7 @@ Version 15 includes changes to support more flexible logging of structured data:
 
 ### 🐞 Bug Fixes
 
-* Fix to minor regression in client error emails.
+* Fixed minor regression in client error emails.
 
 ## 14.2.0 - 2022-08-19
 
