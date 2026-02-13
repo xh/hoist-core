@@ -62,6 +62,20 @@ Smaller or more specialized features. Important but lower priority for initial d
 
 ## Documentation Guidelines
 
+### Review Workflow
+
+Each document progresses through three statuses tracked in the tables above:
+
+1. **Planned** — Document is scoped but not yet written
+2. **Draft** — Initial draft is written and committed. The doc file itself includes a
+   `> **Status: DRAFT** — This document is awaiting review...` banner at the top
+3. **Done** — Draft has been interactively reviewed, revisions applied, and the draft banner
+   removed. The doc is considered complete and authoritative
+
+The draft → done transition requires an interactive review session. During review, expect
+discussion of accuracy, completeness, tone, code examples, and coverage of edge cases.
+Do not remove the draft banner or update the roadmap status until the reviewer confirms approval.
+
 ### Document Template
 
 Each feature-area document should follow this general structure. Not every section applies to
@@ -161,3 +175,7 @@ _Use this section to track discussions, decisions, and context between documenta
   - Organized by feature area, not by Grails directory convention
   - Root `README.md` untouched for now — will be slimmed down as feature docs are written
   - Consistent terminology with hoist-react docs
+- Established three-phase review workflow (Planned → Draft → Done):
+  - Drafts committed with a visible banner and `Draft` status in roadmap
+  - Interactive review session required before promotion to `Done`
+  - Matches the workflow used successfully in hoist-react docs
