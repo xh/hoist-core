@@ -38,7 +38,7 @@ jobs:
                 VERSION="$VERSION-SNAPSHOT"
               fi
               sed -i "s/^xhReleaseVersion=.*/xhReleaseVersion=$VERSION/" gradle.properties
-              echo "Updated xhReleaseVersion to snapsoht version: $VERSION"
+              echo "Updated xhReleaseVersion to SNAPSHOT version: $VERSION"
 
         - name: Validate version
           run: |
