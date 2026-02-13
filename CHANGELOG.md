@@ -1,5 +1,7 @@
 # Changelog
 
+## 37.0-SNAPSHOT - unreleased
+
 ## 36.2.0 - 2026-02-13
 
 ### ⚙️ Technical
