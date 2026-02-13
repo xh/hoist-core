@@ -32,8 +32,6 @@ jobs:
 
         - name: Write xhReleaseVersion override to gradle.properties
           if: inputs.xhReleaseVersionOverride != ''
-          env:
-              VERSION=${{ inputs.xhReleaseVersionOverride }}
           run: |
               VERSION="${{ inputs.xhReleaseVersionOverride }}"
               if [[ ! "$VERSION" == *-SNAPSHOT ]]; then
