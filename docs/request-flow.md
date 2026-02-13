@@ -53,6 +53,7 @@ HTTP Request
 │     • Check @Access* ann.   │  Evaluate role annotations
 │     • 404 if no method      │  NotFoundException for bad routes
 │     • 403 if not authorized │  NotAuthorizedException for role failures
+│     • catch exceptions      │  Renders errors directly to response
 └─────────────────────────────┘
     │
     ▼
@@ -105,10 +106,14 @@ The filter performs three critical functions:
    initialized and the instance is in a `RUNNING` state. If the cluster isn't ready, the request
    is rejected before any other processing.
 
-2. **Authentication gating** — `authenticationService.allowRequest()` checks whether the current
-   request has an authenticated user. If not, it calls `completeAuthentication()` to attempt
-   authentication. If `allowRequest()` returns `false`, the request is halted (e.g., during an
-   OAuth redirect). See [`authentication.md`](./authentication.md) for details.
+2. **Authentication gating** — `authenticationService.allowRequest()` first checks if the request
+   already has an authenticated user (`identityService.findAuthUser(request)`) **or** if the
+   request URI is whitelisted (`isWhitelist(request)`). Whitelisted endpoints — including `/ping`,
+   `/xh/login`, `/xh/logout`, `/xh/ping`, `/xh/version`, and `/xh/authConfig` — are allowed
+   through without authentication. If neither condition is met, the filter calls
+   `completeAuthentication()` to attempt authentication. If `allowRequest()` returns `false`, the
+   request is halted (e.g., during an OAuth redirect). See [`authentication.md`](./authentication.md)
+   for details.
 
 3. **Top-level exception handling** — Any uncaught exception from the entire request pipeline
    (including Grails internals) is caught here and rendered as a JSON error response.
@@ -145,10 +150,10 @@ The interceptor's `before()` method:
 3. **Evaluates access annotations** — Checks the method first, then the class, for one of the
    access annotations. The first annotation found is used:
    - `@AccessAll` — Any authenticated user can access.
-   - `@AccessRequiresRole("ROLE")` — User must have the specified role.
-   - `@AccessRequiresAnyRole(["R1", "R2"])` — User must have at least one.
-   - `@AccessRequiresAllRoles(["R1", "R2"])` — User must have all.
-   - `@Access(["R1", "R2"])` — Deprecated; equivalent to `@AccessRequiresAllRoles`.
+   - `@AccessRequiresRole("ROLE")` — User must have the specified role. Takes a single `String`.
+   - `@AccessRequiresAnyRole(["R1", "R2"])` — User must have at least one. Takes a `String[]`.
+   - `@AccessRequiresAllRoles(["R1", "R2"])` — User must have all. Takes a `String[]`.
+   - `@Access(["R1", "R2"])` — Deprecated; equivalent to `@AccessRequiresAllRoles`. Takes a `String[]`.
 4. **Throws `NotAuthorizedException` (403)** — If the user lacks the required role(s).
 
 **Every controller endpoint must have an access annotation** — either on the method or the class.
@@ -159,16 +164,22 @@ See [`authorization.md`](./authorization.md) for details on annotations and role
 
 ## Exception Handling in the Pipeline
 
-Exceptions can be thrown at multiple stages and are handled at two levels:
+Exceptions can be thrown at multiple stages and are handled at three levels:
 
 1. **`HoistFilter` catch block** — Catches any `Throwable` from the entire pipeline. This is the
-   safety net for exceptions from authentication, Grails internals, or interceptors.
-2. **`BaseController.handleException()`** — Catches exceptions thrown within controller actions
+   safety net for exceptions from authentication, Grails internals, or other unexpected errors.
+2. **`AccessInterceptor.before()` try/catch** — The interceptor wraps its own logic in a try/catch
+   block. Exceptions thrown during access checks (e.g., `NotFoundException`,
+   `NotAuthorizedException`) are caught within the interceptor itself and rendered directly to the
+   response via `Utils.handleException(exception: e, ..., renderTo: response)`. These exceptions
+   do **not** propagate up to `HoistFilter`.
+3. **`BaseController.handleException()`** — Catches exceptions thrown within controller actions
    and renders them as JSON error responses. The Grails framework calls this automatically.
 
-Both handlers delegate to `Utils.handleException()`, which:
+All three handlers delegate to `Utils.handleException()`, which:
 - Determines the appropriate HTTP status code (e.g., 401, 403, 404, 500)
-- Renders a JSON error response with `{ name, message }` structure
+- Renders a JSON error response with `{ name, message, cause, isRoutine }` structure (null values
+  are filtered out, so only non-null fields appear in the response)
 - Logs the error (respecting `RoutineException` — expected errors log at DEBUG, not ERROR)
 
 ## Common Pitfalls

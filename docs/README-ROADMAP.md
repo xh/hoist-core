@@ -40,12 +40,12 @@ Features that support production operations, integrations, and system health.
 
 | Document | Source Files | Description | Status |
 |----------|-------------|-------------|--------|
-| `monitoring.md` | Monitor, MonitorResult, MonitoringService, MonitorDefinitionService, MonitorReportService | Monitor domain definitions, MonitorResult status model, MonitorDefinitionService pattern (app-provided), MonitoringService evaluation cycle, `MonitorStatusReport` email alerting, `xhMonitorConfig` | Planned |
-| `websocket.md` | WebSocketService, HoistWebSocketHandler, HoistWebSocketChannel, HoistWebSocketConfigurer | WebSocketService cluster-aware push (`pushToChannel`), channel subscription model, Hazelcast topic relay for multi-instance delivery, session management, admin stats | Planned |
-| `http-client.md` | JSONClient, BaseProxyService, HttpUtils | JSONClient (typed HTTP client with JSON serialization), BaseProxyService (proxying client requests to external APIs), HttpUtils helpers | Planned |
-| `email.md` | EmailService, ClientErrorEmailService, FeedbackEmailService | EmailService (Grails mail plugin wrapper), config-driven filtering and overrides (`xhEmailFilter`, `xhEmailOverride`), support address configuration, client error and feedback email routing | Planned |
-| `exception-handling.md` | ExceptionHandler, HttpException subclasses, RoutineException | Exception hierarchy (HttpException → NotAuthorizedException, NotFoundException, etc.), RoutineException (expected errors, logged at DEBUG), ExceptionHandler rendering, how exceptions map to HTTP status codes | Planned |
-| `logging.md` | LogSupport, LogLevelService, LogReaderService, LogArchiveService, LogbackConfig | LogSupport trait (`logDebug`, `logInfo`, `logWarn`, `logError` with `withDebug`/`withInfo` timed blocks), dynamic log level configuration via LogLevelService, log viewing via LogReaderService, Logback configuration | Planned |
+| `monitoring.md` | Monitor, MonitorResult, MonitoringService, MonitorDefinitionService, MonitorReportService | Monitor domain definitions, MonitorResult status model, MonitorDefinitionService pattern (app-provided), MonitoringService evaluation cycle, `MonitorStatusReport` email alerting, `xhMonitorConfig` | Draft |
+| `websocket.md` | WebSocketService, HoistWebSocketHandler, HoistWebSocketChannel, HoistWebSocketConfigurer | WebSocketService cluster-aware push (`pushToChannel`), channel subscription model, Hazelcast topic relay for multi-instance delivery, session management, admin stats | Draft |
+| `http-client.md` | JSONClient, BaseProxyService, HttpUtils | JSONClient (typed HTTP client with JSON serialization), BaseProxyService (proxying client requests to external APIs), HttpUtils helpers | Draft |
+| `email.md` | EmailService, ClientErrorEmailService, FeedbackEmailService | EmailService (Grails mail plugin wrapper), config-driven filtering and overrides (`xhEmailFilter`, `xhEmailOverride`), support address configuration, client error and feedback email routing | Draft |
+| `exception-handling.md` | ExceptionHandler, HttpException subclasses, RoutineException | Exception hierarchy (HttpException → NotAuthorizedException, NotFoundException, etc.), RoutineException (expected errors, logged at DEBUG), ExceptionHandler rendering, how exceptions map to HTTP status codes | Draft |
+| `logging.md` | LogSupport, LogLevelService, LogReaderService, LogArchiveService, LogbackConfig | LogSupport trait (`logDebug`, `logInfo`, `logWarn`, `logError` with `withDebug`/`withInfo` timed blocks), dynamic log level configuration via LogLevelService, log viewing via LogReaderService, Logback configuration | Draft |
 
 ## Priority 4 — Supporting Features
 
@@ -179,3 +179,34 @@ _Use this section to track discussions, decisions, and context between documenta
   - Drafts committed with a visible banner and `Draft` status in roadmap
   - Interactive review session required before promotion to `Done`
   - Matches the workflow used successfully in hoist-react docs
+
+### 2026-02-13 (cont.) — Level 2 review and Priority 3 drafts
+- Completed source-code-verified review of all 9 Priority 1+2 draft docs
+- Key corrections applied across existing drafts:
+  - **base-classes.md**: Fixed Cache/CachedValue `replicate` default (false, not true), corrected
+    `parallelInit` description (static method, not property convention), added `doList` query guard
+  - **request-flow.md**: Added whitelist check to `allowRequest()` description, fixed
+    AccessInterceptor exception handling (self-contained, doesn't propagate to HoistFilter),
+    expanded JSON error response structure to include `cause` and `isRoutine` fields
+  - **authentication.md**: Corrected `allowRequest()` flow ordering (auth user check before
+    whitelist), clarified internal exception handling, fixed IdentitySupport description (trait)
+  - **authorization.md**: **CRITICAL** — fixed role inheritance direction (the `roles` field means
+    "members of listed roles also get this role", not the other way around), added all 3 bootstrap
+    admin roles, corrected Admin Console change propagation (immediate on local instance)
+  - **configuration.md**: Clarified `externalValue()` behavior for `pwd` types, added `lastUpdatedBy`
+    parameter to `setValue`, added `ConfigAdminController` to source files, noted conditional/async
+    `beforeUpdate()` event firing
+  - **preferences.md**: **CRITICAL** — removed incorrect claim about UserPreference deletion when
+    value equals default (setter always saves unconditionally), fixed endpoint URL to `/xh/setPrefs`,
+    added missing typed getters/setters for Long and Double
+  - **clustering.md**: Fixed `replicate` default, corrected lifecycle (ApplicationReadyEvent, not
+    BootStrap), removed fabricated `hazelcastGroupName`/`hazelcastAddresses` configs, added `createISet`
+  - **activity-tracking.md**: Fixed file paths for email services (track/, not email/), corrected
+    `maxDataLength` default (2000, not 50000), fixed ClientErrorEmailService description (uses timer,
+    not topic subscription), added missing config keys
+  - **json-handling.md**: Noted Java source files (.java not .groovy), corrected JSONFormatCached as
+    parallel to JSONFormat (not extending it), expanded ThrowableSerializer output description
+- Wrote 6 new Priority 3 draft docs: monitoring, websocket, http-client, email, exception-handling,
+  logging — all source-code-verified with self-review corrections applied
+- Updated Priority 3 status from Planned → Draft in roadmap table
+- All 15 docs (P1+P2+P3) now at Draft status, ready for interactive review

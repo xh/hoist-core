@@ -21,12 +21,12 @@ The key components are:
 
 | File | Location | Role |
 |------|----------|------|
-| `JSONSerializer` | `src/main/groovy/io/xh/hoist/json/` | Jackson-based serializer (Java) |
-| `JSONParser` | `src/main/groovy/io/xh/hoist/json/` | Jackson-based parser (Java) |
-| `JSONFormat` | `src/main/groovy/io/xh/hoist/json/` | Interface for custom JSON representation |
-| `JSONFormatCached` | `src/main/groovy/io/xh/hoist/json/` | Performance-optimized cached serialization |
+| `JSONSerializer.java` | `src/main/groovy/io/xh/hoist/json/` | Jackson-based serializer (Java) |
+| `JSONParser.java` | `src/main/groovy/io/xh/hoist/json/` | Jackson-based parser (Java) |
+| `JSONFormat.java` | `src/main/groovy/io/xh/hoist/json/` | Interface for custom JSON representation (Java) |
+| `JSONFormatCached.java` | `src/main/groovy/io/xh/hoist/json/` | Performance-optimized cached serialization (Java) |
 | `BaseController` | `grails-app/controllers/io/xh/hoist/` | `renderJSON()`, `parseRequestJSON()` |
-| Custom serializers | `src/main/groovy/io/xh/hoist/json/serializer/` | Built-in type serializers |
+| Custom serializers | `src/main/groovy/io/xh/hoist/json/serializer/` | Built-in type serializers (Java, except `ThrowableSerializer.groovy`) |
 
 ## Architecture
 
@@ -91,7 +91,7 @@ A static utility class wrapping a Jackson `ObjectMapper` configured with Hoist-s
 | `DoubleSerializer` | `Double` | Writes `NaN` and `Infinity` as `null` |
 | `FloatSerializer` | `Float` | Writes `NaN` and `Infinity` as `null` |
 | `LocalDateSerializer` | `LocalDate` | Formats as ISO date string (e.g., `"2024-01-15"`) |
-| `ThrowableSerializer` | `Throwable` | Serializes exceptions as `{name, message}` maps |
+| `ThrowableSerializer` | `Throwable` | Serializes exceptions as `{name, message, cause, isRoutine}` maps (null/false values filtered out). If the `Throwable` implements `JSONFormat`, delegates to `formatForJSON()` instead. (Groovy) |
 
 The `JavaTimeModule` (JSR 310) is also registered for Java 8+ date/time types, with nanosecond
 timestamps disabled.
@@ -123,7 +123,9 @@ A static utility class for parsing JSON strings or input streams into Java/Groov
 | `parseObjectOrArray(String)` | JSON string | `Map` or `List` | Auto-detect and parse |
 | `validate(String)` | JSON string | `boolean` | Check if string is valid JSON |
 
-All parse methods return `null` for `null` or empty input.
+String-based parse methods return `null` for `null` or empty input. InputStream-based overloads
+(`parseObject(InputStream)`, `parseArray(InputStream)`) return `null` for `null` input only — they
+do not check for an empty stream.
 
 ### JSONFormat
 
@@ -163,20 +165,24 @@ This pattern is widely used across hoist-core domain classes (`AppConfig`, `Trac
 
 ### JSONFormatCached
 
-An abstract class for performance-critical objects that are serialized frequently. Extends the
-`JSONFormat` pattern with one-time serialization caching:
+An abstract class providing a **separate, parallel** mechanism to `JSONFormat` for
+performance-critical objects that are serialized frequently. `JSONFormatCached` is **not** related
+to the `JSONFormat` interface by inheritance — it is a standalone abstract class with its own
+`protected abstract formatForJSON()` method. A class should extend `JSONFormatCached` **or**
+implement `JSONFormat`, but not both, as each has its own dedicated serializer
+(`JSONFormatCachedSerializer` and `JSONFormatSerializer`, respectively).
 
 ```groovy
 class LargeDataPoint extends JSONFormatCached {
     // ... many fields ...
 
-    Object formatForJSON() {
+    protected Object formatForJSON() {
         return [/* ... large map ... */]
     }
 }
 ```
 
-The first time a `JSONFormatCached` object is serialized, `formatForJSON()` is called and the
+The first time a `JSONFormatCached` object is serialized, its `formatForJSON()` is called and the
 resulting JSON string is cached. Subsequent serializations write the cached string directly,
 avoiding repeated map creation and serialization.
 

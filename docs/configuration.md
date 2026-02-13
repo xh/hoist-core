@@ -25,6 +25,7 @@ Key capabilities:
 | `AppConfig` | `grails-app/domain/io/xh/hoist/config/` | GORM domain — database-backed config entries |
 | `ConfigService` | `grails-app/services/io/xh/hoist/config/` | Primary service — typed getters, event publishing |
 | `ConfigDiffService` | `grails-app/services/io/xh/hoist/config/` | Cross-environment config synchronization |
+| `ConfigAdminController` | `grails-app/controllers/io/xh/hoist/admin/` | Admin console endpoint for config management |
 
 ## Key Classes
 
@@ -35,7 +36,7 @@ A GORM domain class representing a single configuration entry. Stored in the `xh
 | Property | Type | Description |
 |----------|------|-------------|
 | `name` | `String` | Unique config name (max 50 chars) |
-| `value` | `String` | Stored value (TEXT column for large content) |
+| `value` | `String` | Stored value (TEXT column for large content, `blank: false` — cannot be empty string) |
 | `valueType` | `String` | One of: `string`, `int`, `long`, `double`, `bool`, `json`, `pwd` |
 | `clientVisible` | `boolean` | Include in client-side config payload |
 | `groupName` | `String` | Logical grouping for Admin Console display (default: `'Default'`) |
@@ -58,11 +59,14 @@ A GORM domain class representing a single configuration entry. Stored in the `xh
 #### Change Events
 
 When an `AppConfig` value is updated, the domain's `beforeUpdate()` lifecycle hook fires a
-cluster-wide `xhConfigChanged` event:
+cluster-wide `xhConfigChanged` event. The event only fires if the `value` field has actually changed
+(checked via `hasChanged('value')`), and it is published asynchronously with a 500ms delay:
 
 ```groovy
 // Event payload
 [key: 'configName', value: parsedValue]
+// Note: the value is produced by `obj.externalValue()` with no options. For `pwd` type configs,
+// this returns the raw encrypted string — not the decrypted value.
 ```
 
 This event is published to a Hazelcast topic, so all cluster instances receive it. Services can
@@ -116,14 +120,20 @@ List<String> roles = configService.getStringList('allowedRoles')
 // → ['ADMIN', 'TRADER', 'VIEWER', 'AUDITOR']
 ```
 
-#### `setValue(name, value)`
+#### `setValue(name, value, lastUpdatedBy?)`
 
-Updates an existing config's value. Automatically serializes objects to JSON for `json` type configs.
-Triggers the `xhConfigChanged` event.
+Updates an existing config's value. Returns the updated `AppConfig` instance. Automatically
+serializes objects to JSON for `json` type configs. Triggers the `xhConfigChanged` event.
+
+The full signature is:
+```groovy
+AppConfig setValue(String name, Object value, String lastUpdatedBy = authUsername ?: 'hoist-config-service')
+```
 
 ```groovy
 configService.setValue('maxRetries', 5)
 configService.setValue('dashboardSettings', [theme: 'dark', layout: 'grid'])
+configService.setValue('apiEndpoint', 'https://new-api.example.com', 'batch-job')
 ```
 
 #### `getClientConfig()`
@@ -134,8 +144,8 @@ obscured as `'*********'`, and JSON values are parsed to objects.
 #### `ensureRequiredConfigsCreated(reqConfigs)`
 
 Called during application bootstrap to declare configs the application depends on. Creates missing
-configs with default values; logs errors for type mismatches on existing configs (but does not
-auto-fix them).
+configs with default values; logs errors for type mismatches or `clientVisible` flag mismatches on
+existing configs (but does not auto-fix them).
 
 ```groovy
 class BootStrap {

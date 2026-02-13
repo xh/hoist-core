@@ -38,7 +38,7 @@ A GORM domain class representing a preference definition. Stored in the `xh_pref
 | `type` | `String` | One of: `string`, `int`, `long`, `double`, `bool`, `json` |
 | `defaultValue` | `String` | Default value (TEXT column) |
 | `groupName` | `String` | Logical grouping for Admin Console (default: `'Default'`) |
-| `notes` | `String` | Optional description (max 1200 chars) |
+| `notes` | `String` | Optional description (max 1200 chars, nullable) |
 | `lastUpdated` | `Date` | Timestamp of last change |
 | `lastUpdatedBy` | `String` | Username of last modifier |
 
@@ -73,6 +73,8 @@ All getters accept an optional `username` parameter (defaults to the current use
 ```groovy
 String theme        = prefService.getString('theme')
 int pageSize        = prefService.getInt('defaultPageSize')
+long bigCount       = prefService.getLong('bigCount')
+double rate         = prefService.getDouble('exchangeRate')
 boolean showTips    = prefService.getBool('showTooltips')
 Map gridLayout      = prefService.getMap('positionGridLayout')
 List favorites      = prefService.getList('favoriteReports')
@@ -92,6 +94,8 @@ match the preference's type.
 ```groovy
 prefService.setString('theme', 'dark')
 prefService.setInt('defaultPageSize', 50)
+prefService.setLong('bigCount', 100000L)
+prefService.setDouble('exchangeRate', 1.25d)
 prefService.setBool('showTooltips', false)
 prefService.setMap('positionGridLayout', [columns: [...], sort: [...]])
 prefService.setList('favoriteReports', ['daily-pnl', 'risk-summary'])
@@ -99,9 +103,6 @@ prefService.setList('favoriteReports', ['daily-pnl', 'risk-summary'])
 // Set another user's preference
 prefService.setString('theme', 'dark', 'jane.doe')
 ```
-
-If the new value equals the default value, the `UserPreference` record is **deleted** rather than
-stored — keeping the database clean and ensuring that future changes to the default will apply.
 
 #### `unsetPreference(key, username)`
 
@@ -179,7 +180,7 @@ class BootStrap {
             ],
             'dashboardLayout': [
                 type: 'json',
-                defaultValue: '{"panels": []}',
+                defaultValue: [panels: []],
                 groupName: 'Dashboard'
             ]
         ])
@@ -238,7 +239,7 @@ XH.prefService.set('theme', 'dark');  // persists to server
 ```
 
 The hoist-react `PrefService` manages the client-local state and syncs changes back to the server
-via `/xh/setPreference` endpoints.
+via `/xh/setPrefs` endpoints.
 
 Preferences with a `local` flag are handled entirely in the browser (stored in `localStorage`)
 and are never sent to or read from the server. This is useful for preferences that are
