@@ -4,19 +4,30 @@ on:
     workflow_dispatch:
         inputs:
             xhReleaseVersion:
-                description: 'Release Version'
+                description: 'Release version - set as the xhReleaseVersion'
                 required: true
                 type: string
 
 jobs:
-    build:
+    deployRelease:
 
         runs-on: ubuntu-latest
         permissions:
-            contents: read
+            contents: write
 
         steps:
-        - uses: actions/checkout@v6
+        - name: Checkout branch ${{ github.ref_name }}
+          uses: actions/checkout@v6
+          with:
+              ref: ${{ github.ref }}
+
+        - name: Validate tag v${{ inputs.xhReleaseVersion }} does not exist
+          run: |
+              if git tag --list | grep -q "^v${{ inputs.xhReleaseVersion }}$"; then
+                echo "Release tag 'v${{ inputs.xhReleaseVersion }}' already exists. Aborting."
+                exit 1
+              fi
+
         - name: Set up JDK 17
           uses: actions/setup-java@v5
           with:
@@ -25,9 +36,6 @@ jobs:
 
         - name: Setup Gradle
           uses: gradle/actions/setup-gradle@v5
-
-        - name: Fix rootProject.name
-          run: echo "rootProject.name = '%projectName%'" > settings.gradle
 
         - name: Build and publish release to Sonatype
           env:
@@ -40,3 +48,15 @@ jobs:
           run: |
               echo $SECRING_FILE | base64 -d > secring.gpg
               (set -x; ./gradlew -Psigning.secretKeyRingFile="${GITHUB_WORKSPACE}/secring.gpg" -PxhReleaseVersion="$XH_RELEASE_VERSION" publishToSonatype closeSonatypeStagingRepository --no-daemon)
+
+        - name: Create release tag v${{ inputs.xhReleaseVersion }}
+          run: |
+              git tag "v${{ inputs.xhReleaseVersion }}"
+              git push origin "v${{ inputs.xhReleaseVersion }}"
+
+        - name: Create GitHub Release
+          env:
+              GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              XH_RELEASE_VERSION: ${{ inputs.xhReleaseVersion }}
+          run: gh release create "v$XH_RELEASE_VERSION" --title "v$XH_RELEASE_VERSION" --generate-notes
+
