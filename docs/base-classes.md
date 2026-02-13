@@ -65,15 +65,14 @@ class PortfolioService extends BaseService {
 
 #### Parallel Initialization
 
-Services can declare parallel initialization groups to speed up application startup. Within a group,
-all services initialize concurrently:
+`BaseService` provides a static method `parallelInit(Collection<BaseService> svcs)` that initializes
+all provided services in parallel (blocking until all complete). The application's `BootStrap` calls
+this method multiple times with different groups of services to control startup ordering:
 
 ```groovy
-class MyService extends BaseService {
-    // Numeric value determines the group — services in the same group init in parallel,
-    // groups execute in ascending order.
-    static parallelInit = 10
-}
+// In BootStrap.groovy — the caller decides the groups, not the services themselves.
+BaseService.parallelInit([configService, prefService])       // group 1
+BaseService.parallelInit([portfolioService, marketService])  // group 2
 ```
 
 ### Resource Factories
@@ -96,7 +95,7 @@ void init() {
     positionCache = createCache(
         name: 'positions',
         expireTime: 5 * MINUTES,     // entries expire after this duration
-        replicate: true,              // share across cluster (default: true)
+        replicate: true,              // share across cluster (default: false)
         serializeOldValue: false      // performance optimization for large values
     )
 }
@@ -131,7 +130,7 @@ private CachedValue<Map> summary
 void init() {
     summary = createCachedValue(
         name: 'summary',
-        replicate: true,              // share across cluster (default: true)
+        replicate: true,              // share across cluster (default: false)
         expireTime: 30 * MINUTES
     )
 }
@@ -179,6 +178,11 @@ If no `runFn` is specified, the timer looks for an `onTimer()` method on the ser
 
 The `interval` parameter can be sourced from an `AppConfig` by specifying its name — the timer
 will automatically adjust when the config changes.
+
+The `intervalUnits` parameter (default `1`, i.e. milliseconds) is a multiplier applied to the raw
+`interval` value. When a config-driven interval name suggests seconds (e.g.
+`xhMarketDataRefreshSecs`), verify that `intervalUnits` is set appropriately (e.g.
+`intervalUnits: SECONDS`) so the timer does not misinterpret seconds as milliseconds.
 
 #### `createIMap()`
 
@@ -352,10 +356,14 @@ Override these methods to customize CRUD behavior:
 | Method | Default Behavior | Override When |
 |--------|-----------------|---------------|
 | `doCreate(obj, data)` | `obj.save(flush: true)` | You need custom creation logic |
-| `doList(query)` | `restTargetVal.list()` | You need filtering, sorting, or query support |
+| `doList(query)` | Throws `RuntimeException` if `query` is non-empty; otherwise `restTargetVal.list()` | You need filtering, sorting, or query support |
 | `doUpdate(obj, data)` | `bindData(obj, data); obj.save(flush: true)` | You need custom update logic |
 | `doDelete(obj)` | `obj.delete(flush: true)` | You need soft-delete or cascading logic |
-| `preprocessSubmit(data)` | No-op | You need to transform data before create/update |
+| `preprocessSubmit(Map submit)` | No-op | You need to transform data before create/update |
+
+> **Note:** The default `doList(Map query)` throws a `RuntimeException` when `query` is non-empty.
+> It only falls through to `restTargetVal.list()` when query is empty/falsy. Any controller that
+> needs to support query parameters **must** override `doList`.
 
 ```groovy
 class PositionController extends RestController {

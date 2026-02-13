@@ -25,7 +25,7 @@ The framework provides `IdentityService` for accessing the current user througho
 | `BaseUserService` | `src/main/groovy/io/xh/hoist/user/` | Abstract user service — app must extend |
 | `HoistUser` | `src/main/groovy/io/xh/hoist/user/` | Trait defining core user properties |
 | `IdentityService` | `grails-app/services/io/xh/hoist/user/` | Current user access and impersonation |
-| `IdentitySupport` | `src/main/groovy/io/xh/hoist/user/` | Interface for identity getter methods |
+| `IdentitySupport` | `src/main/groovy/io/xh/hoist/user/` | Interface providing `getUser()`, `getUsername()`, `getAuthUser()`, `getAuthUsername()` convenience methods — implemented by `BaseService` and `BaseController` (which delegate to `IdentityService`) |
 
 ## Architecture
 
@@ -34,9 +34,9 @@ The framework provides `IdentityService` for accessing the current user througho
 ```
 Request arrives at HoistFilter
     │
-    ├── Is URL whitelisted? ──── Yes ──→ Pass through (no auth needed)
-    │
     ├── Is user already in session? ── Yes ──→ Pass through
+    │
+    ├── Is URL whitelisted? ──── Yes ──→ Pass through (no auth needed)
     │
     └── No ──→ Call completeAuthentication()
                    │
@@ -71,11 +71,13 @@ framework calls into this service on every request via `HoistFilter`.
 Called on every request by `HoistFilter`. This method is **not intended for override** — it
 orchestrates the authentication check:
 
-1. Checks if the URL is whitelisted (no auth needed).
-2. Checks if a user is already stored in the session.
-3. If not, calls `completeAuthentication()` (the app's custom logic).
-4. If authentication completes but no user is set, throws `NotAuthenticatedException`.
-5. Catches all exceptions and returns opaque errors to unverified clients.
+1. Checks if a user is already stored in the session (via `identityService.findAuthUser()`).
+2. If not, checks if the URL is whitelisted (no auth needed).
+3. If neither, calls `completeAuthentication()` (the app's custom logic).
+4. If authentication completes but no user is set, throws `NotAuthenticatedException` internally.
+5. All of the above is wrapped in a try-catch: any exception (including `NotAuthenticatedException`)
+   is caught, logged, and translated into an opaque HTTP status code response. The method then
+   returns `false` -- the caller (`HoistFilter`) never sees a thrown exception.
 
 #### `completeAuthentication(request, response)` — App Must Implement
 
@@ -196,7 +198,8 @@ important security filtering:
 
 - Returns empty list if the user cannot impersonate.
 - Non-admins cannot impersonate users with `HOIST_ADMIN` role.
-- Admins can impersonate anyone.
+- Admins can impersonate anyone, including other admins (and technically themselves, since
+  `list(true)` returns all active users without excluding the requesting user).
 
 **Strongly recommended** to call `super` if overriding — it prevents privilege escalation.
 

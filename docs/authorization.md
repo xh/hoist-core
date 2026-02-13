@@ -27,6 +27,7 @@ establishes *who* the user is, authorization determines *what* they can do.
 | `@AccessRequiresAnyRole` | `src/main/groovy/io/xh/hoist/security/` | Any-of-roles annotation |
 | `@AccessRequiresAllRoles` | `src/main/groovy/io/xh/hoist/security/` | All-of-roles annotation |
 | `@AccessAll` | `src/main/groovy/io/xh/hoist/security/` | Open access annotation |
+| `@Access` | `src/main/groovy/io/xh/hoist/security/` | Deprecated legacy annotation (equivalent to `@AccessRequiresAllRoles`) |
 
 ## Architecture
 
@@ -163,8 +164,8 @@ class RoleService extends DefaultRoleService {
 
         // Create app-specific roles (no-op if they already exist)
         ensureRequiredRolesCreated([
-            [name: 'APP_USER', category: 'App', notes: 'Standard application access'],
-            [name: 'APP_ADMIN', category: 'App', notes: 'Full admin access', roles: ['APP_USER']],
+            [name: 'APP_USER', category: 'App', notes: 'Standard application access', roles: ['APP_ADMIN']],
+            [name: 'APP_ADMIN', category: 'App', notes: 'Full admin access'],
             [name: 'TRADER', category: 'Trading', notes: 'Can execute trades']
         ])
     }
@@ -173,17 +174,18 @@ class RoleService extends DefaultRoleService {
 
 #### Role Inheritance
 
-Roles can include other roles, creating an inheritance hierarchy. Users with a parent role
-automatically receive all child roles:
+Roles can include other roles as members, creating an inheritance hierarchy. The `roles` field on a
+role definition means "members of these listed roles also get this role":
 
 ```groovy
 ensureRequiredRolesCreated([
-    [name: 'APP_USER',  category: 'App'],
-    [name: 'APP_ADMIN', category: 'App', roles: ['APP_USER']],  // admins get APP_USER
+    [name: 'APP_USER',  category: 'App', roles: ['APP_ADMIN']],  // admins also get APP_USER
+    [name: 'APP_ADMIN', category: 'App'],
 ])
 ```
 
-In this example, users with `APP_ADMIN` automatically have `APP_USER` as well.
+In this example, `APP_USER` lists `APP_ADMIN` in its `roles` field, meaning all `APP_ADMIN` members
+automatically receive `APP_USER` as well.
 
 #### Directory Group Integration
 
@@ -208,8 +210,10 @@ Override `doLoadUsersForDirectoryGroups()` to integrate with non-LDAP directory 
 }
 ```
 
-This controls how often the role assignment cache is rebuilt. Changes to roles in the Admin Console
-take effect on the next refresh cycle.
+This controls how often the role assignment cache is rebuilt from external sources such as directory
+groups. Changes to roles made via the Admin Console trigger an immediate refresh of the role
+assignment cache on the local instance. Other instances in a cluster will pick up the changes on
+their next refresh cycle.
 
 #### Bootstrap Admin User
 
@@ -219,8 +223,9 @@ For local development, you can configure an initial admin user via instance conf
 bootstrapAdminUser: dev.user
 ```
 
-This user will always have `HOIST_ADMIN` role, even if no roles are configured in the database.
-This is for development only and should not be used in production.
+This user will always have the `HOIST_ADMIN`, `HOIST_ADMIN_READER`, and `HOIST_ROLE_MANAGER` roles,
+even if no roles are configured in the database. This is for development only and should not be used
+in production.
 
 ### Role and RoleMember Domains
 
@@ -255,12 +260,13 @@ Hoist defines four built-in roles that `DefaultRoleService` creates automaticall
 | Role | Purpose |
 |------|---------|
 | `HOIST_ADMIN` | Full access to the Hoist Admin Console |
-| `HOIST_ADMIN_READER` | Read-only Admin Console access (inherits `HOIST_ADMIN`) |
-| `HOIST_IMPERSONATOR` | Can impersonate other users (inherits `HOIST_ADMIN`) |
+| `HOIST_ADMIN_READER` | Read-only Admin Console access (lists `HOIST_ADMIN` in its `roles` field) |
+| `HOIST_IMPERSONATOR` | Can impersonate other users (lists `HOIST_ADMIN` in its `roles` field) |
 | `HOIST_ROLE_MANAGER` | Can manage roles and memberships in the Admin Console |
 
-Note that `HOIST_ADMIN_READER` and `HOIST_IMPERSONATOR` both inherit `HOIST_ADMIN`, meaning any
-admin automatically gets read-only and impersonation capabilities.
+Note that `HOIST_ADMIN_READER` and `HOIST_IMPERSONATOR` both list `HOIST_ADMIN` in their `roles`
+field. This means all `HOIST_ADMIN` users automatically receive these less-privileged roles as well,
+ensuring admins have read-only access and impersonation capabilities.
 
 ## Application Implementation
 
@@ -372,8 +378,9 @@ should be careful to normalize case consistently.
 
 ### Stale role cache
 
-`DefaultRoleService` refreshes its cache on a timer (default 300 seconds). Role changes made in
-the Admin Console won't be visible to all instances immediately. For development, reduce the
+`DefaultRoleService` refreshes its cache on a timer (default 300 seconds). Role changes made via
+the Admin Console trigger an immediate refresh on the local instance, but other instances in a
+cluster will pick up those changes on their next refresh cycle. For development, reduce the
 `refreshIntervalSecs` in `xhRoleModuleConfig`, or use the Admin Console's "Clear Caches" action.
 
 ### Not creating required roles in `ensureRequiredConfigAndRolesCreated()`

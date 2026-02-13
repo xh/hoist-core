@@ -24,8 +24,8 @@ The system serves several purposes:
 | `TrackService` | `grails-app/services/io/xh/hoist/track/` | Primary service — `track()` API, severity filtering |
 | `TrackLoggingService` | `grails-app/services/io/xh/hoist/track/` | Log-file output for track entries |
 | `TrackSeverity` | `src/main/groovy/io/xh/hoist/track/` | Severity enum — `DEBUG`, `INFO`, `WARN`, `ERROR` |
-| `ClientErrorEmailService` | `grails-app/services/io/xh/hoist/email/` | Email notifications for client errors |
-| `FeedbackEmailService` | `grails-app/services/io/xh/hoist/email/` | Email routing for user feedback |
+| `ClientErrorEmailService` | `grails-app/services/io/xh/hoist/track/` | Email notifications for client errors |
+| `FeedbackEmailService` | `grails-app/services/io/xh/hoist/track/` | Email routing for user feedback |
 
 ## Key Classes
 
@@ -97,8 +97,8 @@ Parameters:
 | `correlationId` | `String` | `null` | Links related entries |
 | `timestamp` | `Long` | current time | Epoch ms when the event occurred |
 | `elapsed` | `Long` | `null` | Duration in ms |
-| `username` | `String` | current user | Override for async contexts |
-| `impersonating` | `String` | auto-detected | Override for async contexts |
+| `username` | `String` | `authUsername` (authenticated user) | Override for async contexts. Note: this is the *authenticated* user, not the apparent user. During impersonation, `authUsername` is the real user, while the impersonated user is captured in `impersonating`. |
+| `impersonating` | `String` | auto-detected | The impersonated (apparent) user, if impersonation is active. Override for async contexts |
 
 The method is intentionally fire-and-forget — it processes entries asynchronously on a background
 thread to avoid delaying the calling request.
@@ -130,7 +130,7 @@ severity:
 ```json
 {
   "enabled": true,
-  "maxDataLength": 50000,
+  "maxDataLength": 2000,
   "maxEntriesPerMin": 1000,
   "levels": [
     {"username": "noisy.user", "category": "*", "severity": "WARN"},
@@ -179,8 +179,10 @@ Hoist provides two email services that integrate with the tracking system:
 
 #### ClientErrorEmailService
 
-Sends email notifications when client-side errors are tracked. Subscribes to the
-`xhTrackReceived` topic and filters for entries with `category == 'Client Error'`. Email recipients
+Sends email notifications when client-side errors are tracked. Uses a timer (`processErrors`) that
+periodically queries the database for recent `TrackLog` entries with `category == 'Client Error'`.
+The timer interval is driven by the `intervalMins` setting in `xhClientErrorConfig`. Multiple
+errors discovered in a single interval are summarized into a digest-style email. Email recipients
 and formatting are controlled via soft configuration.
 
 #### FeedbackEmailService
@@ -193,28 +195,45 @@ feedback is also tracked as a `TrackLog` entry with category `'Feedback'`.
 | Config | Type | Description |
 |--------|------|-------------|
 | `xhActivityTrackingConfig` | `json` | Main tracking config (see below) |
+| `xhClientErrorConfig` | `json` | Controls the `ClientErrorEmailService` timer and email behavior (see below) |
 
 ### `xhActivityTrackingConfig` Structure
 
 ```json
 {
+  "clientHealthReport": {"intervalMins": -1},
   "enabled": true,
-  "maxDataLength": 50000,
-  "maxEntriesPerMin": 1000,
-  "logData": false,
   "levels": [
     {"username": "*", "category": "*", "severity": "INFO"}
-  ]
+  ],
+  "logData": false,
+  "maxDataLength": 2000,
+  "maxEntriesPerMin": 1000,
+  "maxRows": {"default": 10000, "limit": 25000, "options": [1000, 5000, 10000, 25000]}
 }
 ```
 
 | Key | Description |
 |-----|-------------|
+| `clientHealthReport` | Config for client health report submissions. `intervalMins` controls frequency (`-1` to disable) |
 | `enabled` | `true` to enable tracking, `false` to disable completely |
+| `levels` | Severity filtering rules (see Severity Filtering above) |
+| `logData` | Default for whether to include data keys in log output |
 | `maxDataLength` | Maximum size of JSON data payload (chars). Larger data is dropped |
 | `maxEntriesPerMin` | Rate limit threshold for persistence |
-| `logData` | Default for whether to include data keys in log output |
-| `levels` | Severity filtering rules (see Severity Filtering above) |
+| `maxRows` | Controls the maximum number of rows returned in admin activity queries. `default` is the initial row count, `limit` is the absolute maximum, and `options` provides selectable values |
+
+### `xhClientErrorConfig` Structure
+
+```json
+{
+  "intervalMins": 2
+}
+```
+
+| Key | Description |
+|-----|-------------|
+| `intervalMins` | Interval in minutes at which `ClientErrorEmailService` queries for recent client errors and sends digest emails. Set to `-1` to disable error emails |
 
 ### Instance Config
 
@@ -298,7 +317,7 @@ User feedback submitted through the built-in feedback dialog is sent as a track 
 
 ### Tracking too much data
 
-Large `data` payloads are dropped if they exceed `maxDataLength` (default 50000 chars). Track only
+Large `data` payloads are dropped if they exceed `maxDataLength` (default 2000 chars). Track only
 the essential context needed for debugging — IDs, counts, and key parameters rather than full
 response bodies.
 

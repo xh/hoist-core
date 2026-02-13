@@ -18,7 +18,7 @@ Clustering enables:
 - **Admin visibility** — Cluster-wide monitoring via the Admin Console
 
 Most of the clustering functionality is accessed indirectly through `BaseService` resource factories
-(`createCache`, `createCachedValue`, `createTimer`, `createIMap`). Direct interaction with
+(`createCache`, `createCachedValue`, `createTimer`, `createIMap`, `createISet`). Direct interaction with
 `ClusterService` is rarely needed in application code.
 
 ## Source Files
@@ -42,11 +42,11 @@ Application Start
     ├── HoistCoreGrailsPlugin.doWithSpring()
     │       └── ClusterService.initializeHazelcast()    ← Hazelcast instance created
     │
-    ├── BootStrap.init()
-    │       └── ClusterService.instanceState = RUNNING  ← Instance accepting requests
+    ├── ApplicationReadyEvent
+    │       └── ClusterService.onApplicationEvent()     ← Sets instanceState = RUNNING
     │
     ├── Runtime
-    │       └── HoistFilter.ensureRunning()             ← Rejects requests if not RUNNING
+    │       └── HoistFilter → ClusterService.ensureRunning()  ← Rejects requests if not RUNNING
     │
     └── Shutdown
             ├── ClusterService.instanceState = STOPPING
@@ -95,7 +95,7 @@ framework.
 
 Configures the Hazelcast instance before it starts. Handles:
 
-- **Network discovery** — TCP/IP member list, multicast, or cloud discovery
+- **Network discovery** — `createNetworkConfig()` is a no-op by default (Hazelcast uses multicast discovery); apps can override to customize
 - **Hibernate cache regions** — GORM second-level cache backed by Hazelcast JCache
 - **Default eviction policies** — LRU eviction for Hibernate cache regions
 - **Application customization** — Services can provide a `static configureCluster` closure
@@ -125,9 +125,9 @@ All distributed data structures are created through `BaseService` factory method
 
 #### Cache (ReplicatedMap-backed)
 
-`Cache<K, V>` uses a Hazelcast `ReplicatedMap` when `replicate: true` (the default), meaning
-every instance holds a complete copy of all entries. This is ideal for small-to-medium datasets
-that are read frequently.
+`Cache<K, V>` uses a Hazelcast `ReplicatedMap` when `replicate: true`, meaning every instance
+holds a complete copy of all entries. This is ideal for small-to-medium datasets that are read
+frequently. The default is `replicate: false` (local-only, backed by a `ConcurrentHashMap`).
 
 ```groovy
 private Cache<String, Map> priceCache
@@ -256,12 +256,10 @@ framework events.
 
 ### Hazelcast Network Configuration
 
-Hazelcast discovery is configured via instance config properties:
-
-| Property | Description |
-|----------|-------------|
-| `hazelcastGroupName` | Cluster group name (instances with different names form separate clusters) |
-| `hazelcastAddresses` | Comma-separated list of member addresses for TCP/IP discovery |
+Hazelcast uses its default multicast discovery out of the box. The `ClusterConfig.createNetworkConfig()`
+method has an empty body by default — it serves as a hook that applications can override in a
+subclass to customize network discovery (e.g., TCP/IP member lists, cloud discovery) for their
+deployment environment.
 
 ### Hibernate Cache Regions
 
