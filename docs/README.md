@@ -44,6 +44,7 @@ See [`README-ROADMAP.md`](./README-ROADMAP.md) for documentation coverage tracki
 | Understand environments and instance config | [`environment.md`](./environment.md) |
 | Find admin console endpoints | [`admin-endpoints.md`](./admin-endpoints.md) |
 | Use Timer, DateTimeUtils, or other utilities | [`utilities.md`](./utilities.md) |
+| Work with GORM domain objects and Hibernate | [`gorm-domain-objects.md`](./gorm-domain-objects.md) |
 | Upgrade to a new major hoist-core version | [Upgrade Notes](#upgrade-notes) |
 
 ## Feature Documentation
@@ -83,6 +84,14 @@ Features supporting production operations, integrations, and system health.
 | [`email.md`](./email.md) | Email sending with config-driven filtering and overrides | EmailService, `xhEmailFilter`, `xhEmailOverride`, support address config |
 | [`exception-handling.md`](./exception-handling.md) | Exception hierarchy and error rendering | HttpException, RoutineException, ExceptionHandler, HTTP status mapping |
 | [`logging.md`](./logging.md) | Logging infrastructure with dynamic configuration | LogSupport, `logDebug`/`logInfo`/`logWarn`/`logError`, LogLevelService, LogReaderService |
+
+### Grails Platform
+
+Guides to Grails framework concepts as used within Hoist applications.
+
+| Document | Description | Key Topics |
+|----------|-------------|------------|
+| [`gorm-domain-objects.md`](./gorm-domain-objects.md) | GORM domain classes, querying, transactions, caching, associations, and performance optimization | Domain classes, `@Transactional`, `@ReadOnly`, second-level cache, N+1 queries, fetch strategies, SQL logging |
 
 ### Supporting Features
 

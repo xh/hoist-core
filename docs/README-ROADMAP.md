@@ -47,6 +47,15 @@ Features that support production operations, integrations, and system health.
 | `exception-handling.md` | ExceptionHandler, HttpException subclasses, RoutineException | Exception hierarchy (HttpException → NotAuthorizedException, NotFoundException, etc.), RoutineException (expected errors, logged at DEBUG), ExceptionHandler rendering, how exceptions map to HTTP status codes | Draft |
 | `logging.md` | LogSupport, LogLevelService, LogReaderService, LogArchiveService, LogbackConfig | LogSupport trait (`logDebug`, `logInfo`, `logWarn`, `logError` with `withDebug`/`withInfo` timed blocks), dynamic log level configuration via LogLevelService, log viewing via LogReaderService, Logback configuration | Draft |
 
+## Grails Platform
+
+Guides to Grails framework concepts as used within Hoist applications. Not Hoist-specific API
+docs — practical guides with emphasis on gotchas and optimization.
+
+| Document | Source Files | Description | Status |
+|----------|-------------|-------------|--------|
+| `gorm-domain-objects.md` | All `grails-app/domain/` classes, ConfigService, PrefService, DefaultRoleUpdateService, TrackService, JsonBlobService, LogLevelService | GORM domain class anatomy (`mapping`, `constraints`, associations, lifecycle hooks), querying (dynamic finders, criteria, where queries, direct SQL), transaction management (`@ReadOnly`, `@Transactional`, `withTransaction`, `withNewSession`), associations and fetch strategies (`fetch: 'join'`, `batchSize`, `cascade`), N+1 query problem detection and mitigation, second-level cache (Hibernate + Hazelcast), circular dependencies, SQL logging, `formatForJSON()` convention | Draft |
+
 ## Priority 4 — Supporting Features
 
 Smaller or more specialized features. Important but lower priority for initial documentation.
@@ -117,6 +126,11 @@ early in each doc. Example:
 - Explain "why" not just "what"
 - Reference specific source files where helpful
 - Keep examples practical and representative of real usage
+- **Sample application names must not appear in documentation.** Code examples may be drawn from
+  sample applications for patterns and structure, but must be genericized before inclusion. Use
+  generic financial-domain terms (e.g. `Portfolio`, `Trade`, `Position`, `Trader`) rather than
+  client-specific class names, table names, or service names. The publicly available Toolbox demo
+  app is the *exception* - it CAN be freely mentioned by name and its code referenced directly.
 
 ### Communicating Anti-patterns
 
@@ -210,3 +224,15 @@ _Use this section to track discussions, decisions, and context between documenta
   logging — all source-code-verified with self-review corrections applied
 - Updated Priority 3 status from Planned → Draft in roadmap table
 - All 15 docs (P1+P2+P3) now at Draft status, ready for interactive review
+
+### 2026-02-14 — GORM & Domain Objects documentation
+- Created `gorm-domain-objects.md` — a practical guide to GORM as used within Hoist applications
+- Not Hoist-specific API documentation, but a Grails platform guide covering domain class anatomy,
+  querying patterns, transaction management, association strategies, caching, and common pitfalls
+- Source-code-verified against all 9 Hoist Core domain classes and key services
+- Includes patterns observed in production Hoist applications (schema separation, `withNewSession`
+  for cache priming, `withNewTransaction` for independent commits, direct SQL via `groovy.sql.Sql`,
+  stub caches for N+1 mitigation)
+- Added "Grails Platform" section to both README.md index and README-ROADMAP.md
+- Doc placed in its own "Grails Platform" section rather than a priority tier, as it covers
+  foundational Grails concepts rather than a specific Hoist feature area
