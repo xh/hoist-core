@@ -1,6 +1,3 @@
-> **Status: DRAFT** — This document is awaiting review. Content may be incomplete or subject to
-> change. Do not remove this banner until the document has been interactively reviewed and approved.
-
 # GORM & Domain Objects
 
 ## Overview
@@ -306,7 +303,7 @@ def config = AppConfig.findByName(name, [cache: true])
 def prefs = UserPreference.findAllByUsername(username, [cache: true])
 ```
 
-**Avoid:** Dynamic finders that query from a list — prefer `findAllByFieldInList`:
+**Avoid:** Looping with individual finders when you have a list — use `findAllByFieldInList` instead:
 
 ```groovy
 // ✅ Do: Use findAllByFieldInList
@@ -379,6 +376,8 @@ class DatabaseService {
     DataSource dataSource
 
     List<Map> rows(String query) {
+        // try-with-resources: Sql implements Closeable, so the connection is
+        // automatically closed when the block exits (even on exception).
         try (def sql = new Sql(dataSource)) {
             return sql.rows(query)
         }
@@ -394,7 +393,8 @@ class DatabaseService {
 
 This pattern bypasses GORM entirely — no domain class mapping, no Hibernate caching, no
 automatic dirty checking. Use it when you need direct database access for tables not managed by
-GORM.
+GORM. **Always use try-with-resources** (`try (def sql = ...)`) to ensure the `Sql` connection
+is closed — leaking connections will exhaust the pool under load.
 
 **Note:** Hoist Core does not use HQL — all queries use GORM's DSL or direct SQL.
 
@@ -677,6 +677,15 @@ static cache = {
 }
 ```
 
+### Admin Console Tools
+
+The Hoist Admin Console provides tools for inspecting and managing Hibernate caches at runtime:
+- **Cache statistics** — view hit/miss rates, entry counts, and memory usage per cache region
+- **Cache clearing** — clear individual domain caches or all caches at once, useful when
+  troubleshooting stale data issues or after direct database modifications
+
+These tools are available under the Admin Console's cluster/cache management views.
+
 ### When to Disable
 
 For large, user-specific result sets where caching would consume excessive memory or return stale
@@ -767,8 +776,7 @@ investigate whether eager loading, batch size, or caching improvements are neede
 ### Table Naming
 
 Hoist Core uses the `xh_` prefix for all framework tables: `xh_config`, `xh_role`,
-`xh_track_log`, etc. Applications should choose a distinct prefix or naming convention to avoid
-collisions.
+`xh_track_log`, etc. This prefix is intended for Hoist tables only.
 
 ### Async Persistence
 
@@ -846,6 +854,24 @@ config.save()
 def reloaded = AppConfig.findByName(config.name)  // May return stale data
 ```
 
+Conversely, avoid flushing inside a loop. Each `flush: true` triggers a full Hibernate dirty check
+and SQL round-trip — in a loop this adds up to significant overhead:
+
+```groovy
+// ❌ Don't: Flush on every iteration
+items.each { item ->
+    item.status = 'PROCESSED'
+    item.save(flush: true)    // N dirty checks + N round-trips
+}
+
+// ✅ Do: Save without flush in the loop, flush once at the end
+items.each { item ->
+    item.status = 'PROCESSED'
+    item.save()
+}
+items.first()?.save(flush: true)  // Single flush triggers all pending SQL
+```
+
 ### Accessing lazy associations outside a session
 
 A `LazyInitializationException` occurs when you access an unloaded association after the Hibernate
@@ -887,13 +913,6 @@ Bidirectional associations with non-nullable foreign keys require careful save o
 [Circular Dependencies and Save Ordering](#circular-dependencies-and-save-ordering) — always
 make the "second" FK nullable with a comment explaining why.
 
-### Post-query filtering inflating result counts
-
-When security or business filtering can't be done in the query itself (e.g., filtering by computed
-permissions), the initial query may return too many results. If your API returns paginated results,
-you may need to over-fetch with padding to account for records that will be filtered out after
-loading.
-
 ### Missing `@Transactional` / `@ReadOnly`
 
 Methods without transaction annotations get GORM's default behavior, which may not be what you
@@ -932,4 +951,21 @@ void doSomething() {
     config.value = 'bar'
     config.save(flush: true)
 }
+```
+
+### Leaking `Sql` connections
+
+When using `groovy.sql.Sql` for direct database access, failing to close the `Sql` instance leaks
+connections back to the pool. Under load, this exhausts the pool and causes the application to hang.
+Always use try-with-resources:
+
+```groovy
+// ✅ Do: try-with-resources auto-closes the connection
+try (def sql = new Sql(dataSource)) {
+    return sql.rows(query)
+}
+
+// ❌ Don't: connection is never returned to the pool
+def sql = new Sql(dataSource)
+def results = sql.rows(query)
 ```

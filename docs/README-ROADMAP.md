@@ -54,7 +54,7 @@ docs — practical guides with emphasis on gotchas and optimization.
 
 | Document | Source Files | Description | Status |
 |----------|-------------|-------------|--------|
-| `gorm-domain-objects.md` | All `grails-app/domain/` classes, ConfigService, PrefService, DefaultRoleUpdateService, TrackService, JsonBlobService, LogLevelService | GORM domain class anatomy (`mapping`, `constraints`, associations, lifecycle hooks), querying (dynamic finders, criteria, where queries, direct SQL), transaction management (`@ReadOnly`, `@Transactional`, `withTransaction`, `withNewSession`), associations and fetch strategies (`fetch: 'join'`, `batchSize`, `cascade`), N+1 query problem detection and mitigation, second-level cache (Hibernate + Hazelcast), circular dependencies, SQL logging, `formatForJSON()` convention | Draft |
+| `gorm-domain-objects.md` | All `grails-app/domain/` classes, ConfigService, PrefService, DefaultRoleUpdateService, TrackService, JsonBlobService, LogLevelService | GORM domain class anatomy (`mapping`, `constraints`, associations, lifecycle hooks), querying (dynamic finders, criteria, where queries, direct SQL), transaction management (`@ReadOnly`, `@Transactional`, `withTransaction`, `withNewSession`), associations and fetch strategies (`fetch: 'join'`, `batchSize`, `cascade`), N+1 query problem detection and mitigation, second-level cache (Hibernate + Hazelcast), circular dependencies, SQL logging, `formatForJSON()` convention | Done |
 
 ## Priority 4 — Supporting Features
 
