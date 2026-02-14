@@ -8,10 +8,10 @@
 Hoist-core provides three abstract base classes that form the foundation for all server-side code:
 
 - **`BaseService`** — The abstract superclass for all Grails services. Provides a managed lifecycle,
-  distributed resource factories (caches, timers, Hazelcast maps), event subscriptions, identity
-  access, and admin console integration.
+  distributed resource factories (caches, timers, Hazelcast maps and sets), event subscriptions,
+  identity access, logging, and admin console integration.
 - **`BaseController`** — The abstract superclass for all controllers. Provides JSON
-  serialization/parsing, async support, OWASP encoding, and identity access.
+  serialization/parsing, async support, OWASP encoding, identity access, and logging.
 - **`RestController`** — Extends `BaseController` with a template-method CRUD pattern for managing
   GORM domain objects via REST endpoints.
 
@@ -26,7 +26,9 @@ service and endpoint inherits.
 | `BaseController` | `grails-app/controllers/io/xh/hoist/` | Abstract superclass for all controllers |
 | `RestController` | `grails-app/controllers/io/xh/hoist/` | CRUD controller for GORM domain classes |
 | `Cache` | `src/main/groovy/io/xh/hoist/cache/` | Distributed key-value cache (Hazelcast-backed) |
+| `CacheEntry` | `src/main/groovy/io/xh/hoist/cache/` | Wrapper for cached entries with metadata |
 | `CachedValue` | `src/main/groovy/io/xh/hoist/cachedvalue/` | Distributed single-value cache |
+| `CachedValueEntry` | `src/main/groovy/io/xh/hoist/cachedvalue/` | Wrapper for cached value with metadata |
 | `Timer` | `src/main/groovy/io/xh/hoist/util/` | Managed polling timer with `primaryOnly` support |
 
 ## BaseService
@@ -36,9 +38,8 @@ service and endpoint inherits.
 Every Hoist service extends `BaseService` and follows a well-defined lifecycle:
 
 1. **Spring construction** — Grails creates the service as a Spring-managed singleton.
-2. **`init()`** — Called after all services are constructed. Override to set up starting state,
-   create resources, and subscribe to events. Services can declare `parallelInit` groups for
-   concurrent startup (see below).
+2. **`init()`** — Called during application bootstrap via `initialize()` or `parallelInit()`.
+   Override to set up starting state, create resources, and subscribe to events.
 3. **Runtime** — The service handles requests and runs timers.
 4. **`clearCaches()`** — Can be called at any time (including from the Admin Console) to reset
    service state. Override to clear custom state beyond managed caches.
@@ -65,8 +66,9 @@ class PortfolioService extends BaseService {
 
 #### Parallel Initialization
 
-`BaseService` provides a static method `parallelInit(Collection<BaseService> svcs)` that initializes
-all provided services in parallel (blocking until all complete). The application's `BootStrap` calls
+`BaseService` provides a static method
+`parallelInit(Collection<BaseService> services, Long timeout = 30 * SECONDS)` that initializes all
+provided services in parallel (blocking until all complete). The application's `BootStrap` calls
 this method multiple times with different groups of services to control startup ordering:
 
 ```groovy
@@ -108,21 +110,37 @@ List<Position> getPositions(String fundId) {
 }
 ```
 
+Constructor parameters:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | `String` | required | Unique name within the service |
+| `expireTime` | `Long` or `Closure` | `null` | TTL in ms, or closure returning ms. If null, entries never expire |
+| `expireFn` | `Closure<Boolean>` | `null` | Custom expiration test `{ CacheEntry -> Boolean }`. Alternative to `expireTime` |
+| `timestampFn` | `Closure` | `null` | Custom timestamp `{ V -> Long\|Date\|Instant }`. Defaults to entry creation time |
+| `replicate` | `Boolean` | `false` | Share across cluster via Hazelcast `ReplicatedMap` |
+| `serializeOldValue` | `Boolean` | `false` | Include old values in `CacheEntryChanged` events. Disable for large objects |
+| `onChange` | `Closure` | `null` | Handler `{ CacheEntryChanged -> void }` called on entry changes |
+
 Key `Cache` API methods:
 
 | Method | Description |
 |--------|-------------|
-| `get(key)` | Get entry, or null |
-| `getOrCreate(key, Closure)` | Get entry, creating it via the closure if absent |
+| `get(key)` | Get value at key, or null |
+| `getEntry(key)` | Get `CacheEntry` at key (includes metadata), or null |
+| `getOrCreate(key, Closure)` | Get value, creating it via the closure if absent or expired |
 | `put(key, value)` | Set entry |
 | `remove(key)` | Remove entry |
 | `clear()` | Clear all entries |
+| `getMap()` | Get a `Map<K, V>` snapshot of all current entries |
+| `getTimestamp(key)` | Get the timestamp of the entry at key |
 | `size()` | Number of entries |
+| `ensureAvailable(key, ...)` | Block until an entry exists at key (with configurable timeout) |
 
 #### `createCachedValue()`
 
-Creates a `CachedValue<T>` — a single-value cache replicated across the cluster. Ideal for
-expensive computations that should be shared.
+Creates a `CachedValue<T>` — a single-value cache. Ideal for expensive computations that should
+be shared across a cluster.
 
 ```groovy
 private CachedValue<Map> summary
@@ -142,6 +160,9 @@ Map getSummary() {
 }
 ```
 
+Constructor parameters are the same as `Cache` above (minus `serializeOldValue`): `name`,
+`expireTime`, `expireFn`, `timestampFn`, `replicate`, and `onChange`.
+
 Key `CachedValue` API methods:
 
 | Method | Description |
@@ -150,12 +171,14 @@ Key `CachedValue` API methods:
 | `getOrCreate(Closure)` | Get, computing via closure if absent or expired |
 | `set(value)` | Set the value (replicates to cluster) |
 | `clear()` | Clear the value |
-| `isExpired()` | Check if the value has expired |
+| `getTimestamp()` | Get the timestamp of the current entry |
+| `ensureAvailable(...)` | Block until a value is populated (with configurable timeout) |
 
 #### `createTimer()`
 
-Creates a managed `Timer` that runs a closure on a configurable interval. Supports `primaryOnly`
-mode so that the task runs on only one cluster instance.
+Creates a managed `Timer` that runs a closure on a configurable interval. The Timer ensures that
+only one execution runs at a time. Supports `primaryOnly` mode so that the task runs on only one
+cluster instance.
 
 ```groovy
 void init() {
@@ -165,7 +188,7 @@ void init() {
         interval: 5 * MINUTES,
         primaryOnly: true,            // only run on the primary instance
         delay: true,                  // wait one interval before first run
-        timeout: 3 * MINUTES          // max execution time before logging a warning
+        timeout: 3 * MINUTES          // max execution time (cancels and throws on timeout)
     )
 }
 
@@ -174,15 +197,31 @@ private void refreshData() {
 }
 ```
 
-If no `runFn` is specified, the timer looks for an `onTimer()` method on the service.
+Constructor parameters:
 
-The `interval` parameter can be sourced from an `AppConfig` by specifying its name — the timer
-will automatically adjust when the config changes.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | `String` | required | Unique name within the service |
+| `runFn` | `Closure` | `null` | Closure to execute. If omitted, the timer calls `onTimer()` on the owning service |
+| `interval` | `Number`, `Closure`, or `String` | `null` | Interval between runs. A string is interpreted as an `AppConfig` name. Non-positive values disable the timer |
+| `intervalUnits` | `Long` | `1` | Multiplier applied to the `interval` value (e.g. `SECONDS`) |
+| `timeout` | `Number`, `Closure`, or `String` | `3 * MINUTES` | Max execution time. On timeout, the running task is **cancelled** and a `TimeoutException` is thrown |
+| `timeoutUnits` | `Long` | `1` | Multiplier applied to the `timeout` value (e.g. `SECONDS`) |
+| `primaryOnly` | `Boolean` | `false` | Only run on the primary cluster instance |
+| `delay` | `Boolean` or `Long` | `false` | Delay before first run. `true` = one interval; a number = delay in ms |
+| `runImmediatelyAndBlock` | `Boolean` | `false` | Run the function synchronously during construction and block until complete |
 
-The `intervalUnits` parameter (default `1`, i.e. milliseconds) is a multiplier applied to the raw
-`interval` value. When a config-driven interval name suggests seconds (e.g.
-`xhMarketDataRefreshSecs`), verify that `intervalUnits` is set appropriately (e.g.
-`intervalUnits: SECONDS`) so the timer does not misinterpret seconds as milliseconds.
+When `interval` is specified as a string, it is treated as an `AppConfig` key — the timer will
+automatically adjust when the config value changes. Use `intervalUnits` to ensure proper unit
+interpretation (e.g. when a config name like `xhMarketDataRefreshSecs` stores seconds, set
+`intervalUnits: SECONDS`). Intervals below 500ms are clamped to 500ms.
+
+Key `Timer` API methods:
+
+| Method | Description |
+|--------|-------------|
+| `forceRun()` | Request an immediate execution on the next heartbeat, or as soon as any in-progress run completes |
+| `cancel()` | Permanently cancel the timer. In-progress executions are unaffected |
 
 #### `createIMap()`
 
@@ -197,6 +236,11 @@ void init() {
     fileStore = createIMap('fileStore')
 }
 ```
+
+#### `createISet()`
+
+Creates a Hazelcast `ISet<V>` — a distributed set. Useful for tracking unique items across the
+cluster (e.g. a set of active session IDs).
 
 #### `createReplicatedMap()`
 
@@ -248,6 +292,12 @@ class MyService extends BaseService {
 
 This wires up a `subscribeToTopic` listener automatically — no manual subscription needed.
 
+### Logging
+
+`BaseService` implements the `LogSupport` trait, providing structured logging methods —
+`logDebug()`, `logInfo()`, `logWarn()`, `logError()` — and timed execution blocks via `withDebug()`
+and `withInfo()`. See [`logging.md`](./logging.md) for full details.
+
 ### Identity Access
 
 `BaseService` implements `IdentitySupport`, providing access to the current user:
@@ -294,7 +344,8 @@ checked directly in service code.
 ## BaseController
 
 `BaseController` is the abstract superclass for all Hoist controllers. It provides JSON rendering,
-request parsing, async support, and identity access.
+request parsing, async support, identity access, and logging (via `LogSupport` — see
+[`logging.md`](./logging.md)).
 
 ### Key Methods
 
@@ -344,10 +395,16 @@ class PositionController extends RestController {
 `UrlMappings` routes REST requests to `RestController` actions:
 
 ```
-/rest/$controller/$id?  →  POST=create, GET=read, PUT=update, DELETE=delete
-/rest/$controller/bulkUpdate
-/rest/$controller/bulkDelete
+/rest/$controller/$id?       →  POST=create, GET=read, PUT=update, DELETE=delete
+/rest/$controller/bulkUpdate →  Apply updates to multiple records
+/rest/$controller/bulkDelete →  Delete multiple records
+/rest/$controller/lookupData →  Custom lookup data (controller must implement)
 ```
+
+The `bulkUpdate` action accepts `{ids: [...], newParams: {...}}` and applies `doUpdate()` to each
+record, returning `{success: N, fail: N}`. The `bulkDelete` action accepts `ids` and applies
+`doDelete()` to each, also returning success/fail counts. Both continue processing on individual
+record failures.
 
 ### Template Methods
 
@@ -406,21 +463,66 @@ class MyService extends BaseService {
 }
 ```
 
+### The `getOrCreate` Pattern
+
+The `getOrCreate` method on both `Cache` and `CachedValue` is a go-to pattern for lazily computing
+and caching expensive results. The closure runs only when the value is absent or expired, and the
+result is cached for subsequent calls:
+
+```groovy
+class CompanyService extends BaseService {
+
+    private Cache<String, Map> companyCache
+
+    void init() {
+        companyCache = createCache(
+            name: 'companies',
+            expireTime: 30 * MINUTES,
+            replicate: true
+        )
+    }
+
+    /** Returns company data, loading from the database only on cache miss. */
+    Map getCompany(String ticker) {
+        companyCache.getOrCreate(ticker) {
+            // This closure runs only when the entry is absent or expired.
+            // The key is passed as the closure argument.
+            loadCompanyFromDb(ticker)
+        }
+    }
+}
+```
+
+For single-value caches, `CachedValue.getOrCreate` works the same way without a key:
+
+```groovy
+private CachedValue<List<Map>> allCompanies
+
+Map getSummary() {
+    allCompanies.getOrCreate {
+        computeExpensiveSummary()
+    }
+}
+```
+
 ### Timer-driven Cache Refresh
 
-A common pattern combines a timer with a cache for periodically refreshed data:
+A common pattern combines a timer with a replicated cache for periodically refreshed data. The
+primary instance fetches data on a timer and the cache replicates it to all instances:
 
 ```groovy
 class MarketDataService extends BaseService {
 
     private CachedValue<Map> marketData
+    private Timer refreshTimer
 
     void init() {
         marketData = createCachedValue(name: 'marketData', replicate: true)
-        createTimer(
+        refreshTimer = createTimer(
             name: 'refreshMarketData',
             runFn: this.&refreshMarketData,
             interval: 'xhMarketDataRefreshSecs',  // interval from AppConfig
+            intervalUnits: SECONDS,
             primaryOnly: true
         )
     }
@@ -432,6 +534,19 @@ class MarketDataService extends BaseService {
     private void refreshMarketData() {
         marketData.set(fetchFromExternalApi())
     }
+}
+```
+
+Use `Timer.forceRun()` to trigger an immediate refresh without risk of overlapping the timer's
+regular execution. This is especially useful in `clearCaches()` implementations — rather than
+clearing the cache and leaving it empty until the next scheduled run, force the timer to re-run
+and repopulate the data:
+
+```groovy
+void clearCaches() {
+    super.clearCaches()
+    // Repopulate immediately via the existing timer — no risk of overlapping runs.
+    refreshTimer.forceRun()
 }
 ```
 
@@ -468,9 +583,9 @@ void clearCaches() {
 
 ### Non-unique resource names
 
-All resources created via factory methods (`createCache`, `createTimer`, `createCachedValue`,
-`createIMap`) share a single namespace within each service. Using the same name for a cache and a
-timer will throw a `RuntimeException` at startup.
+All resources created via factory methods (`createCache`, `createCachedValue`, `createTimer`,
+`createIMap`, `createISet`) share a single namespace within each service. Using the same name for a
+cache and a timer will throw a `RuntimeException` at startup.
 
 ### Using Grails `render` instead of `renderJSON`
 
@@ -479,6 +594,6 @@ ensure consistent Jackson-based serialization with support for `JSONFormat` and 
 
 ### Blocking in `init()`
 
-Service `init()` runs during application startup. Long-running operations should be deferred to a
-timer with `runImmediatelyAndBlock: true` (if the result is needed before the first request) or
-`delay: true` (if it can load lazily).
+Service `init()` runs during application startup (with a default timeout of 30 seconds). Long-running
+operations should be deferred to a timer — use `runImmediatelyAndBlock: true` if the result is
+needed before the first request, or `delay: true` if it can load lazily.
