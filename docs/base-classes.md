@@ -1,6 +1,3 @@
-> **Status: DRAFT** — This document is awaiting review. Content may be incomplete or subject to
-> change. Do not remove this banner until the document has been interactively reviewed and approved.
-
 # Base Classes
 
 ## Overview
@@ -42,8 +39,13 @@ Every Hoist service extends `BaseService` and follows a well-defined lifecycle:
    Override to set up starting state, create resources, and subscribe to events.
 3. **Runtime** — The service handles requests and runs timers.
 4. **`clearCaches()`** — Can be called at any time (including from the Admin Console) to reset
-   service state. Override to clear custom state beyond managed caches.
+   service state. The base implementation only updates a `lastCachesCleared` timestamp — it does
+   **not** automatically clear caches created via `createCache()` or `createCachedValue()`. Override
+   to explicitly clear each cache and reset any other custom state.
 5. **`destroy()`** — Called by Spring on clean shutdown. Cancels all managed timers.
+
+The status methods `isInitialized()` and `isDestroyed()` can be used for defensive checks during
+startup and shutdown.
 
 ```groovy
 class PortfolioService extends BaseService {
@@ -188,7 +190,7 @@ void init() {
         interval: 5 * MINUTES,
         primaryOnly: true,            // only run on the primary instance
         delay: true,                  // wait one interval before first run
-        timeout: 3 * MINUTES          // max execution time (cancels and throws on timeout)
+        timeout: 3 * MINUTES          // max execution time (cancels task and logs error on timeout)
     )
 }
 
@@ -205,7 +207,7 @@ Constructor parameters:
 | `runFn` | `Closure` | `null` | Closure to execute. If omitted, the timer calls `onTimer()` on the owning service |
 | `interval` | `Number`, `Closure`, or `String` | `null` | Interval between runs. A string is interpreted as an `AppConfig` name. Non-positive values disable the timer |
 | `intervalUnits` | `Long` | `1` | Multiplier applied to the `interval` value (e.g. `SECONDS`) |
-| `timeout` | `Number`, `Closure`, or `String` | `3 * MINUTES` | Max execution time. On timeout, the running task is **cancelled** and a `TimeoutException` is thrown |
+| `timeout` | `Number`, `Closure`, or `String` | `3 * MINUTES` | Max execution time. On timeout, the running task is **cancelled** (interrupted) and the timeout is logged as an error |
 | `timeoutUnits` | `Long` | `1` | Multiplier applied to the `timeout` value (e.g. `SECONDS`) |
 | `primaryOnly` | `Boolean` | `false` | Only run on the primary cluster instance |
 | `delay` | `Boolean` or `Long` | `false` | Delay before first run. `true` = one interval; a number = delay in ms |
@@ -247,6 +249,16 @@ cluster (e.g. a set of active session IDs).
 Creates a Hazelcast `ReplicatedMap<K, V>` — a fully replicated map where every instance holds a
 complete copy. This is what `Cache` uses internally.
 
+#### `getTopic()`
+
+Returns a Hazelcast `ITopic<M>` for cluster-wide pub/sub messaging. Unlike the factory methods
+above, `getTopic()` does not register the topic as a managed resource. Use `subscribeToTopic()` to
+receive messages; use `getTopic()` directly when you need to **publish** messages:
+
+```groovy
+getTopic('myCustomEvent').publish([action: 'refresh', source: username])
+```
+
 ### Event Subscriptions
 
 #### `subscribe()` — Local Grails Events
@@ -255,14 +267,18 @@ Subscribe to events on the local Grails event bus (single instance only):
 
 ```groovy
 void init() {
-    subscribe('xhConfigChanged') { Map msg ->
-        if (msg.key == 'myConfig') clearCaches()
+    subscribe('xhPortfolioLoaded') { Map msg ->
+        logInfo("Portfolio loaded", msg.portfolioId)
+        refreshSummary()
     }
 }
 ```
 
 The subscription automatically catches and logs exceptions (unlike raw Grails `EventBus.subscribe`,
 which silently swallows them) and skips events on destroyed services.
+
+> **Note:** `subscribe()` receives events on the local instance only. For cluster-wide events
+> (including config changes), use `subscribeToTopic()` or `clearCachesConfigs` instead.
 
 #### `subscribeToTopic()` — Cluster-wide Pub/Sub
 
@@ -295,8 +311,8 @@ This wires up a `subscribeToTopic` listener automatically — no manual subscrip
 ### Logging
 
 `BaseService` implements the `LogSupport` trait, providing structured logging methods —
-`logDebug()`, `logInfo()`, `logWarn()`, `logError()` — and timed execution blocks via `withDebug()`
-and `withInfo()`. See [`logging.md`](./logging.md) for full details.
+`logTrace()`, `logDebug()`, `logInfo()`, `logWarn()`, `logError()` — and timed execution blocks via
+`withTrace()`, `withDebug()`, and `withInfo()`. See [`logging.md`](./logging.md) for full details.
 
 ### Identity Access
 
@@ -334,6 +350,13 @@ instances:
 ```groovy
 List<String> getComparableAdminStats() { ['activeConnections'] }
 ```
+
+The Hoist Admin Console exposes all of this data in the **Servers > Objects** tab via
+`ClusterObjectsReport`. That tab lists every managed resource (caches, timers, cached values) and
+service stat across all cluster instances. For keys declared via `getComparableAdminStats()`, the
+report runs a cross-instance comparison and flags any "breaks" — values that differ between
+instances. These breaks also feed into the built-in `objectBreaks` status monitor provided by
+`DefaultMonitorDefinitionService`, which can alert operators when cluster state has diverged.
 
 ### Cluster Awareness
 
@@ -401,10 +424,10 @@ class PositionController extends RestController {
 /rest/$controller/lookupData →  Custom lookup data (controller must implement)
 ```
 
-The `bulkUpdate` action accepts `{ids: [...], newParams: {...}}` and applies `doUpdate()` to each
-record, returning `{success: N, fail: N}`. The `bulkDelete` action accepts `ids` and applies
-`doDelete()` to each, also returning success/fail counts. Both continue processing on individual
-record failures.
+The `bulkUpdate` action parses a JSON request body `{ids: [...], newParams: {...}}` and applies
+`doUpdate()` to each record, returning `{success: N, fail: N}`. The `bulkDelete` action reads `ids`
+from query/form parameters (via `params.list('ids')`) and applies `doDelete()` to each, also
+returning success/fail counts. Both continue processing on individual record failures.
 
 ### Template Methods
 
@@ -449,17 +472,39 @@ When `trackChanges = true`, every create, update, and delete is logged via `Trac
 
 ### Service-to-Service Communication
 
-Services are Spring-managed singletons. Access them via dependency injection or static `Utils`
-accessors:
+Services are Spring-managed singletons. **Within services and controllers**, access other services
+via Grails dependency injection:
 
 ```groovy
-class MyService extends BaseService {
-    // Grails DI — preferred within services
-    def configService
-    def portfolioService
+class PortfolioService extends BaseService {
+    def configService      // injected by Grails
+    def marketDataService
+}
+```
 
-    // Static accessor — useful in non-service code
-    static getPortfolioService() { Utils.appContext.portfolioService }
+**Outside of Spring-managed classes** (POGOs, domain objects, utility classes), services are not
+injected. Instead, use the static typed accessors on `io.xh.hoist.util.Utils`:
+
+```groovy
+import static io.xh.hoist.util.Utils.getConfigService
+
+class PortfolioSummary {
+    Map compute() {
+        def threshold = configService.getDouble('portfolioThreshold')
+        // ...
+    }
+}
+```
+
+Hoist's `Utils` provides typed accessors for core framework services (`configService`,
+`prefService`, `identityService`, etc.). Applications can create their own `Utils` class following
+the same pattern to expose app-level services:
+
+```groovy
+class Utils {
+    static PortfolioService getPortfolioService() {
+        return (PortfolioService) io.xh.hoist.util.Utils.appContext.portfolioService
+    }
 }
 ```
 
@@ -589,11 +634,25 @@ cache and a timer will throw a `RuntimeException` at startup.
 
 ### Using Grails `render` instead of `renderJSON`
 
-Grails' built-in `render` method uses a different JSON converter. Always use `renderJSON()` to
-ensure consistent Jackson-based serialization with support for `JSONFormat` and custom serializers.
+Grails' built-in `render` method uses a different JSON converter. Always use `renderJSON()` for JSON
+responses to ensure consistent Jackson-based serialization with support for `JSONFormat` and custom
+serializers.
 
-### Blocking in `init()`
+The exception is **file and binary responses** — use Grails `render` directly when returning
+non-JSON content such as Excel exports, PDFs, or log file downloads:
 
-Service `init()` runs during application startup (with a default timeout of 30 seconds). Long-running
-operations should be deferred to a timer — use `runImmediatelyAndBlock: true` if the result is
-needed before the first request, or `delay: true` if it can load lazily.
+```groovy
+render(file: fileBytes, fileName: 'export.xlsx', contentType: 'application/octet-stream')
+```
+
+### Long-running `init()` methods
+
+Service `init()` runs during application startup with a default timeout of 30 seconds. If a service
+needs to load data that takes time, consider whether it truly needs to be ready before the app
+starts serving requests:
+
+- **If it does** — that's fine, leave the work in `init()`. If it regularly exceeds the default
+  timeout, increase it via the `timeout` parameter to `parallelInit()` or `initialize()`.
+- **If it doesn't** — create a timer without `runImmediatelyAndBlock`. The timer will kick off its
+  first run right away but asynchronously, allowing `init()` to return and app startup to continue.
+  Use `delay: true` if you want to wait one full interval before the first run.
