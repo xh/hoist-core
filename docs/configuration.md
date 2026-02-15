@@ -1,9 +1,167 @@
 > **Status: DRAFT** — This document is awaiting review. Content may be incomplete or subject to
 > change. Do not remove this banner until the document has been interactively reviewed and approved.
 
-# Soft Configuration
+# Configuration
 
-## Overview
+Hoist applications are configured through two complementary systems:
+
+1. **Instance configuration** — Low-level, deployment-specific settings loaded at startup via
+   environment variables. These provide the database connection, environment identity, and other
+   values that must be in place before the application can fully initialize.
+2. **Soft configuration** — Database-backed `AppConfig` entries that are runtime-adjustable via the
+   Admin Console without code changes or redeployment.
+
+Instance configs bootstrap the app; soft configs tune it once it's running.
+
+---
+
+## Instance Configuration
+
+### Overview
+
+Instance configs provide minimal, deployment-specific settings for a particular running instance of
+the application. They are typically used for database credentials, the server URL, environment
+identity, and other sensitive or environment-specific values that must be kept out of source code.
+
+Instance configs are loaded by `InstanceConfigUtils` at startup and accessed via its static
+`getInstanceConfig(key)` method, which returns raw `String` values.
+
+### Source Files
+
+| File | Location | Role |
+|------|----------|------|
+| `InstanceConfigUtils` | `src/main/groovy/io/xh/hoist/util/` | Loads and serves instance configs |
+| `RuntimeConfig` | `src/main/groovy/io/xh/hoist/configuration/` | Applies instance configs to Grails runtime settings |
+| `AppEnvironment` | `src/main/groovy/io/xh/hoist/` | Enum of deployment environments |
+
+### Environment Variables (Recommended)
+
+The standard approach is to provide instance configs as environment variables following the naming
+convention:
+
+```
+APP_[APP_CODE]_[KEY]
+```
+
+Where `[APP_CODE]` and `[KEY]` are both in UPPER_SNAKE_CASE. The key is converted from the
+camelCase used in code via Jackson's `UpperSnakeCaseStrategy`:
+
+| Code Key | Environment Variable (for app `myApp`) |
+|----------|----------------------------------------|
+| `dbHost` | `APP_MY_APP_DB_HOST` |
+| `dbPassword` | `APP_MY_APP_DB_PASSWORD` |
+| `serverURL` | `APP_MY_APP_SERVER_URL` |
+| `bootstrapAdminUser` | `APP_MY_APP_BOOTSTRAP_ADMIN_USER` |
+
+In practice, most applications set these via a `.env` file in the project root, loaded by a Gradle
+plugin and passed to the application as environment variables. A `.env.template` file checked into
+the repo documents the available keys with example values:
+
+```bash
+# .env.template — copy to .env and customize for your local environment.
+# .env is gitignored and never committed.
+
+# Required
+APP_MYAPP_ENVIRONMENT=Development
+APP_MYAPP_DB_HOST=localhost
+APP_MYAPP_DB_SCHEMA=myapp
+APP_MYAPP_DB_USER=myapp
+APP_MYAPP_DB_PASSWORD=myapp
+APP_MYAPP_SERVER_URL=http://localhost:8080/myapp
+
+# Bootstrap admin — grants HOIST_ADMIN roles in local dev only
+#APP_MYAPP_BOOTSTRAP_ADMIN_USER=dev.user
+```
+
+### Alternative Sources
+
+Two file-based alternatives are also supported, though environment variables are the standard
+approach and should be preferred unless there is a clear reason to use files instead.
+
+**YAML file** — A YAML file containing key-value pairs. The default location is
+`/etc/hoist/conf/[appCode].yml`, customizable via the `-Dio.xh.hoist.instanceConfigFile` Java
+option:
+
+```yaml
+dbHost: localhost
+dbSchema: myapp
+dbUser: myapp
+dbPassword: secret
+serverURL: http://localhost:8080/myapp
+environment: Development
+```
+
+**Config directory** — A directory containing individual files where filenames are config keys and
+file contents are values. Intended for Docker/Kubernetes environments with configs or secrets
+mounted to a local path. If the directory contains an `[appCode].yml` file, it takes priority over
+individual files.
+
+If both an environment variable and a file-based entry exist for the same key, the environment
+variable wins.
+
+### Common Instance Config Keys
+
+| Key | Purpose |
+|-----|---------|
+| `environment` | `AppEnvironment` — e.g., `Development`, `Staging`, `Production` |
+| `serverURL` | Base URL for the Grails application (used in `RuntimeConfig.defaultConfig()`) |
+| `dbHost` | Database hostname |
+| `dbSchema` | Database schema/catalog name |
+| `dbUser` | Database username |
+| `dbPassword` | Database password |
+| `bootstrapAdminUser` | Admin user for local dev (see [authorization.md](./authorization.md)) |
+| `multiInstanceEnabled` | Set to `'false'` to disable multi-instance clustering |
+
+### AppEnvironment
+
+The application's `AppEnvironment` is also sourced from instance configuration, with the following
+priority:
+
+1. `-Dio.xh.hoist.environment` Java option
+2. `APP_[APP_CODE]_ENVIRONMENT` environment variable
+3. `environment` key in config file/directory
+4. Fallback to `Development` in local development only (throws otherwise)
+
+Available environments: `Production`, `Beta`, `Staging`, `Development`, `Test`, `UAT`, `BCP`.
+
+Note this is distinct from the Grails environment — multiple non-production Hoist environments
+(Development, Staging, Beta) may all run in Grails "production" mode on their respective servers.
+
+### Usage in Application Code
+
+Instance configs are primarily consumed in `runtime.groovy` to configure database connections and
+other Grails settings:
+
+```groovy
+// grails-app/conf/runtime.groovy
+import io.xh.hoist.configuration.RuntimeConfig
+import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
+
+RuntimeConfig.defaultConfig(this)  // applies serverURL
+
+dataSource {
+    url = "jdbc:mysql://${getInstanceConfig('dbHost')}/${getInstanceConfig('dbSchema')}"
+    username = getInstanceConfig('dbUser')
+    password = getInstanceConfig('dbPassword')
+    // ... driver, pool settings, etc.
+}
+```
+
+Instance configs can also be read from service or bootstrap code at any time:
+
+```groovy
+import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
+
+String customEndpoint = getInstanceConfig('myExternalApiUrl')
+```
+
+All values are returned as `String` — callers are responsible for any type conversion.
+
+---
+
+## Soft Configuration
+
+### Overview
 
 Hoist provides a database-backed soft configuration system that allows runtime-adjustable settings
 without code changes or redeployment. Configuration values are stored as `AppConfig` domain objects
@@ -18,7 +176,7 @@ Key capabilities:
 - **Change events** — Config changes publish `xhConfigChanged` for reactive cache clearing
 - **Environment diffing** — Configs can be compared and synced across environments
 
-## Source Files
+### Source Files
 
 | File | Location | Role |
 |------|----------|------|
@@ -27,9 +185,9 @@ Key capabilities:
 | `ConfigDiffService` | `grails-app/services/io/xh/hoist/config/` | Cross-environment config synchronization |
 | `ConfigAdminController` | `grails-app/controllers/io/xh/hoist/admin/` | Admin console endpoint for config management |
 
-## Key Classes
+### Key Classes
 
-### AppConfig
+#### AppConfig
 
 A GORM domain class representing a single configuration entry. Stored in the `xh_config` table.
 
@@ -44,7 +202,7 @@ A GORM domain class representing a single configuration entry. Stored in the `xh
 | `lastUpdated` | `Date` | Timestamp of last change |
 | `lastUpdatedBy` | `String` | Username of last modifier |
 
-#### Value Types
+##### Value Types
 
 | Type | Stored As | Parsed To | Notes |
 |------|-----------|-----------|-------|
@@ -56,7 +214,7 @@ A GORM domain class representing a single configuration entry. Stored in the `xh
 | `json` | JSON string | `Map` or `List` | Validated as parseable JSON |
 | `pwd` | Encrypted string | `String` (decrypted) | Encrypted at rest via Jasypt |
 
-#### Change Events
+##### Change Events
 
 When an `AppConfig` value is updated, the domain's `beforeUpdate()` lifecycle hook fires a
 cluster-wide `xhConfigChanged` event. The event only fires if the `value` field has actually changed
@@ -73,7 +231,7 @@ This event is published to a Hazelcast topic, so all cluster instances receive i
 react to config changes by subscribing to this topic (or using the `clearCachesConfigs` shortcut
 on `BaseService`).
 
-#### Instance Config Overrides
+##### Instance Config Overrides
 
 Any `AppConfig` value can be overridden via instance configuration (environment variables, YAML
 files, or the instance config directory) without changing the database. The override takes
@@ -87,11 +245,11 @@ myApiEndpoint: https://staging-api.example.com
 Override values are not encrypted, even for `pwd` type configs — they are treated as plaintext.
 If an override value cannot be parsed to the declared type, it is silently ignored (logged at TRACE).
 
-### ConfigService
+#### ConfigService
 
 The primary service for reading and managing configuration values.
 
-#### Typed Getters
+##### Typed Getters
 
 ```groovy
 String region    = configService.getString('myAppRegion')
@@ -108,7 +266,7 @@ All getters accept an optional `notFoundValue` parameter. If the config doesn't 
 `notFoundValue` is provided, a `RuntimeException` is thrown. A `RuntimeException` is also thrown if
 the requested type doesn't match the config's `valueType`.
 
-#### `getStringList(configName)`
+##### `getStringList(configName)`
 
 Parses a config value into a list of trimmed strings. Supports a special `[configName]` syntax for
 referencing other configs:
@@ -120,7 +278,7 @@ List<String> roles = configService.getStringList('allowedRoles')
 // → ['ADMIN', 'TRADER', 'VIEWER', 'AUDITOR']
 ```
 
-#### `setValue(name, value, lastUpdatedBy?)`
+##### `setValue(name, value, lastUpdatedBy?)`
 
 Updates an existing config's value. Returns the updated `AppConfig` instance. Automatically
 serializes objects to JSON for `json` type configs. Triggers the `xhConfigChanged` event.
@@ -136,12 +294,12 @@ configService.setValue('dashboardSettings', [theme: 'dark', layout: 'grid'])
 configService.setValue('apiEndpoint', 'https://new-api.example.com', 'batch-job')
 ```
 
-#### `getClientConfig()`
+##### `getClientConfig()`
 
 Returns a map of all `clientVisible` configs for the hoist-react client. Passwords are automatically
 obscured as `'*********'`, and JSON values are parsed to objects.
 
-#### `ensureRequiredConfigsCreated(reqConfigs)`
+##### `ensureRequiredConfigsCreated(reqConfigs)`
 
 Called during application bootstrap to declare configs the application depends on. Creates missing
 configs with default values; logs errors for type mismatches or `clientVisible` flag mismatches on
@@ -176,12 +334,12 @@ class BootStrap {
 }
 ```
 
-#### `hasConfig(name)`
+##### `hasConfig(name)`
 
 Checks whether a config with the given name exists. Useful for conditional logic around optional
 configs.
 
-### ConfigDiffService
+#### ConfigDiffService
 
 Handles cross-environment config synchronization. The `applyRemoteValues()` method accepts a list
 of records from a remote environment and creates, updates, or deletes local configs to match:
@@ -193,7 +351,7 @@ of records from a remote environment and creates, updates, or deletes local conf
 This powers the Admin Console's "Config Differ" tool for comparing and syncing configs across
 development, staging, and production environments.
 
-## Configuration
+### Naming Conventions
 
 Hoist's own framework configs are prefixed with `xh`. Applications should choose a distinct prefix
 (e.g., the app name) to avoid collisions.
@@ -203,9 +361,9 @@ Hoist's own framework configs are prefixed with `xh`. Applications should choose
 | Various `xh*` configs | Mixed | Framework configs created by hoist-core services |
 | App-specific configs | Mixed | Created via `ensureRequiredConfigsCreated()` |
 
-## Common Patterns
+### Common Patterns
 
-### Reactive Config Usage
+#### Reactive Config Usage
 
 Subscribe to config changes to automatically refresh dependent state:
 
@@ -227,7 +385,7 @@ class PricingService extends BaseService {
 }
 ```
 
-### Timer Intervals from Config
+#### Timer Intervals from Config
 
 `BaseService.createTimer()` accepts a config name as the `interval` parameter. The timer
 automatically adjusts when the config changes:
@@ -241,7 +399,7 @@ createTimer(
 )
 ```
 
-### JSON Configs for Complex Settings
+#### JSON Configs for Complex Settings
 
 Use `json` type configs for structured settings that would be unwieldy as multiple scalar configs:
 
@@ -251,7 +409,7 @@ int maxRows = trackingConfig.maxRows ?: 50000
 boolean enabled = trackingConfig.enabled ?: true
 ```
 
-## Client Integration
+### Client Integration
 
 Configs with `clientVisible: true` are automatically included in the client config payload fetched
 by hoist-react during `XH.initAsync()`. The client accesses them via `XH.getConf()`:
@@ -264,9 +422,9 @@ const settings = XH.getConf('dashboardSettings');  // parsed JSON object
 
 Password configs are always obscured when sent to the client, even if marked `clientVisible`.
 
-## Common Pitfalls
+### Common Pitfalls
 
-### Accessing raw value without typed getter
+#### Accessing raw value without typed getter
 
 Always use the typed getters on `ConfigService` rather than querying `AppConfig` domain objects
 directly:
@@ -281,19 +439,19 @@ def region = AppConfig.findByName('myAppRegion').value
 
 The typed getters handle type coercion, password decryption, instance config overrides, and caching.
 
-### Not declaring required configs
+#### Not declaring required configs
 
 If application code depends on a config that doesn't exist, the typed getter will throw a
 `RuntimeException`. Always declare required configs in `ensureRequiredConfigsCreated()` during
 bootstrap to ensure they exist with sensible defaults.
 
-### Modifying `pwd` configs via direct domain access
+#### Modifying `pwd` configs via direct domain access
 
 Password configs must go through `AppConfig`'s lifecycle hooks for encryption. Setting
 `appConfig.value = 'newSecret'` and saving will encrypt the value. But bypassing the domain (e.g.,
 raw SQL) will store plaintext, breaking decryption.
 
-### Ignoring instance config overrides
+#### Ignoring instance config overrides
 
 When troubleshooting config issues, remember to check for instance config overrides. A config may
 have one value in the database but a different effective value from an environment variable or YAML
