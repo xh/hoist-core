@@ -1,14 +1,11 @@
-> **Status: DRAFT** — This document is awaiting review. Content may be incomplete or subject to
-> change. Do not remove this banner until the document has been interactively reviewed and approved.
-
 # Request Flow
 
 ## Overview
 
 Every HTTP request in a Hoist application passes through a well-defined pipeline before reaching
-application code. This pipeline handles Hazelcast cluster readiness, authentication, URL routing,
-role-based access control, and exception handling — ensuring that by the time a controller action
-executes, the user is authenticated and authorized.
+application code. This pipeline handles instance readiness, authentication, URL routing, role-based
+access control, and exception handling — ensuring that by the time a controller action executes, the
+user is authenticated and authorized.
 
 Understanding this flow is essential for debugging request failures, implementing custom
 authentication, and knowing where to add cross-cutting concerns.
@@ -18,7 +15,7 @@ authentication, and knowing where to add cross-cutting concerns.
 | File | Location | Role |
 |------|----------|------|
 | `HoistCoreGrailsPlugin` | `src/main/groovy/io/xh/hoist/` | Plugin descriptor — registers filter, initializes Hazelcast |
-| `HoistFilter` | `src/main/groovy/io/xh/hoist/` | Servlet filter — auth gating, cluster readiness, top-level exception catching |
+| `HoistFilter` | `src/main/groovy/io/xh/hoist/` | Servlet filter — auth gating, instance readiness, top-level exception catching |
 | `UrlMappings` | `grails-app/controllers/io/xh/hoist/` | URL pattern routing |
 | `AccessInterceptor` | `grails-app/controllers/io/xh/hoist/security/` | Grails interceptor — role annotation checks |
 | `BaseController` | `grails-app/controllers/io/xh/hoist/` | Base controller — JSON rendering, exception handling |
@@ -33,7 +30,7 @@ HTTP Request
     ▼
 ┌─────────────────────────────┐
 │  1. HoistFilter             │  Servlet filter (highest precedence)
-│     • ensureRunning()       │  Verify Hazelcast cluster is ready
+│     • ensureRunning()       │  Verify instance is ready to serve
 │     • allowRequest()        │  Authenticate user (or whitelist)
 │     • catch exceptions      │  Top-level exception safety net
 └─────────────────────────────┘
@@ -73,7 +70,9 @@ The plugin descriptor bootstraps the entire Hoist server-side framework. Its key
 during startup:
 
 1. **Configures logging** — Creates a `LogbackConfig` (app-customizable) before anything else.
-2. **Initializes Hazelcast** — Calls `ClusterService.initializeHazelcast()` to start the cluster.
+2. **Initializes Hazelcast** — Calls `ClusterService.initializeHazelcast()` to start the
+   Hazelcast instance. This is required even for single-instance deployments, as Hoist's caching
+   and distributed data structures are built on Hazelcast.
 3. **Registers `HoistFilter`** — As a `FilterRegistrationBean` at `HIGHEST_PRECEDENCE + 40`,
    ensuring it runs before Grails' built-in filters.
 4. **Optionally enables WebSocket** — If `hoist.enableWebSockets` is `true` in application config.
@@ -102,9 +101,9 @@ void doFilter(ServletRequest request, ServletResponse response, FilterChain chai
 
 The filter performs three critical functions:
 
-1. **Cluster readiness** — `clusterService.ensureRunning()` verifies that the Hazelcast cluster is
-   initialized and the instance is in a `RUNNING` state. If the cluster isn't ready, the request
-   is rejected before any other processing.
+1. **Instance readiness** — `clusterService.ensureRunning()` verifies that the server instance is
+   in a `RUNNING` state. If the instance is still starting up or shutting down, the request is
+   rejected with an `InstanceNotAvailableException` before any other processing.
 
 2. **Authentication gating** — `authenticationService.allowRequest()` first checks if the request
    already has an authenticated user (`identityService.findAuthUser(request)`) **or** if the
@@ -115,8 +114,10 @@ The filter performs three critical functions:
    request is halted (e.g., during an OAuth redirect). See [`authentication.md`](./authentication.md)
    for details.
 
-3. **Top-level exception handling** — Any uncaught exception from the entire request pipeline
-   (including Grails internals) is caught here and rendered as a JSON error response.
+3. **Top-level exception handling** — Any uncaught exception from the rest of the request pipeline
+   (e.g., `ensureRunning()` failures, Grails internals) is caught here and rendered as a JSON
+   error response. Note that `allowRequest()` handles its own exceptions internally (see
+   [Exception Handling in the Pipeline](#exception-handling-in-the-pipeline)).
 
 ### UrlMappings
 
@@ -124,8 +125,8 @@ Defines URL patterns that route requests to controller actions:
 
 | Pattern | Routes To | Purpose |
 |---------|-----------|---------|
-| `/` | `DefaultController` | Root redirect |
-| `/$controller/$action?/$id?` | Standard dispatch | General controller endpoints |
+| `/` | `DefaultController` (if app-provided) | Root redirect |
+| `/$controller/$action?/$id?(.$format)?` | Standard dispatch | General controller endpoints |
 | `/rest/$controller/$id?` | `POST→create, GET→read, PUT→update, DELETE→delete` | REST CRUD |
 | `/rest/$controller/bulkUpdate` | `bulkUpdate` action | Bulk update endpoint |
 | `/rest/$controller/bulkDelete` | `bulkDelete` action | Bulk delete endpoint |
@@ -144,7 +145,9 @@ before any controller action executes.
 
 The interceptor's `before()` method:
 
-1. **Skips WebSocket handshakes and actuator endpoints** — These have their own security.
+1. **Skips WebSocket handshakes and actuator endpoints** — WebSocket requests are identified by
+   both the `upgrade: websocket` header and the configured WebSocket URI path. These have their
+   own security.
 2. **Resolves the controller action** — Looks up the `Method` object for the requested action. If
    the method doesn't exist, throws `NotFoundException` (404).
 3. **Evaluates access annotations** — Checks the method first, then the class, for one of the
@@ -164,22 +167,27 @@ See [`authorization.md`](./authorization.md) for details on annotations and role
 
 ## Exception Handling in the Pipeline
 
-Exceptions can be thrown at multiple stages and are handled at three levels:
+Exceptions can be thrown at multiple stages and are handled at four levels:
 
-1. **`HoistFilter` catch block** — Catches any `Throwable` from the entire pipeline. This is the
-   safety net for exceptions from authentication, Grails internals, or other unexpected errors.
-2. **`AccessInterceptor.before()` try/catch** — The interceptor wraps its own logic in a try/catch
+1. **`BaseAuthenticationService.allowRequest()` try/catch** — Wraps the entire authentication flow.
+   If authentication throws, the exception is logged but a **deliberately opaque** HTTP status code
+   is returned — no JSON error body is rendered to the unverified client. This is a security measure
+   to avoid leaking information before the user's identity is confirmed.
+2. **`HoistFilter` catch block** — Catches any `Throwable` from the rest of the pipeline. This is
+   the safety net for instance readiness failures (`ensureRunning()`), Grails internals, and any
+   other unexpected errors that escape lower-level handlers.
+3. **`AccessInterceptor.before()` try/catch** — The interceptor wraps its own logic in a try/catch
    block. Exceptions thrown during access checks (e.g., `NotFoundException`,
    `NotAuthorizedException`) are caught within the interceptor itself and rendered directly to the
    response via `Utils.handleException(exception: e, ..., renderTo: response)`. These exceptions
    do **not** propagate up to `HoistFilter`.
-3. **`BaseController.handleException()`** — Catches exceptions thrown within controller actions
+4. **`BaseController.handleException()`** — Catches exceptions thrown within controller actions
    and renders them as JSON error responses. The Grails framework calls this automatically.
 
-All three handlers delegate to `Utils.handleException()`, which:
+Handlers 2-4 delegate to `Utils.handleException()`, which:
 - Determines the appropriate HTTP status code (e.g., 401, 403, 404, 500)
-- Renders a JSON error response with `{ name, message, cause, isRoutine }` structure (null values
-  are filtered out, so only non-null fields appear in the response)
+- Renders a JSON error response with `{ name, message, cause, isRoutine }` structure (falsy values
+  — null, false, empty strings — are filtered out, so e.g. `isRoutine` only appears when `true`)
 - Logs the error (respecting `RoutineException` — expected errors log at DEBUG, not ERROR)
 
 ## Common Pitfalls
@@ -212,13 +220,14 @@ class MyController extends BaseController {
 Requests can be rejected at any stage before reaching the controller. If debugging a request that
 never hits your controller code, check:
 
-1. Is the cluster running? (`ensureRunning()` rejection)
+1. Is the instance running? (`ensureRunning()` rejection)
 2. Is the user authenticated? (`allowRequest()` returning `false`)
 3. Is the URL mapping correct? (wrong URL pattern → 404 from `UrlMappings`)
 4. Does the user have the right role? (`AccessInterceptor` → 403)
 
 ### WebSocket and actuator bypass
 
-The `AccessInterceptor` explicitly skips WebSocket upgrade requests and `/actuator/` endpoints.
+The `AccessInterceptor` explicitly skips WebSocket upgrade requests (matched by both the
+`upgrade: websocket` header and the configured WebSocket URI path) and `/actuator/` endpoints.
 WebSocket security is handled separately by the WebSocket framework. Actuator endpoints should be
 secured at the deployment/infrastructure level.

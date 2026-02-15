@@ -18,7 +18,7 @@ is essential for working effectively with any part of hoist-core.
 | Document | Source Files | Description | Status |
 |----------|-------------|-------------|--------|
 | `base-classes.md` | BaseService, BaseController, RestController, Cache, CachedValue, Timer, IMap | BaseService lifecycle (`init`, `destroy`, `parallelInit`), resource factories (`createCache`, `createCachedValue`, `createTimer`, `createIMap`), BaseController (`renderJSON`, `parseRequestJSON`, async support), RestController template-method CRUD (`doCreate`, `doList`, `doUpdate`, `doDelete`, `restTarget`) | Done |
-| `request-flow.md` | HoistCoreGrailsPlugin, HoistFilter, UrlMappings, AccessInterceptor, BaseController | Full request lifecycle: plugin initialization → HoistFilter (auth gating, cluster readiness, exception catching) → UrlMappings routing → AccessInterceptor annotation checks → controller dispatch → JSON response | Draft |
+| `request-flow.md` | HoistCoreGrailsPlugin, HoistFilter, UrlMappings, AccessInterceptor, BaseController | Full request lifecycle: plugin initialization → HoistFilter (auth gating, instance readiness, exception catching) → UrlMappings routing → AccessInterceptor annotation checks → controller dispatch → JSON response | Done |
 | `authentication.md` | BaseAuthenticationService, BaseUserService, HoistUser, IdentityService, IdentitySupport | Abstract auth service contract, `allowRequest()` / `completeAuthentication()`, user lookup and HoistUser trait, IdentityService (current user, `getUser()`/`getAuthUser()`), impersonation support | Draft |
 | `authorization.md` | BaseRoleService, DefaultRoleService, Role, RoleMember, AccessInterceptor, access annotations | Role assignment contract, `DefaultRoleService` (database-backed with admin UI), Role/RoleMember domains, `@AccessRequiresRole`/`@AccessRequiresAnyRole`/`@AccessRequiresAllRoles`/`@AccessAll` annotations, built-in roles (`HOIST_ADMIN`, `HOIST_ADMIN_READER`, `HOIST_IMPERSONATOR`, `HOIST_ROLE_MANAGER`) | Draft |
 
@@ -236,3 +236,18 @@ _Use this section to track discussions, decisions, and context between documenta
 - Added "Grails Platform" section to both README.md index and README-ROADMAP.md
 - Doc placed in its own "Grails Platform" section rather than a priority tier, as it covers
   foundational Grails concepts rather than a specific Hoist feature area
+
+### 2026-02-14 (cont.) — Interactive reviews: base-classes, gorm-domain-objects, request-flow
+- Reviewed `base-classes.md` — fixed inaccuracies, expanded API coverage, marked Done
+- Reviewed `gorm-domain-objects.md` — clarified pitfalls, added admin cache tools, marked Done
+- Reviewed `request-flow.md` — key corrections:
+  - Replaced "Hazelcast cluster readiness" with "instance readiness" throughout — `ensureRunning()`
+    checks instance lifecycle state, not Hazelcast specifically
+  - Clarified Hazelcast init is required even for single-instance deployments
+  - Added `allowRequest()` as a 4th exception handling layer with distinct security behavior (opaque
+    error to unverified clients, no JSON body)
+  - Fixed JSON error filtering description (falsy values, not just null)
+  - Added `(.$format)?` to standard UrlMappings pattern
+  - Specified WebSocket bypass checks both header and URI path
+  - Marked `DefaultController` as app-provided (not part of hoist-core)
+  - Marked Done
