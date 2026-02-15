@@ -242,11 +242,18 @@ primarily governs how quickly changes to external directory group memberships ar
 
 #### Bootstrap Admin User
 
-For local development, you can configure an initial admin user via instance config:
+For local development, you can configure an initial admin user via an instance config environment
+variable. Instance config env vars follow the naming convention `APP_[APP_CODE]_[KEY]`, where the
+key is converted from camelCase to UPPER_SNAKE_CASE:
 
-```yaml
-bootstrapAdminUser: dev.user
+```bash
+# For an app with code "myapp"
+APP_MYAPP_BOOTSTRAP_ADMIN_USER=dev.user
 ```
+
+This can also be set via a `.env` file or other mechanism that injects environment variables before
+the app starts. See [`configuration.md`](./configuration.md) for full details on instance config
+sources.
 
 This user will always have the `HOIST_ADMIN`, `HOIST_ADMIN_READER`, and `HOIST_ROLE_MANAGER` roles,
 even if no roles are configured in the database. This feature is restricted by the framework to
