@@ -20,7 +20,7 @@ is essential for working effectively with any part of hoist-core.
 | `base-classes.md` | BaseService, BaseController, RestController, Cache, CachedValue, Timer, IMap | BaseService lifecycle (`init`, `destroy`, `parallelInit`), resource factories (`createCache`, `createCachedValue`, `createTimer`, `createIMap`), BaseController (`renderJSON`, `parseRequestJSON`, async support), RestController template-method CRUD (`doCreate`, `doList`, `doUpdate`, `doDelete`, `restTarget`) | Done |
 | `request-flow.md` | HoistCoreGrailsPlugin, HoistFilter, UrlMappings, AccessInterceptor, BaseController | Full request lifecycle: plugin initialization → HoistFilter (auth gating, instance readiness, exception catching) → UrlMappings routing → AccessInterceptor annotation checks → controller dispatch → JSON response | Done |
 | `authentication.md` | BaseAuthenticationService, BaseUserService, HoistUser, IdentityService, IdentitySupport | Abstract auth service contract, `allowRequest()` / `completeAuthentication()`, user lookup and HoistUser trait, IdentityService (current user, `getUser()`/`getAuthUser()`), impersonation support | Done |
-| `authorization.md` | BaseRoleService, DefaultRoleService, Role, RoleMember, AccessInterceptor, access annotations | Role assignment contract, `DefaultRoleService` (database-backed with admin UI), Role/RoleMember domains, `@AccessRequiresRole`/`@AccessRequiresAnyRole`/`@AccessRequiresAllRoles`/`@AccessAll` annotations, built-in roles (`HOIST_ADMIN`, `HOIST_ADMIN_READER`, `HOIST_IMPERSONATOR`, `HOIST_ROLE_MANAGER`) | Done |
+| `authorization.md` | BaseRoleService, DefaultRoleService, Role, RoleMember, AccessInterceptor, access annotations | Role assignment contract, `DefaultRoleService` (database-backed with admin UI), Role/RoleMember domains, `@AccessRequiresRole`/`@AccessRequiresAnyRole`/`@AccessRequiresAllRoles`/`@AccessAll` annotations, built-in roles (`HOIST_ADMIN`, `HOIST_ADMIN_READER`, `HOIST_IMPERSONATOR`, `HOIST_ROLE_MANAGER`) | Draft |
 
 ## Priority 2 — Core Features
 
@@ -83,7 +83,9 @@ Each document progresses through three statuses tracked in the tables above:
 
 The draft → done transition requires an interactive review session. During review, expect
 discussion of accuracy, completeness, tone, code examples, and coverage of edge cases.
-Do not remove the draft banner or update the roadmap status until the reviewer confirms approval.
+**Only a human XH developer can mark a document as done.** Do not remove the draft banner or
+update the roadmap status until the human reviewer explicitly requests it — AI-driven review
+and corrections alone are not sufficient to promote a doc out of draft.
 
 ### Document Template
 
