@@ -19,7 +19,7 @@ is essential for working effectively with any part of hoist-core.
 |----------|-------------|-------------|--------|
 | `base-classes.md` | BaseService, BaseController, RestController, Cache, CachedValue, Timer, IMap | BaseService lifecycle (`init`, `destroy`, `parallelInit`), resource factories (`createCache`, `createCachedValue`, `createTimer`, `createIMap`), BaseController (`renderJSON`, `parseRequestJSON`, async support), RestController template-method CRUD (`doCreate`, `doList`, `doUpdate`, `doDelete`, `restTarget`) | Done |
 | `request-flow.md` | HoistCoreGrailsPlugin, HoistFilter, UrlMappings, AccessInterceptor, BaseController | Full request lifecycle: plugin initialization → HoistFilter (auth gating, instance readiness, exception catching) → UrlMappings routing → AccessInterceptor annotation checks → controller dispatch → JSON response | Done |
-| `authentication.md` | BaseAuthenticationService, BaseUserService, HoistUser, IdentityService, IdentitySupport | Abstract auth service contract, `allowRequest()` / `completeAuthentication()`, user lookup and HoistUser trait, IdentityService (current user, `getUser()`/`getAuthUser()`), impersonation support | Draft |
+| `authentication.md` | BaseAuthenticationService, BaseUserService, HoistUser, IdentityService, IdentitySupport | Abstract auth service contract, `allowRequest()` / `completeAuthentication()`, user lookup and HoistUser trait, IdentityService (current user, `getUser()`/`getAuthUser()`), impersonation support | Done |
 | `authorization.md` | BaseRoleService, DefaultRoleService, Role, RoleMember, AccessInterceptor, access annotations | Role assignment contract, `DefaultRoleService` (database-backed with admin UI), Role/RoleMember domains, `@AccessRequiresRole`/`@AccessRequiresAnyRole`/`@AccessRequiresAllRoles`/`@AccessAll` annotations, built-in roles (`HOIST_ADMIN`, `HOIST_ADMIN_READER`, `HOIST_IMPERSONATOR`, `HOIST_ROLE_MANAGER`) | Draft |
 
 ## Priority 2 — Core Features
@@ -250,4 +250,20 @@ _Use this section to track discussions, decisions, and context between documenta
   - Added `(.$format)?` to standard UrlMappings pattern
   - Specified WebSocket bypass checks both header and URI path
   - Marked `DefaultController` as app-provided (not part of hoist-core)
+  - Marked Done
+- Reviewed `authentication.md` — key corrections:
+  - Fixed claim that "IdentityService never creates sessions" — `noteUserAuthenticated()` does
+    create sessions, but only for verified users; all other access uses `getSession(false)`
+  - Fixed claim that all IdentityService methods return null outside request context — ThreadLocal
+    fallback (`threadUsername`/`threadAuthUsername`) propagates identity during cluster task execution
+  - Simplified flow diagram to match actual code structure (single `||` check for auth user or
+    whitelist, not sequential decisions)
+  - Added `isWhitelist(HttpServletRequest)` protected method as override point for custom whitelist
+    logic beyond mutating the URI list
+  - Named `xhEnableImpersonation` config key (was only described generically)
+  - Documented both `getClientConfig()` response shapes: `{user, roles}` normally vs.
+    `{apparentUser, apparentUserRoles, authUser, authUserRoles}` during impersonation
+  - Added `formatForJSON()` / `JSONFormat` to HoistUser description
+  - Clarified login/logout flow through IdentityService (controllers call IdentityService, which
+    delegates to AuthenticationService and handles session cleanup)
   - Marked Done

@@ -1,6 +1,3 @@
-> **Status: DRAFT** — This document is awaiting review. Content may be incomplete or subject to
-> change. Do not remove this banner until the document has been interactively reviewed and approved.
-
 # Authentication
 
 ## Overview
@@ -34,9 +31,7 @@ The framework provides `IdentityService` for accessing the current user througho
 ```
 Request arrives at HoistFilter
     │
-    ├── Is user already in session? ── Yes ──→ Pass through
-    │
-    ├── Is URL whitelisted? ──── Yes ──→ Pass through (no auth needed)
+    ├── User already in session OR URL whitelisted? ── Yes ──→ Pass through
     │
     └── No ──→ Call completeAuthentication()
                    │
@@ -55,9 +50,10 @@ Authentication state is stored in the HTTP session with two keys:
 - **`xhAuthUser`** — The authenticated username (verified by the auth scheme)
 - **`xhApparentUser`** — The "active" username (same as auth user unless impersonating)
 
-`IdentityService` never creates sessions — it only reads from existing sessions. This prevents
-denial-of-service attacks that could exhaust server memory by creating sessions on unauthenticated
-requests.
+A session is created only once — when `noteUserAuthenticated()` stores the verified user. All other
+session access in `IdentityService` uses `getSession(false)`, which returns `null` rather than
+creating a new session. This prevents denial-of-service attacks that could exhaust server memory by
+creating sessions on unauthenticated requests.
 
 ## Key Classes
 
@@ -71,13 +67,13 @@ framework calls into this service on every request via `HoistFilter`.
 Called on every request by `HoistFilter`. This method is **not intended for override** — it
 orchestrates the authentication check:
 
-1. Checks if a user is already stored in the session (via `identityService.findAuthUser()`).
-2. If not, checks if the URL is whitelisted (no auth needed).
-3. If neither, calls `completeAuthentication()` (the app's custom logic).
-4. If authentication completes but no user is set, throws `NotAuthenticatedException` internally.
-5. All of the above is wrapped in a try-catch: any exception (including `NotAuthenticatedException`)
+1. Checks if a user is already stored in the session (via `identityService.findAuthUser()`) or if
+   the URL is whitelisted — if either is true, the request passes through.
+2. Otherwise, calls `completeAuthentication()` (the app's custom logic).
+3. If authentication completes but no user is set, throws `NotAuthenticatedException` internally.
+4. All of the above is wrapped in a try-catch: any exception (including `NotAuthenticatedException`)
    is caught, logged, and translated into an opaque HTTP status code response. The method then
-   returns `false` -- the caller (`HoistFilter`) never sees a thrown exception.
+   returns `false` — the caller (`HoistFilter`) never sees a thrown exception.
 
 #### `completeAuthentication(request, response)` — App Must Implement
 
@@ -133,12 +129,15 @@ boolean login(HttpServletRequest request, String username, String password) {
 }
 ```
 
-SSO-based applications leave the default implementation in place.
+SSO-based applications leave the default implementation in place. Note that the framework's
+`/xh/login` endpoint calls this method via `IdentityService.login()`, which provides the current
+request automatically.
 
 #### `logout()` — End Session
 
 For applications supporting explicit logout. Default returns `false`. Override to return `true` after
-clearing any auth state. `IdentityService` will clear the session keys when this returns `true`.
+clearing any app-specific auth state. `IdentityService.logout()` wraps this call — when it returns
+`true`, `IdentityService` clears the session keys (`xhAuthUser` and `xhApparentUser`).
 
 #### Whitelist URIs
 
@@ -149,7 +148,9 @@ clearing any auth state. `IdentityService` will clear the session keys when this
 - `/xh/version` — Version info
 - `/xh/authConfig` — Client auth configuration
 
-Subclasses can extend this list by mutating `whitelistURIs` in their constructor or `init()`.
+Subclasses can extend this list by mutating `whitelistURIs` in their constructor or `init()`. For
+more advanced logic, override the `isWhitelist(HttpServletRequest)` protected method — the default
+implementation checks if the request URI ends with any entry in the list.
 
 #### `getClientConfig()`
 
@@ -206,7 +207,8 @@ important security filtering:
 ### HoistUser
 
 A Groovy trait that defines the core properties and behaviors every user object must have.
-Application user classes implement this trait.
+Application user classes implement this trait. `HoistUser` also implements `JSONFormat`, providing a
+default `formatForJSON()` that serializes `username`, `email`, `displayName`, and `active`.
 
 #### Required Properties (Abstract)
 
@@ -266,14 +268,21 @@ The framework-provided service for accessing the current user. Not intended for 
 | `getAuthUsername()` | `String` | Authenticated username |
 | `isImpersonating()` | `boolean` | Whether impersonation is active |
 
-All methods return `null` when called outside a request context (e.g., in a timer's background
-thread that wasn't initiated by a request).
+These methods return `null` in contexts with no session and no ThreadLocal identity — e.g., in a
+timer's background thread that wasn't initiated by a request. However, `IdentityService` also
+maintains `threadUsername` and `threadAuthUsername` ThreadLocals that serve as fallbacks when no
+session is available. These are used by `ClusterTask` to propagate user identity across cluster
+boundaries during remote service calls.
 
 #### `getClientConfig()`
 
-Returns identity information for the client. During impersonation, the response includes both the
-apparent user (with their roles) and the auth user (with their roles), allowing the client to
-display impersonation state.
+Returns identity information for the client. The response shape depends on whether impersonation is
+active:
+
+- **Normal:** `{user, roles}` — the authenticated user and their roles.
+- **Impersonating:** `{apparentUser, apparentUserRoles, authUser, authUserRoles}` — both the
+  impersonated user (with their roles) and the real authenticated user (with their roles), allowing
+  the client to display impersonation state.
 
 ### Impersonation
 
@@ -295,7 +304,7 @@ identityService.endImpersonate()
 
 **Security controls:**
 - User must have `HOIST_IMPERSONATOR` role.
-- Impersonation must be enabled via soft configuration.
+- Impersonation must be enabled via the `xhEnableImpersonation` soft config (boolean).
 - Non-admins cannot impersonate users with `HOIST_ADMIN` role.
 - All impersonation events are tracked via `TrackService` with `WARN` severity.
 
@@ -412,6 +421,7 @@ for custom logic.
 
 ### Creating sessions on unauthenticated requests
 
-`IdentityService` never creates sessions — it only reads existing ones. Don't call
-`request.getSession(true)` in authentication code unless you've verified the user. This prevents
-memory exhaustion from bots or scanners hitting unauthenticated endpoints.
+Outside of `noteUserAuthenticated()`, `IdentityService` only reads existing sessions via
+`getSession(false)`. Don't call `request.getSession(true)` in authentication code unless you've
+verified the user. This prevents memory exhaustion from bots or scanners hitting unauthenticated
+endpoints.
