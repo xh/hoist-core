@@ -134,8 +134,10 @@ data source is expensive.
 
 ### DefaultRoleService
 
-The recommended implementation for most applications. Provides database-backed role management with
-full Admin Console support, LDAP/directory group integration, and role inheritance.
+A production-ready, self-contained implementation that stores roles and their memberships within the
+application's own database. Provides full Admin Console support, LDAP/directory group integration,
+and role inheritance. This is a strong default for applications that don't have an external,
+customer-mandated source for role assignments.
 
 #### Features
 
@@ -293,21 +295,18 @@ capability must be explicitly assigned.
 
 ## Application Implementation
 
-### Using DefaultRoleService (Recommended)
+### Using DefaultRoleService
 
-Most applications should extend `DefaultRoleService` and create app-specific roles in
-`ensureRequiredConfigAndRolesCreated()`. This gives you:
-
-- Database-backed role storage
-- Full Admin Console UI for managing roles
-- Optional LDAP integration
-- Role inheritance
-- Cluster-safe caching
+`DefaultRoleService` is a strong default — it's production-ready, self-contained within the app and
+its database, and provides a complete Admin Console UI for managing roles. Most applications should
+extend it and create app-specific roles in `ensureRequiredConfigAndRolesCreated()`.
 
 ### Custom RoleService
 
-For applications with external role systems (e.g., roles sourced from an OAuth provider or external
-database), extend `BaseRoleService` directly:
+Hoist is deliberately flexible about where role assignments come from. Some applications or customer
+environments have an existing, preferred source of truth for roles — e.g., JWT claims from an OAuth
+provider, Microsoft Entra ID groups, or a customer-provided API. In these cases, extend
+`BaseRoleService` directly and implement the three abstract methods to query that external source:
 
 ```groovy
 class RoleService extends BaseRoleService {
