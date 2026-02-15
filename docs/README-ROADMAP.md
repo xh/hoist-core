@@ -286,4 +286,9 @@ _Use this section to track discussions, decisions, and context between documenta
     not automatically grant role management capability
   - Renamed "Stale role cache" pitfall to "Stale directory group memberships" to accurately reflect
     the actual caching concern
-  - Marked Done
+  - Improved framing of `DefaultRoleService` vs custom `BaseRoleService`: DefaultRoleService is a
+    production-ready, self-contained default; custom implementations are for apps/customers with an
+    existing external role source (JWT claims, Entra ID, custom APIs)
+  - Reverted premature Done status — clarified in Review Workflow that only a human XH developer
+    can promote a doc out of Draft. AI-driven review alone is not sufficient
+  - Awaiting human sign-off
