@@ -20,7 +20,7 @@ is essential for working effectively with any part of hoist-core.
 | `base-classes.md` | BaseService, BaseController, RestController, Cache, CachedValue, Timer, IMap | BaseService lifecycle (`init`, `destroy`, `parallelInit`), resource factories (`createCache`, `createCachedValue`, `createTimer`, `createIMap`), BaseController (`renderJSON`, `parseRequestJSON`, async support), RestController template-method CRUD (`doCreate`, `doList`, `doUpdate`, `doDelete`, `restTarget`) | Done |
 | `request-flow.md` | HoistCoreGrailsPlugin, HoistFilter, UrlMappings, AccessInterceptor, BaseController | Full request lifecycle: plugin initialization → HoistFilter (auth gating, instance readiness, exception catching) → UrlMappings routing → AccessInterceptor annotation checks → controller dispatch → JSON response | Done |
 | `authentication.md` | BaseAuthenticationService, BaseUserService, HoistUser, IdentityService, IdentitySupport | Abstract auth service contract, `allowRequest()` / `completeAuthentication()`, user lookup and HoistUser trait, IdentityService (current user, `getUser()`/`getAuthUser()`), impersonation support | Done |
-| `authorization.md` | BaseRoleService, DefaultRoleService, Role, RoleMember, AccessInterceptor, access annotations | Role assignment contract, `DefaultRoleService` (database-backed with admin UI), Role/RoleMember domains, `@AccessRequiresRole`/`@AccessRequiresAnyRole`/`@AccessRequiresAllRoles`/`@AccessAll` annotations, built-in roles (`HOIST_ADMIN`, `HOIST_ADMIN_READER`, `HOIST_IMPERSONATOR`, `HOIST_ROLE_MANAGER`) | Draft |
+| `authorization.md` | BaseRoleService, DefaultRoleService, Role, RoleMember, AccessInterceptor, access annotations | Role assignment contract, `DefaultRoleService` (database-backed with admin UI), Role/RoleMember domains, `@AccessRequiresRole`/`@AccessRequiresAnyRole`/`@AccessRequiresAllRoles`/`@AccessAll` annotations, built-in roles (`HOIST_ADMIN`, `HOIST_ADMIN_READER`, `HOIST_IMPERSONATOR`, `HOIST_ROLE_MANAGER`) | Done |
 
 ## Priority 2 — Core Features
 
@@ -266,4 +266,22 @@ _Use this section to track discussions, decisions, and context between documenta
   - Added `formatForJSON()` / `JSONFormat` to HoistUser description
   - Clarified login/logout flow through IdentityService (controllers call IdentityService, which
     delegates to AuthenticationService and handles session cleanup)
+  - Marked Done
+- Reviewed `authorization.md` — key corrections:
+  - Fixed cluster propagation claim: Admin Console changes propagate immediately to all instances
+    via replicated `CachedValue`, not delayed until the next timer cycle. Timer interval governs
+    external directory group membership refresh only
+  - Added 3 missing source files: `DefaultRoleAdminService`, `DefaultRoleUpdateService`,
+    `RoleAdminController`
+  - Added `Customization Points` section documenting `userAssignmentSupported`,
+    `directoryGroupsSupported`, `directoryGroupsDescription`, and `doLoadUsersForDirectoryGroups`
+    override points
+  - Added alternative `resources.groovy` bean registration approach for no-customization usage
+  - Fixed `Role.members` type from `List<RoleMember>` to `Set<RoleMember>` (GORM `hasMany` default)
+  - Clarified bootstrap admin restriction is code-enforced (`isLocalDevelopment && !isProduction`),
+    not merely advisory
+  - Noted `HOIST_ROLE_MANAGER` is intentionally independent from `HOIST_ADMIN` — admin status does
+    not automatically grant role management capability
+  - Renamed "Stale role cache" pitfall to "Stale directory group memberships" to accurately reflect
+    the actual caching concern
   - Marked Done

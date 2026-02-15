@@ -1,6 +1,3 @@
-> **Status: DRAFT** — This document is awaiting review. Content may be incomplete or subject to
-> change. Do not remove this banner until the document has been interactively reviewed and approved.
-
 # Authorization
 
 ## Overview
@@ -20,6 +17,9 @@ establishes *who* the user is, authorization determines *what* they can do.
 |------|----------|------|
 | `BaseRoleService` | `src/main/groovy/io/xh/hoist/role/` | Abstract role service contract |
 | `DefaultRoleService` | `src/main/groovy/io/xh/hoist/role/provided/` | Database-backed implementation with Admin UI |
+| `DefaultRoleAdminService` | `grails-app/services/io/xh/hoist/role/provided/` | Admin Console read operations (role listing with effective memberships) |
+| `DefaultRoleUpdateService` | `grails-app/services/io/xh/hoist/role/provided/` | Role mutations (CRUD, `ensureRequiredRolesCreated`, `assignRole`) |
+| `RoleAdminController` | `grails-app/controllers/io/xh/hoist/admin/` | Admin Console endpoints for role management |
 | `Role` | `grails-app/domain/io/xh/hoist/role/provided/` | GORM domain — role definitions |
 | `RoleMember` | `grails-app/domain/io/xh/hoist/role/provided/` | GORM domain — role memberships |
 | `AccessInterceptor` | `grails-app/controllers/io/xh/hoist/security/` | Grails interceptor enforcing annotations |
@@ -149,7 +149,7 @@ full Admin Console support, LDAP/directory group integration, and role inheritan
 
 #### Using DefaultRoleService
 
-The simplest approach — use it directly as your `RoleService`:
+The simplest approach — extend it as your app's `RoleService`:
 
 ```groovy
 // In grails-app/services/com/myapp/RoleService.groovy
@@ -169,6 +169,15 @@ class RoleService extends DefaultRoleService {
             [name: 'TRADER', category: 'Trading', notes: 'Can execute trades']
         ])
     }
+}
+```
+
+Alternatively, if no customization is needed, register `DefaultRoleService` directly as a Spring
+bean via `grails-app/conf/spring/resources.groovy`:
+
+```groovy
+beans = {
+    roleService(DefaultRoleService)
 }
 ```
 
@@ -200,6 +209,17 @@ ensureRequiredRolesCreated([
 
 Override `doLoadUsersForDirectoryGroups()` to integrate with non-LDAP directory services.
 
+#### Customization Points
+
+`DefaultRoleService` provides several protected properties and methods that subclasses can override:
+
+| Property / Method | Default | Description |
+|-------------------|---------|-------------|
+| `getUserAssignmentSupported()` | `true` | Set to `false` to disable direct user-to-role assignment |
+| `getDirectoryGroupsSupported()` | `true` | Set to `false` to disable directory group membership |
+| `getDirectoryGroupsDescription()` | LDAP DN instructions | Short string for Admin Console tooltip |
+| `doLoadUsersForDirectoryGroups()` | LDAP via `LdapService` | Override to resolve groups from non-LDAP sources |
+
 #### Configuration
 
 `DefaultRoleService` creates and uses the `xhRoleModuleConfig` soft configuration:
@@ -211,9 +231,9 @@ Override `doLoadUsersForDirectoryGroups()` to integrate with non-LDAP directory 
 ```
 
 This controls how often the role assignment cache is rebuilt from external sources such as directory
-groups. Changes to roles made via the Admin Console trigger an immediate refresh of the role
-assignment cache on the local instance. Other instances in a cluster will pick up the changes on
-their next refresh cycle.
+groups. Changes to roles made via the Admin Console trigger an immediate cache rebuild, and the
+result is propagated to all cluster instances via the replicated `CachedValue`. The timer interval
+primarily governs how quickly changes to external directory group memberships are picked up.
 
 #### Bootstrap Admin User
 
@@ -224,8 +244,9 @@ bootstrapAdminUser: dev.user
 ```
 
 This user will always have the `HOIST_ADMIN`, `HOIST_ADMIN_READER`, and `HOIST_ROLE_MANAGER` roles,
-even if no roles are configured in the database. This is for development only and should not be used
-in production.
+even if no roles are configured in the database. This feature is restricted by the framework to
+local development environments only (`isLocalDevelopment && !isProduction`) and has no effect in
+production.
 
 ### Role and RoleMember Domains
 
@@ -238,7 +259,7 @@ in production.
 | `notes` | `String` | Optional description |
 | `lastUpdated` | `Date` | Timestamp of last change |
 | `lastUpdatedBy` | `String` | User who made the last change |
-| `members` | `List<RoleMember>` | Role memberships (cascade delete) |
+| `members` | `Set<RoleMember>` | Role memberships (cascade delete) |
 
 Stored in table `xh_role`.
 
@@ -266,7 +287,9 @@ Hoist defines four built-in roles that `DefaultRoleService` creates automaticall
 
 Note that `HOIST_ADMIN_READER` and `HOIST_IMPERSONATOR` both list `HOIST_ADMIN` in their `roles`
 field. This means all `HOIST_ADMIN` users automatically receive these less-privileged roles as well,
-ensuring admins have read-only access and impersonation capabilities.
+ensuring admins have read-only access and impersonation capabilities. `HOIST_ROLE_MANAGER` is
+intentionally independent — `HOIST_ADMIN` does *not* automatically grant role management, so this
+capability must be explicitly assigned.
 
 ## Application Implementation
 
@@ -376,12 +399,13 @@ regardless of client-side checks.
 `getRolesForUser()` lookup is also case-insensitive. However, custom `RoleService` implementations
 should be careful to normalize case consistently.
 
-### Stale role cache
+### Stale directory group memberships
 
 `DefaultRoleService` refreshes its cache on a timer (default 300 seconds). Role changes made via
-the Admin Console trigger an immediate refresh on the local instance, but other instances in a
-cluster will pick up those changes on their next refresh cycle. For development, reduce the
-`refreshIntervalSecs` in `xhRoleModuleConfig`, or use the Admin Console's "Clear Caches" action.
+the Admin Console trigger an immediate rebuild that propagates to all cluster instances. However,
+changes to external directory group memberships are only picked up on the next timer cycle. For
+development, reduce the `refreshIntervalSecs` in `xhRoleModuleConfig`, or use the Admin Console's
+"Clear Caches" action to force a rebuild.
 
 ### Not creating required roles in `ensureRequiredConfigAndRolesCreated()`
 
