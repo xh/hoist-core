@@ -13,7 +13,7 @@ import io.xh.hoist.security.AccessRequiresRole
 import static io.xh.hoist.util.ClusterUtils.runOnPrimaryAsJson
 
 @AccessRequiresRole('HOIST_ADMIN_READER')
-class MonitorResultsAdminController extends BaseController {
+class adMonitorResultsAdminController extends BaseController {
 
     def monitorService
 
