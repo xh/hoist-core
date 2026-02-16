@@ -122,3 +122,17 @@
   - Reverted premature Done status — clarified in Review Workflow that only a human XH developer
     can promote a doc out of Draft. AI-driven review alone is not sufficient
   - Awaiting human sign-off
+
+### 2026-02-16 — Interactive review: authorization (human sign-off)
+- Reviewed `authorization.md` against all 13 referenced source files — no major factual errors found
+- Key corrections and additions:
+  - Fixed Customization Points section: removed "protected" qualifier — 3 of 4 override points
+    (`getUserAssignmentSupported`, `getDirectoryGroupsSupported`, `getDirectoryGroupsDescription`)
+    are public, only `doLoadUsersForDirectoryGroups()` is protected
+  - Added impersonation guard detail to Built-in Roles: `RoleAdminController` write operations
+    check `authUser` (not apparent user) for `HOIST_ROLE_MANAGER`, preventing impersonated users
+    from modifying roles
+  - Added "Soft-Config Gates" subsection to Common Patterns: documents `HoistUser.hasGate()` as
+    a lighter-weight, config-backed access mechanism for gating features under development
+- Marked Done, DRAFT banner removed
+- Priority 1 (Core Framework) now fully complete: all 4 docs Done

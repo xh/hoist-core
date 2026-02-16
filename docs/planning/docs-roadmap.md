@@ -20,7 +20,7 @@ is essential for working effectively with any part of hoist-core.
 | `base-classes.md` | BaseService, BaseController, RestController, Cache, CachedValue, Timer, IMap | BaseService lifecycle (`init`, `destroy`, `parallelInit`), resource factories (`createCache`, `createCachedValue`, `createTimer`, `createIMap`), BaseController (`renderJSON`, `parseRequestJSON`, async support), RestController template-method CRUD (`doCreate`, `doList`, `doUpdate`, `doDelete`, `restTarget`) | Done |
 | `request-flow.md` | HoistCoreGrailsPlugin, HoistFilter, UrlMappings, AccessInterceptor, BaseController | Full request lifecycle: plugin initialization → HoistFilter (auth gating, instance readiness, exception catching) → UrlMappings routing → AccessInterceptor annotation checks → controller dispatch → JSON response | Done |
 | `authentication.md` | BaseAuthenticationService, BaseUserService, HoistUser, IdentityService, IdentitySupport | Abstract auth service contract, `allowRequest()` / `completeAuthentication()`, user lookup and HoistUser trait, IdentityService (current user, `getUser()`/`getAuthUser()`), impersonation support | Done |
-| `authorization.md` | BaseRoleService, DefaultRoleService, Role, RoleMember, AccessInterceptor, access annotations | Role assignment contract, `DefaultRoleService` (database-backed with admin UI), Role/RoleMember domains, `@AccessRequiresRole`/`@AccessRequiresAnyRole`/`@AccessRequiresAllRoles`/`@AccessAll` annotations, built-in roles (`HOIST_ADMIN`, `HOIST_ADMIN_READER`, `HOIST_IMPERSONATOR`, `HOIST_ROLE_MANAGER`) | Draft |
+| `authorization.md` | BaseRoleService, DefaultRoleService, Role, RoleMember, AccessInterceptor, access annotations | Role assignment contract, `DefaultRoleService` (database-backed with admin UI), Role/RoleMember domains, `@AccessRequiresRole`/`@AccessRequiresAnyRole`/`@AccessRequiresAllRoles`/`@AccessAll` annotations, built-in roles (`HOIST_ADMIN`, `HOIST_ADMIN_READER`, `HOIST_IMPERSONATOR`, `HOIST_ROLE_MANAGER`) | Done |
 
 ## Priority 2 — Core Features
 
@@ -191,8 +191,8 @@ summary only when new conventions or significant milestones are reached.
 _For detailed session-by-session notes, see [docs-roadmap-log.md](./docs-roadmap-log.md)._
 
 ### Status Overview
-- **Priority 1 (Core Framework):** base-classes, request-flow, authentication Done;
-  authorization in Draft (AI-reviewed, awaiting human sign-off)
+- **Priority 1 (Core Framework):** All 4 docs Done (base-classes, request-flow, authentication,
+  authorization)
 - **Priority 2 (Core Features):** All 5 docs in Draft (configuration, preferences, clustering,
   activity-tracking, json-handling)
 - **Priority 3 (Infrastructure):** All 6 docs in Draft (monitoring, websocket, http-client,
@@ -215,5 +215,5 @@ Documentation Guidelines above:
   errors in role inheritance direction and preference deletion behavior
 
 ### Current Focus
-- Completing interactive reviews of remaining Draft docs (authorization next, then P2/P3)
-- Priority 4 docs remain Planned — will be drafted after P1–P3 reviews complete
+- Completing interactive reviews of remaining Draft docs (P2/P3)
+- Priority 4 docs remain Planned — will be drafted after P2–P3 reviews complete

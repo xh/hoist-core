@@ -1,6 +1,3 @@
-> **Status: DRAFT** — This document is awaiting review. Content may be incomplete or subject to
-> change. Do not remove this banner until the document has been interactively reviewed and approved.
-
 # Authorization
 
 ## Overview
@@ -216,7 +213,7 @@ Override `doLoadUsersForDirectoryGroups()` to integrate with non-LDAP directory 
 
 #### Customization Points
 
-`DefaultRoleService` provides several protected properties and methods that subclasses can override:
+`DefaultRoleService` provides several properties and methods that subclasses can override:
 
 | Property / Method | Default | Description |
 |-------------------|---------|-------------|
@@ -303,6 +300,10 @@ ensuring admins have read-only access and impersonation capabilities. `HOIST_ROL
 intentionally independent — `HOIST_ADMIN` does *not* automatically grant role management, so this
 capability must be explicitly assigned.
 
+The `RoleAdminController` enforces an additional impersonation guard on write operations: `create`,
+`update`, and `delete` actions verify that the **auth user** (not the apparent/impersonated user)
+has `HOIST_ROLE_MANAGER`. This prevents an admin from impersonating a role manager to modify roles.
+
 ## Application Implementation
 
 ### Using DefaultRoleService
@@ -382,6 +383,23 @@ class BootStrap {
     }
 }
 ```
+
+### Soft-Config Gates
+
+`HoistUser` also provides a `hasGate(String)` method — a lighter-weight access mechanism backed by
+soft configuration rather than the role system. A gate is simply a `stringList`-type `AppConfig`
+containing usernames (or `*` for all users):
+
+```groovy
+// Check if the current user has access to a gated feature
+if (user.hasGate('myNewFeatureGate')) {
+    // Feature enabled for this user
+}
+```
+
+Gates are useful for restricting access to features that are under development or pending review,
+without the overhead of creating and managing a dedicated role. They are checked against the
+current user's username — if the config contains `*` or the user's username, the gate passes.
 
 ## Client Integration
 
