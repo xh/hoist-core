@@ -29,7 +29,7 @@ Bread-and-butter features used by every Hoist application.
 | Document | Source Files | Description | Status |
 |----------|-------------|-------------|--------|
 | [`configuration.md`](../configuration.md) | AppConfig, ConfigService, ConfigDiffService, ConfigAdminController | AppConfig domain (typed values: `string\|int\|long\|double\|bool\|json\|pwd`), ConfigService typed getters, `clientVisible` flag, `pwd` encryption via Jasypt, required configs, `xhConfigChanged` event, config diffing across environments | Done |
-| [`preferences.md`](../preferences.md) | Preference, UserPreference, PrefService, PrefDiffService, PreferenceAdminController | Preference definitions vs UserPreference values, PrefService lookups, `local` flag (browser-only prefs), required prefs, `xhPreferenceChanged` event, pref diffing across environments | Draft |
+| [`preferences.md`](../preferences.md) | Preference, UserPreference, PrefService, PrefDiffService, PreferenceAdminController | Preference definitions vs UserPreference values, PrefService lookups, required prefs, pref diffing across environments | Done |
 | [`clustering.md`](../clustering.md) | ClusterService, ClusterConfig, Cache, CachedValue, IMap, ReplicatedMap, Topic, Timer | Hazelcast cluster lifecycle, distributed data structures (Cache, CachedValue, IMap, ReplicatedMap), pub/sub via Topic (`subscribeToTopic`), primary instance coordination, `primaryOnly` timers, naming convention `{ClassName}[{resourceName}]`, ClusterService admin stats | Draft |
 | [`activity-tracking.md`](../activity-tracking.md) | TrackLog, TrackService, TrackLoggingService, ClientErrorEmailService, FeedbackEmailService | TrackLog domain, TrackService (`track()` endpoint, `xhTrackReceived` event), category/severity system, elapsed timing, client error email notifications, feedback email routing, `xhActivityTrackingConfig` | Draft |
 | [`json-handling.md`](../json-handling.md) | JSONSerializer, JSONParser, JSONFormat, custom serializers, BaseController | Custom Jackson-based serialization (not Grails converters), `renderJSON()` / `parseRequestJSON()` in controllers, JSONFormat trait for domain/POGO classes, registering custom serializer modules via `JSONSerializer.registerModules()`, built-in serializers | Draft |
@@ -193,7 +193,7 @@ _For detailed session-by-session notes, see [docs-roadmap-log.md](./docs-roadmap
 ### Status Overview
 - **Priority 1 (Core Framework):** All 4 docs Done (base-classes, request-flow, authentication,
   authorization)
-- **Priority 2 (Core Features):** 1 Done (configuration), 4 in Draft (preferences, clustering,
+- **Priority 2 (Core Features):** 2 Done (configuration, preferences), 3 in Draft (clustering,
   activity-tracking, json-handling)
 - **Priority 3 (Infrastructure):** All 6 docs in Draft (monitoring, websocket, http-client,
   email, exception-handling, logging)

@@ -161,3 +161,25 @@
     a lighter-weight, config-backed access mechanism for gating features under development
 - Marked Done, DRAFT banner removed
 - Priority 1 (Core Framework) now fully complete: all 4 docs Done
+
+### 2026-02-16 — Interactive review: preferences
+- Reviewed `preferences.md` against all source files (Preference, UserPreference, PrefService,
+  PrefDiffService, PreferenceAdminController, XhController, BootStrap)
+- Key corrections and additions:
+  - Removed outdated `local` flag references from preferences.md, README.md, and docs-roadmap.md
+    (feature was removed from hoist-react)
+  - Removed phantom `xhPreferenceChanged` event from roadmap description (does not exist in
+    codebase, unlike `xhConfigChanged` for configs)
+  - Added PreferenceAdminController and XhController to source files table
+  - Documented untyped `setPreference()` method with guidance to prefer typed setters
+  - Added Built-in Preferences table cataloging 6 `xh`-prefixed prefs from Hoist BootStrap
+  - Strengthened `ensureRequiredPrefsCreated` guidance: apps should register all prefs they use;
+    non-existent prefs throw RuntimeException
+  - Added `note` vs `notes` API naming inconsistency callout
+  - Clarified PrefDiffService and PreferenceAdminController as internal Hoist implementation
+    services, not public APIs for application code
+  - Removed `getLimitedClientConfig` documentation (internal framework method)
+  - Added link to hoist-react persistence documentation — most client-side pref interaction
+    happens through the persistence system's `persistWith` mechanism
+  - Simplified cascade deletion pitfall wording
+- Marked Done, DRAFT banner removed
