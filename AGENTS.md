@@ -104,6 +104,13 @@ Custom Jackson-based `JSONSerializer` and `JSONParser` — not Grails' default J
 Controllers use `renderJSON()` and `parseRequestJSON()`. Custom serializers are registered via
 `JSONSerializer.registerModules()`.
 
+## Documentation
+
+For detailed feature-area documentation, see [`docs/README.md`](docs/README.md) — the primary
+documentation index with quick reference tables, feature descriptions, and key topics for each area.
+See [`docs/planning/docs-roadmap.md`](docs/planning/docs-roadmap.md) for documentation coverage
+tracking and writing conventions.
+
 ## Key Conventions
 
 - **Logging**: Services and controllers implement `LogSupport` — use `logDebug()`, `logInfo()`,
