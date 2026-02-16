@@ -38,6 +38,7 @@ class MonitorService extends BaseService {
     ConfigService configService
     MonitorReportService monitorReportService
     MonitorEvalService monitorEvalService
+    MonitorMetricsService monitorMetricsService
 
     // Shared state for all servers to read - gathered by primary from all instances.
     // Map of monitor code to aggregated (cross-instance) results.
@@ -100,6 +101,9 @@ class MonitorService extends BaseService {
             [code, newResults(checks, prevResults?[code])]
         }
         _results.set(newResults)
+
+        // Publish per-instance metrics to Micrometer
+        monitorMetricsService.publishResults(newResults.values())
 
         // Report the canonical results from public getter
         monitorReportService.noteResultsUpdated(results)

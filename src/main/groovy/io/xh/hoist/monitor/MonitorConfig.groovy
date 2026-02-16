@@ -21,4 +21,6 @@ class MonitorConfig {
     Integer warnNotifyThreshold
     Integer monitorTimeoutSecs
     Boolean writeToMonitorLog
+    Boolean metricsEnabled
+    String metricsNamespace
 }
