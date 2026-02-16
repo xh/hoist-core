@@ -108,8 +108,8 @@ Controllers use `renderJSON()` and `parseRequestJSON()`. Custom serializers are 
 
 For detailed feature-area documentation, see [`docs/README.md`](docs/README.md) — the primary
 documentation index with quick reference tables, feature descriptions, and key topics for each area.
-See [`docs/README-ROADMAP.md`](docs/README-ROADMAP.md) for documentation coverage tracking and
-writing conventions.
+See [`docs/planning/docs-roadmap.md`](docs/planning/docs-roadmap.md) for documentation coverage
+tracking and writing conventions.
 
 ## Key Conventions
 

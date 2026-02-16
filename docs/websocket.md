@@ -1,5 +1,5 @@
 > **Status: DRAFT** — This document is awaiting review. See
-> [`README-ROADMAP.md`](./README-ROADMAP.md) for the documentation review workflow.
+> [`planning/docs-roadmap.md`](./planning/docs-roadmap.md) for the documentation review workflow.
 
 # WebSocket Push
 

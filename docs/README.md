@@ -16,7 +16,8 @@ drill into [Core Features](#core-features) or [Infrastructure](#infrastructure--
 
 **Library developers:** In addition to the docs below, see
 [`/AGENTS.md`](../AGENTS.md) for coding conventions, architecture patterns, and code style guidance.
-See [`README-ROADMAP.md`](./README-ROADMAP.md) for documentation coverage tracking and conventions.
+See [`planning/docs-roadmap.md`](./planning/docs-roadmap.md) for documentation coverage tracking
+and conventions.
 
 ## Quick Reference by Task
 
@@ -125,8 +126,8 @@ breaking changes, before/after code examples, and verification checklists.
 
 - [`/AGENTS.md`](../AGENTS.md) — AI coding assistant guidance: architecture patterns, coding
   conventions, and key dependencies
-- [`README-ROADMAP.md`](./README-ROADMAP.md) — Documentation coverage tracking, conventions,
-  and progress notes
+- [`planning/docs-roadmap.md`](./planning/docs-roadmap.md) — Documentation coverage tracking,
+  conventions, and guidelines
 - [`/CHANGELOG.md`](../CHANGELOG.md) — Version history and release notes
 - [`/README.md`](../README.md) — Project overview with feature tables and source code links
 - [hoist-react docs](https://github.com/xh/hoist-react/tree/develop/docs) — Client-side

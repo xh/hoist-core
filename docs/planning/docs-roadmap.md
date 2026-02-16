@@ -169,126 +169,51 @@ Use consistent terminology with hoist-react documentation:
 ### Keeping the Documentation Index in Sync
 
 When a feature-area document is completed, add a corresponding entry to the appropriate section
-in [`docs/README.md`](./README.md). Each entry should include a linked filename, a one-sentence
+in [`docs/README.md`](../README.md). Each entry should include a linked filename, a one-sentence
 description, and a comma-separated list of key classes and concepts covered.
 
-## Progress Notes
+### Progress Tracking Convention
 
-_Use this section to track discussions, decisions, and context between documentation sessions._
+Roadmap files use a two-file pattern to keep planning documents lean while preserving
+detailed history:
 
-### 2026-02-13
-- Created this roadmap document and the `docs/README.md` documentation index
-- Established 22-document plan organized by feature area across 4 priority tiers
-- Adapted hoist-react documentation conventions for hoist-core:
-  - Feature-area docs (flat files in `docs/`) instead of per-package READMEs
-  - Added "Source Files" guidance since features span Grails directories
-  - Added "Application Implementation" section for features requiring app-level code
-  - Added "Configuration" section for `xh`-prefixed AppConfig catalogs
-  - Added "Client Integration" section for hoist-react cross-references
-  - Code examples in Groovy (not TypeScript)
-- Key structural decisions:
-  - All docs live in `docs/` as flat files (not alongside source like hoist-react)
-  - Organized by feature area, not by Grails directory convention
-  - Root `README.md` untouched for now — will be slimmed down as feature docs are written
-  - Consistent terminology with hoist-react docs
-- Established three-phase review workflow (Planned → Draft → Done):
-  - Drafts committed with a visible banner and `Draft` status in roadmap
-  - Interactive review session required before promotion to `Done`
-  - Matches the workflow used successfully in hoist-react docs
+- **Roadmap** (`docs-roadmap.md`): Lean reference document with status tables,
+  guidelines, and a thematic progress summary. This is the primary file agents should read.
+- **Progress Log** (`docs-roadmap-log.md`): Append-only chronological session notes
+  with full detail. Maintained as a historical record — consult only when investigating
+  specific past decisions or context.
 
-### 2026-02-13 (cont.) — Level 2 review and Priority 3 drafts
-- Completed source-code-verified review of all 9 Priority 1+2 draft docs
-- Key corrections applied across existing drafts:
-  - **base-classes.md**: Fixed Cache/CachedValue `replicate` default (false, not true), corrected
-    `parallelInit` description (static method, not property convention), added `doList` query guard
-  - **request-flow.md**: Added whitelist check to `allowRequest()` description, fixed
-    AccessInterceptor exception handling (self-contained, doesn't propagate to HoistFilter),
-    expanded JSON error response structure to include `cause` and `isRoutine` fields
-  - **authentication.md**: Corrected `allowRequest()` flow ordering (auth user check before
-    whitelist), clarified internal exception handling, fixed IdentitySupport description (trait)
-  - **authorization.md**: **CRITICAL** — fixed role inheritance direction (the `roles` field means
-    "members of listed roles also get this role", not the other way around), added all 3 bootstrap
-    admin roles, corrected Admin Console change propagation (immediate on local instance)
-  - **configuration.md**: Clarified `externalValue()` behavior for `pwd` types, added `lastUpdatedBy`
-    parameter to `setValue`, added `ConfigAdminController` to source files, noted conditional/async
-    `beforeUpdate()` event firing
-  - **preferences.md**: **CRITICAL** — removed incorrect claim about UserPreference deletion when
-    value equals default (setter always saves unconditionally), fixed endpoint URL to `/xh/setPrefs`,
-    added missing typed getters/setters for Long and Double
-  - **clustering.md**: Fixed `replicate` default, corrected lifecycle (ApplicationReadyEvent, not
-    BootStrap), removed fabricated `hazelcastGroupName`/`hazelcastAddresses` configs, added `createISet`
-  - **activity-tracking.md**: Fixed file paths for email services (track/, not email/), corrected
-    `maxDataLength` default (2000, not 50000), fixed ClientErrorEmailService description (uses timer,
-    not topic subscription), added missing config keys
-  - **json-handling.md**: Noted Java source files (.java not .groovy), corrected JSONFormatCached as
-    parallel to JSONFormat (not extending it), expanded ThrowableSerializer output description
-- Wrote 6 new Priority 3 draft docs: monitoring, websocket, http-client, email, exception-handling,
-  logging — all source-code-verified with self-review corrections applied
-- Updated Priority 3 status from Planned → Draft in roadmap table
-- All 15 docs (P1+P2+P3) now at Draft status, ready for interactive review
+After a work session, append detailed notes to the log file. Update the roadmap's progress
+summary only when new conventions or significant milestones are reached.
 
-### 2026-02-14 — GORM & Domain Objects documentation
-- Created `gorm-domain-objects.md` — a practical guide to GORM as used within Hoist applications
-- Not Hoist-specific API documentation, but a Grails platform guide covering domain class anatomy,
-  querying patterns, transaction management, association strategies, caching, and common pitfalls
-- Source-code-verified against all 9 Hoist Core domain classes and key services
-- Includes patterns observed in production Hoist applications (schema separation, `withNewSession`
-  for cache priming, `withNewTransaction` for independent commits, direct SQL via `groovy.sql.Sql`,
-  stub caches for N+1 mitigation)
-- Added "Grails Platform" section to both README.md index and README-ROADMAP.md
-- Doc placed in its own "Grails Platform" section rather than a priority tier, as it covers
-  foundational Grails concepts rather than a specific Hoist feature area
+## Progress Summary
 
-### 2026-02-14 (cont.) — Interactive reviews: base-classes, gorm-domain-objects, request-flow
-- Reviewed `base-classes.md` — fixed inaccuracies, expanded API coverage, marked Done
-- Reviewed `gorm-domain-objects.md` — clarified pitfalls, added admin cache tools, marked Done
-- Reviewed `request-flow.md` — key corrections:
-  - Replaced "Hazelcast cluster readiness" with "instance readiness" throughout — `ensureRunning()`
-    checks instance lifecycle state, not Hazelcast specifically
-  - Clarified Hazelcast init is required even for single-instance deployments
-  - Added `allowRequest()` as a 4th exception handling layer with distinct security behavior (opaque
-    error to unverified clients, no JSON body)
-  - Fixed JSON error filtering description (falsy values, not just null)
-  - Added `(.$format)?` to standard UrlMappings pattern
-  - Specified WebSocket bypass checks both header and URI path
-  - Marked `DefaultController` as app-provided (not part of hoist-core)
-  - Marked Done
-- Reviewed `authentication.md` — key corrections:
-  - Fixed claim that "IdentityService never creates sessions" — `noteUserAuthenticated()` does
-    create sessions, but only for verified users; all other access uses `getSession(false)`
-  - Fixed claim that all IdentityService methods return null outside request context — ThreadLocal
-    fallback (`threadUsername`/`threadAuthUsername`) propagates identity during cluster task execution
-  - Simplified flow diagram to match actual code structure (single `||` check for auth user or
-    whitelist, not sequential decisions)
-  - Added `isWhitelist(HttpServletRequest)` protected method as override point for custom whitelist
-    logic beyond mutating the URI list
-  - Named `xhEnableImpersonation` config key (was only described generically)
-  - Documented both `getClientConfig()` response shapes: `{user, roles}` normally vs.
-    `{apparentUser, apparentUserRoles, authUser, authUserRoles}` during impersonation
-  - Added `formatForJSON()` / `JSONFormat` to HoistUser description
-  - Clarified login/logout flow through IdentityService (controllers call IdentityService, which
-    delegates to AuthenticationService and handles session cleanup)
-  - Marked Done
-- Reviewed `authorization.md` — key corrections:
-  - Fixed cluster propagation claim: Admin Console changes propagate immediately to all instances
-    via replicated `CachedValue`, not delayed until the next timer cycle. Timer interval governs
-    external directory group membership refresh only
-  - Added 3 missing source files: `DefaultRoleAdminService`, `DefaultRoleUpdateService`,
-    `RoleAdminController`
-  - Added `Customization Points` section documenting `userAssignmentSupported`,
-    `directoryGroupsSupported`, `directoryGroupsDescription`, and `doLoadUsersForDirectoryGroups`
-    override points
-  - Added alternative `resources.groovy` bean registration approach for no-customization usage
-  - Fixed `Role.members` type from `List<RoleMember>` to `Set<RoleMember>` (GORM `hasMany` default)
-  - Clarified bootstrap admin restriction is code-enforced (`isLocalDevelopment && !isProduction`),
-    not merely advisory
-  - Noted `HOIST_ROLE_MANAGER` is intentionally independent from `HOIST_ADMIN` — admin status does
-    not automatically grant role management capability
-  - Renamed "Stale role cache" pitfall to "Stale directory group memberships" to accurately reflect
-    the actual caching concern
-  - Improved framing of `DefaultRoleService` vs custom `BaseRoleService`: DefaultRoleService is a
-    production-ready, self-contained default; custom implementations are for apps/customers with an
-    existing external role source (JWT claims, Entra ID, custom APIs)
-  - Reverted premature Done status — clarified in Review Workflow that only a human XH developer
-    can promote a doc out of Draft. AI-driven review alone is not sufficient
-  - Awaiting human sign-off
+_For detailed session-by-session notes, see [docs-roadmap-log.md](./docs-roadmap-log.md)._
+
+### Status Overview
+- **Priority 1 (Core Framework):** base-classes, request-flow, authentication Done;
+  authorization in Draft (AI-reviewed, awaiting human sign-off)
+- **Priority 2 (Core Features):** All 5 docs in Draft (configuration, preferences, clustering,
+  activity-tracking, json-handling)
+- **Priority 3 (Infrastructure):** All 6 docs in Draft (monitoring, websocket, http-client,
+  email, exception-handling, logging)
+- **Grails Platform:** gorm-domain-objects Done
+- **Priority 4 (Supporting Features):** All 6 docs still Planned
+- **Documentation index** (`docs/README.md`) created and maintained alongside feature docs
+
+### Key Decisions
+Conventions established during the documentation effort and not already captured in the
+Documentation Guidelines above:
+
+- Created `docs/README.md` as the primary documentation index — `AGENTS.md` no longer hosts
+  documentation tables, instead pointing to the index with a compact directive
+- All docs live in `docs/` as flat files organized by feature area (not alongside source
+  like hoist-react), since features span multiple Grails convention directories
+- "Grails Platform" section created for non-Hoist-specific guides (GORM, etc.) — these sit
+  outside the priority tiers
+- Source-code-verified self-review applied to all drafts before committing — caught critical
+  errors in role inheritance direction and preference deletion behavior
+
+### Current Focus
+- Completing interactive reviews of remaining Draft docs (authorization next, then P2/P3)
+- Priority 4 docs remain Planned — will be drafted after P1–P3 reviews complete
