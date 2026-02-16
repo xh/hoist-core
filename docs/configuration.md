@@ -1,7 +1,8 @@
-> **Status: DRAFT** — This document is awaiting review. Content may be incomplete or subject to
-> change. Do not remove this banner until the document has been interactively reviewed and approved.
-
 # Configuration
+
+The soft configuration system is one of the most widely used and important features in Hoist.
+Nearly every application relies on it extensively to manage runtime-adjustable settings, feature
+flags, API endpoints, thresholds, and more — all without requiring code changes or redeployments.
 
 Hoist applications are configured through two complementary systems:
 
@@ -12,6 +13,26 @@ Hoist applications are configured through two complementary systems:
    Admin Console without code changes or redeployment.
 
 Instance configs bootstrap the app; soft configs tune it once it's running.
+
+### When to Use Soft Configs
+
+Soft configs should be the default choice for application settings. Reach for them whenever a
+value might need to change without a code deployment. Common cases include:
+
+- **Avoiding magic numbers** — Thresholds, limits, and feature flags that are hard-coded today but
+-
+  may need adjustment. Extracting them into configs makes them adjustable at runtime via the Admin
+  Console.
+- **Per-environment tuning** — Each deployment environment (Development, Staging, Production) has
+  its own config database, so values can be deliberately kept different across environments.
+  Examples include pointing to a dev API host in Development, extending timeouts in a QA/UAT
+  environment, or enabling verbose logging in Staging while keeping it off in Production.
+- **Runtime experimentation** — Values that operators or developers may want to tweak without a
+  release cycle, such as polling intervals, batch sizes, or display settings.
+
+Because each environment maintains its own config values independently, the Admin Console's
+"Config Differ" tool can be used to compare and selectively sync configs across environments —
+keeping intentional differences in place while catching unintended drift.
 
 ---
 
@@ -43,10 +64,11 @@ convention:
 APP_[APP_CODE]_[KEY]
 ```
 
-Where `[APP_CODE]` and `[KEY]` are both in UPPER_SNAKE_CASE. The key is converted from the
-camelCase used in code via Jackson's `UpperSnakeCaseStrategy`:
+Where `[APP_CODE]` and `[KEY]` are both in UPPER_SNAKE_CASE. The conversion uses Jackson's
+`UpperSnakeCaseStrategy` and also replaces hyphens with underscores — so an app code like
+`my-app` becomes `MY_APP`:
 
-| Code Key | Environment Variable (for app `myApp`) |
+| Code Key | Environment Variable (for app `my-app`) |
 |----------|----------------------------------------|
 | `dbHost` | `APP_MY_APP_DB_HOST` |
 | `dbPassword` | `APP_MY_APP_DB_PASSWORD` |
@@ -305,6 +327,11 @@ Called during application bootstrap to declare configs the application depends o
 configs with default values; logs errors for type mismatches or `clientVisible` flag mismatches on
 existing configs (but does not auto-fix them).
 
+Applications should declare all long-lived, expected configs here — not just those that are
+strictly required at startup. This serves as an effective inventory of the application's soft
+configs, ensures that an app starting against a fresh database has a complete set of entries
+visible and adjustable in the Admin Console, and guarantees consistency across environments.
+
 ```groovy
 class BootStrap {
     def configService
@@ -341,60 +368,47 @@ configs.
 
 #### ConfigDiffService
 
-Handles cross-environment config synchronization. The `applyRemoteValues()` method accepts a list
-of records from a remote environment and creates, updates, or deletes local configs to match:
-
-- If a config doesn't exist locally, it is created with the remote values.
-- If a config exists and remote values are provided, it is updated.
-- If a config exists but the remote value is `null`, it is deleted.
-
-This powers the Admin Console's "Config Differ" tool for comparing and syncing configs across
-development, staging, and production environments.
+An internal implementation service that powers the Admin Console's "Config Differ" tool, enabling
+comparison and synchronization of configs across environments.
 
 ### Naming Conventions
 
-Hoist's own framework configs are prefixed with `xh`. Applications should choose a distinct prefix
-(e.g., the app name) to avoid collisions.
+Hoist's own framework configs are prefixed with `xh` (e.g., `xhActivityTrackingConfig`,
+`xhEmailFilter`). Applications should avoid the `xh` prefix to prevent collisions with framework
+configs, but do not need to namespace their own configs with an app-specific prefix — each app is
+the sole consumer of its own config entries.
 
-| Config | Type | Description |
-|--------|------|-------------|
-| Various `xh*` configs | Mixed | Framework configs created by hoist-core services |
-| App-specific configs | Mixed | Created via `ensureRequiredConfigsCreated()` |
+Choose clear, legible, specific names that are easy to understand at a glance. The recommended
+convention is `camelCase` (e.g., `pricingApiHost`, `maxRetries`, `dashboardSettings`). Include
+units in the name where relevant to understanding the value (e.g., `pricingApiTimeoutSecs`).
 
 ### Common Patterns
 
-#### Reactive Config Usage
+#### Externalizing Magic Numbers and Thresholds
 
-Subscribe to config changes to automatically refresh dependent state:
+A common use of soft configs is to extract values that might need to change — thresholds, limits,
+feature flags — out of the source code and into the Admin Console:
 
 ```groovy
-class PricingService extends BaseService {
-
-    // Automatic: clear caches when this config changes
-    static clearCachesConfigs = ['pricingConfig']
-
-    // Manual: subscribe for custom handling
-    void init() {
-        subscribeToTopic(
-            topic: 'xhConfigChanged',
-            onMessage: { Map msg ->
-                if (msg.key == 'pricingConfig') refreshPricingEngine()
-            }
-        )
-    }
-}
+int maxResults = configService.getInt('tradeBlotterMaxRows')
+boolean auditsEnabled = configService.getBool('auditLoggingEnabled')
 ```
+
+This avoids hard-coding values that may need to vary across environments or be adjusted without a
+redeployment.
 
 #### Timer Intervals from Config
 
-`BaseService.createTimer()` accepts a config name as the `interval` parameter. The timer
-automatically adjusts when the config changes:
+`BaseService.createTimer()` accepts a config name (string) as its `interval` parameter. The config
+must be of type `int`, and its value is looked up via `configService.getInt()` on each evaluation.
+The timer automatically adjusts when the config value changes:
 
 ```groovy
 createTimer(
     name: 'refresh',
     runFn: this.&refresh,
-    interval: 'xhMyServiceRefreshSecs',   // reads interval from this config
+    interval: 'xhRefreshIntervalSecs',   // reads interval from this int config
+    intervalUnits: SECONDS,
     primaryOnly: true
 )
 ```
@@ -422,9 +436,84 @@ const settings = XH.getConf('dashboardSettings');  // parsed JSON object
 
 Password configs are always obscured when sent to the client, even if marked `clientVisible`.
 
+#### Reactive Config Usage and clearCachesConfigs
+
+Whenever a service caches a resource that was created using a config value, developers should
+consider whether that resource needs to be recreated if the config changes. For example, a service
+that caches a reference to an HTTP client configured with a host from config should
+invalidate that cached client if the host config is updated — otherwise the service will continue
+using the stale value.
+
+The easiest way to handle this is via the `clearCachesConfigs` static property on `BaseService`.
+List the config names that should trigger a `clearCaches()` call — the framework subscribes to the
+`xhConfigChanged` topic and handles the rest:
+
+```groovy
+class PricingService extends BaseService {
+
+    static clearCachesConfigs = ['pricingSourceConfig']
+
+    def configService
+
+    // This cache holds data fetched based on the 'pricingSourceConfig' config.
+    // If that config changes, the cached data is stale and must be refetched.
+    CachedValue<Map> prices = createCachedValue(name: 'prices', replicate: true)
+
+    Map getPrices() {
+        prices.getOrCreate { fetchPrices() }
+    }
+
+    private Map fetchPrices() {
+        Map sourceConfig = configService.getMap('pricingSourceConfig')
+        // ... fetch from source using config-driven host, credentials, etc.
+    }
+
+    void clearCaches() {
+        prices.clear()
+        super.clearCaches()
+    }
+}
+```
+
+For cases where `clearCaches()` is not the right response — e.g., you need to call a specific
+method or take a more targeted action — subscribe to the `xhConfigChanged` topic directly:
+
+```groovy
+class PricingService extends BaseService {
+
+    void init() {
+        subscribeToTopic(
+            topic: 'xhConfigChanged',
+            onMessage: { Map msg ->
+                if (msg.key == 'pricingConfig') refreshPricingEngine()
+            }
+        )
+    }
+}
+```
+
 ### Common Pitfalls
 
-#### Accessing raw value without typed getter
+#### Avoid ambiguous or unclear config key names
+
+Config names are the primary interface for developers and admins working with soft configuration.
+Vague or overly abbreviated names make it harder to understand what a config controls, especially
+when browsing the Admin Console. Avoid generic names like `timeout`, `enabled`, or `maxCount` that
+don't convey what they apply to:
+
+```groovy
+// ✅ Do: Specific, self-documenting names
+'pricingApiTimeoutSecs'
+'feedbackEmailEnabled'
+'tradeBlotterMaxRows'
+
+// ❌ Don't: Ambiguous names that require hunting for context
+'timeout'
+'enabled'
+'maxRows'
+```
+
+#### Don't access raw values without typed getters
 
 Always use the typed getters on `ConfigService` rather than querying `AppConfig` domain objects
 directly:
@@ -439,19 +528,29 @@ def region = AppConfig.findByName('myAppRegion').value
 
 The typed getters handle type coercion, password decryption, instance config overrides, and caching.
 
-#### Not declaring required configs
+#### Don't skip declaring configs in `ensureRequiredConfigsCreated`
 
 If application code depends on a config that doesn't exist, the typed getter will throw a
-`RuntimeException`. Always declare required configs in `ensureRequiredConfigsCreated()` during
-bootstrap to ensure they exist with sensible defaults.
+`RuntimeException`. More broadly, all long-lived app configs should be declared in
+`ensureRequiredConfigsCreated()` during bootstrap — this creates a complete inventory, ensures
+fresh databases start with viewable and adjustable entries in the Admin Console, and prevents
+missing-config surprises across environments.
 
-#### Modifying `pwd` configs via direct domain access
+#### Don't use instance configs when soft configs would suffice
 
-Password configs must go through `AppConfig`'s lifecycle hooks for encryption. Setting
-`appConfig.value = 'newSecret'` and saving will encrypt the value. But bypassing the domain (e.g.,
-raw SQL) will store plaintext, breaking decryption.
+Favor `AppConfig` soft configs wherever possible — they can be adjusted at runtime via the Admin
+Console without restarting the application. Instance configs require an environment variable change
+and a restart to take effect. Reserve instance configs for values that are needed very early in the
+startup process (e.g., database credentials, `serverURL`) or that are too sensitive to store in
+the database, even encrypted.
 
-#### Ignoring instance config overrides
+#### Don't use instance configs in `application.groovy`
+
+`InstanceConfigUtils` is not available in `application.groovy` — that file is processed before
+compilation. Use `runtime.groovy` instead for any configuration that depends on instance config
+values.
+
+#### Don't forget to check for instance config overrides
 
 When troubleshooting config issues, remember to check for instance config overrides. A config may
 have one value in the database but a different effective value from an environment variable or YAML

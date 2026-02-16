@@ -123,6 +123,31 @@
     can promote a doc out of Draft. AI-driven review alone is not sufficient
   - Awaiting human sign-off
 
+### 2026-02-16 — Interactive review: configuration
+- Reviewed `configuration.md` against all 7 referenced source files
+- Key corrections and additions:
+  - Fixed env var naming to document hyphen-to-underscore replacement (app codes with dashes)
+  - Expanded Reactive Config Usage section: `clearCachesConfigs` now leads as the primary pattern
+    with a full CachedValue example showing lazy invalidation, followed by manual `subscribeToTopic`
+    for custom handling
+  - Fixed Timer interval config example: added `intervalUnits: SECONDS`, noted config must be `int`
+    type looked up via `configService.getInt()`
+  - Added "When to Use Soft Configs" section near top — covers avoiding magic numbers,
+    per-environment tuning (different config DBs per environment), runtime experimentation
+  - Added opening paragraph emphasizing config system as widely used and important
+  - Added "Externalizing Magic Numbers" as first common pattern
+  - Reworked naming conventions: apps don't need app-specific prefix (sole consumers of their own
+    configs), use camelCase, include units in names where relevant
+  - Trimmed ConfigDiffService to brief internal-service note
+  - Added pitfalls: ambiguous config names, instance configs when soft configs suffice, instance
+    configs in `application.groovy`
+  - Strengthened `ensureRequiredConfigsCreated` guidance: declare all long-lived configs, not just
+    strictly required ones — creates inventory, ensures fresh DBs have viewable entries
+  - Rephrased all pitfall headings to "Avoid..."/"Don't..." to prevent misinterpretation as
+    instructions
+- Marked Done, DRAFT banner removed
+- First Priority 2 doc complete
+
 ### 2026-02-16 — Interactive review: authorization (human sign-off)
 - Reviewed `authorization.md` against all 13 referenced source files — no major factual errors found
 - Key corrections and additions:
