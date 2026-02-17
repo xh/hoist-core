@@ -101,7 +101,7 @@ class MetricsService extends BaseService {
     // Implementation
     //------------------------
     private void syncBuiltInRegistries() {
-        withInfo('Syncing registries', [prometheus: config.prometheusEnabled, otlp: config.otlpEnabled]) {
+        withDebug(['Syncing registries', [prometheus: config.prometheusEnabled, otlp: config.otlpEnabled]]) {
             // Prometheus
             if (_prometheusRegistry) {
                 registry.remove(_prometheusRegistry)
