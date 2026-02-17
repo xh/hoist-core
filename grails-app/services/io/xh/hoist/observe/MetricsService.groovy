@@ -8,11 +8,8 @@
 package io.xh.hoist.observe
 
 import groovy.transform.CompileDynamic
-import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.Meter
-import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Tags
-import io.micrometer.core.instrument.Timer
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry
 import io.micrometer.core.instrument.config.MeterFilter
 import io.micrometer.prometheusmetrics.PrometheusConfig
@@ -21,19 +18,9 @@ import io.micrometer.core.instrument.Clock
 import io.micrometer.registry.otlp.OtlpConfig
 import io.micrometer.registry.otlp.OtlpMeterRegistry
 import io.xh.hoist.BaseService
-import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.monitor.AggregateMonitorResult
-import io.xh.hoist.monitor.Monitor
-import io.xh.hoist.monitor.MonitorResult
-import io.xh.hoist.observe.MetricsConfig
-import io.xh.hoist.util.Utils
-
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.TimeUnit
 
 import static io.xh.hoist.cluster.ClusterService.instanceName
-import static io.xh.hoist.util.ClusterUtils.runOnPrimary
 import static io.xh.hoist.util.Utils.appCode
 
 /**
@@ -63,21 +50,21 @@ class MetricsService extends BaseService {
      *
      * Additional export registries may also be added via 'registry.add'.
      */
-    static CompositeMeterRegistry registry = new CompositeMeterRegistry()
-
+    CompositeMeterRegistry registry
 
     static clearCachesConfigs = ['xhMetricsConfig']
 
+    ConfigService configService
     private PrometheusMeterRegistry _prometheusRegistry
     private OtlpMeterRegistry _otlpRegistry
 
     void init() {
-        def ns = namespace
+        registry = new CompositeMeterRegistry()
 
         // Apply default namespace prefix and tags
         registry.config().meterFilter(new MeterFilter() {
             Meter.Id map(Meter.Id id) {
-                def ret = id.withName("${ns}.${id.name}")
+                def ret = id.withName("${namespace}.${id.name}")
 
                 [application: appCode, instance: instanceName].each {key, value ->
                     if (!id.tags.any { it.key == key }) {
@@ -114,29 +101,31 @@ class MetricsService extends BaseService {
     // Implementation
     //------------------------
     private void syncBuiltInRegistries() {
-        // Prometheus
-        if (_prometheusRegistry) {
-            registry.remove(_prometheusRegistry)
-            _prometheusRegistry.close()
-            _prometheusRegistry = null
-        }
-        if (config.prometheusEnabled) {
-            def conf = prefixKeys('prometheus', config.prometheusConfig)
-            _prometheusRegistry = new PrometheusMeterRegistry(conf::get as PrometheusConfig)
-            registry.add(_prometheusRegistry)
-        }
+        withInfo('Syncing registries', [prometheus: config.prometheusEnabled, otlp: config.otlpEnabled]) {
+            // Prometheus
+            if (_prometheusRegistry) {
+                registry.remove(_prometheusRegistry)
+                _prometheusRegistry.close()
+                _prometheusRegistry = null
+            }
+            if (config.prometheusEnabled) {
+                def conf = prefixKeys('prometheus', config.prometheusConfig)
+                _prometheusRegistry = new PrometheusMeterRegistry(conf::get as PrometheusConfig)
+                registry.add(_prometheusRegistry)
+            }
 
-        // OTLP
-        if (_otlpRegistry) {
-            registry.remove(_otlpRegistry)
-            _otlpRegistry.stop()
-            _otlpRegistry.close()
-            _otlpRegistry = null
-        }
-        if (config.otlpEnabled) {
-            def conf = prefixKeys('otlp', config.otlpConfig)
-            _otlpRegistry = new OtlpMeterRegistry(conf::get as OtlpConfig, Clock.SYSTEM)
-            registry.add(_otlpRegistry)
+            // OTLP
+            if (_otlpRegistry) {
+                registry.remove(_otlpRegistry)
+                _otlpRegistry.stop()
+                _otlpRegistry.close()
+                _otlpRegistry = null
+            }
+            if (config.otlpEnabled) {
+                def conf = prefixKeys('otlp', config.otlpConfig)
+                _otlpRegistry = new OtlpMeterRegistry(conf::get as OtlpConfig, Clock.SYSTEM)
+                registry.add(_otlpRegistry)
+            }
         }
     }
 

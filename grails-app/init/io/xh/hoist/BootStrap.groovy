@@ -308,6 +308,17 @@ class BootStrap implements LogSupport {
                 groupName: 'xh.io',
                 note: 'Email address to which status monitor alerts should be sent. Value "none" disables emailed alerts.'
             ],
+            xhMetricsConfig: [
+                valueType: 'json',
+                defaultValue: [
+                    prometheusEnabled: false,
+                    otlpEnabled: false,
+                    prometheusConfig: [:],
+                    otlpConfig: [:]
+                ],
+                groupName: 'xh.io',
+                note: 'Parameters for observable metric support'
+            ],
             xhWebSocketConfig: [
                 valueType: 'json',
                 defaultValue: [
