@@ -36,6 +36,10 @@ class ApplicationConfig {
                 main.'allow-circular-references' = true
                 groovy.template.'check-template-location' = false
                 devtools.restart.exclude = ['grails-app/conf/**']
+                autoconfigure.exclude = [
+                    'org.springframework.boot.actuate.autoconfigure.metrics.export.prometheus.PrometheusMetricsExportAutoConfiguration',
+                    'org.springframework.boot.actuate.autoconfigure.metrics.export.otlp.OtlpMetricsExportAutoConfiguration'
+                ]
             }
 
             management {

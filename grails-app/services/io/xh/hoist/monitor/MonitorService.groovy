@@ -13,6 +13,7 @@ import io.xh.hoist.BaseService
 import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.util.Timer
+import io.xh.hoist.observe.MonitorMetricsService
 
 import static AggregateMonitorResult.emptyResults
 import static AggregateMonitorResult.newResults
