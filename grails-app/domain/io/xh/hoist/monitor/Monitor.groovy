@@ -10,6 +10,13 @@ package io.xh.hoist.monitor
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.util.Utils
 
+/**
+ * GORM domain class for a persisted monitor definition.
+ *
+ * @see MonitorSpec — mirrors the seedable fields of this class for use with
+ *      {@link io.xh.hoist.monitor.provided.DefaultMonitorDefinitionService#ensureRequiredMonitorsCreated}.
+ *      If a new seedable field is added here, update MonitorSpec to match.
+ */
 class Monitor implements JSONFormat {
 
     String code

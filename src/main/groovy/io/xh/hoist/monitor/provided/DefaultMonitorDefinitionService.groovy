@@ -254,18 +254,7 @@ class DefaultMonitorDefinitionService extends BaseService {
             try {
                 Monitor currMonitor = currMonitors.find { it.code == spec.code }
                 if (!currMonitor) {
-                    new Monitor(
-                        code: spec.code,
-                        name: spec.name,
-                        metricType: spec.metricType,
-                        active: spec.active,
-                        metricUnit: spec.metricUnit,
-                        warnThreshold: spec.warnThreshold,
-                        failThreshold: spec.failThreshold,
-                        primaryOnly: spec.primaryOnly,
-                        params: spec.params,
-                        notes: spec.notes
-                    ).save()
+                    new Monitor(spec.properties).save()
                     logWarn(
                         "Required status monitor ${spec.name} missing and created with default value",
                         'verify default is appropriate for this application'

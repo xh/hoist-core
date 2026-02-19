@@ -13,8 +13,10 @@ import groovy.transform.MapConstructor
  * Typed specification for a required monitor to be created by
  * {@link io.xh.hoist.monitor.provided.DefaultMonitorDefinitionService#ensureRequiredMonitorsCreated}.
  *
+ * Mirrors the seedable fields of {@link Monitor} — if a new seedable field is added to the
+ * domain class, it should be added here as well.
+ *
  * Provides IDE autocomplete and compile-time validation for monitor definitions.
- * Supports construction from named parameters or from a Map via {@code @MapConstructor}.
  */
 @MapConstructor
 class MonitorSpec {
