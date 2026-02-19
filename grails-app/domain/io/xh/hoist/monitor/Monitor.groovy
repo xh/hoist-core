@@ -14,7 +14,7 @@ class Monitor implements JSONFormat {
 
     String code
     String name
-    String metricType
+    MonitorMetricType metricType
     String metricUnit
     Integer warnThreshold
     Integer failThreshold
@@ -26,8 +26,6 @@ class Monitor implements JSONFormat {
     Date lastUpdated
     boolean primaryOnly = false
 
-    public static List<String> METRIC_TYPES = ['Floor', 'Ceil', 'None']
-
     static mapping = {
         table 'xh_monitor'
         cache true
@@ -36,7 +34,7 @@ class Monitor implements JSONFormat {
     static constraints = {
         code(unique:true, blank: false)
         name(unique:true, blank: false)
-        metricType(maxSize: 20, inList: Monitor.METRIC_TYPES)
+        metricType()
         metricUnit(nullable: true)
         warnThreshold(nullable: true)
         failThreshold(nullable: true)
@@ -51,7 +49,7 @@ class Monitor implements JSONFormat {
                 id: id,
                 code: code,
                 name: name,
-                metricType: metricType,
+                metricType: metricType.name(),
                 metricUnit: metricUnit,
                 warnThreshold: warnThreshold,
                 failThreshold: failThreshold,

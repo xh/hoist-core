@@ -2,6 +2,13 @@
 
 ## 37.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Added `MonitorSpec` typed class and `MonitorMetricType` enum for use with
+  `ensureRequiredMonitorsCreated()`, replacing untyped `Map` arguments with a class that provides
+  IDE autocomplete and compile-time validation. Raw `Map` arguments are still supported at runtime
+  with a deprecation warning logged on startup.
+
 ### ⚙️ Technical
 
 * Added experimental support for Claude Code with project documentation (`AGENTS.md`), an
