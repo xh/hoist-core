@@ -34,6 +34,12 @@ repositories {
 
 dependencies {
 
+    constraints {
+        api("org.apache.mina:mina-core:2.2.4") {
+            because "CVE-2024-52046 - deserialization vulnerability in < 2.2.4"
+        }
+    }
+
     //-------------------------------------------------------
     // Grails 7.0 REST Plugin Defaults + Other Grails Plugins
     //-------------------------------------------------------

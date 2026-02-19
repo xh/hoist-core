@@ -9,6 +9,8 @@
   IDE autocomplete and compile-time validation. Raw `Map` arguments are still supported at runtime
   with a deprecation warning logged on startup.
 
+## 36.2.0 - 2026-02-13
+
 ### ⚙️ Technical
 
 * Added experimental support for Claude Code with project documentation (`AGENTS.md`), an
