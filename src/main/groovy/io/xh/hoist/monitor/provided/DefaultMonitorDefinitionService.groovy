@@ -238,13 +238,8 @@ class DefaultMonitorDefinitionService extends BaseService {
      */
     @Transactional
     void ensureRequiredMonitorsCreated(List<MonitorSpec> monitorSpecs) {
-        // Backwards compat - coerce any raw Maps that sneak through (Groovy erases generics)
-        boolean hasRawMaps = monitorSpecs.any { !(it instanceof MonitorSpec) }
-        if (hasRawMaps) {
-            logWarn("ensureRequiredMonitorsCreated() called with raw Maps - use MonitorSpec instead")
-            monitorSpecs = monitorSpecs.collect {
-                it instanceof MonitorSpec ? it : new MonitorSpec(it as Map)
-            }
+        monitorSpecs = monitorSpecs.collect {
+            it instanceof MonitorSpec ? it : new MonitorSpec(it as Map)
         }
 
         List<Monitor> currMonitors = Monitor.list()
