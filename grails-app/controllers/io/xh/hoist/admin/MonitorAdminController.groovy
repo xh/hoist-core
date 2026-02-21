@@ -8,6 +8,7 @@
 package io.xh.hoist.admin
 
 import io.xh.hoist.monitor.Monitor
+import io.xh.hoist.monitor.MonitorMetricType
 import io.xh.hoist.security.AccessRequiresRole
 
 @AccessRequiresRole('HOIST_ADMIN_READER')
@@ -17,7 +18,7 @@ class MonitorAdminController extends AdminRestController {
     static trackChanges = true
 
     def lookupData() {
-        renderJSON(metricTypes: Monitor.METRIC_TYPES)
+        renderJSON(metricTypes: MonitorMetricType.values()*.name())
     }
 
     protected void preprocessSubmit(Map submit) {

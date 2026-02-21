@@ -122,3 +122,64 @@
   - Reverted premature Done status — clarified in Review Workflow that only a human XH developer
     can promote a doc out of Draft. AI-driven review alone is not sufficient
   - Awaiting human sign-off
+
+### 2026-02-16 — Interactive review: configuration
+- Reviewed `configuration.md` against all 7 referenced source files
+- Key corrections and additions:
+  - Fixed env var naming to document hyphen-to-underscore replacement (app codes with dashes)
+  - Expanded Reactive Config Usage section: `clearCachesConfigs` now leads as the primary pattern
+    with a full CachedValue example showing lazy invalidation, followed by manual `subscribeToTopic`
+    for custom handling
+  - Fixed Timer interval config example: added `intervalUnits: SECONDS`, noted config must be `int`
+    type looked up via `configService.getInt()`
+  - Added "When to Use Soft Configs" section near top — covers avoiding magic numbers,
+    per-environment tuning (different config DBs per environment), runtime experimentation
+  - Added opening paragraph emphasizing config system as widely used and important
+  - Added "Externalizing Magic Numbers" as first common pattern
+  - Reworked naming conventions: apps don't need app-specific prefix (sole consumers of their own
+    configs), use camelCase, include units in names where relevant
+  - Trimmed ConfigDiffService to brief internal-service note
+  - Added pitfalls: ambiguous config names, instance configs when soft configs suffice, instance
+    configs in `application.groovy`
+  - Strengthened `ensureRequiredConfigsCreated` guidance: declare all long-lived configs, not just
+    strictly required ones — creates inventory, ensures fresh DBs have viewable entries
+  - Rephrased all pitfall headings to "Avoid..."/"Don't..." to prevent misinterpretation as
+    instructions
+- Marked Done, DRAFT banner removed
+- First Priority 2 doc complete
+
+### 2026-02-16 — Interactive review: authorization (human sign-off)
+- Reviewed `authorization.md` against all 13 referenced source files — no major factual errors found
+- Key corrections and additions:
+  - Fixed Customization Points section: removed "protected" qualifier — 3 of 4 override points
+    (`getUserAssignmentSupported`, `getDirectoryGroupsSupported`, `getDirectoryGroupsDescription`)
+    are public, only `doLoadUsersForDirectoryGroups()` is protected
+  - Added impersonation guard detail to Built-in Roles: `RoleAdminController` write operations
+    check `authUser` (not apparent user) for `HOIST_ROLE_MANAGER`, preventing impersonated users
+    from modifying roles
+  - Added "Soft-Config Gates" subsection to Common Patterns: documents `HoistUser.hasGate()` as
+    a lighter-weight, config-backed access mechanism for gating features under development
+- Marked Done, DRAFT banner removed
+- Priority 1 (Core Framework) now fully complete: all 4 docs Done
+
+### 2026-02-16 — Interactive review: preferences
+- Reviewed `preferences.md` against all source files (Preference, UserPreference, PrefService,
+  PrefDiffService, PreferenceAdminController, XhController, BootStrap)
+- Key corrections and additions:
+  - Removed outdated `local` flag references from preferences.md, README.md, and docs-roadmap.md
+    (feature was removed from hoist-react)
+  - Removed phantom `xhPreferenceChanged` event from roadmap description (does not exist in
+    codebase, unlike `xhConfigChanged` for configs)
+  - Added PreferenceAdminController and XhController to source files table
+  - Documented untyped `setPreference()` method with guidance to prefer typed setters
+  - Added Built-in Preferences table cataloging 6 `xh`-prefixed prefs from Hoist BootStrap
+  - Strengthened `ensureRequiredPrefsCreated` guidance: apps should register all prefs they use;
+    non-existent prefs throw RuntimeException
+  - Added `note` vs `notes` API naming inconsistency callout
+  - Clarified PrefDiffService and PreferenceAdminController as internal Hoist implementation
+    services, not public APIs for application code
+  - Removed `getLimitedClientConfig` documentation (internal framework method)
+  - Added link to hoist-react persistence documentation — most client-side pref interaction
+    happens through the persistence system's `persistWith` mechanism
+  - Simplified cascade deletion pitfall wording
+- Marked Done, DRAFT banner removed

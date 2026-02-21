@@ -13,6 +13,9 @@
     * The metric namespace defaults to `{appCode}.monitor` and can be overridden via the
       `metricsNamespace` key in `xhMonitorConfig`. Publishing can be disabled via `metricsEnabled`.
     * Requires Spring Boot Actuator, already enabled as of Hoist v36.1.
+* Added `MonitorSpec` typed class and `MonitorMetricType` enum for use with
+  `ensureRequiredMonitorsCreated()`, replacing untyped `Map` arguments with a class that provides
+  IDE autocomplete and compile-time validation.
 
 ## 36.2.0 - 2026-02-13
 
