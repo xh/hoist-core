@@ -1,6 +1,3 @@
-> **Status: DRAFT** -- This document is awaiting review by the Hoist development team and may
-> contain inaccuracies or incomplete information.
-
 # Logging
 
 ## Overview
@@ -89,9 +86,10 @@ These methods wrap a closure, automatically logging elapsed time and completion 
 
 Each `withXxx` method:
 
-1. If a finer level is enabled, logs a `started` message at the **same** level as the `withXxx`
-   method. For example, `withInfo` logs its `started` message at INFO level when DEBUG is enabled;
-   `withDebug` logs its start at DEBUG level when TRACE is enabled.
+1. Optionally logs a `started` message at the **same** level as the `withXxx` method, if a finer
+   level is also enabled. Specifically, `withInfo` logs its `started` message at INFO level when
+   DEBUG is enabled; `withDebug` logs its start at DEBUG level when TRACE is enabled. For
+   `withTrace`, the `started` message is always logged (since TRACE is already the finest level).
 2. Executes the closure and measures elapsed time.
 3. Logs a `completed` message with the elapsed time (e.g., `completed | 342ms`).
 4. If the closure throws, logs a `failed` message with the elapsed time, then re-throws the
@@ -195,6 +193,13 @@ Programmatic Logback configuration that replaces the traditional `logback.groovy
    `ClusterInstanceConverter` for `%instance`.
 2. **Creates default appenders** -- A console appender (`stdout`), a daily rolling file appender
    for the main application log, and dedicated daily logs for activity tracking and monitoring.
+   All file-based appenders include the cluster instance name in their filename
+   (e.g., `myapp-inst1-app.log`, `myapp-inst1-track.log`, `myapp-inst1-monitor.log`), ensuring
+   each instance writes to its own files in multi-instance deployments.
+   The tracking and monitoring loggers are configured with `additivity: false`, preventing their
+   entries from duplicating into the main application log. The tracking log uses a minimal `%m%n`
+   layout (no timestamps or metadata in the log line itself, since tracking entries carry their own
+   timestamps and are buffered for correct ordering by `TrackLoggingService`).
 3. **Sets default log levels** -- ROOT at WARN, `io.xh` and the application package at INFO,
    with select noisy third-party packages (Spring, Hibernate, LDAP, Hazelcast CP) at ERROR,
    and the Grails `StackTrace` logger turned OFF.
@@ -243,8 +248,8 @@ database table). The admin console provides a UI for this under the "Log Levels"
 3. Propagated to all cluster instances via `ClusterUtils.runOnAllInstances`.
 4. Periodically re-applied every 30 minutes as a safety net.
 
-Supported levels: `Trace`, `Debug`, `Info`, `Warn`, `Error`, `Off`, and `Inherit` (which removes
-the explicit level and defers to the parent logger).
+Supported levels: `Trace`, `Debug`, `Info`, `Warn`, `Error`, `Inherit` (which removes the
+explicit level and defers to the parent logger), and `Off`.
 
 ### Log Root Path
 
@@ -252,6 +257,8 @@ The directory where log files are written is determined by `LogbackConfig.getLog
 
 1. **JVM property** `-Dio.xh.hoist.log.path` -- highest priority, if set.
 2. **Default** -- `[catalina.base]/logs/[appCode]-logs` when running under Tomcat.
+3. **Local dev fallback** -- When `catalina.base` is not set (e.g., running via `grails run-app`),
+   logs are written to `[appCode]-logs` relative to the working directory.
 
 ---
 
@@ -272,8 +279,8 @@ class OrderService extends BaseService {
 
 Output:
 ```
-14:32:01.123 | inst1 | OrderService [INFO] | homer | Processing order | orderId=ORD-123 | customer=Acme Corp
-14:32:01.130 | inst1 | OrderService [DEBUG] | homer | Validated order details | ORD-123
+14:32:01.123 | inst1 | OrderService [INFO] | jdoe | Processing order | orderId=ORD-123 | customer=Acme Corp
+14:32:01.130 | inst1 | OrderService [DEBUG] | jdoe | Validated order details | ORD-123
 ```
 
 ### Timed execution blocks
@@ -292,13 +299,13 @@ class DataSyncService extends BaseService {
 
 Output (at INFO level):
 ```
-14:32:05.500 | inst1 | DataSyncService [INFO] | homer | Syncing external data | completed | 2340ms
+14:32:05.500 | inst1 | DataSyncService [INFO] | jdoe | Syncing external data | completed | 2340ms
 ```
 
 Output (at DEBUG level -- additional `started` message appears):
 ```
-14:32:05.500 | inst1 | DataSyncService [INFO] | homer | Syncing external data | started
-14:32:07.840 | inst1 | DataSyncService [INFO] | homer | Syncing external data | completed | 2340ms
+14:32:05.500 | inst1 | DataSyncService [INFO] | jdoe | Syncing external data | started
+14:32:07.840 | inst1 | DataSyncService [INFO] | jdoe | Syncing external data | completed | 2340ms
 ```
 
 ### Passing structured data
@@ -313,7 +320,7 @@ Map keys starting with `_` have only their values printed (no `key=` prefix). Ot
 printed as `key=value`:
 
 ```
-14:32:10.100 | inst1 | LogReaderService [DEBUG] | homer | Reading log file | app.log | startLine=1 | maxLines=500 | completed | 87ms
+14:32:10.100 | inst1 | LogReaderService [DEBUG] | jdoe | Reading log file | app.log | startLine=1 | maxLines=500 | completed | 87ms
 ```
 
 ### Logging exceptions
@@ -328,12 +335,12 @@ try {
 
 At INFO/DEBUG level -- concise summary:
 ```
-14:32:15.200 | inst1 | OrderService [ERROR] | homer | Failed to complete operation | orderId=ORD-123 | java.net.ConnectException: Connection refused
+14:32:15.200 | inst1 | OrderService [ERROR] | jdoe | Failed to complete operation | orderId=ORD-123 | java.net.ConnectException: Connection refused
 ```
 
 At TRACE level -- full stacktrace is appended:
 ```
-14:32:15.200 | inst1 | OrderService [ERROR] | homer | Failed to complete operation | orderId=ORD-123 | java.net.ConnectException: Connection refused
+14:32:15.200 | inst1 | OrderService [ERROR] | jdoe | Failed to complete operation | orderId=ORD-123 | java.net.ConnectException: Connection refused
            at java.net.PlainSocketImpl.socketConnect(Native Method)
            at java.net.AbstractPlainSocketImpl.doConnect(...)
            ...
@@ -378,6 +385,56 @@ class MyAppLogbackConfig extends LogbackConfig {
     }
 }
 ```
+
+### Custom layouts for structured logging
+
+The `dailyLog()`, `monthlyLog()`, and `consoleAppender()` helper methods all accept a `layout`
+parameter that can be either a pattern **String** (the common case) or a **Closure** that returns a
+Logback `Layout` object. This allows applications to produce structured output formats such as JSON
+for integration with log aggregation tools (e.g., Splunk, ELK, Datadog).
+
+To set up a JSON-formatted log, add the `logback-json-classic` and `logback-jackson` dependencies
+(or alternatively `logstash-logback-encoder`) to your `build.gradle`, then pass a layout Closure
+to a log appender:
+
+```groovy
+// build.gradle
+dependencies {
+    implementation 'ch.qos.logback.contrib:logback-json-classic:0.1.5'
+    implementation 'ch.qos.logback.contrib:logback-jackson:0.1.5'
+}
+```
+
+```groovy
+// grails-app/init/com/myapp/MyAppLogbackConfig.groovy
+import ch.qos.logback.contrib.json.classic.JsonLayout
+import ch.qos.logback.contrib.jackson.JacksonJsonFormatter
+
+class MyAppLogbackConfig extends LogbackConfig {
+
+    protected void configureLogging() {
+        super.configureLogging()
+
+        // Define a Closure that produces a JsonLayout
+        def jsonLayout = {
+            def ret = new JsonLayout()
+            ret.jsonFormatter = new JacksonJsonFormatter()
+            ret.jsonFormatter.prettyPrint = false
+            ret.timestampFormat = 'yyyy-MM-dd HH:mm:ss.SSS'
+            return ret
+        }
+
+        // Create a dedicated daily log using the JSON layout
+        dailyLog('json-audit', jsonLayout)
+        logger('com.mycompany.audit', INFO, ['json-audit'])
+    }
+}
+```
+
+The Closure is called by `createEncoder()` at configuration time. The returned `Layout` is wrapped
+in a `LayoutWrappingEncoder` and attached to the appender. Note that `LogSupportConverter`'s
+pipe-delimited rendering only applies to pattern-based layouts using `%m` — JSON layouts will
+receive the raw SLF4J message and marker data directly.
 
 ---
 

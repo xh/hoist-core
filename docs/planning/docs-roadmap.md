@@ -45,7 +45,7 @@ Features that support production operations, integrations, and system health.
 | [`http-client.md`](../http-client.md) | JSONClient, BaseProxyService, HttpUtils | JSONClient (typed HTTP client with JSON serialization), BaseProxyService (proxying client requests to external APIs), HttpUtils helpers | Draft |
 | [`email.md`](../email.md) | EmailService, ClientErrorEmailService, FeedbackEmailService | EmailService (Grails mail plugin wrapper), config-driven filtering and overrides (`xhEmailFilter`, `xhEmailOverride`), support address configuration, client error and feedback email routing | Draft |
 | [`exception-handling.md`](../exception-handling.md) | ExceptionHandler, HttpException subclasses, RoutineException | Exception hierarchy (HttpException → NotAuthorizedException, NotFoundException, etc.), RoutineException (expected errors, logged at DEBUG), ExceptionHandler rendering, how exceptions map to HTTP status codes | Draft |
-| [`logging.md`](../logging.md) | LogSupport, LogLevelService, LogReaderService, LogArchiveService, LogbackConfig | LogSupport trait (`logDebug`, `logInfo`, `logWarn`, `logError` with `withDebug`/`withInfo` timed blocks), dynamic log level configuration via LogLevelService, log viewing via LogReaderService, Logback configuration | Draft |
+| [`logging.md`](../logging.md) | LogSupport, LogLevelService, LogReaderService, LogArchiveService, LogbackConfig | LogSupport trait (`logDebug`, `logInfo`, `logWarn`, `logError` with `withDebug`/`withInfo` timed blocks), dynamic log level configuration via LogLevelService, log viewing via LogReaderService, Logback configuration | Done |
 
 ## Grails Platform
 
@@ -195,8 +195,8 @@ _For detailed session-by-session notes, see [docs-roadmap-log.md](./docs-roadmap
   authorization)
 - **Priority 2 (Core Features):** 2 Done (configuration, preferences), 3 in Draft (clustering,
   activity-tracking, json-handling)
-- **Priority 3 (Infrastructure):** All 6 docs in Draft (monitoring, websocket, http-client,
-  email, exception-handling, logging)
+- **Priority 3 (Infrastructure):** 1 Done (logging), 5 in Draft (monitoring, websocket,
+  http-client, email, exception-handling)
 - **Grails Platform:** gorm-domain-objects Done
 - **Priority 4 (Supporting Features):** All 6 docs still Planned
 - **Documentation index** (`docs/README.md`) created and maintained alongside feature docs
