@@ -1,6 +1,3 @@
-> **Status: DRAFT** — This document is awaiting review. Content may be incomplete or subject to
-> change. Do not remove this banner until the document has been interactively reviewed and approved.
-
 # Preferences
 
 ## Overview
@@ -25,6 +22,8 @@ application settings, while preferences are per-user.
 | `UserPreference` | `grails-app/domain/io/xh/hoist/pref/` | GORM domain — per-user preference values |
 | `PrefService` | `grails-app/services/io/xh/hoist/pref/` | Primary service — typed getters/setters |
 | `PrefDiffService` | `grails-app/services/io/xh/hoist/pref/` | Cross-environment preference synchronization |
+| `PreferenceAdminController` | `grails-app/controllers/io/xh/hoist/admin/` | Admin Console CRUD endpoints for preference definitions |
+| `XhController` | `grails-app/controllers/io/xh/hoist/impl/` | Client-facing `getPrefs` / `setPrefs` endpoints |
 
 ## Key Classes
 
@@ -71,16 +70,16 @@ The primary service for reading and writing user preferences.
 All getters accept an optional `username` parameter (defaults to the current user):
 
 ```groovy
-String theme        = prefService.getString('theme')
-int pageSize        = prefService.getInt('defaultPageSize')
-long bigCount       = prefService.getLong('bigCount')
-double rate         = prefService.getDouble('exchangeRate')
-boolean showTips    = prefService.getBool('showTooltips')
-Map gridLayout      = prefService.getMap('positionGridLayout')
-List favorites      = prefService.getList('favoriteReports')
+String theme = prefService.getString('theme')
+int pageSize = prefService.getInt('defaultPageSize')
+long bigCount = prefService.getLong('bigCount')
+double rate = prefService.getDouble('exchangeRate')
+boolean useLivePrices = prefService.getBool('useLivePrices')
+Map apiConfig = prefService.getMap('pricingApiConfig')
+List favorites = prefService.getList('favoriteReports')
 
 // Read another user's preference
-String otherTheme   = prefService.getString('theme', 'jane.doe')
+String otherTheme = prefService.getString('theme', 'jane.doe')
 ```
 
 If the user has a `UserPreference` record, it returns the custom value. Otherwise, it returns the
@@ -103,6 +102,10 @@ prefService.setList('favoriteReports', ['daily-pnl', 'risk-summary'])
 // Set another user's preference
 prefService.setString('theme', 'dark', 'jane.doe')
 ```
+
+There is also an untyped `setPreference(key, value, username)` that accepts a raw String value
+without type validation. This is used internally by `XhController.setPrefs()` for non-Map/non-List
+values from the client, but typed setters are preferred for server-side code.
 
 #### `unsetPreference(key, username)`
 
@@ -152,14 +155,15 @@ Returns all preferences for the current user in a structure consumed by hoist-re
 The `value` field contains the user's custom value if set, otherwise the default. JSON values are
 parsed to objects.
 
-#### `getLimitedClientConfig(keys)`
-
-Returns a subset of preferences by name — more efficient when only specific preferences are needed.
-
 #### `ensureRequiredPrefsCreated(requiredPrefs)`
 
-Called during application bootstrap to declare preferences the application depends on. Creates
-missing preferences with default values; logs errors for type mismatches on existing preferences.
+Applications should register all preferences they intend to use via this method in their
+`BootStrap.groovy`. A preference must exist as a `Preference` record in the database before it can
+be read or written — calls to `PrefService` for a non-existent preference will throw a
+`RuntimeException`. This method creates any missing preferences with the supplied defaults and logs
+errors if an existing preference has a mismatched type. Note the API uses `note` (singular) for
+consistency with `ensureRequiredConfigsCreated()`, even though the `Preference` domain property is
+`notes` (plural).
 
 ```groovy
 class BootStrap {
@@ -190,27 +194,33 @@ class BootStrap {
 
 ### PrefDiffService
 
-Handles cross-environment preference synchronization (preference *definitions*, not user values).
-Works identically to `ConfigDiffService` — creates, updates, or deletes local preference
-definitions to match a remote environment.
+An internal Hoist service backing the Admin Console's cross-environment diff tool. Synchronizes
+preference *definitions* (not user values) by creating, updating, or deleting local preference
+definitions to match a remote environment. Not intended for direct use by application code.
+
+### PreferenceAdminController
+
+An internal Hoist controller providing Admin Console CRUD endpoints for managing `Preference`
+definitions. Extends `AdminRestController`, which requires `HOIST_ADMIN_READER` for read access
+and `HOIST_ADMIN` for create/update/delete operations. Has `trackChanges = true`, so all
+definition changes are recorded via activity tracking. Not intended as a public API —
+applications interact with preferences via `PrefService`.
+
+## Built-in Preferences
+
+Hoist's own `BootStrap` creates the following `xh`-prefixed preferences. Applications should not
+redefine these but may read them via `PrefService`:
+
+| Preference | Type | Default | Description |
+|------------|------|---------|-------------|
+| `xhAutoRefreshEnabled` | `bool` | `true` | Enables client `AutoRefreshService` (also requires `xhAutoRefreshIntervals` config) |
+| `xhIdleDetectionDisabled` | `bool` | `false` | Prevents `IdleService` from suspending the app due to inactivity |
+| `xhLastReadChangelog` | `string` | `'0.0.0'` | Most recent changelog version viewed by the user |
+| `xhShowVersionBar` | `string` | `'auto'` | Controls version footer display — `'auto'`, `'always'`, or `'never'` |
+| `xhSizingMode` | `json` | `{}` | Sizing mode for Grid and responsive components, keyed by platform |
+| `xhTheme` | `string` | `'system'` | Visual theme — `'light'`, `'dark'`, or `'system'` |
 
 ## Common Patterns
-
-### UI Layout Preferences
-
-A common pattern stores grid column configurations, dashboard layouts, or panel states as `json`
-preferences:
-
-```groovy
-// Server-side service reading a user's saved layout
-Map getLayout(String username) {
-    prefService.getMap('dashboardLayout', username)
-}
-
-void saveLayout(Map layout) {
-    prefService.setMap('dashboardLayout', layout)
-}
-```
 
 ### Preference-driven Service Behavior
 
@@ -234,16 +244,19 @@ on the client:
 
 ```javascript
 // Client-side (hoist-react)
-const theme = XH.prefService.get('theme');
+const theme = XH.getPref('theme');
 XH.prefService.set('theme', 'dark');  // persists to server
 ```
 
 The hoist-react `PrefService` manages the client-local state and syncs changes back to the server
-via `/xh/setPrefs` endpoints.
+via `XhController` endpoints (`/xh/getPrefs` to load, `/xh/setPrefs` to persist).
 
-Preferences with a `local` flag are handled entirely in the browser (stored in `localStorage`)
-and are never sent to or read from the server. This is useful for preferences that are
-device-specific (e.g., window size, panel collapsed state) and don't need to roam across devices.
+In practice, most client-side interaction with preferences happens indirectly through hoist-react's
+**persistence system**, which automatically saves and restores UI state — grid column layouts,
+active tabs, panel sizes, and more — using preferences as a backing store. See the
+[hoist-react persistence documentation](https://github.com/xh/hoist-react/blob/develop/docs/persistence.md)
+for details on how `persistWith` connects client components to preferences persisted back here to
+the server.
 
 ## Common Pitfalls
 
@@ -268,5 +281,5 @@ declare required preferences in `ensureRequiredPrefsCreated()` during bootstrap.
 ### Forgetting deletion cascades
 
 Deleting a `Preference` definition cascades to delete all related `UserPreference` records. This
-is usually desired but be aware that removing a preference from `ensureRequiredPrefsCreated()` and
-manually deleting it will lose all users' customizations for that preference.
+is usually desired but be aware that deleting a preference definition will permanently remove all
+users' customizations for that preference.

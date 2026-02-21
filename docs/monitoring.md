@@ -48,6 +48,8 @@ load times, cluster health) while remaining fully extensible for application-spe
 | `MonitorService.groovy` | `grails-app/services/io/xh/hoist/monitor/` | Primary-only orchestrator — timer, fan-out, aggregation, caching |
 | `MonitorEvalService.groovy` | `grails-app/services/io/xh/hoist/monitor/` | Per-instance runner — parallel execution, timeout, threshold evaluation |
 | `MonitorReportService.groovy` | `grails-app/services/io/xh/hoist/monitor/` | Alert logic — flap suppression, email, topic publication |
+| `MonitorSpec.groovy` | `src/main/groovy/io/xh/hoist/monitor/` | Typed specification for required monitor definitions |
+| `MonitorMetricType.groovy` | `src/main/groovy/io/xh/hoist/monitor/` | Enum of metric types: `Floor`, `Ceil`, `None` |
 | `DefaultMonitorDefinitionService.groovy` | `src/main/groovy/io/xh/hoist/monitor/provided/` | Optional base class providing built-in monitor implementations |
 | `MonitorResultsAdminController.groovy` | `grails-app/controllers/io/xh/hoist/admin/` | REST endpoints for the Admin Console Monitors tab |
 
@@ -69,7 +71,7 @@ are editable at runtime without redeployment.
 |-------|------|---------|
 | `code` | `String` | Unique identifier — must match the method name on `MonitorDefinitionService` |
 | `name` | `String` | Human-readable display name |
-| `metricType` | `String` | One of `'Floor'`, `'Ceil'`, `'None'` — controls threshold comparison direction |
+| `metricType` | `MonitorMetricType` | One of `Floor`, `Ceil`, `None` — controls threshold comparison direction |
 | `metricUnit` | `String` | Display label for the metric (e.g. `'ms'`, `'%'`, `'errors'`) |
 | `warnThreshold` | `Integer` | Metric value that triggers `WARN` status |
 | `failThreshold` | `Integer` | Metric value that triggers `FAIL` status |
@@ -257,6 +259,15 @@ status and a human-readable title (e.g. `"MyApp: 1 Failures | 2 Warnings | 5 OK"
 Provides `toHtml()` for email body generation, listing only monitors at `WARN` or above with
 their message and minutes-in-status.
 
+### `MonitorSpec` and `MonitorMetricType`
+
+**Files:** `src/main/groovy/io/xh/hoist/monitor/MonitorSpec.groovy`,
+`src/main/groovy/io/xh/hoist/monitor/MonitorMetricType.groovy`
+
+`MonitorSpec` is a typed specification class for defining required monitors via
+`ensureRequiredMonitorsCreated()`. Its fields mirror the seedable fields of the `Monitor` domain
+class. `MonitorMetricType` is an enum of supported metric types: `Floor`, `Ceil`, `None`.
+
 ### `DefaultMonitorDefinitionService`
 
 **File:** `src/main/groovy/io/xh/hoist/monitor/provided/DefaultMonitorDefinitionService.groovy`
@@ -278,8 +289,37 @@ from scratch — but extending it is the recommended approach.
 
 The `ensureRequiredConfigAndMonitorsCreated()` method (called by `init()`) auto-creates both the
 required `xhMonitorConfig` soft-config entry and missing `Monitor` rows at startup with sensible
-defaults. Applications can also call the public `ensureRequiredMonitorsCreated()` method directly
-to register their own additional required monitors.
+defaults.
+
+#### `ensureRequiredMonitorsCreated()`
+
+Applications should call this public method to register their own required monitors alongside the
+built-in ones. When a new monitor check method is added, it is strongly recommended to include a
+corresponding `MonitorSpec` entry via this method. This ensures the `Monitor` database row is
+created automatically on startup with sensible defaults — without it, the monitor will not exist
+until an admin manually creates it through the Admin Console, and the check method will fail with
+a "not implemented" error in the meantime.
+
+The method accepts a `List<MonitorSpec>` and creates any `Monitor` rows that are not already
+present in the database. Existing monitors are never modified — the spec only provides initial
+defaults.
+
+```groovy
+void init() {
+    super.init()
+    ensureRequiredMonitorsCreated([
+        new MonitorSpec(
+            code: 'myCustomCheck',
+            name: 'My Custom Check',
+            metricType: Ceil,
+            metricUnit: 'ms',
+            warnThreshold: 500,
+            failThreshold: 1000,
+            active: true
+        )
+    ])
+}
+```
 
 ---
 
@@ -356,24 +396,27 @@ There are three approaches, from simplest to most custom:
 package com.mycompany.myapp
 
 import io.xh.hoist.monitor.MonitorResult
+import io.xh.hoist.monitor.MonitorSpec
 import io.xh.hoist.monitor.provided.DefaultMonitorDefinitionService
+
+import static io.xh.hoist.monitor.MonitorMetricType.*
 
 class MonitorDefinitionService extends DefaultMonitorDefinitionService {
 
     void init() {
         super.init()  // Registers built-in monitors
         ensureRequiredMonitorsCreated([
-            [
+            new MonitorSpec(
                 code: 'orderIngestionMonitor',
                 name: 'Order Ingestion Lag',
-                metricType: 'Ceil',
+                metricType: Ceil,
                 metricUnit: 'minutes',
                 warnThreshold: 10,
                 failThreshold: 30,
                 active: true,
                 params: '{"sourceSystem": "OMS"}',
                 notes: 'Checks how far behind the order ingestion pipeline is.'
-            ]
+            )
         ])
     }
 
@@ -435,12 +478,12 @@ def recentOrderCountMonitor(MonitorResult result) {
 }
 ```
 
-Configure the `Monitor` row with `metricType: 'Floor'`, `warnThreshold: 10`,
+Configure the `MonitorSpec` with `metricType: Floor`, `warnThreshold: 10`,
 `failThreshold: 1`, and `params: '{"lookbackMinutes": 60}'`.
 
 ### Pattern 2: Pass/fail check (no numeric metric)
 
-For checks where a numeric threshold is not meaningful — use `metricType: 'None'` and set the
+For checks where a numeric threshold is not meaningful — use `metricType: None` and set the
 status directly.
 
 ```groovy
@@ -588,7 +631,7 @@ A non-numeric value will produce a `FAIL` with the message:
 > "Monitor failed to compute numerical metric."
 
 **Avoid:** returning a String or null as the metric when the Monitor is configured as `Ceil` or
-`Floor`. Use `metricType: 'None'` if the check does not produce a numeric value.
+`Floor`. Use `metricType: None` if the check does not produce a numeric value.
 
 ### Do not perform long-running operations without considering the timeout
 
