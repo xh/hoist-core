@@ -17,6 +17,12 @@
   `ensureRequiredMonitorsCreated()`, replacing untyped `Map` arguments with a class that provides
   IDE autocomplete and compile-time validation.
 
+### 🐞 Bug Fixes
+
+* Fixed `LogReaderService` log search to correctly respect the `caseSensitive` parameter when
+  reading forward from a start line. Previously, forward reads always performed case-insensitive
+  matching regardless of the flag.
+
 ## 36.2.0 - 2026-02-13
 
 ### ⚙️ Technical
@@ -44,7 +50,8 @@
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW, excepting multi-instance apps w/websockets)
 
-* See [`docs/upgrade-notes/v36-upgrade-notes.md`](docs/upgrade-notes/v36-upgrade-notes.md) for detailed, step-by-step upgrade
+* See [`docs/upgrade-notes/v36-upgrade-notes.md`](docs/upgrade-notes/v36-upgrade-notes.md) for
+  detailed, step-by-step upgrade
   instructions with before/after code examples.
 * Deprecated `@Access` in favor of new `@AccessRequiresRole`, `@AccessRequiresAllRoles`, and
   `@AccessRequiresAnyRole` annotations. `@Access` continues to function but should be migrated —
@@ -86,7 +93,8 @@
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - generic type change + DB column)
 
-* See [`docs/upgrade-notes/v35-upgrade-notes.md`](docs/upgrade-notes/v35-upgrade-notes.md) for detailed, step-by-step upgrade
+* See [`docs/upgrade-notes/v35-upgrade-notes.md`](docs/upgrade-notes/v35-upgrade-notes.md) for
+  detailed, step-by-step upgrade
   instructions with before/after code examples.
 * Updated the generic signature of `CacheEntry` from `CacheEntry<T>` to `CacheEntry<K, T>` to
   support non-string key types. Adjust any explicit declarations of this type to include the key
@@ -125,7 +133,8 @@
 * Hoist Core v34 is a major framework upgrade, moving to Grails 7.0, Spring Boot 3.5, Groovy 4,
   Gradle 8.14, and Tomcat 10.1. With this release, Grails is officially part of the Apache
   Foundation. The changes below are required for all applications. See
-  [`docs/upgrade-notes/v34-upgrade-notes.md`](docs/upgrade-notes/v34-upgrade-notes.md) for detailed, step-by-step upgrade
+  [`docs/upgrade-notes/v34-upgrade-notes.md`](docs/upgrade-notes/v34-upgrade-notes.md) for detailed,
+  step-by-step upgrade
   instructions with before/after code examples.
 * Update Docker base image to `xhio/xh-tomcat:next-tc10-jdk17` for Tomcat 10 / Jakarta EE support.
 * Update Gradle wrapper to `8.14.3` via `gradle-wrapper.properties`.

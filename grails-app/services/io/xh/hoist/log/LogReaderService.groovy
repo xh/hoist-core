@@ -106,7 +106,7 @@ class LogReaderService extends BaseService {
 
         long maxEndTime = currentTimeMillis() + configService.getLong('xhLogSearchTimeoutMs', 5000)
 
-        def compiledPattern = caseSensitive ? Pattern.compile(pattern) : Pattern.compile(pattern, Pattern.CASE_INSENSITIVE)
+        def compiledPattern = pattern ? (caseSensitive ? Pattern.compile(pattern) : Pattern.compile(pattern, Pattern.CASE_INSENSITIVE)) : null
 
         Closeable closeable
         try {
@@ -134,7 +134,7 @@ class LogReaderService extends BaseService {
                 long lineNumber = startLine
                 for (String line = reader.readLine(); line != null && ret.size() < maxLines; line = reader.readLine()) {
                     throwOnTimeout(maxEndTime)
-                    if (!pattern || line.toLowerCase() =~ pattern.toLowerCase()) {
+                    if (!pattern || line =~ compiledPattern) {
                         ret << [lineNumber, line]
                     }
                     lineNumber++

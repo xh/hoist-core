@@ -183,3 +183,26 @@
     happens through the persistence system's `persistWith` mechanism
   - Simplified cascade deletion pitfall wording
 - Marked Done, DRAFT banner removed
+
+### 2026-02-21 — Interactive review: logging
+- Reviewed `logging.md` against all 13 referenced source files
+- Bug fix discovered and committed: `LogReaderService.doRead()` forward-reading path ignored the
+  `caseSensitive` parameter, always doing case-insensitive matching. Fixed to use compiled Pattern
+  consistently in both tail and forward paths. Also guarded `Pattern.compile()` against null
+  pattern input. Committed separately with CHANGELOG entry.
+- Key corrections and additions:
+  - Fixed `withTrace` started message description: clarified that the started message is always
+    logged for `withTrace` (since TRACE is already the finest level), unlike `withInfo`/`withDebug`
+    which require a finer level to be enabled
+  - Added instance-aware log file naming detail: default appenders include the cluster instance
+    name in filenames (e.g., `myapp-inst1-app.log`), ensuring each instance writes to its own files
+  - Added `additivity: false` note for tracking/monitoring loggers, and documented the minimal
+    `%m%n` track log layout (entries carry their own timestamps)
+  - Fixed `Supported levels` order to match `LogLevel.LEVELS` constant (`Inherit` before `Off`)
+  - Added local dev log path fallback: when `catalina.base` is not set, logs go to `[appCode]-logs`
+    relative to the working directory
+  - Added "Custom layouts for structured logging" subsection: documents Closure-based Layout support
+    in `createEncoder()`, with a complete JSON logging example using `logback-json-classic` and
+    `logback-jackson` dependencies
+  - Changed example username from `homer` to `jdoe` throughout
+- Marked Done, DRAFT banner removed
