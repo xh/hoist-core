@@ -10,11 +10,9 @@ package io.xh.hoist.observe
 import groovy.transform.CompileDynamic
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.MeterRegistry
-import io.micrometer.core.instrument.Tags
 import io.micrometer.core.instrument.Timer
 import io.xh.hoist.BaseService
 import io.xh.hoist.monitor.AggregateMonitorResult
-import io.xh.hoist.monitor.Monitor
 import io.xh.hoist.monitor.MonitorResult
 
 import java.util.concurrent.ConcurrentHashMap
@@ -29,19 +27,16 @@ import static io.xh.hoist.observe.MetricsService.CLUSTER_TAG
  * Metrics are published from the primary instance only, after monitor results have been
  * aggregated by {@link io.xh.hoist.monitor.MonitorService}.
  *
- * Three named metrics are published per monitor (monitor code embedded in the metric name):
- *  - `monitor.{code}.status` — Gauge of status severity (0=INACTIVE .. 4=FAIL)
- *  - `monitor.{code}.value`  — Gauge of the monitor's current numeric metric
- *  - `monitor.{code}.executionTime` — Timer of the monitor's current execution time
+ * Three metrics are published per monitor (monitor code embedded in the metric name):
+ *  - `hoist.monitor.{code}.status` — Gauge of status severity (0=INACTIVE .. 4=FAIL)
+ *  - `hoist.monitor.{code}.value` — Gauge of the monitor's current numeric metric
+ *  - `hoist.monitor.{code}.executionTime` — Timer of the monitor's current execution time
  *
- * An additional metric provide support for global queries (monitor code is a tag):
- *  - `monitor.status`
+ * An additional generic status metric provides support for global status queries (monitor code is a tag):
+ *  - `hoist.monitor.status`
  *
  * In all cases, an {@code instance} tag will indicate the instance the monitor was running on,
  * with a value of 'cluster' indicating cluster-level metrics (currently status only).
- *
- * Namespace prefixes and default tags (e.g. application, instance, source) are applied
- * automatically by {@link MetricsService}.
  *
  * @internal - not intended for direct use by applications.
  */
@@ -80,16 +75,17 @@ class MonitorMetricsService extends BaseService {
             key = "$code|status"
 
          if (!lastVals.containsKey(key)) {
-            def tags = monitorTags(monitor).and('instance', CLUSTER_TAG),
-                description = monitor.name
+            def description = monitor.name
 
             Gauge.builder("monitor.${code}.status", lastVals, readDouble(key))
-                .tags(tags)
+                .tag('source', 'hoist')
+                .tags('instance', CLUSTER_TAG)
                 .description(description)
                 .register(registry)
 
             Gauge.builder('monitor.status', lastVals, readDouble(key))
-                .tags(tags)
+                .tag('source', 'hoist')
+                .tags('instance', CLUSTER_TAG)
                 .tag('monitorCode', code)
                 .description(description)
                 .register(registry)
@@ -110,16 +106,15 @@ class MonitorMetricsService extends BaseService {
 
         if (!lastVals.containsKey(key)) {
 
-            def tags = monitorTags(result.monitor),
-                description = result.monitor.name
+            def description = result.monitor.name
 
             Gauge.builder("monitor.${code}.status", lastVals, readDouble(key))
-                .tags(tags)
+                .tag('source', 'hoist')
                 .description(description)
                 .register(registry)
 
             Gauge.builder('monitor.status', lastVals, readDouble(key))
-                .tags(tags)
+                .tag('source', 'hoist')
                 .tag('monitorCode', code)
                 .description(description)
                 .register(registry)
@@ -138,9 +133,9 @@ class MonitorMetricsService extends BaseService {
 
         if (!lastVals.containsKey(key)) {
             Gauge.builder("monitor.${code}.value", lastVals, readDouble(key))
-                .tags(monitorTags(monitor))
-                .baseUnit(monitor.metricUnit ?: '')
+                .tag('source', 'hoist')
                 .description(monitor.name)
+                .baseUnit(monitor.metricUnit ?: '')
                 .register(registry)
         }
         lastVals.put(key, result.metric as Number)
@@ -149,15 +144,10 @@ class MonitorMetricsService extends BaseService {
     private void publishExecution(MonitorResult result) {
         if (!result.elapsed) return
         Timer.builder("monitor.${result.code}.executionTime")
-            .tags(monitorTags(result.monitor))
-            .description(monitor.name)
+            .tag('source', 'hoist')
+            .description(result.monitor.name)
             .register(registry)
             .record(result.elapsed, TimeUnit.MILLISECONDS)
-    }
-
-    private Tags monitorTags(Monitor monitor) {
-        def source = monitor.code.startsWith('xh') ? 'hoist' : 'app'
-        Tags.of('source', source)
     }
 
     private Closure readDouble(String key) {
