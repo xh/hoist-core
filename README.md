@@ -285,10 +285,7 @@ a user preference is assigned via `PrefService.setPreference()` (or one of the t
 console.
 
 Preferences may generally be accessed and used on the server and client, although they are primarily
-a client-side tool. Preferences with the `local` flag set to true, however, have their user-specific
-values stored on the client (in local storage) and are not accessible on the server. This flag is
-designed for preferences that store things like layout or sizing information that are most
-appropriate to save in the context of a particular device or workstation.
+a client-side tool.
 
 Applications are encouraged to provide end-users with controls to reset their preferences should
 they wish to restore their profile to a default state. Server and client APIs exist to do such a

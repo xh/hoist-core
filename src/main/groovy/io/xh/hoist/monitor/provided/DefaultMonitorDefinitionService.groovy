@@ -13,6 +13,9 @@ import groovy.sql.Sql
 import io.xh.hoist.BaseService
 import io.xh.hoist.monitor.Monitor
 import io.xh.hoist.monitor.MonitorResult
+import io.xh.hoist.monitor.MonitorSpec
+
+import static io.xh.hoist.monitor.MonitorMetricType.Ceil
 import io.xh.hoist.util.Utils
 import io.xh.hoist.track.TrackLog
 
@@ -154,10 +157,10 @@ class DefaultMonitorDefinitionService extends BaseService {
         ])
 
         ensureRequiredMonitorsCreated([
-            [
+            new MonitorSpec(
                 code: 'xhMemoryMonitor',
                 name: 'Avg Heap Usage % (Last 30m)',
-                metricType: 'Ceil',
+                metricType: Ceil,
                 metricUnit: '%',
                 warnThreshold: 75,
                 failThreshold: 90,
@@ -166,11 +169,11 @@ class DefaultMonitorDefinitionService extends BaseService {
                 notes: 'Reports the largest heap usage in the last {lookbackMinutes} minutes.\n'
                         + 'Set "aggregate" to "avg" to report average heap usage (default).\n'
                         + 'Set "aggregate" to "max" to report the largest heap usage.'
-            ],
-            [
+            ),
+            new MonitorSpec(
                 code: 'xhClientErrorsMonitor',
                 name: 'Client Errors (Last 30m)',
-                metricType: 'Ceil',
+                metricType: Ceil,
                 metricUnit: 'errors',
                 warnThreshold: 1,
                 failThreshold: 10,
@@ -178,11 +181,11 @@ class DefaultMonitorDefinitionService extends BaseService {
                 primaryOnly: true,
                 params: '{\n\t"lookbackMinutes": 30\n}',
                 notes: 'Reports count of client (UI) errors in the last {lookbackMinutes} minutes.'
-            ],
-            [
+            ),
+            new MonitorSpec(
                 code: 'xhLoadTimeMonitor',
                 name: 'Max Load Time (Last 30m)',
-                metricType: 'Ceil',
+                metricType: Ceil,
                 metricUnit: 's',
                 warnThreshold: 30,
                 failThreshold: 60,
@@ -190,38 +193,38 @@ class DefaultMonitorDefinitionService extends BaseService {
                 primaryOnly: true,
                 params: '{\n\t"lookbackMinutes": 30\n}',
                 notes: 'Reports the longest tracked event in the last {lookbackMinutes} minutes.'
-            ],
-            [
+            ),
+            new MonitorSpec(
                 code: 'xhDbConnectionMonitor',
                 name: 'DB Connection Time',
-                metricType: 'Ceil',
+                metricType: Ceil,
                 warnThreshold: 5000,
                 failThreshold: 10000,
                 metricUnit: 'ms',
                 active: true,
                 notes: 'Reports time taken to query primary application database with a trivial select statement.'
-            ],
-            [
+            ),
+            new MonitorSpec(
                 code: 'xhLdapServiceConnectionMonitor',
                 name: 'LDAP Connection Time',
-                metricType: 'Ceil',
+                metricType: Ceil,
                 warnThreshold: 5000,
                 failThreshold: 10000,
                 metricUnit: 'ms',
                 active: true,
                 params: '{\n\t"queryUser": "admin"\n}',
                 notes: 'Reports time taken to query Hoist LdapService for the configured user, to test connectivity to an external directory (if enabled).'
-            ],
-            [
+            ),
+            new MonitorSpec(
                 code: 'xhClusterBreaksMonitor',
                 name: 'Multi-Instance Discrepancies',
-                metricType: 'Ceil',
+                metricType: Ceil,
                 warnThreshold: 0,
                 failThreshold: 1,
                 metricUnit: 'breaks',
                 active: true,
                 notes: 'Queries the status of all distributed objects across a cluster and alerts if any breaks (discrepancies between comparable stats on an object) are reported across any instances.'
-            ]
+            )
         ])
     }
 
@@ -231,10 +234,14 @@ class DefaultMonitorDefinitionService extends BaseService {
      *
      * May be called within an implementation of ensureRequiredConfigAndMonitorsCreated().
      *
-     * @param requiredMonitors - List of maps of [code, name, metricType, active]
+     * @param monitorSpecs - List of {@link MonitorSpec} defining the required monitors.
      */
     @Transactional
-    void ensureRequiredMonitorsCreated(List<Map> monitorSpecs) {
+    void ensureRequiredMonitorsCreated(List<MonitorSpec> monitorSpecs) {
+        monitorSpecs = monitorSpecs.collect {
+            it instanceof MonitorSpec ? it : new MonitorSpec(it as Map)
+        }
+
         List<Monitor> currMonitors = Monitor.list()
         int created = 0
 
@@ -242,18 +249,7 @@ class DefaultMonitorDefinitionService extends BaseService {
             try {
                 Monitor currMonitor = currMonitors.find { it.code == spec.code }
                 if (!currMonitor) {
-                    new Monitor(
-                        code: spec.code,
-                        name: spec.name,
-                        metricType: spec.metricType,
-                        active: spec.active,
-                        metricUnit: spec.metricUnit,
-                        warnThreshold: spec.warnThreshold,
-                        failThreshold: spec.failThreshold,
-                        primaryOnly: spec.primaryOnly,
-                        params: spec.params,
-                        notes: spec.notes
-                    ).save()
+                    new Monitor(spec.properties).save()
                     logWarn(
                         "Required status monitor ${spec.name} missing and created with default value",
                         'verify default is appropriate for this application'

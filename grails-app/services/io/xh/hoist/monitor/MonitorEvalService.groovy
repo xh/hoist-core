@@ -110,7 +110,7 @@ class MonitorEvalService extends BaseService {
         def type = monitor.metricType,
             metric = result.metric
 
-        if (type == 'None') return
+        if (type == MonitorMetricType.None) return
 
         if (!(metric instanceof Number)) {
             result.status = FAIL
@@ -120,7 +120,7 @@ class MonitorEvalService extends BaseService {
 
         Number metricNum = metric
 
-        def isCeil = (type == 'Ceil'),
+        def isCeil = (type == MonitorMetricType.Ceil),
             sign = isCeil ? 1 : -1,
             verb = isCeil ? 'above' : 'below',
             fail =  monitor.failThreshold,

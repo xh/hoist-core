@@ -39,7 +39,9 @@ class ApplicationConfig {
             }
 
             management {
-                endpoints.'enabled-by-default' = false
+                 endpoint {
+                    health.'show-details' = 'always'
+                }
             }
 
             grails {
