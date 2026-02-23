@@ -8,10 +8,16 @@
 package io.xh.hoist.observe
 
 import groovy.transform.CompileDynamic
+import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics
+import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics
+import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics
+import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics
+import io.micrometer.core.instrument.binder.system.ProcessorMetrics
 import io.micrometer.core.instrument.Meter
 import io.micrometer.core.instrument.Tags
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry
 import io.micrometer.core.instrument.config.MeterFilter
+import io.micrometer.core.instrument.config.MeterFilterReply
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.micrometer.core.instrument.Clock
@@ -21,6 +27,7 @@ import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 
 import static io.xh.hoist.cluster.ClusterService.instanceName
+import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 import static io.xh.hoist.util.Utils.appCode
 
 /**
@@ -45,12 +52,27 @@ import static io.xh.hoist.util.Utils.appCode
 class MetricsService extends BaseService {
 
     /**
-     * Main entry point for applications.  Register micrometer Meters, Timers
-     * with this object using the built-in 'register' method on builders.
+     * Tag value for the {@code instance} label on cluster-scoped metrics.
+     * Metrics tagged with this value may only be registered on the primary instance.
+     * The MeterFilter will reject (deny) any such metric on non-primary nodes,
+     * ensuring cluster-scoped metrics appear exactly once in aggregated scrapes.
+     */
+    static final String CLUSTER_TAG = 'cluster'
+
+    /**
+     * Main entry point for meter registration.
      *
-     * Additional export registries may also be added via 'registry.add'.
+     * All meters registered through this registry automatically receive default tags
+     * ({@code application}, {@code instance}. A {@code source} tag will also classifies
+     * each metric's origin — 'app' (default), 'hoist', or 'infra' are built-in sources, and
+     * 'app' will be provided as the default. Applications and plug-ins may choose to add
+     * additional sources.
+     *
+     * Metrics with {@code source=app} have will their names prefixed with the application
+     * namespace.
      */
     CompositeMeterRegistry registry
+
 
     static clearCachesConfigs = ['xhMetricsConfig']
 
@@ -61,45 +83,88 @@ class MetricsService extends BaseService {
     void init() {
         registry = new CompositeMeterRegistry()
 
-        // Apply default namespace prefix and tags
+        // Deny cluster-scoped metrics on non-primary instances
         registry.config().meterFilter(new MeterFilter() {
-            Meter.Id map(Meter.Id id) {
-                def ret = id.withName("${namespace}.${id.name}")
-
-                [application: appCode, instance: instanceName].each {key, value ->
-                    if (!id.tags.any { it.key == key }) {
-                        ret = ret.withTags(Tags.of(key, value))
-                    }
+            MeterFilterReply accept(Meter.Id id) {
+                if (!clusterService.isPrimary && id.tags.any { it.key == 'instance' && it.value == CLUSTER_TAG }) {
+                    logError("Cluster-scoped metric registered on non-primary instance", id.name)
+                    return MeterFilterReply.DENY
                 }
-                ret
+                MeterFilterReply.NEUTRAL
             }
         })
 
+        // Apply namespace prefix and default tags
+        registry.config().meterFilter(new MeterFilter() {
+            Meter.Id map(Meter.Id id) {
+                def source = id.getTag('source') ?: 'app';
+                if (source == 'app') {
+                    id = id.withName("${namespace}.${id.name}")
+                } else if (source == 'hoist') {
+                    id = id.withName("hoist.${id.name}")
+                }
+
+                [application: appCode, instance: instanceName, source: source].each { k, v ->
+                    if (!id.tags.any { it.key == k }) {
+                        id = id.withTags(Tags.of(k, v))
+                    }
+                }
+                id
+            }
+        })
+
+        bindJvmMetrics()
         syncBuiltInRegistries()
     }
 
 
     /**
-     * Return metrics data for Prometheus endpoint.
+     * Return Prometheus exposition data aggregated across all cluster instances.
      *
-     * Applications providing Prometheus support should expose the value
-     * returned by this method in a dedicated endpoint in lieu of the built-in
-     * 'actuator/prometheus'.
+     * Any instance can service this request — it fans out to all instances via
+     * Hazelcast, collects each instance's scrape output, and concatenates the
+     * results. Each metric already carries an {@code instance} tag distinguishing
+     * its source.
      *
-     * This method returns the full cluster metrics, from the primary server
-     * regardless of the instance servicing the request.
+     * Applications should expose the value returned by this method in a dedicated
+     * endpoint in lieu of the built-in 'actuator/prometheus'.
      */
     String prometheusData() {
-        //def result = runOnPrimary(this.&prometheusScrape)
-        //if (result.exception) throw result.exception
-        //return result.value
-        prometheusScrape()
+        def results = runOnAllInstances(this.&prometheusScrape)
+        results.values()
+            .findAll { !it.exception }
+            .collect { it.value }
+            .join('\n')
+    }
+
+    /** Scrape this instance, excluding cluster-scoped metrics from non-primary nodes. */
+    private String prometheusScrape() {
+        if (!_prometheusRegistry) {
+            throw new RuntimeException('Prometheus not enabled')
+        }
+
+        if (clusterService.isPrimary) return _prometheusRegistry.scrape()
+
+        // Non-primary: scrape only instance-scoped metrics
+        def includedNames = registry.meters
+            .findAll { it.id.tags.every { tag -> tag.key != 'instance' || tag.value != CLUSTER_TAG } }
+            .collect { it.id.name } as Set
+        _prometheusRegistry.scrape('text/plain', includedNames)
     }
 
 
     //------------------------
     // Implementation
     //------------------------
+    private void bindJvmMetrics() {
+        def tags = Tags.of('source', 'infra')
+        new ClassLoaderMetrics(tags).bindTo(registry)
+        new JvmMemoryMetrics(tags).bindTo(registry)
+        new JvmGcMetrics(tags).bindTo(registry)
+        new JvmThreadMetrics(tags).bindTo(registry)
+        new ProcessorMetrics(tags).bindTo(registry)
+    }
+
     private void syncBuiltInRegistries() {
         withDebug(['Syncing registries', [prometheus: config.prometheusEnabled, otlp: config.otlpEnabled]]) {
             // Prometheus
@@ -132,14 +197,6 @@ class MetricsService extends BaseService {
     private static Map<String, String> prefixKeys(String prefix, Map config) {
         (config ?: [:]).collectEntries { k, v -> ["${prefix}.${k}".toString(), v?.toString()] }
     }
-
-    private String prometheusScrape() {
-        if (!_prometheusRegistry) {
-            throw new RuntimeException('Prometheus not enabled')
-        }
-        _prometheusRegistry.scrape()
-    }
-
 
     private String getNamespace() {
         config.namespace ?: appCode

@@ -20,6 +20,8 @@ import io.xh.hoist.monitor.MonitorResult
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
+import static io.xh.hoist.observe.MetricsService.CLUSTER_TAG
+
 /**
  * Publishes Hoist monitor results as Micrometer metrics via {@link MetricsService},
  * enabling integration with observability platforms such as Prometheus, OTLP, and Datadog.
@@ -27,19 +29,19 @@ import java.util.concurrent.TimeUnit
  * Metrics are published from the primary instance only, after monitor results have been
  * aggregated by {@link io.xh.hoist.monitor.MonitorService}.
  *
- * Two named metrics are published per monitor (monitor code embedded in the metric name):
+ * Three named metrics are published per monitor (monitor code embedded in the metric name):
  *  - `monitor.{code}.status` — Gauge of status severity (0=INACTIVE .. 4=FAIL)
  *  - `monitor.{code}.value`  — Gauge of the monitor's current numeric metric
+ *  - `monitor.{code}.executionTime` — Timer of the monitor's current execution time
  *
- * Two additional metrics provide support for global queries (monitor code is a tag):
+ * An additional metric provide support for global queries (monitor code is a tag):
  *  - `monitor.status`
- *  - `monitor.executionTime`
  *
  * In all cases, an {@code instance} tag will indicate the instance the monitor was running on,
- * with a value of 'aggregate' indicating cluster-level metrics (currently status only).
+ * with a value of 'cluster' indicating cluster-level metrics (currently status only).
  *
- * Namespace prefix and default tags (application, instance) are applied automatically
- * by {@link MetricsService}.
+ * Namespace prefixes and default tags (e.g. application, instance, source) are applied
+ * automatically by {@link MetricsService}.
  *
  * @internal - not intended for direct use by applications.
  */
@@ -73,12 +75,13 @@ class MonitorMetricsService extends BaseService {
     }
 
     private void publishAggregateStatus(AggregateMonitorResult aggResult) {
-        def code = aggResult.monitor.code,
+        def monitor = aggResult.monitor,
+            code = monitor.code,
             key = "$code|status"
 
          if (!lastVals.containsKey(key)) {
-            def tags = monitorTags(aggResult.monitor).and('instance', 'aggregate'),
-                description = 'Aggregate monitor status severity (0=INACTIVE .. 4=FAIL)'
+            def tags = monitorTags(monitor).and('instance', CLUSTER_TAG),
+                description = monitor.name
 
             Gauge.builder("monitor.${code}.status", lastVals, readDouble(key))
                 .tags(tags)
@@ -108,7 +111,7 @@ class MonitorMetricsService extends BaseService {
         if (!lastVals.containsKey(key)) {
 
             def tags = monitorTags(result.monitor),
-                description = 'Monitor status severity (0=INACTIVE .. 4=FAIL)'
+                description = result.monitor.name
 
             Gauge.builder("monitor.${code}.status", lastVals, readDouble(key))
                 .tags(tags)
@@ -145,19 +148,20 @@ class MonitorMetricsService extends BaseService {
 
     private void publishExecution(MonitorResult result) {
         if (!result.elapsed) return
-        Timer.builder('monitor.executionTime')
+        Timer.builder("monitor.${result.code}.executionTime")
             .tags(monitorTags(result.monitor))
-            .description('Monitor execution time')
+            .description(monitor.name)
             .register(registry)
             .record(result.elapsed, TimeUnit.MILLISECONDS)
     }
 
     private Tags monitorTags(Monitor monitor) {
-        Tags.of('primaryOnly', monitor.primaryOnly.toString())
+        def source = monitor.code.startsWith('xh') ? 'hoist' : 'app'
+        Tags.of('source', source)
     }
 
     private Closure readDouble(String key) {
-        return { it.get(key)?.doubleValue() ?: 0.0 }
+        return { it.get(key)?.doubleValue() ?: 0.0d }
     }
 
     void clearCaches() {
