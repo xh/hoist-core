@@ -114,6 +114,7 @@ java {
         languageVersion = JavaLanguageVersion.of(17)
     }
     withSourcesJar()
+    withJavadocJar()
 }
 tasks.withType(JavaCompile) {
     options.release = 17
@@ -189,12 +190,14 @@ publishing {
 
 // Signing artifacts
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
-ext.'signing.keyId'= project.hasProperty("signing.keyId") ? project.getProperty('signing.keyId') : System.getenv('SIGNING_KEY_ID')
-ext.'signing.secretKeyRingFile' = (project.hasProperty("signing.secretKeyRingFile") ? project.getProperty('signing.secretKeyRingFile') : System.getenv('SIGNING_SECRET_KEY_RING_FILE')) ?: "${System.properties['user.home']}${File.separator}.gnupg${File.separator}secring.gpg"
-ext.'signing.password' = project.hasProperty("signing.password") ? project.getProperty('signing.password') : System.getenv('SIGNING_PASSWORD')
 afterEvaluate {
     signing {
         required { isReleaseVersion && gradle.taskGraph.hasTask("publish") }
+        def signingKey = findProperty("signingKey") ?: System.getenv("SIGNING_KEY")
+        def signingPassword = findProperty("signingPassword") ?: System.getenv("SIGNING_PASSWORD")
+        if (signingKey) {
+            useInMemoryPgpKeys(signingKey, signingPassword)
+        }
         sign publishing.publications.hoistCore
     }
 }
