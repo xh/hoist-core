@@ -46,6 +46,8 @@ and conventions.
 | Find admin console endpoints | [`admin-endpoints.md`](./admin-endpoints.md) |
 | Use Timer, DateTimeUtils, or other utilities | [`utilities.md`](./utilities.md) |
 | Work with GORM domain objects and Hibernate | [`gorm-domain-objects.md`](./gorm-domain-objects.md) |
+| Understand the build pipeline and GitHub Actions | [`build-and-publish.md`](./build-and-publish.md) |
+| Publish a release to Maven Central | [`build-and-publish.md`](./build-and-publish.md) |
 | Upgrade to a new major hoist-core version | [Upgrade Notes](#upgrade-notes) |
 
 ## Feature Documentation
@@ -106,6 +108,14 @@ Smaller or more specialized features.
 | [`ldap.md`](./ldap.md) | LDAP / Active Directory integration for user and group lookups | LdapService, LdapPerson, LdapGroup |
 | [`environment.md`](./environment.md) | Runtime environment detection and external configuration | EnvironmentService, AppEnvironment, InstanceConfigUtils, Grails vs Hoist environments |
 | [`admin-endpoints.md`](./admin-endpoints.md) | Admin console endpoints and supporting services | XhController, admin controllers, AlertBannerService, ViewService, ServiceManagerService |
+
+### Build & Publishing
+
+Build pipeline, CI, and artifact publishing.
+
+| Document | Description | Key Topics |
+|----------|-------------|------------|
+| [`build-and-publish.md`](./build-and-publish.md) | Gradle build, GitHub Actions CI, and Maven Central publishing | GitHub Actions, `deployRelease.yml`, `deploySnapshot.yml`, Sonatype, GPG signing, `nexus-publish-plugin`, `publishToSonatype`, `repo.xh.io` |
 
 ## Upgrade Notes
 
