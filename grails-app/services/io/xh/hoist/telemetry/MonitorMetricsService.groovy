@@ -5,7 +5,7 @@
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.observe
+package io.xh.hoist.telemetry
 
 import groovy.transform.CompileDynamic
 import io.micrometer.core.instrument.Gauge
@@ -18,7 +18,7 @@ import io.xh.hoist.monitor.MonitorResult
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-import static io.xh.hoist.observe.MetricsService.CLUSTER_TAG
+import static io.xh.hoist.telemetry.MetricsService.CLUSTER_TAG
 
 /**
  * Publishes Hoist monitor results as Micrometer metrics via {@link MetricsService},

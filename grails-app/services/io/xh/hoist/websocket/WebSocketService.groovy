@@ -9,9 +9,13 @@ package io.xh.hoist.websocket
 
 import grails.events.EventPublisher
 import groovy.transform.CompileStatic
+import io.micrometer.core.instrument.Counter
+import io.micrometer.core.instrument.Gauge
+import io.micrometer.core.instrument.Tags
 import io.xh.hoist.BaseService
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONSerializer
+import io.xh.hoist.telemetry.MetricsService
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
@@ -57,7 +61,20 @@ class WebSocketService extends BaseService implements EventPublisher {
     static final String CHANNEL_CLOSED_EVENT = 'xhWebSocketClosed'
     static final String MSG_RECEIVED_EVENT = 'xhWebSocketMessageReceived'
 
+    MetricsService metricsService
+
     private Map<WebSocketSession, HoistWebSocketChannel> _channels = new ConcurrentHashMap<>()
+
+    private Gauge channelGauge
+    private Counter sentCounter
+    private Counter receivedCounter
+    private Counter sendErrorCounter
+    private Counter sessionsOpenedCounter
+    private Counter sessionsClosedCounter
+
+    void init() {
+        initMetrics()
+    }
 
     boolean isEnabled() {
         grailsConfig.getProperty('hoist.enableWebSockets', Boolean)
@@ -191,6 +208,7 @@ class WebSocketService extends BaseService implements EventPublisher {
         def channel = _channels[session] = new HoistWebSocketChannel(session)
         sendMessage(channel, REG_SUCCESS_TOPIC, [channelKey: channel.key])
         notify(CHANNEL_OPENED_EVENT, channel)
+        sessionsOpenedCounter?.increment()
         logDebug("Registered session", channel.key)
     }
 
@@ -199,6 +217,7 @@ class WebSocketService extends BaseService implements EventPublisher {
         def channel = _channels.remove(session)
         if (channel) {
             notify(CHANNEL_CLOSED_EVENT, channel)
+            sessionsClosedCounter?.increment()
             logDebug("Closed session", channel.key, closeStatus)
         }
     }
@@ -209,6 +228,7 @@ class WebSocketService extends BaseService implements EventPublisher {
         if (!channel) return
 
         channel.noteMessageReceived()
+        receivedCounter?.increment()
         logDebug("Message received", channel.key, message.payload)
         def msgJSON = deserialize(message)
 
@@ -222,6 +242,42 @@ class WebSocketService extends BaseService implements EventPublisher {
     //------------------------
     // Implementation
     //------------------------
+    private void initMetrics() {
+        def prefix = 'websocket',
+            tags = Tags.of('source', 'infra'),
+            registry = metricsService.registry
+
+        channelGauge = Gauge.builder("${prefix}.channels", this, { _channels.size().toDouble() })
+            .description('Active WebSocket channels')
+            .tags(tags)
+            .register(registry)
+
+        sentCounter = Counter.builder("${prefix}.messages.sent")
+            .description('Messages sent successfully')
+            .tags(tags)
+            .register(registry)
+
+        receivedCounter = Counter.builder("${prefix}.messages.received")
+            .description('Messages received from clients')
+            .tags(tags)
+            .register(registry)
+
+        sendErrorCounter = Counter.builder("${prefix}.messages.sendErrors")
+            .description('Message send failures')
+            .tags(tags)
+            .register(registry)
+
+        sessionsOpenedCounter = Counter.builder("${prefix}.sessions.opened")
+            .description('WebSocket sessions registered')
+            .tags(tags)
+            .register(registry)
+
+        sessionsClosedCounter = Counter.builder("${prefix}.sessions.closed")
+            .description('WebSocket sessions unregistered')
+            .tags(tags)
+            .register(registry)
+    }
+
     private String instanceFromKey(String channelKey) {
         channelKey.split('\\|')[1]
     }
@@ -230,7 +286,7 @@ class WebSocketService extends BaseService implements EventPublisher {
         // Note that we are relying on channel.sendMessage to catch/timeout
         def channels = channelKeys != null ? getLocalChannelsForKeys(channelKeys) : _channels.values()
         asyncEach(channels) { HoistWebSocketChannel c ->
-            c.sendMessage(textMessage)
+            c.sendMessage(textMessage) ? sentCounter?.increment() : sendErrorCounter?.increment()
         }
     }
 
@@ -260,4 +316,13 @@ class WebSocketService extends BaseService implements EventPublisher {
 
         super.clearCaches()
     }
+
+    Map getAdminStats() {[
+        channelCount: channelGauge?.value(),
+        messagesSent: sentCounter?.count(),
+        messagesReceived: receivedCounter?.count(),
+        sendErrors: sendErrorCounter?.count(),
+        sessionsOpened: sessionsOpenedCounter?.count(),
+        sessionsClosed: sessionsClosedCounter?.count()
+    ]}
 }

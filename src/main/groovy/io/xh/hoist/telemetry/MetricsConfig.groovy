@@ -5,7 +5,7 @@
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.observe
+package io.xh.hoist.telemetry
 
 import groovy.transform.MapConstructor
 

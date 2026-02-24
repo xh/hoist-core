@@ -7,8 +7,12 @@
 
 package io.xh.hoist.admin
 
+import io.micrometer.core.instrument.FunctionCounter
+import io.micrometer.core.instrument.Gauge
+import io.micrometer.core.instrument.Meter
 import io.xh.hoist.BaseService
 import io.xh.hoist.exception.DataNotAvailableException
+import io.xh.hoist.telemetry.MetricsService
 import org.apache.tomcat.jdbc.pool.DataSource as PooledDataSource
 import org.apache.tomcat.jdbc.pool.PoolConfiguration
 import org.springframework.boot.jdbc.DataSourceUnwrapper
@@ -20,6 +24,7 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.getHOURS
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
 import static io.xh.hoist.util.Utils.asSanitizedJSON
+import static java.lang.Double.NaN
 import static java.lang.System.currentTimeMillis
 
 /**
@@ -31,12 +36,15 @@ class ConnectionPoolMonitoringService extends BaseService {
     def configService,
         dataSource
 
+    MetricsService metricsService
+
     private Map<Long, Map> _snapshots = new ConcurrentHashMap()
     private Date _lastInfoLogged
     private PooledDataSource _pooledDataSource
     private boolean unwrapAttempted = false
 
     void init() {
+        initMetrics()
         createTimer(
             name: 'takeSnapshot',
             runFn: this.&takeSnapshot,
@@ -109,6 +117,50 @@ class ConnectionPoolMonitoringService extends BaseService {
     //------------------------
     // Implementation
     //------------------------
+    private void initMetrics() {
+
+        def prefix = 'jdbc.pool'
+        List<Meter> meters = [
+            // Live pool state
+            Gauge.builder("${prefix}.size", this, readDsProp('size'))
+                .description('Total connections in pool (active + idle)'),
+            Gauge.builder("${prefix}.active", this, readDsProp('active'))
+                .description('Active/in-use connections'),
+            Gauge.builder("${prefix}.idle", this, readDsProp('idle'))
+                .description('Idle connections'),
+            Gauge.builder("${prefix}.waitCount", this, readDsProp('waitCount'))
+                .description('Threads waiting for a connection'),
+
+            // Cumulative pool counters
+            FunctionCounter.builder("${prefix}.borrowed", this, readDsProp('borrowedCount'))
+                .description('Connections borrowed from pool'),
+            FunctionCounter.builder("${prefix}.returned", this, readDsProp('returnedCount'))
+                .description('Connections returned to pool'),
+            FunctionCounter.builder("${prefix}.created", this, readDsProp('createdCount'))
+                .description('Connections created'),
+            FunctionCounter.builder("${prefix}.released", this, readDsProp('releasedCount'))
+                .description('Connections released/destroyed'),
+            FunctionCounter.builder("${prefix}.reconnected", this, readDsProp('reconnectedCount'))
+                .description('Connections re-established after failure'),
+            FunctionCounter.builder("${prefix}.removeAbandoned", this, readDsProp('removeAbandonedCount'))
+                .description('Connections removed due to abandonment'),
+            FunctionCounter.builder("${prefix}.releasedIdle", this, readDsProp('releasedIdleCount'))
+                .description('Idle connections released by evictor')
+        ]
+
+        meters.each {
+            it.tag('source', 'infra')
+            it.register(metricsService.registry)
+        }
+
+    }
+
+    private Closure readDsProp(String prop) {
+        return {
+            pooledDataSource ? pooledDataSource[prop] as double : NaN
+        }
+    }
+
     private Map getSnap() {
         def ds = pooledDataSource
         return [
