@@ -4,15 +4,11 @@
 
 ### 🎁 New Features
 
-* Added `MonitorMetricsService` to publish Micrometer metrics for Hoist monitor results, enabling
-  integration with observability platforms such as Prometheus, Grafana, and Datadog.
-    * Two named metrics are published per monitor: `{ns}.{code}.status` (severity gauge) and
-      `{ns}.{code}.value` (current numeric metric), along with tag-based `{ns}.status` and
-      `{ns}.executionTime` metrics for global queries.
-    * Metrics are published from the primary instance after monitor result aggregation.
-    * The metric namespace defaults to `{appCode}.monitor` and can be overridden via the
-      `metricsNamespace` key in `xhMonitorConfig`. Publishing can be disabled via `metricsEnabled`.
-    * Requires Spring Boot Actuator, already enabled as of Hoist v36.1.
+* Added `MetricsService` — a central Micrometer-based metrics infrastructure for Hoist applications.
+  Exposes a `CompositeMeterRegistry` with automatic namespace prefixing and default tags, built-in
+  support for Prometheus and OTLP export registries (configured via `xhMetricsConfig`), and
+  cluster-wide Prometheus scrape. Built-in metrics are provided for JVM health, JDBC connection
+  pool, WebSocket channels, and Hoist monitor results. See [`docs/metrics.md`](docs/metrics.md).
 * Added `MonitorSpec` typed class and `MonitorMetricType` enum for use with
   `ensureRequiredMonitorsCreated()`, replacing untyped `Map` arguments with a class that provides
   IDE autocomplete and compile-time validation.
