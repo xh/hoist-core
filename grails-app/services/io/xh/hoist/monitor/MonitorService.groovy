@@ -65,8 +65,7 @@ class MonitorService extends BaseService {
      * Results will be sorted according to sort orders defined in the monitor configurations and
      * will include stub entries for inactive monitors.
      */
-    @ReadOnly
-    private AggregateMonitorResult getAggregateResult(String code) {
+    AggregateMonitorResult getResult(String code) {
         _results.get()?[code]
     }
 

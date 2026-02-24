@@ -12,9 +12,11 @@ import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.Meter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
+import io.micrometer.core.instrument.Tags
 import io.xh.hoist.BaseService
 import io.xh.hoist.telemetry.MetricsService
 
+import static io.xh.hoist.monitor.MonitorStatus.UNKNOWN
 import static java.lang.Double.NaN
 import static java.util.concurrent.TimeUnit.MILLISECONDS
 
@@ -71,13 +73,14 @@ class MonitorMetricsService extends BaseService {
             name = "monitor.${code}.status"
 
         meters["${name}.cluster"] ?= Gauge.builder(name, this) {
-            monitorService.getResult(code)?.status?.severity ?: 0.0d
+            def status = monitorService.getResult(code)?.status ?: UNKNOWN
+            status.severity as double
         }.tags('source', 'hoist', 'instance', 'cluster')
             .description(aggResult.monitor.name)
             .register(registry)
     }
 
-    private void ensureInstanceMeters(MonitorResult result) {
+    private void ensureAndRecordInstanceMeters(MonitorResult result) {
         //  A) Ensure all meters for this result set
         //  Publish the primaryOnly monitors tagged with instance='cluster'
         def code = result.code,
@@ -89,7 +92,8 @@ class MonitorMetricsService extends BaseService {
         def statusName = "monitor.${code}.status"
         meters["${statusName}.${instance}"] ?=
             Gauge.builder(statusName, this) {
-                getResult(code, instance)?.status?.severity ?: 0.0d
+                def status = getResult(code, instance)?.status ?: UNKNOWN
+                status.severity as double
             }.tags(tags)
                 .description(description)
                 .register(registry)
@@ -135,7 +139,7 @@ class MonitorMetricsService extends BaseService {
     }
 
     private MonitorResult getResult(String code, String instance) {
-        monitorService.getResult(code)?.find { it.instance == instance }
+        monitorService.getResult(code)?.results?.find { it.instance == instance }
     }
 
     void clearCaches() {

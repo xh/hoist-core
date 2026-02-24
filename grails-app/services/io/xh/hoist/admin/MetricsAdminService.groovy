@@ -6,6 +6,9 @@
  */
 package io.xh.hoist.admin
 
+import io.micrometer.core.instrument.LongTaskTimer
+import io.micrometer.core.instrument.Meter
+import io.micrometer.core.instrument.Timer as MicrometerTimer
 import io.xh.hoist.BaseService
 
 import static io.micrometer.core.instrument.Meter.Type.*
@@ -15,14 +18,16 @@ class MetricsAdminService extends BaseService {
     def metricsService
 
     List<Map> listMetrics() {
-        metricsService.registry.meters.collect { meter ->
+        metricsService.registry.meters.collect { Meter meter ->
             def id = meter.id,
                 name = id.name,
                 type = id.type,
                 description = id.description,
-                baseUnit = id.baseUnit,
                 tags = id.tags.collect { [key: it.key, value: it.value] },
-                stats = meter.measure().collectEntries { [it.statistic.name(), it.value] }
+                stats = meter.measure().collectEntries { [it.statistic.name(), it.value] },
+                baseUnit = meter instanceof MicrometerTimer || meter instanceof LongTaskTimer
+                    ? meter.baseTimeUnit().name().toLowerCase()
+                    : id.baseUnit
 
             def value, count, max
             switch (type) {
@@ -52,7 +57,8 @@ class MetricsAdminService extends BaseService {
                 max: max,
                 description: description,
                 baseUnit: baseUnit,
-                tags: tags
+                tags: tags,
+                stats: stats
             ]
         }
     }
