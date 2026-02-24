@@ -13,7 +13,6 @@ import io.xh.hoist.BaseService
 import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.util.Timer
-import io.xh.hoist.telemetry.MonitorMetricsService
 
 import static AggregateMonitorResult.emptyResults
 import static AggregateMonitorResult.newResults
@@ -67,6 +66,17 @@ class MonitorService extends BaseService {
      * will include stub entries for inactive monitors.
      */
     @ReadOnly
+    private AggregateMonitorResult getAggregateResult(String code) {
+        _results.get()?[code]
+    }
+
+    /**
+     * Get the current set of aggregated results for all configured monitors.
+     *
+     * Results will be sorted according to sort orders defined in the monitor configurations and
+     * will include stub entries for inactive monitors.
+     */
+    @ReadOnly
     List<AggregateMonitorResult> getResults() {
         def results = _results.get()
         Monitor
@@ -104,7 +114,7 @@ class MonitorService extends BaseService {
         _results.set(newResults)
 
         // Publish per-instance metrics to Micrometer
-        monitorMetricsService.publishResults(newResults.values())
+        monitorMetricsService.noteResultsUpdated(newResults.values())
 
         // Report the canonical results from public getter
         monitorReportService.noteResultsUpdated(results)

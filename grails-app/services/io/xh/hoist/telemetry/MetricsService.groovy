@@ -52,14 +52,6 @@ import static io.xh.hoist.util.Utils.appCode
 class MetricsService extends BaseService {
 
     /**
-     * Tag value for the {@code instance} label on cluster-scoped metrics.
-     * Metrics tagged with this value may only be registered on the primary instance.
-     * The MeterFilter will reject (deny) any such metric on non-primary nodes,
-     * ensuring cluster-scoped metrics appear exactly once in aggregated scrapes.
-     */
-    static final String CLUSTER_TAG = 'cluster'
-
-    /**
      * Main entry point for meter registration.
      *
      * All meters registered through this registry automatically receive default tags
@@ -86,7 +78,7 @@ class MetricsService extends BaseService {
         // Deny cluster-scoped metrics on non-primary instances
         registry.config().meterFilter(new MeterFilter() {
             MeterFilterReply accept(Meter.Id id) {
-                if (!clusterService.isPrimary && id.tags.any { it.key == 'instance' && it.value == CLUSTER_TAG }) {
+                if (!clusterService.isPrimary && id.tags.any { it.key == 'instance' && it.value == 'cluster' }) {
                     logError("Cluster-scoped metric registered on non-primary instance", id.name)
                     return MeterFilterReply.DENY
                 }
@@ -142,14 +134,7 @@ class MetricsService extends BaseService {
         if (!_prometheusRegistry) {
             throw new RuntimeException('Prometheus not enabled')
         }
-
-        if (clusterService.isPrimary) return _prometheusRegistry.scrape()
-
-        // Non-primary: scrape only instance-scoped metrics
-        def includedNames = registry.meters
-            .findAll { it.id.tags.every { tag -> tag.key != 'instance' || tag.value != CLUSTER_TAG } }
-            .collect { it.id.name } as Set
-        _prometheusRegistry.scrape('text/plain', includedNames)
+        _prometheusRegistry.scrape()
     }
 
 

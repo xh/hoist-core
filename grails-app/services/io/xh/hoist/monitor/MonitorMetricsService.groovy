@@ -1,0 +1,149 @@
+/*
+ * This file belongs to Hoist, an application development toolkit
+ * developed by Extremely Heavy Industries (www.xh.io | info@xh.io)
+ *
+ * Copyright © 2026 Extremely Heavy Industries Inc.
+ */
+
+package io.xh.hoist.monitor
+
+import groovy.transform.CompileDynamic
+import io.micrometer.core.instrument.Gauge
+import io.micrometer.core.instrument.Meter
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.Timer
+import io.xh.hoist.BaseService
+import io.xh.hoist.telemetry.MetricsService
+
+import static java.lang.Double.NaN
+import static java.util.concurrent.TimeUnit.MILLISECONDS
+
+/**
+ * Publishes Hoist monitor results as Micrometer metrics via {@link MetricsService},
+ * enabling integration with observability platforms such as Prometheus, OTLP, and Datadog.
+ *
+ * Metrics are published from the primary instance only, after monitor results have been
+ * aggregated by {@link io.xh.hoist.monitor.MonitorService}.
+ *
+ * Three metrics are published per monitor (monitor code embedded in the metric name):
+ *  - `hoist.monitor.{code}.status` — Gauge of status severity (0=INACTIVE .. 4=FAIL)
+ *  - `hoist.monitor.{code}.value` — Gauge of the monitor's current numeric metric
+ *  - `hoist.monitor.{code}.executionTime` — Timer of the monitor's current execution time
+
+ * In all cases, an {@code instance} tag will indicate the instance the monitor was running on,
+ * with a value of 'cluster' indicating cluster-level metrics (currently status metric only).
+ *
+ * @internal - not intended for direct use by applications.
+ */
+@CompileDynamic
+class MonitorMetricsService extends BaseService {
+
+    MetricsService metricsService
+    MonitorService monitorService
+
+    private final Map<String, Meter> meters = new HashMap()
+
+    /**
+     * Ensure gauges/timers are registered for all monitors in result, and
+     * record execution times.  Cull obsolete meters
+     *
+     * Called from MonitorService.runMonitors() on primary only.
+     */
+    void noteResultsUpdated(Collection<AggregateMonitorResult> results) {
+        try {
+            results.each { aggResult ->
+                ensureAggregateMeters(aggResult)
+                aggResult.results?.each {
+                    ensureAndRecordInstanceMeters(it)
+                }
+            }
+            cullMeters()
+        } catch (Exception e) {
+            logError('Failed to publish monitor metrics', e)
+        }
+    }
+
+    //------------------------
+    // Implementation
+    //------------------------
+    private void ensureAggregateMeters(AggregateMonitorResult aggResult) {
+        def code = aggResult.monitor.code,
+            name = "monitor.${code}.status"
+
+        meters["${name}.cluster"] ?= Gauge.builder(name, this) {
+            monitorService.getResult(code)?.status?.severity ?: 0.0d
+        }.tags('source', 'hoist', 'instance', 'cluster')
+            .description(aggResult.monitor.name)
+            .register(registry)
+    }
+
+    private void ensureInstanceMeters(MonitorResult result) {
+        //  A) Ensure all meters for this result set
+        //  Publish the primaryOnly monitors tagged with instance='cluster'
+        def code = result.code,
+            monitor = result.monitor,
+            instance = monitor.primaryOnly ? 'cluster' : result.instance,
+            tags = Tags.of('source', 'hoist', "instance", instance),
+            description = result.monitor.name
+
+        def statusName = "monitor.${code}.status"
+        meters["${statusName}.${instance}"] ?=
+            Gauge.builder(statusName, this) {
+                getResult(code, instance)?.status?.severity ?: 0.0d
+            }.tags(tags)
+                .description(description)
+                .register(registry)
+
+        def valueName = "monitor.${code}.value"
+        meters["${valueName}.${instance}"] ?=
+            Gauge.builder(valueName, this) {
+                def m = getResult(code, instance)?.metric
+                m instanceof Number ? m.doubleValue() : NaN
+            }.tags(tags)
+                .description(description)
+                .baseUnit(result.monitor.metricUnit ?: '')
+                .register(registry)
+
+        def execName = "monitor.${code}.executionTime"
+        meters["${execName}.${instance}"] ?=
+            Timer.builder(execName)
+                .tags(tags)
+                .description(description)
+                .register(registry)
+
+        // B) Be sure to imperatively record the timer as well
+        meters["${execName}.${instance}"].record(result.elapsed, MILLISECONDS)
+    }
+
+    private void cullMeters() {
+        // Remove and unregister meters for obsolete instances or monitors.
+        def activeCodes = Monitor.withNewSession { Monitor.list()*.code } as Set<String>,
+            activeInstances = clusterService.members.collect { it.getAttribute('instanceName') },
+            staleKeys = meters.keySet().findAll { key ->
+                def (_, code, __, instance) = key.split(/\./)
+                return !activeCodes.contains(code) ||
+                    (instance != 'cluster' && !activeInstances.contains(instance))
+            }
+
+        staleKeys.each { key ->
+            meters.remove(key)?.with { registry.remove(it) }
+        }
+    }
+
+    private MeterRegistry getRegistry() {
+        metricsService.registry
+    }
+
+    private MonitorResult getResult(String code, String instance) {
+        monitorService.getResult(code)?.find { it.instance == instance }
+    }
+
+    void clearCaches() {
+        super.clearCaches()
+        meters.clear()
+    }
+
+    Map getAdminStats() { [
+        registeredMeterCount: meters.size()
+    ] }
+}
