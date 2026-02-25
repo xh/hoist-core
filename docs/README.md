@@ -81,7 +81,7 @@ Features supporting production operations, integrations, and system health.
 | Document | Description | Key Topics |
 |----------|-------------|------------|
 | [`monitoring.md`](./monitoring.md) | Application health monitoring with configurable checks and email alerting | Monitor, MonitorResult, MonitoringService, MonitorDefinitionService, email alerts |
-| [`metrics.md`](./metrics.md) | Micrometer-based observable metrics with Prometheus and OTLP export | MetricsService, CompositeMeterRegistry, MonitorMetricsService, Prometheus, OTLP, xhMetricsConfig |
+| [`metrics.md`](./metrics.md) | Micrometer-based observable metrics with Prometheus and OTLP export | MetricsService, CompositeMeterRegistry, MonitorMetricsService, TrackMetricsService, Prometheus, OTLP, xhMetricsConfig |
 | [`websocket.md`](./websocket.md) | Cluster-aware server push to connected clients | WebSocketService, HoistWebSocketHandler, HoistWebSocketChannel, channel subscriptions |
 | [`http-client.md`](./http-client.md) | HTTP client for external API calls and request proxying | JSONClient, BaseProxyService, HttpUtils |
 | [`email.md`](./email.md) | Email sending with config-driven filtering and overrides | EmailService, `xhEmailFilter`, `xhEmailOverride`, support address config |

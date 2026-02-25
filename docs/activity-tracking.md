@@ -26,6 +26,7 @@ The system serves several purposes:
 | `TrackSeverity` | `src/main/groovy/io/xh/hoist/track/` | Severity enum — `DEBUG`, `INFO`, `WARN`, `ERROR` |
 | `ClientErrorEmailService` | `grails-app/services/io/xh/hoist/track/` | Email notifications for client errors |
 | `FeedbackEmailService` | `grails-app/services/io/xh/hoist/track/` | Email routing for user feedback |
+| `TrackMetricsService` | `grails-app/services/io/xh/hoist/track/` | Micrometer metrics from track log entries |
 
 ## Key Classes
 
@@ -189,6 +190,21 @@ and formatting are controlled via soft configuration.
 
 Routes user feedback submitted through the hoist-react feedback dialog to email recipients. The
 feedback is also tracked as a `TrackLog` entry with category `'Feedback'`.
+
+### Metrics Integration
+
+`TrackMetricsService` subscribes to the `xhTrackReceived` topic on the primary instance and
+publishes Micrometer metrics based on client activity. All metrics are tagged with `clientApp`
+to distinguish activity from different client applications.
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `hoist.client.track.messages` | Counter | All track log entries received |
+| `hoist.client.track.errors` | Counter | Client error entries |
+| `hoist.client.load.totalTime` | Timer | Total app load elapsed time |
+| `hoist.client.load.authTime` | Timer | Authentication phase duration |
+
+See [`metrics.md`](./metrics.md) for full documentation of the metrics infrastructure.
 
 ## Configuration
 

@@ -8,7 +8,8 @@
   Exposes a `CompositeMeterRegistry` with automatic namespace prefixing and default tags, built-in
   support for Prometheus and OTLP export registries (configured via `xhMetricsConfig`), and
   cluster-wide Prometheus scrape. Built-in metrics are provided for JVM health, JDBC connection
-  pool, WebSocket channels, and Hoist monitor results. See [`docs/metrics.md`](docs/metrics.md).
+  pool, WebSocket channels, client activity tracking, and Hoist monitor results.
+  See [`docs/metrics.md`](docs/metrics.md).
 * Added `MonitorSpec` typed class and `MonitorMetricType` enum for use with
   `ensureRequiredMonitorsCreated()`, replacing untyped `Map` arguments with a class that provides
   IDE autocomplete and compile-time validation.

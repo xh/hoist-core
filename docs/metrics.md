@@ -8,8 +8,9 @@ Datadog. The system is designed to work transparently across Hoist's clustered a
 automatic namespace prefixing, default tags, and cluster-wide scrape support.
 
 The framework automatically publishes a range of built-in metrics covering JVM health, JDBC
-connection pooling, WebSocket activity, and Hoist monitor results. Applications can register their
-own custom metrics using the standard Micrometer API via `MetricsService.registry`.
+connection pooling, WebSocket activity, client activity tracking, and Hoist monitor results.
+Applications can register their own custom metrics using the standard Micrometer API via
+`MetricsService.registry`.
 
 ### Key capabilities
 
@@ -21,7 +22,7 @@ own custom metrics using the standard Micrometer API via `MetricsService.registr
 - **Cluster-wide Prometheus scrape** — a single endpoint can return metrics from all instances,
   each distinguished by an `instance` tag.
 - **Built-in metrics** — JVM (memory, GC, threads, classloader, CPU), JDBC pool, WebSocket
-  channels, and Hoist monitor results are instrumented out of the box.
+  channels, client activity tracking, and Hoist monitor results are instrumented out of the box.
 - **Admin Console** — a cluster-wide metrics viewer is available via `MetricsAdminController`.
 
 ---
@@ -33,6 +34,7 @@ own custom metrics using the standard Micrometer API via `MetricsService.registr
 | `MetricsService.groovy` | `grails-app/services/io/xh/hoist/telemetry/` | Central Micrometer registry, namespace/tagging, export registries |
 | `MetricsConfig.groovy` | `src/main/groovy/io/xh/hoist/telemetry/` | Typed wrapper around `xhMetricsConfig` |
 | `MonitorMetricsService.groovy` | `grails-app/services/io/xh/hoist/monitor/` | Publishes Hoist monitor results as Micrometer metrics |
+| `TrackMetricsService.groovy` | `grails-app/services/io/xh/hoist/track/` | Client activity metrics from track log entries |
 | `MetricsAdminService.groovy` | `grails-app/services/io/xh/hoist/admin/` | Cluster-wide meter listing for admin UI |
 | `MetricsAdminController.groovy` | `grails-app/controllers/io/xh/hoist/admin/cluster/` | REST endpoint for admin metrics viewer |
 
@@ -207,6 +209,24 @@ Each carries an `instance` tag indicating which cluster instance ran the check, 
 aggregate status. Meters are automatically removed when monitors or instances are decommissioned.
 
 See [`monitoring.md`](./monitoring.md) for full documentation of the Hoist monitoring system.
+
+### Client activity metrics (`source=hoist`)
+
+Published by `TrackMetricsService`, which subscribes to the `xhTrackReceived` Hazelcast topic on
+the primary instance. These metrics are cluster-scoped (`instance=cluster`) and tagged with
+`clientApp` to distinguish activity from different client applications.
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `hoist.client.track.messages` | Counter | All track log entries received |
+| `hoist.client.track.errors` | Counter | Client error track entries (`category == 'Client Error'`) |
+| `hoist.client.load.totalTime` | Timer | Total app load elapsed time |
+| `hoist.client.load.authTime` | Timer | App load authentication phase duration |
+
+Load timers are recorded only for `App` / `Loaded` track entries that include a `timings` map in
+their data payload, confirming they represent a standard Hoist client load event.
+
+See [`activity-tracking.md`](./activity-tracking.md) for documentation of the track log system.
 
 ---
 
