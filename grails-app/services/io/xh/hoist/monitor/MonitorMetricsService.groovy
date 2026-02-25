@@ -28,9 +28,9 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS
  * aggregated by {@link io.xh.hoist.monitor.MonitorService}.
  *
  * Three metrics are published per monitor (monitor code embedded in the metric name):
- *  - `hoist.monitor.{code}.status` — Gauge of status severity (0=INACTIVE .. 4=FAIL)
- *  - `hoist.monitor.{code}.value` — Gauge of the monitor's current numeric metric
- *  - `hoist.monitor.{code}.executionTime` — Timer of the monitor's current execution time
+ *  - `hoist.monitor.status.{code}` — Gauge of status severity (0=INACTIVE .. 4=FAIL)
+ *  - `hoist.monitor.value.{code}` — Gauge of the monitor's current numeric metric
+ *  - `hoist.monitor.executionTime.{code}` — Timer of the monitor's current execution time
 
  * In all cases, an {@code instance} tag will indicate the instance the monitor was running on,
  * with a value of 'cluster' indicating cluster-level metrics (currently status metric only).
@@ -70,7 +70,7 @@ class MonitorMetricsService extends BaseService {
     //------------------------
     private void ensureAggregateMeters(AggregateMonitorResult aggResult) {
         def code = aggResult.monitor.code,
-            name = "monitor.${code}.status"
+            name = "monitor.status.${code}"
 
         meters["${name}.cluster"] ?= Gauge.builder(name, this) {
             def status = monitorService.getResult(code)?.status ?: UNKNOWN
@@ -89,7 +89,7 @@ class MonitorMetricsService extends BaseService {
             tags = Tags.of('source', 'hoist', "instance", instance),
             description = result.monitor.name
 
-        def statusName = "monitor.${code}.status"
+        def statusName = "monitor.status.${code}"
         meters["${statusName}.${instance}"] ?=
             Gauge.builder(statusName, this) {
                 def status = getResult(code, instance)?.status ?: UNKNOWN
@@ -98,7 +98,7 @@ class MonitorMetricsService extends BaseService {
                 .description(description)
                 .register(registry)
 
-        def valueName = "monitor.${code}.value"
+        def valueName = "monitor.value.${code}"
         meters["${valueName}.${instance}"] ?=
             Gauge.builder(valueName, this) {
                 def m = getResult(code, instance)?.metric
@@ -108,7 +108,7 @@ class MonitorMetricsService extends BaseService {
                 .baseUnit(result.monitor.metricUnit ?: '')
                 .register(registry)
 
-        def execName = "monitor.${code}.executionTime"
+        def execName = "monitor.executionTime.${code}"
         meters["${execName}.${instance}"] ?=
             Timer.builder(execName)
                 .tags(tags)
@@ -124,7 +124,7 @@ class MonitorMetricsService extends BaseService {
         def activeCodes = Monitor.withNewSession { Monitor.list()*.code } as Set<String>,
             activeInstances = clusterService.members.collect { it.getAttribute('instanceName') },
             staleKeys = meters.keySet().findAll { key ->
-                def (_, code, __, instance) = key.split(/\./)
+                def (_, __, code, instance) = key.split(/\./)
                 return !activeCodes.contains(code) ||
                     (instance != 'cluster' && !activeInstances.contains(instance))
             }

@@ -82,7 +82,7 @@ All meters registered through the service automatically receive:
 2. **Namespace prefix** based on the `source` tag:
    - `source=app` (default) — metric name is prefixed with the application namespace
      (e.g. `myApp.myService.queueDepth`)
-   - `source=hoist` — prefixed with `hoist.` (e.g. `hoist.monitor.xhMemoryMonitor.status`)
+   - `source=hoist` — prefixed with `hoist.` (e.g. `hoist.monitor.status.xhMemoryMonitor`)
    - `source=infra` — no prefix added (e.g. `jvm.memory.used`, `jdbc.pool.active`)
 
 The namespace defaults to the application code and can be overridden via the `namespace` key in
@@ -201,9 +201,9 @@ For each configured monitor, three metrics are published:
 
 | Metric | Type | Description |
 |--------|------|-------------|
-| `hoist.monitor.{code}.status` | Gauge | Status severity (0=INACTIVE .. 4=FAIL) |
-| `hoist.monitor.{code}.value` | Gauge | Current numeric metric value |
-| `hoist.monitor.{code}.executionTime` | Timer | Execution time of the monitor check |
+| `hoist.monitor.status.{code}` | Gauge | Status severity (0=INACTIVE .. 4=FAIL) |
+| `hoist.monitor.value.{code}` | Gauge | Current numeric metric value |
+| `hoist.monitor.executionTime.{code}` | Timer | Execution time of the monitor check |
 
 Each carries an `instance` tag indicating which cluster instance ran the check, or `cluster` for
 aggregate status. Meters are automatically removed when monitors or instances are decommissioned.
