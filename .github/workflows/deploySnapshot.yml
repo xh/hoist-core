@@ -1,3 +1,9 @@
+# Deploy Snapshot — Publishes a SNAPSHOT build to Sonatype on every push to develop.
+#
+# Snapshots are mutable development builds (version from gradle.properties, e.g. 37.0-SNAPSHOT).
+# They are not signed, not tagged, and not promoted to Maven Central. For numbered releases,
+# see Deploy Release.
+
 name: Deploy Snapshot
 
 on:

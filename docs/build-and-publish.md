@@ -17,8 +17,9 @@ The build pipeline supports three GitHub Actions workflows:
 - **CI** — Builds on every push and PR to `develop`
 - **Snapshot publishing** — Automatically publishes `-SNAPSHOT` builds to Sonatype on every push to
   `develop`
-- **Release publishing** — Manually triggered workflow that builds, signs, and publishes a release
-  version to Maven Central from the `main` branch
+- **Release publishing** — Manually triggered workflow that validates the version, builds, signs,
+  and publishes a release to Maven Central from the `main` branch, then tags the commit and
+  creates a GitHub release
 
 > When code is pushed or merged to `develop`, both the CI and snapshot workflows run. CI validates
 > the build; the snapshot workflow additionally publishes the artifact.
@@ -30,9 +31,10 @@ The build pipeline supports three GitHub Actions workflows:
 | `build.gradle` | Gradle build config — plugins, dependencies, publishing, and signing |
 | `settings.gradle` | Sets `rootProject.name = 'hoist-core'` — ensures the correct artifact name regardless of the checkout directory. Replaces a TeamCity `%projectName%` placeholder that was written as a literal string in GitHub Actions |
 | `gradle.properties` | Default version (`xhReleaseVersion`), Grails version, Gradle JVM args |
-| `.github/workflows/gradle.yml` | CI workflow — build + dependency submission |
+| `.github/workflows/ci.yml` | CI workflow — build + dependency submission |
 | `.github/workflows/deploySnapshot.yml` | Snapshot publishing workflow |
 | `.github/workflows/deployRelease.yml` | Release publishing workflow |
+| `.github/dependabot.yml` | Dependabot config — monitors workflow action versions weekly |
 
 ## Version Numbering
 
@@ -53,7 +55,7 @@ xhReleaseVersion=37.0-SNAPSHOT
 All three workflows run on `ubuntu-latest` with **JDK 17 (Zulu)** and use the
 `gradle/actions/setup-gradle` action for Gradle caching and setup.
 
-### CI (`gradle.yml`)
+### CI (`ci.yml`)
 
 **Trigger:** Push or PR to `develop`
 
@@ -86,20 +88,23 @@ and are not signed. They are available immediately at the Sonatype snapshot repo
 
 ### Release Publishing (`deployRelease.yml`)
 
-**Trigger:** Manual (`workflow_dispatch`) — the operator selects a branch and enters the release
-version string. Release builds are always run against the `main` branch.
+**Trigger:** Manual (`workflow_dispatch`) — the operator enters the release version string.
+The workflow is restricted to the `main` branch via a job-level guard (see the `if` condition
+in the workflow file to adjust for hotfix branches).
 
-Builds, signs, and publishes a release to Maven Central via Sonatype's staging API:
+The workflow performs the following steps in order:
 
-```
-./gradlew -PxhReleaseVersion="$XH_RELEASE_VERSION" publishToSonatype closeAndReleaseSonatypeStagingRepository --no-daemon
-```
-
-This command:
-
-1. **Builds** the project with the specified release version (overriding `gradle.properties`)
-2. **Publishes** the artifacts to a Sonatype staging repository
-3. **Closes and releases** the staging repository, which triggers Maven Central sync
+1. **Validates** the version input — must be semver (`X.Y.Z`), must not duplicate an existing tag,
+   and must be a reasonable increment from the latest release (catches fat-finger errors like
+   `38.40.0` instead of `38.4.0`). Hotfix releases for older major versions are detected and
+   allowed.
+2. **Builds and publishes** to Maven Central via Sonatype's staging API:
+   ```
+   ./gradlew -PxhReleaseVersion="$XH_RELEASE_VERSION" publishToSonatype closeAndReleaseSonatypeStagingRepository --no-daemon
+   ```
+3. **Tags** the commit as `vX.Y.Z` and pushes the tag to GitHub
+4. **Creates a GitHub release** with auto-generated notes from merged PRs since the previous tag.
+   Hotfix releases are created without the "latest" flag to avoid displacing the current release.
 
 Once released, the artifact is available on Maven Central as `io.xh:hoist-core:<version>`.
 
@@ -243,10 +248,12 @@ Gradle properties (`xhRepoDeployUser`, `xhRepoDeployPassword`) — typically set
 
 1. Merge `develop` into `main` when ready to release (CI passing, changelog updated)
 2. Navigate to **Actions → Deploy Release** in the GitHub repository
-3. Click **Run workflow**, select the `main` branch
-4. Enter the release version (e.g. `37.0.0`) — this must **not** end in `-SNAPSHOT`
-5. The workflow builds, signs, stages, and auto-releases to Maven Central
+3. Click **Run workflow** (the workflow enforces `main` — it will skip on other branches)
+4. Enter the release version (e.g. `37.0.0`) — must be semver, must not duplicate an existing tag
+5. The workflow validates the version, builds, signs, publishes to Maven Central, tags the commit
+   (`vX.Y.Z`), and creates a GitHub release with auto-generated notes
 6. Verify the artifact appears on
-   [Maven Central](https://central.sonatype.com/artifact/io.xh/hoist-core)
+   [Maven Central](https://central.sonatype.com/artifact/io.xh/hoist-core) and the release
+   appears on the repository's [Releases](../../releases) page
 7. Update `xhReleaseVersion` in `gradle.properties` on `develop` to the next snapshot version
    (e.g. `38.0-SNAPSHOT`)
