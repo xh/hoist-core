@@ -18,7 +18,7 @@ The build pipeline supports three GitHub Actions workflows:
 - **Snapshot publishing** — Automatically publishes `-SNAPSHOT` builds to Sonatype on every push to
   `develop`
 - **Release publishing** — Manually triggered workflow that validates the version, builds, signs,
-  and publishes a release to Maven Central from the `main` branch, then tags the commit and
+  and publishes a release to Maven Central from the `master` branch, then tags the commit and
   creates a GitHub release
 
 > When code is pushed or merged to `develop`, both the CI and snapshot workflows run. CI validates
@@ -89,7 +89,7 @@ and are not signed. They are available immediately at the Sonatype snapshot repo
 ### Release Publishing (`deployRelease.yml`)
 
 **Trigger:** Manual (`workflow_dispatch`) — the operator enters the release version string.
-The workflow is restricted to the `main` branch via a job-level guard (see the `if` condition
+The workflow is restricted to the `master` branch via a job-level guard (see the `if` condition
 in the workflow file to adjust for hotfix branches).
 
 The workflow performs the following steps in order:
@@ -246,9 +246,9 @@ Gradle properties (`xhRepoDeployUser`, `xhRepoDeployPassword`) — typically set
 
 ## How to Perform a Release
 
-1. Merge `develop` into `main` when ready to release (CI passing, changelog updated)
+1. Merge `develop` into `master` when ready to release (CI passing, changelog updated)
 2. Navigate to **Actions → Deploy Release** in the GitHub repository
-3. Click **Run workflow** (the workflow enforces `main` — it will skip on other branches)
+3. Click **Run workflow** (the workflow enforces `master` — it will skip on other branches)
 4. Enter the release version (e.g. `37.0.0`) — must be semver, must not duplicate an existing tag
 5. The workflow validates the version, builds, signs, publishes to Maven Central, tags the commit
    (`vX.Y.Z`), and creates a GitHub release with auto-generated notes

@@ -1,6 +1,6 @@
 # Deploy Release — Builds, signs, and publishes a numbered release to Maven Central.
 #
-# Manually triggered from the main branch. Validates the version input, publishes via
+# Manually triggered from the master branch. Validates the version input, publishes via
 # Sonatype's staging API, tags the commit, and creates a GitHub release with auto-generated
 # notes. For snapshot builds, see Deploy Snapshot.
 
@@ -17,8 +17,8 @@ on:
 jobs:
     build:
         # Controls which branch(es) can trigger a release. Add branches here if a
-        # release from a non-main branch is ever needed (e.g. a hotfix branch).
-        if: github.ref == 'refs/heads/main'
+        # release from a non-master branch is ever needed (e.g. a hotfix branch).
+        if: github.ref == 'refs/heads/master'
 
         runs-on: ubuntu-latest
         permissions:
