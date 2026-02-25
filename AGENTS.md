@@ -1,6 +1,7 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this
+repository.
 
 ## Project Overview
 
@@ -56,21 +57,27 @@ src/main/groovy/io/xh/hoist/   # Core library code (non-Grails-artifact classes)
 ## Architecture
 
 ### Request Flow
+
 HTTP requests pass through `HoistFilter` (servlet filter) which ensures the cluster is running and
 delegates to `BaseAuthenticationService.allowRequest()`. Requests then route via `UrlMappings` to
 controllers extending `BaseController` (general endpoints) or `RestController` (CRUD operations).
 
 ### Service Layer
+
 All framework and application services extend `BaseService`, which provides:
+
 - **Lifecycle**: `init()` for startup, `destroy()` for shutdown, `parallelInit()` for batch startup
-- **Distributed resources** (Hazelcast-backed): `createCache()`, `createCachedValue()`, `createTimer()`, `createIMap()`, `createReplicatedMap()`
-- **Event systems**: `subscribe()` (local Grails events), `subscribeToTopic()` (cluster-wide pub/sub)
+- **Distributed resources** (Hazelcast-backed): `createCache()`, `createCachedValue()`,
+  `createTimer()`, `createIMap()`, `createReplicatedMap()`
+- **Event systems**: `subscribe()` (local Grails events), `subscribeToTopic()` (cluster-wide
+  pub/sub)
 - **Identity access**: `getUser()`, `getUsername()`, `getAuthUser()`, `getAuthUsername()`
 - **Admin stats**: `getAdminStats()` for the Admin Console
 
 Services are Spring-managed singletons, accessed via DI or static `Utils` accessors.
 
 ### Controller Layer
+
 - `BaseController`: JSON rendering (`renderJSON`), request parsing (`parseRequestJSON`), async
   support, OWASP encoding, cluster result rendering
 - `RestController`: Template-method CRUD (`doCreate`, `doList`, `doUpdate`, `doDelete`) with
@@ -78,7 +85,9 @@ Services are Spring-managed singletons, accessed via DI or static `Utils` access
 - URL pattern: `/rest/$controller/$id?` for REST, `/$controller/$action?/$id?` for general
 
 ### Authentication & Authorization
+
 Apps must implement three abstract services:
+
 - `AuthenticationService` (extends `BaseAuthenticationService`) — defines auth scheme
 - `UserService` (extends `BaseUserService`) — user lookup, HoistUser creation
 - `RoleService` (extends `BaseRoleService`) — role assignment (or use `DefaultRoleService`)
@@ -90,16 +99,19 @@ is thrown.
 Built-in roles: `HOIST_ADMIN`, `HOIST_ADMIN_READER`, `HOIST_IMPERSONATOR`, `HOIST_ROLE_MANAGER`.
 
 ### Clustering (Hazelcast)
+
 `ClusterService` manages multi-instance coordination. The primary instance (oldest member) handles
 primary-only tasks (e.g., timers with `primaryOnly: true`). Distributed data structures (IMap,
 ReplicatedMap, Topic) are named using the pattern `{ClassName}[{resourceName}]`.
 
 ### Soft Configuration
+
 `AppConfig` domain objects store typed config values (`string|int|long|double|bool|json|pwd`) in
 the database. `ConfigService` provides typed getters. Configs can be marked `clientVisible` for
 the JS client. The `pwd` type stores values encrypted via Jasypt.
 
 ### JSON Handling
+
 Custom Jackson-based `JSONSerializer` and `JSONParser` — not Grails' default JSON converters.
 Controllers use `renderJSON()` and `parseRequestJSON()`. Custom serializers are registered via
 `JSONSerializer.registerModules()`.
@@ -121,3 +133,6 @@ tracking and writing conventions.
 - **Event names**: Prefixed with `xh` (e.g., `xhConfigChanged`, `xhTrackReceived`)
 - **Config names**: Framework configs prefixed with `xh` (e.g., `xhActivityTrackingConfig`)
 - **Timer/Cache names**: camelCase, unique within a service
+- **Commit messages, PRs, and comments**: Do not hard-wrap lines in commit message bodies, pull
+  request descriptions, or issue/PR comments. Write each sentence or thought as a single unwrapped
+  line and let the viewing tool handle display wrapping.
