@@ -184,6 +184,21 @@
   - Simplified cascade deletion pitfall wording
 - Marked Done, DRAFT banner removed
 
+### 2026-02-22 — New doc: build-and-publish
+- Created `build-and-publish.md` documenting the Gradle build pipeline and Maven Central publishing
+- Covers all three GitHub Actions workflows: CI (`gradle.yml`), snapshot publishing
+  (`deploySnapshot.yml`), and release publishing (`deployRelease.yml`)
+- Documents the full Gradle publishing configuration: `maven-publish` plugin, `signing` plugin,
+  `nexus-publish-plugin`, the `hoistCore` MavenPublication, POM metadata, and artifact signing
+  with in-memory PGP keys
+- Covers version numbering (`xhReleaseVersion` property), required GitHub secrets, the Sonatype
+  Central Portal staging/release flow, and the legacy `repo.xh.io` publishing path
+- Documents `settings.gradle` (sets `rootProject.name` for correct artifact naming in CI)
+- Includes a step-by-step release checklist
+- Added new "Build & Publishing" section to docs-roadmap.md and docs/README.md index
+- This doc sits outside the priority tiers (like gorm-domain-objects) — it covers build
+  infrastructure rather than a Hoist feature area
+
 ### 2026-02-21 — Interactive review: logging
 - Reviewed `logging.md` against all 13 referenced source files
 - Bug fix discovered and committed: `LogReaderService.doRead()` forward-reading path ignored the
