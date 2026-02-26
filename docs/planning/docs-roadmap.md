@@ -78,6 +78,14 @@ Smaller or more specialized features. Important but lower priority for initial d
 | `environment.md` | EnvironmentService, AppEnvironment, InstanceConfigUtils, Application, BootStrap | AppEnvironment enum, EnvironmentService (runtime environment info), InstanceConfigUtils (external config files), Grails environment vs Hoist environment distinction, environment polling for client | Planned |
 | `admin-endpoints.md` | XhController, admin controllers, AlertBannerService, ViewService, ServiceManagerService | XhController primary endpoints (auth, config, prefs, tracking, blobs, export, environment), admin controller catalog, AlertBannerService, ViewService, ServiceManagerService, connection pool and memory monitoring | Planned |
 
+## Build & Publishing
+
+Build pipeline, CI, and artifact publishing documentation.
+
+| Document | Source Files | Description | Status |
+|----------|-------------|-------------|--------|
+| [`build-and-publish.md`](../build-and-publish.md) | `build.gradle`, `settings.gradle`, `gradle.properties`, `.github/workflows/*.yml` | Gradle build configuration, GitHub Actions CI/CD workflows (CI, snapshot, release), Maven Central publishing via Sonatype Central Portal, GPG artifact signing, `nexus-publish-plugin`, legacy `repo.xh.io` publishing, version numbering, required GitHub secrets | Draft |
+
 ## Documentation Guidelines
 
 ### Review Workflow

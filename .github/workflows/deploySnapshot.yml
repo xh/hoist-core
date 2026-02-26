@@ -1,0 +1,68 @@
+# Deploy Snapshot — Publishes a SNAPSHOT build to Sonatype on every push to develop.
+#
+# Snapshots are mutable development builds (version from gradle.properties, e.g. 37.0-SNAPSHOT).
+# They are not signed, not tagged, and not promoted to Maven Central. For numbered releases,
+# see Deploy Release.
+
+name: Deploy Snapshot
+
+on:
+    push:
+        branches: [ "develop" ]
+    workflow_dispatch:
+        inputs:
+            xhSnapshotVersion:
+                description: '(Optional) Snapshot version to override default in gradle.properties. Note that the suffix "-SNAPSHOT" will be automatically appended if not present.'
+                required: false
+                default: ''
+                type: string
+
+concurrency:
+    group: deploy-snapshot
+    cancel-in-progress: true
+
+jobs:
+    build:
+
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+
+        steps:
+        - uses: actions/checkout@v6
+
+        - name: Setup JDK 17
+          uses: actions/setup-java@v5
+          with:
+              java-version: '17'
+              distribution: 'zulu'
+
+        - name: Setup Gradle
+          uses: gradle/actions/setup-gradle@v5
+
+        - name: Override snapshot version in gradle.properties
+          if: inputs.xhSnapshotVersion != ''
+          env:
+              VERSION: ${{ inputs.xhSnapshotVersion }}
+          run: |
+              if [[ ! "$VERSION" == *-SNAPSHOT ]]; then
+                VERSION="$VERSION-SNAPSHOT"
+              fi
+              sed -i "s/^xhReleaseVersion=.*/xhReleaseVersion=$VERSION/" gradle.properties
+              echo "Updated xhReleaseVersion to SNAPSHOT version: $VERSION"
+
+        - name: Validate SNAPSHOT version
+          run: |
+              VERSION=$(grep "^xhReleaseVersion=" gradle.properties | cut -d'=' -f2)
+              if [[ ! "$VERSION" == *-SNAPSHOT ]]; then
+                echo "::error::'$VERSION' is not a SNAPSHOT version. Aborting."
+                exit 1
+              fi
+              echo "Validated snapshot version: $VERSION"
+
+        - name: Build and publish snapshot to Sonatype
+          env:
+              SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+              SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          run: |
+              (set -x; ./gradlew publishToSonatype --no-daemon)
