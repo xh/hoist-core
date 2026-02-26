@@ -174,17 +174,6 @@ publishing {
                 extension: 'xml'
         }
     }
-    repositories {
-        maven {
-            name = 'xhRepo'
-            def repoEndpoint = version.endsWith('-SNAPSHOT') ? 'snapshots' : 'releases'
-            url = "https://repo.xh.io/content/repositories/$repoEndpoint/"
-            credentials {
-                username = project.findProperty('xhRepoDeployUser')
-                password = project.findProperty('xhRepoDeployPassword')
-            }
-        }
-    }
 }
 
 // Signing artifacts
@@ -216,10 +205,3 @@ nexusPublishing {
     }
 }
 
-task publishHoistCore(dependsOn: 'publishHoistCorePublicationToXhRepoRepository') {
-    group = 'xhio'
-    description = 'Publishes a build to repo.xh.io.'
-    doLast {
-        println "Hoist $version published to repo.xh.io!"
-    }
-}
