@@ -8,6 +8,7 @@
 package io.xh.hoist.telemetry
 
 import groovy.transform.CompileDynamic
+import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics
@@ -26,6 +27,8 @@ import io.micrometer.registry.otlp.OtlpConfig
 import io.micrometer.registry.otlp.OtlpMeterRegistry
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
+
+import java.rmi.registry.Registry
 
 import static io.xh.hoist.cluster.ClusterService.instanceName
 import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
@@ -74,22 +77,23 @@ class MetricsService extends BaseService {
      * Not for registration of metrics, and not typically used by applications.
      * To register a metric, use the `registry` property instead.
      */
-    SimpleMeterRegistry readOnlyRegistry
+    MeterRegistry getReadOnlyRegistry() {
+        _simpleRegistry
+    }
 
     static clearCachesConfigs = ['xhMetricsConfig']
 
     ConfigService configService
+
+    private SimpleMeterRegistry _simpleRegistry
     private PrometheusMeterRegistry _prometheusRegistry
     private OtlpMeterRegistry _otlpRegistry
 
     void init() {
         registry = new CompositeMeterRegistry()
-        readOnlyRegistry = new SimpleMeterRegistry()
-        registry.add(readOnlyRegistry)
-
         applyFilters()
-        bindJvmMetrics()
         syncBuiltInRegistries()
+        bindJvmMetrics()
     }
 
 
@@ -168,6 +172,15 @@ class MetricsService extends BaseService {
 
     private void syncBuiltInRegistries() {
         withDebug(['Syncing registries', [prometheus: config.prometheusEnabled, otlp: config.otlpEnabled]]) {
+
+            // In-memory
+            if (_simpleRegistry) {
+                registry.remove(_simpleRegistry)
+                _simpleRegistry.close()
+            }
+            _simpleRegistry = new SimpleMeterRegistry()
+            registry.add(_simpleRegistry)
+
             // Prometheus
             if (_prometheusRegistry) {
                 registry.remove(_prometheusRegistry)
