@@ -23,6 +23,7 @@ and conventions.
 
 | If you need to... | Start here |
 |---|---|
+| Understand a Hoist app's directory structure and boilerplate | [`application-structure.md`](./application-structure.md) |
 | Understand BaseService lifecycle and resource factories | [`base-classes.md`](./base-classes.md) |
 | Understand BaseController / RestController patterns | [`base-classes.md`](./base-classes.md) |
 | Trace an HTTP request through the framework | [`request-flow.md`](./request-flow.md) |
@@ -87,6 +88,14 @@ Features supporting production operations, integrations, and system health.
 | [`email.md`](./email.md) | Email sending with config-driven filtering and overrides | EmailService, `xhEmailFilter`, `xhEmailOverride`, support address config |
 | [`exception-handling.md`](./exception-handling.md) | Exception hierarchy and error rendering | HttpException, RoutineException, ExceptionHandler, HTTP status mapping |
 | [`logging.md`](./logging.md) | Logging infrastructure with dynamic configuration | LogSupport, `logDebug`/`logInfo`/`logWarn`/`logError`, LogLevelService, LogReaderService |
+
+### Application Development
+
+Guides to building, structuring, and deploying Hoist applications.
+
+| Document | Description | Key Topics |
+|----------|-------------|------------|
+| [`application-structure.md`](./application-structure.md) | Standard Hoist application repository layout — server and client structure, build configuration, deployment | `build.gradle`, `gradle.properties`, `grails-app/init/`, `client-app/`, `Bootstrap.ts`, `AppModel`, Docker, Nginx, Tomcat |
 
 ### Grails Platform
 

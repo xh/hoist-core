@@ -206,3 +206,14 @@
     `logback-jackson` dependencies
   - Changed example username from `homer` to `jdoe` throughout
 - Marked Done, DRAFT banner removed
+
+### 2026-02-26 — Application structure doc + metrics.md roadmap reconciliation
+- Created `application-structure.md` — a structural guide to the standard Hoist application
+  repository layout, covering both server-side (Grails) and client-side (React/TypeScript)
+  conventions, build configuration, Docker deployment, and local development workflow
+- Research based on cross-referencing four production Hoist applications (Toolbox, plus three
+  private apps) to identify consistent structural patterns across all XH-built projects
+- New "Application Development" section added to both `docs/README.md` and `docs-roadmap.md` to
+  house this and future app-development guides (distinct from feature-area API docs)
+- Added `metrics.md` to docs-roadmap.md Priority 3 section — file existed on disk and in README
+  index but was missing from the roadmap (added as Done, no DRAFT banner present)

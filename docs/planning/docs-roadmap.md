@@ -46,6 +46,15 @@ Features that support production operations, integrations, and system health.
 | [`email.md`](../email.md) | EmailService, ClientErrorEmailService, FeedbackEmailService | EmailService (Grails mail plugin wrapper), config-driven filtering and overrides (`xhEmailFilter`, `xhEmailOverride`), support address configuration, client error and feedback email routing | Draft |
 | [`exception-handling.md`](../exception-handling.md) | ExceptionHandler, HttpException subclasses, RoutineException | Exception hierarchy (HttpException → NotAuthorizedException, NotFoundException, etc.), RoutineException (expected errors, logged at DEBUG), ExceptionHandler rendering, how exceptions map to HTTP status codes | Draft |
 | [`logging.md`](../logging.md) | LogSupport, LogLevelService, LogReaderService, LogArchiveService, LogbackConfig | LogSupport trait (`logDebug`, `logInfo`, `logWarn`, `logError` with `withDebug`/`withInfo` timed blocks), dynamic log level configuration via LogLevelService, log viewing via LogReaderService, Logback configuration | Done |
+| [`metrics.md`](../metrics.md) | MetricsService, MonitorMetricsService, TrackMetricsService, CompositeMeterRegistry | Micrometer-based observable metrics with Prometheus and OTLP export, monitor and track metric bridges, `xhMetricsConfig` | Done |
+
+## Application Development
+
+Guides to building, structuring, and deploying Hoist applications.
+
+| Document | Source Files | Description | Status |
+|----------|-------------|-------------|--------|
+| [`application-structure.md`](../application-structure.md) | `build.gradle`, `gradle.properties`, `settings.gradle`, `.env.template`, `grails-app/init/`, `grails-app/conf/`, `client-app/`, `docker/` | Standard Hoist application repository layout — root directory structure, Gradle build configuration, server-side Grails conventions (init files, conf, controllers, services, domain), client-side React/TypeScript conventions (Bootstrap.ts, entry points, AppModel/AppComponent, shared code), Docker deployment (Nginx + Tomcat), local development workflow | Draft |
 
 ## Grails Platform
 
@@ -195,8 +204,9 @@ _For detailed session-by-session notes, see [docs-roadmap-log.md](./docs-roadmap
   authorization)
 - **Priority 2 (Core Features):** 2 Done (configuration, preferences), 3 in Draft (clustering,
   activity-tracking, json-handling)
-- **Priority 3 (Infrastructure):** 1 Done (logging), 5 in Draft (monitoring, websocket,
+- **Priority 3 (Infrastructure):** 2 Done (logging, metrics), 5 in Draft (monitoring, websocket,
   http-client, email, exception-handling)
+- **Application Development:** application-structure in Draft
 - **Grails Platform:** gorm-domain-objects Done
 - **Priority 4 (Supporting Features):** All 6 docs still Planned
 - **Documentation index** (`docs/README.md`) created and maintained alongside feature docs
