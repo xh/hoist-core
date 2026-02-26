@@ -10,15 +10,18 @@
   cluster-wide Prometheus scrape. Built-in metrics are provided for JVM health, JDBC connection
   pool, WebSocket channels, client activity tracking, and Hoist monitor results.
   See [`docs/metrics.md`](docs/metrics.md).
-* Added `MonitorSpec` typed class and `MonitorMetricType` enum for use with
-  `ensureRequiredMonitorsCreated()`, replacing untyped `Map` arguments with a class that provides
-  IDE autocomplete and compile-time validation.
 
 ### 🐞 Bug Fixes
 
 * Fixed `LogReaderService` log search to correctly respect the `caseSensitive` parameter when
   reading forward from a start line. Previously, forward reads always performed case-insensitive
   matching regardless of the flag.
+
+### ⚙️ Technical
+
+* Added `MonitorSpec` typed class and `MonitorMetricType` enum for use with
+  `ensureRequiredMonitorsCreated()`, replacing untyped `Map` arguments with a class that provides
+  IDE autocomplete and compile-time validation.
 
 ## 36.2.0 - 2026-02-13
 
