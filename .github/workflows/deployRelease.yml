@@ -14,7 +14,7 @@ on:
                 required: true
                 type: string
             isHotfix:
-                description: 'Set to true when releasing a hotfix to a previous major version from a branch other than master'
+                description: 'Is hotfix. Check when releasing a hotfix to a version other than the latest.'
                 required: true
                 default: false
                 type: boolean
@@ -126,7 +126,7 @@ jobs:
               SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
               XH_RELEASE_VERSION: ${{ inputs.xhReleaseVersion }}
           run: |
-              (set -x; ./gradlew -PxhReleaseVersion="$XH_RELEASE_VERSION" publishToSonatype closeSonatypeStagingRepository --no-daemon)
+              (set -x; ./gradlew -PxhReleaseVersion="$XH_RELEASE_VERSION" publishToSonatype closeAndReleaseSonatypeStagingRepository --no-daemon)
 
         - name: Tag release
           env:

@@ -114,7 +114,6 @@ java {
         languageVersion = JavaLanguageVersion.of(17)
     }
     withSourcesJar()
-    withJavadocJar()
 }
 tasks.withType(JavaCompile) {
     options.release = 17
