@@ -18,7 +18,7 @@ class MetricsAdminService extends BaseService {
     def metricsService
 
     List<Map> listMetrics() {
-        metricsService.registry.meters.collect { Meter meter ->
+        metricsService.readOnlyRegistry.meters.collect { Meter meter ->
             def id = meter.id,
                 name = id.name,
                 type = id.type,

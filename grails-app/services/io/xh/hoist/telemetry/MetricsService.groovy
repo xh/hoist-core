@@ -18,6 +18,7 @@ import io.micrometer.core.instrument.Tags
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry
 import io.micrometer.core.instrument.config.MeterFilter
 import io.micrometer.core.instrument.config.MeterFilterReply
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.micrometer.core.instrument.Clock
@@ -66,6 +67,15 @@ class MetricsService extends BaseService {
     CompositeMeterRegistry registry
 
 
+    /**
+     * An in-memory registry for *reading* the current metric values on this
+     * instance.
+     *
+     * Not for registration of metrics, and not typically used by applications.
+     * To register a metric, use the `registry` property instead.
+     */
+    SimpleMeterRegistry readOnlyRegistry
+
     static clearCachesConfigs = ['xhMetricsConfig']
 
     ConfigService configService
@@ -74,7 +84,48 @@ class MetricsService extends BaseService {
 
     void init() {
         registry = new CompositeMeterRegistry()
+        readOnlyRegistry = new SimpleMeterRegistry()
+        registry.add(readOnlyRegistry)
 
+        applyFilters()
+        bindJvmMetrics()
+        syncBuiltInRegistries()
+    }
+
+
+    /**
+     * Return Prometheus exposition data aggregated across all cluster instances.
+     *
+     * Any instance can service this request — it fans out to all instances via
+     * Hazelcast, collects each instance's scrape output, and concatenates the
+     * results. Each metric already carries an {@code instance} tag distinguishing
+     * its source.
+     *
+     * Applications should expose the value returned by this method in a dedicated
+     * endpoint in lieu of the built-in 'actuator/prometheus'.
+     */
+    String prometheusData() {
+        def results = runOnAllInstances(this.&prometheusScrape)
+        results.values()
+            .findAll { !it.exception }
+            .collect { it.value }
+            .join('\n')
+    }
+
+    /**
+     * Scrape this instance.
+     */
+    private String prometheusScrape() {
+        if (!_prometheusRegistry) {
+            throw new RuntimeException('Prometheus not enabled')
+        }
+        _prometheusRegistry.scrape()
+    }
+
+    //------------------------
+    // Implementation
+    //------------------------
+    private void applyFilters() {
         // Deny cluster-scoped metrics on non-primary instances
         registry.config().meterFilter(new MeterFilter() {
             MeterFilterReply accept(Meter.Id id) {
@@ -104,43 +155,8 @@ class MetricsService extends BaseService {
                 id
             }
         })
-
-        bindJvmMetrics()
-        syncBuiltInRegistries()
     }
 
-
-    /**
-     * Return Prometheus exposition data aggregated across all cluster instances.
-     *
-     * Any instance can service this request — it fans out to all instances via
-     * Hazelcast, collects each instance's scrape output, and concatenates the
-     * results. Each metric already carries an {@code instance} tag distinguishing
-     * its source.
-     *
-     * Applications should expose the value returned by this method in a dedicated
-     * endpoint in lieu of the built-in 'actuator/prometheus'.
-     */
-    String prometheusData() {
-        def results = runOnAllInstances(this.&prometheusScrape)
-        results.values()
-            .findAll { !it.exception }
-            .collect { it.value }
-            .join('\n')
-    }
-
-    /** Scrape this instance, excluding cluster-scoped metrics from non-primary nodes. */
-    private String prometheusScrape() {
-        if (!_prometheusRegistry) {
-            throw new RuntimeException('Prometheus not enabled')
-        }
-        _prometheusRegistry.scrape()
-    }
-
-
-    //------------------------
-    // Implementation
-    //------------------------
     private void bindJvmMetrics() {
         def tags = Tags.of('source', 'infra')
         new ClassLoaderMetrics(tags).bindTo(registry)
