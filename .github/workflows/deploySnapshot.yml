@@ -55,7 +55,7 @@ jobs:
           run: |
               VERSION=$(grep "^xhReleaseVersion=" gradle.properties | cut -d'=' -f2)
               if [[ ! "$VERSION" == *-SNAPSHOT ]]; then
-                echo "'$VERSION' is not a SNAPSHOT version. Aborting."
+                echo "::error::'$VERSION' is not a SNAPSHOT version. Aborting."
                 exit 1
               fi
               echo "Validated snapshot version: $VERSION"
