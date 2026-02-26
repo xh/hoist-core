@@ -82,11 +82,9 @@ class MonitorMetricsService extends BaseService {
 
     private void ensureAndRecordInstanceMeters(MonitorResult result) {
         //  A) Ensure all meters for this result set
-        //  Publish the primaryOnly monitors tagged with instance='cluster'
         def code = result.code,
-            monitor = result.monitor,
-            instance = monitor.primaryOnly ? 'cluster' : result.instance,
-            tags = Tags.of('source', 'hoist', "instance", instance),
+            instance = result.instance,
+            tags = Tags.of('source', 'hoist', 'instance', instance),
             description = result.monitor.name
 
         def statusName = "monitor.status.${code}"
@@ -143,8 +141,11 @@ class MonitorMetricsService extends BaseService {
     }
 
     void clearCaches() {
-        super.clearCaches()
+        // Remove all meter registrations, and recreate from current monitor results.
+        meters.values().each { registry.remove(it) }
         meters.clear()
+        this.noteResultsUpdated(monitorService.getResults())
+        super.clearCaches()
     }
 
     Map getAdminStats() { [

@@ -55,12 +55,12 @@ class MetricsService extends BaseService {
      * Main entry point for meter registration.
      *
      * All meters registered through this registry automatically receive default tags
-     * ({@code application}, {@code instance}. A {@code source} tag will also classifies
+     * ({@code application}, {@code instance}. A {@code source} tag also classifies
      * each metric's origin — 'app' (default), 'hoist', or 'infra' are built-in sources, and
      * 'app' will be provided as the default. Applications and plug-ins may choose to add
      * additional sources.
      *
-     * Metrics with {@code source=app} have will their names prefixed with the application
+     * Metrics with {@code source=app} will have their names prefixed with the application
      * namespace.
      */
     CompositeMeterRegistry registry
