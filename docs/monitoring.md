@@ -51,6 +51,7 @@ load times, cluster health) while remaining fully extensible for application-spe
 | `MonitorSpec.groovy` | `src/main/groovy/io/xh/hoist/monitor/` | Typed specification for required monitor definitions |
 | `MonitorMetricType.groovy` | `src/main/groovy/io/xh/hoist/monitor/` | Enum of metric types: `Floor`, `Ceil`, `None` |
 | `DefaultMonitorDefinitionService.groovy` | `src/main/groovy/io/xh/hoist/monitor/provided/` | Optional base class providing built-in monitor implementations |
+| `MonitorMetricsService.groovy` | `grails-app/services/io/xh/hoist/monitor/` | Publishes monitor results as Micrometer metrics (see [`metrics.md`](./metrics.md)) |
 | `MonitorResultsAdminController.groovy` | `grails-app/controllers/io/xh/hoist/admin/` | REST endpoints for the Admin Console Monitors tab |
 
 ---
@@ -267,6 +268,18 @@ their message and minutes-in-status.
 `MonitorSpec` is a typed specification class for defining required monitors via
 `ensureRequiredMonitorsCreated()`. Its fields mirror the seedable fields of the `Monitor` domain
 class. `MonitorMetricType` is an enum of supported metric types: `Floor`, `Ceil`, `None`.
+
+### `MonitorMetricsService`
+
+**File:** `grails-app/services/io/xh/hoist/monitor/MonitorMetricsService.groovy`
+
+Bridges Hoist's monitoring system with the Micrometer metrics infrastructure provided by
+`MetricsService`. After each monitor evaluation cycle, the primary instance publishes per-monitor
+metrics (status, value, execution time) that can be scraped by Prometheus or pushed via OTLP.
+
+This service is internal to the framework and is not intended for direct use by applications. See
+[`metrics.md`](./metrics.md) for full documentation of the metrics infrastructure and the complete
+list of built-in metrics.
 
 ### `DefaultMonitorDefinitionService`
 

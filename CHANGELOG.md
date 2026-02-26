@@ -4,6 +4,12 @@
 
 ### 🎁 New Features
 
+* Added `MetricsService` — a central Micrometer-based metrics infrastructure for Hoist applications.
+  Exposes a `CompositeMeterRegistry` with automatic namespace prefixing and default tags, built-in
+  support for Prometheus and OTLP export registries (configured via `xhMetricsConfig`), and
+  cluster-wide Prometheus scrape. Built-in metrics are provided for JVM health, JDBC connection
+  pool, WebSocket channels, client activity tracking, and Hoist monitor results.
+  See [`docs/metrics.md`](docs/metrics.md).
 * Added `MonitorSpec` typed class and `MonitorMetricType` enum for use with
   `ensureRequiredMonitorsCreated()`, replacing untyped `Map` arguments with a class that provides
   IDE autocomplete and compile-time validation.
@@ -41,7 +47,8 @@
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW, excepting multi-instance apps w/websockets)
 
-* See [`docs/upgrade-notes/v36-upgrade-notes.md`](docs/upgrade-notes/v36-upgrade-notes.md) for detailed, step-by-step upgrade
+* See [`docs/upgrade-notes/v36-upgrade-notes.md`](docs/upgrade-notes/v36-upgrade-notes.md) for
+  detailed, step-by-step upgrade
   instructions with before/after code examples.
 * Deprecated `@Access` in favor of new `@AccessRequiresRole`, `@AccessRequiresAllRoles`, and
   `@AccessRequiresAnyRole` annotations. `@Access` continues to function but should be migrated —
@@ -83,7 +90,8 @@
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - generic type change + DB column)
 
-* See [`docs/upgrade-notes/v35-upgrade-notes.md`](docs/upgrade-notes/v35-upgrade-notes.md) for detailed, step-by-step upgrade
+* See [`docs/upgrade-notes/v35-upgrade-notes.md`](docs/upgrade-notes/v35-upgrade-notes.md) for
+  detailed, step-by-step upgrade
   instructions with before/after code examples.
 * Updated the generic signature of `CacheEntry` from `CacheEntry<T>` to `CacheEntry<K, T>` to
   support non-string key types. Adjust any explicit declarations of this type to include the key
@@ -122,7 +130,8 @@
 * Hoist Core v34 is a major framework upgrade, moving to Grails 7.0, Spring Boot 3.5, Groovy 4,
   Gradle 8.14, and Tomcat 10.1. With this release, Grails is officially part of the Apache
   Foundation. The changes below are required for all applications. See
-  [`docs/upgrade-notes/v34-upgrade-notes.md`](docs/upgrade-notes/v34-upgrade-notes.md) for detailed, step-by-step upgrade
+  [`docs/upgrade-notes/v34-upgrade-notes.md`](docs/upgrade-notes/v34-upgrade-notes.md) for detailed,
+  step-by-step upgrade
   instructions with before/after code examples.
 * Update Docker base image to `xhio/xh-tomcat:next-tc10-jdk17` for Tomcat 10 / Jakarta EE support.
 * Update Gradle wrapper to `8.14.3` via `gradle-wrapper.properties`.

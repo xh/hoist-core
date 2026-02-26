@@ -196,6 +196,13 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         cluster.members.any { it.getAttribute('instanceName') == instanceName }
     }
 
+    /**
+     * Current membership of cluster
+     */
+    Set<Member> getMembers() {
+        cluster.members
+    }
+
     //------------------------
     // Distributed execution
     //------------------------

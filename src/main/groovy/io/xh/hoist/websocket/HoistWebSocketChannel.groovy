@@ -77,13 +77,15 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
     HoistUser getAuthUser()     {userService.find(authUsername)}
     HoistUser getApparentUser() {userService.find(apparentUsername)}
 
-    void sendMessage(TextMessage message) {
+    boolean sendMessage(TextMessage message) {
         try {
             session.sendMessage(message)
             sentMessageCount++
             lastSentTime = Instant.now()
+            return true
         } catch (Exception e) {
             logError("Failed to send message to $key", e)
+            return false
         }
     }
 
