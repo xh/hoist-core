@@ -121,6 +121,9 @@ java {
 tasks.withType(JavaCompile) {
     options.release = 17
 }
+tasks.withType(Javadoc) {
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
 
 
 //------------------------
