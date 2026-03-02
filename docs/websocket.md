@@ -166,12 +166,6 @@ messages to the correct cluster member. The key is sent to the client upon succe
 registration (topic `xhRegistrationSuccess`, data `{channelKey: ...}`) and must be stored by
 the client for subsequent use.
 
-#### sendMessage
-
-The `sendMessage` method wraps all sends in a try/catch — failures are logged but never
-propagated. This is critical for the fire-and-forget push model:
-
-
 #### JSON serialization
 
 Implements `JSONFormat` via `formatForJSON()`, returning a Map of channel metadata. This is what
