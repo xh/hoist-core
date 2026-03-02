@@ -30,9 +30,9 @@ Bread-and-butter features used by every Hoist application.
 |----------|-------------|-------------|--------|
 | [`configuration.md`](../configuration.md) | AppConfig, ConfigService, ConfigDiffService, ConfigAdminController | AppConfig domain (typed values: `string\|int\|long\|double\|bool\|json\|pwd`), ConfigService typed getters, `clientVisible` flag, `pwd` encryption via Jasypt, required configs, `xhConfigChanged` event, config diffing across environments | Done |
 | [`preferences.md`](../preferences.md) | Preference, UserPreference, PrefService, PrefDiffService, PreferenceAdminController | Preference definitions vs UserPreference values, PrefService lookups, required prefs, pref diffing across environments | Done |
-| [`clustering.md`](../clustering.md) | ClusterService, ClusterConfig, Cache, CachedValue, IMap, ReplicatedMap, Topic, Timer | Hazelcast cluster lifecycle, distributed data structures (Cache, CachedValue, IMap, ReplicatedMap), pub/sub via Topic (`subscribeToTopic`), primary instance coordination, `primaryOnly` timers, naming convention `{ClassName}[{resourceName}]`, ClusterService admin stats | Draft |
-| [`activity-tracking.md`](../activity-tracking.md) | TrackLog, TrackService, TrackLoggingService, ClientErrorEmailService, FeedbackEmailService | TrackLog domain, TrackService (`track()` endpoint, `xhTrackReceived` event), category/severity system, elapsed timing, client error email notifications, feedback email routing, `xhActivityTrackingConfig` | Draft |
-| [`json-handling.md`](../json-handling.md) | JSONSerializer, JSONParser, JSONFormat, custom serializers, BaseController | Custom Jackson-based serialization (not Grails converters), `renderJSON()` / `parseRequestJSON()` in controllers, JSONFormat trait for domain/POGO classes, registering custom serializer modules via `JSONSerializer.registerModules()`, built-in serializers | Draft |
+| [`clustering.md`](../clustering.md) | ClusterService, ClusterConfig, Cache, CachedValue, IMap, ReplicatedMap, Topic, Timer | Hazelcast cluster lifecycle, distributed data structures (Cache, CachedValue, IMap, ReplicatedMap), pub/sub via Topic (`subscribeToTopic`), primary instance coordination, `primaryOnly` timers, naming convention `{ClassName}[{resourceName}]`, ClusterService admin stats | Done |
+| [`activity-tracking.md`](../activity-tracking.md) | TrackLog, TrackService, TrackLoggingService, ClientErrorEmailService, FeedbackEmailService | TrackLog domain, TrackService (`track()` endpoint, `xhTrackReceived` event), category/severity system, elapsed timing, client error email notifications, feedback email routing, `xhActivityTrackingConfig` | Done |
+| [`json-handling.md`](../json-handling.md) | JSONSerializer, JSONParser, JSONFormat, custom serializers, BaseController | Custom Jackson-based serialization (not Grails converters), `renderJSON()` / `parseRequestJSON()` in controllers, JSONFormat trait for domain/POGO classes, registering custom serializer modules via `JSONSerializer.registerModules()`, built-in serializers | Done |
 
 ## Priority 3 — Infrastructure & Operations
 
@@ -41,9 +41,9 @@ Features that support production operations, integrations, and system health.
 | Document | Source Files | Description | Status |
 |----------|-------------|-------------|--------|
 | [`monitoring.md`](../monitoring.md) | Monitor, MonitorResult, MonitoringService, MonitorDefinitionService, MonitorReportService | Monitor domain definitions, MonitorResult status model, MonitorDefinitionService pattern (app-provided), MonitoringService evaluation cycle, `MonitorStatusReport` email alerting, `xhMonitorConfig` | Draft |
-| [`websocket.md`](../websocket.md) | WebSocketService, HoistWebSocketHandler, HoistWebSocketChannel, HoistWebSocketConfigurer | WebSocketService cluster-aware push (`pushToChannel`), channel subscription model, Hazelcast topic relay for multi-instance delivery, session management, admin stats | Draft |
+| [`websocket.md`](../websocket.md) | WebSocketService, HoistWebSocketHandler, HoistWebSocketChannel, HoistWebSocketConfigurer | WebSocketService cluster-aware push (`pushToChannel`), channel subscription model, Hazelcast topic relay for multi-instance delivery, session management, admin stats | Done |
 | [`http-client.md`](../http-client.md) | JSONClient, BaseProxyService, HttpUtils | JSONClient (typed HTTP client with JSON serialization), BaseProxyService (proxying client requests to external APIs), HttpUtils helpers | Draft |
-| [`email.md`](../email.md) | EmailService, ClientErrorEmailService, FeedbackEmailService | EmailService (Grails mail plugin wrapper), config-driven filtering and overrides (`xhEmailFilter`, `xhEmailOverride`), support address configuration, client error and feedback email routing | Draft |
+| [`email.md`](../email.md) | EmailService, ClientErrorEmailService, FeedbackEmailService | EmailService (Grails mail plugin wrapper), config-driven filtering and overrides (`xhEmailFilter`, `xhEmailOverride`), support address configuration, client error and feedback email routing | Done |
 | [`exception-handling.md`](../exception-handling.md) | ExceptionHandler, HttpException subclasses, RoutineException | Exception hierarchy (HttpException → NotAuthorizedException, NotFoundException, etc.), RoutineException (expected errors, logged at DEBUG), ExceptionHandler rendering, how exceptions map to HTTP status codes | Draft |
 | [`logging.md`](../logging.md) | LogSupport, LogLevelService, LogReaderService, LogArchiveService, LogbackConfig | LogSupport trait (`logDebug`, `logInfo`, `logWarn`, `logError` with `withDebug`/`withInfo` timed blocks), dynamic log level configuration via LogLevelService, log viewing via LogReaderService, Logback configuration | Done |
 | [`metrics.md`](../metrics.md) | MetricsService, MonitorMetricsService, TrackMetricsService, CompositeMeterRegistry | Micrometer-based observable metrics with Prometheus and OTLP export, monitor and track metric bridges, `xhMetricsConfig` | Done |
@@ -212,8 +212,8 @@ _For detailed session-by-session notes, see [docs-roadmap-log.md](./docs-roadmap
   authorization)
 - **Priority 2 (Core Features):** 2 Done (configuration, preferences), 3 in Draft (clustering,
   activity-tracking, json-handling)
-- **Priority 3 (Infrastructure):** 2 Done (logging, metrics), 5 in Draft (monitoring, websocket,
-  http-client, email, exception-handling)
+- **Priority 3 (Infrastructure):** 4 Done (logging, metrics, email, websocket), 3 in Draft
+  (monitoring, http-client, exception-handling)
 - **Application Development:** application-structure in Draft
 - **Grails Platform:** gorm-domain-objects Done
 - **Priority 4 (Supporting Features):** All 6 docs still Planned

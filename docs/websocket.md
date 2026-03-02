@@ -1,14 +1,11 @@
-> **Status: DRAFT** — This document is awaiting review. See
-> [`planning/docs-roadmap.md`](./planning/docs-roadmap.md) for the documentation review workflow.
-
-# WebSocket Push
+# WebSockets
 
 ## Overview
 
-Hoist-core provides a **cluster-aware WebSocket push system** that allows server-side services to
-send real-time messages to connected browser clients. This is the primary mechanism for pushing
-data updates, notifications, and config change alerts from the server to the client without
-requiring the client to poll.
+Hoist-core provides a **cluster-aware WebSocket system** for real-time bidirectional communication
+between the server and connected browser clients. The primary use case is **server-to-client push**
+— sending data updates, notifications, and config change alerts without requiring the client to
+poll — but the system also supports **client-to-server messaging** via event subscriptions.
 
 The system is built on Spring's native WebSocket support and managed by `WebSocketService`, a
 Grails service that wraps raw `WebSocketSession` objects in `HoistWebSocketChannel` instances.
@@ -17,17 +14,20 @@ authenticated user, app version, and connection health.
 
 **Why cluster-aware?** In multi-instance deployments behind a load balancer, a client's WebSocket
 connection lands on one specific server instance, but the business logic that produces a push
-message may run on any instance (e.g. a `primaryOnly` timer). As of hoist-core v36, the push
-methods automatically route messages to the correct instance using Hazelcast distributed
-execution — callers no longer need to know which instance holds a given channel.
+message may run on any instance (e.g. a `primaryOnly` timer). The push methods automatically
+route messages to the correct instance using Hazelcast distributed execution — callers do not
+need to know which instance holds a given channel.
 
 **Key design decisions:**
 
 - **Channels, not topics.** The server addresses messages to specific channel keys or broadcasts
   to all channels. Topic-based subscription management is left to application code — the
   framework provides the transport.
-- **Fire-and-forget delivery.** Messages to disconnected or unknown channels are silently dropped.
-  This simplifies caller code and avoids error cascades from transient disconnections.
+- **Fire-and-forget delivery.** Push messages to disconnected or unknown channels are silently
+  dropped. This simplifies caller code and avoids error cascades from transient disconnections.
+- **Bidirectional messaging.** Clients can send messages to the server (e.g. heartbeats), which
+  are dispatched as local Grails events (`xhWebSocketMessageReceived`) for application services
+  to handle.
 - **JSON wire format.** All messages are serialized as `{topic, data}` JSON payloads using
   Hoist's `JSONSerializer`, ensuring consistent serialization behavior with the rest of the
   framework.
@@ -51,24 +51,9 @@ execution — callers no longer need to know which instance holds a given channe
 
 `grails-app/services/io/xh/hoist/websocket/WebSocketService.groovy`
 
-The central service for WebSocket push. It maintains an in-memory `ConcurrentHashMap` of
-`WebSocketSession` to `HoistWebSocketChannel` mappings for channels connected to the local
-instance, and provides cluster-aware methods to push messages to any channel in the cluster.
-
-#### Enabled check
-
-WebSocket support is gated by the Grails application config `hoist.enableWebSockets` (default
-`true` since hoist-core v13). The `isEnabled()` method reads this flag and is used by
-`EnvironmentService` to report WebSocket availability to clients:
-
-```groovy
-boolean isEnabled() {
-    grailsConfig.getProperty('hoist.enableWebSockets', Boolean)
-}
-```
-
-To disable WebSockets, set `hoist.enableWebSockets = false` in your application's
-`application.groovy`.
+The central service for WebSocket communication. It maintains an in-memory registry of
+`HoistWebSocketChannel` instances for channels connected to the local instance, and provides
+cluster-aware methods to push messages to any channel in the cluster.
 
 #### Push API
 
@@ -113,16 +98,6 @@ void pushToChannels(Collection<String> channelKeys, String topic, Object data) {
 | `hasChannel(channelKey)` | Checks cluster-wide whether a channel is connected |
 | `hasLocalChannel(channelKey)` | Checks this instance only |
 
-`getAllChannels()` returns Maps (not `HoistWebSocketChannel` objects) because the channel's
-embedded `WebSocketSession` is not serializable across instances. The Maps contain the fields
-from `HoistWebSocketChannel.formatForJSON()`:
-
-```
-key, authUser, apparentUser, isOpen, createdTime, sentMessageCount,
-lastSentTime, receivedMessageCount, lastReceivedTime, appVersion,
-appBuild, clientAppCode, instance, loadId, tabId
-```
-
 #### Events
 
 `WebSocketService` publishes three Grails events via `EventPublisher.notify()`:
@@ -155,9 +130,8 @@ messages fire `MSG_RECEIVED_EVENT`.
 
 #### clearCaches
 
-The `clearCaches()` override closes all local WebSocket sessions with
-`CloseStatus.SERVICE_RESTARTED` and clears the channel map. This is triggered by the Hoist admin
-"Clear Caches" action and will cause clients to reconnect.
+The `clearCaches()` override closes all local WebSocket sessions and clears the channel map,
+causing clients to reconnect.
 
 ### HoistWebSocketChannel
 
@@ -197,55 +171,26 @@ the client for subsequent use.
 The `sendMessage` method wraps all sends in a try/catch — failures are logged but never
 propagated. This is critical for the fire-and-forget push model:
 
-```groovy
-void sendMessage(TextMessage message) {
-    try {
-        session.sendMessage(message)
-        sentMessageCount++
-        lastSentTime = Instant.now()
-    } catch (Exception e) {
-        logError("Failed to send message to $key", e)
-    }
-}
-```
 
 #### JSON serialization
 
 Implements `JSONFormat` via `formatForJSON()`, returning a Map of channel metadata. This is what
 `WebSocketService.getAllChannels()` serializes when aggregating channels across instances.
 
-### HoistWebSocketHandler
+### Implementation Classes
 
-`src/main/groovy/io/xh/hoist/websocket/HoistWebSocketHandler.groovy`
+#### HoistWebSocketHandler
 
-A thin Spring `TextWebSocketHandler` that relays three lifecycle events to `WebSocketService`:
+A thin Spring `TextWebSocketHandler` that relays connection lifecycle events
+(`afterConnectionEstablished`, `handleTextMessage`, `afterConnectionClosed`) to
+`WebSocketService`. One handler instance is created per connection via
+`PerConnectionWebSocketHandler`.
 
-| Spring callback | Delegates to |
-|----------------|-------------|
-| `afterConnectionEstablished(session)` | `webSocketService.registerSession(session)` |
-| `handleTextMessage(session, message)` | `webSocketService.onMessage(session, message)` |
-| `afterConnectionClosed(session, status)` | `webSocketService.unregisterSession(session, status)` |
+#### HoistWebSocketConfigurer
 
-This class contains no business logic — it exists solely to bridge Spring's WebSocket
-infrastructure into the Hoist service layer. A new handler instance is created per connection
-via `PerConnectionWebSocketHandler`.
-
-### HoistWebSocketConfigurer
-
-`src/main/groovy/io/xh/hoist/websocket/HoistWebSocketConfigurer.groovy`
-
-A Spring `WebSocketConfigurer` annotated with `@EnableWebSocket`. Registers the WebSocket
-endpoint at the path `/xhWebSocket` with:
-
-- A `PerConnectionWebSocketHandler` wrapping `HoistWebSocketHandler` (one handler instance per
-  connection).
-- An `HttpSessionHandshakeInterceptor` that copies HTTP session attributes into the WebSocket
-  session — this is how authentication context (set by `HoistFilter`) becomes available to
-  `HoistWebSocketChannel`.
-- `setAllowedOrigins('*')` — origin checking is intentionally permissive since authentication is
-  handled at the HTTP session level.
-
-This bean is conditionally registered by `HoistCoreGrailsPlugin` only when
+A Spring `WebSocketConfigurer` that registers the WebSocket endpoint at `/xhWebSocket`. It
+copies HTTP session attributes (including authentication context) into the WebSocket session
+via `HttpSessionHandshakeInterceptor`. This bean is conditionally registered only when
 `hoist.enableWebSockets` is `true`.
 
 ## Configuration

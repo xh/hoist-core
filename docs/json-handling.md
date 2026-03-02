@@ -1,6 +1,3 @@
-> **Status: DRAFT** — This document is awaiting review. Content may be incomplete or subject to
-> change. Do not remove this banner until the document has been interactively reviewed and approved.
-
 # JSON Handling
 
 ## Overview
@@ -10,12 +7,13 @@ default JSON converters. This system is used throughout the framework — in con
 request/response handling, domain object serialization, and inter-service communication.
 
 The key components are:
-- **`JSONSerializer`** — Jackson `ObjectMapper` wrapper for serialization, with built-in support for
-  the `JSONFormat` interface and Hoist-specific type serializers
-- **`JSONParser`** — Jackson `ObjectMapper` wrapper for parsing JSON strings and streams into
-  Java/Groovy objects
-- **`JSONFormat`** — An interface that classes implement to control their JSON representation
-- **`renderJSON()` / `parseRequestJSON()`** — Controller methods that bridge HTTP and the JSON system
+- **`renderJSON()` / `parseRequestJSON()`** — Controller methods for sending and receiving JSON over
+  HTTP — the primary interface to the JSON system in application code
+- **`JSONFormat`** — An interface that domain classes and POGOs implement to control their JSON
+  representation
+- **`JSONSerializer`** — Serializes objects to JSON strings, with built-in support for `JSONFormat`
+  and Hoist-specific type handling
+- **`JSONParser`** — Parses JSON strings and streams into Maps and Lists
 
 ## Source Files
 
@@ -165,12 +163,10 @@ This pattern is widely used across hoist-core domain classes (`AppConfig`, `Trac
 
 ### JSONFormatCached
 
-An abstract class providing a **separate, parallel** mechanism to `JSONFormat` for
-performance-critical objects that are serialized frequently. `JSONFormatCached` is **not** related
-to the `JSONFormat` interface by inheritance — it is a standalone abstract class with its own
-`protected abstract formatForJSON()` method. A class should extend `JSONFormatCached` **or**
-implement `JSONFormat`, but not both, as each has its own dedicated serializer
-(`JSONFormatCachedSerializer` and `JSONFormatSerializer`, respectively).
+An abstract class that, like `JSONFormat`, uses a `formatForJSON()` method to define an object's
+JSON representation. Unlike `JSONFormat`, the result is cached after the first serialization —
+subsequent serializations write the cached string directly, avoiding repeated work. A class should
+extend `JSONFormatCached` or implement `JSONFormat`, but not both.
 
 ```groovy
 class LargeDataPoint extends JSONFormatCached {
@@ -252,9 +248,9 @@ it writes it directly (avoiding double-serialization).
 
 ## Common Patterns
 
-### Domain Class with JSONFormat
+### Implementing JSONFormat
 
-The standard pattern for domain classes:
+The standard pattern for domain classes, POGOs, and DTOs:
 
 ```groovy
 class Fund implements JSONFormat {
@@ -279,21 +275,6 @@ class Fund implements JSONFormat {
         ]
     }
 }
-```
-
-### Wrapping Response Data
-
-Hoist conventionally wraps response data in a `data` key:
-
-```groovy
-// Single object
-renderJSON(data: position)
-
-// List of objects
-renderJSON(data: positions)
-
-// With metadata
-renderJSON(data: positions, totalCount: total)
 ```
 
 ### Custom Serializer for External Types

@@ -1,20 +1,13 @@
-> **Status: DRAFT** — This document is awaiting review. Content may be incomplete or subject to
-> change. Do not remove this banner until the document has been interactively reviewed and approved.
-
 # Email
 
 ## Overview
 
 Hoist-core provides a centralized email sending system via `EmailService`, a wrapper around the
-Grails Mail Plugin that adds config-driven safety controls for non-production environments. The
-system solves three problems:
-
-1. **Safe non-production emailing** — Configs (`xhEmailFilter`, `xhEmailOverride`) prevent
-   accidental delivery to real users when testing in dev/staging environments.
-2. **Automated operational notifications** — Client errors, user feedback, and status monitor alerts
-   are automatically emailed to support/ops teams without any app-specific code.
-3. **Consistent sender/domain defaults** — Unqualified usernames (e.g. `jsmith`) are automatically
-   qualified with a configurable domain, and a default sender address is always available.
+Grails Mail Plugin. It automatically qualifies unqualified usernames (e.g. `jsmith`) with a
+configurable domain and provides a default sender address, so application code can send email
+using just usernames without hardcoding domains. Config-driven safety controls (`xhEmailFilter`,
+`xhEmailOverride`) prevent accidental delivery to real users in dev/staging environments, and
+local development mode suppresses all email by default when no filter or override is configured.
 
 All email configs are `xh`-prefixed AppConfigs, managed at runtime via the Hoist Admin Console.
 No code changes or redeployments are needed to adjust email routing, filtering, or recipients.
@@ -24,10 +17,9 @@ No code changes or redeployments are needed to adjust email routing, filtering, 
 | File | Location | Role |
 |------|----------|------|
 | `EmailService` | `grails-app/services/io/xh/hoist/email/` | Core email sending with config-driven filtering, overrides, and address normalization |
-| `ClientErrorEmailService` | `grails-app/services/io/xh/hoist/track/` | Timer-based digest emails for client-side errors reported via `TrackService` |
-| `FeedbackEmailService` | `grails-app/services/io/xh/hoist/track/` | Event-driven emails for end-user feedback submitted from the client |
-| `MonitorReportService` | `grails-app/services/io/xh/hoist/monitor/` | Emails status monitor alerts when monitors enter or exit failure/warning states |
-| `BootStrap` | `grails-app/init/io/xh/hoist/` | Registers all required `xh`-prefixed email AppConfigs at startup |
+| `ClientErrorEmailService` | `grails-app/services/io/xh/hoist/track/` | Internal — digest emails for client-side errors |
+| `FeedbackEmailService` | `grails-app/services/io/xh/hoist/track/` | Internal — emails for end-user feedback |
+| `MonitorReportService` | `grails-app/services/io/xh/hoist/monitor/` | Internal — emails for monitor status alerts |
 
 ## Key Classes
 
@@ -65,30 +57,18 @@ The primary method. Accepts a map of arguments:
 
 #### Processing Pipeline
 
-When `sendEmail()` is called, the following steps occur in order:
+When `sendEmail()` is called:
 
-1. **Address normalization** — All addresses are trimmed and unqualified names (those without `@`)
-   get the `xhEmailDefaultDomain` config appended (e.g. `jsmith` becomes `jsmith@example.com`).
+1. **Address normalization** — Unqualified names (without `@`) are qualified with the
+   `xhEmailDefaultDomain` config (e.g. `jsmith` → `jsmith@example.com`).
 
-2. **Filter application** — If `xhEmailFilter` is set (not `"none"`), only addresses present in
-   the filter list survive. Other recipients are silently dropped. This is applied to `to`, `cc`,
-   and `bcc` independently via set intersection.
+2. **Filtering / Override** — If `xhEmailFilter` is set, only whitelisted addresses receive mail.
+   If `xhEmailOverride` is set, all mail is redirected to the override address(es) and the original
+   recipients are noted in the subject line. In local development mode, mail is suppressed entirely
+   unless a filter or override is explicitly configured.
 
-3. **Override application** — If `xhEmailOverride` is set (not `"none"`), the override address(es)
-   replace all recipients. `cc` and `bcc` are cleared entirely. The original intended recipient(s)
-   are noted in the subject line for traceability.
-
-4. **Local development guard** — If running in local development mode (`Utils.isLocalDevelopment`)
-   with no override *and* no filter configured, email is silently suppressed with a log message.
-   This prevents developers from accidentally sending mail when configs have not been explicitly set.
-
-5. **Subject enhancement** — In non-production environments, the environment name is appended to the
-   subject in brackets (e.g. `[STAGING]`). When an override is active, the original recipient info
-   is also appended (e.g. `[STAGING, for 3 recipients]` or `[STAGING, for jsmith@example.com]`).
-
-6. **Send** — The email is dispatched via the Grails Mail Plugin's `sendMail` closure.
-
-7. **Stats tracking** — `emailsSent` count and `lastSentDate` are updated for admin monitoring.
+3. **Subject enhancement** — In non-production environments, the environment name is appended to the
+   subject (e.g. `[STAGING]`).
 
 #### `parseMailConfig(String configName)`
 
@@ -108,52 +88,21 @@ special string `"none"`, which allows configs to explicitly disable email by set
 `EmailService.getAdminStats()` reports the current values of all four email configs plus
 `emailsSent` count and `lastSentDate`, viewable in the Hoist Admin Console.
 
-### ClientErrorEmailService
+### Built-in Notification Services
 
-**Location:** `grails-app/services/io/xh/hoist/track/ClientErrorEmailService.groovy`
+Hoist includes three internal services that use `EmailService` to send automated notifications.
+These are not application APIs — they run automatically based on configuration:
 
-Sends digest-style email alerts when client-side JavaScript errors are reported to `TrackService`.
-Rather than emailing per-error (which could flood inboxes during an incident), this service batches
-errors using a configurable timer:
+- **`ClientErrorEmailService`** — Sends periodic digest emails when client-side errors are reported
+  via activity tracking. Batching interval controlled by `xhClientErrorConfig.intervalMins`.
+  Recipients read from `xhEmailSupport`.
 
-- **Timer interval** — Controlled by `xhClientErrorConfig.intervalMins` (default: 2 minutes).
-- **Recipients** — Read from the `xhEmailSupport` config via `emailService.parseMailConfig()`.
-- **Primary-only** — The timer runs only on the primary cluster instance (`primaryOnly: true`).
-- **Digest format** — A single error produces a detailed email with metadata (user, browser,
-  version, URL, stack trace). Multiple errors are combined into a digest with a summary per error.
-- **Query window** — Each timer run queries `TrackLog` entries with category `'Client Error'`
-  created since the last successful run.
+- **`FeedbackEmailService`** — Sends emails immediately when users submit feedback from the
+  hoist-react feedback dialog. Recipients read from `xhEmailSupport`.
 
-### FeedbackEmailService
-
-**Location:** `grails-app/services/io/xh/hoist/track/FeedbackEmailService.groovy`
-
-Sends emails immediately when end users submit feedback from the client-side feedback dialog
-(provided by hoist-react).
-
-- **Event-driven** — Subscribes to the `xhTrackReceived` cluster topic and filters for entries
-  with category `'Feedback'`. This means feedback emails are triggered in near-real-time rather
-  than on a timer.
-- **Recipients** — Read from the `xhEmailSupport` config.
-- **Primary-only** — The subscription uses `primaryOnly: true`.
-- **Format** — Includes the user's feedback message plus metadata (username, app, version,
-  environment, browser, device, timestamp).
-
-### MonitorReportService
-
-**Location:** `grails-app/services/io/xh/hoist/monitor/MonitorReportService.groovy`
-
-Emails status monitor reports when monitors transition into or out of failure/warning states.
-
-- **Recipients** — Read from the `xhMonitorEmailRecipients` config (separate from `xhEmailSupport`
-  since monitoring alerts often go to a different ops team).
-- **Thresholds** — Controlled by `xhMonitorConfig.failNotifyThreshold` and
-  `warnNotifyThreshold` — the number of consecutive check cycles a monitor must be in the
-  respective status before triggering an alert.
-- **Repeat interval** — While in alert mode, reports are re-sent every
-  `xhMonitorConfig.monitorRepeatNotifyMins` minutes (default: 60).
-- **Pub/sub** — In addition to emailing, reports are published on the `xhMonitorStatusReport`
-  topic for app-specific alerting integrations.
+- **`MonitorReportService`** — Sends alert emails when monitors transition into or out of
+  failure/warning states. Recipients read from `xhMonitorEmailRecipients`. Threshold and repeat
+  interval controlled by `xhMonitorConfig`.
 
 ## Configuration
 
@@ -279,44 +228,6 @@ try {
     throw new RuntimeException("Failed to send compliance notification", e)
 }
 ```
-
-## Client Integration
-
-### Client Error Emails
-
-The flow from a JavaScript error to an email notification:
-
-1. **hoist-react** catches an unhandled exception and posts it to the server's `TrackService`
-   endpoint with category `'Client Error'`.
-2. **`TrackService`** persists a `TrackLog` record and publishes the entry on the
-   `xhTrackReceived` cluster topic.
-3. **`ClientErrorEmailService`** runs on a timer (every `xhClientErrorConfig.intervalMins` minutes,
-   primary instance only). On each tick, it queries for `TrackLog` entries with category
-   `'Client Error'` created since the last run.
-4. If errors are found, they are formatted into a **single digest email** — one error gets a
-   detailed report with stack trace; multiple errors get a condensed summary per error separated
-   by horizontal rules.
-5. The email is sent asynchronously to the `xhEmailSupport` recipients.
-
-### Feedback Emails
-
-The flow from a user's feedback submission to an email notification:
-
-1. The user fills out the **feedback dialog** in hoist-react and submits.
-2. **hoist-react** posts the feedback to `TrackService` with category `'Feedback'`.
-3. **`TrackService`** persists a `TrackLog` record and publishes the entry on the
-   `xhTrackReceived` cluster topic.
-4. **`FeedbackEmailService`** receives the topic message (subscribed with `primaryOnly: true`),
-   checks if the category is `'Feedback'`, and sends an email **immediately** (no batching).
-5. The email includes the user's message and metadata (username, version, browser, device,
-   timestamp) and is sent asynchronously to the `xhEmailSupport` recipients.
-
-### Monitor Alert Emails
-
-1. **`MonitorService`** runs status checks on a timer and publishes results.
-2. **`MonitorReportService`** evaluates whether monitors have crossed failure/warning thresholds.
-3. If a state change is detected (or a repeat interval has elapsed while still in alert mode), a
-   `MonitorStatusReport` is generated and emailed to `xhMonitorEmailRecipients`.
 
 ## Common Pitfalls
 

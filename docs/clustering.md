@@ -1,6 +1,3 @@
-> **Status: DRAFT** — This document is awaiting review. Content may be incomplete or subject to
-> change. Do not remove this banner until the document has been interactively reviewed and approved.
-
 # Clustering
 
 ## Overview
@@ -18,8 +15,10 @@ Clustering enables:
 - **Admin visibility** — Cluster-wide monitoring via the Admin Console
 
 Most of the clustering functionality is accessed indirectly through `BaseService` resource factories
-(`createCache`, `createCachedValue`, `createTimer`, `createIMap`, `createISet`). Direct interaction with
-`ClusterService` is rarely needed in application code.
+(`createCache`, `createCachedValue`, `createTimer`, `createIMap`, `createISet`). `ClusterUtils`
+provides methods for distributed execution — `runOnInstance()`, `runOnPrimary()`, and
+`runOnAllInstances()` — to run service methods on specific or all cluster members. Direct
+interaction with `ClusterService` is rarely needed in application code.
 
 ## Source Files
 
@@ -65,12 +64,15 @@ Application Start
 ### Primary Instance
 
 The **primary instance** is the oldest member of the Hazelcast cluster. It handles tasks that
-should run on only one instance — typically scheduled data refreshes, cleanup jobs, and
+should run on only one instance — typically scheduled data refreshes, batch jobs, and
 monitoring checks. When the primary instance leaves the cluster, the next-oldest member
 automatically becomes the new primary.
 
+The `isPrimary` property is on `ClusterService` and is also available directly on `BaseService`
+for convenience:
+
 ```groovy
-// Check if this instance is primary
+// In any BaseService
 if (isPrimary) {
     // Only executes on the primary instance
 }
@@ -90,33 +92,6 @@ framework.
 | `localName` | Human-readable name for this instance |
 | `hzInstance` | Direct access to the Hazelcast instance (rarely needed) |
 | `ensureRunning()` | Throws if instance is not in `RUNNING` state |
-
-### ClusterConfig
-
-Configures the Hazelcast instance before it starts. Handles:
-
-- **Network discovery** — `createNetworkConfig()` is a no-op by default (Hazelcast uses multicast discovery); apps can override to customize
-- **Hibernate cache regions** — GORM second-level cache backed by Hazelcast JCache
-- **Default eviction policies** — LRU eviction for Hibernate cache regions
-- **Application customization** — Services can provide a `static configureCluster` closure
-
-#### Custom Hazelcast Configuration
-
-Services can customize Hazelcast configuration for their distributed resources by declaring a
-`static configureCluster` closure:
-
-```groovy
-class MyService extends BaseService {
-
-    static configureCluster = { Config c ->
-        c.getMapConfig(hzName('largeDataset', this)).with {
-            evictionConfig.size = 100
-        }
-    }
-
-    private IMap<String, Map> largeDataset = createIMap('largeDataset')
-}
-```
 
 ### Distributed Data Structures
 
@@ -149,10 +124,11 @@ instance-specific data that doesn't need to be shared.
 Cache entries have a configurable `expireTime` and are culled by an internal timer. Expired entries
 are removed lazily on access and periodically by the cull timer.
 
-#### CachedValue (ReliableTopic-backed)
+#### CachedValue
 
-`CachedValue<T>` stores a single value that is replicated across the cluster via a Hazelcast
-`ReliableTopic`. When a value is set on any instance, all other instances receive the update.
+`CachedValue<T>` stores a single value that can be replicated across the cluster. When a value is
+set on any instance, all other instances receive the update. This makes `CachedValue` ideal for
+expensive computations that should be shared — compute once on the primary, replicate to all.
 
 ```groovy
 private CachedValue<Map> summary
@@ -160,7 +136,7 @@ private CachedValue<Map> summary
 void init() {
     summary = createCachedValue(
         name: 'summary',
-        replicate: true,          // backed by Hazelcast ReliableTopic
+        replicate: true,
         expireTime: 30 * MINUTES
     )
 }
@@ -168,9 +144,27 @@ void init() {
 
 Hazelcast resource name: `xhcachedvalue.{FullClassName}[summary]`
 
-The `ReliableTopic` ensures that new instances joining the cluster receive the most recent value
-(via replay of the last message). This makes `CachedValue` ideal for expensive computations that
-should be shared — compute once on the primary, replicate to all.
+CachedValue replication is backed by a Hazelcast `ReliableTopic`, which replays the most recent value to new
+instances joining the cluster.
+
+Both `Cache` and `CachedValue` provide an `ensureAvailable()` method that blocks until a value is
+present, with a configurable timeout (default 30 seconds). This is important during startup when a
+non-primary instance may need to wait for the primary to populate a replicated value before it can
+serve requests:
+
+```groovy
+void init() {
+    marketData = createCachedValue(name: 'marketData', replicate: true)
+    marketData.ensureAvailable(timeout: 60 * SECONDS)
+}
+```
+
+#### ReplicatedMap
+
+`ReplicatedMap<K, V>` is a Hazelcast map where every instance holds a complete copy (eventually
+consistent). This is what `Cache` uses internally — use `createReplicatedMap()` directly only
+when you need raw Hazelcast map access without `Cache`'s expiration and admin features.
+
 
 #### IMap (Distributed Partitioned Map)
 
@@ -187,12 +181,6 @@ void init() {
 ```
 
 Hazelcast resource name: `{FullClassName}[documentStore]`
-
-#### ReplicatedMap
-
-`ReplicatedMap<K, V>` is a Hazelcast map where every instance holds a complete copy (eventually
-consistent). This is what `Cache` uses internally — use `createReplicatedMap()` directly only
-when you need raw Hazelcast map access without `Cache`'s expiration and admin features.
 
 #### Timer (Cluster-aware)
 
@@ -252,6 +240,15 @@ getTopic('myCustomTopic').publish([action: 'refresh', source: username])
 Topics are used extensively within hoist-core for config changes, preference changes, and other
 framework events.
 
+### ClusterConfig
+
+Configures the Hazelcast instance before it starts. Handles:
+
+- **Network discovery** — `createNetworkConfig()` is a no-op by default (Hazelcast uses multicast discovery); apps can override to customize
+- **Hibernate cache regions** — GORM second-level cache backed by Hazelcast JCache
+- **Default eviction policies** — LRU eviction for Hibernate cache regions
+- **Application customization** — Services can provide a `static configureCluster` closure
+
 ## Configuration
 
 ### Hazelcast Network Configuration
@@ -261,7 +258,7 @@ method has an empty body by default — it serves as a hook that applications ca
 subclass to customize network discovery (e.g., TCP/IP member lists, cloud discovery) for their
 deployment environment.
 
-### Hibernate Cache Regions
+### Customizing Hibernate Cache Regions
 
 `ClusterConfig` configures Hazelcast as the GORM second-level cache provider with default
 eviction policies:
@@ -282,6 +279,24 @@ class MyDomain {
     static cache = { cfg ->
         cfg.evictionConfig.size = 10000
     }
+}
+```
+
+### Customizing Distributed Resources
+
+Services can customize Hazelcast configuration for their distributed resources by declaring a
+`static configureCluster` closure:
+
+```groovy
+class MyService extends BaseService {
+
+    static configureCluster = { Config c ->
+        c.getMapConfig(hzName('largeDataset', this)).with {
+            evictionConfig.size = 100
+        }
+    }
+
+    private IMap<String, Map> largeDataset = createIMap('largeDataset')
 }
 ```
 
@@ -360,9 +375,10 @@ database cleanups, email sends, or API calls will execute N times (once per inst
 
 ### Non-serializable values in distributed structures
 
-All values stored in Hazelcast distributed objects must be serializable (Java `Serializable` or
-Hazelcast `DataSerializable`). Storing Grails domain objects, closures, or other non-serializable
-objects will throw `HazelcastSerializationException`. Use Maps, Lists, or simple POGOs instead.
+All values stored in Hazelcast distributed objects must be serializable. Hoist configures Kryo as
+Hazelcast's global serializer, which handles most common types (Maps, Lists, simple POGOs)
+automatically. However, Grails domain objects, closures, and other complex types may not be
+Kryo-serializable and will cause errors. Favor plain Maps, Lists, or simple POGOs instead.
 
 ### Assuming immediate replication
 

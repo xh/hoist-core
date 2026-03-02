@@ -8,9 +8,6 @@ Hoist-core is built with Gradle and published as the `io.xh:hoist-core` artifact
 **GitHub Actions** for continuous integration and automated publishing, with **Maven Central** as
 the primary public artifact repository (via the Sonatype Central Portal).
 
-This replaces a previous build pipeline that used **TeamCity** for CI and published to an internal
-**repo.xh.io** Nexus repository.
-
 The build pipeline supports three GitHub Actions workflows:
 
 - **CI** — Builds on every push and PR to `develop`

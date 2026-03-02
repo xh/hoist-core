@@ -1,6 +1,3 @@
-> **Status: DRAFT** — This document is awaiting review. Content may be incomplete or subject to
-> change. Do not remove this banner until the document has been interactively reviewed and approved.
-
 # Activity Tracking
 
 ## Overview
@@ -14,7 +11,7 @@ The system serves several purposes:
 - **Performance monitoring** — Elapsed time for key operations
 - **Error capture** — Client-side errors reported automatically to the server
 - **User feedback** — In-app feedback routed to email
-- **Audit logging** — CRUD operations tracked via `RestController`
+- **Audit logging** — e.g. CRUD operations tracked via `RestController`, config changes, role updates
 
 ## Source Files
 
@@ -39,7 +36,7 @@ A GORM domain class representing a single tracked event. Stored in the `xh_track
 | `username` | `String` | User who performed the action |
 | `impersonating` | `String` | If impersonating, the impersonated username |
 | `dateCreated` | `Date` | When the event occurred (set explicitly, not auto-timestamped) |
-| `category` | `String` | Grouping category (e.g., `'Default'`, `'Client Error'`, `'Audit'`) |
+| `category` | `String` | Grouping category — free-form, app-specific strings. Hoist uses several built-in categories (e.g. `'Default'`, `'Client Error'`, `'Audit'`, `'Feedback'`), but applications can define their own |
 | `msg` | `String` | Concise action description (max 255 chars) |
 | `data` | `String` | Additional JSON payload (TEXT column) |
 | `elapsed` | `Integer` | Duration in milliseconds |
@@ -93,13 +90,14 @@ Parameters:
 | `msg` | `String` | (required) | Concise description of the action |
 | `category` | `String` | `'Default'` | Grouping category |
 | `severity` | `Object` | `INFO` | `TrackSeverity` or string |
+| `elapsed` | `Long` | `null` | Duration in ms |
 | `data` | `Object` | `null` | Additional payload (serialized to JSON) |
-| `logData` | `Object` | `null` | Keys from data to include in log output |
+| `logData` | `Object` | `null` | Keys from data to include in log output, or `true` to log all |
 | `correlationId` | `String` | `null` | Links related entries |
 | `timestamp` | `Long` | current time | Epoch ms when the event occurred |
-| `elapsed` | `Long` | `null` | Duration in ms |
-| `username` | `String` | `authUsername` (authenticated user) | Override for async contexts. Note: this is the *authenticated* user, not the apparent user. During impersonation, `authUsername` is the real user, while the impersonated user is captured in `impersonating`. |
-| `impersonating` | `String` | auto-detected | The impersonated (apparent) user, if impersonation is active. Override for async contexts |
+
+| `username` | `String` | auto | Set by Hoist — not for application use |
+| `impersonating` | `String` | auto | Set by Hoist — not for application use |
 
 The method is intentionally fire-and-forget — it processes entries asynchronously on a background
 thread to avoid delaying the calling request.
@@ -129,22 +127,16 @@ Entries are matched against rules in order — the first matching rule determine
 severity:
 
 ```json
-{
-  "enabled": true,
-  "maxDataLength": 2000,
-  "maxEntriesPerMin": 1000,
-  "levels": [
+"levels": [
     {"username": "noisy.user", "category": "*", "severity": "WARN"},
-    {"username": "*", "category": "Client Error", "severity": "DEBUG"},
-    {"username": "*", "category": "*", "severity": "INFO"}
-  ]
-}
+    {"username": "*", "category": "Client Error", "severity": "DEBUG"}
+]
 ```
 
 In this example:
 - Entries from `noisy.user` are only persisted at `WARN` or above.
 - `Client Error` entries are always persisted (any severity).
-- All other entries need at least `INFO` severity.
+- All other entries fall through to the default `INFO` minimum.
 
 #### Rate Limiting
 
@@ -171,8 +163,7 @@ void init() {
 
 ### TrackSeverity
 
-An enum with four levels: `DEBUG`, `INFO`, `WARN`, `ERROR`. The `parse()` method converts strings
-to severity values (defaulting to `INFO` for unrecognized input).
+An enum with four levels: `DEBUG`, `INFO`, `WARN`, `ERROR`.
 
 ### Client Error and Feedback Emails
 
@@ -284,16 +275,20 @@ class PortfolioService extends BaseService {
 }
 ```
 
-### Audit Tracking via RestController
+### Audit Tracking
 
-`RestController` provides built-in audit tracking when `trackChanges = true`:
+Any service can track audit-worthy events by calling `track()` with an appropriate category:
 
 ```groovy
-class PositionController extends RestController {
-    static restTarget = Position
-    static trackChanges = true    // logs create/update/delete with 'Audit' category
-}
+trackService.track(
+    msg: "Updated region assignment for ${trader.name}",
+    category: 'Audit',
+    data: [traderId: trader.id, oldRegion: oldVal, newRegion: newVal]
+)
 ```
+
+`RestController` also provides built-in audit tracking via `trackChanges = true`, which
+automatically logs create/update/delete operations with the `'Audit'` category.
 
 ### Monitoring for Client Errors
 
@@ -318,9 +313,33 @@ class ErrorMonitorService extends BaseService {
 
 ## Client Integration
 
-The hoist-react client tracks user activity through `XH.track()` and its tracking service. Client
-entries are batched and sent to the server's `/xh/track` endpoint, where `TrackService.trackAll()`
-processes them.
+Client-side tracking is the most common use of the activity tracking system. The hoist-react client
+tracks user activity through `XH.track()` and its `TrackService`. Client entries are batched and
+sent to the server's `/xh/track` endpoint, where `TrackService.trackAll()` processes them.
+
+The most common pattern uses the `.track()` extension method on `Promise`, which automatically
+captures elapsed time:
+
+```typescript
+async doLoadAsync() {
+    try {
+        const data = await XH.fetchService
+            .fetchJson({url: 'api/positions'})
+            .linkTo(this.loadTask)
+            .track({category: 'Portfolio', message: 'Loaded positions'});
+
+        runInAction(() => this.updatePositions(data));
+    } catch (e) {
+        XH.handleException(e);
+    }
+}
+```
+
+`XH.track()` can also be called client-side for events that are not tied to a promise:
+
+```typescript
+XH.track({message: 'User exported data', category: 'Export'});
+```
 
 Client-side errors are automatically captured and sent as track entries with
 `category: 'Client Error'`. The `data` payload includes the error message, stack trace, and
@@ -333,9 +352,15 @@ User feedback submitted through the built-in feedback dialog is sent as a track 
 
 ### Tracking too much data
 
-Large `data` payloads are dropped if they exceed `maxDataLength` (default 2000 chars). Track only
-the essential context needed for debugging — IDs, counts, and key parameters rather than full
-response bodies.
+`TrackService` silently truncates fields that exceed database column limits:
+
+- **`data`** — Payloads exceeding `maxDataLength` (default 2000 chars) are **dropped entirely**
+  (set to `null`). A trace-level log message is emitted, but no error is raised.
+- **`msg`** — Truncated to 255 characters.
+- **`url`** — Truncated to 500 characters.
+
+Track only the essential context needed for debugging — IDs, counts, and key parameters rather than
+full response bodies.
 
 ### Tracking in hot loops
 
