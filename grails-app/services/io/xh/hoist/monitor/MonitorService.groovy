@@ -145,7 +145,7 @@ class MonitorService extends BaseService {
 
     Map getAdminStats() {
         [
-            config: configForAdminStats('xhMonitoringEnabled', 'xhMonitorConfig'),
+            config: configForAdminStats('xhEnableMonitoring', 'xhMonitorConfig'),
             results: _results.get()?.collectEntries { code, results -> [code, results.formatForJSON()] }
         ]
     }
