@@ -17,6 +17,7 @@ import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 class MetricsAdminController extends BaseController {
 
     def metricsAdminService
+    def metricsService
 
     def listMetrics() {
         def results = runOnAllInstances(metricsAdminService.&listMetrics)
@@ -24,5 +25,12 @@ class MetricsAdminController extends BaseController {
             .findAll { !it.exception }
             .collectMany { it.value }
         renderJSON(merged)
+    }
+
+    @AccessRequiresRole('HOIST_ADMIN')
+    def setPublished() {
+        def body = parseRequestJSON()
+        metricsService.updatePublishedMetrics(body.names as List<String>, body.published as boolean)
+        renderJSON(success: true)
     }
 }

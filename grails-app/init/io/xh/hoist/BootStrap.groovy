@@ -319,6 +319,12 @@ class BootStrap implements LogSupport {
                 groupName: 'xh.io',
                 note: 'Parameters for observable metric support'
             ],
+            xhMetricsPublished: [
+                valueType: 'json',
+                defaultValue: [],
+                groupName: 'xh.io',
+                note: 'List of metric names to include in Prometheus/OTLP export. Empty list = no metrics exported.'
+            ],
             xhWebSocketConfig: [
                 valueType: 'json',
                 defaultValue: [
