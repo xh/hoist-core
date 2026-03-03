@@ -1,5 +1,12 @@
 # Changelog
 
+## 36.4.0 - 2026-03-03
+
+### ⚙️ Technical
+
+* Added `LogbackConfig.suppressStackTrace()` to filter out stack traces from noisy external
+  loggers. The exception message is still logged; full stack traces are available at TRACE level.
+
 ## 36.3.1 - 2026-02-26
 
 ### 🎁 New Features
