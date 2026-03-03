@@ -7,7 +7,6 @@
 
 package io.xh.hoist.telemetry
 
-import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
 import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics

@@ -323,7 +323,7 @@ class BootStrap implements LogSupport {
                 valueType: 'json',
                 defaultValue: [],
                 groupName: 'xh.io',
-                note: 'List of metric names to include in Prometheus/OTLP export. Empty list = no metrics exported.'
+                note: 'List of metric names to include in Prometheus, OTLP or other exports. Empty list = no metrics exported.'
             ],
             xhWebSocketConfig: [
                 valueType: 'json',
