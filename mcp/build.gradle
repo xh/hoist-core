@@ -32,6 +32,9 @@ application {
 shadowJar {
     archiveClassifier = 'all'
     mergeServiceFiles()
+    manifest {
+        attributes 'Implementation-Version': project.version
+    }
 }
 
 //------------------------

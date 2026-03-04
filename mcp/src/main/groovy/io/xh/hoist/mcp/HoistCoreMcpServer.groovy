@@ -66,7 +66,7 @@ class HoistCoreMcpServer {
         def transportProvider = new StdioServerTransportProvider()
 
         McpSyncServer server = McpServer.sync(transportProvider)
-            .serverInfo('hoist-core', '1.0.0')
+            .serverInfo('hoist-core', this.class.package.implementationVersion ?: 'dev')
             .instructions('Hoist Core MCP server — provides access to hoist-core framework documentation and Groovy/Java symbol information.')
             .capabilities(ServerCapabilities.builder()
                 .tools(true)
