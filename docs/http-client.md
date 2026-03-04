@@ -1,6 +1,3 @@
-> **Status: DRAFT** — This document is awaiting review. Content may be incomplete or subject to
-> change. Do not remove this banner until the document has been interactively reviewed and approved.
-
 # HTTP Client & Proxy Services
 
 ## Overview
@@ -27,7 +24,7 @@ etc.). Hoist standardizes on a thin wrapper over Apache HttpClient 5 for several
 
 - **Consistent JSON handling** — Uses Hoist's own `JSONParser` (Jackson-based) rather than mixing
   serialization strategies
-- **Unified error model** — Non-2xx responses throw `ExternalHttpException` with the upstream
+- **Unified error model** — Non-success responses throw `ExternalHttpException` with the upstream
   status code preserved, integrating cleanly with Hoist's exception hierarchy
 - **Minimal abstraction** — The wrapper is intentionally thin; callers still construct Apache
   `HttpGet`, `HttpPost`, etc. directly, retaining full control over headers, timeouts, and auth
@@ -46,7 +43,7 @@ etc.). Hoist standardizes on a thin wrapper over Apache HttpClient 5 for several
 
 ### JSONClient
 
-`JSONClient` is a `@CompileStatic` wrapper around Apache's `CloseableHttpClient`. It executes HTTP
+`JSONClient` is a wrapper around Apache's `CloseableHttpClient`. It executes HTTP
 requests and returns parsed results in one of four forms: `Map` (JSON object), `List` (JSON array),
 `String` (raw text), or `Integer` (status code only).
 
@@ -99,12 +96,14 @@ successful response).
 When a non-success response is received, `JSONClient` attempts to extract a meaningful error
 message using a three-tier strategy:
 
-1. **Structured JSON** — If the response body is a JSON object with a `message` field, that
+1. **Structured JSON** — If the response body is a JSON object with a String `message` field, that
    message is used. If the JSON also contains a `className` field referencing a known `io.xh.hoist`
-   or `java.lang` exception class, the exception is rehydrated as that type
+   or `java.lang` exception class, the exception is rehydrated as that type. If the JSON has no
+   `message` field, the raw body is used instead
 2. **Raw string** — If the body is not valid JSON, it is used directly as the error message
-   (truncated to 255 characters)
 3. **Fallback** — If the body cannot be read at all, the exception carries only the status code
+
+In all cases, messages are truncated to 255 characters.
 
 All errors are wrapped in `ExternalHttpException`, which extends `HttpException` and carries the
 upstream `statusCode`.
@@ -168,7 +167,7 @@ The request flow through the proxy system is:
 1. The hoist-react client makes a request to `/proxy/{serviceName}/{path}` on the Hoist server
 2. `UrlMappings` routes this to `ProxyImplController`, which looks up `{serviceName}Service` in
    the Spring context
-3. `ProxyImplController` calls `handleRequest(url, request, response)` on the resolved service
+3. `ProxyImplController` calls `handleRequest(endpoint, request, response)` on the resolved service
 4. `BaseProxyService.handleRequest()` constructs a matching Apache HTTP request to the external
    API (preserving method, query string, body, and selected headers)
 5. The external response is streamed back to the client (status code, selected headers, body)
@@ -270,7 +269,7 @@ without restarting the server.
 
 ### HttpUtils
 
-A small `@CompileStatic` utility class with two static methods:
+A small utility class with two static methods:
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
@@ -298,8 +297,10 @@ def (host2, port2) = HttpUtils.parseHostPort('api.example.com')
 
 ### ExternalHttpException
 
-Thrown by `JSONClient` when an outbound HTTP call returns a non-success status code or fails at the
-network level. Extends `HttpException`, which carries a `statusCode` field.
+Thrown by `JSONClient` when an outbound HTTP call returns a status code outside the 200–204 range or
+fails at the network level. Extends `HttpException`, which carries a `statusCode` field. Note that
+`statusCode` will be `null` for network-level failures (e.g. connection refused, DNS resolution
+failure) where no HTTP response was received.
 
 ```groovy
 try {
@@ -470,8 +471,8 @@ proceeding).
 ### Not Closing Resources
 
 `JSONClient`'s convenience methods (`executeAsMap`, `executeAsList`, etc.) handle response
-closing internally via `try/finally` blocks. However, if you use `executeRaw()` or work with
-the underlying Apache client directly, you must close responses yourself.
+closing internally via `try/finally` blocks. However, if you work with the underlying Apache
+`CloseableHttpClient` directly, you must close responses yourself.
 
 ```groovy
 // ✅ Do: Use the convenience methods — they handle resource cleanup
@@ -482,36 +483,11 @@ def response = httpClient.execute(new HttpGet('https://api.example.com/data'))
 // response is never closed — connection leak!
 ```
 
-### Ignoring ExternalHttpException Status Codes
-
-`JSONClient` throws `ExternalHttpException` for any non-2xx response. The exception carries the
-upstream `statusCode`, which is valuable for distinguishing between client errors (4xx) and server
-errors (5xx).
-
-```groovy
-// ✅ Do: Inspect the status code for appropriate error handling
-try {
-    return client.executeAsMap(get)
-} catch (ExternalHttpException e) {
-    if (e.statusCode == 404) {
-        return null  // Not found is expected
-    }
-    throw e  // Other errors are unexpected
-}
-
-// ❌ Don't: Catch all exceptions generically
-try {
-    return client.executeAsMap(get)
-} catch (Exception e) {
-    return null  // Silently swallows real errors
-}
-```
-
 ### Creating a New HttpClient Per Request
 
 Creating `HttpClients.createDefault()` on every request is wasteful — it bypasses connection
-pooling and incurs setup overhead. Either reuse a `JSONClient` instance or enable client caching
-in proxy services.
+pooling and incurs setup overhead. If possible, either reuse a `JSONClient` instance or enable
+client caching in proxy services.
 
 ```groovy
 // ✅ Do: Reuse the client instance
@@ -530,7 +506,7 @@ Map fetchData() {
 }
 ```
 
-For proxy services, set `getCacheSourceClient()` to return `true` to reuse the underlying
+For proxy services, implement `getCacheSourceClient()` to return `true` to reuse the underlying
 `CloseableHttpClient` across requests.
 
 ### Forgetting to Set Content-Type on Non-JSON Payloads

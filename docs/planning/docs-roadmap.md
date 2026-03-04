@@ -40,9 +40,9 @@ Features that support production operations, integrations, and system health.
 
 | Document | Source Files | Description | Status |
 |----------|-------------|-------------|--------|
-| [`monitoring.md`](../monitoring.md) | Monitor, MonitorResult, MonitoringService, MonitorDefinitionService, MonitorReportService | Monitor domain definitions, MonitorResult status model, MonitorDefinitionService pattern (app-provided), MonitoringService evaluation cycle, `MonitorStatusReport` email alerting, `xhMonitorConfig` | Draft |
+| [`monitoring.md`](../monitoring.md) | Monitor, MonitorResult, MonitoringService, MonitorDefinitionService, MonitorReportService | Monitor domain definitions, MonitorResult status model, MonitorDefinitionService pattern (app-provided), MonitoringService evaluation cycle, `MonitorStatusReport` email alerting, `xhMonitorConfig` | Done |
 | [`websocket.md`](../websocket.md) | WebSocketService, HoistWebSocketHandler, HoistWebSocketChannel, HoistWebSocketConfigurer | WebSocketService cluster-aware push (`pushToChannel`), channel subscription model, Hazelcast topic relay for multi-instance delivery, session management, admin stats | Done |
-| [`http-client.md`](../http-client.md) | JSONClient, BaseProxyService, HttpUtils | JSONClient (typed HTTP client with JSON serialization), BaseProxyService (proxying client requests to external APIs), HttpUtils helpers | Draft |
+| [`http-client.md`](../http-client.md) | JSONClient, BaseProxyService, HttpUtils | JSONClient (typed HTTP client with JSON serialization), BaseProxyService (proxying client requests to external APIs), HttpUtils helpers | Done |
 | [`email.md`](../email.md) | EmailService, ClientErrorEmailService, FeedbackEmailService | EmailService (Grails mail plugin wrapper), config-driven filtering and overrides (`xhEmailFilter`, `xhEmailOverride`), support address configuration, client error and feedback email routing | Done |
 | [`exception-handling.md`](../exception-handling.md) | ExceptionHandler, HttpException subclasses, RoutineException | Exception hierarchy (HttpException → NotAuthorizedException, NotFoundException, etc.), RoutineException (expected errors, logged at DEBUG), ExceptionHandler rendering, how exceptions map to HTTP status codes | Draft |
 | [`logging.md`](../logging.md) | LogSupport, LogLevelService, LogReaderService, LogArchiveService, LogbackConfig | LogSupport trait (`logDebug`, `logInfo`, `logWarn`, `logError` with `withDebug`/`withInfo` timed blocks), dynamic log level configuration via LogLevelService, log viewing via LogReaderService, Logback configuration | Done |
@@ -212,8 +212,8 @@ _For detailed session-by-session notes, see [docs-roadmap-log.md](./docs-roadmap
   authorization)
 - **Priority 2 (Core Features):** 2 Done (configuration, preferences), 3 in Draft (clustering,
   activity-tracking, json-handling)
-- **Priority 3 (Infrastructure):** 4 Done (logging, metrics, email, websocket), 3 in Draft
-  (monitoring, http-client, exception-handling)
+- **Priority 3 (Infrastructure):** 6 Done (logging, metrics, email, websocket, monitoring,
+  http-client), 1 in Draft (exception-handling)
 - **Application Development:** application-structure in Draft
 - **Grails Platform:** gorm-domain-objects Done
 - **Priority 4 (Supporting Features):** All 6 docs still Planned
