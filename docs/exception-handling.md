@@ -6,17 +6,18 @@
 ## Overview
 
 Hoist provides a structured exception hierarchy and centralized error handling pipeline that
-converts server-side exceptions into meaningful, consistent JSON responses for clients. The system
-serves three primary goals:
+logs server-side exceptions and converts them into meaningful, consistent JSON responses for
+clients. The system serves three primary goals:
 
 1. **Semantic HTTP status codes** — Exceptions map to appropriate HTTP status codes (401, 403, 404,
    400, 500) so that clients can distinguish authorization failures from server bugs without parsing
    error messages.
 2. **Routine vs. unexpected errors** — The `RoutineException` marker interface separates expected
    business-logic errors (invalid input, missing data, insufficient permissions) from genuine bugs.
-   Routine exceptions are logged at DEBUG level rather than ERROR, keeping production logs clean and
-   actionable.
-3. **Consistent JSON error format** — All exceptions are serialized to a standard JSON shape via
+3. **Consistent logging** — Routine exceptions are logged at DEBUG level rather than ERROR, keeping
+   production logs clean and actionable. All exceptions flow through a single pipeline that ensures
+   consistent formatting and appropriate log levels.
+4. **Consistent JSON error format** — All exceptions are serialized to a standard JSON shape via
    `ThrowableSerializer`, giving the hoist-react client a reliable contract for displaying errors.
 
 Custom exceptions exist because generic Java exceptions (`RuntimeException`,
@@ -124,7 +125,7 @@ instances (with one exception — `ExternalHttpException`, discussed below).
 | `NotFoundException` | 404 | No | Thrown by `AccessInterceptor` when no controller method matches, or by app code for missing resources |
 | `ExternalHttpException` | varies | No | Wraps failures from HTTP calls to external services; carries the remote status code but is **not** used for the response status (see below) |
 
-**`ExternalHttpException` — the deliberate exception.** When `ExceptionHandler.getHttpStatus()`
+**`ExternalHttpException` status code handling.** When `ExceptionHandler.getHttpStatus()`
 encounters an `ExternalHttpException`, it intentionally ignores the `statusCode` property and falls
 through to the default logic (returning 500). This prevents a downstream service's 401 or 403 from
 being forwarded as the Hoist server's own response status.
@@ -164,17 +165,17 @@ The central exception processing class, installed as a Spring bean (`xhException
 provides three capabilities:
 
 1. **`handleException()`** — Preprocesses, logs, and optionally renders an exception to an HTTP
-   response. This is the method called by `BaseController`, `HoistFilter`, `AccessInterceptor`,
-   and `Timer`.
+   response. Called indirectly via `Utils.handleException()` by `BaseController`, `HoistFilter`,
+   `AccessInterceptor`, and `Timer`.
 
 2. **`getHttpStatus()`** — Determines the HTTP status code for an exception.
 
 3. **`summaryTextForThrowable()`** — Produces a one-line summary string (e.g.
-   `"Not Authorized [NotAuthorizedException]"`) used by Timer admin stats.
+   `"Not Authorized [NotAuthorizedException]"`) for logging and admin stats.
 
-**Customization**: `ExceptionHandler` is designed to be overridden. Applications can replace it by
-defining an alternative Spring bean in `resources.groovy`. The `preprocess()` and
-`shouldLogDebug()` methods are `protected` template methods intended for override.
+**Customization**: `ExceptionHandler` can be overridden by defining an alternative Spring bean in
+`resources.groovy`, though this is rarely needed. The `preprocess()` and `shouldLogDebug()`
+methods are `protected` template methods available for override.
 
 ### `ThrowableSerializer`
 
@@ -193,8 +194,7 @@ Otherwise, it produces a standard map:
 ]
 ```
 
-Entries with falsy values — `null`, `false`, empty strings, and `0` — are stripped (via
-`.findAll { it.value }`).
+Entries with falsy values — `null`, `false`, empty strings, and `0` — are stripped.
 
 ## HTTP Status Mapping
 
@@ -208,23 +208,22 @@ The `ExceptionHandler.getHttpStatus()` method applies these rules in order:
 
 Concrete mappings for the built-in exception types:
 
-| Exception Class | HTTP Status | Log Level |
-|-----------------|-------------|-----------|
-| `NotAuthenticatedException` | 401 Unauthorized | DEBUG |
-| `NotAuthorizedException` | 403 Forbidden | DEBUG |
-| `NotFoundException` | 404 Not Found | ERROR |
-| `RoutineRuntimeException` | 400 Bad Request | DEBUG |
-| `DataNotAvailableException` | 400 Bad Request | DEBUG |
-| `InstanceNotAvailableException` | 400 Bad Request | DEBUG |
-| `InstanceNotFoundException` | 400 Bad Request | DEBUG |
-| `ValidationException` | 400 Bad Request | DEBUG |
-| `SessionMismatchException` | 400 Bad Request | DEBUG |
-| `ExternalHttpException` | 500 Internal Server Error | ERROR |
-| Any other `RuntimeException` | 500 Internal Server Error | ERROR |
+| Exception Class | Routine? | HTTP Status |
+|-----------------|----------|-------------|
+| `NotAuthenticatedException` | Yes | 401 Unauthorized |
+| `NotAuthorizedException` | Yes | 403 Forbidden |
+| `NotFoundException` | **No** | 404 Not Found |
+| `RoutineRuntimeException` | Yes | 400 Bad Request |
+| `DataNotAvailableException` | Yes | 400 Bad Request |
+| `InstanceNotAvailableException` | Yes | 400 Bad Request |
+| `InstanceNotFoundException` | Yes | 400 Bad Request |
+| `ValidationException` | Yes | 400 Bad Request |
+| `SessionMismatchException` | Yes | 400 Bad Request |
+| `ExternalHttpException` | No | 500 Internal Server Error |
+| Any other `RuntimeException` | No | 500 Internal Server Error |
 
-Note that `NotFoundException` does **not** implement `RoutineException`, so it logs at ERROR level.
-This is intentional — 404s hitting the server typically indicate a client bug or misconfiguration
-that warrants investigation.
+Note that `NotFoundException` does **not** implement `RoutineException` — 404s hitting the server
+typically indicate a client bug or misconfiguration that warrants investigation.
 
 ## JSON Error Format
 
@@ -461,10 +460,10 @@ The HTTP status code also drives client behavior:
 ### Cluster Exception Transfer
 
 When controller actions are forwarded to other cluster instances (via `ClusterService`),
-exceptions must cross process boundaries. `ClusterTaskException` pre-serializes the original
-exception to JSON and captures its HTTP status code. `BaseController.renderClusterJSON()` then
-renders the pre-serialized JSON and status code directly, preserving the original exception's
-characteristics for the client.
+exceptions must cross process boundaries. `ClusterTaskException` captures the cause's class name,
+message, JSON serialization (`causeAsJson`), and HTTP status code (`causeStatusCode`).
+`BaseController.renderClusterJSON()` then renders the pre-serialized JSON and status code
+directly, preserving the original exception's characteristics for the client.
 
 ## Common Pitfalls
 
