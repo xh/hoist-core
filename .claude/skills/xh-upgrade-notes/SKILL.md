@@ -174,7 +174,21 @@ notes and/or CHANGELOG entry. LOW priority items are at your discretion.
 1. Re-read both artifacts one final time to check for consistency between the CHANGELOG entry
    and the upgrade notes (same version numbers, same list of changes, matching links).
 2. Verify the `docs/README.md` index is updated.
-3. Present a summary to the user of what was created/changed and offer to commit.
+3. **Update the MCP Doc Registry** — Add a `DocEntry` to the `buildRegistry()` method in
+   `mcp/src/main/groovy/io/xh/hoist/mcp/data/DocRegistry.groovy` so the new upgrade notes are
+   discoverable via `hoist-core-search-docs`. Place the entry in the "Upgrade Notes" section
+   after existing entries, following this pattern:
+   ```groovy
+   new DocEntry(
+       id: 'v{NN}-upgrade-notes',
+       title: 'v{NN} Upgrade Notes',
+       filePath: 'docs/upgrade-notes/v{NN}-upgrade-notes.md',
+       category: 'upgrade',
+       description: 'Upgrade guide from v{PRIOR}.x to v{NN}. {Difficulty} difficulty.',
+       keywords: ['v{NN}', 'upgrade', 'migration', 'breaking changes', 'v{PRIOR}']
+   ),
+   ```
+4. Present a summary to the user of what was created/changed and offer to commit.
 
 ## Important Notes
 
