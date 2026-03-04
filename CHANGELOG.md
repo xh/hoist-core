@@ -1,5 +1,13 @@
 # Changelog
 
+## 36.4.0 - unreleased
+
+### 🎁 New Features
+
+* Added an MCP (Model Context Protocol) server for AI coding agents. Provides searchable access to
+  all hoist-core documentation and Groovy/Java symbol introspection (classes, interfaces, methods,
+  properties). Can run locally from source or as a published fat JAR from Maven Central.
+
 ## 36.3.1 - 2026-02-26
 
 ### 🎁 New Features
