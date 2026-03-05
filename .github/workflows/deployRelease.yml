@@ -36,7 +36,6 @@ jobs:
               fetch-tags: true
 
         - name: Validate release version and detect hotfix
-          id: validate
           env:
               VERSION: ${{ inputs.xhReleaseVersion }}
               IS_HOTFIX: ${{ inputs.isHotfix }}

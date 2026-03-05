@@ -9,6 +9,8 @@ package io.xh.hoist
 
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.LoggerContext
+import ch.qos.logback.classic.spi.LoggingEvent
+import ch.qos.logback.classic.turbo.TurboFilter
 import ch.qos.logback.core.Appender
 import ch.qos.logback.core.ConsoleAppender
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder
@@ -18,11 +20,13 @@ import ch.qos.logback.core.encoder.Encoder
 import ch.qos.logback.core.encoder.LayoutWrappingEncoder
 import ch.qos.logback.core.rolling.RollingFileAppender
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy
+import ch.qos.logback.core.spi.FilterReply
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.log.ClusterInstanceConverter
 import io.xh.hoist.log.LogSupportConverter
 import io.xh.hoist.util.Utils
 import org.slf4j.LoggerFactory
+import org.slf4j.Marker
 
 import java.nio.file.Paths
 
@@ -31,6 +35,8 @@ import static ch.qos.logback.classic.Level.ERROR
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.WARN
 import static ch.qos.logback.core.CoreConstants.PATTERN_RULE_REGISTRY
+import static ch.qos.logback.core.spi.FilterReply.DENY
+import static ch.qos.logback.core.spi.FilterReply.NEUTRAL
 import static org.slf4j.Logger.ROOT_LOGGER_NAME
 
 /**
@@ -187,6 +193,8 @@ class LogbackConfig  {
         // Stifle warning about disabled strong consistency library -- requires 3 node min.
         logger('com.hazelcast.cp.CPSubsystem', ERROR)
 
+        suppressStackTrace('io.micrometer.registry.otlp')
+
         // Turn off built-in global grails stacktrace logger.  It can easily swamp logs!
         // If needed, it can be (carefully) re-enabled by in admin console.
         // Applications should *not* typically enable -- instead Hoist stacktraces can be
@@ -320,6 +328,40 @@ class LogbackConfig  {
         }
         ruleRegistry[conversionWord] = converterClassName
     }
+
+    /**
+     * Suppress stack traces from a tree of external loggers.
+     *
+     * External classes will often over-log stack traces, causing unhelpful noise in the logs for
+     * well-known exceptions. Use this method to apply a filter to suppress stack traces emanating
+     * from externally defined classes. The exception message will still be appended to the log
+     * output. Full stack traces remain available by setting the logger level to TRACE.
+     *
+     * Note: not intended to be used for any logging done via Hoist's LogSupport, which already
+     * suppresses stack traces unless the level is TRACE.
+     */
+    protected void suppressStackTrace(String loggerPrefix) {
+        LoggerContext ctx = (LoggerContext) LoggerFactory.getILoggerFactory()
+
+        TurboFilter filter = new TurboFilter() {
+            FilterReply decide(Marker marker, Logger logger, Level level,
+                               String format, Object[] params, Throwable t) {
+
+                if (t != null && logger.name.startsWith(loggerPrefix) && level.isGreaterOrEqual(Level.DEBUG)) {
+                    String msg = format ? "${format} — ${t.message}" : t.message
+                    logger.callAppenders(
+                        new LoggingEvent(Logger.name, logger, level, msg, null, params)
+                    )
+                    return DENY
+                }
+                return NEUTRAL
+            }
+        }
+
+        filter.start()
+        ctx.addTurboFilter(filter)
+    }
+
 
     /**
      * An example config for your subclass
