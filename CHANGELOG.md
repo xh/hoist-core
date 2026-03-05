@@ -1,5 +1,16 @@
 # Changelog
 
+## 36.0-SNAPSHOT - unreleased
+
+### 🎁 New Features
+
+* Added opt-in metrics publishing. Metrics export is now gated by the `xhMetricsPublished` config —
+  a list of metric names to include in Prometheus/OTLP export sinks. An empty list (the default)
+  means nothing is exported. Requires updated hoist-react for admin UI editing support.
+* Added `MetricsService.publishRegistry` — a `CompositeMeterRegistry` that gates all export sinks
+  with the publish filter. Applications can add custom export registries (e.g. Datadog) via
+  `publishRegistry.add()` and they will automatically respect the published metrics list.
+
 ## 36.3.1 - 2026-02-26
 
 ### 🎁 New Features
