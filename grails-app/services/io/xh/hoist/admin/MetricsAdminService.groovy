@@ -18,6 +18,7 @@ class MetricsAdminService extends BaseService {
     def metricsService
 
     List<Map> listMetrics() {
+        def published = metricsService.publishedMetrics as Set
         metricsService.readOnlyRegistry.meters.collect { Meter meter ->
             def id = meter.id,
                 name = id.name,
@@ -58,8 +59,10 @@ class MetricsAdminService extends BaseService {
                 description: description,
                 baseUnit: baseUnit,
                 tags: tags,
-                stats: stats
+                stats: stats,
+                published: published.contains(name)
             ]
         }
     }
+
 }

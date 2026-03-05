@@ -1,7 +1,3 @@
-> **Status: DRAFT** — This document is awaiting review by the Hoist core development team.
-> Generated from source analysis of hoist-core. Please verify all details before relying on this
-> document for production decisions.
-
 # Application Health Monitoring
 
 ## Overview
@@ -121,17 +117,32 @@ populates it.
 
 **Key properties and methods:**
 
-```groovy
-class MonitorResult {
-    MonitorStatus status   // Defaults to UNKNOWN; set to OK automatically if not changed
-    Object metric          // The numeric (or other) value produced by the check
-    String message         // Human-readable detail — shown in Admin Console and alert emails
+**Properties set by check methods:**
 
-    Map getParams()                         // Parsed JSON params from the Monitor definition
-    <T> T getParam(String name, T defaultVal = null)  // Get a single param with a default
-    <T> T getRequiredParam(String name)     // Get a param or throw if missing
-    void prependMessage(String prependStr)   // Prepend text to any existing message
-}
+```groovy
+MonitorStatus status   // Defaults to UNKNOWN; set to OK automatically if not changed
+Object metric          // The numeric (or other) value produced by the check
+String message         // Human-readable detail — shown in Admin Console and alert emails
+```
+
+**Properties set by the framework** (available but not typically set by check methods):
+
+```groovy
+String instance        // Cluster instance name where this check ran
+Boolean primary        // Whether the instance was the primary
+Long elapsed           // Execution time in milliseconds
+Date date              // Timestamp of check completion
+String exception       // Exception summary if the check threw
+Monitor monitor        // Reference to the Monitor domain object
+```
+
+**Helper methods for check implementations:**
+
+```groovy
+Map getParams()                         // Parsed JSON params from the Monitor definition
+<T> T getParam(String name, T defaultVal = null)  // Get a single param with a default
+<T> T getRequiredParam(String name)     // Get a param or throw if missing
+void prependMessage(String prependStr)   // Prepend text to any existing message
 ```
 
 The `params` accessor deserialises the `Monitor.params` JSON field, giving check implementations
@@ -184,8 +195,8 @@ The central orchestrator. Runs only meaningful work on the **primary instance** 
 5. **Force run** — `forceRun()` allows on-demand execution from the Admin Console, even when
    auto-run is disabled.
 
-The replicated `CachedValue` means any instance can serve the results to the Admin Console without
-requiring the request to hit the primary.
+The replicated `CachedValue` means any instance can serve the results without requiring the
+request to hit the primary.
 
 ### `MonitorEvalService`
 
@@ -260,14 +271,6 @@ status and a human-readable title (e.g. `"MyApp: 1 Failures | 2 Warnings | 5 OK"
 Provides `toHtml()` for email body generation, listing only monitors at `WARN` or above with
 their message and minutes-in-status.
 
-### `MonitorSpec` and `MonitorMetricType`
-
-**Files:** `src/main/groovy/io/xh/hoist/monitor/MonitorSpec.groovy`,
-`src/main/groovy/io/xh/hoist/monitor/MonitorMetricType.groovy`
-
-`MonitorSpec` is a typed specification class for defining required monitors via
-`ensureRequiredMonitorsCreated()`. Its fields mirror the seedable fields of the `Monitor` domain
-class. `MonitorMetricType` is an enum of supported metric types: `Floor`, `Ceil`, `None`.
 
 ### `MonitorMetricsService`
 
@@ -306,12 +309,11 @@ defaults.
 
 #### `ensureRequiredMonitorsCreated()`
 
-Applications should call this public method to register their own required monitors alongside the
-built-in ones. When a new monitor check method is added, it is strongly recommended to include a
-corresponding `MonitorSpec` entry via this method. This ensures the `Monitor` database row is
-created automatically on startup with sensible defaults — without it, the monitor will not exist
-until an admin manually creates it through the Admin Console, and the check method will fail with
-a "not implemented" error in the meantime.
+Calling `super.init()` registers the built-in monitors. Applications with additional
+app-specific checks should also call this method to register their own monitors. Including a
+`MonitorSpec` entry for each custom check ensures its `Monitor` database row is created
+automatically on startup with sensible defaults — without it, the monitor will not exist until an
+admin manually creates it through the Admin Console.
 
 The method accepts a `List<MonitorSpec>` and creates any `Monitor` rows that are not already
 present in the database. Existing monitors are never modified — the spec only provides initial
@@ -359,29 +361,33 @@ changed at runtime through the Admin Console without redeployment.
 | **Client Visible** | No |
 | **Purpose** | Core monitoring parameters — refresh interval, alert thresholds, timeouts. |
 
-**Default value and field descriptions:**
+**Seeded default value:**
 
 ```json
 {
-    "monitorRefreshMins": 10,
-    "failNotifyThreshold": 2,
-    "warnNotifyThreshold": 5,
+    "monitorRefreshMins": 5,
     "monitorStartupDelayMins": 1,
-    "monitorRepeatNotifyMins": 60,
-    "monitorTimeoutSecs": 15,
-    "writeToMonitorLog": true
+    "warnNotifyThreshold": 5,
+    "failNotifyThreshold": 2,
+    "monitorRepeatNotifyMins": 60
 }
 ```
+
+Two additional keys are recognised but **not** included in the seeded default — they have implicit
+runtime fallbacks if omitted:
+
+- `monitorTimeoutSecs` — defaults to `15`
+- `writeToMonitorLog` — defaults to `true`
 
 | Key | Type | Description |
 |-----|------|-------------|
 | `monitorRefreshMins` | Integer | Minutes between automatic monitor evaluation cycles. |
 | `monitorStartupDelayMins` | Integer | Minutes to wait after app startup before the first run. Prevents false alarms during warm-up. |
-| `monitorTimeoutSecs` | Integer | Per-monitor execution timeout in seconds. Exceeding this produces a `FAIL`. |
+| `monitorTimeoutSecs` | Integer | Per-monitor execution timeout in seconds. Exceeding this produces a `FAIL`. Not seeded — defaults to 15 if omitted. |
 | `failNotifyThreshold` | Integer | Number of consecutive `FAIL` cycles before an alert is generated. Prevents flapping. |
 | `warnNotifyThreshold` | Integer | Number of consecutive `WARN` cycles before an alert is generated. |
 | `monitorRepeatNotifyMins` | Integer | Minutes between repeated notifications while alert mode is active. |
-| `writeToMonitorLog` | Boolean | Whether to write individual monitor results to the application log. |
+| `writeToMonitorLog` | Boolean | Whether to write individual monitor results to the application log. Not seeded — defaults to true if omitted. |
 
 ### `xhMonitorEmailRecipients`
 
@@ -576,17 +582,10 @@ Monitors tab. The server-side endpoint is provided by `MonitorResultsAdminContro
 | Endpoint | Method | Role Required | Description |
 |----------|--------|---------------|-------------|
 | `/monitorResultsAdmin/results` | GET | `HOIST_ADMIN_READER` | Returns current `AggregateMonitorResult` list as JSON |
-| `/monitorResultsAdmin/forceRunAllMonitors` | POST | `HOIST_ADMIN` | Triggers an immediate monitor run on the primary |
+| `/monitorResultsAdmin/forceRunAllMonitors` | GET/POST | `HOIST_ADMIN` | Triggers an immediate monitor run on the primary (routed to primary via `runOnPrimaryAsJson`) |
 
-### Admin Console Features
-
-- **Live dashboard** — displays all monitors with their current status, metric value, unit,
-  elapsed time, and per-instance breakdown.
-- **Force run** — allows admins to trigger an immediate evaluation cycle without waiting for the
-  next timer tick. Useful for verifying fixes or during incident response.
-- **Monitor management** — `Monitor` domain objects are editable through the Admin Console,
-  allowing admins to adjust thresholds, toggle `active`, change `params`, and add/remove monitors
-  without redeployment.
+The hoist-react Admin Console provides a dedicated Monitors tab for viewing results, forcing
+re-runs, and editing `Monitor` definitions (thresholds, params, active state) at runtime.
 
 ### Data Flow: Server to Client
 
@@ -613,28 +612,6 @@ method name. A mismatch means the monitor will always fail with:
 
 - &#x2705; `Monitor.code = 'orderLagMonitor'` and method is `def orderLagMonitor(MonitorResult result)`
 - &#x274C; `Monitor.code = 'orderLagMonitor'` and method is `def checkOrderLag(MonitorResult result)`
-
-### Do not forget to call `super.init()` when extending `DefaultMonitorDefinitionService`
-
-If you override `init()` without calling `super.init()`, the built-in monitors will not be
-registered. (The `xhMonitorConfig` soft-config entry is also created by `BootStrap`, so it will
-still exist, but none of the default `Monitor` rows will be created.)
-
-- &#x2705; Correct:
-```groovy
-void init() {
-    super.init()
-    // App-specific setup...
-}
-```
-
-- &#x274C; Incorrect:
-```groovy
-void init() {
-    // Missing super.init() — built-in monitors are silently not registered
-    ensureRequiredMonitorsCreated([...])
-}
-```
 
 ### Do not return a non-numeric metric with `Ceil` or `Floor` metric type
 

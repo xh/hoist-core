@@ -117,9 +117,9 @@ class DefaultMonitorDefinitionService extends BaseService {
             return
         }
 
-        def queryUser = result.getRequiredParam('queryUser'),
-            user = ldapService.lookupUser(queryUser),
-            startTime = currentTimeMillis()
+        def startTime = currentTimeMillis(),
+            queryUser = result.getRequiredParam('queryUser'),
+            user = ldapService.lookupUser(queryUser)
 
         if (!user) {
             result.message = "Failed to find expected user: ${result.params.queryUser}"
