@@ -11,6 +11,12 @@
   with the publish filter. Applications can add custom export registries (e.g. Datadog) via
   `publishRegistry.add()` and they will automatically respect the published metrics list.
 
+### ⚙️ Technical
+
+* Added `LogbackConfig.suppressStackTrace()` to filter out stack traces from noisy external
+  loggers. The exception message is still logged; full stack traces are available at TRACE level.
+
+
 ## 36.3.1 - 2026-02-26
 
 ### 🎁 New Features
