@@ -29,6 +29,8 @@ import io.xh.hoist.config.ConfigService
 
 import java.rmi.registry.Registry
 
+import static io.micrometer.core.instrument.config.MeterFilterReply.DENY
+import static io.micrometer.core.instrument.config.MeterFilterReply.NEUTRAL
 import static io.xh.hoist.cluster.ClusterService.instanceName
 import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 import static io.xh.hoist.util.Utils.appCode
@@ -154,9 +156,9 @@ class MetricsService extends BaseService {
             MeterFilterReply accept(Meter.Id id) {
                 if (!clusterService.isPrimary && id.tags.any { it.key == 'instance' && it.value == 'cluster' }) {
                     logError("Cluster-scoped metric registered on non-primary instance", id.name)
-                    return MeterFilterReply.DENY
+                    return DENY
                 }
-                MeterFilterReply.NEUTRAL
+                NEUTRAL
             }
         })
 
@@ -183,7 +185,7 @@ class MetricsService extends BaseService {
         publishRegistry.config().meterFilter(new MeterFilter() {
             MeterFilterReply accept(Meter.Id id) {
                 def names = publishedMetrics as Set
-                !names || names.contains(id.name) ? MeterFilterReply.NEUTRAL : MeterFilterReply.DENY
+                names?.contains(id.name) ? NEUTRAL : DENY
             }
         })
     }
