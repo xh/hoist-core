@@ -1,8 +1,12 @@
 # Changelog
 
-## 36.0-SNAPSHOT - unreleased
+## 37.0-SNAPSHOT - unreleased
 
 ### 🎁 New Features
+
+* Added an MCP (Model Context Protocol) server for AI coding agents. Provides searchable access to
+  all hoist-core documentation and Groovy/Java symbol introspection (classes, interfaces, methods,
+  properties). Can run locally from source or as a published fat JAR from Maven Central.
 
 * Added opt-in metrics publishing. Metrics export is now gated by the `xhMetricsPublished` config —
   a list of metric names to include in Prometheus/OTLP export sinks. An empty list (the default)

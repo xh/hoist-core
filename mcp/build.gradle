@@ -1,0 +1,96 @@
+plugins {
+    id 'groovy'
+    id 'application'
+    id 'maven-publish'
+    id 'signing'
+    id 'com.gradleup.shadow' version '9.0.0-beta12'
+}
+
+group = 'io.xh'
+version = rootProject.ext.xhReleaseVersion
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(17) }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'io.modelcontextprotocol.sdk:mcp:0.12.1'
+    implementation 'org.apache.groovy:groovy:4.0.26'
+    implementation 'org.apache.groovy:groovy-json:4.0.26'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.+'
+    implementation 'org.apache.commons:commons-compress:1.27.1'
+}
+
+application {
+    mainClass = 'io.xh.hoist.mcp.HoistCoreMcpServer'
+}
+
+shadowJar {
+    archiveClassifier = 'all'
+    mergeServiceFiles()
+    manifest {
+        attributes 'Implementation-Version': project.version
+    }
+}
+
+//------------------------
+// Maven Central publishing
+//------------------------
+publishing {
+    publications {
+        mcpServer(MavenPublication) {
+            groupId = 'io.xh'
+            artifactId = 'hoist-core-mcp'
+
+            artifact shadowJar
+
+            pom {
+                name = 'hoist-core-mcp'
+                description = 'MCP server providing AI coding agents with access to hoist-core framework documentation and Groovy/Java symbol information.'
+                url = 'https://xh.io'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                organization {
+                    name = 'Extremely Heavy Industries'
+                    url = 'https://xh.io'
+                }
+                scm {
+                    url = 'https://github.com/xh/hoist-core'
+                    connection = 'scm:git@github.com:xh/hoist-core.git'
+                    developerConnection = 'scm:git@github.com:xh/hoist-core.git'
+                }
+                developers {
+                    developer {
+                        id = 'xh'
+                        name = 'Extremely Heavy Industries'
+                        email = 'info@xh.io'
+                    }
+                }
+            }
+        }
+    }
+}
+
+ext.isReleaseVersion = !version.endsWith('SNAPSHOT')
+afterEvaluate {
+    signing {
+        required { isReleaseVersion && gradle.taskGraph.hasTask('publish') }
+        def signingKey = findProperty('signingKey') ?: System.getenv('SIGNING_KEY')
+        def signingPassword = findProperty('signingPassword') ?: System.getenv('SIGNING_PASSWORD')
+        if (signingKey) {
+            useInMemoryPgpKeys(signingKey, signingPassword)
+        }
+        sign publishing.publications.mcpServer
+    }
+}
+tasks.withType(Sign) {
+    onlyIf { isReleaseVersion }
+}

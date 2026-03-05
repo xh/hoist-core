@@ -1,13 +1,13 @@
 ---
 name: xh-update-doc-links
-description: Pre-commit documentation consistency check. Ensures docs/README.md index and docs/planning/docs-roadmap.md stay in sync with documentation files on disk, validates inter-doc links, and enhances cross-references when new docs are added. Invoke after editing feature-area docs, before committing.
+description: Pre-commit documentation consistency check. Ensures docs/README.md index, docs/planning/docs-roadmap.md, and the MCP server's hardcoded document registry stay in sync with documentation files on disk. Validates inter-doc links and enhances cross-references when new docs are added. Invoke after editing feature-area docs, before committing.
 tools: Read, Glob, Grep, Bash, Edit, Write
 ---
 
 # xh-update-doc-links — Documentation Consistency Check
 
-Pre-commit skill to ensure documentation index files, inter-doc links, and cross-references
-stay consistent after editing feature-area docs.
+Pre-commit skill to ensure documentation index files, the MCP document registry, inter-doc links,
+and cross-references stay consistent after editing feature-area docs.
 
 ## Step 1: Discover Documentation Files
 
@@ -97,7 +97,46 @@ When new or recently changed docs are detected, look for cross-linking opportuni
 3. **Be conservative:** Only add links where the existing text already discusses the topic.
    Do not restructure existing content or add new sections just to create links.
 
-## Step 6: Report
+## Step 6: Reconcile MCP Document Registry
+
+Ensure the MCP server's hardcoded document registry reflects the current documentation on disk.
+
+For background on the registry format, entry structure, and maintenance expectations, see the
+[Maintaining the MCP Server](../../mcp/README.md#maintaining-the-mcp-server) section of the MCP
+README — specifically the **Doc Registry Entries** subsection.
+
+1. **Read and parse** `mcp/src/main/groovy/io/xh/hoist/mcp/data/DocRegistry.groovy`, extracting
+   all `DocEntry` objects from the `buildRegistry()` method. Note the file path in each entry's
+   `filePath` field.
+
+2. **Detect missing entries** — compare the Step 1 documentation inventory against registry
+   `filePath` fields. For each unregistered doc, add a new `DocEntry` with these fields:
+   - `id`: filename stem for feature docs (e.g. `authentication`), `vNN-upgrade-notes` for
+     upgrade notes.
+   - `title`: derived from the doc's top-level `# heading`.
+   - `filePath`: path relative to repo root (e.g. `docs/authentication.md`).
+   - `category`: one of the values in the `CATEGORY_ORDER` constant — `core-framework`,
+     `core-features`, `infrastructure`, `app-development`, `grails-platform`, `supporting`,
+     `build`, `upgrade`, or `index`.
+   - `description`: concise one-sentence summary matching existing entry style.
+   - `keywords`: 5–12 key terms as a `List<String>` — include API names, class names, and
+     topic terms.
+
+3. **Place entries correctly** in the right section of `buildRegistry()`, which is organized by
+   comment dividers matching the `CATEGORY_ORDER` constant (Core Framework, Core Features,
+   Infrastructure & Operations, Application Development, Grails Platform, Supporting Features,
+   Build & Publishing, Upgrade Notes, Doc index).
+
+4. **Remove stale entries** whose `filePath` no longer exists on disk.
+
+5. **Update moved/renamed docs** — fix `filePath` values (and `id`/`title` if the change is
+   structural, not just a path correction).
+
+6. **Verify existing entries** — spot-check that metadata (title, description, keywords) is still
+   accurate for recently changed docs. Only fix entries that are clearly stale or incorrect; do not
+   rewrite working entries for style.
+
+## Step 7: Report
 
 Output a summary organized into these sections:
 
@@ -106,6 +145,8 @@ Output a summary organized into these sections:
    appended to `docs-roadmap-log.md`.
 3. **Broken Links Fixed** — Source file, broken target, and fix applied.
 4. **New Cross-Links Added** — Source file, target doc, and surrounding context.
-5. **Items Needing Review** — Ambiguities or items requiring human judgment.
+5. **MCP Registry Updates** — Entries added, removed, or updated in `DocRegistry.groovy`, with
+   `id` and `filePath` for each change.
+6. **Items Needing Review** — Ambiguities or items requiring human judgment.
 
 If no changes were needed in a category, note "None" for that section.
