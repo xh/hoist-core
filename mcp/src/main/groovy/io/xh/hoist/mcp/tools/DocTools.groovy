@@ -26,6 +26,8 @@ class DocTools {
     // hoist-core-search-docs
     //------------------------------------------------------------------
     private static SyncToolSpecification createSearchDocs(DocRegistry registry) {
+        def categoryIds = registry.mcpCategories.collect { it.id as String } + ['all']
+
         def tool = Tool.builder()
             .name('hoist-core-search-docs')
             .title('Search hoist-core docs')
@@ -40,7 +42,7 @@ class DocTools {
                     category: [
                         type: 'string',
                         description: 'Filter by category. Default: all',
-                        enum: ['core-framework', 'core-features', 'infrastructure', 'app-development', 'grails-platform', 'supporting', 'build', 'upgrade', 'all']
+                        enum: categoryIds
                     ],
                     limit: [
                         type: 'number',
@@ -67,7 +69,7 @@ class DocTools {
             } else {
                 def lines = ["Found ${results.size()} result${results.size() > 1 ? 's' : ''} for \"${query}\":\n"]
                 results.eachWithIndex { result, i ->
-                    lines << "${i + 1}. [${result.entry.title}] (id: ${result.entry.id}, category: ${result.entry.category})"
+                    lines << "${i + 1}. [${result.entry.title}] (id: ${result.entry.id}, category: ${result.entry.mcpCategory})"
                     lines << "   ${result.entry.description}"
                     lines << "   Matches: ${result.matchCount} | Snippets:"
                     for (snippet in result.snippets) {
@@ -86,6 +88,8 @@ class DocTools {
     // hoist-core-list-docs
     //------------------------------------------------------------------
     private static SyncToolSpecification createListDocs(DocRegistry registry) {
+        def categoryIds = registry.mcpCategories.collect { it.id as String } + ['all']
+
         def tool = Tool.builder()
             .name('hoist-core-list-docs')
             .title('List hoist-core docs')
@@ -96,7 +100,7 @@ class DocTools {
                     category: [
                         type: 'string',
                         description: 'Filter by category. Default: all',
-                        enum: ['core-framework', 'core-features', 'infrastructure', 'app-development', 'grails-platform', 'supporting', 'build', 'upgrade', 'all']
+                        enum: categoryIds
                     ]
                 ],
                 [],
@@ -110,12 +114,11 @@ class DocTools {
             def filtered = registry.listDocs(category)
             def lines = ["Hoist Core Documentation (${filtered.size()} documents):\n"]
 
-            for (cat in DocRegistry.CATEGORY_ORDER) {
-                def catEntries = filtered.findAll { it.category == cat }
+            for (catMeta in registry.mcpCategories) {
+                def catEntries = filtered.findAll { it.mcpCategory == catMeta.id }
                 if (!catEntries) continue
 
-                def label = DocRegistry.CATEGORY_LABELS[cat] ?: cat
-                lines << "## ${label} (${catEntries.size()} doc${catEntries.size() > 1 ? 's' : ''})"
+                lines << "## ${catMeta.title} (${catEntries.size()} doc${catEntries.size() > 1 ? 's' : ''})"
                 for (entry in catEntries) {
                     lines << "- ${entry.id}: ${entry.description}"
                 }
