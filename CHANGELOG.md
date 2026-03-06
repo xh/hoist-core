@@ -17,6 +17,7 @@
 
 ### ⚙️ Technical
 
+* Refactored documentation indexing to better support both MCP (LLM) and user-facing clients.
 * Added `LogbackConfig.suppressStackTrace()` to filter out stack traces from noisy external
   loggers. The exception message is still logged; full stack traces are available at TRACE level.
 
