@@ -68,6 +68,16 @@ class Utils {
         return Metadata.current.getProperty('info.xh.appBuild', String, null)
     }
 
+    /** Version of hoist-react installed with the application, set at build time. */
+    static String getHoistReactVersion() {
+        return Metadata.current.getProperty('info.xh.hoistReactVersion', String, null)
+    }
+
+    /** Version of hoist-core installed with the application. */
+    static String getHoistCoreVersion() {
+        return Holders.currentPluginManager().getGrailsPlugin('hoist-core')?.version
+    }
+
     /** Hoist AppEnvironment of the current deployment, distinct from Grails environment. */
     static AppEnvironment getAppEnvironment() {
         return InstanceConfigUtils.appEnvironment

@@ -7,14 +7,14 @@
 
 package io.xh.hoist.environment
 
-import grails.plugins.GrailsPlugin
 import grails.util.GrailsUtil
-import grails.util.Holders
 import io.xh.hoist.BaseService
 import io.xh.hoist.alertbanner.AlertBannerService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.util.Utils
 import io.xh.hoist.websocket.WebSocketService
+
+import static io.xh.hoist.util.Utils.hoistCoreVersion
 
 
 /**
@@ -63,6 +63,7 @@ class EnvironmentService extends BaseService {
                 appBuild:               Utils.appBuild,
                 appEnvironment:         Utils.appEnvironment.toString(),
                 grailsVersion:          GrailsUtil.grailsVersion,
+                hoistCoreVersion:       hoistCoreVersion,
                 javaVersion:            System.getProperty('java.version'),
                 serverTimeZone:         serverTz.toZoneId().id,
                 serverTimeZoneOffset:   serverTz.getOffset(now),
@@ -71,12 +72,8 @@ class EnvironmentService extends BaseService {
                 webSocketsEnabled:      webSocketService.enabled,
                 instanceName:           clusterService.instanceName,
                 alertBanner:            alertBannerService.alertBanner,
-                pollConfig:             configService.getMap('xhEnvPollConfig')
+                pollConfig:             configService.getMap('xhEnvPollConfig'),
         ]
-
-        hoistGrailsPlugins.each {it ->
-            ret[it.name + 'Version'] = it.version
-        }
 
         if (authUser.isHoistAdminReader) {
             def dataSource = Utils.dataSourceConfig
@@ -118,9 +115,6 @@ class EnvironmentService extends BaseService {
         return TimeZone.getTimeZone(configZoneId)
     }
 
-    private Collection<GrailsPlugin> getHoistGrailsPlugins() {
-        return Holders.currentPluginManager().allPlugins.findAll{it.name.startsWith('hoist')}
-    }
 
     void clearCaches() {
         _appTimeZone = null
