@@ -31,7 +31,7 @@
       "mcp__github__search_pull_requests",
       "mcp__github__search_repositories",
       "mcp__github__search_users",
-      "mcp__hoist-react__*",
+      "mcp__hoist-core__*",
       "mcp__ide__getDiagnostics",
       "mcp__jetbrains__find_files_by_glob",
       "mcp__jetbrains__find_files_by_name_keyword",
@@ -49,8 +49,7 @@
     ]
   },
   "enabledMcpjsonServers": [
-    "github",
-    "jetbrains"
+    "hoist-core"
   ],
   "enabledPlugins": {
     "jdtls-lsp@claude-plugins-official": true
