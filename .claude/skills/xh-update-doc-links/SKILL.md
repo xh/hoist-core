@@ -26,8 +26,8 @@ Build a complete inventory of documentation files on disk.
 Read the two index files and parse their current entries.
 
 1. Read `docs/README.md` — focus on the **Feature Documentation** section (the tables under
-   "Core Framework", "Core Features", "Infrastructure & Operations", "Grails Platform", and
-   "Supporting Features") and the **Quick Reference by Task** table.
+   "Core Framework", "Core Features", "Infrastructure & Operations", "Grails Platform",
+   "Development & Builds") and the **Quick Reference by Task** table.
    - Parse each table row to extract the linked filename and description.
 
 2. Read `docs/planning/docs-roadmap.md` — parse all priority tables and the Grails Platform
@@ -43,7 +43,7 @@ Compare documentation on disk against both index files.
 
 For each feature-area doc on disk:
 - Check if it has an entry in the appropriate `docs/README.md` table (Core Framework, Core
-  Features, Infrastructure & Operations, Grails Platform, or Supporting Features).
+  Features, Infrastructure & Operations, Grails Platform, or Development & Builds).
 - **Missing entries:** Add a new table row in the correct section using this format:
   ```markdown
   | [`filename.md`](./filename.md) | One-sentence description | Key, Topics, Here |
@@ -112,9 +112,8 @@ the single source of truth for both the MCP server and the toolbox documentation
      `docs/upgrade-notes/v36-upgrade-notes.md`). This doubles as the unique identifier.
    - `title`: derived from the doc's top-level `# heading`.
    - `mcpCategory`: MCP category — one of `package`, `devops`, or `index`.
-   - `viewerCategory`: toolbox viewer category — one of `core-framework`, `core-features`,
-     `infrastructure`, `app-development`, `grails-platform`, `supporting`, `build`, `upgrade`,
-     or `index`.
+   - `viewerCategory`: toolbox viewer category — one of `overview`, `core-framework`,
+     `core-features`, `infrastructure`, `grails-platform`, `devops`, or `upgrade`.
    - `description`: concise one-sentence summary matching existing entry style.
    - `keywords`: 5–12 key terms as a JSON array of strings — include API names, class names,
      and topic terms.

@@ -1,5 +1,7 @@
 # Configuration
 
+## Overview
+
 The soft configuration system is one of the most widely used and important features in Hoist.
 Nearly every application relies on it extensively to manage runtime-adjustable settings, feature
 flags, API endpoints, thresholds, and more — all without requiring code changes or redeployments.

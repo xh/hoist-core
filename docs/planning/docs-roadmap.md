@@ -48,14 +48,6 @@ Features that support production operations, integrations, and system health.
 | [`logging.md`](../logging.md) | LogSupport, LogLevelService, LogReaderService, LogArchiveService, LogbackConfig | LogSupport trait (`logDebug`, `logInfo`, `logWarn`, `logError` with `withDebug`/`withInfo` timed blocks), dynamic log level configuration via LogLevelService, log viewing via LogReaderService, Logback configuration | Done |
 | [`metrics.md`](../metrics.md) | MetricsService, MonitorMetricsService, TrackMetricsService, CompositeMeterRegistry | Micrometer-based observable metrics with Prometheus and OTLP export, monitor and track metric bridges, `xhMetricsConfig` | Done |
 
-## Application Development
-
-Guides to building, structuring, and deploying Hoist applications.
-
-| Document | Source Files | Description | Status |
-|----------|-------------|-------------|--------|
-| [`application-structure.md`](../application-structure.md) | `build.gradle`, `gradle.properties`, `settings.gradle`, `.env.template`, `grails-app/init/`, `grails-app/conf/`, `client-app/`, `docker/` | Standard Hoist application repository layout — root directory structure, Gradle build configuration, server-side Grails conventions (init files, conf, controllers, services, domain), client-side React/TypeScript conventions (Bootstrap.ts, entry points, AppModel/AppComponent, shared code), Docker deployment (Nginx + Tomcat), local development workflow | Draft |
-
 ## Grails Platform
 
 Guides to Grails framework concepts as used within Hoist applications. Not Hoist-specific API
@@ -78,12 +70,13 @@ Smaller or more specialized features. Important but lower priority for initial d
 | `environment.md` | EnvironmentService, AppEnvironment, InstanceConfigUtils, Application, BootStrap | AppEnvironment enum, EnvironmentService (runtime environment info), InstanceConfigUtils (external config files), Grails environment vs Hoist environment distinction, environment polling for client | Planned |
 | `admin-endpoints.md` | XhController, admin controllers, AlertBannerService, ViewService, ServiceManagerService | XhController primary endpoints (auth, config, prefs, tracking, blobs, export, environment), admin controller catalog, AlertBannerService, ViewService, ServiceManagerService, connection pool and memory monitoring | Planned |
 
-## Build & Publishing
+## Development & Builds
 
-Build pipeline, CI, and artifact publishing documentation.
+Guides to building, structuring, and deploying Hoist applications, plus CI/CD and artifact publishing.
 
 | Document | Source Files | Description | Status |
 |----------|-------------|-------------|--------|
+| [`application-structure.md`](../application-structure.md) | `build.gradle`, `gradle.properties`, `settings.gradle`, `.env.template`, `grails-app/init/`, `grails-app/conf/`, `client-app/`, `docker/` | Standard Hoist application repository layout — root directory structure, Gradle build configuration, server-side Grails conventions (init files, conf, controllers, services, domain), client-side React/TypeScript conventions (Bootstrap.ts, entry points, AppModel/AppComponent, shared code), Docker deployment (Nginx + Tomcat), local development workflow | Draft |
 | [`build-and-publish.md`](../build-and-publish.md) | `build.gradle`, `settings.gradle`, `gradle.properties`, `.github/workflows/*.yml` | Gradle build configuration, GitHub Actions CI/CD workflows (CI, snapshot, release), Maven Central publishing via Sonatype Central Portal, GPG artifact signing, `nexus-publish-plugin`, legacy `repo.xh.io` publishing, version numbering, required GitHub secrets | Draft |
 
 ## Documentation Guidelines
@@ -210,12 +203,12 @@ _For detailed session-by-session notes, see [docs-roadmap-log.md](./docs-roadmap
 ### Status Overview
 - **Priority 1 (Core Framework):** All 4 docs Done (base-classes, request-flow, authentication,
   authorization)
-- **Priority 2 (Core Features):** 2 Done (configuration, preferences), 3 in Draft (clustering,
+- **Priority 2 (Core Features):** All 5 docs Done (configuration, preferences, clustering,
   activity-tracking, json-handling)
 - **Priority 3 (Infrastructure):** 6 Done (logging, metrics, email, websocket, monitoring,
   http-client), 1 in Draft (exception-handling)
-- **Application Development:** application-structure in Draft
 - **Grails Platform:** gorm-domain-objects Done
+- **Development & Builds:** 2 in Draft (application-structure, build-and-publish)
 - **Priority 4 (Supporting Features):** All 6 docs still Planned
 - **Documentation index** (`docs/README.md`) created and maintained alongside feature docs
 

@@ -1,7 +1,7 @@
+# Exception Handling
+
 > **Status: DRAFT** — This document is awaiting review. Content may be incomplete or subject to
 > change. Do not remove this banner until the document has been interactively reviewed and approved.
-
-# Exception Handling
 
 ## Overview
 

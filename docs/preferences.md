@@ -271,7 +271,7 @@ layout, page size).
 
 While the `userValue` column is TEXT, very large JSON preferences (e.g., serialized view state
 with thousands of entries) can impact performance. Consider using
-[JsonBlobs](./jsonblob.md) for large, named JSON documents.
+JsonBlobs for large, named JSON documents.
 
 ### Not declaring required preferences
 
