@@ -8,7 +8,10 @@
 package io.xh.hoist.http
 
 import groovy.transform.CompileStatic
+import io.opentelemetry.api.trace.Span
+import io.opentelemetry.context.Context
 import io.xh.hoist.BaseService
+import io.xh.hoist.telemetry.TraceService
 import org.apache.catalina.connector.ClientAbortException
 import org.apache.hc.core5.http.HttpResponse
 import org.apache.hc.client5.http.entity.UrlEncodedFormEntity
@@ -25,6 +28,7 @@ import org.apache.hc.core5.http.message.BasicNameValuePair
 
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+
 
 @CompileStatic
 abstract class BaseProxyService extends BaseService {
@@ -72,22 +76,39 @@ abstract class BaseProxyService extends BaseService {
         }
         installRequestHeaders(request, method)
 
-        try (CloseableHttpResponse sourceResponse = sourceClient.execute(method)) {
-            response.setStatus(sourceResponse.code)
-            installResponseHeaders(response, sourceResponse)
+        def doProxy = {
+            try (CloseableHttpResponse sourceResponse = sourceClient.execute(method)) {
+                response.setStatus(sourceResponse.code)
+                installResponseHeaders(response, sourceResponse)
 
-            sourceResponse.entity?.writeTo(response.outputStream)
+                sourceResponse.entity?.writeTo(response.outputStream)
 
-            response.flushBuffer()
-        } catch (ClientAbortException ignored) {
-            logDebug("Client has aborted request to [$endpoint] - ignoring")
-        } catch (Throwable t) {
-            // Log ...and rethrow exception for normal handling, if not too late
-            logError("Error occurred during proxy streaming of [$endpoint]", t)
-            if (!response.isCommitted()) {
-                response.reset()
-                throw t
+                response.flushBuffer()
+            } catch (ClientAbortException ignored) {
+                logDebug("Client has aborted request to [$endpoint] - ignoring")
+            } catch (Throwable t) {
+                // Log ...and rethrow exception for normal handling, if not too late
+                logError("Error occurred during proxy streaming of [$endpoint]", t)
+                if (!response.isCommitted()) {
+                    response.reset()
+                    throw t
+                }
             }
+        }
+
+        if (traceService.enabled) {
+            injectTraceContext(method)
+            def spanName = "PROXY ${endpoint}".toString()
+            traceService.withClientSpan(spanName, [source: 'hoist'], doProxy)
+        } else {
+            doProxy.call()
+        }
+    }
+
+    private void injectTraceContext(HttpUriRequestBase method) {
+        if (Span.current().spanContext.valid) {
+            traceService.otelSdk.propagators.textMapPropagator
+                .inject(Context.current(), method, TraceService.HTTP_SETTER)
         }
     }
 

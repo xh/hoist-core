@@ -20,6 +20,7 @@ import groovy.transform.NamedVariant
 import io.xh.hoist.cache.Cache
 import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.telemetry.TraceService
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.IdentitySupport
 import io.xh.hoist.util.Timer
@@ -57,6 +58,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
     IdentityService identityService
     ClusterService clusterService
+    TraceService traceService
     Date initializedDate = null
     Date lastCachesCleared = null
 
@@ -287,6 +289,24 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         clusterService.isPrimary
     }
 
+
+    //-----------------------------------
+    // Tracing
+    //-----------------------------------
+    /**
+     * Execute a closure within a new trace span.
+     *
+     * Convenience method that delegates to {@link TraceService#withSpan}.
+     * Creates a child span if a parent context exists, or a root span otherwise.
+     *
+     * @param name - span name (e.g. 'processOrder', 'loadPortfolio')
+     * @param tags - optional key-value attributes to set on the span
+     * @param c - closure to execute within the span
+     * @return result of the closure
+     */
+    <T> T withSpan(String name, Map<String, String> tags = [:], Closure<T> c) {
+        traceService.withSpan(name, tags, c)
+    }
 
     //-----------------------------------
     // Core template methods for override

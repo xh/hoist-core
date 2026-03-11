@@ -8,6 +8,7 @@
 package io.xh.hoist.log
 
 import ch.qos.logback.classic.Level
+import io.opentelemetry.api.trace.Span
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -162,8 +163,18 @@ trait LogSupport {
     }
 
     private Map getMeta() {
+        Map ret = null
         def username = identityService?.username
-        return username ? [_user: username] : null
+        if (username) {
+            ret = [_user: username]
+        }
+        def spanContext = Span.current()?.spanContext
+        if (spanContext?.valid) {
+            ret ?= [:]
+            ret.traceId = spanContext.traceId
+            ret.spanId = spanContext.spanId
+        }
+        return ret
     }
 
     private LogSupportMarker createMarker(Logger log, Object messages, Map meta = getMeta()) {

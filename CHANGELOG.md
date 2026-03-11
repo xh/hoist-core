@@ -4,6 +4,15 @@
 
 ### 🎁 New Features
 
+* Added OpenTelemetry-based distributed tracing with end-to-end support across client and server.
+  Configured via `xhTraceConfig` soft config with OTLP export.
+  See [`docs/tracing.md`](docs/tracing.md).
+    - `TraceService` with `withSpan` API for instrumenting business logic, automatic request
+      spans, outbound HTTP propagation, and cluster context propagation.
+    - Client span relay via `ClientTraceService` — browser-generated spans are exported through
+      the same server-side pipeline for coherent end-to-end traces.
+    - Automatic trace context propagation across Grails `task {}` thread boundaries.
+
 * Added an MCP (Model Context Protocol) server for AI coding agents. Provides searchable access to
   all hoist-core documentation and Groovy/Java symbol introspection (classes, interfaces, methods,
   properties). Can run locally from source or as a published fat JAR from Maven Central.

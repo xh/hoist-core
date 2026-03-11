@@ -47,6 +47,7 @@ Features that support production operations, integrations, and system health.
 | [`exception-handling.md`](../exception-handling.md) | ExceptionHandler, HttpException subclasses, RoutineException | Exception hierarchy (HttpException → NotAuthorizedException, NotFoundException, etc.), RoutineException (expected errors, logged at DEBUG), ExceptionHandler rendering, how exceptions map to HTTP status codes | Draft |
 | [`logging.md`](../logging.md) | LogSupport, LogLevelService, LogReaderService, LogArchiveService, LogbackConfig | LogSupport trait (`logDebug`, `logInfo`, `logWarn`, `logError` with `withDebug`/`withInfo` timed blocks), dynamic log level configuration via LogLevelService, log viewing via LogReaderService, Logback configuration | Done |
 | [`metrics.md`](../metrics.md) | MetricsService, MonitorMetricsService, TrackMetricsService, CompositeMeterRegistry | Micrometer-based observable metrics with Prometheus and OTLP export, monitor and track metric bridges, `xhMetricsConfig` | Done |
+| [`tracing.md`](../tracing.md) | TraceService, TraceConfig | OpenTelemetry-based distributed tracing with OTLP export, `withSpan` API, W3C context propagation, client span relay, thread context propagation, log correlation, `xhTraceConfig` | Done |
 
 ## Application Development
 
@@ -212,7 +213,7 @@ _For detailed session-by-session notes, see [docs-roadmap-log.md](./docs-roadmap
   authorization)
 - **Priority 2 (Core Features):** 2 Done (configuration, preferences), 3 in Draft (clustering,
   activity-tracking, json-handling)
-- **Priority 3 (Infrastructure):** 6 Done (logging, metrics, email, websocket, monitoring,
+- **Priority 3 (Infrastructure):** 7 Done (logging, metrics, tracing, email, websocket, monitoring,
   http-client), 1 in Draft (exception-handling)
 - **Application Development:** application-structure in Draft
 - **Grails Platform:** gorm-domain-objects Done

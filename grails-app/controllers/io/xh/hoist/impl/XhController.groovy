@@ -19,6 +19,8 @@ import io.xh.hoist.pref.PrefService
 import io.xh.hoist.pref.Preference
 import io.xh.hoist.security.AccessAll
 import io.xh.hoist.security.BaseAuthenticationService
+import io.xh.hoist.telemetry.ClientTraceService
+import io.xh.hoist.telemetry.TraceService
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.user.BaseUserService
@@ -37,6 +39,7 @@ class XhController extends BaseController {
     PrefService prefService
     ViewService viewService
     TrackService trackService
+    ClientTraceService clientTraceService
     EnvironmentService environmentService
     BaseUserService userService
     ClusterService clusterService
@@ -159,6 +162,18 @@ class XhController extends BaseController {
         }
         renderSuccess()
     }
+
+    //------------------------
+    // Traces
+    //------------------------
+    def submitSpans() {
+        ensureClientUsernameMatchesSession()
+        def payload = parseRequestJSONArray()
+        clientTraceService.submitClientSpans(payload as List<Map>,)
+        renderSuccess()
+    }
+
+
 
     //------------------------
     // Json Blobs
