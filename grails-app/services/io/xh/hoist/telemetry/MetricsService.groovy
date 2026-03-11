@@ -27,7 +27,6 @@ import io.micrometer.registry.otlp.OtlpMeterRegistry
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 
-import java.rmi.registry.Registry
 
 import static io.micrometer.core.instrument.config.MeterFilterReply.DENY
 import static io.micrometer.core.instrument.config.MeterFilterReply.NEUTRAL
@@ -210,7 +209,7 @@ class MetricsService extends BaseService {
             }
             if (config.prometheusEnabled) {
                 def conf = prefixKeys('prometheus', config.prometheusConfig)
-                _prometheusRegistry = new PrometheusMeterRegistry(conf::get as PrometheusConfig)
+                _prometheusRegistry = new PrometheusMeterRegistry({conf[it]} as PrometheusConfig)
                 publishRegistry.add(_prometheusRegistry)
             }
 
@@ -223,7 +222,7 @@ class MetricsService extends BaseService {
             }
             if (config.otlpEnabled) {
                 def conf = prefixKeys('otlp', config.otlpConfig)
-                _otlpRegistry = new OtlpMeterRegistry(conf::get as OtlpConfig, Clock.SYSTEM)
+                _otlpRegistry = new OtlpMeterRegistry({conf[it]} as OtlpConfig, Clock.SYSTEM)
                 publishRegistry.add(_otlpRegistry)
             }
 
