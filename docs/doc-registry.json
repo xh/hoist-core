@@ -7,17 +7,23 @@
       {"id": "index", "title": "Index"}
     ],
     "viewerCategories": [
+        {"id": "overview", "title": "Overview"},
         {"id": "core-framework", "title": "Core Framework"},
         {"id": "core-features", "title": "Core Features"},
         {"id": "infrastructure", "title": "Infrastructure & Operations"},
-        {"id": "app-development", "title": "Application Development"},
         {"id": "grails-platform", "title": "Grails Platform"},
-        {"id": "supporting", "title": "Supporting Features"},
-        {"id": "build", "title": "Build & Publishing"},
-        {"id": "upgrade", "title": "Upgrade Notes"},
-        {"id": "index", "title": "Index"}
+        {"id": "devops", "title": "Development & Builds"},
+        {"id": "upgrade", "title": "Upgrade Notes"}
     ],
     "entries": [
+        {
+            "id": "docs/README.md",
+            "title": "Documentation Index",
+            "mcpCategory": "index",
+            "viewerCategory": "overview",
+            "description": "Primary catalog of all hoist-core documentation with quick reference tables.",
+            "keywords": ["index", "catalog", "quick reference"]
+        },
         {
             "id": "docs/base-classes.md",
             "title": "Base Classes",
@@ -155,14 +161,6 @@
             "keywords": ["LogSupport", "logDebug", "logInfo", "logWarn", "logError", "LogLevelService", "LogReaderService"]
         },
         {
-            "id": "docs/application-structure.md",
-            "title": "Application Structure",
-            "mcpCategory": "concepts",
-            "viewerCategory": "app-development",
-            "description": "Standard Hoist application repository layout — server and client structure, build configuration, deployment.",
-            "keywords": ["build.gradle", "gradle.properties", "grails-app/init", "client-app", "Bootstrap.ts", "AppModel", "Docker", "Nginx", "Tomcat"]
-        },
-        {
             "id": "docs/gorm-domain-objects.md",
             "title": "GORM Domain Objects",
             "mcpCategory": "package",
@@ -171,58 +169,18 @@
             "keywords": ["Domain classes", "Transactional", "ReadOnly", "second-level cache", "N+1", "fetch strategies", "SQL logging"]
         },
         {
-            "id": "docs/data-filtering.md",
-            "title": "Data Filtering",
-            "mcpCategory": "package",
-            "viewerCategory": "supporting",
-            "description": "Server-side filter system mirroring hoist-react's client-side filters.",
-            "keywords": ["Filter", "FieldFilter", "CompoundFilter", "JSON roundtrip"]
-        },
-        {
-            "id": "docs/utilities.md",
-            "title": "Utilities",
-            "mcpCategory": "package",
-            "viewerCategory": "supporting",
-            "description": "Timers, date/string utilities, and async helpers.",
-            "keywords": ["Timer", "DateTimeUtils", "StringUtils", "Utils", "InstanceConfigUtils", "AsyncUtils"]
-        },
-        {
-            "id": "docs/jsonblob.md",
-            "title": "JsonBlob",
-            "mcpCategory": "package",
-            "viewerCategory": "supporting",
-            "description": "Generic JSON storage backing ViewManager and other client state.",
-            "keywords": ["JsonBlob", "JsonBlobService", "token-based access"]
-        },
-        {
-            "id": "docs/ldap.md",
-            "title": "LDAP",
-            "mcpCategory": "package",
-            "viewerCategory": "supporting",
-            "description": "LDAP / Active Directory integration for user and group lookups.",
-            "keywords": ["LdapService", "LdapPerson", "LdapGroup"]
-        },
-        {
-            "id": "docs/environment.md",
-            "title": "Environment",
-            "mcpCategory": "package",
-            "viewerCategory": "supporting",
-            "description": "Runtime environment detection and external configuration.",
-            "keywords": ["EnvironmentService", "AppEnvironment", "InstanceConfigUtils"]
-        },
-        {
-            "id": "docs/admin-endpoints.md",
-            "title": "Admin Endpoints",
-            "mcpCategory": "package",
-            "viewerCategory": "supporting",
-            "description": "Admin console endpoints and supporting services.",
-            "keywords": ["XhController", "admin controllers", "AlertBannerService", "ViewService", "ServiceManagerService"]
+            "id": "docs/application-structure.md",
+            "title": "Application Structure",
+            "mcpCategory": "concepts",
+            "viewerCategory": "devops",
+            "description": "Standard Hoist application repository layout — server and client structure, build configuration, deployment.",
+            "keywords": ["build.gradle", "gradle.properties", "grails-app/init", "client-app", "Bootstrap.ts", "AppModel", "Docker", "Nginx", "Tomcat"]
         },
         {
             "id": "docs/build-and-publish.md",
             "title": "Build & Publish",
             "mcpCategory": "devops",
-            "viewerCategory": "build",
+            "viewerCategory": "devops",
             "description": "Gradle build, GitHub Actions CI, and Maven Central publishing.",
             "keywords": ["GitHub Actions", "deployRelease", "deploySnapshot", "Sonatype", "GPG signing", "nexus-publish-plugin", "publishToSonatype"]
         },
@@ -249,14 +207,6 @@
             "viewerCategory": "upgrade",
             "description": "Grails 7, Gradle 8, Tomcat 10, Jakarta EE.",
             "keywords": ["v34", "upgrade", "Grails 7", "Gradle 8", "Tomcat 10", "Jakarta"]
-        },
-        {
-            "id": "docs/README.md",
-            "title": "Documentation Index",
-            "mcpCategory": "index",
-            "viewerCategory": "index",
-            "description": "Primary catalog of all hoist-core documentation with quick reference tables.",
-            "keywords": ["index", "catalog", "quick reference"]
         }
     ]
 }

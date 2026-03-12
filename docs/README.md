@@ -42,12 +42,6 @@ and conventions.
 | Send emails from your app | [`email.md`](./email.md) |
 | Understand the exception hierarchy | [`exception-handling.md`](./exception-handling.md) |
 | Configure logging or read logs | [`logging.md`](./logging.md) |
-| Apply server-side data filters | [`data-filtering.md`](./data-filtering.md) |
-| Work with JsonBlobs (ViewManager backing store) | [`jsonblob.md`](./jsonblob.md) |
-| Integrate with LDAP / Active Directory | [`ldap.md`](./ldap.md) |
-| Understand environments and instance config | [`environment.md`](./environment.md) |
-| Find admin console endpoints | [`admin-endpoints.md`](./admin-endpoints.md) |
-| Use Timer, DateTimeUtils, or other utilities | [`utilities.md`](./utilities.md) |
 | Work with GORM domain objects and Hibernate | [`gorm-domain-objects.md`](./gorm-domain-objects.md) |
 | Understand the build pipeline and GitHub Actions | [`build-and-publish.md`](./build-and-publish.md) |
 | Publish a release to Maven Central | [`build-and-publish.md`](./build-and-publish.md) |
@@ -93,14 +87,6 @@ Features supporting production operations, integrations, and system health.
 | [`exception-handling.md`](./exception-handling.md) | Exception hierarchy and error rendering | HttpException, RoutineException, ExceptionHandler, HTTP status mapping |
 | [`logging.md`](./logging.md) | Logging infrastructure with dynamic configuration | LogSupport, `logDebug`/`logInfo`/`logWarn`/`logError`, LogLevelService, LogReaderService |
 
-### Application Development
-
-Guides to building, structuring, and deploying Hoist applications.
-
-| Document | Description | Key Topics |
-|----------|-------------|------------|
-| [`application-structure.md`](./application-structure.md) | Standard Hoist application repository layout — server and client structure, build configuration, deployment | `build.gradle`, `gradle.properties`, `grails-app/init/`, `client-app/`, `Bootstrap.ts`, `AppModel`, Docker, Nginx, Tomcat |
-
 ### Grails Platform
 
 Guides to Grails framework concepts as used within Hoist applications.
@@ -109,25 +95,13 @@ Guides to Grails framework concepts as used within Hoist applications.
 |----------|-------------|------------|
 | [`gorm-domain-objects.md`](./gorm-domain-objects.md) | GORM domain classes, querying, transactions, caching, associations, and performance optimization | Domain classes, `@Transactional`, `@ReadOnly`, second-level cache, N+1 queries, fetch strategies, SQL logging |
 
-### Supporting Features
+### Development & Builds
 
-Smaller or more specialized features.
-
-| Document | Description | Key Topics |
-|----------|-------------|------------|
-| [`data-filtering.md`](./data-filtering.md) | Server-side filter system mirroring hoist-react's client-side filters | Filter, FieldFilter, CompoundFilter, JSON roundtrip |
-| [`utilities.md`](./utilities.md) | Timers, date/string utilities, and async helpers | Timer, DateTimeUtils, StringUtils, Utils, InstanceConfigUtils, AsyncUtils |
-| [`jsonblob.md`](./jsonblob.md) | Generic JSON storage backing ViewManager and other client state | JsonBlob, JsonBlobService, token-based access, type/name/owner metadata |
-| [`ldap.md`](./ldap.md) | LDAP / Active Directory integration for user and group lookups | LdapService, LdapPerson, LdapGroup |
-| [`environment.md`](./environment.md) | Runtime environment detection and external configuration | EnvironmentService, AppEnvironment, InstanceConfigUtils, Grails vs Hoist environments |
-| [`admin-endpoints.md`](./admin-endpoints.md) | Admin console endpoints and supporting services | XhController, admin controllers, AlertBannerService, ViewService, ServiceManagerService |
-
-### Build & Publishing
-
-Build pipeline, CI, and artifact publishing.
+Guides to building, structuring, and deploying Hoist applications.
 
 | Document | Description | Key Topics |
 |----------|-------------|------------|
+| [`application-structure.md`](./application-structure.md) | Standard Hoist application repository layout — server and client structure, build configuration, deployment | `build.gradle`, `gradle.properties`, `grails-app/init/`, `client-app/`, `Bootstrap.ts`, `AppModel`, Docker, Nginx, Tomcat |
 | [`build-and-publish.md`](./build-and-publish.md) | Gradle build, GitHub Actions CI, and Maven Central publishing | GitHub Actions, `deployRelease.yml`, `deploySnapshot.yml`, Sonatype, GPG signing, `nexus-publish-plugin`, `publishToSonatype`, `repo.xh.io` |
 
 ## Upgrade Notes

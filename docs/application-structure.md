@@ -1,6 +1,6 @@
-> **Status: DRAFT** — This document is awaiting review and may contain inaccuracies.
-
 # Application Structure
+
+> **Status: DRAFT** — This document is awaiting review and may contain inaccuracies.
 
 This document describes the standard directory layout of a Hoist application repository. Hoist
 apps follow a consistent structure across projects, combining a Grails 7 server-side backend with a
