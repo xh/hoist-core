@@ -36,7 +36,8 @@ class BootStrap implements LogSupport {
         // Ordered, early initialization of core service used by other services.
         parallelInit([logLevelService])
         parallelInit([clusterService])
-        parallelInit([metricsService, traceService])
+        parallelInit([metricsService])
+        parallelInit([traceService])
 
         // All other services in parallel
         def services = Utils.xhServices.findAll {it.class.canonicalName.startsWith('io.xh.hoist')}

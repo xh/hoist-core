@@ -8,10 +8,8 @@
 package io.xh.hoist.http
 
 import groovy.transform.CompileStatic
-import io.opentelemetry.api.trace.Span
-import io.opentelemetry.context.Context
 import io.xh.hoist.BaseService
-import io.xh.hoist.telemetry.TraceService
+import io.xh.hoist.telemetry.SpanRef
 import org.apache.catalina.connector.ClientAbortException
 import org.apache.hc.core5.http.HttpResponse
 import org.apache.hc.client5.http.entity.UrlEncodedFormEntity
@@ -28,6 +26,8 @@ import org.apache.hc.core5.http.message.BasicNameValuePair
 
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+
+import static io.opentelemetry.api.trace.SpanKind.CLIENT
 
 
 @CompileStatic
@@ -76,9 +76,20 @@ abstract class BaseProxyService extends BaseService {
         }
         installRequestHeaders(request, method)
 
-        def doProxy = {
+        traceService.withSpan(
+            name: request.method,
+            kind: CLIENT,
+            tags: [
+                'http.request.method': request.method,
+                'url.full'           : fullPath,
+                'server.address'     : method.uri.host,
+                'source'             : 'hoist'
+            ]
+        ) { SpanRef span ->
+            if (span) traceService.injectContext(method)
             try (CloseableHttpResponse sourceResponse = sourceClient.execute(method)) {
                 response.setStatus(sourceResponse.code)
+                span?.setHttpStatus(sourceResponse.code)
                 installResponseHeaders(response, sourceResponse)
 
                 sourceResponse.entity?.writeTo(response.outputStream)
@@ -95,22 +106,8 @@ abstract class BaseProxyService extends BaseService {
                 }
             }
         }
-
-        if (traceService.enabled) {
-            injectTraceContext(method)
-            def spanName = "PROXY ${endpoint}".toString()
-            traceService.withClientSpan(spanName, [source: 'hoist'], doProxy)
-        } else {
-            doProxy.call()
-        }
     }
 
-    private void injectTraceContext(HttpUriRequestBase method) {
-        if (Span.current().spanContext.valid) {
-            traceService.otelSdk.propagators.textMapPropagator
-                .inject(Context.current(), method, TraceService.HTTP_SETTER)
-        }
-    }
 
     //------------------------------------------------
     // Additional overrideable implementation methods

@@ -8,6 +8,7 @@ package io.xh.hoist.telemetry
 
 import grails.async.Promise
 import grails.async.PromiseFactory
+import groovy.transform.CompileStatic
 import io.opentelemetry.context.Context
 
 /**
@@ -21,6 +22,7 @@ import io.opentelemetry.context.Context
  * {@code TaskExecutor} — necessary because Grails' {@code Promises.task} uses its own
  * internal executor that Spring Boot's auto-configuration does not wrap.
  */
+@CompileStatic
 class ContextPropagatingPromiseFactory implements PromiseFactory {
 
     @Delegate PromiseFactory delegate
@@ -32,11 +34,9 @@ class ContextPropagatingPromiseFactory implements PromiseFactory {
     @Override
     <T> Promise<T> createPromise(Closure<T>... closures) {
         def ctx = Context.current()
-        def wrapped = closures.collect { Closure<T> c ->
-            { -> def scope = ctx.makeCurrent()
-                try { return c.call() } finally { scope.close() }
-            } as Closure<T>
-        } as Closure<T>[]
-        delegate.createPromise(wrapped)
+        def wrapped = closures.collect {c ->
+            { -> ctx.makeCurrent().withCloseable { c.call() } }
+        }
+        delegate.createPromise(wrapped as Closure[])
     }
 }

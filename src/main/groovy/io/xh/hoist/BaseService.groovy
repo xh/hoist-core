@@ -17,6 +17,8 @@ import grails.util.GrailsClassUtils
 import groovy.transform.CompileDynamic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
+import io.opentelemetry.api.trace.SpanKind
+import io.opentelemetry.context.Context
 import io.xh.hoist.cache.Cache
 import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.cluster.ClusterService
@@ -297,15 +299,17 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * Execute a closure within a new trace span.
      *
      * Convenience method that delegates to {@link TraceService#withSpan}.
-     * Creates a child span if a parent context exists, or a root span otherwise.
-     *
-     * @param name - span name (e.g. 'processOrder', 'loadPortfolio')
-     * @param tags - optional key-value attributes to set on the span
-     * @param c - closure to execute within the span
-     * @return result of the closure
+     * See that method for full parameter documentation.
      */
-    <T> T withSpan(String name, Map<String, String> tags = [:], Closure<T> c) {
-        traceService.withSpan(name, tags, c)
+    @NamedVariant
+    Object withSpan(
+        @NamedParam(required = true) String name,
+        @NamedParam SpanKind kind = SpanKind.INTERNAL,
+        @NamedParam Context parentContext = null,
+        @NamedParam Map tags = [:],
+        Closure c
+    ) {
+        traceService.withSpan(name: name, kind: kind, parentContext: parentContext, tags: tags, c)
     }
 
     //-----------------------------------

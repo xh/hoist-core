@@ -43,6 +43,9 @@ class ClientTraceService extends BaseService {
      * through the configured export pipeline, preserving the original trace/span IDs so
      * that client and server spans form a coherent distributed trace.
      *
+     * Spans are filtered using the same deterministic trace-ID-based sampling as
+     * server-originated spans, ensuring consistent sampling across both paths.
+     *
      * @param spans - list of span maps as serialized by the client {@code Span.toJSON()}
      */
     void submitClientSpans(List<Map> spans) {
@@ -50,14 +53,9 @@ class ClientTraceService extends BaseService {
             resource = traceService.tracingResource
         if (!traceService.enabled || !spans || !exporters) return
 
-        List<SpanData> data = []
-        for (Map span : spans) {
-            try {
-                data << new ClientSpanData(span, resource)
-            } catch (Exception e) {
-                logWarn("Skipping malformed client span", e)
-            }
-        }
+        def data = spans
+            .findAll { traceService.shouldSample(it.traceId as String) }
+            .collect { new ClientSpanData(it, resource) } as List<SpanData>
 
         if (data) {
             exporters.each { it.export(data) }
@@ -73,11 +71,9 @@ class ClientTraceService extends BaseService {
      */
     private static class ClientSpanData implements SpanData {
 
-        private static final InstrumentationScopeInfo SCOPE =
-            InstrumentationScopeInfo.create('io.xh.hoist.client')
-        @SuppressWarnings('deprecation')
-        private static final InstrumentationLibraryInfo LIBRARY =
-            InstrumentationLibraryInfo.create('io.xh.hoist.client', null)
+        // LIBRARY for backward compatibility
+        private static final InstrumentationScopeInfo SCOPE = InstrumentationScopeInfo.create('io.xh.hoist.client')
+        private static final InstrumentationLibraryInfo LIBRARY = InstrumentationLibraryInfo.create('io.xh.hoist.client', null)
 
         private final SpanContext _spanContext
         private final SpanContext _parentSpanContext
@@ -109,9 +105,8 @@ class ClientTraceService extends BaseService {
             _startEpochNanos = MILLISECONDS.toNanos(span.startTime as long)
             _endEpochNanos = MILLISECONDS.toNanos(span.endTime as long)
 
-            // Infer span kind from tags — fetch spans are CLIENT, others INTERNAL
             def tags = span.tags as Map ?: [:]
-            _kind = tags['http.method'] ? SpanKind.CLIENT : SpanKind.INTERNAL
+            _kind = parseSpanKind(span.kind as String)
 
             // Build attributes from client tags
             def ab = Attributes.builder()
@@ -145,6 +140,7 @@ class ClientTraceService extends BaseService {
         SpanContext getParentSpanContext() { _parentSpanContext }
         Resource getResource() { _resource }
         InstrumentationScopeInfo getInstrumentationScopeInfo() { SCOPE }
+        InstrumentationLibraryInfo getInstrumentationLibraryInfo() {LIBRARY}
         String getName() { _name }
         SpanKind getKind() { _kind }
         long getStartEpochNanos() { _startEpochNanos }
@@ -157,7 +153,16 @@ class ClientTraceService extends BaseService {
         int getTotalRecordedEvents() { _events.size() }
         int getTotalRecordedLinks() { 0 }
         int getTotalAttributeCount() { _attributes.size() }
-        @SuppressWarnings('deprecation')
-        InstrumentationLibraryInfo getInstrumentationLibraryInfo() { LIBRARY }
+
+
+        private static SpanKind parseSpanKind(String kind) {
+            switch (kind) {
+                case 'client':   return SpanKind.CLIENT
+                case 'server':   return SpanKind.SERVER
+                case 'producer': return SpanKind.PRODUCER
+                case 'consumer': return SpanKind.CONSUMER
+                default:         return SpanKind.INTERNAL
+            }
+        }
     }
 }

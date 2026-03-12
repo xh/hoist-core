@@ -8,16 +8,15 @@
 package io.xh.hoist.http
 
 import groovy.transform.CompileStatic
-import io.opentelemetry.api.trace.Span
-import io.opentelemetry.context.Context
 import io.xh.hoist.exception.ExternalHttpException
-import io.xh.hoist.telemetry.TraceService
+import io.xh.hoist.telemetry.SpanRef
 import io.xh.hoist.json.JSONParser
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
 import org.apache.hc.client5.http.impl.classic.HttpClients
 
+import static io.opentelemetry.api.trace.SpanKind.CLIENT
 import static io.xh.hoist.util.StringUtils.elide
 import static io.xh.hoist.util.Utils.traceService
 import static org.apache.hc.core5.http.HttpStatus.SC_NO_CONTENT
@@ -125,17 +124,22 @@ class JSONClient {
 
 
         try {
-            if (traceService.enabled) {
-                injectTraceContext(method)
-                def spanName = "HTTP ${method.method}".toString()
-                def tags = ['http.url': method.uri.toString(), source: 'hoist'] as Map<String, String>
-                ret = traceService.withClientSpan(spanName, tags) {
-                    executeRaw(_client, method)
-                }
-            } else {
+            traceService.withSpan(
+                name: method.method,
+                kind: CLIENT,
+                tags: [
+                    'http.request.method': method.method,
+                    'url.full'           : method.uri,
+                    'server.address'     : method.uri.host,
+                    'source'             : 'hoist'
+                ]
+            ) { SpanRef span ->
+                if (span) traceService.injectContext(method)
                 ret = executeRaw(_client, method)
+                statusCode = ret.code
+                span?.setHttpStatus(statusCode)
             }
-            statusCode = ret.code
+
             success = (statusCode >= SC_OK  && statusCode <= SC_NO_CONTENT)
             if (!success) {
                 cause = parseException(ret)
@@ -153,13 +157,6 @@ class JSONClient {
         }
 
         return ret
-    }
-
-    private static void injectTraceContext(HttpUriRequestBase method) {
-        if (Span.current().spanContext.valid) {
-            traceService.otelSdk.propagators.textMapPropagator
-                .inject(Context.current(), method, TraceService.HTTP_SETTER)
-        }
     }
 
     protected CloseableHttpResponse executeRaw(CloseableHttpClient client, HttpUriRequestBase method) {
