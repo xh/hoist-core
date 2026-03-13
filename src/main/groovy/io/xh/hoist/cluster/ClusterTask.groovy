@@ -48,22 +48,14 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
         identityService.threadUsername.set(username)
         identityService.threadAuthUsername.set(authUsername)
 
-        def traceScope
-        try {
-            traceScope = traceService.restoreContextFromTraceparent(traceparent)
-
+        try (def traceScope = traceService.restoreContextFromTraceparent(traceparent)) {
             clusterService.ensureRunning()
+            def clazz = Class.forName(svc),
+                service = appContext.getBean(clazz),
+                value = service.invokeMethod(method, args.toArray()),
+                valueIsVoid = value !== null ? false : clazz.methods.find{it.name == method}?.returnType == Void.TYPE
 
-            def doCall = {
-                def clazz = Class.forName(svc),
-                    service = appContext.getBean(clazz),
-                    value = service.invokeMethod(method, args.toArray()),
-                    valueIsVoid = value !== null ? false : clazz.methods.find{it.name == method}?.returnType == Void.TYPE
-
-                return new ClusterResult(value: asJson && !valueIsVoid ? serialize(value) : value)
-            }
-
-            return (ClusterResult) doCall.call()
+            return new ClusterResult(value: asJson && !valueIsVoid ? serialize(value) : value)
 
         } catch (Throwable t) {
             Utils.handleException(
@@ -73,10 +65,8 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
             )
             return new ClusterResult(exception: new ClusterTaskException(t))
         } finally {
-            traceScope?.close()
             identityService.threadUsername.set(null)
             identityService.threadAuthUsername.set(null)
         }
     }
-
 }

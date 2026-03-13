@@ -34,13 +34,10 @@ class TraceInterceptor implements LogSupport {
     }
 
     boolean before() {
-        if (!traceService.enabled) return true
+        if (!traceService.enabled || actionName == 'submitSpans') return true
 
-        def req = request as HttpServletRequest
-
-        request.setAttribute('xh.traceScope', traceService.restoreContextFromRequest(req))
-
-        def route = "${controllerName}/${actionName ?: 'index'}",
+        def req = request as HttpServletRequest,
+            route = "${controllerName}/${actionName ?: 'index'}",
             spanRef = traceService.createSpan(
                 name: "${req.method} $route",
                 kind: SERVER,
@@ -51,7 +48,8 @@ class TraceInterceptor implements LogSupport {
                     'url.scheme'         : req.scheme,
                     'server.address'     : req.serverName,
                     'source'             : 'hoist'
-                ]
+                ],
+                caller: this
             )
 
         if (spanRef) request.setAttribute('xh.spanRef', spanRef)
@@ -63,12 +61,8 @@ class TraceInterceptor implements LogSupport {
      * the span is closed even if the action throws (afterView runs in a finally block).
      */
     void afterView() {
-        def spanRef = request.getAttribute('xh.spanRef') as SpanRef
-        spanRef?.withCloseable {
-            spanRef.setHttpStatus(response.status)
+        try (def spanRef = request.getAttribute('xh.spanRef') as SpanRef) {
+            spanRef?.setHttpStatus(response.status)
         }
-
-        def contextScope = request.getAttribute('xh.traceScope') as Scope
-        contextScope?.close()
     }
 }

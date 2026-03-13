@@ -7,8 +7,8 @@
 package io.xh.hoist.telemetry
 
 import groovy.transform.CompileStatic
-import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.trace.Span
+import io.opentelemetry.api.trace.SpanKind
 import io.opentelemetry.api.trace.StatusCode
 import io.opentelemetry.context.Scope
 
@@ -29,10 +29,12 @@ import io.opentelemetry.context.Scope
 class SpanRef implements Closeable {
     final Span span
     final Scope scope
+    final SpanKind kind
 
-    SpanRef(Span span, Scope scope) {
+    SpanRef(Span span, Scope scope, SpanKind kind = SpanKind.INTERNAL) {
         this.span = span
         this.scope = scope
+        this.kind = kind
     }
 
     /** Set attributes on the span. Values can be String, long, boolean, or double. */
@@ -51,10 +53,14 @@ class SpanRef implements Closeable {
         }
     }
 
-    /** Set the HTTP response status code and mark the span as ERROR for 5xx. */
+    /**
+     * Set the HTTP response status code and mark the span as ERROR when appropriate.
+     * SERVER spans use >= 500 (server fault), CLIENT spans use >= 400 (request failed).
+     */
     void setHttpStatus(int statusCode) {
         span.setAttribute('http.response.status_code', (long) statusCode)
-        if (statusCode >= 500) span.setStatus(StatusCode.ERROR)
+        def errorThreshold = kind == SpanKind.CLIENT ? 400 : 500
+        if (statusCode >= errorThreshold) span.setStatus(StatusCode.ERROR)
     }
 
     /** Record an exception on the span and set its status to ERROR. */

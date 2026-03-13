@@ -70,18 +70,18 @@ class TraceService extends BaseService {
     private SpanExporter _otlpExporter
     private Resource _resource
     private double _sampleRate = 1.0
+    private Counter _spansRequested
     private Counter _spansCreated
-    private Counter _spansSampled
 
 
     void init() {
         def registry = metricsService.registry
-        _spansCreated = Counter.builder('trace.spans.created')
-            .description('Total spans created (server + client)')
+        _spansRequested = Counter.builder('trace.spans.requested')
+            .description('Total spans requested')
             .tags('source', 'infra')
             .register(registry)
-        _spansSampled = Counter.builder('trace.spans.sampled')
-            .description('Spans that passed sampling')
+        _spansCreated = Counter.builder('trace.spans.created')
+            .description('Total spans created (i.e. that passed sampling')
             .tags('source', 'infra')
             .register(registry)
 
@@ -111,14 +111,14 @@ class TraceService extends BaseService {
         @NamedParam(required = true) String name,
         /** Span kind — INTERNAL (default), SERVER for inbound requests, CLIENT for outbound calls. */
         @NamedParam SpanKind kind = SpanKind.INTERNAL,
-        /** Explicit parent context, or null to use current context. */
-        @NamedParam Context parentContext = null,
         /** Key-value attributes to set on the span. */
         @NamedParam Map<String, ?> tags = [:],
+        /** Object making the call used to auto-set the 'code.namespace' attribute. */
+        @NamedParam Object caller = null,
         /** Closure to execute within the span. */
         Closure c
     ) {
-        def span = createSpan(name: name, kind: kind, parentContext: parentContext, tags: tags)
+        def span = createSpan(name: name, kind: kind, tags: tags, caller: caller)
         try {
             return c.call(span)
         } catch (Throwable t) {
@@ -145,22 +145,22 @@ class TraceService extends BaseService {
         @NamedParam(required = true) String name,
         /** Span kind — INTERNAL (default), SERVER for inbound requests, CLIENT for outbound calls. */
         @NamedParam SpanKind kind = SpanKind.INTERNAL,
-        /** Explicit parent context, or null to use current context. */
-        @NamedParam Context parentContext = null,
         /** Key-value attributes to set on the span. */
-        @NamedParam Map<String, ?> tags = [:]
+        @NamedParam Map<String, ?> tags = [:],
+        /** Object making the call, used to auto-set the 'code.namespace' attribute. */
+        @NamedParam Object caller = null
     ) {
         if (!enabled) return null
 
-        def spanBuilder = _otelSdk.getTracer('io.xh.hoist').spanBuilder(name).setSpanKind(kind)
-        if (parentContext) spanBuilder.setParent(parentContext)
+        def spanBuilder = _otelSdk.getTracer('io.xh.hoist').spanBuilder(name).setSpanKind(kind),
+            span = spanBuilder.startSpan(),
+            pending = new SpanRef(span, span.makeCurrent(), kind)
 
-        if (!tags.source) spanBuilder.setAttribute(stringKey('source'), 'app')
-        spanBuilder.setAttribute(stringKey('user'), username ?: 'Anon')
-
-        def span = spanBuilder.startSpan()
-        def pending = new SpanRef(span, span.makeCurrent())
         pending.setTags(tags)
+        if (!tags.source) pending.setTag('source', 'app')
+        if (caller) pending.setTag('code.namespace', caller.class.name)
+        pending.setTag('user', username ?: 'Anon')
+
         return pending
     }
 
@@ -252,7 +252,7 @@ class TraceService extends BaseService {
      * @internal
      */
     boolean shouldSample(String traceId) {
-        _spansCreated?.increment()
+        _spansRequested?.increment()
         boolean ret
         if (_sampleRate >= 1.0){
             ret = true
@@ -262,7 +262,7 @@ class TraceService extends BaseService {
             long lowerLong = Long.parseUnsignedLong(traceId.substring(16), 16)
             ret = Long.compareUnsigned(lowerLong, (long) (Long.MAX_VALUE * _sampleRate)) < 0
         }
-        if (ret) _spansSampled?.increment()
+        if (ret) _spansCreated?.increment()
         return ret
     }
 
@@ -366,7 +366,9 @@ class TraceService extends BaseService {
     }
 
     Map getAdminStats() {[
-        config: configForAdminStats('xhTraceConfig')
+        config: configForAdminStats('xhTraceConfig'),
+        spansRequested: _spansRequested?.count(),
+        spansCreated: _spansCreated?.count()
     ]}
 
     /** Shared getter for extracting trace context from incoming servlet requests. */

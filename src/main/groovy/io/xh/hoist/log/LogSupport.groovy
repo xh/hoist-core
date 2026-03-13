@@ -8,7 +8,6 @@
 package io.xh.hoist.log
 
 import ch.qos.logback.classic.Level
-import io.opentelemetry.api.trace.Span
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -17,7 +16,6 @@ import static ch.qos.logback.classic.Level.WARN
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.DEBUG
 import static ch.qos.logback.classic.Level.TRACE
-import static io.xh.hoist.util.Utils.getIdentityService
 import static java.lang.System.currentTimeMillis
 
 trait LogSupport {
@@ -125,13 +123,10 @@ trait LogSupport {
     }
 
     private <T> T loggedDo(Logger log, Level level, Object msgs, Closure<T> c) {
-        Map meta = getMeta() ?: [:];
-
         // Log *start* of closure execution if at a fine run-time level. Use debug to get
         // start msgs for your 'withInfo' logs, trace for your 'withDebug/withTrace'
         if ((log.debugEnabled && level == INFO) || log.traceEnabled) {
-            meta << [_status: 'started']
-            logAtLevel(log, level, msgs, meta)
+            logAtLevel(log, level, [msgs, [_status: 'started']])
         }
 
         def ret
@@ -140,53 +135,27 @@ trait LogSupport {
             ret = c.call()
         } catch (Exception e) {
             long elapsed = currentTimeMillis() - start
-            meta << [_status: 'failed', _elapsedMs: elapsed]
-            logAtLevel(log, level, msgs, meta)
+            logAtLevel(log, level, [msgs, [_status: 'failed', _elapsedMs: elapsed]])
             throw e
         }
 
         long elapsed = currentTimeMillis() - start
-        meta << [_status: 'completed', _elapsedMs: elapsed]
-        logAtLevel(log, level, msgs, meta)
+        logAtLevel(log, level, [msgs, [_status: 'completed', _elapsedMs: elapsed]])
 
         return ret
     }
 
-    private void logAtLevel(Logger log, Level level, Object msgs, Map meta) {
+    private void logAtLevel(Logger log, Level level, Object msgs) {
         switch (level) {
-            case DEBUG: log.debug(createMarker(log, msgs, meta), null); break
-            case INFO:  log.info(createMarker(log, msgs, meta), null); break
-            case WARN:  log.warn(createMarker(log, msgs, meta), null); break
-            case ERROR: log.error(createMarker(log, msgs, meta), null); break
-            case TRACE: log.trace(createMarker(log, msgs, meta), null); break
+            case DEBUG: log.debug(createMarker(log, msgs), null); break
+            case INFO:  log.info(createMarker(log, msgs), null); break
+            case WARN:  log.warn(createMarker(log, msgs), null); break
+            case ERROR: log.error(createMarker(log, msgs), null); break
+            case TRACE: log.trace(createMarker(log, msgs), null); break
         }
     }
 
-    private Map getMeta() {
-        Map ret = null
-        def username = identityService?.username
-        if (username) {
-            ret = [_user: username]
-        }
-        def spanContext = Span.current()?.spanContext
-        if (spanContext?.valid) {
-            ret ?= [:]
-            ret.traceId = spanContext.traceId
-            ret.spanId = spanContext.spanId
-        }
-        return ret
-    }
-
-    private LogSupportMarker createMarker(Logger log, Object messages, Map meta = getMeta()) {
-        List msgs = Arrays.asList(messages).flatten()
-        if (meta) {
-            if (msgs.last() instanceof Throwable) {
-                msgs.add(msgs.size() - 1, meta)
-            } else {
-                msgs.add(meta)
-            }
-        }
-
-        return new LogSupportMarker(log, msgs)
+    private LogSupportMarker createMarker(Logger log, Object messages) {
+        return new LogSupportMarker(log, messages)
     }
 }

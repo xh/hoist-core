@@ -26,6 +26,10 @@
 
 ### ⚙️ Technical
 
+* `LogSupportMarker` now exposes `user`, `traceId`, and `spanId` as first-class properties,
+  populated automatically from the current context at log time. Custom `LogSupportConverter`
+  implementations that relied on these values being embedded in the `messages` list will need to
+  be updated to read them from the marker directly.
 * Refactored documentation indexing to better support both MCP (LLM) and the toolbox docviewer.
 * Added `LogbackConfig.suppressStackTrace()` to filter out stack traces from noisy external
   loggers. The exception message is still logged; full stack traces are available at TRACE level.

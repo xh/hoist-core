@@ -18,7 +18,6 @@ import groovy.transform.CompileDynamic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
 import io.opentelemetry.api.trace.SpanKind
-import io.opentelemetry.context.Context
 import io.xh.hoist.cache.Cache
 import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.cluster.ClusterService
@@ -305,11 +304,11 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     Object withSpan(
         @NamedParam(required = true) String name,
         @NamedParam SpanKind kind = SpanKind.INTERNAL,
-        @NamedParam Context parentContext = null,
         @NamedParam Map tags = [:],
+        @NamedParam Object caller = this.class,
         Closure c
     ) {
-        traceService.withSpan(name: name, kind: kind, parentContext: parentContext, tags: tags, c)
+        traceService.withSpan(name: name, kind: kind, tags: tags, caller, c)
     }
 
     //-----------------------------------

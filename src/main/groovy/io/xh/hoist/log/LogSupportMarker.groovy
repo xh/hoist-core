@@ -7,8 +7,11 @@
 
 package io.xh.hoist.log
 
+import io.opentelemetry.api.trace.Span
 import org.slf4j.Marker
 import org.slf4j.Logger
+
+import static io.xh.hoist.util.Utils.getIdentityService
 
 /**
  * A Marker representing an enhanced, meta-data preserving log message produced by
@@ -26,9 +29,22 @@ class LogSupportMarker implements Marker {
     /** Logger sending this message. */
     final Logger logger
 
-    LogSupportMarker(Logger logger, List messages) {
+    /** Authenticated user at time of logging, or null. */
+    final String user
+
+    /** Active trace ID at time of logging, or null. */
+    final String traceId
+
+    /** Active span ID at time of logging, or null. */
+    final String spanId
+
+    LogSupportMarker(Logger logger, Object messages) {
         this.logger = logger
-        this.messages = messages
+        this.messages = Arrays.asList(messages).flatten()
+        this.user = identityService?.username
+        def spanContext = Span.current()?.spanContext
+        this.traceId = spanContext?.valid ? spanContext.traceId : null
+        this.spanId = spanContext?.valid ? spanContext.spanId : null
     }
 
     String getName() {

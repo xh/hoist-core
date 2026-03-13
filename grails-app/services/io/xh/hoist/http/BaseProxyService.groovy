@@ -76,7 +76,7 @@ abstract class BaseProxyService extends BaseService {
         }
         installRequestHeaders(request, method)
 
-        traceService.withSpan(
+        withSpan(
             name: request.method,
             kind: CLIENT,
             tags: [
@@ -86,7 +86,7 @@ abstract class BaseProxyService extends BaseService {
                 'source'             : 'hoist'
             ]
         ) { SpanRef span ->
-            if (span) traceService.injectContext(method)
+            traceService.injectContext(method)
             try (CloseableHttpResponse sourceResponse = sourceClient.execute(method)) {
                 response.setStatus(sourceResponse.code)
                 span?.setHttpStatus(sourceResponse.code)

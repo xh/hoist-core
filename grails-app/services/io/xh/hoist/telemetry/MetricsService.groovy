@@ -33,7 +33,6 @@ import static io.micrometer.core.instrument.config.MeterFilterReply.NEUTRAL
 import static io.xh.hoist.cluster.ClusterService.instanceName
 import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 import static io.xh.hoist.util.Utils.appCode
-import static io.xh.hoist.util.Utils.prefixKeys
 
 /**
  * Central service for Micrometer metrics in a Hoist application.
@@ -233,6 +232,10 @@ class MetricsService extends BaseService {
             publishRegistry.clear()
             registry.add(publishRegistry)
         }
+    }
+
+    private static Map<String, String> prefixKeys(String prefix, Map config) {
+        (config ?: [:]).collectEntries { k, v -> ["${prefix}.${k}".toString(), v?.toString()] }
     }
 
     private String getNamespace() {

@@ -134,7 +134,7 @@ class JSONClient {
                     'source'             : 'hoist'
                 ]
             ) { SpanRef span ->
-                if (span) traceService.injectContext(method)
+                traceService.injectContext(method)
                 ret = executeRaw(_client, method)
                 statusCode = ret.code
                 span?.setHttpStatus(statusCode)
