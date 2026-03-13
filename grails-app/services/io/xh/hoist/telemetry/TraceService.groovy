@@ -7,6 +7,7 @@
 
 package io.xh.hoist.telemetry
 
+import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
@@ -111,7 +112,7 @@ class TraceService extends BaseService {
      * @param args.withTrace - (optional) logMessages (or true) to log via LogSupport.withTrace.
      * @param args.withDebug - (optional) logMessages (or true) to log via LogSupport.withDebug.
      *
-     * @param args.meter - (optional) Micrometer Timer to record the closure's elapsed time.
+     * @param args.timer - (optional) Micrometer Timer to record the closure's elapsed time.
      *      Pass a pre-registered {@link io.micrometer.core.instrument.Timer} instance for hot paths,
      *      or a String metric name to auto-register a tag-free timer. Pre-register if you need
      *      custom tags or are calling from a hot loop.
@@ -120,7 +121,7 @@ class TraceService extends BaseService {
      */
     @CompileDynamic
     <T> T withSpan(Map args, Closure<T> c) {
-        SpanRef span = createSpan(args)
+        SpanRef span = createSpan(subMap(['name', 'kind', 'tags', 'caller']))
 
         // 1) Potentially wrap with logging
         for (key in ['withInfo', 'withDebug', 'withTrace']) {
@@ -136,10 +137,10 @@ class TraceService extends BaseService {
         }
 
         // 2) Potentially wrap with timer
-        if (args.meter) {
-            def timer = args.meter instanceof Timer
-                ? args.meter
-                : Timer.builder(args.meter).register(metricsService.registry)
+        if (args.timer) {
+            def timer = args.timer instanceof Timer
+                ? args.timer
+                : Timer.builder(args.timer).register(metricsService.registry)
             def original = c
             c = { s -> timer.record { original.call(s) } }
         }
