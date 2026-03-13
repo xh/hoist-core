@@ -7,6 +7,7 @@
 
 package io.xh.hoist.log
 
+import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.pattern.ClassicConverter
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.spi.ThrowableProxy
@@ -46,9 +47,8 @@ class LogSupportConverter extends ClassicConverter {
 
         // 2) Append context fields from marker.
         if (marker.user) parts << marker.user
-        if (logger.isDebugEnabled()) {
-            if (marker.traceId) parts << "traceId=${marker.traceId}"
-            if (marker.spanId) parts << "spanId=${marker.spanId}"
+        if (marker.traceId && event.level.isGreaterOrEqual(Level.ERROR)) {
+            parts << "traceId=${marker.traceId}"
         }
 
         def ret = parts.join(delimiter)

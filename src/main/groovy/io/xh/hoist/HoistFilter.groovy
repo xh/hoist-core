@@ -36,7 +36,7 @@ class HoistFilter implements Filter, LogSupport {
         HttpServletRequest httpRequest = (HttpServletRequest) request
         HttpServletResponse httpResponse = (HttpServletResponse) response
 
-        try (def scope = traceService.restoreContextFromRequest(request)) {
+        try (def scope = traceService.restoreContextFromRequest(httpRequest)) {
             clusterService.ensureRunning()
             if (authenticationService.allowRequest(httpRequest, httpResponse)) {
                 chain.doFilter(request, response)

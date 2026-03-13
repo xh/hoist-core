@@ -28,8 +28,10 @@ import io.opentelemetry.sdk.trace.samplers.SamplingResult
 import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter
 import io.opentelemetry.sdk.trace.export.SpanExporter
 import io.micrometer.core.instrument.Counter
+import io.micrometer.core.instrument.Timer
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.log.LogSupport
 import jakarta.servlet.http.HttpServletRequest
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
 
@@ -101,24 +103,47 @@ class TraceService extends BaseService {
     /**
      * Execute a closure within a new trace span.
      *
-     * Creates a child span under the current (or explicit parent) context.
-     * Attributes from {@code tags} are set on the span. Exceptions are recorded
-     * on the span and re-thrown.
+     * Creates a child span under the current context. Exceptions are recorded
+     * on the span and re-thrown. See {@link #createSpan} for parameter documentation.
+     * Additionally supports the following convenience:
+     *
+     * @param args.withInfo - (optional) logMessages (or true) to log via LogSupport.withInfo.
+     * @param args.withTrace - (optional) logMessages (or true) to log via LogSupport.withTrace.
+     * @param args.withDebug - (optional) logMessages (or true) to log via LogSupport.withDebug.
+     *
+     * @param args.meter - (optional) Micrometer Timer to record the closure's elapsed time.
+     *      Pass a pre-registered {@link io.micrometer.core.instrument.Timer} instance for hot paths,
+     *      or a String metric name to auto-register a tag-free timer. Pre-register if you need
+     *      custom tags or are calling from a hot loop.
+     *
+     * Note: the withXXLog arguments require that the caller implements {@link LogSupport}.
      */
-    @NamedVariant
-    Object withSpan(
-        /** Span name (e.g. 'processOrder', 'HTTP GET'). */
-        @NamedParam(required = true) String name,
-        /** Span kind — INTERNAL (default), SERVER for inbound requests, CLIENT for outbound calls. */
-        @NamedParam SpanKind kind = SpanKind.INTERNAL,
-        /** Key-value attributes to set on the span. */
-        @NamedParam Map<String, ?> tags = [:],
-        /** Object making the call used to auto-set the 'code.namespace' attribute. */
-        @NamedParam Object caller = null,
-        /** Closure to execute within the span. */
-        Closure c
-    ) {
-        def span = createSpan(name: name, kind: kind, tags: tags, caller: caller)
+    @CompileDynamic
+    <T> T withSpan(Map args, Closure<T> c) {
+        SpanRef span = createSpan(args)
+
+        // 1) Potentially wrap with logging
+        for (key in ['withInfo', 'withDebug', 'withTrace']) {
+            if (args[key]) {
+                if (!(args.caller instanceof LogSupport)) {
+                    throw new RuntimeException('caller argument must implement LogSupport')
+                }
+                def msg = args[key] === true ? args.name : args[key],
+                    original = c
+                c = { s -> args.caller[key](msg, original.call(span)) }
+                break
+            }
+        }
+
+        // 2) Potentially wrap with timer
+        if (args.meter) {
+            def timer = args.meter instanceof Timer
+                ? args.meter
+                : Timer.builder(args.meter).register(metricsService.registry)
+            def original = c
+            c = { s -> timer.record { original.call(s) } }
+        }
+
         try {
             return c.call(span)
         } catch (Throwable t) {
