@@ -1,6 +1,6 @@
 # Hoist Core v36 Upgrade Notes
 
-> **From:** v35.x -> v36.1.0 | **Released:** 2026-01-27 | **Difficulty:** 🟢 LOW, excepting multi-instance apps w/websockets
+> **From:** v35.x -> v36.1.0 | **Released:** 2026-01-27 | **Difficulty:** 🟢 LOW, excepting apps using websocket APIs
 
 ## Overview
 
@@ -13,9 +13,9 @@ The most significant app-level impacts are:
 - **`@Access` annotation deprecated** -- all usages should be migrated to the new
   `@AccessRequiresRole`, `@AccessRequiresAllRoles`, or `@AccessRequiresAnyRole` annotations.
   This is a straightforward find-and-replace for most apps.
-- **WebSocket API changes** -- `WebSocketService` is now cluster-aware. Apps using websockets in a
-  multi-instance deployment must review their usage of `getAllChannels()` and related methods to
-  avoid message duplication and account for the new return types.
+- **WebSocket API changes** -- `WebSocketService` is now cluster-aware. Any app calling
+  `getAllChannels()` must account for the new `Collection<Map>` return type. Apps using websockets
+  in a multi-instance deployment should also review broadcast patterns to avoid message duplication.
 
 ## Upgrade Steps
 
@@ -133,9 +133,9 @@ import io.xh.hoist.security.AccessRequiresAnyRole    // if needed
 
 Note: `@AccessAll` is **unchanged** and requires no migration.
 
-### 3. Update WebSocket usage (multi-instance apps only)
+### 3. Update WebSocket usage
 
-If your app does **not** use websockets or runs as a single instance, skip this step.
+If your app does **not** use websockets, skip this step.
 
 `WebSocketService` has been upgraded to be fully cluster-aware. The key API changes are:
 
