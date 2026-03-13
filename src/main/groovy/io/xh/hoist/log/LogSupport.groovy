@@ -17,6 +17,7 @@ import static ch.qos.logback.classic.Level.WARN
 import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.DEBUG
 import static ch.qos.logback.classic.Level.TRACE
+import static io.xh.hoist.util.Utils.getIdentityService
 import static java.lang.System.currentTimeMillis
 
 @CompileStatic
@@ -125,10 +126,13 @@ trait LogSupport {
     }
 
     private <T> T loggedDo(Logger log, Level level, Object msgs, Closure<T> c) {
+        Map meta = getMeta() ?: [:];
+
         // Log *start* of closure execution if at a fine run-time level. Use debug to get
         // start msgs for your 'withInfo' logs, trace for your 'withDebug/withTrace'
         if ((log.debugEnabled && level == INFO) || log.traceEnabled) {
-            logAtLevel(log, level, [msgs, [_status: 'started']])
+            meta << [_status: 'started']
+            logAtLevel(log, level, msgs, meta)
         }
 
         def ret
@@ -137,27 +141,43 @@ trait LogSupport {
             ret = c.call()
         } catch (Exception e) {
             long elapsed = currentTimeMillis() - start
-            logAtLevel(log, level, [msgs, [_status: 'failed', _elapsedMs: elapsed]])
+            meta << [_status: 'failed', _elapsedMs: elapsed]
+            logAtLevel(log, level, msgs, meta)
             throw e
         }
 
         long elapsed = currentTimeMillis() - start
-        logAtLevel(log, level, [msgs, [_status: 'completed', _elapsedMs: elapsed]])
+        meta << [_status: 'completed', _elapsedMs: elapsed]
+        logAtLevel(log, level, msgs, meta)
 
         return ret
     }
 
-    private void logAtLevel(Logger log, Level level, Object msgs) {
+    private void logAtLevel(Logger log, Level level, Object msgs, Map meta) {
         switch (level) {
-            case DEBUG: log.debug(createMarker(log, msgs), null); break
-            case INFO:  log.info(createMarker(log, msgs), null); break
-            case WARN:  log.warn(createMarker(log, msgs), null); break
-            case ERROR: log.error(createMarker(log, msgs), null); break
-            case TRACE: log.trace(createMarker(log, msgs), null); break
+            case DEBUG: log.debug(createMarker(log, msgs, meta), null); break
+            case INFO:  log.info(createMarker(log, msgs, meta), null); break
+            case WARN:  log.warn(createMarker(log, msgs, meta), null); break
+            case ERROR: log.error(createMarker(log, msgs, meta), null); break
+            case TRACE: log.trace(createMarker(log, msgs, meta), null); break
         }
     }
 
-    private LogSupportMarker createMarker(Logger log, Object messages) {
-        return new LogSupportMarker(log, messages)
+    private Map getMeta() {
+        def username = identityService?.username
+        return username ? [_user: username] : null
+    }
+
+    private LogSupportMarker createMarker(Logger log, Object messages, Map meta = getMeta()) {
+        List msgs = Arrays.asList(messages).flatten()
+        if (meta) {
+            if (msgs.last() instanceof Throwable) {
+                msgs.add(msgs.size() - 1, meta)
+            } else {
+                msgs.add(meta)
+            }
+        }
+
+        return new LogSupportMarker(log, msgs)
     }
 }

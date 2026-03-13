@@ -43,14 +43,12 @@ class LogSupportConverter extends ClassicConverter {
         if (!(event.marker instanceof LogSupportMarker)) return event.formattedMessage
 
         LogSupportMarker marker = event.marker as LogSupportMarker
-        Logger logger = marker.logger
-        List messages = marker.messages
+        List messages = marker.messages.flatten()
 
         // 1) Core of the messages is just pipe delimited.
         List parts = messages.collect { formatObject(it) }
 
         // 2) Append context fields from marker.
-        if (marker.username) parts << marker.username
         if (marker.traceId && event.level.isGreaterOrEqual(Level.ERROR)) {
             parts << "traceId=${marker.traceId}".toString()
         }
@@ -58,7 +56,7 @@ class LogSupportConverter extends ClassicConverter {
         def ret = parts.join(delimiter)
 
         // 3) Potentially append stack trace on trace.
-        if (logger.isTraceEnabled() && messages.last() instanceof Throwable) {
+        if (marker.logger.isTraceEnabled() && messages.last() instanceof Throwable) {
             ret += formatStacktrace(messages.last() as Throwable)
         }
 
