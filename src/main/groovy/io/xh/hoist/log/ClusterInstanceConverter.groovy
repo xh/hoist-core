@@ -9,8 +9,10 @@ package io.xh.hoist.log
 
 import ch.qos.logback.classic.pattern.ClassicConverter
 import ch.qos.logback.classic.spi.ILoggingEvent
+import groovy.transform.CompileStatic
 import io.xh.hoist.cluster.ClusterService
 
+@CompileStatic
 class ClusterInstanceConverter extends ClassicConverter {
     String convert(ILoggingEvent event) {
         return ClusterService.instanceName

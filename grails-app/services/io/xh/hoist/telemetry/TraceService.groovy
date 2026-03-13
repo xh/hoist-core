@@ -7,7 +7,6 @@
 
 package io.xh.hoist.telemetry
 
-import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
@@ -108,9 +107,9 @@ class TraceService extends BaseService {
      * on the span and re-thrown. See {@link #createSpan} for parameter documentation.
      * Additionally supports the following convenience:
      *
-     * @param args.withInfo - (optional) logMessages (or true) to log via LogSupport.withInfo.
-     * @param args.withTrace - (optional) logMessages (or true) to log via LogSupport.withTrace.
-     * @param args.withDebug - (optional) logMessages (or true) to log via LogSupport.withDebug.
+     * @param args.logInfo - (optional) log messages (or true) to log via LogSupport.withInfo.
+     * @param args.logTrace - (optional) log messages (or true) to log via LogSupport.withTrace.
+     * @param args.logDebug - (optional) log messages (or true) to log via LogSupport.withDebug.
      *
      * @param args.timer - (optional) Micrometer Timer to record the closure's elapsed time.
      *      Pass a pre-registered {@link io.micrometer.core.instrument.Timer} instance for hot paths,
@@ -119,30 +118,38 @@ class TraceService extends BaseService {
      *
      * Note: the withXXLog arguments require that the caller implements {@link LogSupport}.
      */
-    @CompileDynamic
     <T> T withSpan(Map args, Closure<T> c) {
-        SpanRef span = createSpan(subMap(['name', 'kind', 'tags', 'caller']))
+        SpanRef span = createSpan(args.subMap(['name', 'kind', 'tags', 'caller']))
 
         // 1) Potentially wrap with logging
-        for (key in ['withInfo', 'withDebug', 'withTrace']) {
-            if (args[key]) {
-                if (!(args.caller instanceof LogSupport)) {
-                    throw new RuntimeException('caller argument must implement LogSupport')
-                }
-                def msg = args[key] === true ? args.name : args[key],
-                    original = c
-                c = { s -> args.caller[key](msg, original.call(span)) }
-                break
+        def entry = args.find {it.key == 'logInfo' || it.key == 'logDebug' || it.key == 'logTrace'}
+        if (entry) {
+            if (!(args.caller instanceof LogSupport)) {
+                throw new RuntimeException('caller argument must implement LogSupport')
+            }
+            LogSupport caller = args.caller as LogSupport
+            Object msg = entry.value === true ? args.name : entry.value,
+                original = c
+            switch (entry.key) {
+                case 'logInfo':
+                    c = { s -> caller.withInfo(msg) { original(s) } }
+                    break;
+                case 'logDebug':
+                    c = { s -> caller.withDebug(msg) { original(s) } }
+                    break;
+                case 'logTrace':
+                    c = { s -> caller.withTrace(msg) { original(s) } }
+                    break;
             }
         }
 
         // 2) Potentially wrap with timer
         if (args.timer) {
-            def timer = args.timer instanceof Timer
-                ? args.timer
-                : Timer.builder(args.timer).register(metricsService.registry)
+            Timer timer = (args.timer instanceof Timer)
+                ? args.timer as Timer
+                : Timer.builder(args.timer.toString()).register(metricsService.registry)
             def original = c
-            c = { s -> timer.record { original.call(s) } }
+            c = { s -> timer.record { original(s) } }
         }
 
         try {

@@ -8,9 +8,12 @@
 package io.xh.hoist.log
 
 import ch.qos.logback.classic.Level
+import org.slf4j.Logger
 import ch.qos.logback.classic.pattern.ClassicConverter
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.spi.ThrowableProxy
+import groovy.transform.CompileStatic
+
 import static io.xh.hoist.util.Utils.getExceptionHandler
 
 /**
@@ -33,22 +36,23 @@ import static io.xh.hoist.util.Utils.getExceptionHandler
  * Developers wishing to output log entries with a different layout can create their own converter
  * and layout strings in their application's /grails-app/conf/logback.groovy file.
  */
+@CompileStatic
 class LogSupportConverter extends ClassicConverter {
 
     String convert(ILoggingEvent event) {
         if (!(event.marker instanceof LogSupportMarker)) return event.formattedMessage
 
         LogSupportMarker marker = event.marker as LogSupportMarker
-        Logger = marker.logger
+        Logger logger = marker.logger
         List messages = marker.messages
 
         // 1) Core of the messages is just pipe delimited.
         List parts = messages.collect { formatObject(it) }
 
         // 2) Append context fields from marker.
-        if (marker.user) parts << marker.user
+        if (marker.username) parts << marker.username
         if (marker.traceId && event.level.isGreaterOrEqual(Level.ERROR)) {
-            parts << "traceId=${marker.traceId}"
+            parts << "traceId=${marker.traceId}".toString()
         }
 
         def ret = parts.join(delimiter)

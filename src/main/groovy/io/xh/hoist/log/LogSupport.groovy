@@ -8,6 +8,7 @@
 package io.xh.hoist.log
 
 import ch.qos.logback.classic.Level
+import groovy.transform.CompileStatic
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -18,6 +19,7 @@ import static ch.qos.logback.classic.Level.DEBUG
 import static ch.qos.logback.classic.Level.TRACE
 import static java.lang.System.currentTimeMillis
 
+@CompileStatic
 trait LogSupport {
 
     /**

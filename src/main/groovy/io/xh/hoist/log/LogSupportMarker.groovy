@@ -7,6 +7,7 @@
 
 package io.xh.hoist.log
 
+import groovy.transform.CompileStatic
 import io.opentelemetry.api.trace.Span
 import org.slf4j.Marker
 import org.slf4j.Logger
@@ -18,6 +19,7 @@ import static io.xh.hoist.util.Utils.getIdentityService
  * LogSupport.  This marker should be interpreted by any converter used in a Hoist
  * Application.
  */
+@CompileStatic
 class LogSupportMarker implements Marker {
 
     /**
@@ -30,7 +32,7 @@ class LogSupportMarker implements Marker {
     final Logger logger
 
     /** Authenticated user at time of logging, or null. */
-    final String user
+    final String username
 
     /** Active trace ID at time of logging, or null. */
     final String traceId
@@ -41,7 +43,7 @@ class LogSupportMarker implements Marker {
     LogSupportMarker(Logger logger, Object messages) {
         this.logger = logger
         this.messages = Arrays.asList(messages).flatten()
-        this.user = identityService?.username
+        this.username = identityService?.username
         def spanContext = Span.current()?.spanContext
         this.traceId = spanContext?.valid ? spanContext.traceId : null
         this.spanId = spanContext?.valid ? spanContext.spanId : null
