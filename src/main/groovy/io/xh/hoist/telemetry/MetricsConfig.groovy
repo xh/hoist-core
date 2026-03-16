@@ -14,7 +14,6 @@ import groovy.transform.MapConstructor
  */
 @MapConstructor
 class MetricsConfig {
-    String namespace
     boolean prometheusEnabled
     Map prometheusConfig
     boolean otlpEnabled
