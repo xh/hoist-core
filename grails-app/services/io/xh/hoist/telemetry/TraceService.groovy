@@ -149,7 +149,7 @@ class TraceService extends BaseService {
                 ? args.timer as Timer
                 : Timer.builder(args.timer.toString()).register(metricsService.registry)
             def original = c
-            c = { s -> timer.record { original(s) } }
+            c = { s -> timer.recordCallable { original(s) } }
         }
 
         try {
