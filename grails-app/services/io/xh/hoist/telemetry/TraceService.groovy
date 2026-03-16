@@ -145,10 +145,10 @@ class TraceService extends BaseService {
 
         // 2) Potentially wrap with timer
         if (args.timer) {
-            Timer timer = (args.timer instanceof Timer)
-                ? args.timer as Timer
-                : Timer.builder(args.timer.toString()).register(metricsService.registry)
-            def original = c
+            def original = c,
+                timer = args.timer instanceof Timer ?
+                    args.timer as Timer :
+                    Timer.builder(args.timer.toString()).register(metricsService.registry)
             c = { s -> timer.recordCallable { original(s) } }
         }
 
