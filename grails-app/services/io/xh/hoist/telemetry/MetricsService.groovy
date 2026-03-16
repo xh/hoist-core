@@ -13,13 +13,9 @@ import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics
-import io.micrometer.core.instrument.Counter
-import io.micrometer.core.instrument.DistributionSummary
-import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.Meter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Tags
-import io.micrometer.core.instrument.Timer
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry
 import io.micrometer.core.instrument.config.MeterFilter
 import io.micrometer.core.instrument.config.MeterFilterReply
@@ -110,23 +106,9 @@ class MetricsService extends BaseService {
             .join('\n')
     }
 
-    //--------------------------------------------------
-    // Meter Lookup
-    //--------------------------------------------------
-    /** Look up a {@link Timer} by name, or null if not found. */
-    Timer getTimer(String name) { readOnlyRegistry.find(name).timer() }
 
-    /** Look up a {@link Counter} by name, or null if not found. */
-    Counter getCounter(String name) { readOnlyRegistry.find(name).counter() }
 
-    /** Look up a {@link Gauge} by name, or null if not found. */
-    Gauge getGauge(String name) { readOnlyRegistry.find(name).gauge() }
 
-    /** Look up a {@link DistributionSummary} by name, or null if not found. */
-    DistributionSummary getSummary(String name) { readOnlyRegistry.find(name).summary() }
-
-    /** Look up any {@link Meter} by name, or null if not found. */
-    Meter getMeter(String name) { readOnlyRegistry.find(name).meter() }
 
     /** List of metric names published to export sinks. */
     List<String> getPublishedMetrics() {
