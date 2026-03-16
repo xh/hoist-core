@@ -70,7 +70,7 @@ class MonitorMetricsService extends BaseService {
     //------------------------
     private void ensureAggregateMeters(AggregateMonitorResult aggResult) {
         def code = aggResult.monitor.code,
-            name = "monitor.status.${code}"
+            name = "hoist.monitor.status.${code}"
 
         meters["${name}.cluster"] ?= Gauge.builder(name, this) {
             def status = monitorService.getResult(code)?.status ?: UNKNOWN
@@ -87,7 +87,7 @@ class MonitorMetricsService extends BaseService {
             tags = Tags.of('source', 'hoist', 'instance', instance),
             description = result.monitor.name
 
-        def statusName = "monitor.status.${code}"
+        def statusName = "hoist.monitor.status.${code}"
         meters["${statusName}.${instance}"] ?=
             Gauge.builder(statusName, this) {
                 def status = getResult(code, instance)?.status ?: UNKNOWN
@@ -96,7 +96,7 @@ class MonitorMetricsService extends BaseService {
                 .description(description)
                 .register(registry)
 
-        def valueName = "monitor.value.${code}"
+        def valueName = "hoist.monitor.value.${code}"
         meters["${valueName}.${instance}"] ?=
             Gauge.builder(valueName, this) {
                 def m = getResult(code, instance)?.metric
@@ -106,7 +106,7 @@ class MonitorMetricsService extends BaseService {
                 .baseUnit(result.monitor.metricUnit ?: '')
                 .register(registry)
 
-        def execName = "monitor.executionTime.${code}"
+        def execName = "hoist.monitor.executionTime.${code}"
         meters["${execName}.${instance}"] ?=
             Timer.builder(execName)
                 .tags(tags)
