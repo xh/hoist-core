@@ -14,13 +14,14 @@
     - Automatic trace context propagation across Grails `task {}` thread boundaries.
 
 * Added an MCP (Model Context Protocol) server for AI coding agents. Provides searchable access to
-  all hoist-core documentation and Groovy/Java symbol introspection (classes, interfaces, methods,
+  all Hoist Core documentation and Groovy/Java symbol introspection (classes, interfaces, methods,
   properties). Can run locally from source or as a published fat JAR from Maven Central.
-
 * Added opt-in metrics publishing. Metrics export is now gated by the `xhMetricsPublished` config —
   a list of metric names to include in Prometheus/OTLP export sinks. An empty list (the default)
-  means nothing is exported. Requires updated hoist-react for admin UI editing support.
-* Added `MetricsService.publishRegistry` — a `CompositeMeterRegistry` that gates all export sinks
+  means nothing is exported.
+    * Update to recommended `hoist-react >= 82.1` for Admin Console change to support editing this
+      new config via the Servers›Metrics tab.
+* Added `MetricsService.publishRegistry` - a `CompositeMeterRegistry` that gates all export sinks
   with the publish filter. Applications can add custom export registries (e.g. Datadog) via
   `publishRegistry.add()` and they will automatically respect the published metrics list.
 
@@ -32,7 +33,6 @@
 * Refactored documentation indexing to better support both MCP (LLM) and the toolbox docviewer.
 * Added `LogbackConfig.suppressStackTrace()` to filter out stack traces from noisy external
   loggers. The exception message is still logged; full stack traces are available at TRACE level.
-
 
 ## 36.3.1 - 2026-02-26
 
@@ -82,7 +82,7 @@
 
 ## 36.0.0 - 2026-01-27
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW, excepting multi-instance apps w/websockets)
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW, excepting apps using websocket APIs)
 
 * See [`docs/upgrade-notes/v36-upgrade-notes.md`](docs/upgrade-notes/v36-upgrade-notes.md) for
   detailed, step-by-step upgrade
@@ -90,11 +90,11 @@
 * Deprecated `@Access` in favor of new `@AccessRequiresRole`, `@AccessRequiresAllRoles`, and
   `@AccessRequiresAnyRole` annotations. `@Access` continues to function but should be migrated —
   see upgrade notes for find-and-replace patterns.
-* Apps leveraging both multi-instance clustering and websockets should review the
+* `getAllChannels()` now returns `Collection<Map>` (cluster-wide) instead of
+  `Collection<HoistWebSocketChannel>` (local-only). Any app calling this method must update code
+  that accesses channel properties (e.g. `.user`) — see upgrade notes.
+* Apps leveraging both multi-instance clustering and websockets should also review the additional
   `WebSocketService` API changes below and understand the new cross-cluster behavior.
-    * `getAllChannels()` now returns `Collection<Map>` (cluster-wide) instead of
-      `Collection<HoistWebSocketChannel>` (local-only). Code accessing channel properties (e.g.
-      `.user`) must be updated — see upgrade notes.
     * Replace `allChannels`-based broadcast patterns with `pushToAllChannels()` or
       `pushToLocalChannels()` to avoid message duplication.
 
