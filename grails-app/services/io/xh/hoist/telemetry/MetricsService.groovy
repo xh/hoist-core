@@ -238,7 +238,7 @@ class MetricsService extends BaseService {
         }
     }
 
-    private static Map<String, String> prefixKeys(String prefix, Map config) {
+    private static Map<String, String> prefixKeys(String prefix, Map<String, String> config) {
         (config ?: [:]).collectEntries { k, v -> ["${prefix}.${k}".toString(), v?.toString()] }
     }
 
