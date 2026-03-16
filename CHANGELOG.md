@@ -33,6 +33,10 @@
 * Refactored documentation indexing to better support both MCP (LLM) and the toolbox docviewer.
 * Added `LogbackConfig.suppressStackTrace()` to filter out stack traces from noisy external
   loggers. The exception message is still logged; full stack traces are available at TRACE level.
+* Removed automatic namespace prefixing from `MetricsService`. Metrics are now registered under
+  the exact name provided — applications should include any desired prefix (e.g. app code) in the
+  metric name at registration time. The `namespace` key in `xhMetricsConfig` is no longer used.
+
 
 ## 36.3.1 - 2026-02-26
 

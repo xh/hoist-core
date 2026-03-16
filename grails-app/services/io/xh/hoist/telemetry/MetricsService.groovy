@@ -13,9 +13,13 @@ import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics
+import io.micrometer.core.instrument.Counter
+import io.micrometer.core.instrument.DistributionSummary
+import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.Meter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Tags
+import io.micrometer.core.instrument.Timer
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry
 import io.micrometer.core.instrument.config.MeterFilter
 import io.micrometer.core.instrument.config.MeterFilterReply
@@ -39,16 +43,13 @@ import static io.xh.hoist.util.Utils.appCode
  * Central service for Micrometer metrics in a Hoist application.
  *
  * Exposes a {@link CompositeMeterRegistry} via {@link #registry} for meter registration.
- * All meters registered through this registry automatically receive a configurable namespace
- * prefix and default tags ({@code application}, {@code instance}).
+ * All meters registered through this registry automatically receive default tags
+ * ({@code application}, {@code instance}, {@code source}).
  *
  * Built-in support for Prometheus (pull-based) and OTLP (push-based) export registries,
  * configured dynamically via the {@code xhMetricsConfig} soft config entry. Additional
  * export registries (e.g. Datadog) can be added via {@link #addPublishRegistry}.
  *
- * The namespace prefix defaults to the application code and can be overridden via the
- * {@code namespace} key in {@code xhMetricsConfig}. Note that the namespace is applied
- * at service initialization and cannot be changed at runtime — a restart is required.
  * Other config values (e.g. export registry settings) are dynamic and take effect
  * immediately when {@code xhMetricsConfig} is updated.
  */
@@ -64,9 +65,6 @@ class MetricsService extends BaseService {
      * ({@code application}, {@code instance}). A {@code source} tag also classifies
      * each metric's origin — 'app' (default), 'hoist', or 'infra' are built-in sources, and
      * 'app' will be provided as the default.
-     *
-     * Metrics with {@code source=app} will have their names prefixed with the application
-     * namespace.
      */
     final CompositeMeterRegistry registry = new CompositeMeterRegistry()
 
@@ -111,6 +109,24 @@ class MetricsService extends BaseService {
             .collect { it.value }
             .join('\n')
     }
+
+    //--------------------------------------------------
+    // Meter Lookup
+    //--------------------------------------------------
+    /** Look up a {@link Timer} by name, or null if not found. */
+    Timer getTimer(String name) { readOnlyRegistry.find(name).timer() }
+
+    /** Look up a {@link Counter} by name, or null if not found. */
+    Counter getCounter(String name) { readOnlyRegistry.find(name).counter() }
+
+    /** Look up a {@link Gauge} by name, or null if not found. */
+    Gauge getGauge(String name) { readOnlyRegistry.find(name).gauge() }
+
+    /** Look up a {@link DistributionSummary} by name, or null if not found. */
+    DistributionSummary getSummary(String name) { readOnlyRegistry.find(name).summary() }
+
+    /** Look up any {@link Meter} by name, or null if not found. */
+    Meter getMeter(String name) { readOnlyRegistry.find(name).meter() }
 
     /** List of metric names published to export sinks. */
     List<String> getPublishedMetrics() {
@@ -174,13 +190,6 @@ class MetricsService extends BaseService {
                     source = id.getTag('source')
                 if (!source) {
                     source = name.startsWith('hoist.') ? 'hoist' : 'app'
-                }
-
-                // Ensure namespace prefix matches source for 'app' and 'hoist'
-                if (source == 'app' && !name.startsWith(namespace + '.')) {
-                    id = id.withName("${namespace}.${name}")
-                } else if (source == 'hoist' && !name.startsWith('hoist.')) {
-                    id = id.withName("hoist.${name}")
                 }
 
                 // apply default tags (including source) if not present
@@ -249,10 +258,6 @@ class MetricsService extends BaseService {
 
     private static Map<String, String> prefixKeys(String prefix, Map config) {
         (config ?: [:]).collectEntries { k, v -> ["${prefix}.${k}".toString(), v?.toString()] }
-    }
-
-    private String getNamespace() {
-        config.namespace ?: appCode
     }
 
     private MetricsConfig getConfig() {

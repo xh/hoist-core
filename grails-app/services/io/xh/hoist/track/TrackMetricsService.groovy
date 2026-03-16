@@ -81,22 +81,22 @@ class TrackMetricsService extends BaseService {
             def tags = Tags.of('source', 'hoist', 'instance', 'cluster', 'clientApp', app),
                 registry = svc.metricsService.registry
 
-            messages = Counter.builder('client.track.messages')
+            messages = Counter.builder('hoist.client.track.messages')
                 .description('Track log entries received')
                 .tags(tags)
                 .register(registry)
 
-            errors = Counter.builder('client.track.errors')
+            errors = Counter.builder('hoist.client.track.errors')
                 .description('Client error track entries')
                 .tags(tags)
                 .register(registry)
 
-            totalTime = Timer.builder('client.load.totalTime')
+            totalTime = Timer.builder('hoist.client.load.totalTime')
                 .description('Total app load elapsed time')
                 .tags(tags)
                 .register(registry)
 
-            authTime = Timer.builder('client.load.authTime')
+            authTime = Timer.builder('hoist.client.load.authTime')
                 .description('App load authentication phase duration')
                 .tags(tags)
                 .register(registry)
