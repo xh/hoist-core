@@ -14,6 +14,7 @@ import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics
 import io.micrometer.core.instrument.Meter
+import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Tags
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry
 import io.micrometer.core.instrument.config.MeterFilter
@@ -43,8 +44,7 @@ import static io.xh.hoist.util.Utils.appCode
  *
  * Built-in support for Prometheus (pull-based) and OTLP (push-based) export registries,
  * configured dynamically via the {@code xhMetricsConfig} soft config entry. Additional
- * export registries (e.g. Datadog) can be added via {@code publishRegistry.add()} in
- * application bootstrap code.
+ * export registries (e.g. Datadog) can be added via {@link #addPublishRegistry}.
  *
  * The namespace prefix defaults to the application code and can be overridden via the
  * {@code namespace} key in {@code xhMetricsConfig}. Note that the namespace is applied
@@ -71,32 +71,24 @@ class MetricsService extends BaseService {
     final CompositeMeterRegistry registry = new CompositeMeterRegistry()
 
     /**
-     * Composite registry for all export sinks (Prometheus, OTLP, etc.).
-     *
-     * Applications can add additional export registries here via {@code publishRegistry.add()}.
-     * Only metrics listed in {@code xhMetricsPublished} are admitted to this registry.
-     */
-    final CompositeMeterRegistry publishRegistry = new CompositeMeterRegistry()
-
-    /**
      * An in-memory registry for *reading* the current metric values on this
      * instance.
      *
      * Not typically used by applications. To register a metric, use the `registry`
-     * property instead. To register a publishing sink, use `publishRegistry`.
+     * property instead. To register a publishing sink, use {@link #addPublishRegistry}.
      */
     final SimpleMeterRegistry readOnlyRegistry = new SimpleMeterRegistry()
 
     ConfigService configService
 
+    private final List<MeterRegistry> _publishRegistries = []
     private PrometheusMeterRegistry _prometheusRegistry
     private OtlpMeterRegistry _otlpRegistry
 
     void init() {
         registry.add(readOnlyRegistry)
-        registry.add(publishRegistry)
         applyFilters()
-        syncPublishRegistries()
+        syncConfig()
         bindJvmMetrics()
     }
 
@@ -126,6 +118,22 @@ class MetricsService extends BaseService {
     }
 
     /**
+     * Register an additional {@link MeterRegistry} to receive published metrics.
+     * A publish filter will be applied to the registry. Triggers a rebuild.
+     */
+    void addPublishRegistry(MeterRegistry reg) {
+        reg.config().meterFilter(publishFilter)
+        _publishRegistries.add(reg)
+        registry.add(reg)
+    }
+
+    /** Remove a previously registered publish {@link MeterRegistry}. */
+    void removePublishRegistry(MeterRegistry reg) {
+        _publishRegistries.remove(reg)
+        registry.remove(reg)
+    }
+
+    /**
      * Add or remove metric names from the published list.
      */
     void updatePublishedMetrics(List<String> names, boolean published) {
@@ -151,7 +159,7 @@ class MetricsService extends BaseService {
         // Deny cluster-scoped metrics on non-primary instances
         registry.config().meterFilter(new MeterFilter() {
             MeterFilterReply accept(Meter.Id id) {
-                if (!clusterService.isPrimary && id.tags.any { it.key == 'instance' && it.value == 'cluster' }) {
+                if (!clusterService.isPrimary && id.getTag('instance') == 'cluster') {
                     logError("Cluster-scoped metric registered on non-primary instance", id.name)
                     return DENY
                 }
@@ -159,32 +167,38 @@ class MetricsService extends BaseService {
             }
         })
 
-        // Apply namespace prefix and default tags
         registry.config().meterFilter(new MeterFilter() {
             Meter.Id map(Meter.Id id) {
-                def source = id.getTag('source') ?: 'app';
-                if (source == 'app') {
-                    id = id.withName("${namespace}.${id.name}")
-                } else if (source == 'hoist') {
-                    id = id.withName("hoist.${id.name}")
+                // default source
+                def name = id.name,
+                    source = id.getTag('source')
+                if (!source) {
+                    source = name.startsWith('hoist.') ? 'hoist' : 'app'
                 }
 
+                // Ensure namespace prefix matches source for 'app' and 'hoist'
+                if (source == 'app' && !name.startsWith(namespace + '.')) {
+                    id = id.withName("${namespace}.${name}")
+                } else if (source == 'hoist' && !name.startsWith('hoist.')) {
+                    id = id.withName("hoist.${name}")
+                }
+
+                // apply default tags (including source) if not present
                 [application: appCode, instance: instanceName, source: source].each { k, v ->
-                    if (!id.tags.any { it.key == k }) {
+                    if (!id.getTag(k)) {
                         id = id.withTags(Tags.of(k, v))
                     }
                 }
                 id
             }
         })
+    }
 
-        // Limit published metrics to those listed in xhMetricsPublished
-        publishRegistry.config().meterFilter(new MeterFilter() {
-            MeterFilterReply accept(Meter.Id id) {
-                def names = publishedMetrics as Set
-                names?.contains(id.name) ? NEUTRAL : DENY
-            }
-        })
+    /** Publish filter applied to each export registry individually. */
+    private final MeterFilter publishFilter = new MeterFilter() {
+        MeterFilterReply accept(Meter.Id id) {
+            publishedMetrics.contains(id.name) ? NEUTRAL : DENY
+        }
     }
 
     private void bindJvmMetrics() {
@@ -196,24 +210,27 @@ class MetricsService extends BaseService {
         new ProcessorMetrics(tags).bindTo(registry)
     }
 
-    private void syncPublishRegistries() {
-        withDebug(['Syncing publish registries', [prometheus: config.prometheusEnabled, otlp: config.otlpEnabled]]) {
+    private void syncConfig() {
+        withDebug(['Syncing config', [prometheus: config.prometheusEnabled, otlp: config.otlpEnabled]]) {
 
-            // Prometheus
+            // Remove all publish registries from main registry
+            _publishRegistries.each { registry.remove(it) }
+
+            // Tear down and rebuild built-in export registries
             if (_prometheusRegistry) {
-                publishRegistry.remove(_prometheusRegistry)
+                _publishRegistries.remove(_prometheusRegistry)
                 _prometheusRegistry.close()
                 _prometheusRegistry = null
             }
             if (config.prometheusEnabled) {
                 def conf = prefixKeys('prometheus', config.prometheusConfig)
                 _prometheusRegistry = new PrometheusMeterRegistry({conf[it]} as PrometheusConfig)
-                publishRegistry.add(_prometheusRegistry)
+                _prometheusRegistry.config().meterFilter(publishFilter)
+                _publishRegistries.add(_prometheusRegistry)
             }
 
-            // OTLP
             if (_otlpRegistry) {
-                publishRegistry.remove(_otlpRegistry)
+                _publishRegistries.remove(_otlpRegistry)
                 _otlpRegistry.stop()
                 _otlpRegistry.close()
                 _otlpRegistry = null
@@ -221,14 +238,12 @@ class MetricsService extends BaseService {
             if (config.otlpEnabled) {
                 def conf = prefixKeys('otlp', config.otlpConfig)
                 _otlpRegistry = new OtlpMeterRegistry({conf[it]} as OtlpConfig, Clock.SYSTEM)
-                publishRegistry.add(_otlpRegistry)
+                _otlpRegistry.config().meterFilter(publishFilter)
+                _publishRegistries.add(_otlpRegistry)
             }
 
-            // Clear and re-seat to force all meters through the publish filter again — ensures
-            // publishing changes apply to *all* sinks, including  app-added
-            registry.remove(publishRegistry)
-            publishRegistry.clear()
-            registry.add(publishRegistry)
+            // Re-add all publish registries — meters flow through each registry's filter
+            _publishRegistries.each { registry.add(it) }
         }
     }
 
@@ -247,10 +262,12 @@ class MetricsService extends BaseService {
 
     void clearCaches() {
         super.clearCaches()
-        syncPublishRegistries()
+        syncConfig()
     }
 
     Map getAdminStats() { [
-        config: configForAdminStats('xhMetricsConfig')
+        config: configForAdminStats('xhMetricsConfig'),
+        metrics: readOnlyRegistry.meters.size(),
+        publishedMetrics: _publishRegistries ? _publishRegistries.first().meters.size() : 0
     ] }
 }
