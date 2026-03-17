@@ -11,7 +11,6 @@ import grails.events.EventPublisher
 import groovy.transform.CompileStatic
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.Gauge
-import io.micrometer.core.instrument.Tags
 import io.xh.hoist.BaseService
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONSerializer
@@ -243,38 +242,31 @@ class WebSocketService extends BaseService implements EventPublisher {
     // Implementation
     //------------------------
     private void initMetrics() {
-        def prefix = 'websocket',
-            tags = Tags.of('source', 'infra'),
+        def prefix = 'hoist.websocket',
             registry = metricsService.registry
 
         channelGauge = Gauge.builder("${prefix}.channels", this, { _channels.size().toDouble() })
             .description('Active WebSocket channels')
-            .tags(tags)
             .register(registry)
 
         sentCounter = Counter.builder("${prefix}.messages.sent")
             .description('Messages sent successfully')
-            .tags(tags)
             .register(registry)
 
         receivedCounter = Counter.builder("${prefix}.messages.received")
             .description('Messages received from clients')
-            .tags(tags)
             .register(registry)
 
         sendErrorCounter = Counter.builder("${prefix}.messages.sendErrors")
             .description('Message send failures')
-            .tags(tags)
             .register(registry)
 
         sessionsOpenedCounter = Counter.builder("${prefix}.sessions.opened")
             .description('WebSocket sessions registered')
-            .tags(tags)
             .register(registry)
 
         sessionsClosedCounter = Counter.builder("${prefix}.sessions.closed")
             .description('WebSocket sessions unregistered')
-            .tags(tags)
             .register(registry)
     }
 

@@ -149,7 +149,7 @@ class ConnectionPoolMonitoringService extends BaseService {
         ]
 
         meters.each {
-            it.tag('source', 'infra')
+            it.tag('source', 'hoist')
             it.register(metricsService.registry)
         }
 

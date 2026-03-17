@@ -59,7 +59,7 @@ class MetricsService extends BaseService {
      *
      * All meters registered through this registry automatically receive default tags
      * ({@code application}, {@code instance}). A {@code source} tag also classifies
-     * each metric's origin — 'app' (default), 'hoist', or 'infra' are built-in sources, and
+     * each metric's origin — 'app' (default) or 'hoist' are built-in sources, and
      * 'app' will be provided as the default.
      */
     final CompositeMeterRegistry registry = new CompositeMeterRegistry()
@@ -193,7 +193,7 @@ class MetricsService extends BaseService {
     }
 
     private void bindJvmMetrics() {
-        def tags = Tags.of('source', 'infra')
+        def tags = Tags.of('source', 'hoist')
         new ClassLoaderMetrics(tags).bindTo(registry)
         new JvmMemoryMetrics(tags).bindTo(registry)
         new JvmGcMetrics(tags).bindTo(registry)
