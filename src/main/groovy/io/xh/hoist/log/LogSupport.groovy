@@ -141,13 +141,13 @@ trait LogSupport {
             ret = c.call()
         } catch (Exception e) {
             long elapsed = currentTimeMillis() - start
-            meta << [_status: 'failed', _elapsedMs: elapsed]
+            meta << ([_status: 'failed', _elapsedMs: elapsed] as Map)
             logAtLevel(log, level, msgs, meta)
             throw e
         }
 
         long elapsed = currentTimeMillis() - start
-        meta << [_status: 'completed', _elapsedMs: elapsed]
+        meta << ([_status: 'completed', _elapsedMs: elapsed] as Map)
         logAtLevel(log, level, msgs, meta)
 
         return ret

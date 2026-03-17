@@ -17,6 +17,7 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
 import org.apache.hc.client5.http.impl.classic.HttpClients
 
 import static io.opentelemetry.api.trace.SpanKind.CLIENT
+import static io.xh.hoist.telemetry.ObservedRun.observe
 import static io.xh.hoist.util.StringUtils.elide
 import static io.xh.hoist.util.Utils.traceService
 import static org.apache.hc.core5.http.HttpStatus.SC_NO_CONTENT
@@ -122,24 +123,9 @@ class JSONClient {
             method.setHeader('Accept', 'application/json')
         }
 
-
         try {
-            traceService.withSpan(
-                name: method.method,
-                kind: CLIENT,
-                tags: [
-                    'http.request.method': method.method,
-                    'url.full'           : method.uri,
-                    'server.address'     : method.uri.host,
-                    'source'             : 'hoist'
-                ]
-            ) { SpanRef span ->
-                traceService.injectContext(method)
-                ret = executeRaw(_client, method)
-                statusCode = ret.code
-                span?.setHttpStatus(statusCode)
-            }
-
+            ret = executeRaw(_client, method)
+            statusCode = ret.code
             success = (statusCode >= SC_OK  && statusCode <= SC_NO_CONTENT)
             if (!success) {
                 cause = parseException(ret)
@@ -160,7 +146,23 @@ class JSONClient {
     }
 
     protected CloseableHttpResponse executeRaw(CloseableHttpClient client, HttpUriRequestBase method) {
-        return client.execute(method)
+        observe(this)
+            .span(
+                name: method.method,
+                kind: CLIENT,
+                tags: [
+                    'http.request.method': method.method,
+                    'url.full'           : method.uri,
+                    'server.address'     : method.uri.host,
+                    'source'             : 'hoist'
+                ]
+            )
+            .run { SpanRef span ->
+                traceService.injectContext(method)
+                def ret = client.execute(method)
+                span?.setHttpStatus(ret.code)
+                ret
+            }
     }
 
     // Attempt to parse a reasonable exception from failed response, but never actually throw if not possible.

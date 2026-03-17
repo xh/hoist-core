@@ -12,9 +12,9 @@ delegate to no-op implementations, so no null checks are needed in application c
 ### Key capabilities
 
 - **Central service** — `TraceService` manages the OpenTelemetry SDK lifecycle, exporter
-  pipeline, and provides the `withSpan` API for instrumenting business logic.
-- **BaseService convenience** — `withSpan(name: ..., tags: ...) { }` is available directly on any
-  service, mirroring patterns like `getUser()` that delegate to framework services.
+  pipeline, and provides span creation APIs (`withSpan` and `createSpan`).
+- **Combined observability** — `ObservedRun` is a composable builder that wraps a closure with
+  any combination of tracing, logging, and metrics. Accessed via `BaseService.observe()`.
 - **Automatic request spans** — `TraceInterceptor` creates SERVER spans for controller actions.
   `HoistFilter` extracts incoming W3C `traceparent` headers so request spans join existing traces.
 - **Export** — OTLP (HTTP/protobuf) export configured via soft config. Applications can register
@@ -39,6 +39,7 @@ delegate to no-op implementations, so no null checks are needed in application c
 | `TraceService.groovy` | `grails-app/services/io/xh/hoist/telemetry/` | Central tracing service — SDK lifecycle, exporter pipeline, span API, context propagation |
 | `TraceInterceptor.groovy` | `grails-app/controllers/io/xh/hoist/telemetry/` | Creates SERVER spans for controller actions with HTTP semantic convention attributes |
 | `SpanRef.groovy` | `src/main/groovy/io/xh/hoist/telemetry/` | Wrapper around an active Span + Scope with tag/status/error helpers |
+| `ObservedRun.groovy` | `src/main/groovy/io/xh/hoist/telemetry/` | Composable builder for combined tracing + logging + metrics |
 | `TraceConfig.groovy` | `src/main/groovy/io/xh/hoist/telemetry/` | Typed wrapper around `xhTraceConfig` |
 | `ClientTraceService.groovy` | `grails-app/services/io/xh/hoist/telemetry/` | Receives client-side spans and relays through server export pipeline |
 | `ContextPropagatingPromiseFactory.groovy` | `src/main/groovy/io/xh/hoist/telemetry/` | Wraps Grails PromiseFactory to propagate OTel context to `task {}` worker threads |
@@ -55,41 +56,26 @@ the primary span creation API.
 
 ### `withSpan(args, closure)`
 
-The primary API for instrumenting application code. Creates a child span if a parent context
-exists, or a root span otherwise. Exceptions are recorded on the span and re-thrown. The closure
-receives the `SpanRef` as its argument (null when tracing is disabled).
+Execute a closure within a new trace span. Creates a child span if a parent context exists, or a
+root span otherwise. Exceptions are recorded on the span and re-thrown. The closure may optionally
+accept a `SpanRef` parameter (null when tracing is disabled).
 
-**Span arguments** (passed as named params):
+For combined tracing + logging + metrics, use `ObservedRun` via `BaseService.observe()` instead.
+
+**Arguments** (passed as named params):
 
 | Key | Type | Description |
 |-----|------|-------------|
 | `name` | String | Span name (required). |
 | `kind` | SpanKind | `INTERNAL` (default), `SERVER`, or `CLIENT`. |
 | `tags` | Map | Key-value attributes to set on the span. |
-
-**Additional convenience arguments:**
-
-| Key | Type | Description |
-|-----|------|-------------|
-| `logInfo` | Object | Log via `LogSupport.withInfo`. Pass `true` to use the span name, or a custom message. |
-| `logDebug` | Object | Log via `LogSupport.withDebug`. Same convention. |
-| `logTrace` | Object | Log via `LogSupport.withTrace`. Same convention. |
-| `timer` | Timer/String | Micrometer `Timer` to record elapsed time. Pass a pre-registered Timer or a String name to auto-register one. |
+| `caller` | Object | Object making the call, auto-sets the `code.namespace` attribute. |
 
 ```groovy
-class OrderService extends BaseService {
-
-    def processOrder(Map order) {
-        withSpan(name: 'processOrder', tags: [orderId: order.id]) {
-            // Business logic here — nested withSpan calls create child spans
-            def validated = withSpan(name: 'validateOrder') {
-                validateOrder(order)
-            }
-            withSpan(name: 'persistOrder') {
-                saveToDatabase(validated)
-            }
-        }
-    }
+traceService.withSpan(name: 'fetchData', kind: SpanKind.CLIENT, tags: [url: endpoint]) { SpanRef span ->
+    def result = httpClient.get(endpoint)
+    span?.setHttpStatus(result.statusCode)
+    result
 }
 ```
 
@@ -123,22 +109,100 @@ traceService.addExporter(
 
 ---
 
-## BaseService.withSpan
+## ObservedRun
 
-Every `BaseService` subclass has a `withSpan` convenience method that delegates to
-`TraceService.withSpan`, automatically setting the `caller` to the service instance:
+**File:** `src/main/groovy/io/xh/hoist/telemetry/ObservedRun.groovy`
+
+A composable builder for wrapping a closure with any combination of tracing, logging, and metrics.
+Each concern is opt-in via dedicated builder methods, then executed with `run()`. The closure is
+wrapped in an onion from outermost to innermost: span → log → timer → counter → closure.
+
+Access via `BaseService.observe()`, which creates a builder pre-configured with the service as
+the caller (used for span `code.namespace` and log context).
+
+### Builder methods
+
+| Method | Description |
+|--------|-------------|
+| `.span(name, kind?, tags?)` | Configure a trace span. |
+| `.logInfo(msg)` | Log at INFO via `LogSupport.withInfo`. |
+| `.logDebug(msg)` | Log at DEBUG via `LogSupport.withDebug`. |
+| `.logTrace(msg)` | Log at TRACE via `LogSupport.withTrace`. |
+| `.timer(Timer)` / `.timer(String)` | Record elapsed time on a Micrometer Timer. |
+| `.counter(Counter)` / `.counter(String)` | Increment a Micrometer Counter (counts attempts). |
+| `.run(closure)` | Terminal — execute with all configured observability. |
+
+### Multi-level logging
+
+When multiple log levels are configured, `ObservedRun` selects the finest enabled level at
+`run()` time. This allows callers to specify both a coarse and fine message — the finest enabled
+level wins:
 
 ```groovy
-class MyService extends BaseService {
-    def doWork() {
-        withSpan(name: 'doWork') {
-            // Traced automatically
-        }
+observe()
+    .span(name: 'importData')
+    .logInfo('Importing data')
+    .logDebug(['Importing data', [source: url, batchSize: n]])
+    .run {
+        // If DEBUG is enabled: logs with the detailed debug message
+        // Otherwise: logs with the shorter info message
+    }
+```
+
+### Examples
+
+**Span + log + timer** (most common pattern):
+
+```groovy
+class PortfolioService extends BaseService {
+
+    Timer generationTimer  // pre-registered Micrometer timer
+
+    private Portfolio generatePortfolio() {
+        observe()
+            .span(name: 'generatePortfolio')
+            .logInfo('Generating Portfolio')
+            .timer(generationTimer)
+            .run {
+                // business logic
+            }
     }
 }
 ```
 
-This parallels existing convenience patterns like `getUser()` → `identityService.user`.
+**Span + log only:**
+
+```groovy
+observe()
+    .span(name: 'generateOrders')
+    .logDebug("Generating ${count} orders")
+    .run {
+        // business logic
+    }
+```
+
+**Span with SpanRef access:**
+
+```groovy
+observe()
+    .span(name: 'processOrder', tags: [orderId: id])
+    .run { SpanRef span ->
+        def result = doWork()
+        span?.setTag('resultCount', result.size())
+        result
+    }
+```
+
+**Standalone (no BaseService):**
+
+```groovy
+ObservedRun.observe(this)
+    .span(name: 'myOp')
+    .logDebug('Working')
+    .run {
+        // works from any LogSupport implementor
+    }
+```
 
 ---
 

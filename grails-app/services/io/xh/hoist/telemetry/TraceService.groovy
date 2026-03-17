@@ -28,10 +28,8 @@ import io.opentelemetry.sdk.trace.samplers.SamplingResult
 import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter
 import io.opentelemetry.sdk.trace.export.SpanExporter
 import io.micrometer.core.instrument.Counter
-import io.micrometer.core.instrument.Timer
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.log.LogSupport
 import jakarta.servlet.http.HttpServletRequest
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
 
@@ -103,57 +101,16 @@ class TraceService extends BaseService {
     /**
      * Execute a closure within a new trace span.
      *
-     * Creates a child span under the current context. Exceptions are recorded
-     * on the span and re-thrown. See {@link #createSpan} for parameter documentation.
-     * Additionally supports the following convenience:
+     * Creates a child span under the current context. Exceptions are recorded on the span and
+     * re-thrown. See {@link #createSpan} for parameter documentation.
      *
-     * @param args.logInfo - (optional) log messages (or true) to log via LogSupport.withInfo.
-     * @param args.logTrace - (optional) log messages (or true) to log via LogSupport.withTrace.
-     * @param args.logDebug - (optional) log messages (or true) to log via LogSupport.withDebug.
-     *
-     * @param args.timer - (optional) Micrometer Timer to record the closure's elapsed time.
-     *      Pass a pre-registered {@link io.micrometer.core.instrument.Timer} instance for hot paths,
-     *      or a String metric name to auto-register a tag-free timer. Pre-register if you need
-     *      custom tags or are calling from a hot loop.
-     *
-     * Note: the withXXLog arguments require that the caller implements {@link LogSupport}.
+     * For combined tracing + logging + metrics, use {@link ObservedRun} via
+     * {@link BaseService#observe()}.
      */
     <T> T withSpan(Map args, Closure<T> c) {
         SpanRef span = createSpan(args.subMap(['name', 'kind', 'tags', 'caller']))
-
-        // 1) Potentially wrap with logging
-        def entry = args.find {it.key == 'logInfo' || it.key == 'logDebug' || it.key == 'logTrace'}
-        if (entry) {
-            if (!(args.caller instanceof LogSupport)) {
-                throw new RuntimeException('caller argument must implement LogSupport')
-            }
-            LogSupport caller = args.caller as LogSupport
-            Object msg = entry.value === true ? args.name : entry.value,
-                original = c
-            switch (entry.key) {
-                case 'logInfo':
-                    c = { s -> caller.withInfo(msg) { original(s) } }
-                    break;
-                case 'logDebug':
-                    c = { s -> caller.withDebug(msg) { original(s) } }
-                    break;
-                case 'logTrace':
-                    c = { s -> caller.withTrace(msg) { original(s) } }
-                    break;
-            }
-        }
-
-        // 2) Potentially wrap with timer
-        if (args.timer) {
-            def original = c,
-                timer = args.timer instanceof Timer ?
-                    args.timer as Timer :
-                    Timer.builder(args.timer.toString()).register(metricsService.registry)
-            c = { s -> timer.recordCallable { original(s) } }
-        }
-
         try {
-            return c.call(span)
+            return c.maximumNumberOfParameters > 0 ? c.call(span) : c.call()
         } catch (Throwable t) {
             span?.recordException(t)
             throw t
