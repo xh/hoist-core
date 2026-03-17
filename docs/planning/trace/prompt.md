@@ -1,3 +1,14 @@
+---
+status: archived
+type: planning-prompt
+description: Original prompt used to plan the distributed tracing feature
+created: 2026-03
+note: >
+  Historical artifact — do not treat as current requirements or implementation guidance.
+  The actual implementation may differ. Refer to the codebase and docs/tracing.md for
+  the authoritative state.
+---
+
 # Distributed Tracing for Hoist Core
 
 ## Goal

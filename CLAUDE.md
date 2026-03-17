@@ -305,3 +305,9 @@ When working on hoist-core library code or documentation, reference Toolbox for 
 examples of how features are used in applications. Note that the local checkout is specific to
 the Hoist development environment and would not be available to general application developers
 who have hoist-core as a dependency.
+
+## Planning Artifacts
+
+Files under `docs/planning/` are historical process artifacts (prompts, design notes, decision
+logs). Check YAML frontmatter for `status: archived` — these do not reflect current requirements
+or implementation. Always prefer the codebase and feature docs (`docs/*.md`) as authoritative.
