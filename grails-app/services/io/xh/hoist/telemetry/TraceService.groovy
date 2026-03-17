@@ -53,8 +53,8 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS
  * Use {@link #withSpan} to execute a closure within a span (primary API, also on BaseService),
  * or {@link #createSpan} to start a span with manual lifecycle management (for interceptors, etc.).
  *
- * For context propagation, use {@link #restoreContextFromTraceparent} and {@link #injectContext} for HTTP requests,
- * or {@link #captureTraceparent} / {@link #restoreContext(String)} for non-HTTP propagation
+ * For context propagation, use {@link #restoreContextFromRequest} and {@link #injectContext} for HTTP requests,
+ * or {@link #captureTraceparent} / {@link #restoreContextFromTraceparent} for non-HTTP propagation
  * (e.g. cluster tasks).
  */
 @CompileStatic
