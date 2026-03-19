@@ -49,6 +49,7 @@ that could pre-select a set of libraries and bring together higher-level service
 * User management and pluggable authentication
 * User preferences
 * Status monitoring and health checks
+* Distributed tracing and combined observability
 * Error reporting and feedback
 * Customized / wrapped components, including grids, charts, and dashboards
 * Shared and consistent formatters (dates/numbers) and styles
@@ -399,6 +400,39 @@ notifications.
 
 🔮 Note an XH project is underway to provide a more general and cross-application
 implementation of this monitoring API for both Hoist and non-Hoist based applications.
+
+
+### Distributed Tracing
+
+|         Class/File         |                 Note                  |                                  Link                                   |
+|----------------------------|---------------------------------------|:-----------------------------------------------------------------------:|
+| `TraceService.groovy`      | Central tracing service — SDK lifecycle, exporter pipeline, span API | [🏗](grails-app/services/io/xh/hoist/telemetry/TraceService.groovy) |
+| `ObservedRun.groovy`       | Composable builder for combined tracing + logging + metrics | [🏗](src/main/groovy/io/xh/hoist/telemetry/ObservedRun.groovy) |
+| `SpanRef.groovy`           | Wrapper around an active Span + Scope with tag/status helpers | [🏗](src/main/groovy/io/xh/hoist/telemetry/SpanRef.groovy) |
+| `TraceInterceptor.groovy`  | Creates SERVER spans for controller actions | [🏗](grails-app/controllers/io/xh/hoist/telemetry/TraceInterceptor.groovy) |
+
+🔍 Hoist provides OpenTelemetry-based distributed tracing with OTLP export, configured dynamically
+via the `xhTraceConfig` soft config. Tracing is disabled by default with negligible overhead — all
+public methods delegate to no-ops when disabled.
+
+`TraceService` provides the core span API (`withSpan` and `createSpan`), while `ObservedRun`
+offers a composable builder accessed via `BaseService.observe()` that wraps a closure with any
+combination of tracing, logging, and Micrometer metrics in a single fluent call chain:
+
+```groovy
+observe()
+    .span(name: 'generatePortfolio')
+    .logInfo('Generating Portfolio')
+    .timer(generationTimer)
+    .run {
+        // business logic
+    }
+```
+
+Additional capabilities include automatic SERVER spans for controller actions, W3C `traceparent`
+propagation on both inbound and outbound HTTP calls, trace context propagation across Hazelcast
+cluster tasks and Grails `task {}` threads, client span relay for end-to-end browser-to-server
+traces, and log correlation via `traceId` on log markers.
 
 ## Development setup
 

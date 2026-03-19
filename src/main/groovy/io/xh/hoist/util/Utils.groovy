@@ -28,6 +28,7 @@ import io.xh.hoist.role.BaseRoleService
 import io.xh.hoist.security.BaseAuthenticationService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.user.IdentityService
+import io.xh.hoist.telemetry.TraceService
 import io.xh.hoist.websocket.WebSocketService
 import org.grails.web.servlet.mvc.GrailsWebRequest
 
@@ -135,6 +136,10 @@ class Utils {
 
     static PrefService getPrefService() {
         return (PrefService) appContext.prefService
+    }
+
+    static TraceService getTraceService() {
+        return (TraceService) appContext.traceService
     }
 
     static WebSocketService getWebSocketService() {
@@ -249,6 +254,12 @@ class Utils {
     //------------------
     // Misc/Other
     //------------------
+    /** Prefix all keys in a map with a given string, converting values to Strings. */
+    static Map<String, String> prefixKeys(String prefix, Map config) {
+        (config ?: [:]).collectEntries { k, v -> ["${prefix}.${k}".toString(), v?.toString()] } as Map<String, String>
+    }
+
+
     /**
      * Get the current request, or null if caller is not executing in the context of an HTTP request
      * (e.g. a service Timer or other async code).

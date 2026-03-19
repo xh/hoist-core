@@ -133,13 +133,11 @@ class MetricsService extends BaseService {
 
     /**
      * Add or remove metric names from the published list.
-     * Culls any names that no longer correspond to registered metrics.
      */
     void updatePublishedMetrics(List<String> names, boolean published) {
         def current = publishedMetrics,
-            updated = published ? (current + names).unique() : current - names,
-            knownNames = readOnlyRegistry.meters.collect { it.id.name } as Set
-        configService.setValue('xhMetricsPublished', updated.findAll { knownNames.contains(it) })
+            updated = published ? (current + names).unique() : current - names
+        configService.setValue('xhMetricsPublished', updated)
     }
 
     /**
@@ -240,7 +238,7 @@ class MetricsService extends BaseService {
         }
     }
 
-    private static Map<String, String> prefixKeys(String prefix, Map config) {
+    private static Map<String, String> prefixKeys(String prefix, Map<String, String> config) {
         (config ?: [:]).collectEntries { k, v -> ["${prefix}.${k}".toString(), v?.toString()] }
     }
 

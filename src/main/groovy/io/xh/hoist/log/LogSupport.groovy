@@ -8,6 +8,7 @@
 package io.xh.hoist.log
 
 import ch.qos.logback.classic.Level
+import groovy.transform.CompileStatic
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -19,6 +20,7 @@ import static ch.qos.logback.classic.Level.TRACE
 import static io.xh.hoist.util.Utils.getIdentityService
 import static java.lang.System.currentTimeMillis
 
+@CompileStatic
 trait LogSupport {
 
     /**
@@ -139,13 +141,13 @@ trait LogSupport {
             ret = c.call()
         } catch (Exception e) {
             long elapsed = currentTimeMillis() - start
-            meta << [_status: 'failed', _elapsedMs: elapsed]
+            meta << ([_status: 'failed', _elapsedMs: elapsed] as Map)
             logAtLevel(log, level, msgs, meta)
             throw e
         }
 
         long elapsed = currentTimeMillis() - start
-        meta << [_status: 'completed', _elapsedMs: elapsed]
+        meta << ([_status: 'completed', _elapsedMs: elapsed] as Map)
         logAtLevel(log, level, msgs, meta)
 
         return ret

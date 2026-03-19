@@ -4,6 +4,14 @@
 
 ### 🎁 New Features
 
+* Added OpenTelemetry-based distributed tracing with end-to-end support across client and server.
+  Configured via `xhTraceConfig` soft config with OTLP export.
+  See [`docs/tracing.md`](docs/tracing.md).
+    - `TraceService` with `withSpan` and `createSpan` APIs for instrumenting business logic, automatic request spans, outbound HTTP propagation, and cluster context propagation.
+    - `ObservedRun` composable builder via `BaseService.observe()` wraps a closure with any combination of tracing, logging, and Micrometer metrics in a single fluent call chain.
+    - Client span relay via `ClientTraceService` — browser-generated spans are exported through the same server-side pipeline for coherent end-to-end traces.
+    - Automatic trace context propagation across Grails `task {}` thread boundaries.
+
 * Added an MCP (Model Context Protocol) server for AI coding agents. Provides searchable access to
   all Hoist Core documentation and Groovy/Java symbol introspection (classes, interfaces, methods,
   properties). Can run locally from source or as a published fat JAR from Maven Central.
@@ -18,7 +26,10 @@
 
 ### ⚙️ Technical
 
-* Refactored documentation indexing to better support both MCP (LLM) and the Toolbox Docs viewer.
+* `LogSupportMarker` now captures `traceId` as a first-class property, populated automatically
+  from the current span context at log time. The default `LogSupportConverter` appends trace
+  correlation info (`traceId=...`) for ERROR-level and above.
+* Refactored documentation indexing to better support both MCP (LLM) and the toolbox docviewer.
 * Added `LogbackConfig.suppressStackTrace()` to filter out stack traces from noisy external
   loggers. The exception message is still logged; full stack traces are available at TRACE level.
 * Removed automatic namespace prefixing from `MetricsService`. Metrics are now registered under

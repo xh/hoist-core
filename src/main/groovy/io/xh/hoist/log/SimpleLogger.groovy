@@ -6,12 +6,14 @@
  */
 package io.xh.hoist.log
 
+import groovy.transform.CompileStatic
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 /**
  * A concrete instance of Log Support that allows logging to an arbitrary logger.
  */
+@CompileStatic
 class SimpleLogger implements LogSupport {
 
     String loggerName

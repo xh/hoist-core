@@ -23,6 +23,7 @@ class BootStrap implements LogSupport {
         configService,
         clusterService,
         metricsService,
+        traceService,
         prefService
 
     def init = {servletContext ->
@@ -36,6 +37,7 @@ class BootStrap implements LogSupport {
         parallelInit([logLevelService])
         parallelInit([clusterService])
         parallelInit([metricsService])
+        parallelInit([traceService])
 
         // All other services in parallel
         def services = Utils.xhServices.findAll {it.class.canonicalName.startsWith('io.xh.hoist')}
@@ -318,6 +320,18 @@ class BootStrap implements LogSupport {
                 ],
                 groupName: 'xh.io',
                 note: 'Parameters for observable metric support'
+            ],
+            xhTraceConfig: [
+                valueType: 'json',
+                defaultValue: [
+                    enabled: false,
+                    sampleRate: 1.0,
+                    otlpEnabled: false,
+                    otlpConfig: [:]
+                ],
+                clientVisible: true,
+                groupName: 'xh.io',
+                note: 'Parameters for distributed tracing support.'
             ],
             xhMetricsPublished: [
                 valueType: 'json',

@@ -7,9 +7,13 @@
 
 package io.xh.hoist.log
 
+import ch.qos.logback.classic.Level
+import org.slf4j.Logger
 import ch.qos.logback.classic.pattern.ClassicConverter
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.spi.ThrowableProxy
+import groovy.transform.CompileStatic
+
 import static io.xh.hoist.util.Utils.getExceptionHandler
 
 /**
@@ -32,20 +36,26 @@ import static io.xh.hoist.util.Utils.getExceptionHandler
  * Developers wishing to output log entries with a different layout can create their own converter
  * and layout strings in their application's /grails-app/conf/logback.groovy file.
  */
+@CompileStatic
 class LogSupportConverter extends ClassicConverter {
 
     String convert(ILoggingEvent event) {
         if (!(event.marker instanceof LogSupportMarker)) return event.formattedMessage
 
-        LogSupportMarker marker = event.marker as LogSupportMarker;
+        LogSupportMarker marker = event.marker as LogSupportMarker
         List messages = marker.messages.flatten()
 
         // 1) Core of the messages is just pipe delimited.
-        def ret = messages
-            .collect { formatObject(it) }
-            .join(delimiter)
+        List parts = messages.collect { formatObject(it) }
 
-        // 2) Potentially append stack trace on trace.
+        // 2) Append context fields from marker.
+        if (marker.traceId && event.level.isGreaterOrEqual(Level.ERROR)) {
+            parts << "traceId=${marker.traceId}".toString()
+        }
+
+        def ret = parts.join(delimiter)
+
+        // 3) Potentially append stack trace on trace.
         if (marker.logger.isTraceEnabled() && messages.last() instanceof Throwable) {
             ret += formatStacktrace(messages.last() as Throwable)
         }
