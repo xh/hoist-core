@@ -81,7 +81,7 @@ class TraceService extends BaseService {
             .tags('source', 'infra')
             .register(registry)
         _spansCreated = Counter.builder('trace.spans.created')
-            .description('Total spans created (i.e. that passed sampling')
+            .description('Total spans created (i.e. that passed sampling)')
             .tags('source', 'infra')
             .register(registry)
 
@@ -265,7 +265,9 @@ class TraceService extends BaseService {
      * threads spawned by Grails {@code task {}} calls. Installed once at startup.
      */
     private void installContextPropagation() {
-        Promises.promiseFactory = new ContextPropagatingPromiseFactory(Promises.promiseFactory)
+        if (!(Promises.promiseFactory instanceof ContextPropagatingPromiseFactory)) {
+            Promises.promiseFactory = new ContextPropagatingPromiseFactory(Promises.promiseFactory)
+        }
     }
 
     private TraceConfig getConfig() {

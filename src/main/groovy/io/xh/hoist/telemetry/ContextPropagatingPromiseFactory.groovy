@@ -33,10 +33,45 @@ class ContextPropagatingPromiseFactory implements PromiseFactory {
 
     @Override
     <T> Promise<T> createPromise(Closure<T>... closures) {
-        def ctx = Context.current()
-        def wrapped = closures.collect {c ->
-            { -> ctx.makeCurrent().withCloseable { c.call() } }
-        }
+        def wrapped = wrapClosures(closures as List<Closure<T>>)
         delegate.createPromise(wrapped as Closure[])
+    }
+
+    @Override
+    <T> Promise<T> createPromise(Closure<T> closure, List decorators) {
+        delegate.createPromise(wrapClosure(closure), decorators)
+    }
+
+    @Override
+    <T> Promise<List<T>> createPromise(List<Closure<T>> closures) {
+        delegate.createPromise(wrapClosures(closures))
+    }
+
+    @Override
+    <T> Promise<List<T>> createPromise(List<Closure<T>> closures, List decorators) {
+        delegate.createPromise(wrapClosures(closures), decorators)
+    }
+
+    @Override
+    <K, T> Promise<Map<K, T>> createPromise(Map<K, Closure<T>> promises) {
+        delegate.createPromise(wrapPromises(promises))
+    }
+
+    @Override
+    <K, T> Promise<Map<K, T>> createPromise(Map<K, Closure<T>> promises, List decorators) {
+        delegate.createPromise(wrapPromises(promises), decorators)
+    }
+
+    private <T> Closure<T> wrapClosure(Closure<T> closure) {
+        def ctx = Context.current()
+        return { -> ctx.makeCurrent().withCloseable { closure.call() } } as Closure<T>
+    }
+
+    private <T> List<Closure<T>> wrapClosures(List<Closure<T>> closures) {
+        closures.collect { wrapClosure(it) }
+    }
+
+    private <K, T> Map<K, Closure<T>> wrapPromises(Map<K, Closure<T>> promises) {
+        promises.collectEntries { k, v -> [k, wrapClosure(v)] } as Map<K, Closure<T>>
     }
 }
