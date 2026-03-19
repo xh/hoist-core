@@ -22,6 +22,7 @@ import io.opentelemetry.context.propagation.TextMapSetter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.resources.Resource
 import io.opentelemetry.sdk.trace.SdkTracerProvider
+import io.opentelemetry.sdk.trace.data.SpanData
 import io.opentelemetry.sdk.trace.export.BatchSpanProcessor
 import io.opentelemetry.sdk.trace.samplers.Sampler
 import io.opentelemetry.sdk.trace.samplers.SamplingResult
@@ -65,7 +66,7 @@ class TraceService extends BaseService {
     ConfigService configService
     MetricsService metricsService
 
-    private final List<SpanExporter> _exporters = []
+    private List<SpanExporter> _customExporters = []
     private OpenTelemetrySdk _otelSdk
     private SpanExporter _otlpExporter
     private Resource _resource
@@ -76,13 +77,11 @@ class TraceService extends BaseService {
 
     void init() {
         def registry = metricsService.registry
-        _spansRequested = Counter.builder('trace.spans.requested')
-            .description('Total spans requested')
-            .tags('source', 'infra')
+        _spansRequested = Counter.builder('hoist.trace.spans.requested')
+            .description('Total spans evaluated for sampling — includes server and client-relayed spans')
             .register(registry)
-        _spansCreated = Counter.builder('trace.spans.created')
-            .description('Total spans created (i.e. that passed sampling)')
-            .tags('source', 'infra')
+        _spansCreated = Counter.builder('hoist.trace.spans.created')
+            .description('Total spans that passed sampling — includes server and client-relayed spans')
             .register(registry)
 
         installContextPropagation()
@@ -140,9 +139,10 @@ class TraceService extends BaseService {
         /** Object making the call, used to auto-set the 'code.namespace' attribute. */
         @NamedParam Object caller = null
     ) {
-        if (!enabled) return null
+        def sdk = _otelSdk
+        if (!sdk) return null
 
-        def spanBuilder = _otelSdk.getTracer('io.xh.hoist').spanBuilder(name).setSpanKind(kind),
+        def spanBuilder = sdk.getTracer('io.xh.hoist').spanBuilder(name).setSpanKind(kind),
             span = spanBuilder.startSpan(),
             pending = new SpanRef(span, span.makeCurrent(), kind)
 
@@ -162,14 +162,14 @@ class TraceService extends BaseService {
      * Register an additional {@link SpanExporter} to receive both server-generated and
      * client-relayed spans. Triggers a pipeline rebuild.
      */
-    void addExporter(SpanExporter exporter) {
-        _exporters.add(exporter)
+    synchronized void addExporter(SpanExporter exporter) {
+        _customExporters = _customExporters + [exporter]
         syncConfig()
     }
 
     /** Remove a previously registered {@link SpanExporter}. */
-    void removeExporter(SpanExporter exporter) {
-        _exporters.remove(exporter)
+    synchronized void removeExporter(SpanExporter exporter) {
+        _customExporters = _customExporters - [exporter]
         syncConfig()
     }
 
@@ -182,8 +182,9 @@ class TraceService extends BaseService {
      * No-op if tracing is disabled or no active span exists.
      */
     void injectContext(HttpUriRequestBase request) {
-        if (!enabled || !Span.current().spanContext.valid) return
-        _otelSdk.propagators.textMapPropagator.inject(Context.current(), request, HTTP_SETTER)
+        def sdk = _otelSdk
+        if (!sdk || !Span.current().spanContext.valid) return
+        sdk.propagators.textMapPropagator.inject(Context.current(), request, HTTP_SETTER)
     }
 
     /**
@@ -191,9 +192,10 @@ class TraceService extends BaseService {
      * Returns null if tracing is disabled or no active span exists.
      */
     String captureTraceparent() {
-        if (!enabled || !Span.current().spanContext.valid) return null
+        def sdk = _otelSdk
+        if (!sdk || !Span.current().spanContext.valid) return null
         Map<String, String> carrier = [:]
-        _otelSdk.propagators.textMapPropagator.inject(Context.current(), carrier, MAP_SETTER)
+        sdk.propagators.textMapPropagator.inject(Context.current(), carrier, MAP_SETTER)
         carrier.traceparent
     }
 
@@ -204,8 +206,9 @@ class TraceService extends BaseService {
      * or null if the traceparent is null/empty or tracing is disabled.
      */
     Scope restoreContextFromTraceparent(String traceparent) {
-        if (!traceparent || !enabled) return null
-        def context = _otelSdk.propagators.textMapPropagator.extract(Context.current(),  [traceparent: traceparent], MAP_GETTER)
+        def sdk = _otelSdk
+        if (!traceparent || !sdk) return null
+        def context = sdk.propagators.textMapPropagator.extract(Context.current(), [traceparent: traceparent], MAP_GETTER)
         context.makeCurrent()
     }
 
@@ -216,8 +219,9 @@ class TraceService extends BaseService {
      * or null if the traceparent is null/empty or tracing is disabled.
      */
     Scope restoreContextFromRequest(HttpServletRequest request) {
-        if (!enabled) return null
-        def context = _otelSdk.propagators.textMapPropagator.extract(Context.current(), request, HTTP_GETTER)
+        def sdk = _otelSdk
+        if (!sdk) return null
+        def context = sdk.propagators.textMapPropagator.extract(Context.current(), request, HTTP_GETTER)
         context.makeCurrent()
     }
 
@@ -225,11 +229,31 @@ class TraceService extends BaseService {
     //--------------------------------------------------
     // Framework-internal
     //--------------------------------------------------
-    /** @internal - Configured span exporters for direct export of client-relayed spans. */
-    List<SpanExporter> getExporters() { _exporters.asImmutable() }
+    /**
+     * Submit client-side spans received from the browse.
+     *
+     * Converts the client span JSON into OTel {@link io.opentelemetry.sdk.trace.data.SpanData} objects and exports them
+     * through the configured export pipeline, preserving the original trace/span IDs so
+     * that client and server spans form a coherent distributed trace.
+     *
+     * Spans are filtered using the same deterministic trace-ID-based sampling as
+     * server-originated spans, ensuring consistent sampling across both paths.
+     *
+     * @param spans - list of span maps as serialized by the client {@code Span.toJSON()}
+     */
+    void submitClientSpans(List<Map> spans) {
+        def resource = _resource
+        if (!resource) return
 
-    /** @internal - The OTel Resource describing this application instance. */
-    Resource getTracingResource() { _resource }
+        def data = spans
+            .findAll { shouldSample(it.traceId as String) }
+            .collect { new ClientSpanData(it, resource) } as List<SpanData>
+
+        eachExporter { SpanExporter e ->
+            e.export(data)
+        }
+    }
+
 
     /**
      * Determine if a trace should be sampled based on its trace ID.
@@ -244,13 +268,17 @@ class TraceService extends BaseService {
     boolean shouldSample(String traceId) {
         _spansRequested?.increment()
         boolean ret
-        if (_sampleRate >= 1.0){
+        if (_sampleRate >= 1.0) {
             ret = true
         } else if (_sampleRate <= 0.0) {
             ret = false
         } else {
-            long lowerLong = Long.parseUnsignedLong(traceId.substring(16), 16)
-            ret = Long.compareUnsigned(lowerLong, (long) (Long.MAX_VALUE * _sampleRate)) < 0
+            try {
+                long lowerLong = Long.parseUnsignedLong(traceId.substring(16), 16)
+                ret = Long.compareUnsigned(lowerLong, (long) (Long.MAX_VALUE * _sampleRate)) < 0
+            } catch (Exception ignored) {
+                ret = false
+            }
         }
         if (ret) _spansCreated?.increment()
         return ret
@@ -274,7 +302,7 @@ class TraceService extends BaseService {
         new TraceConfig(configService.getMap('xhTraceConfig'))
     }
 
-    private void syncConfig() {
+    private synchronized void syncConfig() {
         def config = getConfig()
 
         withDebug(['Syncing tracing pipeline', [enabled: config.enabled, otlp: config.otlpEnabled]]) {
@@ -299,10 +327,6 @@ class TraceService extends BaseService {
                 .setSampler(_sampler)
 
             // Built-in OTLP exporter
-            if (_otlpExporter) {
-                _exporters.remove(_otlpExporter)
-                _otlpExporter = null
-            }
             if (config.otlpEnabled) {
                 def otlpBuilder = OtlpHttpSpanExporter.builder()
                 def conf = config.otlpConfig
@@ -318,12 +342,13 @@ class TraceService extends BaseService {
                     }
                 }
                 _otlpExporter = otlpBuilder.build()
-                _exporters.add(_otlpExporter)
+            } else {
+                _otlpExporter = null
             }
 
             // Add all exporters
-            exporters.each {
-                providerBuilder.addSpanProcessor(BatchSpanProcessor.builder(it).build())
+            eachExporter {SpanExporter e ->
+                providerBuilder.addSpanProcessor(BatchSpanProcessor.builder(e).build())
             }
 
             _otelSdk = OpenTelemetrySdk.builder()
@@ -331,6 +356,12 @@ class TraceService extends BaseService {
                 .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.instance))
                 .build()
         }
+    }
+
+    private void eachExporter(Closure c) {
+        _customExporters.each(c)
+        def _otlp = _otlpExporter
+        if (_otlp) c(_otlp)
     }
 
     private void shutdownProvider() {
@@ -364,7 +395,7 @@ class TraceService extends BaseService {
     ]}
 
     /** Shared getter for extracting trace context from incoming servlet requests. */
-    private static final TextMapGetter<HttpServletRequest> HTTP_GETTER =
+    private final TextMapGetter<HttpServletRequest> HTTP_GETTER =
         new TextMapGetter<HttpServletRequest>() {
             Iterable<String> keys(HttpServletRequest carrier) {
                 Collections.list(carrier.headerNames)
