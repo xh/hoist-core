@@ -8,11 +8,6 @@
 package io.xh.hoist.telemetry
 
 import groovy.transform.CompileStatic
-import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics
-import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics
-import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics
-import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics
-import io.micrometer.core.instrument.binder.system.ProcessorMetrics
 import io.micrometer.core.instrument.Meter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Tags
@@ -27,7 +22,6 @@ import io.micrometer.registry.otlp.OtlpConfig
 import io.micrometer.registry.otlp.OtlpMeterRegistry
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
-
 
 import static io.micrometer.core.instrument.config.MeterFilterReply.DENY
 import static io.micrometer.core.instrument.config.MeterFilterReply.NEUTRAL
@@ -83,7 +77,6 @@ class MetricsService extends BaseService {
         registry.add(readOnlyRegistry)
         applyFilters()
         syncConfig()
-        bindJvmMetrics()
     }
 
 
@@ -173,7 +166,7 @@ class MetricsService extends BaseService {
                 def name = id.name,
                     source = id.getTag('source')
                 if (!source) {
-                    source = name.startsWith('hoist.') ? 'hoist' : 'app'
+                    source = isDefaultHoistSource(name) ? 'hoist' : 'app'
                 }
 
                 // apply default tags (including source) if not present
@@ -194,13 +187,9 @@ class MetricsService extends BaseService {
         }
     }
 
-    private void bindJvmMetrics() {
-        def tags = Tags.of('source', 'hoist')
-        new ClassLoaderMetrics(tags).bindTo(registry)
-        new JvmMemoryMetrics(tags).bindTo(registry)
-        new JvmGcMetrics(tags).bindTo(registry)
-        new JvmThreadMetrics(tags).bindTo(registry)
-        new ProcessorMetrics(tags).bindTo(registry)
+    private static boolean isDefaultHoistSource(String name) {
+        ['hoist.', 'jdbc.', 'jvm.', 'system.', 'process.', 'disk.', 'logback.', 'tomcat.']
+            .any { name.startsWith(it) }
     }
 
     private void syncConfig() {
@@ -241,7 +230,7 @@ class MetricsService extends BaseService {
     }
 
     private static Map<String, String> prefixKeys(String prefix, Map config) {
-        (config ?: [:]).collectEntries { k, v -> ["${prefix}.${k}".toString(), v?.toString()] }
+        (config ?: [:]).collectEntries { k, v -> ["${prefix}.${k}".toString(), v?.toString()] } as Map<String, String>
     }
 
     private MetricsConfig getConfig() {

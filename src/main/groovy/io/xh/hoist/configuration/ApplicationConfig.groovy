@@ -36,9 +36,12 @@ class ApplicationConfig {
                 main.'allow-circular-references' = true
                 groovy.template.'check-template-location' = false
                 devtools.restart.exclude = ['grails-app/conf/**']
+                // Hoist manages its own MeterRegistry, export sinks, and HTTP metrics
+                // disable Spring's auto-configured equivalents to avoid duplicate
                 autoconfigure.exclude = [
-                    'org.springframework.boot.actuate.autoconfigure.metrics.export.prometheus.PrometheusMetricsExportAutoConfiguration',
-                    'org.springframework.boot.actuate.autoconfigure.metrics.export.otlp.OtlpMetricsExportAutoConfiguration'
+                    'org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration',
+                    'org.springframework.boot.actuate.autoconfigure.metrics.CompositeMeterRegistryAutoConfiguration',
+                    'org.springframework.boot.actuate.autoconfigure.observation.web.servlet.WebMvcObservationAutoConfiguration'
                 ]
             }
 

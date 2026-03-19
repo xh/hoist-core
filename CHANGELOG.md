@@ -18,6 +18,8 @@
 
 ### ⚙️ Technical
 
+* Added `StandardMetricsService` to register built-in infrastructure metrics with `MetricsService`.
+  Binds standard Micrometer meter binders for JVM, system, Tomcat, and JDBC.
 * Refactored documentation indexing to better support both MCP (LLM) and the Toolbox Docs viewer.
 * Added `LogbackConfig.suppressStackTrace()` to filter out stack traces from noisy external
   loggers. The exception message is still logged; full stack traces are available at TRACE level.
