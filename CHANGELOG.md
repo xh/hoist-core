@@ -25,7 +25,8 @@
   `publishRegistry.add()` and they will automatically respect the published metrics list.
 
 ### ⚙️ Technical
-
+* Added `StandardMetricsService` to register built-in infrastructure metrics with `MetricsService`.
+  Binds standard Micrometer meter binders for JVM, system, Tomcat, and JDBC.
 * `LogSupportMarker` now captures `traceId` as a first-class property, populated automatically
   from the current span context at log time. The default `LogSupportConverter` appends trace
   correlation info (`traceId=...`) for ERROR-level and above.

@@ -254,12 +254,6 @@ class Utils {
     //------------------
     // Misc/Other
     //------------------
-    /** Prefix all keys in a map with a given string, converting values to Strings. */
-    static Map<String, String> prefixKeys(String prefix, Map config) {
-        (config ?: [:]).collectEntries { k, v -> ["${prefix}.${k}".toString(), v?.toString()] } as Map<String, String>
-    }
-
-
     /**
      * Get the current request, or null if caller is not executing in the context of an HTTP request
      * (e.g. a service Timer or other async code).
