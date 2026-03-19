@@ -7,14 +7,18 @@
 
 package io.xh.hoist.log
 
+import groovy.transform.CompileStatic
+import io.opentelemetry.api.trace.Span
 import org.slf4j.Marker
 import org.slf4j.Logger
+
 
 /**
  * A Marker representing an enhanced, meta-data preserving log message produced by
  * LogSupport.  This marker should be interpreted by any converter used in a Hoist
  * Application.
  */
+@CompileStatic
 class LogSupportMarker implements Marker {
 
     /**
@@ -26,9 +30,14 @@ class LogSupportMarker implements Marker {
     /** Logger sending this message. */
     final Logger logger
 
-    LogSupportMarker(Logger logger, List messages) {
+    /** Active trace ID at time of logging, or null. */
+    final String traceId
+
+    LogSupportMarker(Logger logger, Object messages) {
         this.logger = logger
-        this.messages = messages
+        this.messages = Arrays.asList(messages).flatten()
+        def spanContext = Span.current()?.spanContext
+        this.traceId = spanContext?.valid ? spanContext.traceId : null
     }
 
     String getName() {

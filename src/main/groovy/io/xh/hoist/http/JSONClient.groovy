@@ -9,14 +9,17 @@ package io.xh.hoist.http
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.exception.ExternalHttpException
+import io.xh.hoist.telemetry.SpanRef
 import io.xh.hoist.json.JSONParser
-import io.xh.hoist.util.StringUtils
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
 import org.apache.hc.client5.http.impl.classic.HttpClients
 
+import static io.opentelemetry.api.trace.SpanKind.CLIENT
+import static io.xh.hoist.telemetry.ObservedRun.observe
 import static io.xh.hoist.util.StringUtils.elide
+import static io.xh.hoist.util.Utils.traceService
 import static org.apache.hc.core5.http.HttpStatus.SC_NO_CONTENT
 import static org.apache.hc.core5.http.HttpStatus.SC_OK
 
@@ -143,7 +146,23 @@ class JSONClient {
     }
 
     protected CloseableHttpResponse executeRaw(CloseableHttpClient client, HttpUriRequestBase method) {
-        return client.execute(method)
+        observe(this)
+            .span(
+                name: method.method,
+                kind: CLIENT,
+                tags: [
+                    'http.request.method': method.method,
+                    'url.full'           : method.uri,
+                    'server.address'     : method.uri.host,
+                    'source'             : 'hoist'
+                ]
+            )
+            .run { SpanRef span ->
+                traceService.injectContext(method)
+                def ret = client.execute(method)
+                span?.setHttpStatus(ret.code)
+                ret
+            }
     }
 
     // Attempt to parse a reasonable exception from failed response, but never actually throw if not possible.

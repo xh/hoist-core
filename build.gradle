@@ -96,8 +96,18 @@ dependencies {
     api "io.micrometer:micrometer-registry-prometheus"
     api "io.micrometer:micrometer-registry-otlp"
 
+    api platform("io.opentelemetry:opentelemetry-bom:1.49.0")
+    api "io.opentelemetry:opentelemetry-sdk"
+    api "io.opentelemetry:opentelemetry-exporter-otlp"
+    api "io.opentelemetry:opentelemetry-exporter-common"
+    api "io.opentelemetry:opentelemetry-context"
+
     // Workaround needed by micrometer-registry-otlp at compile time
     api "io.opentelemetry.proto:opentelemetry-proto:1.5.0-alpha"
+
+    // Workaround needed by opentelemetry exporter
+    api "io.opentelemetry:opentelemetry-exporter-sender-okhttp"
+
 }
 
 tasks.withType(GroovyCompile) {

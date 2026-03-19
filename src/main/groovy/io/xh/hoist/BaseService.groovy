@@ -20,6 +20,8 @@ import groovy.transform.NamedVariant
 import io.xh.hoist.cache.Cache
 import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.telemetry.ObservedRun
+import io.xh.hoist.telemetry.TraceService
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.IdentitySupport
 import io.xh.hoist.util.Timer
@@ -57,6 +59,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
     IdentityService identityService
     ClusterService clusterService
+    TraceService traceService
     Date initializedDate = null
     Date lastCachesCleared = null
 
@@ -289,6 +292,14 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
 
     //-----------------------------------
+    // Observability
+    //-----------------------------------
+    /** Create an {@link ObservedRun} builder with this service as the caller. */
+    ObservedRun observe() {
+        ObservedRun.observe(this)
+    }
+
+    //-------------------------------
     // Core template methods for override
     //-----------------------------------
     /**

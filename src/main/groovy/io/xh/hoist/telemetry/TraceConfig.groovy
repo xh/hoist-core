@@ -10,13 +10,12 @@ import groovy.transform.InheritConstructors
 import io.xh.hoist.config.TypedConfigMap
 
 /**
- * Typed representation of `xhMetricsConfig` values.
+ * Typed representation of `xhTraceConfig` values.
  */
 @InheritConstructors
-class MetricsConfig extends TypedConfigMap {
-    String namespace
-    boolean prometheusEnabled
-    Map prometheusConfig
+class TraceConfig extends TypedConfigMap {
+    boolean enabled
+    double sampleRate
     boolean otlpEnabled
     Map otlpConfig
 }

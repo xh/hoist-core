@@ -232,3 +232,13 @@
   house this and future app-development guides (distinct from feature-area API docs)
 - Added `metrics.md` to docs-roadmap.md Priority 3 section — file existed on disk and in README
   index but was missing from the roadmap (added as Done, no DRAFT banner present)
+
+### 2026-03-10 — New doc: tracing
+- Created `tracing.md` as part of the distributed tracing feature implementation (TracingService,
+  TracingConfig, TracingAdminService, TracingAdminController)
+- Follows `metrics.md` structure: Overview, Source Files, Service API, Configuration, Export
+  Configuration, Built-in Instrumentation, Context Propagation, Log Correlation, Admin Console,
+  Resource Attributes
+- Added to docs/README.md (Quick Reference + Infrastructure & Operations table)
+- Added to docs/doc-registry.json (infrastructure viewerCategory, package mcpCategory)
+- Added to docs-roadmap.md Priority 3 table (marked Done, no DRAFT banner)

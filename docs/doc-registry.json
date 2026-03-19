@@ -113,6 +113,14 @@
             "keywords": ["MetricsService", "CompositeMeterRegistry", "MonitorMetricsService", "TrackMetricsService", "Prometheus", "OTLP", "xhMetricsConfig"]
         },
         {
+            "id": "docs/tracing.md",
+            "title": "Tracing",
+            "mcpCategory": "package",
+            "viewerCategory": "infrastructure",
+            "description": "OpenTelemetry-based distributed tracing with OTLP export.",
+            "keywords": ["TraceService", "withSpan", "traceparent", "OTLP", "xhTraceConfig", "OpenTelemetry", "ClientTraceService", "ContextPropagatingPromiseFactory"]
+        },
+        {
             "id": "docs/websocket.md",
             "title": "WebSocket",
             "mcpCategory": "package",
