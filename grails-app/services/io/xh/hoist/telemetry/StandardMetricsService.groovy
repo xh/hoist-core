@@ -49,7 +49,7 @@ class StandardMetricsService extends BaseService {
 
     void init() {
         registerProvidedMeters()
-        registerConnectionPoolMeters()()
+        registerConnectionPoolMeters()
     }
 
     //------------------------

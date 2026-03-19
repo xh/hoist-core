@@ -69,7 +69,7 @@ class MetricsService extends BaseService {
 
     ConfigService configService
 
-    private final List<MeterRegistry> _publishRegistries = []
+    private List<MeterRegistry> _publishRegistries = []
     private PrometheusMeterRegistry _prometheusRegistry
     private OtlpMeterRegistry _otlpRegistry
 
@@ -100,9 +100,6 @@ class MetricsService extends BaseService {
     }
 
 
-
-
-
     /** List of metric names published to export sinks. */
     List<String> getPublishedMetrics() {
         configService.getList('xhMetricsPublished', [])
@@ -112,15 +109,15 @@ class MetricsService extends BaseService {
      * Register an additional {@link MeterRegistry} to receive published metrics.
      * A publish filter will be applied to the registry. Triggers a rebuild.
      */
-    void addPublishRegistry(MeterRegistry reg) {
+    synchronized void addPublishRegistry(MeterRegistry reg) {
         reg.config().meterFilter(publishFilter)
-        _publishRegistries.add(reg)
+        _publishRegistries = _publishRegistries + [reg]
         registry.add(reg)
     }
 
     /** Remove a previously registered publish {@link MeterRegistry}. */
-    void removePublishRegistry(MeterRegistry reg) {
-        _publishRegistries.remove(reg)
+    synchronized void removePublishRegistry(MeterRegistry reg) {
+        _publishRegistries = _publishRegistries - [reg]
         registry.remove(reg)
     }
 
@@ -137,10 +134,7 @@ class MetricsService extends BaseService {
      * Scrape this instance.
      */
     private String prometheusScrape() {
-        if (!_prometheusRegistry) {
-            throw new RuntimeException('Prometheus not enabled')
-        }
-        _prometheusRegistry.scrape()
+        _prometheusRegistry?.scrape() ?: ''
     }
 
     //------------------------
@@ -190,15 +184,16 @@ class MetricsService extends BaseService {
             .any { name.startsWith(it) }
     }
 
-    private void syncConfig() {
+    private synchronized void syncConfig() {
         withDebug(['Syncing config', [prometheus: config.prometheusEnabled, otlp: config.otlpEnabled]]) {
 
             // Remove all publish registries from main registry
             _publishRegistries.each { registry.remove(it) }
+            def regs = new ArrayList<MeterRegistry>(_publishRegistries)
 
             // Tear down and rebuild built-in export registries
             if (_prometheusRegistry) {
-                _publishRegistries.remove(_prometheusRegistry)
+                regs.remove(_prometheusRegistry)
                 _prometheusRegistry.close()
                 _prometheusRegistry = null
             }
@@ -206,11 +201,11 @@ class MetricsService extends BaseService {
                 def conf = prefixKeys('prometheus', config.prometheusConfig)
                 _prometheusRegistry = new PrometheusMeterRegistry({conf[it]} as PrometheusConfig)
                 _prometheusRegistry.config().meterFilter(publishFilter)
-                _publishRegistries.add(_prometheusRegistry)
+                regs.add(_prometheusRegistry)
             }
 
             if (_otlpRegistry) {
-                _publishRegistries.remove(_otlpRegistry)
+                regs.remove(_otlpRegistry)
                 _otlpRegistry.stop()
                 _otlpRegistry.close()
                 _otlpRegistry = null
@@ -219,10 +214,11 @@ class MetricsService extends BaseService {
                 def conf = prefixKeys('otlp', config.otlpConfig)
                 _otlpRegistry = new OtlpMeterRegistry({conf[it]} as OtlpConfig, Clock.SYSTEM)
                 _otlpRegistry.config().meterFilter(publishFilter)
-                _publishRegistries.add(_otlpRegistry)
+                regs.add(_otlpRegistry)
             }
 
-            // Re-add all publish registries — meters flow through each registry's filter
+            // Publish the new list and re-add all publish registries
+            _publishRegistries = regs
             _publishRegistries.each { registry.add(it) }
         }
     }
@@ -241,9 +237,12 @@ class MetricsService extends BaseService {
         syncConfig()
     }
 
-    Map getAdminStats() { [
-        config: configForAdminStats('xhMetricsConfig'),
-        metrics: readOnlyRegistry.meters.size(),
-        publishedMetrics: _publishRegistries ? _publishRegistries.first().meters.size() : 0
-    ] }
+    Map getAdminStats() {
+        def regs = _publishRegistries
+        [
+            config: configForAdminStats('xhMetricsConfig'),
+            metrics: readOnlyRegistry.meters.size(),
+            publishedMetrics: regs ? regs.first().meters.size() : 0
+        ]
+    }
 }
