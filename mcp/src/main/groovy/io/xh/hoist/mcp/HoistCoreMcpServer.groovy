@@ -2,6 +2,7 @@ package io.xh.hoist.mcp
 
 import io.modelcontextprotocol.server.McpServer
 import io.modelcontextprotocol.server.McpSyncServer
+import io.modelcontextprotocol.json.McpJsonDefaults
 import io.modelcontextprotocol.server.transport.StdioServerTransportProvider
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities
 import io.xh.hoist.mcp.data.DocRegistry
@@ -63,7 +64,7 @@ class HoistCoreMcpServer {
 
         def toolSpecs = DocTools.create(docRegistry) + GroovyTools.create(groovyRegistry)
 
-        def transportProvider = new StdioServerTransportProvider()
+        def transportProvider = new StdioServerTransportProvider(McpJsonDefaults.getMapper())
 
         McpSyncServer server = McpServer.sync(transportProvider)
             .serverInfo('hoist-core', this.class.package.implementationVersion ?: 'dev')

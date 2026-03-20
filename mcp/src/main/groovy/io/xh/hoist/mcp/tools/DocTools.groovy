@@ -3,6 +3,7 @@ package io.xh.hoist.mcp.tools
 import io.modelcontextprotocol.server.McpServerFeatures.SyncToolSpecification
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult
 import io.modelcontextprotocol.spec.McpSchema.JsonSchema
+import io.modelcontextprotocol.spec.McpSchema.TextContent
 import io.modelcontextprotocol.spec.McpSchema.Tool
 import io.xh.hoist.mcp.data.DocRegistry
 
@@ -56,7 +57,8 @@ class DocTools {
             ))
             .build()
 
-        return new SyncToolSpecification(tool, { exchange, args ->
+        return new SyncToolSpecification(tool, { exchange, request ->
+            def args = request?.arguments() ?: [:]
             String query = args?.query ?: ''
             String category = args?.category
             int limit = (args?.limit as Integer) ?: 10
@@ -80,7 +82,11 @@ class DocTools {
                 text = lines.join('\n')
             }
 
-            return new CallToolResult(text, false)
+            return CallToolResult
+                .builder()
+                .content([new TextContent(text)])
+                .isError(false)
+                .build()
         })
     }
 
@@ -108,7 +114,8 @@ class DocTools {
             ))
             .build()
 
-        return new SyncToolSpecification(tool, { exchange, args ->
+        return new SyncToolSpecification(tool, { exchange, request ->
+            def args = request?.arguments() ?: [:]
             String category = args?.category
 
             def filtered = registry.listDocs(category)
@@ -127,7 +134,11 @@ class DocTools {
 
             lines << 'Use hoist-core-search-docs with keywords to find specific content within documents.'
 
-            return new CallToolResult(lines.join('\n'), false)
+            return CallToolResult
+                .builder()
+                .content([new TextContent(lines.join('\n'))])
+                .isError(false)
+                .build()
         })
     }
 
@@ -142,8 +153,12 @@ class DocTools {
             .inputSchema(new JsonSchema('object', [:], [], null, null, null))
             .build()
 
-        return new SyncToolSpecification(tool, { exchange, args ->
-            return new CallToolResult('hoist-core MCP server is running.', false)
+        return new SyncToolSpecification(tool, { exchange, request ->
+            return CallToolResult
+                .builder()
+                .content([new TextContent('hoist-core MCP server is running.')])
+                .isError(false)
+                .build()
         })
     }
 }
