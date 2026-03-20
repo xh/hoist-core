@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider
 import com.fasterxml.jackson.databind.ser.std.StdSerializer
 import groovy.transform.CompileStatic
+import io.opentelemetry.api.trace.Span
 import io.xh.hoist.exception.RoutineException
 import io.xh.hoist.json.JSONFormat
 
@@ -33,9 +34,15 @@ class ThrowableSerializer extends StdSerializer<Throwable> {
                 name     : t.class.simpleName,
                 message  : t.message,
                 cause    : t.cause?.message,
-                isRoutine: t instanceof RoutineException
+                isRoutine: t instanceof RoutineException,
+                traceId  : activeTraceId
             ].findAll { it.value }
 
         jgen.writeObject(ret)
+    }
+
+    private static String getActiveTraceId() {
+        def ctx = Span.current()?.spanContext
+        ctx?.valid ? ctx.traceId : null
     }
 }
