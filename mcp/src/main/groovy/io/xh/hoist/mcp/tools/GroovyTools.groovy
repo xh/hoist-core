@@ -3,6 +3,7 @@ package io.xh.hoist.mcp.tools
 import io.modelcontextprotocol.server.McpServerFeatures.SyncToolSpecification
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult
 import io.modelcontextprotocol.spec.McpSchema.JsonSchema
+import io.modelcontextprotocol.spec.McpSchema.TextContent
 import io.modelcontextprotocol.spec.McpSchema.Tool
 import io.xh.hoist.mcp.data.GroovyRegistry
 import io.xh.hoist.mcp.data.GroovyRegistry.MemberInfo
@@ -57,7 +58,8 @@ class GroovyTools {
             ))
             .build()
 
-        return new SyncToolSpecification(tool, { exchange, args ->
+        return new SyncToolSpecification(tool, { exchange, request ->
+            def args = request?.arguments() ?: [:]
             String query = args?.query ?: ''
             String kind = args?.kind
             int symbolLimit = (args?.limit as Integer) ?: 20
@@ -96,7 +98,11 @@ class GroovyTools {
 
             def text = lines ? lines.join('\n') : "No symbols or members found matching '${query}'. Try a broader search term."
 
-            return new CallToolResult(text, false)
+            return CallToolResult
+                .builder()
+                .content([new TextContent(text)])
+                .isError(false)
+                .build()
         })
     }
 
@@ -125,7 +131,8 @@ class GroovyTools {
             ))
             .build()
 
-        return new SyncToolSpecification(tool, { exchange, args ->
+        return new SyncToolSpecification(tool, { exchange, request ->
+            def args = request?.arguments() ?: [:]
             String name = args?.name ?: ''
             String filePath = args?.filePath
 
@@ -164,7 +171,11 @@ class GroovyTools {
                 text = lines.join('\n')
             }
 
-            return new CallToolResult(text, false)
+            return CallToolResult
+                .builder()
+                .content([new TextContent(text)])
+                .isError(false)
+                .build()
         })
     }
 
@@ -193,7 +204,8 @@ class GroovyTools {
             ))
             .build()
 
-        return new SyncToolSpecification(tool, { exchange, args ->
+        return new SyncToolSpecification(tool, { exchange, request ->
+            def args = request?.arguments() ?: [:]
             String name = args?.name ?: ''
             String filePath = args?.filePath
 
@@ -241,7 +253,11 @@ class GroovyTools {
                 text = lines.join('\n')
             }
 
-            return new CallToolResult(text, false)
+            return CallToolResult
+                .builder()
+                .content([new TextContent(text)])
+                .isError(false)
+                .build()
         })
     }
 
