@@ -10,29 +10,33 @@ apply.
 ```markdown
 ## {VERSION} - {YYYY-MM-DD}
 
-### Breaking Changes (upgrade difficulty: {RATING} - {brief description})
+### 💥 Breaking Changes (upgrade difficulty: {RATING} - {brief description})
 
-* {Introductory bullet with overview and link to upgrade notes}
+See [`docs/upgrade-notes/v{NN}-upgrade-notes.md`](docs/upgrade-notes/v{NN}-upgrade-notes.md) for
+detailed, step-by-step upgrade instructions with before/after code examples.
+
 * {Required change 1}
 * {Required change 2}
     * {Sub-detail if needed}
 * ...
 
-See the [{framework} upgrade guide]({url}) for additional background.
-
-### New Features
+### 🎁 New Features
 
 * {Feature description}
 
-### Bug Fixes
+### 🐞 Bug Fixes
 
 * {Fix description}
 
-### Technical
+### ⚙️ Technical
 
 * {Internal change description}
 
-### Libraries
+### 🤖 AI Docs + Tooling
+
+* {AI docs/tooling change description}
+
+### 📚 Libraries
 
 * {Library} `{old} -> {new}`
 ```
@@ -43,11 +47,12 @@ Use these emoji-prefixed headers consistently:
 
 | Section | Header | When to Include |
 |---------|--------|-----------------|
-| Breaking Changes | `### Breaking Changes` | Required app changes exist |
-| New Features | `### New Features` | New capabilities added |
-| Bug Fixes | `### Bug Fixes` | Bugs fixed |
-| Technical | `### Technical` | Internal changes worth noting |
-| Libraries | `### Libraries` | Major dependency version bumps |
+| Breaking Changes | `### 💥 Breaking Changes` | Required app changes exist |
+| New Features | `### 🎁 New Features` | New capabilities added |
+| Bug Fixes | `### 🐞 Bug Fixes` | Bugs fixed |
+| Technical | `### ⚙️ Technical` | Internal changes worth noting |
+| AI Docs + Tooling | `### 🤖 AI Docs + Tooling` | AI assistant docs, MCP server, CLI tools |
+| Libraries | `### 📚 Libraries` | Major dependency version bumps |
 
 ## Voice and Tense
 
@@ -91,10 +96,10 @@ before/after code examples.
 Include in the Breaking Changes header:
 
 ```markdown
-### Breaking Changes (upgrade difficulty: 🎉 TRIVIAL)
-### Breaking Changes (upgrade difficulty: 🟢 LOW - {brief description})
-### Breaking Changes (upgrade difficulty: 🟠 MEDIUM - {brief description})
-### Breaking Changes (upgrade difficulty: 🔴 HIGH - {brief description})
+### 💥 Breaking Changes (upgrade difficulty: 🎉 TRIVIAL)
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - {brief description})
+### 💥 Breaking Changes (upgrade difficulty: 🟠 MEDIUM - {brief description})
+### 💥 Breaking Changes (upgrade difficulty: 🔴 HIGH - {brief description})
 ```
 
 ## Libraries Section
@@ -102,7 +107,7 @@ Include in the Breaking Changes header:
 List major dependency version changes with backtick-wrapped versions:
 
 ```markdown
-### Libraries
+### 📚 Libraries
 
 * Grails `6.2.3 -> 7.0`
 * Groovy `3.0.23 -> 4.0`
