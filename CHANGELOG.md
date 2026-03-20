@@ -11,6 +11,7 @@
     - `ObservedRun` composable builder via `BaseService.observe()` wraps a closure with any combination of tracing, logging, and Micrometer metrics in a single fluent call chain.
     - Client span relay via `ClientTraceService` — browser-generated spans are exported through the same server-side pipeline for coherent end-to-end traces.
     - Automatic trace context propagation across Grails `task {}` thread boundaries.
+    - Exception JSON responses now include `traceId` when an active trace context is available, enabling client-side correlation with server traces.
 
 * Added an MCP (Model Context Protocol) server for AI coding agents. Provides searchable access to
   all Hoist Core documentation and Groovy/Java symbol introspection (classes, interfaces, methods,
