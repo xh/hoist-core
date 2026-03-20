@@ -105,6 +105,11 @@ Order steps from infrastructure outward to application code:
 9. Database migrations (if any)
 10. Cleanup of obsolete configuration
 
+**Client-side dependencies are out of scope.** Do not include steps that edit `package.json` or
+run `npm install`/`yarn install`. When a hoist-core release is paired with a hoist-react version,
+add a step that notes the required pairing (e.g. "requires `@xh/hoist >= 83.0`") and links to
+the hoist-react upgrade notes, but do not instruct developers to modify client-side deps directly.
+
 This order lets developers build and test incrementally — the app should compile after the build
 system steps, then progressively fix source-level issues.
 
