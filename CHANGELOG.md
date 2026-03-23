@@ -47,6 +47,12 @@ detailed, step-by-step upgrade instructions with before/after code examples.
 * Added `LogbackConfig.suppressStackTrace()` to filter out stack traces from noisy external
   loggers. The exception message is still logged; full stack traces are available at TRACE level.
 
+### 🐞 Bug Fixes
+
+* Fixed servlet container error dispatches (e.g. multipart upload exceeding `maxFileSize`)
+  returning a misleading 404 instead of the actual error. `AccessInterceptor` now detects
+  `DispatcherType.ERROR` dispatches and renders a proper error response.
+
 ### 🤖 AI Docs + Tooling
 
 * Added an MCP (Model Context Protocol) server for AI coding agents. Provides searchable access

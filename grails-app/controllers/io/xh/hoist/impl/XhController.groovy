@@ -290,12 +290,6 @@ class XhController extends BaseController {
         throw new NotFoundException()
     }
 
-    def serverError() {
-        def ex = request.getAttribute('jakarta.servlet.error.exception')
-        if (ex) throw ex
-        throw new RuntimeException('An unexpected error occurred')
-    }
-
     //------------------------
     // Implementation
     //------------------------
