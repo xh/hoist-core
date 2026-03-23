@@ -193,6 +193,11 @@ notes and/or CHANGELOG entry. LOW priority items are at your discretion.
 ## Important Notes
 
 - This skill produces documentation — it does NOT modify application source code.
+- **Client-side dependencies are out of scope.** Hoist-core upgrade notes must never instruct
+  developers to edit `package.json` or run `npm install`/`yarn install`. When a hoist-core
+  release is paired with a hoist-react version, the upgrade notes should note the required pairing
+  (e.g. "requires `@xh/hoist >= 83.0`"), verify the app meets that requirement, and link to the
+  hoist-react upgrade notes — but not directly touch client-side deps.
 - **Database migrations:** This skill must NEVER execute SQL statements against any database. When
   an upgrade requires schema changes, the upgrade notes should clearly document the required SQL
   and relay it to the developer to review and execute at their discretion. Note that Grails/GORM
