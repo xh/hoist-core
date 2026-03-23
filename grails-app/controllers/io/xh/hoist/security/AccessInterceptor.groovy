@@ -15,7 +15,6 @@ import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
 import io.xh.hoist.util.Utils
 import io.xh.hoist.websocket.HoistWebSocketConfigurer
-import jakarta.servlet.DispatcherType
 import jakarta.servlet.http.HttpServletRequest
 
 import java.lang.annotation.Annotation
@@ -47,30 +46,13 @@ class AccessInterceptor implements LogSupport {
                 return true
             }
 
-            // Handle non-404 servlet container error dispatches (e.g. multipart size
-            // exceeded). These bypass Grails URL mappings, arriving with no controller/action
-            // resolved. Let 404 dispatches fall through to the standard Grails "404" mapping.
-            if (isErrorDispatch(req)) {
-                def statusCode = req.getAttribute('jakarta.servlet.error.status_code') as Integer
-                if (statusCode != 404) {
-                    def ex = (
-                        req.getAttribute('org.springframework.web.servlet.DispatcherServlet.EXCEPTION') ?:
-                        req.getAttribute('jakarta.servlet.error.exception')
-                    ) as Throwable
-                    Utils.handleException(
-                        exception: ex ?: new RuntimeException('An unexpected error occurred'),
-                        logTo: this,
-                        renderTo: response
-                    )
-                    return false
-                }
-            }
-
-            // Get controller method, or throw 404 (Not Found).
+            // Get controller method
             HoistUser user = identityService.user
             Class clazz = controllerClass?.clazz
             String actionNm = actionName ?: controllerClass?.defaultAction
             Method method = clazz && actionNm ? findMethod(clazz, actionNm) : null
+
+            // Paranoia? This should already have been mapped to xh/notFound
             if (!method) throw new NotFoundException()
 
             // Eval security annotations, return true if allowed, or throw 403 (Forbidden).
@@ -88,12 +70,14 @@ class AccessInterceptor implements LogSupport {
                 "You do not have the required role(s) for this action. Currently logged in as: $username."
             )
         } catch (Exception e) {
+            // Handling here logs with this class, rather than a mapped controller. Pros and cons.
             Utils.handleException(
                 exception: e,
                 logMessage: [controller: controllerClass?.name, action: actionName],
                 logTo: this,
                 renderTo: response
             )
+            return false
         }
     }
 
@@ -110,7 +94,4 @@ class AccessInterceptor implements LogSupport {
         req?.requestURI.startsWith('/actuator/')
     }
 
-    private boolean isErrorDispatch(HttpServletRequest req) {
-        req?.dispatcherType == DispatcherType.ERROR
-    }
 }

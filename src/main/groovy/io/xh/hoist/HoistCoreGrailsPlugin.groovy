@@ -14,6 +14,7 @@ import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.util.Timer
 import io.xh.hoist.util.Utils
 import io.xh.hoist.websocket.HoistWebSocketConfigurer
+import jakarta.servlet.DispatcherType
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.core.Ordered
 
@@ -43,6 +44,7 @@ class HoistCoreGrailsPlugin extends Plugin {
             hoistFilter(FilterRegistrationBean) {
                 filter = bean(HoistFilter)
                 order = Ordered.HIGHEST_PRECEDENCE + 40
+                dispatcherTypes = EnumSet.of(DispatcherType.REQUEST, DispatcherType.ERROR)
             }
 
             if (config.getProperty('hoist.enableWebSockets', Boolean)) {

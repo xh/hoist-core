@@ -8,6 +8,7 @@
 package io.xh.hoist
 
 import groovy.transform.CompileStatic
+import io.xh.hoist.exception.HttpException
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.util.Utils
 
@@ -39,6 +40,10 @@ class HoistFilter implements Filter, LogSupport {
         try (def scope = traceService.restoreContextFromRequest(httpRequest)) {
             clusterService.ensureRunning()
             if (authenticationService.allowRequest(httpRequest, httpResponse)) {
+
+                // Rethrow spring/tc errors early. Intentionally post-auth and context restore
+                rethrowErrorDispatches(httpRequest)
+
                 chain.doFilter(request, response)
             }
         } catch (Throwable t) {
@@ -47,6 +52,22 @@ class HoistFilter implements Filter, LogSupport {
                 renderTo: httpResponse,
                 logTo: this
             )
+        }
+    }
+
+
+    private static void rethrowErrorDispatches(HttpServletRequest req) {
+        // Servlet error dispatches (e.g. multipart size exceeded) arrive with original exception
+        if (req.dispatcherType == DispatcherType.ERROR) {
+            def cause = (
+                req.getAttribute('org.springframework.web.servlet.DispatcherServlet.EXCEPTION') ?:
+                    req.getAttribute('jakarta.servlet.error.exception')
+            ) as Throwable
+
+            def message = cause?.message ?: 'An unexpected error occurred',
+                statusCode = req.getAttribute('jakarta.servlet.error.status_code') as Integer ?: 500
+
+            throw new HttpException(message, cause, statusCode)
         }
     }
 }
