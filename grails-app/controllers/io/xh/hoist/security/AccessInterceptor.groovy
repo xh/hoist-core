@@ -47,19 +47,23 @@ class AccessInterceptor implements LogSupport {
                 return true
             }
 
-            // Handle servlet container error dispatches (e.g. multipart size exceeded).
-            // These bypass Grails URL mappings, arriving with no controller/action resolved.
+            // Handle non-404 servlet container error dispatches (e.g. multipart size
+            // exceeded). These bypass Grails URL mappings, arriving with no controller/action
+            // resolved. Let 404 dispatches fall through to the standard Grails "404" mapping.
             if (isErrorDispatch(req)) {
-                def ex = (
-                    req.getAttribute('org.springframework.web.servlet.DispatcherServlet.EXCEPTION') ?:
-                    req.getAttribute('jakarta.servlet.error.exception')
-                ) as Throwable
-                Utils.handleException(
-                    exception: ex ?: new RuntimeException('An unexpected error occurred'),
-                    logTo: this,
-                    renderTo: response
-                )
-                return false
+                def statusCode = req.getAttribute('jakarta.servlet.error.status_code') as Integer
+                if (statusCode != 404) {
+                    def ex = (
+                        req.getAttribute('org.springframework.web.servlet.DispatcherServlet.EXCEPTION') ?:
+                        req.getAttribute('jakarta.servlet.error.exception')
+                    ) as Throwable
+                    Utils.handleException(
+                        exception: ex ?: new RuntimeException('An unexpected error occurred'),
+                        logTo: this,
+                        renderTo: response
+                    )
+                    return false
+                }
             }
 
             // Get controller method, or throw 404 (Not Found).
