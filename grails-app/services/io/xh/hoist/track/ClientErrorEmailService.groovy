@@ -98,6 +98,7 @@ class ClientErrorEmailService extends BaseService {
             "Device: ${tl.device}",
             "URL: ${tl.url}",
             tl.correlationId ? "Correlation ID: ${tl.correlationId}" : null,
+            dataObj?.error?.traceId ? "Trace ID: ${dataObj.error.traceId}" : null,
             "Time: ${tl.dateCreated.format('dd-MMM-yyyy HH:mm:ss')}"
         ].findAll().join('<br/>')
 
