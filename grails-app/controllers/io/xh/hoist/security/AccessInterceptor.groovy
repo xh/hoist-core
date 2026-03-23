@@ -15,6 +15,7 @@ import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
 import io.xh.hoist.util.Utils
 import io.xh.hoist.websocket.HoistWebSocketConfigurer
+import jakarta.servlet.DispatcherType
 import jakarta.servlet.http.HttpServletRequest
 
 import java.lang.annotation.Annotation
@@ -44,6 +45,21 @@ class AccessInterceptor implements LogSupport {
             def req = getRequest()
             if (isWebSocketHandshake(req) || isActuator(req) ) {
                 return true
+            }
+
+            // Handle servlet container error dispatches (e.g. multipart size exceeded).
+            // These bypass Grails URL mappings, arriving with no controller/action resolved.
+            if (isErrorDispatch(req)) {
+                def ex = (
+                    req.getAttribute('org.springframework.web.servlet.DispatcherServlet.EXCEPTION') ?:
+                    req.getAttribute('jakarta.servlet.error.exception')
+                ) as Throwable
+                Utils.handleException(
+                    exception: ex ?: new RuntimeException('An unexpected error occurred'),
+                    logTo: this,
+                    renderTo: response
+                )
+                return false
             }
 
             // Get controller method, or throw 404 (Not Found).
@@ -88,5 +104,9 @@ class AccessInterceptor implements LogSupport {
 
     private boolean isActuator(HttpServletRequest req) {
         req?.requestURI.startsWith('/actuator/')
+    }
+
+    private boolean isErrorDispatch(HttpServletRequest req) {
+        req?.dispatcherType == DispatcherType.ERROR
     }
 }

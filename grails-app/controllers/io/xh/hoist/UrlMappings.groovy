@@ -18,6 +18,7 @@ class UrlMappings {
         "/$controller/$action?/$id?(.$format)?"{}
 
         "404" (controller: 'xh', action: 'notFound')
+        "500" (controller: 'xh', action: 'serverError')
 
         // Legacy alias for /xh/ping
         "/ping" (controller: 'xh', action: 'ping')
