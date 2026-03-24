@@ -46,11 +46,13 @@ class AccessInterceptor implements LogSupport {
                 return true
             }
 
-            // Get controller method, or throw 404 (Not Found).
+            // Get controller method
             HoistUser user = identityService.user
             Class clazz = controllerClass?.clazz
             String actionNm = actionName ?: controllerClass?.defaultAction
             Method method = clazz && actionNm ? findMethod(clazz, actionNm) : null
+
+            // Paranoia? This should already have been mapped to xh/notFound
             if (!method) throw new NotFoundException()
 
             // Eval security annotations, return true if allowed, or throw 403 (Forbidden).
@@ -68,12 +70,14 @@ class AccessInterceptor implements LogSupport {
                 "You do not have the required role(s) for this action. Currently logged in as: $username."
             )
         } catch (Exception e) {
+            // Handling here logs with this class, rather than a mapped controller. Pros and cons.
             Utils.handleException(
                 exception: e,
                 logMessage: [controller: controllerClass?.name, action: actionName],
                 logTo: this,
                 renderTo: response
             )
+            return false
         }
     }
 
@@ -89,4 +93,5 @@ class AccessInterceptor implements LogSupport {
     private boolean isActuator(HttpServletRequest req) {
         req?.requestURI.startsWith('/actuator/')
     }
+
 }
