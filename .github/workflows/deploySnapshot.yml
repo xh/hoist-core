@@ -11,7 +11,7 @@ on:
         branches: [ "develop" ]
     workflow_dispatch:
         inputs:
-            xhSnapshotVersion:
+            version:
                 description: '(Optional) Snapshot version to override default in gradle.properties. Note that the suffix "-SNAPSHOT" will be automatically appended if not present.'
                 required: false
                 default: ''
@@ -36,14 +36,15 @@ jobs:
           with:
               java-version: '17'
               distribution: 'zulu'
+              cache: 'gradle'
 
         - name: Setup Gradle
           uses: gradle/actions/setup-gradle@v5
 
         - name: Override snapshot version in gradle.properties
-          if: inputs.xhSnapshotVersion != ''
+          if: inputs.version != ''
           env:
-              VERSION: ${{ inputs.xhSnapshotVersion }}
+              VERSION: ${{ inputs.version }}
           run: |
               if [[ ! "$VERSION" == *-SNAPSHOT ]]; then
                 VERSION="$VERSION-SNAPSHOT"
@@ -51,14 +52,15 @@ jobs:
               sed -i "s/^xhReleaseVersion=.*/xhReleaseVersion=$VERSION/" gradle.properties
               echo "Updated xhReleaseVersion to SNAPSHOT version: $VERSION"
 
-        - name: Validate SNAPSHOT version
-          run: |
-              VERSION=$(grep "^xhReleaseVersion=" gradle.properties | cut -d'=' -f2)
-              if [[ ! "$VERSION" == *-SNAPSHOT ]]; then
-                echo "::error::'$VERSION' is not a SNAPSHOT version. Aborting."
-                exit 1
-              fi
-              echo "Validated snapshot version: $VERSION"
+        - name: Read current version from gradle.properties
+          id: current-version
+          run: echo "current-version=$(grep '^xhReleaseVersion=' gradle.properties | cut -d'=' -f2)" >> "$GITHUB_OUTPUT"
+
+        - name: Validate snapshot version
+          uses: xh/hoist-dev-utils/.github/actions/set-validate-snapshot-version@develop
+          with:
+              version: ${{ steps.current-version.outputs.current-version }}
+              append-timestamp: false
 
         - name: Build and publish snapshot to Sonatype
           env:
