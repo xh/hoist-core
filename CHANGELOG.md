@@ -50,8 +50,8 @@ detailed, step-by-step upgrade instructions with before/after code examples.
 ### 🐞 Bug Fixes
 
 * Fixed servlet container error dispatches (e.g. multipart upload exceeding `maxFileSize`)
-  returning a misleading 404 instead of the actual error. `AccessInterceptor` now detects
-  `DispatcherType.ERROR` dispatches and renders a proper error response.
+  returning a misleading 404 instead of the actual error. Servlet container exceptions are
+  now rendered using `ExceptionHandler` and the standard Hoist exception lifecycle.
 
 ### 🤖 AI Docs + Tooling
 
