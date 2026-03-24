@@ -1,6 +1,6 @@
 # Changelog
 
-## 37.0-SNAPSHOT - unreleased
+## 37.0.0 - 2026-03-24
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
 
