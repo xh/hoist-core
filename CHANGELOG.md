@@ -2,6 +2,11 @@
 
 ## 38.0-SNAPSHOT - unreleased
 
+## 37.0.1 - 2026-03-25
+
+### ⚙️ Technical
+ * Register upgrades skill
+ * Enhance MCP server to always rebuild jar for local hoist development
 
 ## 37.0.0 - 2026-03-24
 

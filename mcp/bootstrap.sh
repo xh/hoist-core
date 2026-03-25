@@ -60,13 +60,11 @@ if [ -n "$VERSION" ]; then
 
     exec java -jar "$JAR" $SOURCE_ARGS
 else
-    # Local mode: build from source if needed
+    # Local mode: always build to ensure JAR reflects current source.
+    # Gradle's up-to-date checking makes this a no-op when nothing has changed.
+    echo "[hoist-core-mcp] Building MCP server..." >&2
+    (cd "$REPO_ROOT" && ./gradlew :mcp:shadowJar --console=plain --quiet) >&2
     JAR=$(ls "$SCRIPT_DIR"/build/libs/mcp-*-all.jar 2>/dev/null | head -1)
-    if [ -z "$JAR" ]; then
-        echo "[hoist-core-mcp] Building MCP server..." >&2
-        (cd "$REPO_ROOT" && ./gradlew :mcp:shadowJar --console=plain --quiet) >&2
-        JAR=$(ls "$SCRIPT_DIR"/build/libs/mcp-*-all.jar 2>/dev/null | head -1)
-    fi
     if [ -z "$JAR" ]; then
         echo "[hoist-core-mcp] ERROR: Could not find or build MCP JAR" >&2; exit 1
     fi
