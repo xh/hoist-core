@@ -5,7 +5,7 @@
 ## 37.0.1 - 2026-03-25
 
 ### ⚙️ Technical
- * Register upgrades skill
+ * Update upgrade notes skill to properly register upgrade note
  * Enhance MCP server to always rebuild jar for local hoist development
 
 ## 37.0.0 - 2026-03-24
