@@ -2,7 +2,12 @@
 
 ## 38.0-SNAPSHOT - unreleased
 
+### 🐞 Bug Fixes
+
+* Fix regression to new companion metrics for built-in monitors (i.e. 'hoist.monitor.xxx')
+
 ## 37.0.1 - 2026-03-25
+
 
 ### ⚙️ Technical
  * Update upgrade notes skill to properly register upgrade note
