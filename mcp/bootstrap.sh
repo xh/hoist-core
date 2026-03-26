@@ -28,7 +28,7 @@ if [ -n "$VERSION" ]; then
         # Sonatype snapshot mode: resolve timestamped JAR from maven-metadata.xml
         SNAP_REPO="https://central.sonatype.com/repository/maven-snapshots"
         META_URL="$SNAP_REPO/io/xh/hoist-core-mcp/$VERSION/maven-metadata.xml"
-        META=$(curl -sf "$META_URL") || {
+        META=$(curl -sf --ssl-no-revoke "$META_URL") || {
             echo "[hoist-core-mcp] ERROR: Failed to fetch snapshot metadata from $META_URL" >&2; exit 1
         }
         TIMESTAMP=$(echo "$META" | sed -n 's/.*<timestamp>\(.*\)<\/timestamp>.*/\1/p' | head -1)
@@ -39,7 +39,7 @@ if [ -n "$VERSION" ]; then
         if [ ! -f "$JAR" ]; then
             echo "[hoist-core-mcp] Downloading MCP server $VERSION (build $BUILD_NUM)..." >&2
             JAR_URL="$SNAP_REPO/io/xh/hoist-core-mcp/$VERSION/hoist-core-mcp-$SNAP_VER-all.jar"
-            curl -sfL "$JAR_URL" -o "$JAR" >&2 || {
+            curl -sfL --ssl-no-revoke "$JAR_URL" -o "$JAR" >&2 || {
                 echo "[hoist-core-mcp] ERROR: Failed to download from $JAR_URL" >&2; exit 1
             }
         fi
@@ -51,7 +51,7 @@ if [ -n "$VERSION" ]; then
         if [ ! -f "$JAR" ]; then
             echo "[hoist-core-mcp] Downloading MCP server v$VERSION from Maven Central..." >&2
             MVN_URL="https://repo1.maven.org/maven2/io/xh/hoist-core-mcp/$VERSION/hoist-core-mcp-$VERSION-all.jar"
-            curl -sfL "$MVN_URL" -o "$JAR" >&2 || {
+            curl -sfL --ssl-no-revoke "$MVN_URL" -o "$JAR" >&2 || {
                 echo "[hoist-core-mcp] ERROR: Failed to download from $MVN_URL" >&2; exit 1
             }
         fi
