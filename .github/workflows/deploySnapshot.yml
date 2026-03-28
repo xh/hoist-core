@@ -17,8 +17,9 @@ on:
                 default: ''
                 type: string
 
+# Debounce builds by branch. Newer runs from a branch will cancel the current run and start over.
 concurrency:
-    group: deploy-snapshot
+    group: deploy-snapshot-${{ github.ref }}
     cancel-in-progress: true
 
 jobs:
@@ -41,26 +42,11 @@ jobs:
         - name: Setup Gradle
           uses: gradle/actions/setup-gradle@v5
 
-        - name: Override snapshot version in gradle.properties
-          if: inputs.version != ''
-          env:
-              VERSION: ${{ inputs.version }}
-          run: |
-              if [[ ! "$VERSION" == *-SNAPSHOT ]]; then
-                VERSION="$VERSION-SNAPSHOT"
-              fi
-              sed -i "s/^xhReleaseVersion=.*/xhReleaseVersion=$VERSION/" gradle.properties
-              echo "Updated xhReleaseVersion to SNAPSHOT version: $VERSION"
-
-        - name: Read current version from gradle.properties
-          id: current-version
-          run: echo "current-version=$(grep '^xhReleaseVersion=' gradle.properties | cut -d'=' -f2)" >> "$GITHUB_OUTPUT"
-
-        - name: Validate snapshot version
-          uses: xh/hoist-dev-utils/.github/actions/set-validate-snapshot-version@develop
+        - name: Prepare snapshot version
+          uses: xh/hoist-dev-utils/.github/actions/prepare-gradle-snapshot-version@master
           with:
-              version: ${{ steps.current-version.outputs.current-version }}
-              append-timestamp: false
+              version: ${{ inputs.version }}
+              version-prop: xhReleaseVersion
 
         - name: Build and publish snapshot to Sonatype
           env:

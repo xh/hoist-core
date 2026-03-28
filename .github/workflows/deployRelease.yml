@@ -19,6 +19,7 @@ on:
                 default: false
                 type: boolean
 
+# Run all release builds one-by-one, but never cancel a release build due to another one.
 concurrency:
     group: deploy-release
     cancel-in-progress: false
@@ -39,8 +40,9 @@ jobs:
               fetch-depth: 0
               fetch-tags: true
 
+        # Checkout is required to be called with `fetch-depth: 0` and `fetch-tags: true`.
         - name: Validate release version
-          uses: xh/hoist-dev-utils/.github/actions/validate-release-version@develop
+          uses: xh/hoist-dev-utils/.github/actions/validate-release-version@master
           with:
               version: ${{ inputs.version }}
               is-hotfix: ${{ inputs.is-hotfix }}
@@ -65,8 +67,13 @@ jobs:
           run: |
               (set -x; ./gradlew -PxhReleaseVersion="$XH_RELEASE_VERSION" publishToSonatype closeAndReleaseSonatypeStagingRepository --no-daemon)
 
+        # Note: The tag intentionally points to a commit where gradle.properties still has
+        # the SNAPSHOT version. We chose not to commit the version change back to the repo to
+        # avoid paired set/reset commits on every release. The published Maven Central artifact
+        # has the correct release version — the tag is just a pointer to the source commit.
+        # Checkout is required to be called with `fetch-depth: 0` and `fetch-tags: true`.
         - name: Create tag and GitHub release
-          uses: xh/hoist-dev-utils/.github/actions/create-tag-and-github-release@develop
+          uses: xh/hoist-dev-utils/.github/actions/create-tag-and-github-release@master
           with:
               version: ${{ inputs.version }}
               is-hotfix: ${{ inputs.is-hotfix }}
