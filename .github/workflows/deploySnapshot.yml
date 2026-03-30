@@ -11,14 +11,15 @@ on:
         branches: [ "develop" ]
     workflow_dispatch:
         inputs:
-            xhSnapshotVersion:
+            version:
                 description: '(Optional) Snapshot version to override default in gradle.properties. Note that the suffix "-SNAPSHOT" will be automatically appended if not present.'
                 required: false
                 default: ''
                 type: string
 
+# Debounce builds by branch. Newer runs from a branch will cancel the current run and start over.
 concurrency:
-    group: deploy-snapshot
+    group: deploy-snapshot-${{ github.ref }}
     cancel-in-progress: true
 
 jobs:
@@ -36,29 +37,16 @@ jobs:
           with:
               java-version: '17'
               distribution: 'zulu'
+              cache: 'gradle'
 
         - name: Setup Gradle
           uses: gradle/actions/setup-gradle@v6
 
-        - name: Override snapshot version in gradle.properties
-          if: inputs.xhSnapshotVersion != ''
-          env:
-              VERSION: ${{ inputs.xhSnapshotVersion }}
-          run: |
-              if [[ ! "$VERSION" == *-SNAPSHOT ]]; then
-                VERSION="$VERSION-SNAPSHOT"
-              fi
-              sed -i "s/^xhReleaseVersion=.*/xhReleaseVersion=$VERSION/" gradle.properties
-              echo "Updated xhReleaseVersion to SNAPSHOT version: $VERSION"
-
-        - name: Validate SNAPSHOT version
-          run: |
-              VERSION=$(grep "^xhReleaseVersion=" gradle.properties | cut -d'=' -f2)
-              if [[ ! "$VERSION" == *-SNAPSHOT ]]; then
-                echo "::error::'$VERSION' is not a SNAPSHOT version. Aborting."
-                exit 1
-              fi
-              echo "Validated snapshot version: $VERSION"
+        - name: Prepare snapshot version
+          uses: xh/hoist-dev-utils/.github/actions/prepare-gradle-snapshot-version@master
+          with:
+              version: ${{ inputs.version }}
+              version-prop: xhReleaseVersion
 
         - name: Build and publish snapshot to Sonatype
           env:
