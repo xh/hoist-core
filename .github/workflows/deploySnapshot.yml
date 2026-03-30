@@ -39,8 +39,14 @@ jobs:
               distribution: 'zulu'
               cache: 'gradle'
 
+            # Setup Gradle. Submit informational build scans to https://scans.gradle.com/
+            # and accept license terms to avoid big banner about the same added in v6 of this action.
         - name: Setup Gradle
           uses: gradle/actions/setup-gradle@v6
+          with:
+              build-scan-publish: true
+              build-scan-terms-of-use-url: 'https://gradle.com/terms-of-service'
+              build-scan-terms-of-use-agree: 'yes'
 
         - name: Prepare snapshot version
           uses: xh/hoist-dev-utils/.github/actions/prepare-gradle-snapshot-version@master
