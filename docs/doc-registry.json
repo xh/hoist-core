@@ -185,6 +185,14 @@
             "keywords": ["GitHub Actions", "deployRelease", "deploySnapshot", "Sonatype", "GPG signing", "nexus-publish-plugin", "publishToSonatype"]
         },
         {
+            "id": "docs/upgrade-notes/v37-upgrade-notes.md",
+            "title": "v37 Upgrade Notes",
+            "mcpCategory": "devops",
+            "viewerCategory": "upgrade",
+            "description": "OpenTelemetry distributed tracing, MetricsService namespace removal. Low difficulty.",
+            "keywords": ["v37", "upgrade", "tracing", "OpenTelemetry", "MetricsService", "namespace", "TraceService"]
+        },
+        {
             "id": "docs/upgrade-notes/v36-upgrade-notes.md",
             "title": "v36 Upgrade Notes",
             "mcpCategory": "devops",

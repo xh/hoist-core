@@ -122,7 +122,9 @@ class MonitorMetricsService extends BaseService {
         def activeCodes = Monitor.withNewSession { Monitor.list()*.code } as Set<String>,
             activeInstances = clusterService.members.collect { it.getAttribute('instanceName') },
             staleKeys = meters.keySet().findAll { key ->
-                def (_, __, code, instance) = key.split(/\./)
+                def parts = key.split(/\./),
+                    instance = parts[-1],
+                    code = parts[-2]
                 return !activeCodes.contains(code) ||
                     (instance != 'cluster' && !activeInstances.contains(instance))
             }
