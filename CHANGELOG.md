@@ -1,5 +1,7 @@
 # Changelog
 
+## 38.0-SNAPSHOT - unreleased
+
 ## 37.0.2 - 2026-03-30
 
 ### 🐞 Bug Fixes
