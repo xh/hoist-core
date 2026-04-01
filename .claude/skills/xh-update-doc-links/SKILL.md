@@ -1,6 +1,6 @@
 ---
 name: xh-update-doc-links
-description: Pre-commit documentation consistency check. Ensures docs/README.md index, docs/planning/docs-roadmap.md, and the MCP server's hardcoded document registry stay in sync with documentation files on disk. Validates inter-doc links and enhances cross-references when new docs are added. Invoke after editing feature-area docs, before committing.
+description: Pre-commit documentation consistency check. Ensures docs/README.md index, docs/planning/docs-roadmap.md, and the MCP server's document registry (docs/doc-registry.json) stay in sync with documentation files on disk. Validates inter-doc links and enhances cross-references when new docs are added. Invoke after editing feature-area docs, before committing.
 tools: Read, Glob, Grep, Bash, Edit, Write
 ---
 

@@ -23,6 +23,9 @@ always consistent with the developer's checked-out version of hoist-core.
 ### Directory Structure
 
 ```
+docs/
+└── doc-registry.json             # Shared documentation inventory (entries, categories, metadata)
+
 mcp/
 ├── bootstrap.sh                  # Bootstrap script -- local, GitHub, Maven Central, or snapshot modes
 ├── build.gradle                  # Gradle build with Shadow JAR plugin for fat JAR distribution
@@ -32,7 +35,7 @@ mcp/
 │   ├── LocalContentSource.groovy # ContentSource backed by local filesystem checkout
 │   ├── GitHubContentSource.groovy# ContentSource backed by downloaded GitHub tarball
 │   ├── data/
-│   │   ├── DocRegistry.groovy    # Hardcoded documentation inventory with metadata and search
+│   │   ├── DocRegistry.groovy    # Loads doc-registry.json, provides metadata lookup and search
 │   │   └── GroovyRegistry.groovy # AST-based Groovy symbol index with background initialization
 │   ├── tools/
 │   │   ├── DocTools.groovy       # Documentation tools (search-docs, list-docs, ping)
@@ -62,12 +65,14 @@ files from a local checkout, while `GitHubContentSource` downloads and caches a 
 This lets the server run against any hoist-core version -- a developer's local working copy or a
 specific published release. The `--source` and `--root` CLI args select the backend.
 
-**Hardcoded doc registry over filesystem scanning.** The doc registry (`data/DocRegistry.groovy`)
-defines each documentation entry in code rather than discovering files on disk. This was chosen
-because the documentation corpus is bounded and well-known (~25 files), and each entry needs
-curated metadata (title, description, category, search keywords) that cannot be reliably derived
-from filenames alone. The metadata is aligned with the `docs/README.md` index tables. The
-tradeoff is manual maintenance -- see [Maintaining the MCP Server](#maintaining-the-mcp-server).
+**JSON-driven doc registry over filesystem scanning.** The doc registry is defined in
+`docs/doc-registry.json` and loaded by `data/DocRegistry.groovy` at startup rather than
+discovering files on disk. This was chosen because the documentation corpus is bounded and
+well-known (~25 files), and each entry needs curated metadata (title, description, category,
+search keywords) that cannot be reliably derived from filenames alone. The registry is shared
+with other consumers (e.g. documentation viewers) and aligned with the `docs/README.md` index
+tables. The tradeoff is manual maintenance -- see
+[Maintaining the MCP Server](#maintaining-the-mcp-server).
 
 **Eager Groovy AST initialization.** Parsing hoist-core's Groovy source files with the Groovy
 compiler's AST is expensive. After the server starts, `beginInitialization()` kicks off index
@@ -147,7 +152,7 @@ snippets showing where terms appear.
 | Parameter  | Type   | Required | Description |
 |------------|--------|----------|-------------|
 | `query`    | string | Yes      | Search keywords (e.g. `"BaseService lifecycle"`, `"authentication OAuth"`) |
-| `category` | enum   | No       | Filter: `core-framework`, `core-features`, `infrastructure`, `app-development`, `grails-platform`, `supporting`, `build`, `upgrade`, `all` (default) |
+| `category` | enum   | No       | Filter: `package`, `concept`, `devops`, `conventions`, `index`, `all` (default) |
 | `limit`    | number | No       | Max results, 1-20. Default: 10 |
 
 #### `hoist-core-list-docs`
@@ -210,11 +215,13 @@ codebase. This section catalogs each maintenance point, its location, and when u
 
 ### Doc Registry Entries
 
-**File:** `mcp/src/main/groovy/io/xh/hoist/mcp/data/DocRegistry.groovy` (method `buildRegistry()`)
+**File:** `docs/doc-registry.json`
 
 The doc registry is the single source of truth for all documentation that the MCP server can search
-and serve. Each entry specifies an `id`, `title`, `filePath`, `category`, `description`, and
-`keywords` list.
+and serve. Each entry specifies an `id` (which doubles as the relative file path from the repo
+root), `title`, `mcpCategory`, `description`, and `keywords` list. The registry also defines
+`mcpCategories` (used by the MCP server tools) and `viewerCategories` (used by the Toolbox doc
+viewer UI). `DocRegistry.groovy` loads and indexes this JSON at startup.
 
 **When to update:**
 - A new feature doc or concept doc is added to hoist-core
@@ -223,9 +230,9 @@ and serve. Each entry specifies an `id`, `title`, `filePath`, `category`, `descr
 - A documentation file is removed
 - The description or key topics for a doc change significantly
 
-**How to update:** Add, modify, or remove the corresponding `DocEntry` object in the
-`buildRegistry()` method. The `filePath` is relative to the repo root. Place entries in the
-correct section, organized by comment dividers matching the `CATEGORY_ORDER` constant.
+**How to update:** Add, modify, or remove the corresponding entry object in `doc-registry.json`.
+The `id` field is the file path relative to the repo root. Assign an appropriate `mcpCategory`
+and `viewerCategory` to place the entry in the correct groupings.
 
 **Automated support:** The `xh-update-doc-links` Claude Code skill
 (`.claude/skills/xh-update-doc-links/`) includes a dedicated step that reconciles the doc registry
@@ -250,8 +257,8 @@ searchable, or when an indexed class is renamed or removed.
 
 | Change | Files to Update |
 |--------|----------------|
-| Add/rename/remove a documentation file | `DocRegistry.groovy`, `docs/README.md` |
-| Add upgrade notes for a new major version | `DocRegistry.groovy`, `docs/README.md` |
+| Add/rename/remove a documentation file | `docs/doc-registry.json`, `docs/README.md` |
+| Add upgrade notes for a new major version | `docs/doc-registry.json`, `docs/README.md` |
 | Add/rename/remove a source directory | `GroovyRegistry.groovy` (`SOURCE_DIRS`) |
 | Add/rename/remove a member-indexed class | `GroovyRegistry.groovy` (`MEMBER_INDEXED_CLASSES`) |
 
@@ -279,8 +286,9 @@ input.
 
 ### Registry Sync
 
-The doc registry is hardcoded, not filesystem-scanned. When documentation files are added or
-removed, the registry must be updated manually. If a file referenced by a registry entry is missing
-on disk, the entry is logged as a warning and skipped at startup -- it does not cause a crash.
+The doc registry is defined in `docs/doc-registry.json`, not filesystem-scanned. When documentation
+files are added or removed, the registry must be updated manually. If a file referenced by a
+registry entry is missing on disk, the entry is logged as a warning and skipped at startup -- it
+does not cause a crash.
 
 See [Maintaining the MCP Server](#maintaining-the-mcp-server) for the full maintenance checklist.
