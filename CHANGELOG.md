@@ -2,6 +2,10 @@
 
 ## 38.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* Added MCP resource support for full document downloads via `hoist-core://docs/{docId}` URIs, enabling AI coding agents to read complete documentation content in addition to keyword search.
+
 ## 37.0.2 - 2026-03-30
 
 ### 🐞 Bug Fixes
