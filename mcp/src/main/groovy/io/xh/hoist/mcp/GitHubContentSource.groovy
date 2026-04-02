@@ -14,10 +14,17 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
  * ContentSource backed by a downloaded GitHub tarball, cached locally.
  * Downloads the hoist-core repo at a specific ref (tag, branch, or SHA)
  * and extracts it to ~/.cache/hoist-core-mcp/<ref>/.
+ *
+ * For branch refs (e.g. "develop"), the cache is invalidated after {@link #MAX_CACHE_AGE_MS}
+ * to ensure documentation stays in sync with the latest source. Tag and SHA refs are
+ * considered immutable and cached indefinitely.
  */
 class GitHubContentSource implements ContentSource {
 
     private static final String GITHUB_API = 'https://api.github.com/repos/xh/hoist-core/tarball'
+
+    /** Max age for branch caches before re-download. Tags/SHAs are cached indefinitely. */
+    private static final long MAX_CACHE_AGE_MS = 24 * 60 * 60 * 1000  // 24 hours
 
     final String ref
     final File cacheDir
@@ -68,14 +75,18 @@ class GitHubContentSource implements ContentSource {
     }
 
     /**
-     * Download and extract the tarball if not already cached.
+     * Download and extract the tarball if not already cached (or if the cache is stale).
      * Returns the extracted directory root (the single top-level dir in the tarball).
      */
     private File ensureDownloaded() {
-        // Check if already cached — look for a single directory inside cacheDir
         if (cacheDir.isDirectory()) {
-            def extracted = findExtractedRoot()
-            if (extracted) return extracted
+            if (isCacheStale()) {
+                McpLog.info("Cache for '${ref}' is stale (>${MAX_CACHE_AGE_MS / 3600000}h old), re-downloading...")
+                cacheDir.deleteDir()
+            } else {
+                def extracted = findExtractedRoot()
+                if (extracted) return extracted
+            }
         }
 
         McpLog.info("Downloading hoist-core archive for ref '${ref}'...")
@@ -134,5 +145,20 @@ class GitHubContentSource implements ContentSource {
             }
         }
         return null
+    }
+
+    /**
+     * Check if the cache is stale. Branch refs (e.g. "develop") are invalidated after
+     * MAX_CACHE_AGE_MS. Tag refs (e.g. "v37.0.0") and SHA refs are immutable and never stale.
+     */
+    private boolean isCacheStale() {
+        if (isImmutableRef()) return false
+        def age = System.currentTimeMillis() - cacheDir.lastModified()
+        return age > MAX_CACHE_AGE_MS
+    }
+
+    /** Tags (v1.2.3) and full SHAs (40 hex chars) point to immutable content. */
+    private boolean isImmutableRef() {
+        return ref.startsWith('v') || ref.matches('[0-9a-f]{40}')
     }
 }

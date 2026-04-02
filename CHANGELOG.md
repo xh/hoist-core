@@ -2,6 +2,14 @@
 
 ## 38.0-SNAPSHOT - unreleased
 
+### 🐞 Bug Fixes
+
+* Fixed MCP server not invalidating its cached GitHub source archive for branch refs (e.g. `develop`), causing documentation to become stale over time. Branch caches are now re-downloaded after 24 hours; tag and SHA refs remain cached indefinitely.
+
+### ⚙️ Technical
+
+* Added MCP resource support for full document downloads via `hoist-core://docs/{docId}` URIs, enabling AI coding agents to read complete documentation content in addition to keyword search.
+
 ## 37.0.2 - 2026-03-30
 
 ### 🐞 Bug Fixes
