@@ -22,6 +22,7 @@ import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.ldap.LdapService
+import io.xh.hoist.log.LogLevelService
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.pref.PrefService
 import io.xh.hoist.role.BaseRoleService
@@ -132,6 +133,10 @@ class Utils {
 
     static LdapService getLdapService() {
         return (LdapService) appContext.ldapService
+    }
+
+    static LogLevelService getLogLevelService() {
+        return (LogLevelService) appContext.logLevelService
     }
 
     static PrefService getPrefService() {

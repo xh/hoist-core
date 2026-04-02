@@ -24,8 +24,17 @@ class LogLevelAdminController extends AdminRestController {
     }
 
     def lookupData() {
-        def levels =  ['None'] + LogLevel.LEVELS
-        renderJSON (levels: levels)
+        def levels = ['None'] + LogLevel.LEVELS,
+            boolFlags = [
+                [value: null, label: 'None'],
+                [value: true, label: 'True'],
+                [value: false, label: 'False']
+            ]
+        renderJSON(
+            levels: levels,
+            suppressStackTraces: boolFlags,
+            includeStartMessages: boolFlags
+        )
     }
 
     protected void doCreate(Object obj, Object data) {

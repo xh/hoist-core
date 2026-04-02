@@ -2,6 +2,23 @@
 
 ## 38.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
+
+* Two new columns must be added to the `xh_log_level` table:
+  ```sql
+  ALTER TABLE xh_log_level ADD suppress_stack_trace BOOLEAN NULL;
+  ALTER TABLE xh_log_level ADD include_start_messages BOOLEAN NULL;
+  ```
+
+### 🎁 New Features
+
+* Added `suppressStackTrace` and `includeStartMessages` fields to `LogLevel` domain, editable
+  via the admin console Log Levels tab. Stacktraces for errors logged via LogSupport are now
+  included by default; set `suppressStackTrace` to `true` to suppress for a logger prefix.
+  Start messages for `withXxx` blocks are off by default; set `includeStartMessages` to `true`
+  to enable. Both support specificity ordering for fine-grained overrides. Replaces the
+  previous TRACE-level gating for stacktraces and finer-level gating for start messages.
+
 ## 37.0.2 - 2026-03-30
 
 ### 🐞 Bug Fixes
