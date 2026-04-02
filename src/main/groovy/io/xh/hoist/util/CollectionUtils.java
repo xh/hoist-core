@@ -28,7 +28,8 @@ public class CollectionUtils {
      * Create a declarative hashmap from an alternating collection of key, value pairs
      */
     public static <K, V> HashMap<K, V> quickMap(Object... args) {
-        HashMap<K, V> ret = sizedHashMap(args.length);
+        if (args.length % 2 != 0) throw new IllegalArgumentException("quickMap requires an even number of arguments");
+        HashMap<K, V> ret = sizedHashMap(args.length / 2);
         for (int i = 0; i < args.length; i += 2) {
             ret.put((K) args[i], (V) args[i + 1]);
         }
