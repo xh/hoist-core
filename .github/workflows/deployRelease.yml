@@ -52,7 +52,6 @@ jobs:
           with:
               java-version: '17'
               distribution: 'zulu'
-              cache: 'gradle'
 
         # Setup Gradle. Submit informational build scans to https://scans.gradle.com/
         # and accept license terms to avoid big banner about the same added in v6 of this action.
