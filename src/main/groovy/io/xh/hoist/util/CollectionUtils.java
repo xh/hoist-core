@@ -10,14 +10,13 @@ import java.util.*;
 import java.util.function.Function;
 
 /**
- * Hoist tools for creating/manipulating collections in Java using groovy
- * like syntax.Useful for applications with large datasets and high performance
- * requirements.
+ * Hoist tools for creating/manipulating collections in Java using Groovy-like syntax.
+ * Useful for applications with large datasets and high performance requirements.
  */
 public class CollectionUtils {
 
     /**
-     * Create an HashMap for a pre-determined number of items.
+     * Create a HashMap for a pre-determined number of items.
      * Will size appropriately to avoid any rehashing/re-allocation.
      */
     public static <K, V> HashMap<K, V> sizedHashMap(int size) {
@@ -25,7 +24,7 @@ public class CollectionUtils {
     }
 
     /**
-     * Create a declarative hashmap from an alternating collection of key, value pairs
+     * Create a declarative hashmap from an alternating collection of key/value pairs.
      */
     public static <K, V> HashMap<K, V> quickMap(Object... args) {
         if (args.length % 2 != 0) throw new IllegalArgumentException("quickMap requires an even number of arguments");
@@ -37,7 +36,7 @@ public class CollectionUtils {
     }
 
     /**
-     * Java version of Groovy collectEntries
+     * Java version of Groovy `collectEntries`.
      */
     public static <S, K, V> Map<K, V> collectEntries(Collection<S> col, Function<S, Map.Entry<K, V>> mapper) {
         HashMap<K, V> ret = sizedHashMap(col.size());
@@ -49,7 +48,7 @@ public class CollectionUtils {
     }
 
     /**
-     * Java version of Groovy collect
+     * Java version of Groovy `collect`.
      */
     public static <S, T> List<T> collect(Collection<S> col, Function<S, T> mapper) {
         List<T> ret = new ArrayList<>(col.size());
