@@ -120,55 +120,75 @@ class PrefService extends BaseService {
     }
 
     /**
-     * Check a list of core preferences required for Hoist/application operation - ensuring that
+     * Check a list of core preferences required for Hoist/application operation — ensuring that
      * these prefs are present and that their types are as expected if so.
      *
      * Will create missing prefs with supplied default values if not found.
      *
-     * @param requiredPrefs - map of prefName to map of `[type, groupName, defaultValue, note]`
+     * @param prefSpecs - List of {@link PreferenceSpec} defining the required preferences.
      */
     @Transactional
-    void ensureRequiredPrefsCreated(Map<String, Map> requiredPrefs) {
+    void ensureRequiredPrefsCreated(List<PreferenceSpec> prefSpecs) {
+        prefSpecs = prefSpecs.collect {
+            it instanceof PreferenceSpec ? it : new PreferenceSpec(it as Map)
+        }
+
         def currPrefs = Preference.list(),
             created = 0
 
-        requiredPrefs.each { prefName, prefDefaults ->
-            def currPref = currPrefs.find { it.name == prefName },
-                valType = prefDefaults.type,
-                defaultVal = prefDefaults.defaultValue,
-                // Mismatch on notes <> note vs. AppConfig - stuck with singular "note" for
-                // this API for consistency with ensureRequiredConfigsCreated()
-                notes = prefDefaults.note ?: ''
+        prefSpecs.each { PreferenceSpec spec ->
+            def currPref = currPrefs.find { it.name == spec.name },
+                defaultVal = spec.defaultValue
 
             if (!currPref) {
-                if (valType == 'json') defaultVal = serializePretty(defaultVal)
+                if (spec.type == 'json') defaultVal = serializePretty(defaultVal)
 
                 new Preference(
-                    name: prefName,
-                    type: valType,
+                    name: spec.name,
+                    type: spec.type,
                     defaultValue: defaultVal,
-                    groupName: prefDefaults.groupName ?: 'Default',
-                    notes: notes,
+                    groupName: spec.groupName,
+                    notes: spec.notes ?: '',
                     lastUpdatedBy: 'hoist-bootstrap'
                 ).save()
 
                 logWarn(
-                        "Required preference $prefName missing and created with default value",
-                        'verify default is appropriate for this application'
+                    "Required preference ${spec.name} missing and created with default value",
+                    'verify default is appropriate for this application'
                 )
                 created++
             } else {
-                if (currPref.type != valType) {
+                if (currPref.type != spec.type) {
                     logError(
-                            "Unexpected value type for required preference $prefName",
-                            "expected $valType got ${currPref.type}",
-                            'review and fix!'
+                        "Unexpected value type for required preference ${spec.name}",
+                        "expected ${spec.type} got ${currPref.type}",
+                        'review and fix!'
                     )
                 }
             }
         }
 
-        logDebug("Validated presense of ${requiredPrefs.size()} required configs", "created $created")
+        logDebug("Validated presense of ${prefSpecs.size()} required prefs", "created $created")
+    }
+
+    /**
+     * @deprecated Use {@link #ensureRequiredPrefsCreated(List)} with {@link PreferenceSpec} instead.
+     *     Targeted for removal in v40.
+     */
+    @Deprecated
+    @Transactional
+    void ensureRequiredPrefsCreated(Map<String, Map> requiredPrefs) {
+        logWarn('ensureRequiredPrefsCreated(Map) is deprecated — use List<PreferenceSpec> instead')
+        ensureRequiredPrefsCreated(
+            requiredPrefs.collect { name, defaults ->
+                // Legacy API used singular 'note' — map to 'notes' for PreferenceSpec.
+                def specMap = [name: name] + defaults
+                if (specMap.containsKey('note') && !specMap.containsKey('notes')) {
+                    specMap.notes = specMap.remove('note')
+                }
+                new PreferenceSpec(specMap)
+            }
+        )
     }
 
     @ReadOnly

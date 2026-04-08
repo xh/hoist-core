@@ -2,6 +2,10 @@
 
 ## 38.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Added `ConfigSpec`, `PreferenceSpec`, and `RoleSpec` typed classes for use with `ensureRequiredConfigsCreated()`, `ensureRequiredPrefsCreated()`, and `ensureRequiredRolesCreated()`, replacing untyped `Map` arguments with classes that provide IDE autocomplete and compile-time validation. Previous `Map`-based signatures remain supported as deprecated overloads and will be removed in v40.
+
 ### 🐞 Bug Fixes
 
 * Fixed MCP server not invalidating its cached GitHub source archive for branch refs (e.g. `develop`), causing documentation to become stale over time. Branch caches are now re-downloaded after 24 hours; tag and SHA refs remain cached indefinitely.

@@ -22,6 +22,7 @@ application settings, while preferences are per-user.
 | `UserPreference` | `grails-app/domain/io/xh/hoist/pref/` | GORM domain — per-user preference values |
 | `PrefService` | `grails-app/services/io/xh/hoist/pref/` | Primary service — typed getters/setters |
 | `PrefDiffService` | `grails-app/services/io/xh/hoist/pref/` | Cross-environment preference synchronization |
+| `PreferenceSpec` | `src/main/groovy/io/xh/hoist/pref/` | Typed specification for required preference definitions |
 | `PreferenceAdminController` | `grails-app/controllers/io/xh/hoist/admin/` | Admin Console CRUD endpoints for preference definitions |
 | `XhController` | `grails-app/controllers/io/xh/hoist/impl/` | Client-facing `getPrefs` / `setPrefs` endpoints |
 
@@ -158,35 +159,46 @@ parsed to objects.
 #### `ensureRequiredPrefsCreated(requiredPrefs)`
 
 Applications should register all preferences they intend to use via this method in their
-`BootStrap.groovy`. A preference must exist as a `Preference` record in the database before it can
-be read or written — calls to `PrefService` for a non-existent preference will throw a
-`RuntimeException`. This method creates any missing preferences with the supplied defaults and logs
-errors if an existing preference has a mismatched type. Note the API uses `note` (singular) for
-consistency with `ensureRequiredConfigsCreated()`, even though the `Preference` domain property is
-`notes` (plural).
+`BootStrap.groovy`. Accepts a `List<PreferenceSpec>` where each `PreferenceSpec` specifies the
+preference's `name`, `type`, `defaultValue`, and optional fields (`groupName`, `notes`). A
+preference must exist as a `Preference` record in the database before it can be read or written —
+calls to `PrefService` for a non-existent preference will throw a `RuntimeException`. This method
+creates any missing preferences with the supplied defaults and logs errors if an existing
+preference has a mismatched type.
+
+A deprecated overload accepting `Map<String, Map>` (where the outer key is the preference name)
+is still supported for backward compatibility but should be migrated to `PreferenceSpec`. Note that
+the old Map API used `note` (singular) for consistency with the former `ensureRequiredConfigsCreated()`
+Map API; the deprecated overload maps `note` to the correct `notes` (plural) field on `Preference`
+automatically.
 
 ```groovy
+import io.xh.hoist.pref.PreferenceSpec
+
 class BootStrap {
     def prefService
 
     def init = {
         prefService.ensureRequiredPrefsCreated([
-            'theme': [
+            new PreferenceSpec(
+                name: 'theme',
                 type: 'string',
                 defaultValue: 'light',
                 groupName: 'UI',
-                note: 'User interface theme'
-            ],
-            'defaultPageSize': [
+                notes: 'User interface theme'
+            ),
+            new PreferenceSpec(
+                name: 'defaultPageSize',
                 type: 'int',
                 defaultValue: '25',
                 groupName: 'UI'
-            ],
-            'dashboardLayout': [
+            ),
+            new PreferenceSpec(
+                name: 'dashboardLayout',
                 type: 'json',
                 defaultValue: [panels: []],
                 groupName: 'Dashboard'
-            ]
+            )
         ])
     }
 }

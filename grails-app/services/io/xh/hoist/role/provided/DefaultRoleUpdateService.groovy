@@ -61,11 +61,15 @@ class DefaultRoleUpdateService extends BaseService {
 
 
     @Transactional
-    void ensureRequiredRolesCreated(List<Map> roleSpecs) {
+    void ensureRequiredRolesCreated(List<RoleSpec> roleSpecs) {
+        roleSpecs = roleSpecs.collect {
+            it instanceof RoleSpec ? it : new RoleSpec(it as Map)
+        }
+
         List<Role> currRoles = Role.list()
         int created = 0
 
-        roleSpecs.each { spec ->
+        roleSpecs.each { RoleSpec spec ->
             Role currRole = currRoles.find { it.name == spec.name }
             if (!currRole) {
                 Role newRole = new Role(

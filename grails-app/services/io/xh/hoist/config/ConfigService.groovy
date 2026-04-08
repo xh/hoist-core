@@ -148,62 +148,75 @@ class ConfigService extends BaseService {
     }
 
     /**
-     * Check a list of core configurations required for Hoist/application operation - ensuring that these configs are
-     * present and that their valueTypes and clientVisible flags are are as expected. Will create missing configs with
-     * supplied default values if not found.
+     * Check a list of core configurations required for Hoist/application operation — ensuring
+     * that these configs are present and that their valueTypes and clientVisible flags are as
+     * expected. Will create missing configs with supplied default values if not found.
      *
-     * @param reqConfigs - map of configName to map of [valueType, defaultValue, clientVisible, groupName]
+     * @param configSpecs - List of {@link ConfigSpec} defining the required configs.
      */
     @Transactional
-    void ensureRequiredConfigsCreated(Map<String, Map> reqConfigs) {
+    void ensureRequiredConfigsCreated(List<ConfigSpec> configSpecs) {
+        configSpecs = configSpecs.collect {
+            it instanceof ConfigSpec ? it : new ConfigSpec(it as Map)
+        }
+
         def currConfigs = AppConfig.list(),
             created = 0
 
-        reqConfigs.each { confName, confDefaults ->
-            def currConfig = currConfigs.find { it.name == confName },
-                valType = confDefaults.valueType,
-                defaultVal = confDefaults.defaultValue,
-                clientVisible = confDefaults.clientVisible ?: false,
-                note = confDefaults.note ?: ''
+        configSpecs.each { ConfigSpec spec ->
+            def currConfig = currConfigs.find { it.name == spec.name },
+                defaultVal = spec.defaultValue
 
             if (!currConfig) {
-
-                if (valType == 'json') defaultVal = serializePretty(defaultVal)
+                if (spec.valueType == 'json') defaultVal = serializePretty(defaultVal)
 
                 new AppConfig(
-                    name: confName,
-                    valueType: valType,
+                    name: spec.name,
+                    valueType: spec.valueType,
                     value: defaultVal,
-                    groupName: confDefaults.groupName ?: 'Default',
-                    clientVisible: clientVisible,
+                    groupName: spec.groupName,
+                    clientVisible: spec.clientVisible,
                     lastUpdatedBy: 'hoist-bootstrap',
-                    note: note
+                    note: spec.note ?: ''
                 ).save()
 
                 logWarn(
-                    "Required config $confName missing and created with default value",
+                    "Required config ${spec.name} missing and created with default value",
                     'verify default is appropriate for this application'
                 )
                 created++
             } else {
-                if (currConfig.valueType != valType) {
+                if (currConfig.valueType != spec.valueType) {
                     logError(
-                        "Unexpected value type for required config $confName",
-                        "expected $valType got ${currConfig.valueType}",
+                        "Unexpected value type for required config ${spec.name}",
+                        "expected ${spec.valueType} got ${currConfig.valueType}",
                         'review and fix!'
                     )
                 }
-                if (currConfig.clientVisible != clientVisible) {
+                if (currConfig.clientVisible != spec.clientVisible) {
                     logError(
-                        "Unexpected clientVisible for required config $confName",
-                        "expected $clientVisible got ${currConfig.clientVisible}",
+                        "Unexpected clientVisible for required config ${spec.name}",
+                        "expected ${spec.clientVisible} got ${currConfig.clientVisible}",
                         'review and fix!'
                     )
                 }
             }
         }
 
-        logDebug("Validated presense of ${reqConfigs.size()} required configs", "created ${created}")
+        logDebug("Validated presense of ${configSpecs.size()} required configs", "created ${created}")
+    }
+
+    /**
+     * @deprecated Use {@link #ensureRequiredConfigsCreated(List)} with {@link ConfigSpec} instead.
+     *     Targeted for removal in v40.
+     */
+    @Deprecated
+    @Transactional
+    void ensureRequiredConfigsCreated(Map<String, Map> reqConfigs) {
+        logWarn('ensureRequiredConfigsCreated(Map) is deprecated — use List<ConfigSpec> instead')
+        ensureRequiredConfigsCreated(
+            reqConfigs.collect { name, defaults -> new ConfigSpec([name: name] + defaults) }
+        )
     }
 
     void fireConfigChanged(AppConfig obj) {
