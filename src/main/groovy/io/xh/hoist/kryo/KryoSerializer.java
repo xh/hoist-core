@@ -41,19 +41,23 @@ class KryoSerializer<T> implements StreamSerializer<T>, HazelcastInstanceAware {
     //-----------------------------------
     // Hazelcast Overrides for Serializer
     //-----------------------------------
+    @Override
     public int getTypeId() {
         return typeId;
     }
 
+    @Override
     public void destroy() {
         KryoIdGenerator.instanceDestroyed(hzInstance);
     }
 
+    @Override
     public void setHazelcastInstance(HazelcastInstance instance) {
         hzInstance = instance;
         typeId = KryoIdGenerator.globalId(hzInstance);
     }
 
+    @Override
     public void write(ObjectDataOutput out, T object) {
         KryoContext kryoContext = ctx.get();
         OutputChunked output = kryoContext.outputChunked;
@@ -63,6 +67,7 @@ class KryoSerializer<T> implements StreamSerializer<T>, HazelcastInstanceAware {
         output.flush();
     }
 
+    @Override
     public T read(ObjectDataInput in) {
         KryoContext kryoContext = ctx.get();
         InputChunked input = kryoContext.inputChunked;
@@ -98,6 +103,7 @@ class KryoSerializer<T> implements StreamSerializer<T>, HazelcastInstanceAware {
             classLoader = hzInstance.getConfig().getClassLoader();
         }
 
+        @Override
         protected Class<?> getTypeByName(String className) {
             try {
                 return ClassLoaderUtil.loadClass(classLoader, className);

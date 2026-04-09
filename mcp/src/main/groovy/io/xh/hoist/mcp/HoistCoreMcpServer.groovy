@@ -7,6 +7,7 @@ import io.modelcontextprotocol.server.transport.StdioServerTransportProvider
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities
 import io.xh.hoist.mcp.data.DocRegistry
 import io.xh.hoist.mcp.data.GroovyRegistry
+import io.xh.hoist.mcp.resources.DocResources
 import io.xh.hoist.mcp.tools.DocTools
 import io.xh.hoist.mcp.tools.GroovyTools
 import io.xh.hoist.mcp.util.McpLog
@@ -63,6 +64,7 @@ class HoistCoreMcpServer {
         def groovyRegistry = new GroovyRegistry(contentSource)
 
         def toolSpecs = DocTools.create(docRegistry) + GroovyTools.create(groovyRegistry)
+        def resourceSpecs = DocResources.create(docRegistry)
 
         def transportProvider = new StdioServerTransportProvider(McpJsonDefaults.getMapper())
 
@@ -71,9 +73,11 @@ class HoistCoreMcpServer {
             .instructions('Hoist Core MCP server — provides access to hoist-core framework documentation and Groovy/Java symbol information.')
             .capabilities(ServerCapabilities.builder()
                 .tools(true)
+                .resources(false, false)
                 .build()
             )
             .tools(toolSpecs)
+            .resources(resourceSpecs)
             .build()
 
         // Warm the Groovy symbol index in the background so the first tool call doesn't

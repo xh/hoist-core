@@ -55,3 +55,7 @@ jobs:
         # See: https://github.com/gradle/actions/blob/main/dependency-submission/README.md
         - name: Generate and submit dependency graph
           uses: gradle/actions/dependency-submission@v6
+          with:
+              build-scan-publish: false
+              build-scan-terms-of-use-url: 'https://gradle.com/terms-of-service'
+              build-scan-terms-of-use-agree: 'yes'
