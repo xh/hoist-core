@@ -154,7 +154,8 @@ class JSONClient {
                     'http.request.method': method.method,
                     'url.full'           : method.uri,
                     'server.address'     : method.uri.host,
-                    'source'             : 'hoist'
+                    'server.port'        : method.uri.port > 0 ? method.uri.port : null,
+                    'xh.source'          : 'hoist'
                 ]
             )
             .run { SpanRef span ->

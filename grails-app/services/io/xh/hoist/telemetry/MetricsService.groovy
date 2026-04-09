@@ -34,7 +34,7 @@ import static io.xh.hoist.util.Utils.appCode
  *
  * Exposes a {@link CompositeMeterRegistry} via {@link #registry} for meter registration.
  * All meters registered through this registry automatically receive default tags
- * ({@code application}, {@code instance}, {@code source}).
+ * ({@code application}, {@code instance}, {@code xh.source}).
  *
  * Built-in support for Prometheus (pull-based) and OTLP (push-based) export registries,
  * configured dynamically via the {@code xhMetricsConfig} soft config entry. Additional
@@ -52,7 +52,7 @@ class MetricsService extends BaseService {
      * Main entry point for meter registration.
      *
      * All meters registered through this registry automatically receive default tags
-     * ({@code application}, {@code instance}). A {@code source} tag also classifies
+     * ({@code application}, {@code instance}). An {@code xh.source} tag also classifies
      * each metric's origin — 'app' (default) or 'hoist' are built-in sources, and
      * 'app' will be provided as the default.
      */
@@ -156,13 +156,13 @@ class MetricsService extends BaseService {
             Meter.Id map(Meter.Id id) {
                 // default source
                 def name = id.name,
-                    source = id.getTag('source')
+                    source = id.getTag('xh.source')
                 if (!source) {
                     source = isDefaultHoistSource(name) ? 'hoist' : 'app'
                 }
 
                 // apply default tags (including source) if not present
-                [application: appCode, instance: instanceName, source: source].each { k, v ->
+                [application: appCode, instance: instanceName, 'xh.source': source].each { k, v ->
                     if (!id.getTag(k)) {
                         id = id.withTags(Tags.of(k, v))
                     }

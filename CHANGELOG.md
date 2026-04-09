@@ -28,6 +28,7 @@
 
 ### ⚙️ Technical
 
+* Aligned span and metric tag names with OTEL semantic conventions. Renamed `source` → `xh.source` on all spans and metrics, `user` → `user.name` on spans, and `deployment.environment` → `deployment.environment.name` on resource attributes. Added `server.port`, `client.address`, and `user_agent.original` to SERVER spans; added `server.port` to CLIENT spans.
 * Added MCP resource support for full document downloads via `hoist-core://docs/{docId}` URIs, enabling AI coding agents to read complete documentation content in addition to keyword search.
 
 ## 37.0.2 - 2026-03-30

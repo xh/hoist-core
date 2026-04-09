@@ -147,9 +147,9 @@ class TraceService extends BaseService {
             pending = new SpanRef(span, span.makeCurrent(), kind)
 
         pending.setTags(tags)
-        if (!tags.source) pending.setTag('source', 'app')
+        if (!tags['xh.source']) pending.setTag('xh.source', 'app')
         if (caller) pending.setTag('code.namespace', caller.class.name)
-        pending.setTag('user', username ?: 'Anon')
+        pending.setTag('user.name', username ?: 'Anon')
 
         return pending
     }
@@ -314,7 +314,7 @@ class TraceService extends BaseService {
                 Resource.create(Attributes.builder()
                     .put(stringKey('service.name'), appCode)
                     .put(stringKey('service.instance.id'), instanceName)
-                    .put(stringKey('deployment.environment'), appEnvironment.toString())
+                    .put(stringKey('deployment.environment.name'), appEnvironment.toString())
                     .put(stringKey('service.version'), appVersion)
                     .build()
                 )

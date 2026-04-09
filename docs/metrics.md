@@ -15,8 +15,7 @@ Applications can register their own custom metrics using the standard Micrometer
 ### Key capabilities
 
 - **Central registry** — `MetricsService` exposes a `CompositeMeterRegistry` that all meters
-  register through. Default tags (`application`, `instance`, `source`) and namespace prefixing are
-  applied automatically.
+  register through.
 - **Export registries** — built-in support for Prometheus (pull-based) and OTLP (push-based),
   configured via soft config. Additional registries (e.g. Datadog) can be added programmatically.
 - **Cluster-wide Prometheus scrape** — a single endpoint can return metrics from all instances,
@@ -70,24 +69,14 @@ class MyService extends BaseService {
 }
 ```
 
-### Namespace prefixing and default tags
+### Default tags
 
 All meters registered through the service automatically receive:
 
 1. **Default tags:**
    - `application` — the application code (e.g. `myApp`)
    - `instance` — the cluster instance name (e.g. `inst1`)
-   - `source` — classifies the metric's origin (see below)
-
-2. **Namespace prefix** based on the `source` tag:
-   - `source=app` (default) — metric name is prefixed with the application namespace
-     (e.g. `myApp.myService.queueDepth`)
-   - `source=hoist` — prefixed with `hoist.` (e.g. `hoist.monitor.status.xhMemoryMonitor`)
-   - `source=infra` — no prefix added (e.g. `jvm.memory.used`, `jdbc.pool.active`)
-
-The namespace defaults to the application code and can be overridden via the `namespace` key in
-`xhMetricsConfig`. Note that the namespace is applied at service initialization — a restart is
-required to change it.
+   - `xh.source` — classifies the metric's origin ('hoist' or 'app')
 
 ### Cluster-scoped metrics
 
@@ -151,7 +140,7 @@ metricsService.registry.add(myDatadogRegistry)
 
 ## Built-in Metrics
 
-### JVM metrics (`source=infra`)
+### JVM metrics
 
 Automatically bound at startup via Micrometer's standard binders:
 
@@ -163,7 +152,7 @@ Automatically bound at startup via Micrometer's standard binders:
 | `jvm.classes.*` | `ClassLoaderMetrics` | Loaded and unloaded class counts |
 | `system.cpu.*` | `ProcessorMetrics` | CPU usage and available processors |
 
-### JDBC connection pool metrics (`source=infra`)
+### JDBC connection pool metrics
 
 Published by `ConnectionPoolMonitoringService` via the Tomcat JDBC pool:
 
@@ -181,7 +170,7 @@ Published by `ConnectionPoolMonitoringService` via the Tomcat JDBC pool:
 | `jdbc.pool.removeAbandoned` | Counter | Connections removed due to abandonment |
 | `jdbc.pool.releasedIdle` | Counter | Idle connections released by evictor |
 
-### WebSocket metrics (`source=infra`)
+### WebSocket metrics
 
 Published by `WebSocketService`:
 
@@ -194,7 +183,7 @@ Published by `WebSocketService`:
 | `websocket.sessions.opened` | Counter | Sessions registered |
 | `websocket.sessions.closed` | Counter | Sessions unregistered |
 
-### Monitor metrics (`source=hoist`)
+### Monitor metrics
 
 Published by `MonitorMetricsService` after each monitor evaluation cycle on the primary instance.
 For each configured monitor, three metrics are published:
@@ -210,7 +199,7 @@ aggregate status. Meters are automatically removed when monitors or instances ar
 
 See [`monitoring.md`](./monitoring.md) for full documentation of the Hoist monitoring system.
 
-### Client activity metrics (`source=hoist`)
+### Client activity metrics
 
 Published by `TrackMetricsService`, which subscribes to the `xhTrackReceived` Hazelcast topic on
 the primary instance. These metrics are cluster-scoped (`instance=cluster`) and tagged with
@@ -254,7 +243,6 @@ See [`activity-tracking.md`](./activity-tracking.md) for documentation of the tr
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `namespace` | String | Metric name prefix for `source=app` metrics. Defaults to the application code. Requires restart to change. |
 | `prometheusEnabled` | Boolean | Enable the Prometheus export registry. Dynamic — takes effect on next config refresh. |
 | `prometheusConfig` | Map | Additional Prometheus configuration properties (e.g. `{"step": "PT30S"}`). |
 | `otlpEnabled` | Boolean | Enable the OTLP export registry. Dynamic. |
@@ -276,7 +264,7 @@ and returns a merged list of all registered meters. Each entry includes:
 - `count`, `max` — for Timer/DistributionSummary types
 - `description` — human-readable description
 - `baseUnit` — unit of measurement
-- `tags` — all tags including `application`, `instance`, `source`
+- `tags` — all tags including `application`, `instance`, `xh.source`
 - `stats` — raw statistics map
 
 This endpoint requires the `HOIST_ADMIN_READER` role.
