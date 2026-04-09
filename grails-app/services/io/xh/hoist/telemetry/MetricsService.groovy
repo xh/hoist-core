@@ -34,7 +34,7 @@ import static io.xh.hoist.util.Utils.appCode
  *
  * Exposes a {@link CompositeMeterRegistry} via {@link #registry} for meter registration.
  * All meters registered through this registry automatically receive default tags
- * ({@code application}, {@code instance}, {@code xh.source}).
+ * ({@code hoist.application}, {@code hoist.instance}, {@code hoist.source}).
  *
  * Built-in support for Prometheus (pull-based) and OTLP (push-based) export registries,
  * configured dynamically via the {@code xhMetricsConfig} soft config entry. Additional
@@ -52,7 +52,7 @@ class MetricsService extends BaseService {
      * Main entry point for meter registration.
      *
      * All meters registered through this registry automatically receive default tags
-     * ({@code application}, {@code instance}). An {@code xh.source} tag also classifies
+     * ({@code hoist.application}, {@code hoist.instance}). A {@code hoist.source} tag also classifies
      * each metric's origin — 'app' (default) or 'hoist' are built-in sources, and
      * 'app' will be provided as the default.
      */
@@ -85,7 +85,7 @@ class MetricsService extends BaseService {
      *
      * Any instance can service this request — it fans out to all instances via
      * Hazelcast, collects each instance's scrape output, and concatenates the
-     * results. Each metric already carries an {@code instance} tag distinguishing
+     * results. Each metric already carries a {@code hoist.instance} tag distinguishing
      * its source.
      *
      * Applications should expose the value returned by this method in a dedicated
@@ -144,7 +144,7 @@ class MetricsService extends BaseService {
         // Deny cluster-scoped metrics on non-primary instances
         registry.config().meterFilter(new MeterFilter() {
             MeterFilterReply accept(Meter.Id id) {
-                if (!clusterService.isPrimary && id.getTag('instance') == 'cluster') {
+                if (!clusterService.isPrimary && id.getTag('hoist.instance') == 'cluster') {
                     logError("Cluster-scoped metric registered on non-primary instance", id.name)
                     return DENY
                 }
@@ -156,13 +156,13 @@ class MetricsService extends BaseService {
             Meter.Id map(Meter.Id id) {
                 // default source
                 def name = id.name,
-                    source = id.getTag('xh.source')
+                    source = id.getTag('hoist.source')
                 if (!source) {
                     source = isDefaultHoistSource(name) ? 'hoist' : 'app'
                 }
 
                 // apply default tags (including source) if not present
-                [application: appCode, instance: instanceName, 'xh.source': source].each { k, v ->
+                ['hoist.application': appCode, 'hoist.instance': instanceName, 'hoist.source': source].each { k, v ->
                     if (!id.getTag(k)) {
                         id = id.withTags(Tags.of(k, v))
                     }

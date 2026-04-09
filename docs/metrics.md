@@ -19,7 +19,7 @@ Applications can register their own custom metrics using the standard Micrometer
 - **Export registries** — built-in support for Prometheus (pull-based) and OTLP (push-based),
   configured via soft config. Additional registries (e.g. Datadog) can be added programmatically.
 - **Cluster-wide Prometheus scrape** — a single endpoint can return metrics from all instances,
-  each distinguished by an `instance` tag.
+  each distinguished by a `hoist.instance` tag.
 - **Built-in metrics** — JVM (memory, GC, threads, classloader, CPU), JDBC pool, WebSocket
   channels, client activity tracking, and Hoist monitor results are instrumented out of the box.
 - **Admin Console** — a cluster-wide metrics viewer is available via `MetricsAdminController`.
@@ -74,9 +74,9 @@ class MyService extends BaseService {
 All meters registered through the service automatically receive:
 
 1. **Default tags:**
-   - `application` — the application code (e.g. `myApp`)
-   - `instance` — the cluster instance name (e.g. `inst1`)
-   - `xh.source` — classifies the metric's origin ('hoist' or 'app')
+   - `hoist.application` — the application code (e.g. `myApp`)
+   - `hoist.instance` — the cluster instance name (e.g. `inst1`)
+   - `hoist.source` — classifies the metric's origin ('hoist' or 'app')
 
 ### Cluster-scoped metrics
 
@@ -93,7 +93,7 @@ instances.
 When `prometheusEnabled: true` in `xhMetricsConfig`, a `PrometheusMeterRegistry` is added to the
 composite registry. Prometheus scrapes are served by calling `metricsService.prometheusData()`, which
 fans out to all cluster instances via Hazelcast, collects each instance's scrape output, and
-concatenates the results. Each metric already carries an `instance` tag distinguishing its source.
+concatenates the results. Each metric already carries a `hoist.instance` tag distinguishing its source.
 
 Applications expose this via a simple controller:
 
@@ -194,7 +194,7 @@ For each configured monitor, three metrics are published:
 | `hoist.monitor.value.{code}` | Gauge | Current numeric metric value |
 | `hoist.monitor.executionTime.{code}` | Timer | Execution time of the monitor check |
 
-Each carries an `instance` tag indicating which cluster instance ran the check, or `cluster` for
+Each carries a `hoist.instance` tag indicating which cluster instance ran the check, or `cluster` for
 aggregate status. Meters are automatically removed when monitors or instances are decommissioned.
 
 See [`monitoring.md`](./monitoring.md) for full documentation of the Hoist monitoring system.
@@ -264,7 +264,7 @@ and returns a merged list of all registered meters. Each entry includes:
 - `count`, `max` — for Timer/DistributionSummary types
 - `description` — human-readable description
 - `baseUnit` — unit of measurement
-- `tags` — all tags including `application`, `instance`, `xh.source`
+- `tags` — all tags including `hoist.application`, `hoist.instance`, `hoist.source`
 - `stats` — raw statistics map
 
 This endpoint requires the `HOIST_ADMIN_READER` role.

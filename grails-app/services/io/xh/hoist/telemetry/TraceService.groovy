@@ -147,7 +147,7 @@ class TraceService extends BaseService {
             pending = new SpanRef(span, span.makeCurrent(), kind)
 
         pending.setTags(tags)
-        if (!tags['xh.source']) pending.setTag('xh.source', 'app')
+        if (!tags['hoist.source']) pending.setTag('hoist.source', 'app')
         if (caller) pending.setTag('code.namespace', caller.class.name)
         pending.setTag('user.name', username ?: 'Anon')
 

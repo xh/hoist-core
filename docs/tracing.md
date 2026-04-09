@@ -277,7 +277,7 @@ action, which becomes a child of the client span when a traceparent was present.
 - **Name:** `{METHOD} {controller}/{action}` (e.g. `GET portfolio/positions`)
 - **Attributes:** `http.request.method`, `http.route`, `url.path`, `url.scheme`,
   `server.address`, `server.port`, `client.address`, `user_agent.original`,
-  `http.response.status_code`, `xh.source=hoist`
+  `http.response.status_code`, `hoist.source=hoist`
 - The `submitSpans` action is excluded to avoid recursive tracing.
 
 ### Outbound HTTP (JSONClient)
@@ -286,7 +286,7 @@ All outbound HTTP calls via `JSONClient` automatically:
 1. Create a CLIENT span named with the HTTP method (e.g. `POST`)
 2. Inject W3C `traceparent` headers onto the outbound request
 - **Attributes:** `http.request.method`, `url.full`, `server.address`, `server.port`,
-  `http.response.status_code`, `xh.source=hoist`
+  `http.response.status_code`, `hoist.source=hoist`
 
 ### Proxy requests (BaseProxyService)
 
@@ -294,7 +294,7 @@ Proxied requests via `BaseProxyService` automatically:
 1. Create a CLIENT span named with the HTTP method (e.g. `GET`)
 2. Inject W3C trace context onto the proxied request
 - **Attributes:** `http.request.method`, `url.full`, `server.address`,
-  `http.response.status_code`, `xh.source=hoist`
+  `http.response.status_code`, `hoist.source=hoist`
 
 ---
 

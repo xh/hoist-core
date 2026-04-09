@@ -50,7 +50,7 @@ class TraceInterceptor implements LogSupport {
                     'server.port'         : req.serverPort,
                     'client.address'      : req.remoteAddr,
                     'user_agent.original' : req.getHeader('User-Agent'),
-                    'xh.source'           : 'hoist'
+                    'hoist.source'        : 'hoist'
                 ],
                 caller: this
             )
