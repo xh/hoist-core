@@ -75,7 +75,7 @@ All meters registered through the service automatically receive:
 
 1. **Default tags:**
    - `hoist.application` — the application code (e.g. `myApp`)
-   - `hoist.instance` — the cluster instance name (e.g. `inst1`)
+   - `hoist.instance` — the cluster instance name (e.g. `e36ca82b`)
    - `hoist.source` — classifies the metric's origin ('hoist' or 'app')
 
 ### Cluster-scoped metrics
