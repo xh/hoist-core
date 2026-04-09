@@ -24,8 +24,7 @@ class LogLevelAdminController extends AdminRestController {
     }
 
     def lookupData() {
-        def levels =  ['None'] + LogLevel.LEVELS
-        renderJSON (levels: levels)
+        renderJSON(['None'] + LogLevel.LEVELS)
     }
 
     protected void doCreate(Object obj, Object data) {

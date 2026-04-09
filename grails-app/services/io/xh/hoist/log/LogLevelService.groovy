@@ -8,6 +8,7 @@
 package io.xh.hoist.log
 
 import grails.gorm.transactions.ReadOnly
+import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.LoggerContext
@@ -17,9 +18,12 @@ import org.slf4j.LoggerFactory
 import static io.xh.hoist.util.DateTimeUtils.MINUTES
 import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 
+@CompileStatic
 class LogLevelService extends BaseService {
 
     private List<LogLevelAdjustment> adjustments = []
+    private List<LogFlagOverride> stackTraceOverrides = []
+    private List<LogFlagOverride> startMessageOverrides = []
 
     void init() {
         createTimer(
@@ -38,7 +42,8 @@ class LogLevelService extends BaseService {
     @ReadOnly
     void calculateAdjustments() {
         withDebug('Applying Log Level Adjustments') {
-            def overrides = LogLevel.findAllByLevelIsNotNull()
+            def allLogLevels = LogLevel.list(),
+                overrides = allLogLevels.findAll { it.level != null }
 
             // Remove obsolete log settings if any
             adjustments.each {adj ->
@@ -62,6 +67,10 @@ class LogLevelService extends BaseService {
 
             adjustments = newAdjustments
 
+            // Rebuild flag override lists, sorted by name length desc (most specific first)
+            stackTraceOverrides = buildFlagOverrides(allLogLevels) { LogLevel ll -> ll.suppressStackTrace }
+            startMessageOverrides = buildFlagOverrides(allLogLevels) { LogLevel ll -> ll.includeStartMessages }
+
             logDebug("Adjustments applied: ${adjustments.size()}")
         }
     }
@@ -81,6 +90,24 @@ class LogLevelService extends BaseService {
         return logger.effectiveLevel.toString().toLowerCase().capitalize()
     }
 
+    /**
+     * Check if stacktraces should be suppressed for a given logger name.
+     * Walks the ordered prefix list (most specific first) and returns the first match,
+     * or null if no matching override is configured.
+     */
+    boolean shouldSuppressStackTrace(String loggerName) {
+        return findFlagOverride(stackTraceOverrides, loggerName)
+    }
+
+    /**
+     * Check if start messages should be included for a given logger name.
+     * Walks the ordered prefix list (most specific first) and returns the first match,
+     * or null if no matching override is configured.
+     */
+    boolean shouldIncludeStartMessages(String loggerName) {
+        return findFlagOverride(startMessageOverrides, loggerName)
+    }
+
     void noteLogLevelChanged() {
         runOnAllInstances(this.&calculateAdjustments)
     }
@@ -96,13 +123,29 @@ class LogLevelService extends BaseService {
 
     private void setLogLevel(String logName, String levelStr) {
         def logger = getLogger(logName)
-        logger.level = ('Inherit' == levelStr) ? null : Level[levelStr.toUpperCase()]
+        logger.level = ('Inherit' == levelStr) ? null : Level.toLevel(levelStr)
+    }
+
+    private static boolean findFlagOverride(List<LogFlagOverride> overrides, String loggerName) {
+        overrides.find { loggerName.startsWith(it.prefix) }?.value
+    }
+
+    private static List<LogFlagOverride> buildFlagOverrides(List<LogLevel> logLevels, Closure<Boolean> flagGetter) {
+        logLevels
+            .findAll { flagGetter(it) != null }
+            .collect { new LogFlagOverride(prefix: it.name, value: flagGetter(it)) }
+            .sort { a, b -> b.prefix.length() <=> a.prefix.length() }
     }
 
     private class LogLevelAdjustment {
         String logName
         String defaultLevel
         String adjustedLevel
+    }
+
+    private static class LogFlagOverride {
+        String prefix
+        boolean value
     }
 
     void clearCaches() {

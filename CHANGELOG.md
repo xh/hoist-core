@@ -2,6 +2,26 @@
 
 ## 38.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
+
+* Two new nullable `Boolean` columns must be added to the `xh_log_level` table:
+  `suppress_stack_trace` and `include_start_messages`. Apps with `dbCreate: update` will have
+  these added automatically. For manually managed schemas, review and run the following SQL,
+  modified as needed for your database:
+  ```sql
+  ALTER TABLE xh_log_level ADD suppress_stack_trace BIT NULL;
+  ALTER TABLE xh_log_level ADD include_start_messages BIT NULL;
+  ```
+
+### 🎁 New Features
+
+* Added `suppressStackTrace` and `includeStartMessages` fields to `LogLevel` domain, editable
+  via the admin console Log Levels tab. Stacktraces for errors logged via LogSupport are now
+  included by default; set `suppressStackTrace` to `true` to suppress for a logger prefix.
+  Start messages for `withXxx` blocks are off by default; set `includeStartMessages` to `true`
+  to enable. Both support specificity ordering for fine-grained overrides. Replaces the
+  previous TRACE-level gating for stacktraces and finer-level gating for start messages.
+
 ### 🐞 Bug Fixes
 
 * Fixed MCP server not invalidating its cached GitHub source archive for branch refs (e.g. `develop`), causing documentation to become stale over time. Branch caches are now re-downloaded after 24 hours; tag and SHA refs remain cached indefinitely.
