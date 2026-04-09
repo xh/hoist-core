@@ -4,10 +4,13 @@
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
 
-* Two new columns must be added to the `xh_log_level` table:
+* Two new nullable `Boolean` columns must be added to the `xh_log_level` table:
+  `suppress_stack_trace` and `include_start_messages`. Apps with `dbCreate: update` will have
+  these added automatically. For manually managed schemas, review and run the following SQL,
+  modified as needed for your database:
   ```sql
-  ALTER TABLE xh_log_level ADD suppress_stack_trace BOOLEAN NULL;
-  ALTER TABLE xh_log_level ADD include_start_messages BOOLEAN NULL;
+  ALTER TABLE xh_log_level ADD suppress_stack_trace BIT NULL;
+  ALTER TABLE xh_log_level ADD include_start_messages BIT NULL;
   ```
 
 ### 🎁 New Features
