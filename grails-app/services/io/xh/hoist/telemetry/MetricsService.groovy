@@ -26,6 +26,7 @@ import io.xh.hoist.config.ConfigService
 import static io.micrometer.core.instrument.config.MeterFilterReply.DENY
 import static io.micrometer.core.instrument.config.MeterFilterReply.NEUTRAL
 import static io.xh.hoist.cluster.ClusterService.instanceName
+import static io.xh.hoist.cluster.ClusterService.otelResourceAttributes
 import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 import static io.xh.hoist.util.Utils.appCode
 
@@ -211,7 +212,9 @@ class MetricsService extends BaseService {
                 _otlpRegistry = null
             }
             if (config.otlpEnabled) {
-                def conf = prefixKeys('otlp', config.otlpConfig)
+                def otlpConf = config.otlpConfig ?: [:]
+                otlpConf.resourceAttributes = otelResourceAttributes.collect { k, v -> "${k}=${v}" }.join(',')
+                def conf = prefixKeys('otlp', otlpConf)
                 _otlpRegistry = new OtlpMeterRegistry({conf[it]} as OtlpConfig, Clock.SYSTEM)
                 _otlpRegistry.config().meterFilter(publishFilter)
                 regs.add(_otlpRegistry)
