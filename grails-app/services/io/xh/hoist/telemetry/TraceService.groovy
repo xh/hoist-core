@@ -146,7 +146,7 @@ class TraceService extends BaseService {
         pending.setTags(tags)
         if (!tags['hoist.source']) pending.setTag('hoist.source', 'app')
         if (caller) pending.setTag('code.namespace', caller.class.name)
-        pending.setTag('user.name', username ?: 'Anon')
+        if (username) pending.setTag('user.name', username)
 
         return pending
     }
