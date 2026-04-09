@@ -84,7 +84,7 @@ abstract class BaseProxyService extends BaseService {
                     'http.request.method': request.method,
                     'url.full'           : fullPath,
                     'server.address'     : method.uri.host,
-                    'hoist.source'       : 'hoist'
+                    'xh.source'       : 'hoist'
                 ]
             )
             .run { SpanRef span ->

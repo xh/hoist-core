@@ -78,7 +78,7 @@ class TrackMetricsService extends BaseService {
         final Timer authTime
 
         AppMeters(String app, TrackMetricsService svc) {
-            def tags = Tags.of('hoist.source', 'hoist', 'hoist.instance', 'cluster', 'clientApp', app),
+            def tags = Tags.of('xh.source', 'hoist', 'xh.instance', 'cluster', 'clientApp', app),
                 registry = svc.metricsService.registry
 
             messages = Counter.builder('hoist.client.track.messages')
