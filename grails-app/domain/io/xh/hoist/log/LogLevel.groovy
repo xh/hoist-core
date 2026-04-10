@@ -25,6 +25,10 @@ class LogLevel implements JSONFormat {
 
     String getEffectiveLevel() { logLevelService.getEffectiveLevel(name) }
 
+    Boolean getEffectiveSuppressStackTrace() { logLevelService.shouldSuppressStackTrace(name) }
+
+    Boolean getEffectiveIncludeStartMessages() { logLevelService.shouldIncludeStartMessages(name) }
+
     public static List<String> LEVELS = ['Trace', 'Debug', 'Info', 'Warn', 'Error', 'Inherit', 'Off']
 
     static mapping = {
@@ -55,15 +59,17 @@ class LogLevel implements JSONFormat {
 
     Map formatForJSON() {
         return [
-            id                  : id,
-            name                : name,
-            level               : level,
-            suppressStackTrace  : suppressStackTrace,
-            includeStartMessages: includeStartMessages,
-            defaultLevel        : defaultLevel,
-            effectiveLevel      : effectiveLevel,
-            lastUpdated         : lastUpdated,
-            lastUpdatedBy       : lastUpdatedBy
+            id                           : id,
+            name                         : name,
+            level                        : level,
+            suppressStackTrace           : suppressStackTrace,
+            includeStartMessages         : includeStartMessages,
+            defaultLevel                 : defaultLevel,
+            effectiveLevel               : effectiveLevel,
+            effectiveSuppressStackTrace  : effectiveSuppressStackTrace,
+            effectiveIncludeStartMessages: effectiveIncludeStartMessages,
+            lastUpdated                  : lastUpdated,
+            lastUpdatedBy                : lastUpdatedBy
         ]
     }
 
