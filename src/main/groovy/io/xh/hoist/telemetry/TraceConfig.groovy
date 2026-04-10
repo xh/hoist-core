@@ -18,4 +18,13 @@ class TraceConfig extends TypedConfigMap {
     double sampleRate
     boolean otlpEnabled
     Map otlpConfig
+
+    /** Ordered tag-match rules for sampling. First match wins. */
+    List<Map> samplingRules = []
+
+    /** Fallback sample rate (0–1) when no sampling rule matches. */
+    double defaultSampleRate = 1.0
+
+    /** Always export error spans, bypassing sample-rate filtering. Defaults to true. */
+    boolean alwaysSampleErrors = true
 }
