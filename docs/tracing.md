@@ -276,7 +276,8 @@ action, which becomes a child of the client span when a traceparent was present.
 
 - **Name:** `{METHOD} {controller}/{action}` (e.g. `GET portfolio/positions`)
 - **Attributes:** `http.request.method`, `http.route`, `url.path`, `url.scheme`,
-  `server.address`, `http.response.status_code`, `source=hoist`
+  `server.address`, `server.port`, `client.address`, `user_agent.original`,
+  `http.response.status_code`, `xh.source=hoist`
 - The `submitSpans` action is excluded to avoid recursive tracing.
 
 ### Outbound HTTP (JSONClient)
@@ -284,8 +285,8 @@ action, which becomes a child of the client span when a traceparent was present.
 All outbound HTTP calls via `JSONClient` automatically:
 1. Create a CLIENT span named with the HTTP method (e.g. `POST`)
 2. Inject W3C `traceparent` headers onto the outbound request
-- **Attributes:** `http.request.method`, `url.full`, `server.address`,
-  `http.response.status_code`, `source=hoist`
+- **Attributes:** `http.request.method`, `url.full`, `server.address`, `server.port`,
+  `http.response.status_code`, `xh.source=hoist`
 
 ### Proxy requests (BaseProxyService)
 
@@ -293,7 +294,7 @@ Proxied requests via `BaseProxyService` automatically:
 1. Create a CLIENT span named with the HTTP method (e.g. `GET`)
 2. Inject W3C trace context onto the proxied request
 - **Attributes:** `http.request.method`, `url.full`, `server.address`,
-  `http.response.status_code`, `source=hoist`
+  `http.response.status_code`, `xh.source=hoist`
 
 ---
 
@@ -356,5 +357,5 @@ All spans include these resource attributes identifying the source instance:
 |-----------|-------|
 | `service.name` | Application code (e.g. `myApp`) |
 | `service.instance.id` | Cluster instance name (e.g. `inst1`) |
-| `deployment.environment` | Hoist AppEnvironment (e.g. `PRODUCTION`) |
+| `deployment.environment.name` | Hoist AppEnvironment (e.g. `PRODUCTION`) |
 | `service.version` | Application version |

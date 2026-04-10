@@ -75,7 +75,7 @@ class MonitorMetricsService extends BaseService {
         meters["${name}.cluster"] ?= Gauge.builder(name, this) {
             def status = monitorService.getResult(code)?.status ?: UNKNOWN
             status.severity as double
-        }.tags('source', 'hoist', 'instance', 'cluster')
+        }.tags('xh.source', 'hoist', 'xh.instance', 'cluster')
             .description(aggResult.monitor.name)
             .register(registry)
     }
@@ -84,7 +84,7 @@ class MonitorMetricsService extends BaseService {
         //  A) Ensure all meters for this result set
         def code = result.code,
             instance = result.instance,
-            tags = Tags.of('source', 'hoist', 'instance', instance),
+            tags = Tags.of('xh.source', 'hoist', 'xh.instance', instance),
             description = result.monitor.name
 
         def statusName = "hoist.monitor.status.${code}"

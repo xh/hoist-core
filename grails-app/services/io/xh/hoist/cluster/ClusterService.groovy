@@ -80,6 +80,11 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         clusterConfig.multiInstanceEnabled
     }
 
+    /** Standard OTEL resource attributes for this application instance. */
+    static Map<String, String> getOtelResourceAttributes() {
+        clusterConfig.otelResourceAttributes
+    }
+
     /**
      * Called by Framework to initialize the Hazelcast instance.
      * @internal

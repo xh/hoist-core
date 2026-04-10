@@ -12,9 +12,18 @@
   ALTER TABLE xh_log_level ADD suppress_stack_trace BIT NULL;
   ALTER TABLE xh_log_level ADD include_start_messages BIT NULL;
   ```
+* Aligned span and metric tag names with OTEL semantic conventions:
+    - `source` → `xh.source`
+    - `application` → `xh.application`
+    - `instance` → `xh.instance`
+    - `user` → `user.name` (on spans)
+    - `deployment.environment` → `deployment.environment.name` (on resource attributes)
 
 ### 🎁 New Features
 
+* Apps can now customize OTEL resource attributes via the `xhOtelResourceAttributes` soft config
+  key. Attributes set here are merged with Hoist's defaults and applied to both traces and
+  metrics exporters.
 * Added `suppressStackTrace` and `includeStartMessages` fields to `LogLevel` domain, editable
   via the admin console Log Levels tab. Stacktraces for errors logged via LogSupport are now
   included by default; set `suppressStackTrace` to `true` to suppress for a logger prefix.
@@ -26,8 +35,12 @@
 
 * Fixed MCP server not invalidating its cached GitHub source archive for branch refs (e.g. `develop`), causing documentation to become stale over time. Branch caches are now re-downloaded after 24 hours; tag and SHA refs remain cached indefinitely.
 
+### 💥 Breaking Changes
+
+
 ### ⚙️ Technical
 
+* Added `server.port`, `client.address`, and `user_agent.original` to SERVER spans; added `server.port` to CLIENT spans.
 * Added MCP resource support for full document downloads via `hoist-core://docs/{docId}` URIs, enabling AI coding agents to read complete documentation content in addition to keyword search.
 
 ## 37.0.2 - 2026-03-30

@@ -42,12 +42,15 @@ class TraceInterceptor implements LogSupport {
                 name: "${req.method} $route",
                 kind: SERVER,
                 tags: [
-                    'http.request.method': req.method,
-                    'http.route'         : route,
-                    'url.path'           : req.requestURI,
-                    'url.scheme'         : req.scheme,
-                    'server.address'     : req.serverName,
-                    'source'             : 'hoist'
+                    'http.request.method' : req.method,
+                    'http.route'          : route,
+                    'url.path'            : req.requestURI,
+                    'url.scheme'          : req.scheme,
+                    'server.address'      : req.serverName,
+                    'server.port'         : req.serverPort,
+                    'client.address'      : req.remoteAddr,
+                    'user_agent.original' : req.getHeader('User-Agent'),
+                    'xh.source'        : 'hoist'
                 ],
                 caller: this
             )

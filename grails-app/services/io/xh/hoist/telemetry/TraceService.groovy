@@ -37,10 +37,7 @@ import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
 import io.opentelemetry.api.common.AttributeKey
 import grails.async.Promises
 
-import static io.xh.hoist.cluster.ClusterService.instanceName
-import static io.xh.hoist.util.Utils.appCode
-import static io.xh.hoist.util.Utils.appEnvironment
-import static io.xh.hoist.util.Utils.appVersion
+import static io.xh.hoist.cluster.ClusterService.otelResourceAttributes
 import static java.lang.Long.parseLong
 import static java.util.concurrent.TimeUnit.MILLISECONDS
 
@@ -147,9 +144,9 @@ class TraceService extends BaseService {
             pending = new SpanRef(span, span.makeCurrent(), kind)
 
         pending.setTags(tags)
-        if (!tags.source) pending.setTag('source', 'app')
+        if (!tags['xh.source']) pending.setTag('xh.source', 'app')
         if (caller) pending.setTag('code.namespace', caller.class.name)
-        pending.setTag('user', username ?: 'Anon')
+        if (username) pending.setTag('user.name', username)
 
         return pending
     }
@@ -310,15 +307,9 @@ class TraceService extends BaseService {
 
             if (!config.enabled) return
 
-            _resource = Resource.default.merge(
-                Resource.create(Attributes.builder()
-                    .put(stringKey('service.name'), appCode)
-                    .put(stringKey('service.instance.id'), instanceName)
-                    .put(stringKey('deployment.environment'), appEnvironment.toString())
-                    .put(stringKey('service.version'), appVersion)
-                    .build()
-                )
-            )
+            def attrsBuilder = Attributes.builder()
+            otelResourceAttributes.each { k, v -> attrsBuilder.put(stringKey(k), v) }
+            _resource = Resource.default.merge(Resource.create(attrsBuilder.build()))
 
             _sampleRate = config.sampleRate
 
