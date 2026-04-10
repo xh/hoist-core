@@ -21,6 +21,7 @@
 
 ### 🎁 New Features
 
+* Added rule-based span sampling to `TraceService` via new `samplingRules` and `alwaysSampleErrors` options in `xhTraceConfig`. Rules match span tags with glob patterns to set per-span sample rates, and error spans can be force-exported regardless of sampling.
 * Apps can now customize OTEL resource attributes via the `xhOtelResourceAttributes` soft config
   key. Attributes set here are merged with Hoist's defaults and applied to both traces and
   metrics exporters.

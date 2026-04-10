@@ -26,7 +26,11 @@ delegate to no-op implementations, so no null checks are needed in application c
 - **Thread context propagation** — Grails `task {}` calls automatically carry the current trace
   context to worker threads via `ContextPropagatingPromiseFactory`.
 - **Client span relay** — Browser-generated spans are submitted to `xh/submitSpans` and exported
-  through the same server-side pipeline, producing end-to-end client-to-server traces.
+  through the same server-side pipeline, producing end-to-end client-to-server traces. Client
+  spans are pre-sampled in the browser — only sampled or error spans are relayed.
+- **Rule-based sampling** — Configurable `samplingRules` match span tags (with glob patterns) to
+  determine per-span sample rates. Error spans can be force-exported regardless of sampling via
+  `alwaysSampleErrors`.
 - **Log correlation** — `traceId` is captured on log markers when inside a traced context,
   enabling log-to-trace correlation.
 
@@ -214,7 +218,7 @@ ObservedRun.observe(this)
 |----------|-------|
 | **Type** | `json` |
 | **Default** | See below |
-| **Client Visible** | Yes (client reads `enabled` and `sampleRate` for browser tracing) |
+| **Client Visible** | Yes (client reads `enabled`, `sampleRate`, `samplingRules`, and `alwaysSampleErrors` for browser tracing) |
 | **Purpose** | Distributed tracing infrastructure configuration. |
 
 **Default value:**
@@ -223,6 +227,8 @@ ObservedRun.observe(this)
 {
     "enabled": false,
     "sampleRate": 1.0,
+    "samplingRules": [],
+    "alwaysSampleErrors": true,
     "otlpEnabled": false,
     "otlpConfig": {}
 }
@@ -231,7 +237,9 @@ ObservedRun.observe(this)
 | Key | Type | Description |
 |-----|------|-------------|
 | `enabled` | Boolean | Master switch for tracing. When false, all tracing is no-op. Dynamic. |
-| `sampleRate` | Double | Sampling rate from 0.0 to 1.0. Uses a deterministic trace-ID-based algorithm. Dynamic. |
+| `sampleRate` | Double | Fallback sampling rate (0.0–1.0) applied when no sampling rule matches. Dynamic. |
+| `samplingRules` | List\<Map\> | Ordered rules for per-span sampling. Each rule has a `match` map of tag patterns and a `sampleRate`. First match wins; unmatched spans use the fallback `sampleRate`. See [Sampling Rules](#sampling-rules) below. Dynamic. |
+| `alwaysSampleErrors` | Boolean | When true (default), spans that end in error are exported even if unsampled. Dynamic. |
 | `otlpEnabled` | Boolean | Enable OTLP span export (HTTP/protobuf). Dynamic. |
 | `otlpConfig` | Map | OTLP exporter config (e.g. `{"endpoint": "http://localhost:4318/v1/traces"}`). |
 
@@ -263,6 +271,61 @@ When `otlpEnabled: true`, spans are exported via HTTP/protobuf to an OTLP-compat
 
 Applications can register additional exporters via `traceService.addExporter()`. These
 receive both server-generated and client-relayed spans.
+
+---
+
+## Sampling Rules
+
+Sampling rules provide fine-grained, tag-based control over which spans are sampled. Rules are
+evaluated at span creation time (head-based sampling) on both client and server. Each rule has a
+`match` map of tag patterns and a `sampleRate` — the first matching rule wins.
+
+### Configuration
+
+Add rules to the `samplingRules` array in `xhTraceConfig`:
+
+```json
+{
+    "enabled": true,
+    "sampleRate": 0.1,
+    "samplingRules": [
+        {"match": {"name": "GET health/*"}, "sampleRate": 0},
+        {"match": {"xh.source": "hoist"}, "sampleRate": 0.01},
+        {"match": {"user.name": "jsmith"}, "sampleRate": 1.0}
+    ],
+    "alwaysSampleErrors": true
+}
+```
+
+In this example: health-check spans are dropped entirely, framework-generated spans are sampled at
+1%, spans from user `jsmith` are always sampled, and everything else falls back to the 10% default.
+
+### Pattern matching
+
+String tag values support simple glob patterns:
+
+| Pattern | Matches |
+|---------|---------|
+| `*` | Any value |
+| `foo*` | Values starting with `foo` |
+| `*foo` | Values ending with `foo` |
+| `*foo*` | Values containing `foo` |
+| `foo` | Exact match |
+
+Non-string values (numbers, booleans) use strict equality.
+
+### Sampling flow
+
+1. Tags are assembled on the span before the sampling decision.
+2. If a valid sampled parent context exists, the child inherits the parent's decision.
+3. Otherwise, `samplingRules` are evaluated against the span's tags. The first rule whose `match`
+   entries all match produces the `sampleRate` for a probabilistic decision.
+4. Unmatched spans use the fallback `sampleRate`.
+5. Unsampled spans are recorded but not exported — unless they end in error and
+   `alwaysSampleErrors` is enabled, in which case a dedicated `SpanProcessor` force-exports them.
+
+The client-side `TraceService` in hoist-react evaluates the same `samplingRules` config, so
+sampling decisions are consistent across client and server spans.
 
 ---
 
@@ -336,8 +399,8 @@ Browser-generated spans are batched and posted to the `xh/submitSpans` endpoint.
 trace/span IDs — and exports them through the same pipeline as server-generated spans. This
 means client and server spans appear as a coherent distributed trace in the collector.
 
-The same deterministic trace-ID-based sampling is applied to client spans, ensuring consistent
-sampling decisions across the full trace.
+Client spans are pre-sampled in the browser using the shared `samplingRules` config — only
+sampled spans (and error spans when `alwaysSampleErrors` is enabled) are relayed to the server.
 
 ---
 
