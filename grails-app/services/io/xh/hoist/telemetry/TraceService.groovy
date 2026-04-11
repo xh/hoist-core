@@ -21,16 +21,10 @@ import io.opentelemetry.context.propagation.TextMapSetter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.resources.Resource
 import io.opentelemetry.sdk.trace.SdkTracerProvider
-import io.opentelemetry.sdk.trace.ReadableSpan
-import io.opentelemetry.sdk.trace.ReadWriteSpan
-import io.opentelemetry.sdk.trace.SpanProcessor
 import io.opentelemetry.sdk.trace.data.SpanData
-import io.opentelemetry.sdk.trace.export.BatchSpanProcessor
 import io.opentelemetry.sdk.trace.samplers.Sampler
 import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter
 import io.opentelemetry.sdk.trace.export.SpanExporter
-import io.opentelemetry.sdk.common.CompletableResultCode
-import io.opentelemetry.api.trace.StatusCode
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import jakarta.servlet.http.HttpServletRequest
@@ -144,10 +138,16 @@ class TraceService extends BaseService {
         def spanBuilder = sdk.getTracer('io.xh.hoist')
             .spanBuilder(name)
             .setSpanKind(kind)
-            .setAttribute('sampleRate', getSampleRate(tags)),
-            span = spanBuilder.startSpan()
+            .setAttribute('sampleRate', getSampleRate(tags))
 
-        return new SpanRef(spanBuilder.startSpan(), span.makeCurrent(), kind)
+        tags.each { k, v ->
+            if (v instanceof String) spanBuilder.setAttribute(k as String, v)
+            else if (v instanceof Number) spanBuilder.setAttribute(k as String, ((Number) v).doubleValue())
+            else if (v instanceof Boolean) spanBuilder.setAttribute(k as String, (boolean) v)
+        }
+
+        def span = spanBuilder.startSpan()
+        return new SpanRef(span, span.makeCurrent(), kind)
     }
 
     //-------------
@@ -268,7 +268,7 @@ class TraceService extends BaseService {
             if (!config.enabled) return
 
             def attrsBuilder = Attributes.builder()
-            otelResourceAttributes.each { k, v -> attrsBuilder.put(stringKey(k), v) }
+            otelResourceAttributes.each { k, v -> attrsBuilder.put(AttributeKey.stringKey(k), v) }
             _resource = Resource.default.merge(Resource.create(attrsBuilder.build()))
 
             _samplingRules = config.samplingRules ?: []
@@ -298,14 +298,8 @@ class TraceService extends BaseService {
                 _otlpExporter = null
             }
 
-            // BatchSpanProcessor handles normally-sampled spans.
             eachExporter {SpanExporter e ->
-                providerBuilder.addSpanProcessor(BatchSpanProcessor.builder(e).build())
-            }
-
-            // Error override processor force-exports recordOnly spans that ended in error.
-            if (config.alwaysSampleErrors) {
-                providerBuilder.addSpanProcessor(errorOverrideProcessor())
+                providerBuilder.addSpanProcessor(new HoistBatchSpanProcessor(e, config.alwaysSampleErrors))
             }
 
             _otelSdk = OpenTelemetrySdk.builder()
@@ -326,11 +320,6 @@ class TraceService extends BaseService {
         _otelSdk = null
         _resource = null
     }
-
-    private AttributeKey stringKey(String str) {
-        AttributeKey.stringKey(str)
-    }
-
 
     //--------------------------------------------------
     // Lifecycle
@@ -355,6 +344,7 @@ class TraceService extends BaseService {
             Iterable<String> keys(HttpServletRequest carrier) {
                 Collections.list(carrier.headerNames)
             }
+
             String get(HttpServletRequest carrier, String key) {
                 carrier.getHeader(key)
             }
@@ -382,6 +372,7 @@ class TraceService extends BaseService {
             Iterable<String> keys(Map<String, String> carrier) {
                 carrier?.keySet() ?: Collections.emptySet() as Iterable<String>
             }
+
             String get(Map<String, String> carrier, String key) {
                 carrier?.get(key)
             }
@@ -392,7 +383,7 @@ class TraceService extends BaseService {
      * Sampler that evaluates {@code samplingRules} against span attributes.
      * Defers to parent sampling decision when a valid parent context exists,
      * using {@code recordOnly()} for unsampled parents to preserve spans for
-     * the error override processor.
+     * {@link HoistBatchSpanProcessor}'s error promotion.
      */
     private final Sampler _sampler = new Sampler() {
         SamplingResult shouldSample(
@@ -409,7 +400,7 @@ class TraceService extends BaseService {
                 SamplingResult.recordOnly()
         }
 
-        String getDescription() { return 'Hoist Sampler'}
+        String getDescription() {return 'Hoist Sampler'}
     }
 
     /**
@@ -450,30 +441,4 @@ class TraceService extends BaseService {
         if (endsWithWild) return actualStr.startsWith(core)
         return actual == pattern
     }
-
-    /**
-     * SpanProcessor that force-exports unsampled spans that end in error when
-     * {@code alwaysSampleErrors} is enabled. Added to the provider alongside the
-     * standard {@link BatchSpanProcessor} — it only acts on {@code recordOnly} spans
-     * (those the sampler deemed unsampled) that completed with an error status.
-     */
-    private SpanProcessor errorOverrideProcessor() {
-        def svc = this
-        return new SpanProcessor() {
-            void onStart(Context parentContext, ReadWriteSpan span) {}
-            boolean isStartRequired() { false }
-            boolean isEndRequired() { true }
-
-            void onEnd(ReadableSpan span) {
-                if (span.spanContext.isSampled()) return
-                if (span.toSpanData().status.statusCode != StatusCode.ERROR) return
-                def data = Collections.singletonList(span.toSpanData())
-                svc.eachExporter { SpanExporter e -> e.export(data) }
-            }
-
-            CompletableResultCode shutdown() { CompletableResultCode.ofSuccess() }
-            CompletableResultCode forceFlush() { CompletableResultCode.ofSuccess() }
-        }
-    }
-
 }
