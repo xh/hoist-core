@@ -22,16 +22,12 @@ import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.resources.Resource
 import io.opentelemetry.sdk.trace.SdkTracerProvider
 import io.opentelemetry.sdk.trace.data.SpanData
-import io.opentelemetry.sdk.trace.samplers.Sampler
 import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter
 import io.opentelemetry.sdk.trace.export.SpanExporter
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import jakarta.servlet.http.HttpServletRequest
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
-
-import io.opentelemetry.sdk.trace.samplers.SamplingResult
-
 import io.opentelemetry.api.common.AttributeKey
 import grails.async.Promises
 
@@ -67,10 +63,10 @@ class TraceService extends BaseService {
     private Resource _resource
     private List<Map> _samplingRules = []
     private double _sampleRate = 1.0
+    private final HoistSampler _sampler = new HoistSampler()
 
 
     void init() {
-        def registry = metricsService.registry
         installContextPropagation()
         syncConfig()
     }
@@ -129,8 +125,8 @@ class TraceService extends BaseService {
         def sdk = _otelSdk
         if (!sdk) return null
 
-        // Build complete tag set and set on builder so the sampler can evaluate rules.
-        tags = new LinkedHashMap<String, Object>(tags)
+        // Build complete tag set
+        tags = new HashMap(tags)
         if (!tags['xh.source']) tags['xh.source'] = 'app'
         if (caller) tags['code.namespace'] = caller.class.name
         if (username) tags['user.name'] = username
@@ -138,16 +134,16 @@ class TraceService extends BaseService {
         def spanBuilder = sdk.getTracer('io.xh.hoist')
             .spanBuilder(name)
             .setSpanKind(kind)
-            .setAttribute('sampleRate', getSampleRate(tags))
 
-        tags.each { k, v ->
-            if (v instanceof String) spanBuilder.setAttribute(k as String, v)
-            else if (v instanceof Number) spanBuilder.setAttribute(k as String, ((Number) v).doubleValue())
-            else if (v instanceof Boolean) spanBuilder.setAttribute(k as String, (boolean) v)
+        try {
+            _sampler.setSampleRate(getSampleRate(tags))
+            def span = spanBuilder.startSpan(),
+                ret = new SpanRef(span, span.makeCurrent(), kind)
+            ret.setTags(tags)
+            return ret
+        } finally {
+            _sampler.clearSampleRate()
         }
-
-        def span = spanBuilder.startSpan()
-        return new SpanRef(span, span.makeCurrent(), kind)
     }
 
     //-------------
@@ -378,30 +374,6 @@ class TraceService extends BaseService {
             }
         }
 
-
-    /**
-     * Sampler that evaluates {@code samplingRules} against span attributes.
-     * Defers to parent sampling decision when a valid parent context exists,
-     * using {@code recordOnly()} for unsampled parents to preserve spans for
-     * {@link HoistBatchSpanProcessor}'s error promotion.
-     */
-    private final Sampler _sampler = new Sampler() {
-        SamplingResult shouldSample(
-            Context ctx,
-            String traceId,
-            String name,
-            SpanKind kind,
-            Attributes attrs,
-            List parentLinks
-        ) {
-            def parent = Span.fromContext(ctx).spanContext
-            return ((parent.isValid() && parent.isSampled()) || Math.random() < attrs.get(AttributeKey.doubleKey('sampleRate'))) ?
-                SamplingResult.recordAndSample() :
-                SamplingResult.recordOnly()
-        }
-
-        String getDescription() {return 'Hoist Sampler'}
-    }
 
     /**
      * Evaluate sampling rules against span attributes. Returns the sample rate from the first

@@ -322,7 +322,7 @@ Non-string values (numbers, booleans) use strict equality.
    entries all match produces the `sampleRate` for a probabilistic decision.
 4. Unmatched spans use the fallback `sampleRate`.
 5. Unsampled spans are recorded but not exported — unless they end in error and
-   `alwaysSampleErrors` is enabled, in which case a dedicated `SpanProcessor` force-exports them.
+   `alwaysSampleErrors` is enabled, in which case `HoistBatchSpanProcessor` promotes them to sampled and exports them through the normal batch pipeline.
 
 The client-side `TraceService` in hoist-react evaluates the same `samplingRules` config, so
 sampling decisions are consistent across client and server spans.
