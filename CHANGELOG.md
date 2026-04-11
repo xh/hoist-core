@@ -21,9 +21,9 @@
 
 ### 🎁 New Features
 
-* Apps can now customize OTEL resource attributes via the `xhOtelResourceAttributes` soft config
-  key. Attributes set here are merged with Hoist's defaults and applied to both traces and
-  metrics exporters.
+* Apps can now customize OTEL resource attributes by overriding `getOtelResourceAttributes()` on
+  their `ClusterConfig` subclass. These attributes are applied to both traces and metrics
+  exporters.
 * Added `suppressStackTrace` and `includeStartMessages` fields to `LogLevel` domain, editable
   via the admin console Log Levels tab. Stacktraces for errors logged via LogSupport are now
   included by default; set `suppressStackTrace` to `true` to suppress for a logger prefix.
@@ -33,15 +33,18 @@
 
 ### 🐞 Bug Fixes
 
-* Fixed MCP server not invalidating its cached GitHub source archive for branch refs (e.g. `develop`), causing documentation to become stale over time. Branch caches are now re-downloaded after 24 hours; tag and SHA refs remain cached indefinitely.
+* Fixed MCP server not invalidating its cached GitHub source archive for branch refs (e.g.
+  `develop`), causing documentation to become stale over time. Branch caches are now re-downloaded
+  after 24 hours; tag and SHA refs remain cached indefinitely.
 
 ### 💥 Breaking Changes
 
-
 ### ⚙️ Technical
 
-* Added `server.port`, `client.address`, and `user_agent.original` to SERVER spans; added `server.port` to CLIENT spans.
-* Added MCP resource support for full document downloads via `hoist-core://docs/{docId}` URIs, enabling AI coding agents to read complete documentation content in addition to keyword search.
+* Added `server.port`, `client.address`, and `user_agent.original` to SERVER spans; added
+  `server.port` to CLIENT spans.
+* Added MCP resource support for full document downloads via `hoist-core://docs/{docId}` URIs,
+  enabling AI coding agents to read complete documentation content in addition to keyword search.
 
 ## 37.0.2 - 2026-03-30
 
@@ -52,8 +55,9 @@
 ## 37.0.1 - 2026-03-25
 
 ### ⚙️ Technical
- * Update upgrade notes skill to properly register upgrade note
- * Enhance MCP server to always rebuild jar for local hoist development
+
+* Update upgrade notes skill to properly register upgrade note
+* Enhance MCP server to always rebuild jar for local hoist development
 
 ## 37.0.0 - 2026-03-24
 
