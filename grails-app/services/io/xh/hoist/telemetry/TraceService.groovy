@@ -126,7 +126,7 @@ class TraceService extends BaseService {
         if (!sdk) return null
 
         // Build complete tag set
-        tags = new HashMap(tags)
+        tags = new HashMap<String, ?>(tags)
         if (!tags['xh.source']) tags['xh.source'] = 'app'
         if (caller) tags['code.namespace'] = caller.class.name
         if (username) tags['user.name'] = username
