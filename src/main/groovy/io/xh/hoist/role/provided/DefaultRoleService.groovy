@@ -304,9 +304,11 @@ class DefaultRoleService extends BaseRoleService {
      * This method will be a no-op if the user already has the role provided.
      *
      * Typically called within Bootstrap code to ensure that a specific role is assigned to a
-     * dedicated admin user on startup.
-     *
-     * May be called within an implementation of ensureRequiredConfigAndRolesCreated().
+     * dedicated admin user on startup. Must be called *after* service initialization has
+     * completed (e.g. after parallelInit in Bootstrap) — the role assignment cache must be
+     * populated before this method can check existing assignments. Do *not* call from within
+     * an implementation of ensureRequiredConfigAndRolesCreated(), as the cache is not yet
+     * available at that point in the lifecycle.
      */
     void assignRole(HoistUser user, String roleName) {
         defaultRoleUpdateService.assignRole(user, roleName)
