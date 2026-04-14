@@ -326,6 +326,8 @@ class BootStrap implements LogSupport {
                 defaultValue: [
                     enabled: false,
                     sampleRate: 1.0,
+                    sampleRules: [],
+                    alwaysSampleErrors: true,
                     otlpEnabled: false,
                     otlpConfig: [:]
                 ],

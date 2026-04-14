@@ -4,7 +4,6 @@
  *
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
-
 package io.xh.hoist.telemetry
 
 import groovy.transform.CompileStatic
@@ -23,17 +22,12 @@ import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.resources.Resource
 import io.opentelemetry.sdk.trace.SdkTracerProvider
 import io.opentelemetry.sdk.trace.data.SpanData
-import io.opentelemetry.sdk.trace.export.BatchSpanProcessor
-import io.opentelemetry.sdk.trace.samplers.Sampler
-import io.opentelemetry.sdk.trace.samplers.SamplingResult
 import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter
 import io.opentelemetry.sdk.trace.export.SpanExporter
-import io.micrometer.core.instrument.Counter
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import jakarta.servlet.http.HttpServletRequest
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
-
 import io.opentelemetry.api.common.AttributeKey
 import grails.async.Promises
 
@@ -67,20 +61,12 @@ class TraceService extends BaseService {
     private OpenTelemetrySdk _otelSdk
     private SpanExporter _otlpExporter
     private Resource _resource
+    private List<Map> _sampleRules = []
     private double _sampleRate = 1.0
-    private Counter _spansRequested
-    private Counter _spansCreated
+    private final HoistSampler _sampler = new HoistSampler()
 
 
     void init() {
-        def registry = metricsService.registry
-        _spansRequested = Counter.builder('hoist.trace.spans.requested')
-            .description('Total spans evaluated for sampling — includes server and client-relayed spans')
-            .register(registry)
-        _spansCreated = Counter.builder('hoist.trace.spans.created')
-            .description('Total spans that passed sampling — includes server and client-relayed spans')
-            .register(registry)
-
         installContextPropagation()
         syncConfig()
     }
@@ -139,18 +125,26 @@ class TraceService extends BaseService {
         def sdk = _otelSdk
         if (!sdk) return null
 
-        def spanBuilder = sdk.getTracer('io.xh.hoist').spanBuilder(name).setSpanKind(kind),
-            span = spanBuilder.startSpan(),
-            pending = new SpanRef(span, span.makeCurrent(), kind)
+        // Build complete tag set
+        tags = new HashMap<String, ?>(tags)
+        if (!tags['xh.source']) tags['xh.source'] = 'app'
+        if (caller) tags['code.namespace'] = caller.class.name
+        if (username) tags['user.name'] = username
 
-        pending.setTags(tags)
-        if (!tags['xh.source']) pending.setTag('xh.source', 'app')
-        if (caller) pending.setTag('code.namespace', caller.class.name)
-        if (username) pending.setTag('user.name', username)
+        def spanBuilder = sdk.getTracer('io.xh.hoist')
+            .spanBuilder(name)
+            .setSpanKind(kind)
 
-        return pending
+        try {
+            _sampler.setSampleRate(getSampleRate(tags))
+            def span = spanBuilder.startSpan(),
+                ret = new SpanRef(span, span.makeCurrent(), kind)
+            ret.setTags(tags)
+            return ret
+        } finally {
+            _sampler.clearSampleRate()
+        }
     }
-
 
     //-------------
     // Misc
@@ -227,60 +221,22 @@ class TraceService extends BaseService {
     // Framework-internal
     //--------------------------------------------------
     /**
-     * Submit client-side spans received from the browse.
+     * Submit client-side spans received from the browser.
      *
-     * Converts the client span JSON into OTel {@link io.opentelemetry.sdk.trace.data.SpanData} objects and exports them
-     * through the configured export pipeline, preserving the original trace/span IDs so
-     * that client and server spans form a coherent distributed trace.
+     * Converts the client span JSON into OTel {@link io.opentelemetry.sdk.trace.data.SpanData}
+     * objects and exports them through the configured export pipeline.
      *
-     * Spans are filtered using the same deterministic trace-ID-based sampling as
-     * server-originated spans, ensuring consistent sampling across both paths.
+     * Client spans are pre-sampled by the client -- only exportable (i.e. sampled spans or error spans)
+     * are expected here.
      *
      * @param spans - list of span maps as serialized by the client {@code Span.toJSON()}
      */
     void submitClientSpans(List<Map> spans) {
         def resource = _resource
         if (!resource) return
-
-        def data = spans
-            .findAll { shouldSample(it.traceId as String) }
-            .collect { new ClientSpanData(it, resource) } as List<SpanData>
-
-        eachExporter { SpanExporter e ->
-            e.export(data)
-        }
+        def data = spans.collect { new ClientSpanData(it, resource) } as List<SpanData>
+        eachExporter {SpanExporter e -> e.export(data)}
     }
-
-
-    /**
-     * Determine if a trace should be sampled based on its trace ID.
-     *
-     * Uses the same deterministic algorithm as the OTel {@code traceIdRatioBased} sampler:
-     * the lower 8 bytes of the trace ID are compared against a threshold derived from the
-     * configured sample rate. Re-implemented here to allow consistent sampling decisions
-     * across both server-originated spans and client-relayed spans.
-     *
-     * @internal
-     */
-    boolean shouldSample(String traceId) {
-        _spansRequested?.increment()
-        boolean ret
-        if (_sampleRate >= 1.0) {
-            ret = true
-        } else if (_sampleRate <= 0.0) {
-            ret = false
-        } else {
-            try {
-                long lowerLong = Long.parseUnsignedLong(traceId.substring(16), 16)
-                ret = Long.compareUnsigned(lowerLong, (long) (Long.MAX_VALUE * _sampleRate)) < 0
-            } catch (Exception ignored) {
-                ret = false
-            }
-        }
-        if (ret) _spansCreated?.increment()
-        return ret
-    }
-
 
     //--------------------------------------------------
     // Implementation
@@ -308,10 +264,11 @@ class TraceService extends BaseService {
             if (!config.enabled) return
 
             def attrsBuilder = Attributes.builder()
-            otelResourceAttributes.each { k, v -> attrsBuilder.put(stringKey(k), v) }
+            otelResourceAttributes.each { k, v -> attrsBuilder.put(AttributeKey.stringKey(k), v) }
             _resource = Resource.default.merge(Resource.create(attrsBuilder.build()))
 
-            _sampleRate = config.sampleRate
+            _sampleRules = config.sampleRules ?: []
+            _sampleRate = config.sampleRate.toDouble()
 
             def providerBuilder = SdkTracerProvider.builder()
                 .setResource(_resource)
@@ -337,9 +294,8 @@ class TraceService extends BaseService {
                 _otlpExporter = null
             }
 
-            // Add all exporters
             eachExporter {SpanExporter e ->
-                providerBuilder.addSpanProcessor(BatchSpanProcessor.builder(e).build())
+                providerBuilder.addSpanProcessor(new HoistBatchSpanProcessor(e, config.alwaysSampleErrors))
             }
 
             _otelSdk = OpenTelemetrySdk.builder()
@@ -361,11 +317,6 @@ class TraceService extends BaseService {
         _resource = null
     }
 
-    private AttributeKey stringKey(String str) {
-        AttributeKey.stringKey(str)
-    }
-
-
     //--------------------------------------------------
     // Lifecycle
     //--------------------------------------------------
@@ -380,9 +331,7 @@ class TraceService extends BaseService {
     }
 
     Map getAdminStats() {[
-        config: configForAdminStats('xhTraceConfig'),
-        spansRequested: _spansRequested?.count(),
-        spansCreated: _spansCreated?.count()
+        config: configForAdminStats('xhTraceConfig')
     ]}
 
     /** Shared getter for extracting trace context from incoming servlet requests. */
@@ -391,6 +340,7 @@ class TraceService extends BaseService {
             Iterable<String> keys(HttpServletRequest carrier) {
                 Collections.list(carrier.headerNames)
             }
+
             String get(HttpServletRequest carrier, String key) {
                 carrier.getHeader(key)
             }
@@ -418,24 +368,49 @@ class TraceService extends BaseService {
             Iterable<String> keys(Map<String, String> carrier) {
                 carrier?.keySet() ?: Collections.emptySet() as Iterable<String>
             }
+
             String get(Map<String, String> carrier, String key) {
                 carrier?.get(key)
             }
         }
 
-    /** Sampler using {@link #shouldSample} — shared by the SDK pipeline and client span relay. */
-    private final Sampler _sampler = new Sampler() {
-        SamplingResult shouldSample(
-            Context ctx,
-            String traceId,
-            String name,
-            SpanKind kind,
-            Attributes attrs,
-            List parentLinks
-        ) {
-            TraceService.this.shouldSample(traceId) ? SamplingResult.recordAndSample() : SamplingResult.drop()
+
+    /**
+     * Evaluate sampling rules against span attributes. Returns the sample rate from the first
+     * matching rule, or the configured fallback rate if no rule matches.
+     */
+    private double getSampleRate(Map tags) {
+        try {
+            if (!_sampleRules) return _sampleRate
+
+            for (Map rule in _sampleRules) {
+                if (rule.match?.every { k, v -> matchesValue(tags[k], v) } &&
+                    rule.sampleRate instanceof Number
+                ) {
+                    return ((Number) rule.sampleRate).doubleValue()
+                }
+            }
+            return _sampleRate
+        } catch (Exception e) {
+            logError("Failed to compute sample rate", e)
+            return 0d
         }
-        String getDescription() { "HoistTraceIdRatio(${_sampleRate})" }
     }
 
+    /** For strings, Simple glob matching: {@code *} = any, {@code foo*} = prefix, {@code *foo} = suffix. */
+    private boolean matchesValue(Object actual, Object pattern) {
+        if (!(actual instanceof String) || !(pattern instanceof String)) return actual == pattern
+        def patternStr = pattern as String,
+            actualStr = actual as String
+
+        if (patternStr == '*') return true
+        def startsWithWild = patternStr.startsWith('*'),
+            endsWithWild = patternStr.endsWith('*'),
+            core = patternStr.replaceAll('^\\*|\\*\$', '')
+
+        if (startsWithWild && endsWithWild) return actualStr.contains(core)
+        if (startsWithWild) return actualStr.endsWith(core)
+        if (endsWithWild) return actualStr.startsWith(core)
+        return actual == pattern
+    }
 }
