@@ -20,7 +20,7 @@ class TraceConfig extends TypedConfigMap {
     Map otlpConfig
 
     /** Ordered tag-match rules for sampling. First match wins. */
-    List<Map> samplingRules = []
+    List<Map> sampleRules = []
 
     /** Always export error spans, bypassing sample-rate filtering. Defaults to true. */
     boolean alwaysSampleErrors = true

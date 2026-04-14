@@ -61,7 +61,7 @@ class TraceService extends BaseService {
     private OpenTelemetrySdk _otelSdk
     private SpanExporter _otlpExporter
     private Resource _resource
-    private List<Map> _samplingRules = []
+    private List<Map> _sampleRules = []
     private double _sampleRate = 1.0
     private final HoistSampler _sampler = new HoistSampler()
 
@@ -267,7 +267,7 @@ class TraceService extends BaseService {
             otelResourceAttributes.each { k, v -> attrsBuilder.put(AttributeKey.stringKey(k), v) }
             _resource = Resource.default.merge(Resource.create(attrsBuilder.build()))
 
-            _samplingRules = config.samplingRules ?: []
+            _sampleRules = config.sampleRules ?: []
             _sampleRate = config.sampleRate.toDouble()
 
             def providerBuilder = SdkTracerProvider.builder()
@@ -381,9 +381,9 @@ class TraceService extends BaseService {
      */
     private double getSampleRate(Map tags) {
         try {
-            if (!_samplingRules) return _sampleRate
+            if (!_sampleRules) return _sampleRate
 
-            for (Map rule in _samplingRules) {
+            for (Map rule in _sampleRules) {
                 if (rule.match?.every { k, v -> matchesValue(tags[k], v) } &&
                     rule.sampleRate instanceof Number
                 ) {

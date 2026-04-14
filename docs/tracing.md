@@ -28,7 +28,7 @@ delegate to no-op implementations, so no null checks are needed in application c
 - **Client span relay** — Browser-generated spans are submitted to `xh/submitSpans` and exported
   through the same server-side pipeline, producing end-to-end client-to-server traces. Client
   spans are pre-sampled in the browser — only sampled or error spans are relayed.
-- **Rule-based sampling** — Configurable `samplingRules` match span tags (with glob patterns) to
+- **Rule-based sampling** — Configurable `sampleRules` match span tags (with glob patterns) to
   determine per-span sample rates. Error spans can be force-exported regardless of sampling via
   `alwaysSampleErrors`.
 - **Log correlation** — `traceId` is captured on log markers when inside a traced context,
@@ -218,7 +218,7 @@ ObservedRun.observe(this)
 |----------|-------|
 | **Type** | `json` |
 | **Default** | See below |
-| **Client Visible** | Yes (client reads `enabled`, `sampleRate`, `samplingRules`, and `alwaysSampleErrors` for browser tracing) |
+| **Client Visible** | Yes (client reads `enabled`, `sampleRate`, `sampleRules`, and `alwaysSampleErrors` for browser tracing) |
 | **Purpose** | Distributed tracing infrastructure configuration. |
 
 **Default value:**
@@ -227,7 +227,7 @@ ObservedRun.observe(this)
 {
     "enabled": false,
     "sampleRate": 1.0,
-    "samplingRules": [],
+    "sampleRules": [],
     "alwaysSampleErrors": true,
     "otlpEnabled": false,
     "otlpConfig": {}
@@ -238,7 +238,7 @@ ObservedRun.observe(this)
 |-----|------|-------------|
 | `enabled` | Boolean | Master switch for tracing. When false, all tracing is no-op. Dynamic. |
 | `sampleRate` | Double | Fallback sampling rate (0.0–1.0) applied when no sampling rule matches. Dynamic. |
-| `samplingRules` | List\<Map\> | Ordered rules for per-span sampling. Each rule has a `match` map of tag patterns and a `sampleRate`. First match wins; unmatched spans use the fallback `sampleRate`. See [Sampling Rules](#sampling-rules) below. Dynamic. |
+| `sampleRules` | List\<Map\> | Ordered rules for per-span sampling. Each rule has a `match` map of tag patterns and a `sampleRate`. First match wins; unmatched spans use the fallback `sampleRate`. See [Sampling Rules](#sampling-rules) below. Dynamic. |
 | `alwaysSampleErrors` | Boolean | When true (default), spans that end in error are exported even if unsampled. Dynamic. |
 | `otlpEnabled` | Boolean | Enable OTLP span export (HTTP/protobuf). Dynamic. |
 | `otlpConfig` | Map | OTLP exporter config (e.g. `{"endpoint": "http://localhost:4318/v1/traces"}`). |
@@ -282,13 +282,13 @@ evaluated at span creation time (head-based sampling) on both client and server.
 
 ### Configuration
 
-Add rules to the `samplingRules` array in `xhTraceConfig`:
+Add rules to the `sampleRules` array in `xhTraceConfig`:
 
 ```json
 {
     "enabled": true,
     "sampleRate": 0.1,
-    "samplingRules": [
+    "sampleRules": [
         {"match": {"name": "GET health/*"}, "sampleRate": 0},
         {"match": {"xh.source": "hoist"}, "sampleRate": 0.01},
         {"match": {"user.name": "jsmith"}, "sampleRate": 1.0}
@@ -318,13 +318,13 @@ Non-string values (numbers, booleans) use strict equality.
 
 1. Tags are assembled on the span before the sampling decision.
 2. If a valid sampled parent context exists, the child inherits the parent's decision.
-3. Otherwise, `samplingRules` are evaluated against the span's tags. The first rule whose `match`
+3. Otherwise, `sampleRules` are evaluated against the span's tags. The first rule whose `match`
    entries all match produces the `sampleRate` for a probabilistic decision.
 4. Unmatched spans use the fallback `sampleRate`.
 5. Unsampled spans are recorded but not exported — unless they end in error and
    `alwaysSampleErrors` is enabled, in which case `HoistBatchSpanProcessor` promotes them to sampled and exports them through the normal batch pipeline.
 
-The client-side `TraceService` in hoist-react evaluates the same `samplingRules` config, so
+The client-side `TraceService` in hoist-react evaluates the same `sampleRules` config, so
 sampling decisions are consistent across client and server spans.
 
 ---
@@ -399,7 +399,7 @@ Browser-generated spans are batched and posted to the `xh/submitSpans` endpoint.
 trace/span IDs — and exports them through the same pipeline as server-generated spans. This
 means client and server spans appear as a coherent distributed trace in the collector.
 
-Client spans are pre-sampled in the browser using the shared `samplingRules` config — only
+Client spans are pre-sampled in the browser using the shared `sampleRules` config — only
 sampled spans (and error spans when `alwaysSampleErrors` is enabled) are relayed to the server.
 
 ---
