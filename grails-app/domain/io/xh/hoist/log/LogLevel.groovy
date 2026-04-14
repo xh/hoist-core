@@ -16,12 +16,18 @@ class LogLevel implements JSONFormat {
 
     String name
     String level
+    Boolean suppressStackTrace
+    Boolean includeStartMessages
     Date lastUpdated
     String lastUpdatedBy
 
     String getDefaultLevel() { logLevelService.getDefaultLevel(name) }
 
     String getEffectiveLevel() { logLevelService.getEffectiveLevel(name) }
+
+    Boolean getEffectiveSuppressStackTrace() { logLevelService.shouldSuppressStackTrace(name) }
+
+    Boolean getEffectiveIncludeStartMessages() { logLevelService.shouldIncludeStartMessages(name) }
 
     public static List<String> LEVELS = ['Trace', 'Debug', 'Info', 'Warn', 'Error', 'Inherit', 'Off']
 
@@ -34,6 +40,8 @@ class LogLevel implements JSONFormat {
     static constraints = {
         name(unique: true, nullable: false, blank: false)
         level(nullable: true, maxSize: 20, inList: LogLevel.LEVELS)
+        suppressStackTrace(nullable: true)
+        includeStartMessages(nullable: true)
         lastUpdatedBy(nullable: true, maxSize: 50)
     }
 
@@ -51,13 +59,17 @@ class LogLevel implements JSONFormat {
 
     Map formatForJSON() {
         return [
-            id            : id,
-            name          : name,
-            level         : level,
-            defaultLevel  : defaultLevel,
-            effectiveLevel: effectiveLevel,
-            lastUpdated   : lastUpdated,
-            lastUpdatedBy : lastUpdatedBy
+            id                           : id,
+            name                         : name,
+            level                        : level,
+            suppressStackTrace           : suppressStackTrace,
+            includeStartMessages         : includeStartMessages,
+            defaultLevel                 : defaultLevel,
+            effectiveLevel               : effectiveLevel,
+            effectiveSuppressStackTrace  : effectiveSuppressStackTrace,
+            effectiveIncludeStartMessages: effectiveIncludeStartMessages,
+            lastUpdated                  : lastUpdated,
+            lastUpdatedBy                : lastUpdatedBy
         ]
     }
 

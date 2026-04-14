@@ -17,15 +17,17 @@ class LogLevelAdminController extends AdminRestController {
     def logLevelService
 
     protected void preprocessSubmit(Map submit) {
-        if (submit.level == 'None') {
-            submit.level = null
-        }
         submit.lastUpdatedBy = authUsername
     }
 
     def lookupData() {
-        def levels =  ['None'] + LogLevel.LEVELS
-        renderJSON (levels: levels)
+        renderJSON(
+            // This is a vanilla hoist-react SelectOption[], which hoist rest model and select automatically accepts.
+            levels: [
+                [label: 'None', value: null],
+                *LogLevel.LEVELS.collect { [label: it, value: it] }
+            ]
+        )
     }
 
     protected void doCreate(Object obj, Object data) {

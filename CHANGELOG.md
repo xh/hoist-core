@@ -2,17 +2,55 @@
 
 ## 38.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
+
+* Two new nullable `Boolean` columns must be added to the `xh_log_level` table:
+  `suppress_stack_trace` and `include_start_messages`. Apps with `dbCreate: update` will have
+  these added automatically. For manually managed schemas, review and run the following SQL,
+  modified as needed for your database:
+  ```sql
+  ALTER TABLE xh_log_level ADD suppress_stack_trace BIT NULL;
+  ALTER TABLE xh_log_level ADD include_start_messages BIT NULL;
+  ```
+* Aligned span and metric tag names with OTEL semantic conventions:
+    - `source` → `xh.source`
+    - `application` → `xh.application`
+    - `instance` → `xh.instance`
+    - `user` → `user.name` (on spans)
+    - `deployment.environment` → `deployment.environment.name` (on resource attributes)
+
 ### 🎁 New Features
 
-* Added `ConfigSpec`, `PreferenceSpec`, and `RoleSpec` typed classes for use with `ensureRequiredConfigsCreated()`, `ensureRequiredPrefsCreated()`, and `ensureRequiredRolesCreated()`, replacing untyped `Map` arguments with classes that provide IDE autocomplete and compile-time validation. Previous `Map`-based signatures remain supported as deprecated overloads and will be removed in v40.
+* Added rule-based span sampling to `TraceService` via new `sampleRules` and `alwaysSampleErrors` options in `xhTraceConfig`. Rules match span tags with glob patterns to set per-span sample rates, and error spans can be force-exported regardless of sampling.
+* Apps can now customize OTEL resource attributes by overriding `getOtelResourceAttributes()` on
+  their `ClusterConfig` subclass. These attributes are applied to both traces and metrics
+  exporters.
+* Added `suppressStackTrace` and `includeStartMessages` fields to `LogLevel` domain, editable
+  via the admin console Log Levels tab. Stacktraces for errors logged via LogSupport are now
+  included by default; set `suppressStackTrace` to `true` to suppress for a logger prefix.
+  Start messages for `withXxx` blocks are off by default; set `includeStartMessages` to `true`
+  to enable. Both support specificity ordering for fine-grained overrides. Replaces the
+  previous TRACE-level gating for stacktraces and finer-level gating for start messages.
 
 ### 🐞 Bug Fixes
 
-* Fixed MCP server not invalidating its cached GitHub source archive for branch refs (e.g. `develop`), causing documentation to become stale over time. Branch caches are now re-downloaded after 24 hours; tag and SHA refs remain cached indefinitely.
+* Fixed MCP server not invalidating its cached GitHub source archive for branch refs (e.g.
+  `develop`), causing documentation to become stale over time. Branch caches are now re-downloaded
+  after 24 hours; tag and SHA refs remain cached indefinitely.
+
+### 💥 Breaking Changes
 
 ### ⚙️ Technical
 
-* Added MCP resource support for full document downloads via `hoist-core://docs/{docId}` URIs, enabling AI coding agents to read complete documentation content in addition to keyword search.
+* Added `ConfigSpec`, `PreferenceSpec`, and `RoleSpec` typed classes for use with
+  `ensureRequiredConfigsCreated()`, `ensureRequiredPrefsCreated()`, and
+  `ensureRequiredRolesCreated()`, replacing untyped `Map` arguments with classes that provide IDE
+  autocomplete and compile-time validation. Previous `Map`-based signatures remain supported as
+  deprecated overloads and will be removed in v40.
+* Added `server.port`, `client.address`, and `user_agent.original` to SERVER spans; added
+  `server.port` to CLIENT spans.
+* Added MCP resource support for full document downloads via `hoist-core://docs/{docId}` URIs,
+  enabling AI coding agents to read complete documentation content in addition to keyword search.
 
 ## 37.0.2 - 2026-03-30
 
@@ -23,8 +61,9 @@
 ## 37.0.1 - 2026-03-25
 
 ### ⚙️ Technical
- * Update upgrade notes skill to properly register upgrade note
- * Enhance MCP server to always rebuild jar for local hoist development
+
+* Update upgrade notes skill to properly register upgrade note
+* Enhance MCP server to always rebuild jar for local hoist development
 
 ## 37.0.0 - 2026-03-24
 

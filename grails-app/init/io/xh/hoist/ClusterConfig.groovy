@@ -83,6 +83,25 @@ class ClusterConfig {
     }
 
     /**
+     * Standard OpenTelemetry resource attributes identifying this application instance.
+     *
+     * Used by both {@link io.xh.hoist.telemetry.TraceService} and
+     * {@link io.xh.hoist.telemetry.MetricsService} to tag OTLP exports with consistent
+     * service identity. Override this method to customize the values sent to your
+     * telemetry backend (e.g. mapping environment names to match platform conventions).
+     *
+     * The returned map is used as-is — entries should use standard OTEL resource attribute keys.
+     */
+    Map<String, String> getOtelResourceAttributes() {
+        [
+            'service.name'               : appCode,
+            'service.instance.id'        : instanceName,
+            'deployment.environment.name' : appEnvironment.toString(),
+            'service.version'            : appVersion
+        ]
+    }
+
+    /**
      * Produce configuration for the hazelcast cluster.
      *
      * Hoist uses simple Hazelcast's "multicast" cluster discovery by default.  While often

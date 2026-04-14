@@ -13,9 +13,9 @@ as the primary interface for all application logging. This design provides sever
   user (when available) and attaches it to the log entry.
 - **Timed execution blocks** -- The `withInfo`, `withDebug`, and `withTrace` methods wrap closures
   with automatic timing, logging both completion status and elapsed time.
-- **Smart exception handling** -- Exceptions passed to log methods produce a concise summary by
-  default. Full stacktraces are only included when the logger is at TRACE level, preventing log
-  spam from recurring errors while preserving diagnostic capability.
+- **Smart exception handling** -- Exceptions passed to log methods produce a concise summary
+  alongside a full stacktrace by default. Admins can suppress stacktraces for noisy logger
+  prefixes via the `suppressStackTrace` field on `LogLevel` entries in the admin console.
 - **Dynamic log levels** -- Log levels can be changed at runtime through the admin console without
   restarting the server, and those changes propagate across all cluster instances.
 - **Built-in log viewer** -- Server logs can be read, searched, and downloaded directly from the
@@ -36,8 +36,8 @@ Every `BaseService` and `BaseController` in a Hoist application automatically im
 | `ClusterInstanceConverter.groovy` | `src/main/groovy/io/xh/hoist/log/` | Logback converter for the `%instance` pattern token; outputs the cluster instance name |
 | `SimpleLogger.groovy` | `src/main/groovy/io/xh/hoist/log/` | Concrete `LogSupport` implementation for logging to an arbitrary named logger |
 | `LogbackConfig.groovy` | `grails-app/init/io/xh/hoist/` | Programmatic Logback configuration with default appenders, layouts, and log levels |
-| `LogLevelService.groovy` | `grails-app/services/io/xh/hoist/log/` | Service managing runtime log level overrides via the `LogLevel` domain class |
-| `LogLevel.groovy` | `grails-app/domain/io/xh/hoist/log/` | GORM domain class persisting log level overrides (table `xh_log_level`) |
+| `LogLevelService.groovy` | `grails-app/services/io/xh/hoist/log/` | Service managing runtime log level overrides and logging flag overrides (`suppressStackTrace`, `includeStartMessages`) via the `LogLevel` domain class |
+| `LogLevel.groovy` | `grails-app/domain/io/xh/hoist/log/` | GORM domain class persisting log level and logging flag overrides (table `xh_log_level`) |
 | `LogReaderService.groovy` | `grails-app/services/io/xh/hoist/log/` | Service providing server-side log file listing, reading, searching, and deletion |
 | `LogArchiveService.groovy` | `grails-app/services/io/xh/hoist/log/` | Service for automatic archival and cleanup of old log files into compressed ZIP bundles |
 | `LogLevelAdminController.groovy` | `grails-app/controllers/io/xh/hoist/admin/` | REST controller for CRUD operations on `LogLevel` domain objects |
@@ -71,8 +71,8 @@ All methods check if the corresponding level is enabled before performing any wo
 cost to leaving log statements in production code at a disabled level.
 
 When an exception is passed as a message argument, `LogSupport` formats it as a concise summary
-(via `ExceptionHandler.summaryTextForThrowable`). A full stacktrace is only appended when the
-logger's effective level is TRACE.
+(via `ExceptionHandler.summaryTextForThrowable`) along with a full stacktrace. Stacktraces can be
+suppressed for specific logger prefixes via `suppressStackTrace` on the `LogLevel` admin entry.
 
 #### Timed execution methods
 
@@ -86,10 +86,9 @@ These methods wrap a closure, automatically logging elapsed time and completion 
 
 Each `withXxx` method:
 
-1. Optionally logs a `started` message at the **same** level as the `withXxx` method, if a finer
-   level is also enabled. Specifically, `withInfo` logs its `started` message at INFO level when
-   DEBUG is enabled; `withDebug` logs its start at DEBUG level when TRACE is enabled. For
-   `withTrace`, the `started` message is always logged (since TRACE is already the finest level).
+1. Optionally logs a `started` message at the **same** level as the `withXxx` method, if
+   `includeStartMessages` is set to `true` on the corresponding `LogLevel` entry in the admin
+   console. This provides a finer-grained view of when logged routines start and end.
 2. Executes the closure and measures elapsed time.
 3. Logs a `completed` message with the elapsed time (e.g., `completed | 342ms`).
 4. If the closure throws, logs a `failed` message with the elapsed time, then re-throws the
@@ -125,8 +124,8 @@ These two classes form the rendering pipeline for `LogSupport` messages:
      (e.g., `[_status: 'completed']` renders as `completed`).
    - The special key `_elapsedMs` is rendered with an `ms` suffix
      (e.g., `[_elapsedMs: 342]` renders as `342ms`).
-   - Throwables are rendered as concise summaries. If the logger is at TRACE level, a full
-     stacktrace is appended.
+   - Throwables are rendered as concise summaries with a full stacktrace by default. Stacktraces
+     can be suppressed per-logger prefix via the `suppressStackTrace` field on `LogLevel` entries.
 
 ### `SimpleLogger`
 
@@ -251,6 +250,19 @@ database table). The admin console provides a UI for this under the "Log Levels"
 Supported levels: `Trace`, `Debug`, `Info`, `Warn`, `Error`, `Inherit` (which removes the
 explicit level and defers to the parent logger), and `Off`.
 
+In addition to log levels, `LogLevel` entries support two nullable boolean flags that control
+logging behavior per logger prefix:
+
+- **`suppressStackTrace`** -- When `true`, suppresses stacktrace output for errors logged via
+  `LogSupport` for the matching logger prefix. Stacktraces are included by default.
+- **`includeStartMessages`** -- When `true`, enables `started` messages for `withInfo`,
+  `withDebug`, and `withTrace` blocks for the matching logger prefix. Start messages are off by
+  default.
+
+Both flags use specificity ordering (longest matching prefix wins) and support `null` (no
+opinion -- defer to a less-specific match), `true`, and `false` (explicitly override a broader
+setting).
+
 ### Log Root Path
 
 The directory where log files are written is determined by `LogbackConfig.getLogRootPath()`:
@@ -302,7 +314,7 @@ Output (at INFO level):
 14:32:05.500 | inst1 | DataSyncService [INFO] | jdoe | Syncing external data | completed | 2340ms
 ```
 
-Output (at DEBUG level -- additional `started` message appears):
+Output (with `includeStartMessages = true` on the LogLevel entry -- additional `started` message):
 ```
 14:32:05.500 | inst1 | DataSyncService [INFO] | jdoe | Syncing external data | started
 14:32:07.840 | inst1 | DataSyncService [INFO] | jdoe | Syncing external data | completed | 2340ms
@@ -333,17 +345,17 @@ try {
 }
 ```
 
-At INFO/DEBUG level -- concise summary:
-```
-14:32:15.200 | inst1 | OrderService [ERROR] | jdoe | Failed to complete operation | orderId=ORD-123 | java.net.ConnectException: Connection refused
-```
-
-At TRACE level -- full stacktrace is appended:
+Default output -- concise summary with full stacktrace:
 ```
 14:32:15.200 | inst1 | OrderService [ERROR] | jdoe | Failed to complete operation | orderId=ORD-123 | java.net.ConnectException: Connection refused
            at java.net.PlainSocketImpl.socketConnect(Native Method)
            at java.net.AbstractPlainSocketImpl.doConnect(...)
            ...
+```
+
+With `suppressStackTrace = true` on a matching LogLevel entry -- concise summary only:
+```
+14:32:15.200 | inst1 | OrderService [ERROR] | jdoe | Failed to complete operation | orderId=ORD-123 | java.net.ConnectException: Connection refused
 ```
 
 ### Using `SimpleLogger` for a dedicated log
@@ -561,12 +573,24 @@ database override for the same logger, the database override will win on the nex
 ### Be mindful of the `StackTrace` logger
 
 Hoist turns off the Grails built-in `StackTrace` logger by default because it can swamp logs in
-production. If you need stacktraces for a specific logger, set that logger to TRACE level instead
--- `LogSupport` will then include full stacktraces for exceptions logged through that logger.
+production. This is separate from Hoist's LogSupport-based stacktrace handling.
+
+### Controlling stacktraces and start messages
+
+Stacktraces for errors logged through `LogSupport` are included by default. To suppress
+stacktraces for a noisy logger, create or edit a `LogLevel` entry in the admin console and set
+`suppressStackTrace` to `true`:
 
 ```groovy
 // In the admin console Log Levels tab:
-// Set io.xh.hoist.mypackage.MyService -> Trace
+// Set io.xh.hoist.mypackage.NoisyService -> suppressStackTrace = true
 //
-// Now any logError/logWarn calls on MyService will include full stacktraces.
+// Now logError/logWarn calls on NoisyService will omit stacktraces.
+// Set a more-specific entry to False to override for a specific subclass.
 ```
+
+Start messages for `withInfo`/`withDebug`/`withTrace` blocks are off by default. To enable them
+for a logger prefix, set `includeStartMessages` to `True` on the `LogLevel` entry.
+
+For external (non-LogSupport) loggers, use `LogbackConfig.suppressStackTrace()` in your
+`LogbackConfig` subclass to filter out noisy stacktraces at the Logback level.

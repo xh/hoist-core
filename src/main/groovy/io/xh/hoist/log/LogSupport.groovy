@@ -18,6 +18,7 @@ import static ch.qos.logback.classic.Level.INFO
 import static ch.qos.logback.classic.Level.DEBUG
 import static ch.qos.logback.classic.Level.TRACE
 import static io.xh.hoist.util.Utils.getIdentityService
+import static io.xh.hoist.util.Utils.getLogLevelService
 import static java.lang.System.currentTimeMillis
 
 @CompileStatic
@@ -26,10 +27,10 @@ trait LogSupport {
     /**
      * Log at INFO level.
      *
-     * If an exception is provided, basic summary info about it will be appended. If effective
-     * logging level is TRACE, a stacktrace will be included as well. This aims to avoid logs being
-     * spammed by recurring / lengthy stacktraces, while still providing a clear indication that an
-     * error occurred plus access to stacktraces when troubleshooting an ongoing situation.
+     * If an exception is provided, basic summary info about it will be appended and a full
+     * stacktrace will be included by default. Admins can suppress stacktraces for specific
+     * logger prefixes by setting `suppressStackTrace = true` on the corresponding LogLevel entry
+     * in the admin console.
      *
      * @param msgs - one or more objects that can be converted into strings
      */
@@ -53,8 +54,9 @@ trait LogSupport {
      * This method will run the passed closure, then log a summary message on INFO indicating the
      * elapsed time to complete and whether the closure threw or completed successfully.
      *
-     * If the configured logging level is TRACE, an additional line will be written BEFORE the
-     * closure is started, providing a finer-grained view on when logged routines start and end.
+     * An additional 'started' message can be enabled by setting `includeStartMessages = true` on
+     * the corresponding LogLevel entry in the admin console, providing a finer-grained view on
+     * when logged routines start and end.
      *
      * @param msgs - one object (typically String, Map, or List) that can be converted into strings.
      * @param c - closure to be run and timed.
@@ -128,9 +130,8 @@ trait LogSupport {
     private <T> T loggedDo(Logger log, Level level, Object msgs, Closure<T> c) {
         Map meta = getMeta() ?: [:];
 
-        // Log *start* of closure execution if at a fine run-time level. Use debug to get
-        // start msgs for your 'withInfo' logs, trace for your 'withDebug/withTrace'
-        if ((log.debugEnabled && level == INFO) || log.traceEnabled) {
+        // Log *start* of closure execution if enabled for this logger via LogLevel admin.
+        if (shouldIncludeStartMessages(log.name)) {
             meta << [_status: 'started']
             logAtLevel(log, level, msgs, meta)
         }
@@ -166,6 +167,14 @@ trait LogSupport {
     private Map getMeta() {
         def username = identityService?.username
         return username ? [_user: username] : null
+    }
+
+    private boolean shouldIncludeStartMessages(String loggerName) {
+        try {
+            return logLevelService?.shouldIncludeStartMessages(loggerName) ?: false
+        } catch (Exception ignored) {
+            return false
+        }
     }
 
     private LogSupportMarker createMarker(Logger log, Object messages, Map meta = getMeta()) {

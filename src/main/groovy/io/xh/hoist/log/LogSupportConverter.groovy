@@ -15,6 +15,7 @@ import ch.qos.logback.classic.spi.ThrowableProxy
 import groovy.transform.CompileStatic
 
 import static io.xh.hoist.util.Utils.getExceptionHandler
+import static io.xh.hoist.util.Utils.getLogLevelService
 
 /**
  * Layout Converter to output log messages in a human readable layout.
@@ -55,8 +56,8 @@ class LogSupportConverter extends ClassicConverter {
 
         def ret = parts.join(delimiter)
 
-        // 3) Potentially append stack trace on trace.
-        if (marker.logger.isTraceEnabled() && messages.last() instanceof Throwable) {
+        // 3) Potentially append stack trace for errors with throwables.
+        if (messages.last() instanceof Throwable && !shouldSuppressStackTrace(marker.logger.name)) {
             ret += formatStacktrace(messages.last() as Throwable)
         }
 
@@ -105,6 +106,17 @@ class LogSupportConverter extends ClassicConverter {
             return exceptionHandler.summaryTextForThrowable(t)
         } catch (Exception ignored) {
             return t.message
+        }
+    }
+
+    //---------------------------
+    // Implementation
+    //---------------------------
+    private boolean shouldSuppressStackTrace(String loggerName) {
+        try {
+            return logLevelService?.shouldSuppressStackTrace(loggerName) ?: false
+        } catch (Exception ignored) {
+            return false
         }
     }
 }

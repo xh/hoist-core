@@ -26,6 +26,7 @@ import io.xh.hoist.config.ConfigService
 import static io.micrometer.core.instrument.config.MeterFilterReply.DENY
 import static io.micrometer.core.instrument.config.MeterFilterReply.NEUTRAL
 import static io.xh.hoist.cluster.ClusterService.instanceName
+import static io.xh.hoist.cluster.ClusterService.otelResourceAttributes
 import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 import static io.xh.hoist.util.Utils.appCode
 
@@ -34,7 +35,7 @@ import static io.xh.hoist.util.Utils.appCode
  *
  * Exposes a {@link CompositeMeterRegistry} via {@link #registry} for meter registration.
  * All meters registered through this registry automatically receive default tags
- * ({@code application}, {@code instance}, {@code source}).
+ * ({@code xh.application}, {@code xh.instance}, {@code xh.source}).
  *
  * Built-in support for Prometheus (pull-based) and OTLP (push-based) export registries,
  * configured dynamically via the {@code xhMetricsConfig} soft config entry. Additional
@@ -52,7 +53,7 @@ class MetricsService extends BaseService {
      * Main entry point for meter registration.
      *
      * All meters registered through this registry automatically receive default tags
-     * ({@code application}, {@code instance}). A {@code source} tag also classifies
+     * ({@code xh.application}, {@code xh.instance}). A {@code xh.source} tag also classifies
      * each metric's origin — 'app' (default) or 'hoist' are built-in sources, and
      * 'app' will be provided as the default.
      */
@@ -85,7 +86,7 @@ class MetricsService extends BaseService {
      *
      * Any instance can service this request — it fans out to all instances via
      * Hazelcast, collects each instance's scrape output, and concatenates the
-     * results. Each metric already carries an {@code instance} tag distinguishing
+     * results. Each metric already carries a {@code xh.instance} tag distinguishing
      * its source.
      *
      * Applications should expose the value returned by this method in a dedicated
@@ -144,7 +145,7 @@ class MetricsService extends BaseService {
         // Deny cluster-scoped metrics on non-primary instances
         registry.config().meterFilter(new MeterFilter() {
             MeterFilterReply accept(Meter.Id id) {
-                if (!clusterService.isPrimary && id.getTag('instance') == 'cluster') {
+                if (!clusterService.isPrimary && id.getTag('xh.instance') == 'cluster') {
                     logError("Cluster-scoped metric registered on non-primary instance", id.name)
                     return DENY
                 }
@@ -156,13 +157,13 @@ class MetricsService extends BaseService {
             Meter.Id map(Meter.Id id) {
                 // default source
                 def name = id.name,
-                    source = id.getTag('source')
+                    source = id.getTag('xh.source')
                 if (!source) {
                     source = isDefaultHoistSource(name) ? 'hoist' : 'app'
                 }
 
                 // apply default tags (including source) if not present
-                [application: appCode, instance: instanceName, source: source].each { k, v ->
+                ['xh.application': appCode, 'xh.instance': instanceName, 'xh.source': source].each { k, v ->
                     if (!id.getTag(k)) {
                         id = id.withTags(Tags.of(k, v))
                     }
@@ -211,7 +212,9 @@ class MetricsService extends BaseService {
                 _otlpRegistry = null
             }
             if (config.otlpEnabled) {
-                def conf = prefixKeys('otlp', config.otlpConfig)
+                def otlpConf = config.otlpConfig ?: [:]
+                otlpConf.resourceAttributes = otelResourceAttributes.collect { k, v -> "${k}=${v}" }.join(',')
+                def conf = prefixKeys('otlp', otlpConf)
                 _otlpRegistry = new OtlpMeterRegistry({conf[it]} as OtlpConfig, Clock.SYSTEM)
                 _otlpRegistry.config().meterFilter(publishFilter)
                 regs.add(_otlpRegistry)
