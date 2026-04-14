@@ -46,9 +46,14 @@ class HoistSampler implements Sampler {
         Attributes attrs,
         List parentLinks
     ) {
-        def parent = Span.fromContext(ctx).spanContext,
-            rate = _sampleRate.get() ?: 0d
-        return ((parent.isValid() && parent.isSampled()) || Math.random() < rate) ?
+        def parent = Span.fromContext(ctx).spanContext
+        if (parent.isValid()) {
+            return parent.isSampled() ?
+                SamplingResult.recordAndSample() :
+                SamplingResult.recordOnly()
+        }
+        def rate = _sampleRate.get() ?: 0d
+        return Math.random() < rate ?
             SamplingResult.recordAndSample() :
             SamplingResult.recordOnly()
     }
