@@ -21,7 +21,9 @@
 
 ### 🎁 New Features
 
-* Added rule-based span sampling to `TraceService` via new `sampleRules` and `alwaysSampleErrors` options in `xhTraceConfig`. Rules match span tags with glob patterns to set per-span sample rates, and error spans can be force-exported regardless of sampling.
+* Added rule-based span sampling to `TraceService` via new `sampleRules` and `alwaysSampleErrors`
+  options in `xhTraceConfig`. Rules match span tags with glob patterns to set per-span sample rates,
+  and error spans can be force-exported regardless of sampling.
 * Apps can now customize OTEL resource attributes by overriding `getOtelResourceAttributes()` on
   their `ClusterConfig` subclass. These attributes are applied to both traces and metrics
   exporters.
@@ -37,8 +39,6 @@
 * Fixed MCP server not invalidating its cached GitHub source archive for branch refs (e.g.
   `develop`), causing documentation to become stale over time. Branch caches are now re-downloaded
   after 24 hours; tag and SHA refs remain cached indefinitely.
-
-### 💥 Breaking Changes
 
 ### ⚙️ Technical
 
