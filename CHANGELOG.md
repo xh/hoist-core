@@ -21,7 +21,10 @@
 
 ### 🎁 New Features
 
-* Added rule-based span sampling to `TraceService` via new `sampleRules` and `alwaysSampleErrors` options in `xhTraceConfig`. Rules match span tags with glob patterns to set per-span sample rates, and error spans can be force-exported regardless of sampling.
+* **JDK 25 support** — hoist-core now builds on JDK 25 while continuing to ship a JAR that runs on JDK 17+
+  (see ⚙️ Technical for the toolchain/bytecode-target contract).
+* Added rule-based span sampling to `TraceService` via new `sampleRules` and `alwaysSampleErrors` options in `xhTraceConfig`.
+  Rules match span tags with glob patterns to set per-span sample rates, and error spans can be force-exported regardless of sampling.
 * Apps can now customize OTEL resource attributes by overriding `getOtelResourceAttributes()` on
   their `ClusterConfig` subclass. These attributes are applied to both traces and metrics
   exporters.
@@ -42,10 +45,16 @@
 
 ### ⚙️ Technical
 
+* Upgraded build toolchain to **JDK 25** while continuing to target Java 17 bytecode.
 * Added `server.port`, `client.address`, and `user_agent.original` to SERVER spans; added
   `server.port` to CLIENT spans.
 * Added MCP resource support for full document downloads via `hoist-core://docs/{docId}` URIs,
   enabling AI coding agents to read complete documentation content in addition to keyword search.
+
+### 📚 Libraries
+
+* Grails `7.0.5 → 7.0.8`
+* Groovy `4.0.29 → 4.0.30`
 
 ## 37.0.2 - 2026-03-30
 
