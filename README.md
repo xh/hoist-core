@@ -436,6 +436,16 @@ traces, and log correlation via `traceId` on log markers.
 
 ## Development setup
 
+### JDK requirements
+
+hoist-core compiles with a **JDK 25 toolchain** but targets **Java 17 bytecode**
+(`javac --release 17`, Groovy `targetCompatibility = '17'`). The published JAR therefore runs
+on any JDK 17+ runtime so client apps still on Java 17 are not forced to upgrade.
+
+Contributors must not use Java 18+ APIs in hoist-core source — the CI build enforces this by
+also running the test suite on JDK 17. See [build-and-publish.md](docs/build-and-publish.md)
+for details.
+
 ### Hot reloading.
 Hot reloading is supported for Java 17 and Java 21 using the java hotswap agent.  Please
 see http://hotswapagent.org/ and https://github.com/HotswapProjects/HotswapAgent for details on

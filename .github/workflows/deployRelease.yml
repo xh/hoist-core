@@ -47,10 +47,10 @@ jobs:
               version: ${{ inputs.version }}
               is-hotfix: ${{ inputs.is-hotfix }}
 
-        - name: Setup JDK 17
+        - name: Setup JDK 25
           uses: actions/setup-java@v5
           with:
-              java-version: '17'
+              java-version: '25'
               distribution: 'zulu'
 
         # Setup Gradle. Submit informational build scans to https://scans.gradle.com/

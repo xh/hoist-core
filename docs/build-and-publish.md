@@ -60,10 +60,25 @@ xhReleaseVersion=37.0-SNAPSHOT
 - **Release builds** override this property at build time via the workflow's `xhReleaseVersion`
   input parameter (e.g. `37.0.0`). Release versions must **not** contain the `-SNAPSHOT` suffix.
 
+## JDK Policy: Build on 25, Target 17
+
+hoist-core is compiled with a **JDK 25 toolchain** but targets **Java 17 bytecode**
+(`javac --release 17` on Java sources, `targetCompatibility = '17'` on Groovy sources). The
+published JAR therefore runs on any JDK 17+ runtime — client apps still on Java 17 are not
+forced to upgrade.
+
+**Contributors must not use Java 18+ APIs in hoist-core source code.** The CI build enforces
+this with a matrix that also runs the test suite on JDK 17, so accidental use of newer APIs
+(e.g. `List.reversed()`, `SequencedCollection`) fails fast on the 17 matrix row.
+
+Toolbox, and most client apps, are separate from this contract — as applications, they are free
+to use the full JDK 25 API.
+
 ## GitHub Actions Workflows
 
-All three workflows run on `ubuntu-latest` with **JDK 17 (Zulu)** and use the
-`gradle/actions/setup-gradle` action for Gradle caching and setup.
+All workflows run on `ubuntu-latest` with **JDK 25 (Zulu)** as the build toolchain, via the
+`gradle/actions/setup-gradle` action for Gradle caching and setup. The CI workflow additionally
+runs the build on **JDK 17** in a matrix row to guard the Java-17 bytecode contract.
 
 ### CI (`ci.yml`)
 
