@@ -193,12 +193,20 @@
             "keywords": ["CHANGELOG", "changelog", "release notes", "breaking changes", "difficulty rating", "entry format"]
         },
         {
+            "id": "docs/upgrade-notes/v38-upgrade-notes.md",
+            "title": "v38 Upgrade Notes",
+            "mcpCategory": "devops",
+            "viewerCategory": "upgrade",
+            "description": "Upgrade guide from v37.x to v38. Low difficulty.",
+            "keywords": ["v38", "upgrade", "migration", "breaking changes", "v37"]
+        },
+        {
             "id": "docs/upgrade-notes/v37-upgrade-notes.md",
             "title": "v37 Upgrade Notes",
             "mcpCategory": "devops",
             "viewerCategory": "upgrade",
             "description": "OpenTelemetry distributed tracing, MetricsService namespace removal. Low difficulty.",
-            "keywords": ["v37", "upgrade", "tracing", "OpenTelemetry", "MetricsService", "namespace", "TraceService"]
+            "keywords": ["v37", "upgrade", "migration", "breaking changes", "v36", "namespace"]
         },
         {
             "id": "docs/upgrade-notes/v36-upgrade-notes.md",
@@ -206,7 +214,7 @@
             "mcpCategory": "devops",
             "viewerCategory": "upgrade",
             "description": "Cluster-aware WebSockets, new @AccessRequiresXXX annotations, @Access deprecated.",
-            "keywords": ["v36", "upgrade", "WebSocket", "AccessRequiresRole", "Access deprecated"]
+            "keywords": ["v36", "upgrade", "migration", "breaking changes", "v35", "@Access"]
         },
         {
             "id": "docs/upgrade-notes/v35-upgrade-notes.md",
@@ -214,7 +222,7 @@
             "mcpCategory": "devops",
             "viewerCategory": "upgrade",
             "description": "CacheEntry generic key type, TrackLog clientAppCode, POI 5.x.",
-            "keywords": ["v35", "upgrade", "CacheEntry", "TrackLog", "POI"]
+            "keywords": ["v35", "upgrade", "migration", "breaking changes", "v34"]
         },
         {
             "id": "docs/upgrade-notes/v34-upgrade-notes.md",
@@ -222,7 +230,7 @@
             "mcpCategory": "devops",
             "viewerCategory": "upgrade",
             "description": "Grails 7, Gradle 8, Tomcat 10, Jakarta EE.",
-            "keywords": ["v34", "upgrade", "Grails 7", "Gradle 8", "Tomcat 10", "Jakarta"]
+            "keywords": ["v34", "upgrade", "migration", "breaking changes", "javax"]
         }
     ]
 }
