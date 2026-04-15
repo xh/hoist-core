@@ -65,8 +65,8 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
             )
             return new ClusterResult(exception: new ClusterTaskException(t))
         } finally {
-            identityService.threadUsername.set(null)
-            identityService.threadAuthUsername.set(null)
+            identityService.threadUsername.remove()
+            identityService.threadAuthUsername.remove()
         }
     }
 }
