@@ -242,3 +242,13 @@
 - Added to docs/README.md (Quick Reference + Infrastructure & Operations table)
 - Added to docs/doc-registry.json (infrastructure viewerCategory, package mcpCategory)
 - Added to docs-roadmap.md Priority 3 table (marked Done, no DRAFT banner)
+
+### 2026-04-15 — New doc: changelog-format
+
+- Broke out `changelog-format.md` from the `xh-upgrade-notes` skill bundle into a top-level
+  `docs/` document — mirrors the same pattern already in place in hoist-react
+- Enhanced with "Library vs. Application changelogs" distinction and explicit Breaking Changes
+  section requirements
+- Added to README, doc-registry (`conventions` mcpCategory), and roadmap (Done)
+- Doc index entries clarify this covers the hoist-core *library* CHANGELOG; applied the same
+  clarification to hoist-react indexes for consistency

@@ -1,47 +1,50 @@
 ---
 name: xh-upgrade-notes
-description: Create or update detailed upgrade notes and CHANGELOG entry for a major Hoist Core release. Use when writing documentation for a new major version upgrade.
-argument-hint: [version, e.g. v35 or 35.0.0]
-disable-model-invocation: true
+description: Verify, finalize, and write upgrade documentation for a major Hoist Core release. Use when preparing a release, verifying or finalizing the changelog, writing upgrade notes, or any task involving release readiness for a major version (e.g. "prepare for release", "verify the changelog", "write upgrade notes for v38", "we're releasing today"). Produces a finalized CHANGELOG entry, a detailed upgrade-notes document with before/after code examples, and updates all doc indexes.
+argument-hint: "[version, e.g. v38 or 38.0.0] (optional — auto-detected from CHANGELOG SNAPSHOT)"
 ---
 
 # Upgrade Notes Skill
 
-Create comprehensive, action-oriented upgrade documentation for a major Hoist Core release. This
-skill produces two artifacts and validates them via dry-run simulation.
+Verify, finalize, and write upgrade documentation for a major Hoist Core release. This skill
+produces two artifacts: a CHANGELOG entry and a detailed upgrade-notes document.
 
 **Version:** $ARGUMENTS
 
 ## Phase 0: Setup
 
-1. Parse the version from `$ARGUMENTS`. Normalize to `vNN` short form and `NN.x.x` full form.
+1. **Determine the target version.** If `$ARGUMENTS` provides a version, normalize to `vNN` short
+   form and `NN.x.x` full form. If no argument is provided, read the topmost entry in
+   `CHANGELOG.md` — if it's a `-SNAPSHOT` entry, use that version as the target.
 2. Identify the **prior major version** by reading `CHANGELOG.md` to find the entry immediately
-   before the target version (e.g. if target is v35, prior is v34.x).
-3. Determine the **git tag range** for diffing: `v{prior}..v{target}` (e.g. `v34.0.1..v35.0.0`).
-   List available tags with `git tag -l 'v*'` to find exact tag names.
+   before the target version (e.g. if target is v38, prior is v37.x).
+3. Determine the **git range** for diffing. If the prior version has been tagged, use the tag
+   range `v{prior}..HEAD` (or `v{prior}..v{target}` if the target is also tagged). List available
+   tags with `git tag -l 'v*'` to find exact tag names. If no prior tag exists, use
+   `git log --oneline` to identify the boundary commit.
 4. Read [template.md](template.md) for the upgrade notes document template.
-5. Read [changelog-format.md](changelog-format.md) for CHANGELOG entry conventions.
+5. Read [`docs/changelog-format.md`](../../../docs/changelog-format.md) for CHANGELOG entry
+   conventions.
 
 ## Phase 1: Research
 
-Gather all information needed to write accurate documentation. Launch parallel research agents
-where possible.
+Gather all information needed to write accurate documentation.
 
 ### 1a. Git History Analysis
 
-- Run `git diff --stat {prior_tag}..{target_tag}` to understand scope of changes.
-- Run `git log --oneline {prior_tag}..{target_tag}` to see all commits in the release.
-- Read the existing CHANGELOG entry for the target version to understand what's already documented.
+- Run `git log --oneline {range}` to see all commits in the release.
+- Run `git diff --stat {range}` to understand scope of changes.
+- Read the existing CHANGELOG SNAPSHOT entry to understand what's already documented.
 
-### 1b. Source File Analysis
+### 1b. Targeted Source Analysis
 
-Read key source files that commonly change between major versions:
+Let the git diff guide what to read — do not blindly read a fixed list of source files. Focus on:
 
-- `grails-app/init/io/xh/hoist/LogbackConfig.groovy` — logging config API
-- `grails-app/controllers/io/xh/hoist/BaseController.groovy` — controller API changes
-- `src/main/groovy/io/xh/hoist/HoistCoreGrailsPlugin.groovy` — plugin descriptor
-- `src/main/groovy/io/xh/hoist/HoistFilter.groovy` — servlet filter (namespace changes)
-- `build.gradle` — plugin's own build (for dependency version reference)
+- `build.gradle` — always check for dependency version changes
+- Files touched by commits that aren't already reflected in the CHANGELOG
+- Source files for any breaking changes (to verify accuracy of class/method/prop names)
+
+The goal is to verify CHANGELOG accuracy and find gaps, not to read the entire codebase.
 
 ### 1c. Sample App Upgrade Analysis
 
@@ -53,8 +56,9 @@ These apps are available locally (see CLAUDE.local.md for paths):
 
 For each app, search git log for commits referencing the target version:
 ```bash
-git -C ../toolbox log --oneline --all --grep="v{NN}" --grep="hoist" --grep="{NN}.0"
+git -C ../toolbox log --oneline --all --grep="v{NN}\|{NN}.0\|hoist.*{NN}"
 ```
+This is a fuzzy search — filter results to find the actual upgrade commit(s).
 
 Read the key files from upgrade commits: `build.gradle`, `gradle.properties`,
 `settings.gradle`, `Dockerfile`, `LogbackConfig`, `application.groovy`, and any files touching
@@ -69,38 +73,61 @@ abstracted patterns.
 If the upgrade involves a Grails major version change, fetch the official Grails upgrade guide
 for reference (e.g. `https://docs.grails.org/{version}/guide/upgrading.html`).
 
-## Phase 2: Write the CHANGELOG Entry
+## Phase 2: Verify and Finalize the CHANGELOG Entry
+
+The CHANGELOG entry for the target version typically already exists as a `-SNAPSHOT` entry that
+has been built up incrementally during development. The primary task is to **audit and finalize**
+it, not write it from scratch.
 
 ### Audit the Existing Entry
 
-Read the current CHANGELOG entry for the target version. Evaluate against these criteria:
+Cross-reference every commit in the release range against the CHANGELOG entry. For each commit,
+determine whether it's already covered, should be added, or is appropriately omitted (trivial
+internal changes, formatting, tooling).
 
-- [ ] **Structure**: Uses standard section headers (Breaking Changes, New Features, Bug Fixes,
-  Technical, Libraries) — see [changelog-format.md](changelog-format.md)
+Evaluate the entry against these criteria:
+
+- [ ] **Completeness**: All commits that affect behavior, APIs, or configuration are accounted for
+- [ ] **Structure**: Uses standard emoji-prefixed section headers (💥 Breaking Changes,
+  🎁 New Features, 🐞 Bug Fixes, ⚙️ Technical, 🤖 AI Docs + Tooling, 📚 Libraries) — see
+  [`docs/changelog-format.md`](../../../docs/changelog-format.md)
 - [ ] **Breaking Changes**: All required app changes are listed as individual bullets (not buried
   in prose under Technical or other sections)
-- [ ] **Completeness**: Changes that affect behavior, APIs, or configuration are accounted for
-  (trivial formatting, internal refactors, or tooling changes can be omitted)
+- [ ] **Section placement**: Each entry is in the most appropriate section
 - [ ] **Accuracy**: Class names, method names, file paths are correct
 - [ ] **Tense**: Past-tense, action-driven voice ("Enhanced", "Fixed", "Added") — exception:
   developer instructions use imperative ("Update", "Adjust")
-- [ ] **Conciseness**: Each bullet is 1-2 lines; detailed instructions belong in upgrade notes
+- [ ] **Conciseness**: Each bullet is 1-3 lines; detailed instructions belong in upgrade notes
 - [ ] **Libraries section**: Present for major version bumps with `old → new` format
 
-### Write or Rewrite the Entry
+### Present Findings Before Making Changes
 
-If the entry needs significant changes, rewrite it following the format in
-[changelog-format.md](changelog-format.md). Key principles:
+Present the audit findings to the user before editing the CHANGELOG. This is important because
+the user has context about what's significant, where entries belong, and how much detail is
+appropriate. Typical findings include:
+
+- **Missing entries** — commits not reflected in the changelog
+- **Section placement issues** — entries that belong in a different section
+- **Wording or length concerns** — entries that are too verbose or too terse
+- **Difficulty rating** — proposed rating for the Breaking Changes section
+
+Wait for the user's feedback before making edits. The user may redirect decisions about section
+placement, entry length, or what to include/exclude.
+
+### Apply Changes
+
+After the user confirms, update the CHANGELOG following the format in
+[`docs/changelog-format.md`](../../../docs/changelog-format.md). Key principles:
 
 - Breaking Changes section should have a difficulty rating and list every required app change
-- Each bullet names the specific action concisely — the upgrade notes handle the detail
 - Include a link to the upgrade notes file: `docs/upgrade-notes/v{NN}-upgrade-notes.md`
 - Include a link to the relevant framework upgrade guide (if applicable)
 - Libraries section lists major dependency version bumps in `old → new` format
 
 ## Phase 3: Write the Upgrade Notes
 
-Create `docs/upgrade-notes/v{NN}-upgrade-notes.md` following the template in [template.md](template.md).
+Create `docs/upgrade-notes/v{NN}-upgrade-notes.md` following the template in
+[template.md](template.md).
 
 ### Content Requirements
 
@@ -126,16 +153,48 @@ Each upgrade step must include:
 
 ### Update the docs/README.md Index
 
-Add a row to the table in `docs/README.md` for the new version.
+Add a row to the **Upgrade Notes** table in `docs/README.md` for the new version. The table
+uses this format — add the new row at the top (most recent first):
+
+```markdown
+| [v{NN}.x.x](./upgrade-notes/v{NN}-upgrade-notes.md) | {brief summary of key changes} |
+```
+
+### Update the MCP Doc Registry
+
+Add an entry to the `entries` array in `docs/doc-registry.json` so the new upgrade notes are
+discoverable via `hoist-core-search-docs`. Place the entry after the last existing upgrade-notes
+entry, following this pattern:
+
+```json
+{
+    "id": "docs/upgrade-notes/v{NN}-upgrade-notes.md",
+    "title": "v{NN} Upgrade Notes",
+    "mcpCategory": "devops",
+    "viewerCategory": "upgrade",
+    "description": "Upgrade guide from v{PRIOR}.x to v{NN}. {Difficulty} difficulty.",
+    "keywords": ["v{NN}", "upgrade", "migration", "breaking changes", "v{PRIOR}"]
+}
+```
+
+**Keyword policy:** Only add keywords beyond the standard set for **dead-end names** — APIs,
+classes, or config keys that were removed or renamed in this version and no longer exist elsewhere
+in the codebase (e.g. `@Access`, `MetricsService.namespace`). These help agents discover upgrade
+notes when they encounter stale references. Do not add active class or feature names (e.g.
+`ClusterService`, `TraceService`, `Cache`) — those would cause upgrade notes to surface as noise
+when agents search for routine API guidance on those components.
 
 ## Phase 4: Dry-Run Validation
 
-After writing both artifacts, launch an independent validation agent. This agent stress-tests
-the upgrade notes by simulating a real upgrade.
+For **MEDIUM or HIGH difficulty** upgrades, launch an independent validation agent after writing
+both artifacts. This agent stress-tests the upgrade notes by simulating a real upgrade.
+
+For **LOW or TRIVIAL difficulty** upgrades, skip this phase — the sample app analysis in Phase 1c
+provides sufficient validation. The user can always request a dry-run explicitly.
 
 ### Agent Setup
 
-Launch a Task agent (subagent_type: "general-purpose") with these instructions:
+Launch a subagent (subagent_type: "general-purpose") with these instructions:
 
 > You are an "App Upgrade Advisor" agent. Your job is to evaluate upgrade documentation by
 > simulating its use against a real application.
@@ -144,9 +203,9 @@ Launch a Task agent (subagent_type: "general-purpose") with these instructions:
 >    version was applied. Use `git log --oneline` to find the last commit before the upgrade.
 >    Create a temporary branch for the dry run.
 >
-> 2. **Dry run:** Working solely from the upgrade notes file at `docs/upgrade-notes/v{NN}-upgrade-notes.md`
->    and the app's current source, walk through each step as if advising on a real upgrade.
->    For each step, evaluate:
+> 2. **Dry run:** Working solely from the upgrade notes file at
+>    `docs/upgrade-notes/v{NN}-upgrade-notes.md` and the app's current source, walk through each
+>    step as if advising on a real upgrade. For each step, evaluate:
 >    - Is the instruction clear and unambiguous?
 >    - Does the "Before" code match what's actually in the app?
 >    - Are there files or patterns in the app not covered by the guide?
@@ -171,22 +230,15 @@ notes and/or CHANGELOG entry. LOW priority items are at your discretion.
 
 ## Phase 5: Finalize
 
-1. Re-read both artifacts one final time to check for consistency between the CHANGELOG entry
+1. **Set the release date** if the user has provided one. Update the date in:
+   - `CHANGELOG.md` version header (e.g. `## 38.0.0 - 2026-04-15`)
+   - Upgrade notes banner (`**Released:** YYYY-MM-DD`)
+   - `docs/README.md` upgrade notes table (if date is shown there)
+   If the CHANGELOG still shows `-SNAPSHOT`, leave the date as-is unless the user confirms
+   the release date.
+2. Re-read both artifacts one final time to check for consistency between the CHANGELOG entry
    and the upgrade notes (same version numbers, same list of changes, matching links).
-2. Verify the `docs/README.md` index is updated.
-3. **Update the MCP Doc Registry** — Add an entry to `docs/doc-registry.json` so the new
-   upgrade notes are discoverable via `hoist-core-search-docs`. Place the entry in the upgrade
-   notes group, following this pattern:
-   ```json
-   {
-       "id": "docs/upgrade-notes/v{NN}-upgrade-notes.md",
-       "title": "v{NN} Upgrade Notes",
-       "mcpCategory": "devops",
-       "viewerCategory": "upgrade",
-       "description": "Upgrade guide from v{PRIOR}.x to v{NN}. {Difficulty} difficulty.",
-       "keywords": ["v{NN}", "upgrade", "migration", "breaking changes", "v{PRIOR}"]
-   }
-   ```
+3. Verify all doc indexes are updated (docs/README.md, doc-registry.json).
 4. Present a summary to the user of what was created/changed and offer to commit.
 
 ## Important Notes
@@ -203,9 +255,7 @@ notes and/or CHANGELOG entry. LOW priority items are at your discretion.
   will typically auto-update schemas for new columns if `dbCreate = "update"` is configured and the
   app's service account has DDL privileges — upgrade notes should mention this and clarify that
   manual SQL is only required in environments where auto-updates are disabled or unavailable.
-- The CHANGELOG is a consolidated file appended to on each release. Balance completeness with
+- The CHANGELOG is a consolidated file prepended to on each release. Balance completeness with
   conciseness. The upgrade notes file is where expanded detail lives.
 - Always verify code examples against actual source files. Never guess at class names, method
   signatures, or file paths.
-- The dry-run validation phase is critical — it catches gaps that are invisible when writing
-  documentation from the "inside out". Do not skip it.

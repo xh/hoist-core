@@ -185,6 +185,14 @@
             "keywords": ["GitHub Actions", "deployRelease", "deploySnapshot", "Sonatype", "GPG signing", "nexus-publish-plugin", "publishToSonatype"]
         },
         {
+            "id": "docs/changelog-format.md",
+            "title": "CHANGELOG Entry Format",
+            "mcpCategory": "conventions",
+            "viewerCategory": "devops",
+            "description": "Conventions for writing and reviewing CHANGELOG entries in the hoist-core library CHANGELOG — section headers, voice/tense, difficulty ratings, breaking changes, libraries.",
+            "keywords": ["CHANGELOG", "changelog", "release notes", "breaking changes", "difficulty rating", "entry format"]
+        },
+        {
             "id": "docs/upgrade-notes/v37-upgrade-notes.md",
             "title": "v37 Upgrade Notes",
             "mcpCategory": "devops",
