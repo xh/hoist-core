@@ -1,5 +1,7 @@
 # Changelog
 
+## 39.0-SNAPSHOT - unreleased
+
 ## 38.0.0 - 2026-04-15
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - minor nullable column adds)
