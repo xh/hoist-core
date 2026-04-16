@@ -127,9 +127,10 @@ class TraceService extends BaseService {
 
         // Build complete tag set
         tags = new HashMap<String, ?>(tags)
-        if (!tags['xh.source']) tags['xh.source'] = 'app'
-        if (caller) tags['code.namespace'] = caller.class.name
-        if (username) tags['user.name'] = username
+        tags.putIfAbsent('xh.source', 'app')
+        tags.putIfAbsent('xh.isPrimaryInstance', isPrimary)
+        if (caller) tags.putIfAbsent('code.namespace', caller.class.name)
+        if (username) tags.putIfAbsent('user.name', username)
 
         def spanBuilder = sdk.getTracer('io.xh.hoist')
             .spanBuilder(name)

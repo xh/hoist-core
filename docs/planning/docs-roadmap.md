@@ -79,6 +79,7 @@ Guides to building, structuring, and deploying Hoist applications, plus CI/CD an
 |----------|-------------|-------------|--------|
 | [`application-structure.md`](../application-structure.md) | `build.gradle`, `gradle.properties`, `settings.gradle`, `.env.template`, `grails-app/init/`, `grails-app/conf/`, `client-app/`, `docker/` | Standard Hoist application repository layout — root directory structure, Gradle build configuration, server-side Grails conventions (init files, conf, controllers, services, domain), client-side React/TypeScript conventions (Bootstrap.ts, entry points, AppModel/AppComponent, shared code), Docker deployment (Nginx + Tomcat), local development workflow | Draft |
 | [`build-and-publish.md`](../build-and-publish.md) | `build.gradle`, `settings.gradle`, `gradle.properties`, `.github/workflows/*.yml` | Gradle build configuration, GitHub Actions CI/CD workflows (CI, snapshot, release), Maven Central publishing via Sonatype Central Portal, GPG artifact signing, `nexus-publish-plugin`, legacy `repo.xh.io` publishing, version numbering, required GitHub secrets | Draft |
+| [`changelog-format.md`](../changelog-format.md) | `CHANGELOG.md` | Conventions for writing and reviewing CHANGELOG entries — section headers, emoji prefixes, voice/tense, difficulty ratings, breaking changes, libraries, application changelog differences | Done |
 
 ## Documentation Guidelines
 

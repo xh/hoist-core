@@ -1,8 +1,23 @@
 # Changelog
 
-## 38.0-SNAPSHOT - unreleased
+## 39.0-SNAPSHOT - unreleased
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
+### 🎁 New Features
+
+* **JDK 25 support** — hoist-core now builds on JDK 25 while continuing to ship a JAR that runs on JDK 17+
+  (see ⚙️ Technical for the toolchain/bytecode-target contract).
+
+### 📚 Libraries
+
+* Grails `7.0.5 → 7.0.8`
+* Groovy `4.0.29 → 4.0.30`
+
+## 38.0.0 - 2026-04-15
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - minor nullable column adds)
+
+See [`docs/upgrade-notes/v38-upgrade-notes.md`](docs/upgrade-notes/v38-upgrade-notes.md) for
+detailed, step-by-step upgrade instructions with before/after code examples.
 
 * Two new nullable `Boolean` columns must be added to the `xh_log_level` table:
   `suppress_stack_trace` and `include_start_messages`. Apps with `dbCreate: update` will have
@@ -12,19 +27,11 @@
   ALTER TABLE xh_log_level ADD suppress_stack_trace BIT NULL;
   ALTER TABLE xh_log_level ADD include_start_messages BIT NULL;
   ```
-* Aligned span and metric tag names with OTEL semantic conventions:
-    - `source` → `xh.source`
-    - `application` → `xh.application`
-    - `instance` → `xh.instance`
-    - `user` → `user.name` (on spans)
-    - `deployment.environment` → `deployment.environment.name` (on resource attributes)
 
 ### 🎁 New Features
 
-* **JDK 25 support** — hoist-core now builds on JDK 25 while continuing to ship a JAR that runs on JDK 17+
-  (see ⚙️ Technical for the toolchain/bytecode-target contract).
-* Added rule-based span sampling to `TraceService` via new `sampleRules` and `alwaysSampleErrors` options in `xhTraceConfig`.
-  Rules match span tags with glob patterns to set per-span sample rates, and error spans can be force-exported regardless of sampling.
+* Added rule-based span sampling to `TraceService` via new `sampleRules` and `alwaysSampleErrors`
+  options in `xhTraceConfig`. Rules match span tags with glob patterns to set per-span sample rates.
 * Apps can now customize OTEL resource attributes by overriding `getOtelResourceAttributes()` on
   their `ClusterConfig` subclass. These attributes are applied to both traces and metrics
   exporters.
@@ -35,26 +42,28 @@
   to enable. Both support specificity ordering for fine-grained overrides. Replaces the
   previous TRACE-level gating for stacktraces and finer-level gating for start messages.
 
-### 🐞 Bug Fixes
-
-* Fixed MCP server not invalidating its cached GitHub source archive for branch refs (e.g.
-  `develop`), causing documentation to become stale over time. Branch caches are now re-downloaded
-  after 24 hours; tag and SHA refs remain cached indefinitely.
-
-### 💥 Breaking Changes
-
 ### ⚙️ Technical
 
-* Upgraded build toolchain to **JDK 25** while continuing to target Java 17 bytecode.
+* Aligned span and metric tag names with OTEL semantic conventions (`source` → `xh.source`,
+  `application` → `xh.application`, `instance` → `xh.instance`, `user` → `user.name`,
+  `deployment.environment` → `deployment.environment.name`) and added new `xh.isPrimaryInstance`
+  tag to all spans.
 * Added `server.port`, `client.address`, and `user_agent.original` to SERVER spans; added
   `server.port` to CLIENT spans.
+* Migrated CI workflows to shared GitHub Actions from hoist-dev-utils.
+
+### 🤖 AI Docs + Tooling
+
+* Fixed MCP server not invalidating its cached GitHub source archive for branch refs (e.g.
+  `develop`), causing documentation to become stale over time.
 * Added MCP resource support for full document downloads via `hoist-core://docs/{docId}` URIs,
   enabling AI coding agents to read complete documentation content in addition to keyword search.
+* Improved `xh-upgrade-notes` skill.
 
 ### 📚 Libraries
 
-* Grails `7.0.5 → 7.0.8`
-* Groovy `4.0.29 → 4.0.30`
+* OpenTelemetry BOM `1.49.0 → 1.61.0`
+* opentelemetry-proto `1.5.0-alpha → 1.10.0-alpha`
 
 ## 37.0.2 - 2026-03-30
 

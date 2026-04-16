@@ -45,6 +45,7 @@ and conventions.
 | Work with GORM domain objects and Hibernate | [`gorm-domain-objects.md`](./gorm-domain-objects.md) |
 | Understand the build pipeline and GitHub Actions | [`build-and-publish.md`](./build-and-publish.md) |
 | Publish a release to Maven Central | [`build-and-publish.md`](./build-and-publish.md) |
+| Write or review a hoist-core library CHANGELOG entry | [`changelog-format.md`](./changelog-format.md) |
 | Upgrade to a new major hoist-core version | [Upgrade Notes](#upgrade-notes) |
 
 ## Feature Documentation
@@ -103,6 +104,7 @@ Guides to building, structuring, and deploying Hoist applications.
 |----------|-------------|------------|
 | [`application-structure.md`](./application-structure.md) | Standard Hoist application repository layout — server and client structure, build configuration, deployment | `build.gradle`, `gradle.properties`, `grails-app/init/`, `client-app/`, `Bootstrap.ts`, `AppModel`, Docker, Nginx, Tomcat |
 | [`build-and-publish.md`](./build-and-publish.md) | Gradle build, GitHub Actions CI, and Maven Central publishing | GitHub Actions, `deployRelease.yml`, `deploySnapshot.yml`, Sonatype, GPG signing, `nexus-publish-plugin`, `publishToSonatype`, `repo.xh.io` |
+| [`changelog-format.md`](./changelog-format.md) | Conventions for writing and reviewing hoist-core library CHANGELOG entries | Section headers, voice/tense, difficulty ratings, breaking changes, libraries, application changelogs |
 
 ## Upgrade Notes
 
@@ -115,6 +117,7 @@ breaking changes, before/after code examples, and verification checklists.
 
 | Version | Key Changes |
 |---------|-------------|
+| [v38.0.0](./upgrade-notes/v38-upgrade-notes.md) | LogLevel schema additions, OTEL tag alignment, rule-based span sampling |
 | [v36.0.0](./upgrade-notes/v36-upgrade-notes.md) | Cluster-aware WebSockets, new `@AccessRequiresXXX` annotations, `@Access` deprecated |
 | [v35.0.0](./upgrade-notes/v35-upgrade-notes.md) | CacheEntry generic key type, TrackLog `clientAppCode`, POI 5.x |
 | [v34.0.1](./upgrade-notes/v34-upgrade-notes.md) | Grails 7, Gradle 8, Tomcat 10, Jakarta EE |
