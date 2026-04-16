@@ -2,6 +2,16 @@
 
 ## 39.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* **JDK 25 support** — hoist-core now builds on JDK 25 while continuing to ship a JAR that runs on JDK 17+
+  (see ⚙️ Technical for the toolchain/bytecode-target contract).
+
+### 📚 Libraries
+
+* Grails `7.0.5 → 7.0.8`
+* Groovy `4.0.29 → 4.0.30`
+
 ## 38.0.0 - 2026-04-15
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - minor nullable column adds)
