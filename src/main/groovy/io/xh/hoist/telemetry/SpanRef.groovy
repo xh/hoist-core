@@ -27,6 +27,14 @@ import io.opentelemetry.context.Scope
  */
 @CompileStatic
 class SpanRef implements Closeable {
+
+    /**
+     * No-op SpanRef used when tracing is disabled — all methods are safe to call and
+     * do nothing. Returned by {@link TraceService#withSpan} so closures can always
+     * rely on a non-null span.
+     */
+    static final SpanRef NOOP = new SpanRef(Span.invalid, Scope.noop(), SpanKind.INTERNAL)
+
     final Span span
     final Scope scope
     final SpanKind kind

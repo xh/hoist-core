@@ -86,18 +86,21 @@ class TraceService extends BaseService {
      * Creates a child span under the current context. Exceptions are recorded on the span and
      * re-thrown. See {@link #createSpan} for parameter documentation.
      *
+     * The closure is always passed a non-null {@link SpanRef} — when tracing is disabled, a
+     * shared no-op object is provided so callers never need to null-check.
+     *
      * For combined tracing + logging + metrics, use {@link ObservedRun} via
      * {@link BaseService#observe()}.
      */
     <T> T withSpan(Map args, Closure<T> c) {
-        SpanRef span = createSpan(args.subMap(['name', 'kind', 'tags', 'caller']))
+        SpanRef span = createSpan(args.subMap(['name', 'kind', 'tags', 'caller'])) ?: SpanRef.NOOP
         try {
             return c.maximumNumberOfParameters > 0 ? c.call(span) : c.call()
         } catch (Throwable t) {
-            span?.recordException(t)
+            span.recordException(t)
             throw t
         } finally {
-            span?.close()
+            span.close()
         }
     }
 

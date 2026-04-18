@@ -62,7 +62,8 @@ the primary span creation API.
 
 Execute a closure within a new trace span. Creates a child span if a parent context exists, or a
 root span otherwise. Exceptions are recorded on the span and re-thrown. The closure may optionally
-accept a `SpanRef` parameter (null when tracing is disabled).
+accept a `SpanRef` parameter, which may be further enhanced with tags, or information about errors.
+Note that a NoOp span is passed even if tracing is disabled.
 
 For combined tracing + logging + metrics, use `ObservedRun` via `BaseService.observe()` instead.
 
@@ -78,7 +79,7 @@ For combined tracing + logging + metrics, use `ObservedRun` via `BaseService.obs
 ```groovy
 traceService.withSpan(name: 'fetchData', kind: SpanKind.CLIENT, tags: [url: endpoint]) { SpanRef span ->
     def result = httpClient.get(endpoint)
-    span?.setHttpStatus(result.statusCode)
+    span.setHttpStatus(result.statusCode)
     result
 }
 ```
@@ -192,7 +193,7 @@ observe()
     .span(name: 'processOrder', tags: [orderId: id])
     .run { SpanRef span ->
         def result = doWork()
-        span?.setTag('resultCount', result.size())
+        span.setTag('resultCount', result.size())
         result
     }
 ```

@@ -6,6 +6,9 @@
 
 * **JDK 25 support** — hoist-core now builds on JDK 25 while continuing to ship a JAR that runs on JDK 17+
   (see ⚙️ Technical for the toolchain/bytecode-target contract).
+* `TraceService.withSpan` (and `ObservedRun.run`) now always pass a non-null `SpanRef` to the
+  closure — a shared no-op `SpanRef.NOOP` is used when tracing is disabled, eliminating the need
+  for `?.` null-safe calls on the span.
 
 ### 📚 Libraries
 

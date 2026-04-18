@@ -161,7 +161,7 @@ class JSONClient {
             .run { SpanRef span ->
                 traceService.injectContext(method)
                 def ret = client.execute(method)
-                span?.setHttpStatus(ret.code)
+                span.setHttpStatus(ret.code)
                 ret
             }
     }

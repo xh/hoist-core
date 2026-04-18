@@ -50,7 +50,7 @@ class ObservedRun {
 
     // Span support
     private Map spanArgs //map matching TraceService.createSpan args
-    private SpanRef activeSpan
+    private SpanRef activeSpan = SpanRef.NOOP
 
     // Metrics support
     private Timer timer
