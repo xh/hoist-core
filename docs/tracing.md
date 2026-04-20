@@ -239,7 +239,7 @@ ObservedRun.observe(this)
 |-----|------|-------------|
 | `enabled` | Boolean | Master switch for tracing. When false, all tracing is no-op. Dynamic. |
 | `sampleRate` | Double | Fallback sampling rate (0.0–1.0) applied when no sampling rule matches. Dynamic. |
-| `sampleRules` | List\<Map\> | Ordered rules for per-span sampling. Each rule has a `match` map of tag patterns and a `sampleRate`. First match wins; unmatched spans use the fallback `sampleRate`. See [Sampling Rules](#sampling-rules) below. Dynamic. |
+| `sampleRules` | List\<Map\> | Ordered rules for per-span sampling. Each rule has a `match` map of tag patterns (plus the reserved `name` key that matches the span's name) and a `sampleRate`. First match wins; unmatched spans use the fallback `sampleRate`. See [Sampling Rules](#sampling-rules) below. Dynamic. |
 | `alwaysSampleErrors` | Boolean | When true (default), spans that end in error are exported even if unsampled. Dynamic. |
 | `otlpEnabled` | Boolean | Enable OTLP span export (HTTP/protobuf). Dynamic. |
 | `otlpConfig` | Map | OTLP exporter config (e.g. `{"endpoint": "http://localhost:4318/v1/traces"}`). |
@@ -281,6 +281,10 @@ Sampling rules provide fine-grained, tag-based control over which spans are samp
 evaluated at span creation time (head-based sampling) on both client and server. Each rule has a
 `match` map of tag patterns and a `sampleRate` — the first matching rule wins.
 
+The reserved key `name` matches against the span's name (not a tag) using the same glob syntax as
+tag-value patterns — useful for targeting infrastructure spans like health checks or `xh/*` routes
+without having to stamp a dedicated tag.
+
 ### Configuration
 
 Add rules to the `sampleRules` array in `xhTraceConfig`:
@@ -319,8 +323,8 @@ Non-string values (numbers, booleans) use strict equality.
 
 1. Tags are assembled on the span before the sampling decision.
 2. If a valid sampled parent context exists, the child inherits the parent's decision.
-3. Otherwise, `sampleRules` are evaluated against the span's tags. The first rule whose `match`
-   entries all match produces the `sampleRate` for a probabilistic decision.
+3. Otherwise, `sampleRules` are evaluated against the span's name and tags. The first rule whose
+   `match` entries all match produces the `sampleRate` for a probabilistic decision.
 4. Unmatched spans use the fallback `sampleRate`.
 5. Unsampled spans are recorded but not exported — unless they end in error and
    `alwaysSampleErrors` is enabled, in which case `HoistBatchSpanProcessor` promotes them to sampled and exports them through the normal batch pipeline.

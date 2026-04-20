@@ -140,7 +140,7 @@ class TraceService extends BaseService {
             .setSpanKind(kind)
 
         try {
-            _sampler.setSampleRate(getSampleRate(tags))
+            _sampler.setSampleRate(getSampleRate(name, tags))
             def span = spanBuilder.startSpan(),
                 ret = new SpanRef(span, span.makeCurrent(), kind)
             ret.setTags(tags)
@@ -380,15 +380,17 @@ class TraceService extends BaseService {
 
 
     /**
-     * Evaluate sampling rules against span attributes. Returns the sample rate from the first
-     * matching rule, or the configured fallback rate if no rule matches.
+     * Evaluate sampling rules against a span's name and tags. Rules match on tag keys; the
+     * reserved key {@code name} is matched against the span's name (glob-capable, same as
+     * tag values). Returns the sample rate from the first matching rule, or the configured
+     * fallback rate if no rule matches.
      */
-    private double getSampleRate(Map tags) {
+    private double getSampleRate(String name, Map tags) {
         try {
             if (!_sampleRules) return _sampleRate
 
             for (Map rule in _sampleRules) {
-                if (rule.match?.every { k, v -> matchesValue(tags[k], v) } &&
+                if (rule.match?.every { k, v -> matchesValue(k == 'name' ? name : tags[k], v) } &&
                     rule.sampleRate instanceof Number
                 ) {
                     return ((Number) rule.sampleRate).doubleValue()
