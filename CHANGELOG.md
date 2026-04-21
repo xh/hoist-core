@@ -10,8 +10,14 @@
   closure — a shared no-op `SpanRef.NOOP` is used when tracing is disabled, eliminating the need
   for `?.` null-safe calls on the span.
 * `sampleRules` in `xhTraceConfig` now support matching against the span's name via the reserved
-  `name` key (glob-capable, same syntax as tag-value patterns). Lets you target infrastructure
-  spans like health checks or `xh/*` routes without needing a dedicated tag.
+  `name` key (glob-capable, same syntax as tag-value patterns).
+* Auto-instrumentation for JDBC via `opentelemetry-jdbc` — covers direct DataSource access
+  and Hibernate/GORM (incl. multi-datasource setups). Enable via new `jdbcTracingEnabled`
+  boolean on `xhTraceConfig` (default `false`).
+
+### 🐛 Bug Fixes
+
+* `TypedConfigMap` subclasses with default field initializers were silently clobbering values loaded from soft config.
 
 ### 📚 Libraries
 

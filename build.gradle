@@ -101,6 +101,9 @@ dependencies {
     api "io.opentelemetry:opentelemetry-exporter-otlp"
     api "io.opentelemetry:opentelemetry-exporter-common"
     api "io.opentelemetry:opentelemetry-context"
+    api "io.opentelemetry.instrumentation:opentelemetry-jdbc:2.26.1-alpha"
+    // Required transitively by opentelemetry-jdbc (via opentelemetry-api-incubator's
+    api "io.opentelemetry:opentelemetry-common"
 
     // Workaround needed by micrometer-registry-otlp at compile time
     api "io.opentelemetry.proto:opentelemetry-proto:1.10.0-alpha"
@@ -109,6 +112,10 @@ dependencies {
     api "io.opentelemetry:opentelemetry-exporter-sender-okhttp"
 
 }
+
+// Override the OTel version managed by Spring Boot's BOM (which pins 1.49.0). The
+// opentelemetry-jdbc:2.26.1-alpha instrumentation requires >= 1.60.1
+ext['opentelemetry.version'] = '1.61.0'
 
 tasks.withType(GroovyCompile) {
     configure(groovyOptions) {

@@ -17,7 +17,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 
 import static io.xh.hoist.util.Utils.authenticationService
-import static io.xh.hoist.util.Utils.traceService
+import static io.xh.hoist.util.Utils.traceSupportService
 import static io.xh.hoist.util.Utils.getClusterService
 
 /**
@@ -37,7 +37,7 @@ class HoistFilter implements Filter, LogSupport {
         HttpServletRequest httpRequest = (HttpServletRequest) request
         HttpServletResponse httpResponse = (HttpServletResponse) response
 
-        try (def scope = traceService.restoreContextFromRequest(httpRequest)) {
+        try (def scope = traceSupportService.restoreContextFromRequest(httpRequest)) {
             clusterService.ensureRunning()
             if (authenticationService.allowRequest(httpRequest, httpResponse)) {
 

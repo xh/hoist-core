@@ -6,13 +6,11 @@
  */
 package io.xh.hoist.monitor
 
-import groovy.transform.InheritConstructors
 import io.xh.hoist.config.TypedConfigMap
 
 /**
  * Typed representation of `xhMonitorConfig` values.
  */
-@InheritConstructors
 class MonitorConfig extends TypedConfigMap {
     Integer monitorRefreshMins
     Integer monitorStartupDelayMins
@@ -21,4 +19,6 @@ class MonitorConfig extends TypedConfigMap {
     Integer warnNotifyThreshold
     Integer monitorTimeoutSecs
     Boolean writeToMonitorLog
+
+    MonitorConfig(Map args) { init(args) }
 }

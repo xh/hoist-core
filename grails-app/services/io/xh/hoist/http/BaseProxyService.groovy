@@ -28,6 +28,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 
 import static io.opentelemetry.api.trace.SpanKind.CLIENT
+import static io.xh.hoist.util.Utils.traceSupportService
 
 
 @CompileStatic
@@ -88,7 +89,7 @@ abstract class BaseProxyService extends BaseService {
                 ]
             )
             .run { SpanRef span ->
-                traceService.injectContext(method)
+                traceSupportService.injectContext(method)
                 try (CloseableHttpResponse sourceResponse = sourceClient.execute(method)) {
                     response.setStatus(sourceResponse.code)
                     span.setHttpStatus(sourceResponse.code)

@@ -5,7 +5,7 @@
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.telemetry
+package io.xh.hoist.telemetry.impl
 
 import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
@@ -25,6 +25,7 @@ import io.micrometer.core.instrument.binder.system.ProcessorMetrics
 import io.micrometer.core.instrument.binder.system.UptimeMetrics
 import io.micrometer.core.instrument.binder.tomcat.TomcatMetrics
 import io.xh.hoist.BaseService
+import io.xh.hoist.telemetry.MetricsService
 import org.apache.tomcat.jdbc.pool.DataSource as PooledDataSource
 import org.springframework.boot.jdbc.DataSourceUnwrapper
 

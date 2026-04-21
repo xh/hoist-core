@@ -40,13 +40,15 @@ delegate to no-op implementations, so no null checks are needed in application c
 
 | File | Location | Role |
 |------|----------|------|
-| `TraceService.groovy` | `grails-app/services/io/xh/hoist/telemetry/` | Central tracing service — SDK lifecycle, exporter pipeline, span API, context propagation |
+| `TraceService.groovy` | `grails-app/services/io/xh/hoist/telemetry/` | Central tracing service — SDK lifecycle, exporter pipeline, span API |
+| `TraceSupportService.groovy` | `grails-app/services/io/xh/hoist/telemetry/impl/` | Internal service hosting W3C context propagation (inbound filter, outbound HTTP, cluster tasks), JDBC DataSource gate, and the `task {}` PromiseFactory install |
 | `TraceInterceptor.groovy` | `grails-app/controllers/io/xh/hoist/telemetry/` | Creates SERVER spans for controller actions with HTTP semantic convention attributes |
 | `SpanRef.groovy` | `src/main/groovy/io/xh/hoist/telemetry/` | Wrapper around an active Span + Scope with tag/status/error helpers |
 | `ObservedRun.groovy` | `src/main/groovy/io/xh/hoist/telemetry/` | Composable builder for combined tracing + logging + metrics |
 | `TraceConfig.groovy` | `src/main/groovy/io/xh/hoist/telemetry/` | Typed wrapper around `xhTraceConfig` |
 | `ClientTraceService.groovy` | `grails-app/services/io/xh/hoist/telemetry/` | Receives client-side spans and relays through server export pipeline |
 | `ContextPropagatingPromiseFactory.groovy` | `src/main/groovy/io/xh/hoist/telemetry/` | Wraps Grails PromiseFactory to propagate OTel context to `task {}` worker threads |
+| `DelegatingOpenTelemetry.groovy` | `src/main/groovy/io/xh/hoist/telemetry/jdbc/` | Stable `OpenTelemetry` facade that resolves to the current SDK on every tracer/span lookup — lets library instrumentation capture a reference once and follow SDK rebuilds |
 
 ---
 
@@ -102,15 +104,6 @@ traceService.addExporter(
         .build()
 )
 ```
-
-### Context propagation methods
-
-| Method | Description |
-|--------|-------------|
-| `injectContext(request)` | Inject W3C trace context onto an outbound Apache `HttpUriRequestBase`. |
-| `captureTraceparent()` | Capture the current trace context as a W3C `traceparent` string. |
-| `restoreContextFromTraceparent(traceparent)` | Restore a previously captured traceparent as current context. Returns a `Scope` to close. |
-| `restoreContextFromRequest(request)` | Extract W3C trace context from an incoming `HttpServletRequest`. Returns a `Scope` to close. |
 
 ---
 
@@ -230,6 +223,7 @@ ObservedRun.observe(this)
     "sampleRate": 1.0,
     "sampleRules": [],
     "alwaysSampleErrors": true,
+    "jdbcTracingEnabled": false,
     "otlpEnabled": false,
     "otlpConfig": {}
 }
@@ -241,6 +235,7 @@ ObservedRun.observe(this)
 | `sampleRate` | Double | Fallback sampling rate (0.0–1.0) applied when no sampling rule matches. Dynamic. |
 | `sampleRules` | List\<Map\> | Ordered rules for per-span sampling. Each rule has a `match` map of tag patterns (plus the reserved `name` key that matches the span's name) and a `sampleRate`. First match wins; unmatched spans use the fallback `sampleRate`. See [Sampling Rules](#sampling-rules) below. Dynamic. |
 | `alwaysSampleErrors` | Boolean | When true (default), spans that end in error are exported even if unsampled. Dynamic. |
+| `jdbcTracingEnabled` | Boolean | Emit CLIENT spans for all JDBC `DataSource` operations — applies to every pool (primary + any additional Grails datasources). Defaults to `false`. Dynamic. See [JDBC](#outbound-jdbc) below. |
 | `otlpEnabled` | Boolean | Enable OTLP span export (HTTP/protobuf). Dynamic. |
 | `otlpConfig` | Map | OTLP exporter config (e.g. `{"endpoint": "http://localhost:4318/v1/traces"}`). |
 
@@ -364,6 +359,41 @@ Proxied requests via `BaseProxyService` automatically:
 - **Attributes:** `http.request.method`, `url.full`, `server.address`,
   `http.response.status_code`, `xh.source=hoist`
 
+### Outbound JDBC
+
+At startup, `TraceSupportService.init()` walks down each `DataSource`'s proxy chain to the
+underlying raw pool and swaps it for an `OpenTelemetryDataSource` wrap. Wrapping at the
+*bottom* of the chain means every consumer sharing the chain — Spring DI, direct JDBC,
+Hibernate/GORM — is instrumented by a single wrap. The wrap is a no-op unless
+`jdbcTracingEnabled` is `true` on `xhTraceConfig`, so toggling JDBC tracing is a runtime
+config change — no restart or re-wrapping needed.
+
+When enabled, CLIENT spans are emitted for each connection acquire and statement execution,
+parented under whatever span is active at query time — typically the request span created by
+`TraceInterceptor`, but also timer tasks, `withSpan` blocks, and cluster tasks.
+
+- **Name:** `{operation} {schema}.{table}` where derivable, or a generic operation name
+  (e.g. `SELECT xh_app_config`).
+- **Attributes:** standard OTel DB semconv — `db.system`, `db.namespace`, `db.statement`,
+  `server.address`, `server.port`, etc.
+
+**Enabling.**
+
+```json
+{
+    "enabled": true,
+    "jdbcTracingEnabled": true
+}
+```
+
+The master `enabled` flag takes precedence regardless.
+
+**Multi-datasource apps.** Grails apps configured with multiple datasources
+(`dataSource_reporting`, `sessionFactory_reporting`, etc.) are handled automatically —
+`TraceSupportService` iterates every Spring `DataSource` bean and every Hibernate
+`SessionFactory`, covering both direct-JDBC and GORM paths. The flag applies uniformly to
+all pools; there's no per-pool gating.
+
 ---
 
 ## Context Propagation
@@ -380,10 +410,10 @@ skipped.
 
 ### Thread context propagation
 
-At startup, `TraceService` installs a `ContextPropagatingPromiseFactory` that wraps the
-default Grails `PromiseFactory`. This ensures that every `task {}` call — the primary async
-dispatch mechanism in Hoist — automatically carries the calling thread's OTel trace context
-to the worker thread.
+At startup, Hoist installs a `ContextPropagatingPromiseFactory` that wraps the default Grails
+`PromiseFactory`. This ensures that every `task {}` call — the primary async dispatch
+mechanism in Hoist — automatically carries the calling thread's OTel trace context to the
+worker thread.
 
 This covers all Grails `task {}` usage across the codebase (e.g. `asyncEach`, `LdapService`,
 `MonitorEvalService`, `TrackService`) without any per-call-site changes.

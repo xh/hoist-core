@@ -30,6 +30,7 @@ class BootStrap implements LogSupport {
         logStartupMsg()
 
         parallelInit([configService])
+        parallelInit([traceService])
         ensureRequiredConfigsCreated()
         ensureExpectedServerTimeZone()
 
@@ -37,7 +38,6 @@ class BootStrap implements LogSupport {
         parallelInit([logLevelService])
         parallelInit([clusterService])
         parallelInit([metricsService])
-        parallelInit([traceService])
 
         // All other services in parallel
         def services = Utils.xhServices.findAll {it.class.canonicalName.startsWith('io.xh.hoist')}
@@ -328,6 +328,7 @@ class BootStrap implements LogSupport {
                     sampleRate: 1.0,
                     sampleRules: [],
                     alwaysSampleErrors: true,
+                    jdbcTracingEnabled: false,
                     otlpEnabled: false,
                     otlpConfig: [:]
                 ],

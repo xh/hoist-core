@@ -14,10 +14,7 @@ import io.opentelemetry.api.trace.Span
 import io.opentelemetry.api.trace.SpanKind
 import io.opentelemetry.context.Scope
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator
-import io.opentelemetry.context.Context
 import io.opentelemetry.context.propagation.ContextPropagators
-import io.opentelemetry.context.propagation.TextMapGetter
-import io.opentelemetry.context.propagation.TextMapSetter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.resources.Resource
 import io.opentelemetry.sdk.trace.SdkTracerProvider
@@ -26,10 +23,7 @@ import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter
 import io.opentelemetry.sdk.trace.export.SpanExporter
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
-import jakarta.servlet.http.HttpServletRequest
-import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
 import io.opentelemetry.api.common.AttributeKey
-import grails.async.Promises
 
 import static io.xh.hoist.cluster.ClusterService.otelResourceAttributes
 import static java.lang.Long.parseLong
@@ -44,10 +38,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS
  *
  * Use {@link #withSpan} to execute a closure within a span (primary API, also on BaseService),
  * or {@link #createSpan} to start a span with manual lifecycle management (for interceptors, etc.).
- *
- * For context propagation, use {@link #restoreContextFromRequest} and {@link #injectContext} for HTTP requests,
- * or {@link #captureTraceparent} / {@link #restoreContextFromTraceparent} for non-HTTP propagation
- * (e.g. cluster tasks).
  */
 @CompileStatic
 class TraceService extends BaseService {
@@ -55,7 +45,6 @@ class TraceService extends BaseService {
     static clearCachesConfigs = ['xhTraceConfig']
 
     ConfigService configService
-    MetricsService metricsService
 
     private List<SpanExporter> _customExporters = []
     private OpenTelemetrySdk _otelSdk
@@ -65,9 +54,7 @@ class TraceService extends BaseService {
     private double _sampleRate = 1.0
     private final HoistSampler _sampler = new HoistSampler()
 
-
     void init() {
-        installContextPropagation()
         syncConfig()
     }
 
@@ -79,6 +66,13 @@ class TraceService extends BaseService {
         _otelSdk
     }
 
+    /**
+     * Current {@link OpenTelemetrySdk}, or null if tracing is disabled.
+     * @internal - for framework-internal use.
+     */
+    OpenTelemetrySdk getOtelSdk() {
+        _otelSdk
+    }
 
     /**
      * Execute a closure within a new trace span.
@@ -168,59 +162,6 @@ class TraceService extends BaseService {
         syncConfig()
     }
 
-
-    //---------------------------
-    // Context Propagation
-    //---------------------------
-    /**
-     * Inject W3C trace context onto an outbound HTTP request.
-     * No-op if tracing is disabled or no active span exists.
-     */
-    void injectContext(HttpUriRequestBase request) {
-        def sdk = _otelSdk
-        if (!sdk || !Span.current().spanContext.valid) return
-        sdk.propagators.textMapPropagator.inject(Context.current(), request, HTTP_SETTER)
-    }
-
-    /**
-     * Capture the current trace context as a W3C traceparent string.
-     * Returns null if tracing is disabled or no active span exists.
-     */
-    String captureTraceparent() {
-        def sdk = _otelSdk
-        if (!sdk || !Span.current().spanContext.valid) return null
-        Map<String, String> carrier = [:]
-        sdk.propagators.textMapPropagator.inject(Context.current(), carrier, MAP_SETTER)
-        carrier.traceparent
-    }
-
-    /**
-     * Restore a previously captured traceparent string as the current context.
-     *
-     * Returns a {@link Scope} that must be closed when done (typically in a finally block),
-     * or null if the traceparent is null/empty or tracing is disabled.
-     */
-    Scope restoreContextFromTraceparent(String traceparent) {
-        def sdk = _otelSdk
-        if (!traceparent || !sdk) return null
-        def context = sdk.propagators.textMapPropagator.extract(Context.current(), [traceparent: traceparent], MAP_GETTER)
-        context.makeCurrent()
-    }
-
-    /**
-     * Restore a W3C trace parent context from incoming HTTP request headers.
-     *
-     * Returns a {@link Scope} that must be closed when done (typically in a finally block),
-     * or null if the traceparent is null/empty or tracing is disabled.
-     */
-    Scope restoreContextFromRequest(HttpServletRequest request) {
-        def sdk = _otelSdk
-        if (!sdk) return null
-        def context = sdk.propagators.textMapPropagator.extract(Context.current(), request, HTTP_GETTER)
-        context.makeCurrent()
-    }
-
-
     //--------------------------------------------------
     // Framework-internal
     //--------------------------------------------------
@@ -245,16 +186,6 @@ class TraceService extends BaseService {
     //--------------------------------------------------
     // Implementation
     //--------------------------------------------------
-    /**
-     * Install a delegating PromiseFactory that propagates OTel trace context to worker
-     * threads spawned by Grails {@code task {}} calls. Installed once at startup.
-     */
-    private void installContextPropagation() {
-        if (!(Promises.promiseFactory instanceof ContextPropagatingPromiseFactory)) {
-            Promises.promiseFactory = new ContextPropagatingPromiseFactory(Promises.promiseFactory)
-        }
-    }
-
     private TraceConfig getConfig() {
         new TraceConfig(configService.getMap('xhTraceConfig'))
     }
@@ -321,64 +252,6 @@ class TraceService extends BaseService {
         _resource = null
     }
 
-    //--------------------------------------------------
-    // Lifecycle
-    //--------------------------------------------------
-    void clearCaches() {
-        super.clearCaches()
-        syncConfig()
-    }
-
-    void destroy() {
-        shutdownProvider()
-        super.destroy()
-    }
-
-    Map getAdminStats() {[
-        config: configForAdminStats('xhTraceConfig')
-    ]}
-
-    /** Shared getter for extracting trace context from incoming servlet requests. */
-    private final TextMapGetter<HttpServletRequest> HTTP_GETTER =
-        new TextMapGetter<HttpServletRequest>() {
-            Iterable<String> keys(HttpServletRequest carrier) {
-                Collections.list(carrier.headerNames)
-            }
-
-            String get(HttpServletRequest carrier, String key) {
-                carrier.getHeader(key)
-            }
-        }
-
-    /** Shared setter for injecting trace context onto outbound Apache HTTP requests. */
-    private final TextMapSetter<HttpUriRequestBase> HTTP_SETTER =
-        new TextMapSetter<HttpUriRequestBase>() {
-            void set(HttpUriRequestBase carrier, String key, String value) {
-                carrier?.setHeader(key, value)
-            }
-        }
-
-    /** Setter for injecting trace context into a simple Map carrier. */
-    private final TextMapSetter<Map<String, String>> MAP_SETTER =
-        new TextMapSetter<Map<String, String>>() {
-            void set(Map<String, String> carrier, String key, String value) {
-                carrier?.put(key, value)
-            }
-        }
-
-    /** Getter for extracting trace context from a simple Map carrier. */
-    private final TextMapGetter<Map<String, String>> MAP_GETTER =
-        new TextMapGetter<Map<String, String>>() {
-            Iterable<String> keys(Map<String, String> carrier) {
-                carrier?.keySet() ?: Collections.emptySet() as Iterable<String>
-            }
-
-            String get(Map<String, String> carrier, String key) {
-                carrier?.get(key)
-            }
-        }
-
-
     /**
      * Evaluate sampling rules against a span's name and tags. Rules match on tag keys; the
      * reserved key {@code name} is matched against the span's name (glob-capable, same as
@@ -390,7 +263,8 @@ class TraceService extends BaseService {
             if (!_sampleRules) return _sampleRate
 
             for (Map rule in _sampleRules) {
-                if (rule.match?.every { k, v -> matchesValue(k == 'name' ? name : tags[k], v) } &&
+                Map match = rule.match as Map
+                if (match?.every { k, v -> matchesValue(k == 'name' ? name : tags[k], v) } &&
                     rule.sampleRate instanceof Number
                 ) {
                     return ((Number) rule.sampleRate).doubleValue()
@@ -419,4 +293,22 @@ class TraceService extends BaseService {
         if (endsWithWild) return actualStr.startsWith(core)
         return actual == pattern
     }
+
+    //--------------------------------------------------
+    // Lifecycle
+    //--------------------------------------------------
+    void clearCaches() {
+        super.clearCaches()
+        syncConfig()
+    }
+
+    void destroy() {
+        shutdownProvider()
+        super.destroy()
+    }
+
+    Map getAdminStats() {[
+        config: configForAdminStats('xhTraceConfig')
+    ]}
+
 }
