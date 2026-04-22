@@ -6,14 +6,16 @@
 
 * **JDK 25 support** — hoist-core now builds on JDK 25 while continuing to ship a JAR that runs on JDK 17+
   (see ⚙️ Technical for the toolchain/bytecode-target contract).
-* `TraceService.withSpan` (and `ObservedRun.run`) now always pass a non-null `SpanRef` to the
-  closure — a shared no-op `SpanRef.NOOP` is used when tracing is disabled, eliminating the need
-  for `?.` null-safe calls on the span.
-* `sampleRules` in `xhTraceConfig` now support matching against the span's name via the reserved
-  `name` key (glob-capable, same syntax as tag-value patterns).
-* Auto-instrumentation for JDBC via `opentelemetry-jdbc` — covers direct DataSource access
-  and Hibernate/GORM (incl. multi-datasource setups). Enable via new `jdbcTracingEnabled`
-  boolean on `xhTraceConfig` (default `false`).
+* Improvements to tracing:
+  * `TraceService.withSpan` (and `ObservedRun.run`) now always pass a non-null `SpanRef` to the
+    closure — a shared no-op `SpanRef.NOOP` is used when tracing is disabled, eliminating the need
+    for `?.` null-safe calls on the span.
+  * `sampleRules` in `xhTraceConfig` now support matching against the span's name via the reserved
+    `name` key (glob-capable, same syntax as tag-value patterns).
+  * Server startup is now traced via `xh.server.load` and `xh.server.hoistInit` spans.
+  * Auto-instrumentation for JDBC via `opentelemetry-jdbc` — covers direct DataSource access
+    and Hibernate/GORM (incl. multi-datasource setups). Enable via new `jdbcTracingEnabled`
+    boolean on `xhTraceConfig` (default `false`).
 
 ### 🐛 Bug Fixes
 
