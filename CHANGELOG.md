@@ -16,6 +16,10 @@
   * Auto-instrumentation for JDBC via `opentelemetry-jdbc` — covers direct DataSource access
     and Hibernate/GORM (incl. multi-datasource setups). Enable via new `jdbcTracingEnabled`
     boolean on `xhTraceConfig` (default `false`).
+  * Improvements to core "SERVER" span on all http requests: Capture http error status,
+    include authentication and routing time, and skip noisy requests like 'ping' and web sockets.
+  * New span tags `xh.impersonating`, `xh.instance`, and `xh.isPrimary`. `user.name` now refers to
+    the *authenticated* user.
 
 ### 🐛 Bug Fixes
 

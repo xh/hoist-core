@@ -12,7 +12,6 @@ import io.xh.hoist.config.TypedConfigMap
  * Typed representation of `xhMetricsConfig` values.
  */
 class MetricsConfig extends TypedConfigMap {
-    String namespace
     boolean prometheusEnabled
     Map prometheusConfig
     boolean otlpEnabled
