@@ -25,7 +25,6 @@ class BootStrap implements LogSupport {
         clusterService,
         metricsService,
         traceService,
-        traceSupportService,
         prefService
 
     def init = {servletContext ->
@@ -33,15 +32,16 @@ class BootStrap implements LogSupport {
         logStartupMsg()
 
         // Ordered, early initialization of core services
-        parallelInit([configService])
+        configService.initialize()
         ensureRequiredConfigsCreated()
         ensureExpectedServerTimeZone()
-        parallelInit([traceService, traceSupportService])
 
+        traceService.initialize()
+        traceService.startServerLoadSpan()
         traceService.withSpan(name: 'xh.server.hoistInit', startTime: initStart, caller: this) {
-            parallelInit([logLevelService])
-            parallelInit([clusterService])
-            parallelInit([metricsService])
+            logLevelService.initialize()
+            clusterService.initialize()
+            metricsService.initialize()
 
             // All other services in parallel...
             def services = Utils.xhServices.findAll { it.class.canonicalName.startsWith('io.xh.hoist') }

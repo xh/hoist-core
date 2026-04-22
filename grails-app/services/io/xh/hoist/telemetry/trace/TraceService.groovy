@@ -24,7 +24,6 @@ import io.opentelemetry.sdk.trace.export.SpanExporter
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.exception.RoutineException
-import io.xh.hoist.util.Utils
 import io.opentelemetry.api.common.AttributeKey
 import org.springframework.boot.context.event.ApplicationFailedEvent
 import org.springframework.boot.context.event.ApplicationReadyEvent
@@ -36,6 +35,7 @@ import java.time.Instant
 import static io.xh.hoist.cluster.ClusterService.otelResourceAttributes
 import static io.xh.hoist.cluster.ClusterService.startupTime
 import static io.xh.hoist.util.Utils.exceptionHandler
+import static io.xh.hoist.util.Utils.getTraceSupportService
 import static java.lang.Long.parseLong
 import static java.util.concurrent.TimeUnit.MILLISECONDS
 
@@ -55,6 +55,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
     static clearCachesConfigs = ['xhTraceConfig']
 
     ConfigService configService
+    TraceService traceService
 
     private List<SpanExporter> _customExporters = []
     private OpenTelemetrySdk _otelSdk
@@ -67,12 +68,9 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
 
     void init() {
         syncConfig()
-        _serverLoadSpan = createSpan(
-            name: 'xh.server.load',
-            caller: this,
-            startTime: startupTime.toInstant()
-        )
+        traceSupportService.initialize()
     }
+
 
     //--------------------------------------------------
     // Public API
@@ -213,6 +211,19 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
     //--------------------------------------------------
     // Implementation
     //--------------------------------------------------
+    /**
+     * Open the outer 'xh.server.load' span, backdated to {@link io.xh.hoist.cluster.ClusterService#startupTime}.
+     * Must be called from hoist-core's BootStrap thread.
+     * @internal
+     */
+    void startServerLoadSpan() {
+        _serverLoadSpan = createSpan(
+            name: 'xh.server.load',
+            caller: this,
+            startTime: startupTime.toInstant()
+        )
+    }
+
     private TraceConfig getConfig() {
         new TraceConfig(configService.getMap('xhTraceConfig'))
     }
