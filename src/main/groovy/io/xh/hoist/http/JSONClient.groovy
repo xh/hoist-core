@@ -9,7 +9,7 @@ package io.xh.hoist.http
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.exception.ExternalHttpException
-import io.xh.hoist.telemetry.SpanRef
+import io.xh.hoist.telemetry.trace.SpanRef
 import io.xh.hoist.json.JSONParser
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
@@ -155,7 +155,7 @@ class JSONClient {
                     'url.full'           : method.uri,
                     'server.address'     : method.uri.host,
                     'server.port'        : method.uri.port > 0 ? method.uri.port : null,
-                    'xh.source'       : 'hoist'
+                    'xh.source'          : null
                 ]
             )
             .run { SpanRef span ->

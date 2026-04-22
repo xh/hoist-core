@@ -13,6 +13,9 @@ import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.Timer
 import io.opentelemetry.api.trace.SpanKind
 import io.xh.hoist.log.LogSupport
+import io.xh.hoist.telemetry.metric.MetricsService
+import io.xh.hoist.telemetry.trace.SpanRef
+import io.xh.hoist.telemetry.trace.TraceService
 import io.xh.hoist.util.Utils
 
 /**

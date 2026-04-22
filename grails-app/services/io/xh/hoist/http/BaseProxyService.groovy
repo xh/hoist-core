@@ -9,7 +9,7 @@ package io.xh.hoist.http
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
-import io.xh.hoist.telemetry.SpanRef
+import io.xh.hoist.telemetry.trace.SpanRef
 import org.apache.catalina.connector.ClientAbortException
 import org.apache.hc.core5.http.HttpResponse
 import org.apache.hc.client5.http.entity.UrlEncodedFormEntity

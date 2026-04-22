@@ -29,8 +29,8 @@ import io.xh.hoist.role.BaseRoleService
 import io.xh.hoist.security.BaseAuthenticationService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.user.IdentityService
-import io.xh.hoist.telemetry.TraceService
-import io.xh.hoist.telemetry.impl.TraceSupportService
+import io.xh.hoist.telemetry.trace.TraceService
+import io.xh.hoist.telemetry.trace.TraceSupportService
 import io.xh.hoist.websocket.WebSocketService
 import org.grails.web.servlet.mvc.GrailsWebRequest
 

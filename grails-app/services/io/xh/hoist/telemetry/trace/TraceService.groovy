@@ -4,7 +4,7 @@
  *
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
-package io.xh.hoist.telemetry
+package io.xh.hoist.telemetry.trace
 
 import groovy.transform.CompileStatic
 import groovy.transform.NamedParam
@@ -23,6 +23,7 @@ import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter
 import io.opentelemetry.sdk.trace.export.SpanExporter
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.exception.RoutineException
 import io.opentelemetry.api.common.AttributeKey
 
 import static io.xh.hoist.cluster.ClusterService.otelResourceAttributes
@@ -83,7 +84,7 @@ class TraceService extends BaseService {
      * The closure is always passed a non-null {@link SpanRef} — when tracing is disabled, a
      * shared no-op object is provided so callers never need to null-check.
      *
-     * For combined tracing + logging + metrics, use {@link ObservedRun} via
+     * For combined tracing + logging + metrics, use {@link io.xh.hoist.telemetry.ObservedRun} via
      * {@link BaseService#observe()}.
      */
     <T> T withSpan(Map args, Closure<T> c) {
@@ -91,6 +92,7 @@ class TraceService extends BaseService {
         try {
             return c.maximumNumberOfParameters > 0 ? c.call(span) : c.call()
         } catch (Throwable t) {
+            if (!(t instanceof RoutineException)) span.setError(t.message ?: t.class.name)
             span.recordException(t)
             throw t
         } finally {
@@ -109,7 +111,7 @@ class TraceService extends BaseService {
      * For simpler cases where a closure defines the span boundary, prefer {@link #withSpan}.
      */
     @NamedVariant
-    SpanRef createSpan(
+    private SpanRef createSpan(
         /** Span name (e.g. 'processOrder', 'HTTP GET'). */
         @NamedParam(required = true) String name,
         /** Span kind — INTERNAL (default), SERVER for inbound requests, CLIENT for outbound calls. */
@@ -123,11 +125,11 @@ class TraceService extends BaseService {
         if (!sdk) return null
 
         // Build complete tag set
+        // Remove nulls at end, they are used in this API to just prevent defaults
         tags = new HashMap<String, ?>(tags)
-        tags.putIfAbsent('xh.source', 'app')
-        tags.putIfAbsent('xh.isPrimaryInstance', isPrimary)
+        tags.putIfAbsent('xh.source', name.startsWith('xh.') ? 'hoist' : 'app')
         if (caller) tags.putIfAbsent('code.namespace', caller.class.name)
-        if (username) tags.putIfAbsent('user.name', username)
+        tags = tags.findAll {it.value != null}
 
         def spanBuilder = sdk.getTracer('io.xh.hoist')
             .spanBuilder(name)
@@ -208,6 +210,7 @@ class TraceService extends BaseService {
             def providerBuilder = SdkTracerProvider.builder()
                 .setResource(_resource)
                 .setSampler(_sampler)
+                .addSpanProcessor(new TagSpanProcessor())
 
             // Built-in OTLP exporter
             if (config.otlpEnabled) {
@@ -230,7 +233,7 @@ class TraceService extends BaseService {
             }
 
             eachExporter {SpanExporter e ->
-                providerBuilder.addSpanProcessor(new HoistBatchSpanProcessor(e, config.alwaysSampleErrors))
+                providerBuilder.addSpanProcessor(new ExportSpanProcessor(e, config.alwaysSampleErrors))
             }
 
             _otelSdk = OpenTelemetrySdk.builder()

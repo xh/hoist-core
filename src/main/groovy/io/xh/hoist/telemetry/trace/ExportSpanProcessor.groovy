@@ -4,7 +4,7 @@
  *
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
-package io.xh.hoist.telemetry
+package io.xh.hoist.telemetry.trace
 
 import groovy.transform.CompileStatic
 import io.opentelemetry.api.trace.SpanContext
@@ -24,16 +24,16 @@ import io.opentelemetry.sdk.trace.export.SpanExporter
  *
  * {@code BatchSpanProcessor.onEnd()} rejects spans where {@code isSampled()} is false.
  * When {@code alwaysSampleErrors} is enabled in the trace config, this processor wraps
- * recordOnly spans that ended in error with a {@link PromotedErrorSpan} that flips the
+ * recordOnly spans that ended in error with a delegate that flips the
  * sampled flag, allowing them through the gate and into the batch queue.
  */
 @CompileStatic
-class HoistBatchSpanProcessor implements SpanProcessor {
+class ExportSpanProcessor implements SpanProcessor {
 
     private final BatchSpanProcessor batch
     private boolean alwaysSampleErrors
 
-    HoistBatchSpanProcessor(SpanExporter exporter, boolean alwaysSampleErrors) {
+    ExportSpanProcessor(SpanExporter exporter, boolean alwaysSampleErrors) {
         this.batch = BatchSpanProcessor.builder(exporter).build()
         this.alwaysSampleErrors = alwaysSampleErrors
     }

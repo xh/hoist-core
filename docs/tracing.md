@@ -15,7 +15,7 @@ delegate to no-op implementations, so no null checks are needed in application c
   pipeline, and provides span creation APIs (`withSpan` and `createSpan`).
 - **Combined observability** — `ObservedRun` is a composable builder that wraps a closure with
   any combination of tracing, logging, and metrics. Accessed via `BaseService.observe()`.
-- **Automatic request spans** — `TraceInterceptor` creates SERVER spans for controller actions.
+- **Automatic request spans** — `HoistFilter` creates SERVER spans for every request.
   `HoistFilter` extracts incoming W3C `traceparent` headers so request spans join existing traces.
 - **Export** — OTLP (HTTP/protobuf) export configured via soft config. Applications can register
   additional exporters (e.g. Zipkin) via `addExporter()`.
@@ -40,21 +40,24 @@ delegate to no-op implementations, so no null checks are needed in application c
 
 | File | Location | Role |
 |------|----------|------|
-| `TraceService.groovy` | `grails-app/services/io/xh/hoist/telemetry/` | Central tracing service — SDK lifecycle, exporter pipeline, span API |
-| `TraceSupportService.groovy` | `grails-app/services/io/xh/hoist/telemetry/impl/` | Internal service hosting W3C context propagation (inbound filter, outbound HTTP, cluster tasks), JDBC DataSource gate, and the `task {}` PromiseFactory install |
-| `TraceInterceptor.groovy` | `grails-app/controllers/io/xh/hoist/telemetry/` | Creates SERVER spans for controller actions with HTTP semantic convention attributes |
-| `SpanRef.groovy` | `src/main/groovy/io/xh/hoist/telemetry/` | Wrapper around an active Span + Scope with tag/status/error helpers |
+| `TraceService.groovy` | `grails-app/services/io/xh/hoist/telemetry/trace/` | Central tracing service — SDK lifecycle, exporter pipeline, span API |
+| `TraceSupportService.groovy` | `grails-app/services/io/xh/hoist/telemetry/trace/` | Internal service hosting W3C context propagation (inbound filter, outbound HTTP, cluster tasks), JDBC DataSource install/uninstall, and the `task {}` PromiseFactory install |
+| `HoistFilter.groovy` | `src/main/groovy/io/xh/hoist/` | Wraps every request — restores trace context, enforces auth, creates the SERVER span for tracing, captures any exception, and stamps HTTP semantic-convention attributes |
+| `SpanRef.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Wrapper around an active Span + Scope with tag/status/error helpers |
 | `ObservedRun.groovy` | `src/main/groovy/io/xh/hoist/telemetry/` | Composable builder for combined tracing + logging + metrics |
-| `TraceConfig.groovy` | `src/main/groovy/io/xh/hoist/telemetry/` | Typed wrapper around `xhTraceConfig` |
-| `ClientTraceService.groovy` | `grails-app/services/io/xh/hoist/telemetry/` | Receives client-side spans and relays through server export pipeline |
-| `ContextPropagatingPromiseFactory.groovy` | `src/main/groovy/io/xh/hoist/telemetry/` | Wraps Grails PromiseFactory to propagate OTel context to `task {}` worker threads |
-| `DelegatingOpenTelemetry.groovy` | `src/main/groovy/io/xh/hoist/telemetry/jdbc/` | Stable `OpenTelemetry` facade that resolves to the current SDK on every tracer/span lookup — lets library instrumentation capture a reference once and follow SDK rebuilds |
+| `TraceConfig.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Typed wrapper around `xhTraceConfig` |
+| `ContextPropagatingPromiseFactory.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Wraps Grails PromiseFactory to propagate OTel context to `task {}` worker threads |
+| `DelegatingOpenTelemetry.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Stable `OpenTelemetry` facade that resolves to the current SDK on every tracer/span lookup — lets library instrumentation (e.g. `opentelemetry-jdbc`) capture a reference once and follow SDK rebuilds |
+| `ExportSpanProcessor.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Wraps a `BatchSpanProcessor`; when `alwaysSampleErrors` is set, promotes `recordOnly` error spans to sampled so they're exported |
+| `TagSpanProcessor.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Stamps cross-cutting attributes (e.g. `user.name`) on every span at start time, regardless of whether the span was created by `TraceService` or by a library instrumenter |
+| `HoistSampler.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Per-span thread-local sampler driven by `sampleRules` and the fallback `sampleRate` |
+| `ClientSpanData.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Adapts client-relayed span JSON into OTel `SpanData` for export through the server pipeline |
 
 ---
 
 ## TraceService
 
-**File:** `grails-app/services/io/xh/hoist/telemetry/TraceService.groovy`
+**File:** `grails-app/services/io/xh/hoist/telemetry/trace/TraceService.groovy`
 
 The central service for distributed tracing. Initialized early in the bootstrap sequence
 (after `MetricsService`), it manages the OpenTelemetry SDK, exporter pipeline, and provides
@@ -322,7 +325,7 @@ Non-string values (numbers, booleans) use strict equality.
    `match` entries all match produces the `sampleRate` for a probabilistic decision.
 4. Unmatched spans use the fallback `sampleRate`.
 5. Unsampled spans are recorded but not exported — unless they end in error and
-   `alwaysSampleErrors` is enabled, in which case `HoistBatchSpanProcessor` promotes them to sampled and exports them through the normal batch pipeline.
+   `alwaysSampleErrors` is enabled, in which case `ExportSpanProcessor` promotes them to sampled and exports them through the normal batch pipeline.
 
 The client-side `TraceService` in hoist-react evaluates the same `sampleRules` config, so
 sampling decisions are consistent across client and server spans.
@@ -331,17 +334,25 @@ sampling decisions are consistent across client and server spans.
 
 ## Built-in Instrumentation
 
-### Request spans (TraceInterceptor)
+### Request spans (HoistFilter)
 
 `HoistFilter` extracts incoming W3C `traceparent` headers from the request, restoring the
-client's trace context. `TraceInterceptor` then creates a SERVER span for each controller
-action, which becomes a child of the client span when a traceparent was present.
+client's trace context. After auth passes, the filter wraps `chain.doFilter` in a SERVER
+span that becomes a child of the client span when a traceparent was present.
 
-- **Name:** `{METHOD} {controller}/{action}` (e.g. `GET portfolio/positions`)
+- **Name:** starts as `{METHOD} {uri}` at span creation (best info pre-dispatch); updated
+  to `{METHOD} {controller}/{action}` (e.g. `GET portfolio/positions`) once the controller
+  resolves, before the span ends.
 - **Attributes:** `http.request.method`, `http.route`, `url.path`, `url.scheme`,
   `server.address`, `server.port`, `client.address`, `user_agent.original`,
-  `http.response.status_code`, `xh.source=hoist`
-- The `submitSpans` action is excluded to avoid recursive tracing.
+  `http.response.status_code`.
+- Exceptions thrown during dispatch are recorded on the span via `recordException` before
+  Hoist's `ExceptionHandler` renders the error response.
+
+> **Note on sample-rule matching by name**: the head-sampling decision happens at span
+> creation time, when the name is the URI form. If you want to match `sampleRules` against
+> the route form (`controller/action`), match against the URI pattern instead (e.g.
+> `name: 'GET /xh/health/*'`).
 
 ### Outbound HTTP (JSONClient)
 
@@ -429,10 +440,11 @@ browser interaction through server processing.
 
 ## Client Span Relay
 
-Browser-generated spans are batched and posted to the `xh/submitSpans` endpoint. The server's
-`ClientTraceService` converts these into OTel `SpanData` objects — preserving the original
-trace/span IDs — and exports them through the same pipeline as server-generated spans. This
-means client and server spans appear as a coherent distributed trace in the collector.
+Browser-generated spans are batched and posted to the `xh/submitSpans` endpoint, which routes
+to `TraceService.submitClientSpans()`. That method converts each entry into an OTel `SpanData`
+(via `ClientSpanData`) — preserving the original trace/span IDs — and exports it through the
+same pipeline as server-generated spans. Client and server spans appear as a coherent
+distributed trace in the collector.
 
 Client spans are pre-sampled in the browser using the shared `sampleRules` config — only
 sampled spans (and error spans when `alwaysSampleErrors` is enabled) are relayed to the server.

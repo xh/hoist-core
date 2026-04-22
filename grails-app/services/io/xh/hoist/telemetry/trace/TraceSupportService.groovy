@@ -4,7 +4,7 @@
  *
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
-package io.xh.hoist.telemetry.impl
+package io.xh.hoist.telemetry.trace
 
 import grails.async.Promises
 import grails.util.Holders
@@ -19,10 +19,6 @@ import io.opentelemetry.instrumentation.jdbc.datasource.JdbcTelemetry
 import io.opentelemetry.instrumentation.jdbc.datasource.OpenTelemetryDataSource
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.telemetry.ContextPropagatingPromiseFactory
-import io.xh.hoist.telemetry.TraceConfig
-import io.xh.hoist.telemetry.TraceService
-import io.xh.hoist.telemetry.DelegatingOpenTelemetry
 import jakarta.servlet.http.HttpServletRequest
 import javax.sql.DataSource
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase

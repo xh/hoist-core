@@ -7,12 +7,12 @@
 
 package io.xh.hoist.track
 
-import groovy.transform.CompileStatic
+
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.Tags
 import io.micrometer.core.instrument.Timer
 import io.xh.hoist.BaseService
-import io.xh.hoist.telemetry.MetricsService
+import io.xh.hoist.telemetry.metric.MetricsService
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
