@@ -35,7 +35,6 @@ import java.time.Instant
 import static io.xh.hoist.cluster.ClusterService.otelResourceAttributes
 import static io.xh.hoist.cluster.ClusterService.startupTime
 import static io.xh.hoist.util.Utils.exceptionHandler
-import static io.xh.hoist.util.Utils.getTraceSupportService
 import static java.lang.Long.parseLong
 import static java.util.concurrent.TimeUnit.MILLISECONDS
 
@@ -55,7 +54,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
     static clearCachesConfigs = ['xhTraceConfig']
 
     ConfigService configService
-    TraceService traceService
+    TraceSupportService traceSupportService
 
     private List<SpanExporter> _customExporters = []
     private OpenTelemetrySdk _otelSdk
@@ -101,9 +100,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
      * {@link BaseService#observe()}.
      */
     <T> T withSpan(Map args, Closure<T> c) {
-        SpanRef span = createSpan(
-            args.subMap(['name', 'kind', 'tags', 'caller', 'startTime'])
-        ) ?: SpanRef.NOOP
+        SpanRef span = createSpan(args.subMap(['name', 'kind', 'tags', 'caller', 'startTime']))
         try {
             return c.maximumNumberOfParameters > 0 ? c.call(span) : c.call()
         } catch (Throwable t) {
@@ -118,11 +115,11 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
     }
 
     /**
-     * Potentially create and start a new trace span, making it the current context.
+     * Create and start a new trace span, making it the current context.
      *
      * Returns a {@link SpanRef} containing the active Span and Scope. The caller
      * is responsible for calling {@link Scope#close} and {@link Span#end} when done —
-     * typically in a finally block. Null is returned if tracing is not enabled.
+     * typically in a finally block. A no-op span is returned if tracing is not enabled.
      *
      * The `xh.source` tag defaults to `'hoist'` for spans whose name starts with `'xh.'` and
      * `'app'` otherwise. Callers may override all tag values, including setting to null to prevent
@@ -144,7 +141,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
         @NamedParam Instant startTime = null
     ) {
         def sdk = _otelSdk
-        if (!sdk) return null
+        if (!sdk) return SpanRef.NOOP
 
         // Build complete tag set
         // Remove nulls at end, they are used in this API to just prevent defaults
@@ -152,7 +149,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
             'xh.source': name.startsWith('xh.') ? 'hoist' : 'app',
             'code.namespace': caller?.class?.name,
             *:tags
-        ]
+        ] as Map<String, ?>
         tags.removeAll({it.value == null})
 
         def spanBuilder = sdk.getTracer('io.xh.hoist')

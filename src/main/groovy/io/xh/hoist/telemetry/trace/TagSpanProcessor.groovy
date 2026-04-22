@@ -12,7 +12,6 @@ import io.opentelemetry.sdk.common.CompletableResultCode
 import io.opentelemetry.sdk.trace.ReadWriteSpan
 import io.opentelemetry.sdk.trace.ReadableSpan
 import io.opentelemetry.sdk.trace.SpanProcessor
-import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.util.Utils
 
 /**
@@ -35,7 +34,6 @@ class TagSpanProcessor implements SpanProcessor {
         }
 
         span.setAttribute('xh.isPrimary', Utils.clusterService.isPrimary)
-        span.setAttribute('xh.instance', ClusterService.instanceName)
     }
 
     boolean isStartRequired() { true }

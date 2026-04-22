@@ -51,21 +51,24 @@ class HoistFilter implements Filter, LogSupport {
         }
     }
 
+    private handleRequest(HttpServletRequest req, HttpServletResponse res, FilterChain chain) {
+        clusterService.ensureRunning()
+
+        // Rethrow spring/tc errors early. Intentionally post-auth and context restore
+        rethrowErrorDispatches(req)
+
+        if (authenticationService.allowRequest(req, res)) {
+            chain.doFilter(req, res)
+        }
+    }
+
     private static boolean shouldTrace(HttpServletRequest req) {
         if (!traceService.enabled) return false
         def uri = req.requestURI
         if (!uri) return true
-        if (uri == '/ping' || uri == '/xh/ping' || uri=='/xh/version') return false
+        if (uri == '/ping' || uri == '/xh/ping' || uri == '/xh/version') return false
         if (uri.endsWith(HoistWebSocketConfigurer.WEBSOCKET_PATH)) return false
         return true
-    }
-
-    private handleRequest(HttpServletRequest req, HttpServletResponse res, FilterChain chain) {
-        clusterService.ensureRunning()
-        rethrowErrorDispatches(req)
-        if (authenticationService.allowRequest(req, res)) {
-            chain.doFilter(req, res)
-        }
     }
 
     private void tracedHandleRequest(HttpServletRequest req, HttpServletResponse res, FilterChain chain) {
