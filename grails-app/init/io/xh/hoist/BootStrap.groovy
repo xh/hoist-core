@@ -11,6 +11,7 @@ import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.util.Utils
 
+import java.time.Instant
 import java.time.ZoneId
 
 import static io.xh.hoist.util.DateTimeUtils.serverZoneId
@@ -24,26 +25,30 @@ class BootStrap implements LogSupport {
         clusterService,
         metricsService,
         traceService,
+        traceSupportService,
         prefService
 
     def init = {servletContext ->
+        def initStart = Instant.now()
         logStartupMsg()
 
+        // Ordered, early initialization of core services
         parallelInit([configService])
-        parallelInit([traceService])
         ensureRequiredConfigsCreated()
         ensureExpectedServerTimeZone()
+        parallelInit([traceService, traceSupportService])
 
-        // Ordered, early initialization of core service used by other services.
-        parallelInit([logLevelService])
-        parallelInit([clusterService])
-        parallelInit([metricsService])
+        traceService.withSpan(name: 'xh.server.hoistInit', startTime: initStart, caller: this) {
+            parallelInit([logLevelService])
+            parallelInit([clusterService])
+            parallelInit([metricsService])
 
-        // All other services in parallel
-        def services = Utils.xhServices.findAll {it.class.canonicalName.startsWith('io.xh.hoist')}
-        parallelInit(services)
+            // All other services in parallel...
+            def services = Utils.xhServices.findAll { it.class.canonicalName.startsWith('io.xh.hoist') }
+            parallelInit(services)
 
-        ensureRequiredPrefsCreated()
+            ensureRequiredPrefsCreated()
+        }
     }
 
     def destroy = {}

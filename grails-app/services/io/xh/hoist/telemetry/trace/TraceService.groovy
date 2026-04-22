@@ -24,9 +24,18 @@ import io.opentelemetry.sdk.trace.export.SpanExporter
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.exception.RoutineException
+import io.xh.hoist.util.Utils
 import io.opentelemetry.api.common.AttributeKey
+import org.springframework.boot.context.event.ApplicationFailedEvent
+import org.springframework.boot.context.event.ApplicationReadyEvent
+import org.springframework.boot.context.event.SpringApplicationEvent
+import org.springframework.context.ApplicationListener
+
+import java.time.Instant
 
 import static io.xh.hoist.cluster.ClusterService.otelResourceAttributes
+import static io.xh.hoist.cluster.ClusterService.startupTime
+import static io.xh.hoist.util.Utils.exceptionHandler
 import static java.lang.Long.parseLong
 import static java.util.concurrent.TimeUnit.MILLISECONDS
 
@@ -41,7 +50,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS
  * or {@link #createSpan} to start a span with manual lifecycle management (for interceptors, etc.).
  */
 @CompileStatic
-class TraceService extends BaseService {
+class TraceService extends BaseService implements ApplicationListener<SpringApplicationEvent> {
 
     static clearCachesConfigs = ['xhTraceConfig']
 
@@ -54,9 +63,15 @@ class TraceService extends BaseService {
     private List<Map> _sampleRules = []
     private double _sampleRate = 1.0
     private final HoistSampler _sampler = new HoistSampler()
+    private SpanRef _serverLoadSpan
 
     void init() {
         syncConfig()
+        _serverLoadSpan = createSpan(
+            name: 'xh.server.load',
+            caller: this,
+            startTime: startupTime.toInstant()
+        )
     }
 
     //--------------------------------------------------
@@ -76,7 +91,7 @@ class TraceService extends BaseService {
     }
 
     /**
-     * Execute a closure within a new trace span.
+     * Execute a closure within a new trace span. Main entry point.
      *
      * Creates a child span under the current context. Exceptions are recorded on the span and
      * re-thrown. See {@link #createSpan} for parameter documentation.
@@ -88,11 +103,15 @@ class TraceService extends BaseService {
      * {@link BaseService#observe()}.
      */
     <T> T withSpan(Map args, Closure<T> c) {
-        SpanRef span = createSpan(args.subMap(['name', 'kind', 'tags', 'caller'])) ?: SpanRef.NOOP
+        SpanRef span = createSpan(
+            args.subMap(['name', 'kind', 'tags', 'caller', 'startTime'])
+        ) ?: SpanRef.NOOP
         try {
             return c.maximumNumberOfParameters > 0 ? c.call(span) : c.call()
         } catch (Throwable t) {
-            if (!(t instanceof RoutineException)) span.setError(t.message ?: t.class.name)
+            if (!(t instanceof RoutineException)) {
+                span.setError(exceptionHandler.summaryTextForThrowable(t))
+            }
             span.recordException(t)
             throw t
         } finally {
@@ -101,14 +120,17 @@ class TraceService extends BaseService {
     }
 
     /**
-     * Create and start a new trace span, making it the current context.
+     * Potentially create and start a new trace span, making it the current context.
      *
      * Returns a {@link SpanRef} containing the active Span and Scope. The caller
      * is responsible for calling {@link Scope#close} and {@link Span#end} when done —
-     * typically in a finally block.
+     * typically in a finally block. Null is returned if tracing is not enabled.
      *
-     * Use this when the span lifecycle spans multiple method calls (e.g. interceptors).
-     * For simpler cases where a closure defines the span boundary, prefer {@link #withSpan}.
+     * The `xh.source` tag defaults to `'hoist'` for spans whose name starts with `'xh.'` and
+     * `'app'` otherwise. Callers may override all tag values, including setting to null to prevent
+     * any default tag from being applied.
+     *
+     * @internal
      */
     @NamedVariant
     private SpanRef createSpan(
@@ -119,7 +141,9 @@ class TraceService extends BaseService {
         /** Key-value attributes to set on the span. */
         @NamedParam Map<String, ?> tags = [:],
         /** Object making the call, used to auto-set the 'code.namespace' attribute. */
-        @NamedParam Object caller = null
+        @NamedParam Object caller = null,
+        /** Optional backdated start time; defaults to now. */
+        @NamedParam Instant startTime = null
     ) {
         def sdk = _otelSdk
         if (!sdk) return null
@@ -134,6 +158,7 @@ class TraceService extends BaseService {
         def spanBuilder = sdk.getTracer('io.xh.hoist')
             .spanBuilder(name)
             .setSpanKind(kind)
+        if (startTime) spanBuilder.setStartTimestamp(startTime)
 
         try {
             _sampler.setSampleRate(getSampleRate(name, tags))
@@ -300,6 +325,21 @@ class TraceService extends BaseService {
     //--------------------------------------------------
     // Lifecycle
     //--------------------------------------------------
+    void onApplicationEvent(SpringApplicationEvent event) {
+        if (!_serverLoadSpan) return
+        if (event instanceof ApplicationReadyEvent) {
+            _serverLoadSpan.close()
+            _serverLoadSpan = null
+        }
+        if (event instanceof ApplicationFailedEvent) {
+            def t = event.exception
+            _serverLoadSpan.recordException(t)
+            _serverLoadSpan.setError(exceptionHandler.summaryTextForThrowable(t))
+            _serverLoadSpan.close()
+            _serverLoadSpan = null
+        }
+    }
+
     void clearCaches() {
         super.clearCaches()
         syncConfig()
