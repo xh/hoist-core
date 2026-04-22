@@ -4,7 +4,7 @@
  *
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
-package io.xh.hoist.telemetry
+package io.xh.hoist.telemetry.trace
 
 import groovy.transform.CompileStatic
 import io.opentelemetry.api.common.Attributes
@@ -20,7 +20,7 @@ import io.opentelemetry.sdk.trace.samplers.SamplingResult
  * Callers set the rate with {@link #setSampleRate} before {@code startSpan()} and
  * clear it afterwards. Inherits a sampled parent's decision. Returns
  * {@code recordOnly()} (not {@code drop()}) for unsampled spans so that
- * {@link HoistBatchSpanProcessor} can still promote error spans.
+ * {@link ExportSpanProcessor} can still promote error spans.
  */
 @CompileStatic
 class HoistSampler implements Sampler {

@@ -14,7 +14,7 @@ import io.micrometer.core.instrument.Gauge
 import io.xh.hoist.BaseService
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.json.JSONSerializer
-import io.xh.hoist.telemetry.MetricsService
+import io.xh.hoist.telemetry.metric.MetricsService
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession

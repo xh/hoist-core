@@ -4,19 +4,18 @@
  *
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
-package io.xh.hoist.telemetry
+package io.xh.hoist.telemetry.metric
 
-import groovy.transform.InheritConstructors
 import io.xh.hoist.config.TypedConfigMap
 
 /**
  * Typed representation of `xhMetricsConfig` values.
  */
-@InheritConstructors
 class MetricsConfig extends TypedConfigMap {
-    String namespace
     boolean prometheusEnabled
     Map prometheusConfig
     boolean otlpEnabled
     Map otlpConfig
+
+    MetricsConfig(Map args) { init(args) }
 }

@@ -9,7 +9,7 @@ package io.xh.hoist.http
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
-import io.xh.hoist.telemetry.SpanRef
+import io.xh.hoist.telemetry.trace.SpanRef
 import org.apache.catalina.connector.ClientAbortException
 import org.apache.hc.core5.http.HttpResponse
 import org.apache.hc.client5.http.entity.UrlEncodedFormEntity
@@ -28,6 +28,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 
 import static io.opentelemetry.api.trace.SpanKind.CLIENT
+import static io.xh.hoist.util.Utils.traceSupportService
 
 
 @CompileStatic
@@ -84,11 +85,11 @@ abstract class BaseProxyService extends BaseService {
                     'http.request.method': request.method,
                     'url.full'           : fullPath,
                     'server.address'     : method.uri.host,
-                    'xh.source'       : 'hoist'
+                    'xh.source'          : 'hoist'
                 ]
             )
             .run { SpanRef span ->
-                traceService.injectContext(method)
+                traceSupportService.injectContext(method)
                 try (CloseableHttpResponse sourceResponse = sourceClient.execute(method)) {
                     response.setStatus(sourceResponse.code)
                     span.setHttpStatus(sourceResponse.code)

@@ -4,7 +4,7 @@
  *
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
-package io.xh.hoist.telemetry
+package io.xh.hoist.telemetry.trace
 
 import groovy.transform.CompileStatic
 import groovy.transform.NamedParam
@@ -14,10 +14,7 @@ import io.opentelemetry.api.trace.Span
 import io.opentelemetry.api.trace.SpanKind
 import io.opentelemetry.context.Scope
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator
-import io.opentelemetry.context.Context
 import io.opentelemetry.context.propagation.ContextPropagators
-import io.opentelemetry.context.propagation.TextMapGetter
-import io.opentelemetry.context.propagation.TextMapSetter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.resources.Resource
 import io.opentelemetry.sdk.trace.SdkTracerProvider
@@ -26,12 +23,18 @@ import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter
 import io.opentelemetry.sdk.trace.export.SpanExporter
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
-import jakarta.servlet.http.HttpServletRequest
-import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
+import io.xh.hoist.exception.RoutineException
 import io.opentelemetry.api.common.AttributeKey
-import grails.async.Promises
+import org.springframework.boot.context.event.ApplicationFailedEvent
+import org.springframework.boot.context.event.ApplicationReadyEvent
+import org.springframework.boot.context.event.SpringApplicationEvent
+import org.springframework.context.ApplicationListener
+
+import java.time.Instant
 
 import static io.xh.hoist.cluster.ClusterService.otelResourceAttributes
+import static io.xh.hoist.cluster.ClusterService.startupTime
+import static io.xh.hoist.util.Utils.exceptionHandler
 import static java.lang.Long.parseLong
 import static java.util.concurrent.TimeUnit.MILLISECONDS
 
@@ -44,18 +47,14 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS
  *
  * Use {@link #withSpan} to execute a closure within a span (primary API, also on BaseService),
  * or {@link #createSpan} to start a span with manual lifecycle management (for interceptors, etc.).
- *
- * For context propagation, use {@link #restoreContextFromRequest} and {@link #injectContext} for HTTP requests,
- * or {@link #captureTraceparent} / {@link #restoreContextFromTraceparent} for non-HTTP propagation
- * (e.g. cluster tasks).
  */
 @CompileStatic
-class TraceService extends BaseService {
+class TraceService extends BaseService implements ApplicationListener<SpringApplicationEvent> {
 
     static clearCachesConfigs = ['xhTraceConfig']
 
     ConfigService configService
-    MetricsService metricsService
+    TraceSupportService traceSupportService
 
     private List<SpanExporter> _customExporters = []
     private OpenTelemetrySdk _otelSdk
@@ -64,12 +63,13 @@ class TraceService extends BaseService {
     private List<Map> _sampleRules = []
     private double _sampleRate = 1.0
     private final HoistSampler _sampler = new HoistSampler()
-
+    private SpanRef _serverLoadSpan
 
     void init() {
-        installContextPropagation()
         syncConfig()
+        traceSupportService.initialize()
     }
+
 
     //--------------------------------------------------
     // Public API
@@ -79,9 +79,16 @@ class TraceService extends BaseService {
         _otelSdk
     }
 
+    /**
+     * Current {@link OpenTelemetrySdk}, or null if tracing is disabled.
+     * @internal - for framework-internal use.
+     */
+    OpenTelemetrySdk getOtelSdk() {
+        _otelSdk
+    }
 
     /**
-     * Execute a closure within a new trace span.
+     * Execute a closure within a new trace span. Main entry point.
      *
      * Creates a child span under the current context. Exceptions are recorded on the span and
      * re-thrown. See {@link #createSpan} for parameter documentation.
@@ -89,14 +96,17 @@ class TraceService extends BaseService {
      * The closure is always passed a non-null {@link SpanRef} — when tracing is disabled, a
      * shared no-op object is provided so callers never need to null-check.
      *
-     * For combined tracing + logging + metrics, use {@link ObservedRun} via
+     * For combined tracing + logging + metrics, use {@link io.xh.hoist.telemetry.ObservedRun} via
      * {@link BaseService#observe()}.
      */
     <T> T withSpan(Map args, Closure<T> c) {
-        SpanRef span = createSpan(args.subMap(['name', 'kind', 'tags', 'caller'])) ?: SpanRef.NOOP
+        SpanRef span = createSpan(args.subMap(['name', 'kind', 'tags', 'caller', 'startTime']))
         try {
             return c.maximumNumberOfParameters > 0 ? c.call(span) : c.call()
         } catch (Throwable t) {
+            if (!(t instanceof RoutineException)) {
+                span.setError(exceptionHandler.summaryTextForThrowable(t))
+            }
             span.recordException(t)
             throw t
         } finally {
@@ -109,13 +119,16 @@ class TraceService extends BaseService {
      *
      * Returns a {@link SpanRef} containing the active Span and Scope. The caller
      * is responsible for calling {@link Scope#close} and {@link Span#end} when done —
-     * typically in a finally block.
+     * typically in a finally block. A no-op span is returned if tracing is not enabled.
      *
-     * Use this when the span lifecycle spans multiple method calls (e.g. interceptors).
-     * For simpler cases where a closure defines the span boundary, prefer {@link #withSpan}.
+     * The `xh.source` tag defaults to `'hoist'` for spans whose name starts with `'xh.'` and
+     * `'app'` otherwise. Callers may override all tag values, including setting to null to prevent
+     * any default tag from being applied.
+     *
+     * @internal
      */
     @NamedVariant
-    SpanRef createSpan(
+    private SpanRef createSpan(
         /** Span name (e.g. 'processOrder', 'HTTP GET'). */
         @NamedParam(required = true) String name,
         /** Span kind — INTERNAL (default), SERVER for inbound requests, CLIENT for outbound calls. */
@@ -123,24 +136,29 @@ class TraceService extends BaseService {
         /** Key-value attributes to set on the span. */
         @NamedParam Map<String, ?> tags = [:],
         /** Object making the call, used to auto-set the 'code.namespace' attribute. */
-        @NamedParam Object caller = null
+        @NamedParam Object caller = null,
+        /** Optional backdated start time; defaults to now. */
+        @NamedParam Instant startTime = null
     ) {
         def sdk = _otelSdk
-        if (!sdk) return null
+        if (!sdk) return SpanRef.NOOP
 
         // Build complete tag set
-        tags = new HashMap<String, ?>(tags)
-        tags.putIfAbsent('xh.source', 'app')
-        tags.putIfAbsent('xh.isPrimaryInstance', isPrimary)
-        if (caller) tags.putIfAbsent('code.namespace', caller.class.name)
-        if (username) tags.putIfAbsent('user.name', username)
+        // Remove nulls at end, they are used in this API to just prevent defaults
+        tags = [
+            'xh.source': name.startsWith('xh.') ? 'hoist' : 'app',
+            'code.namespace': caller?.class?.name,
+            *:tags
+        ] as Map<String, ?>
+        tags.removeAll({it.value == null})
 
         def spanBuilder = sdk.getTracer('io.xh.hoist')
             .spanBuilder(name)
             .setSpanKind(kind)
+        if (startTime) spanBuilder.setStartTimestamp(startTime)
 
         try {
-            _sampler.setSampleRate(getSampleRate(tags))
+            _sampler.setSampleRate(getSampleRate(name, tags))
             def span = spanBuilder.startSpan(),
                 ret = new SpanRef(span, span.makeCurrent(), kind)
             ret.setTags(tags)
@@ -168,59 +186,6 @@ class TraceService extends BaseService {
         syncConfig()
     }
 
-
-    //---------------------------
-    // Context Propagation
-    //---------------------------
-    /**
-     * Inject W3C trace context onto an outbound HTTP request.
-     * No-op if tracing is disabled or no active span exists.
-     */
-    void injectContext(HttpUriRequestBase request) {
-        def sdk = _otelSdk
-        if (!sdk || !Span.current().spanContext.valid) return
-        sdk.propagators.textMapPropagator.inject(Context.current(), request, HTTP_SETTER)
-    }
-
-    /**
-     * Capture the current trace context as a W3C traceparent string.
-     * Returns null if tracing is disabled or no active span exists.
-     */
-    String captureTraceparent() {
-        def sdk = _otelSdk
-        if (!sdk || !Span.current().spanContext.valid) return null
-        Map<String, String> carrier = [:]
-        sdk.propagators.textMapPropagator.inject(Context.current(), carrier, MAP_SETTER)
-        carrier.traceparent
-    }
-
-    /**
-     * Restore a previously captured traceparent string as the current context.
-     *
-     * Returns a {@link Scope} that must be closed when done (typically in a finally block),
-     * or null if the traceparent is null/empty or tracing is disabled.
-     */
-    Scope restoreContextFromTraceparent(String traceparent) {
-        def sdk = _otelSdk
-        if (!traceparent || !sdk) return null
-        def context = sdk.propagators.textMapPropagator.extract(Context.current(), [traceparent: traceparent], MAP_GETTER)
-        context.makeCurrent()
-    }
-
-    /**
-     * Restore a W3C trace parent context from incoming HTTP request headers.
-     *
-     * Returns a {@link Scope} that must be closed when done (typically in a finally block),
-     * or null if the traceparent is null/empty or tracing is disabled.
-     */
-    Scope restoreContextFromRequest(HttpServletRequest request) {
-        def sdk = _otelSdk
-        if (!sdk) return null
-        def context = sdk.propagators.textMapPropagator.extract(Context.current(), request, HTTP_GETTER)
-        context.makeCurrent()
-    }
-
-
     //--------------------------------------------------
     // Framework-internal
     //--------------------------------------------------
@@ -246,13 +211,16 @@ class TraceService extends BaseService {
     // Implementation
     //--------------------------------------------------
     /**
-     * Install a delegating PromiseFactory that propagates OTel trace context to worker
-     * threads spawned by Grails {@code task {}} calls. Installed once at startup.
+     * Open the outer 'xh.server.load' span, backdated to {@link io.xh.hoist.cluster.ClusterService#startupTime}.
+     * Must be called from hoist-core's BootStrap thread.
+     * @internal
      */
-    private void installContextPropagation() {
-        if (!(Promises.promiseFactory instanceof ContextPropagatingPromiseFactory)) {
-            Promises.promiseFactory = new ContextPropagatingPromiseFactory(Promises.promiseFactory)
-        }
+    void startServerLoadSpan() {
+        _serverLoadSpan = createSpan(
+            name: 'xh.server.load',
+            caller: this,
+            startTime: startupTime.toInstant()
+        )
     }
 
     private TraceConfig getConfig() {
@@ -277,6 +245,7 @@ class TraceService extends BaseService {
             def providerBuilder = SdkTracerProvider.builder()
                 .setResource(_resource)
                 .setSampler(_sampler)
+                .addSpanProcessor(new TagSpanProcessor())
 
             // Built-in OTLP exporter
             if (config.otlpEnabled) {
@@ -299,7 +268,7 @@ class TraceService extends BaseService {
             }
 
             eachExporter {SpanExporter e ->
-                providerBuilder.addSpanProcessor(new HoistBatchSpanProcessor(e, config.alwaysSampleErrors))
+                providerBuilder.addSpanProcessor(new ExportSpanProcessor(e, config.alwaysSampleErrors))
             }
 
             _otelSdk = OpenTelemetrySdk.builder()
@@ -321,74 +290,19 @@ class TraceService extends BaseService {
         _resource = null
     }
 
-    //--------------------------------------------------
-    // Lifecycle
-    //--------------------------------------------------
-    void clearCaches() {
-        super.clearCaches()
-        syncConfig()
-    }
-
-    void destroy() {
-        shutdownProvider()
-        super.destroy()
-    }
-
-    Map getAdminStats() {[
-        config: configForAdminStats('xhTraceConfig')
-    ]}
-
-    /** Shared getter for extracting trace context from incoming servlet requests. */
-    private final TextMapGetter<HttpServletRequest> HTTP_GETTER =
-        new TextMapGetter<HttpServletRequest>() {
-            Iterable<String> keys(HttpServletRequest carrier) {
-                Collections.list(carrier.headerNames)
-            }
-
-            String get(HttpServletRequest carrier, String key) {
-                carrier.getHeader(key)
-            }
-        }
-
-    /** Shared setter for injecting trace context onto outbound Apache HTTP requests. */
-    private final TextMapSetter<HttpUriRequestBase> HTTP_SETTER =
-        new TextMapSetter<HttpUriRequestBase>() {
-            void set(HttpUriRequestBase carrier, String key, String value) {
-                carrier?.setHeader(key, value)
-            }
-        }
-
-    /** Setter for injecting trace context into a simple Map carrier. */
-    private final TextMapSetter<Map<String, String>> MAP_SETTER =
-        new TextMapSetter<Map<String, String>>() {
-            void set(Map<String, String> carrier, String key, String value) {
-                carrier?.put(key, value)
-            }
-        }
-
-    /** Getter for extracting trace context from a simple Map carrier. */
-    private final TextMapGetter<Map<String, String>> MAP_GETTER =
-        new TextMapGetter<Map<String, String>>() {
-            Iterable<String> keys(Map<String, String> carrier) {
-                carrier?.keySet() ?: Collections.emptySet() as Iterable<String>
-            }
-
-            String get(Map<String, String> carrier, String key) {
-                carrier?.get(key)
-            }
-        }
-
-
     /**
-     * Evaluate sampling rules against span attributes. Returns the sample rate from the first
-     * matching rule, or the configured fallback rate if no rule matches.
+     * Evaluate sampling rules against a span's name and tags. Rules match on tag keys; the
+     * reserved key {@code name} is matched against the span's name (glob-capable, same as
+     * tag values). Returns the sample rate from the first matching rule, or the configured
+     * fallback rate if no rule matches.
      */
-    private double getSampleRate(Map tags) {
+    private double getSampleRate(String name, Map tags) {
         try {
             if (!_sampleRules) return _sampleRate
 
             for (Map rule in _sampleRules) {
-                if (rule.match?.every { k, v -> matchesValue(tags[k], v) } &&
+                Map match = rule.match as Map
+                if (match?.every { k, v -> matchesValue(k == 'name' ? name : tags[k], v) } &&
                     rule.sampleRate instanceof Number
                 ) {
                     return ((Number) rule.sampleRate).doubleValue()
@@ -417,4 +331,37 @@ class TraceService extends BaseService {
         if (endsWithWild) return actualStr.startsWith(core)
         return actual == pattern
     }
+
+    //--------------------------------------------------
+    // Lifecycle
+    //--------------------------------------------------
+    void onApplicationEvent(SpringApplicationEvent event) {
+        if (!_serverLoadSpan) return
+        if (event instanceof ApplicationReadyEvent) {
+            _serverLoadSpan.close()
+            _serverLoadSpan = null
+        }
+        if (event instanceof ApplicationFailedEvent) {
+            def t = event.exception
+            _serverLoadSpan.recordException(t)
+            _serverLoadSpan.setError(exceptionHandler.summaryTextForThrowable(t))
+            _serverLoadSpan.close()
+            _serverLoadSpan = null
+        }
+    }
+
+    void clearCaches() {
+        super.clearCaches()
+        syncConfig()
+    }
+
+    void destroy() {
+        shutdownProvider()
+        super.destroy()
+    }
+
+    Map getAdminStats() {[
+        config: configForAdminStats('xhTraceConfig')
+    ]}
+
 }

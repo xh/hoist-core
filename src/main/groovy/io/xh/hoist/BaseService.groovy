@@ -21,7 +21,7 @@ import io.xh.hoist.cache.Cache
 import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.telemetry.ObservedRun
-import io.xh.hoist.telemetry.TraceService
+import io.xh.hoist.telemetry.trace.TraceService
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.IdentitySupport
 import io.xh.hoist.util.Timer

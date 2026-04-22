@@ -4,7 +4,7 @@
  *
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
-package io.xh.hoist.telemetry
+package io.xh.hoist.telemetry.trace
 
 import groovy.transform.CompileStatic
 import io.opentelemetry.api.trace.Span
@@ -66,14 +66,18 @@ class SpanRef implements Closeable {
      * SERVER spans use >= 500 (server fault), CLIENT spans use >= 400 (request failed).
      */
     void setHttpStatus(int statusCode) {
-        span.setAttribute('http.response.status_code', (long) statusCode)
+        setTag('http.response.status_code', statusCode)
         def errorThreshold = kind == SpanKind.CLIENT ? 400 : 500
-        if (statusCode >= errorThreshold) span.setStatus(StatusCode.ERROR)
+        if (statusCode >= errorThreshold) setError()
     }
 
-    /** Record an exception on the span and set its status to ERROR. */
+    /** Mark the span status as ERROR, with an optional description. */
+    void setError(String description = null) {
+        description ? span.setStatus(StatusCode.ERROR, description) : span.setStatus(StatusCode.ERROR)
+    }
+
+    /** Record an exception as an event on the span. Does not change span status.*/
     void recordException(Throwable t) {
-        span.setStatus(StatusCode.ERROR, t.message ?: t.class.name)
         span.recordException(t)
     }
 

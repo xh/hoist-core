@@ -9,7 +9,7 @@ package io.xh.hoist.http
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.exception.ExternalHttpException
-import io.xh.hoist.telemetry.SpanRef
+import io.xh.hoist.telemetry.trace.SpanRef
 import io.xh.hoist.json.JSONParser
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
@@ -19,7 +19,7 @@ import org.apache.hc.client5.http.impl.classic.HttpClients
 import static io.opentelemetry.api.trace.SpanKind.CLIENT
 import static io.xh.hoist.telemetry.ObservedRun.observe
 import static io.xh.hoist.util.StringUtils.elide
-import static io.xh.hoist.util.Utils.traceService
+import static io.xh.hoist.util.Utils.traceSupportService
 import static org.apache.hc.core5.http.HttpStatus.SC_NO_CONTENT
 import static org.apache.hc.core5.http.HttpStatus.SC_OK
 
@@ -155,11 +155,11 @@ class JSONClient {
                     'url.full'           : method.uri,
                     'server.address'     : method.uri.host,
                     'server.port'        : method.uri.port > 0 ? method.uri.port : null,
-                    'xh.source'       : 'hoist'
+                    'xh.source'          : 'hoist'
                 ]
             )
             .run { SpanRef span ->
-                traceService.injectContext(method)
+                traceSupportService.injectContext(method)
                 def ret = client.execute(method)
                 span.setHttpStatus(ret.code)
                 ret

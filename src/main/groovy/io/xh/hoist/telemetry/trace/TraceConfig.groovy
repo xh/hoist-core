@@ -4,15 +4,13 @@
  *
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
-package io.xh.hoist.telemetry
+package io.xh.hoist.telemetry.trace
 
-import groovy.transform.InheritConstructors
 import io.xh.hoist.config.TypedConfigMap
 
 /**
  * Typed representation of `xhTraceConfig` values.
  */
-@InheritConstructors
 class TraceConfig extends TypedConfigMap {
     boolean enabled
     double sampleRate
@@ -24,4 +22,9 @@ class TraceConfig extends TypedConfigMap {
 
     /** Always export error spans, bypassing sample-rate filtering. Defaults to true. */
     boolean alwaysSampleErrors = true
+
+    /** Emit CLIENT spans for all JDBC operations. Defaults to false. */
+    boolean jdbcTracingEnabled = false
+
+    TraceConfig(args) { init(args) }
 }
