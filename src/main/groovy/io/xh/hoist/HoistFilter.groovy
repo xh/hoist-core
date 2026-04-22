@@ -12,6 +12,7 @@ import io.xh.hoist.exception.HttpException
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.telemetry.trace.SpanRef
 import io.xh.hoist.util.Utils
+import io.xh.hoist.websocket.HoistWebSocketConfigurer
 
 import jakarta.servlet.*
 import jakarta.servlet.http.HttpServletRequest
@@ -42,12 +43,21 @@ class HoistFilter implements Filter, LogSupport {
         HttpServletResponse httpResponse = (HttpServletResponse) response
 
         try (def scope = traceSupportService.restoreContextFromRequest(httpRequest)) {
-            traceService.enabled ?
+            shouldTrace(httpRequest) ?
                 tracedHandleRequest(httpRequest, httpResponse, chain) :
                 handleRequest(httpRequest, httpResponse, chain)
         } catch (Throwable t) {
             Utils.handleException(exception: t, renderTo: httpResponse, logTo: this)
         }
+    }
+
+    private static boolean shouldTrace(HttpServletRequest req) {
+        if (!traceService.enabled) return false
+        def uri = req.requestURI
+        if (!uri) return true
+        if (uri == '/ping' || uri == '/xh/ping' || uri=='/xh/version') return false
+        if (uri.endsWith(HoistWebSocketConfigurer.WEBSOCKET_PATH)) return false
+        return true
     }
 
     private handleRequest(HttpServletRequest req, HttpServletResponse res, FilterChain chain) {
@@ -70,7 +80,7 @@ class HoistFilter implements Filter, LogSupport {
                 'server.port'        : req.serverPort as long,
                 'client.address'     : req.remoteAddr,
                 'user_agent.original': req.getHeader('User-Agent'),
-                'xh.source'          : null
+                'xh.source'          : 'hoist'
             ],
             caller: this
         ) { SpanRef span ->
