@@ -148,10 +148,12 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
 
         // Build complete tag set
         // Remove nulls at end, they are used in this API to just prevent defaults
-        tags = new HashMap<String, ?>(tags)
-        tags.putIfAbsent('xh.source', name.startsWith('xh.') ? 'hoist' : 'app')
-        if (caller) tags.putIfAbsent('code.namespace', caller.class.name)
-        tags = tags.findAll {it.value != null}
+        tags = [
+            'xh.source': name.startsWith('xh.') ? 'hoist' : 'app',
+            'code.namespace': caller?.class?.name,
+            *:tags
+        ]
+        tags.removeAll({it.value != null})
 
         def spanBuilder = sdk.getTracer('io.xh.hoist')
             .spanBuilder(name)
