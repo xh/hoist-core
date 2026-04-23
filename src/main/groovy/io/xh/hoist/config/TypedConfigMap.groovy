@@ -11,6 +11,7 @@ import io.xh.hoist.log.LogSupport
 
 import java.lang.reflect.Modifier
 import java.lang.reflect.ParameterizedType
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Base class for typed representations of Hoist JSON soft-config map values.
@@ -42,6 +43,8 @@ import java.lang.reflect.ParameterizedType
  */
 abstract class TypedConfigMap implements LogSupport, JSONFormat {
 
+    private static final Set<String> warnedUnknownKeys = ConcurrentHashMap.newKeySet()
+
     /**
      * Name of the top-level `AppConfig` (JSON-type) that supplies this object's values.
      *
@@ -62,10 +65,17 @@ abstract class TypedConfigMap implements LogSupport, JSONFormat {
      *  - No matching property → log at WARN and ignore.
      */
     protected void init(Map args) {
+        // Capture outside the closure — inside, getClass() resolves to the closure, not `this`.
+        String simpleName = getClass().simpleName
+        String cfgName = configName
         args?.each { k, v ->
             def key = k as String
             if (!this.hasProperty(key)) {
-                logWarn("Unknown key '$key' for ${getClass().simpleName}" + (configName ? " (config '$configName')" : ''))
+                // Deduplicated so high-frequency timer-driven config reads don't spam the log.
+                String dedupKey = "${cfgName ?: simpleName}:${key}"
+                if (warnedUnknownKeys.add(dedupKey)) {
+                    logWarn("Unknown key '$key' for $simpleName" + (cfgName ? " (config '$cfgName')" : ''))
+                }
                 return
             }
 
