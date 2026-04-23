@@ -83,7 +83,8 @@ class HoistFilter implements Filter, LogSupport {
                 'server.port'        : req.serverPort as long,
                 'client.address'     : req.remoteAddr,
                 'user_agent.original': req.getHeader('User-Agent'),
-                'xh.source'          : 'hoist'
+                'xh.source'          : 'hoist',
+                'xh.fromHoistClient' : req.getHeader('X-Hoist-Client') == '1'
             ],
             caller: this
         ) { SpanRef span ->

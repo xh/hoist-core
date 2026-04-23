@@ -17,13 +17,16 @@ import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator
 import io.opentelemetry.context.propagation.ContextPropagators
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.resources.Resource
+import io.opentelemetry.sdk.trace.ReadableSpan
 import io.opentelemetry.sdk.trace.SdkTracerProvider
-import io.opentelemetry.sdk.trace.data.SpanData
+import io.opentelemetry.sdk.trace.export.BatchSpanProcessor
+import io.opentelemetry.sdk.trace.samplers.Sampler
 import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter
 import io.opentelemetry.sdk.trace.export.SpanExporter
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.exception.RoutineException
+import io.xh.hoist.telemetry.trace.impl.SpanProcessingService
 import io.opentelemetry.api.common.AttributeKey
 import org.springframework.boot.context.event.ApplicationFailedEvent
 import org.springframework.boot.context.event.ApplicationReadyEvent
@@ -56,21 +59,19 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
 
     ConfigService configService
     TraceSupportService traceSupportService
+    SpanProcessingService spanProcessingService
 
     private List<SpanExporter> _customExporters = []
     private OpenTelemetrySdk _otelSdk
     private SpanExporter _otlpExporter
     private Resource _resource
-    private List<Map> _sampleRules = []
-    private double _sampleRate = 1.0
-    private final HoistSampler _sampler = new HoistSampler()
+    private List<BatchSpanProcessor> _batches = []
     private SpanRef _serverLoadSpan
 
     void init() {
         syncConfig()
         traceSupportService.initialize()
     }
-
 
     //--------------------------------------------------
     // Public API
@@ -158,15 +159,10 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
             .setSpanKind(kind)
         if (startTime) spanBuilder.setStartTimestamp(startTime)
 
-        try {
-            _sampler.setSampleRate(getSampleRate(name, tags))
-            def span = spanBuilder.startSpan(),
-                ret = new SpanRef(span, span.makeCurrent(), kind)
-            ret.setTags(tags)
-            return ret
-        } finally {
-            _sampler.clearSampleRate()
-        }
+        def span = spanBuilder.startSpan(),
+            ret = new SpanRef(span, span.makeCurrent(), kind)
+        ret.setTags(tags)
+        return ret
     }
 
     //-------------
@@ -191,22 +187,11 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
     // Framework-internal
     //--------------------------------------------------
     /**
-     * Submit client-side spans received from the browser.
-     *
-     * Converts the client span JSON into OTel {@link io.opentelemetry.sdk.trace.data.SpanData}
-     * objects and exports them through the configured export pipeline.
-     *
-     * Client spans are pre-sampled by the client -- only exportable (i.e. sampled spans or error spans)
-     * are expected here.
-     *
-     * @param spans - list of span maps as serialized by the client {@code Span.toJSON()}
+     * The OTel {@link Resource} carrying cluster/instance attributes. Non-null when tracing
+     * is enabled and the SDK is built. Callers (e.g. {@code XhController.submitSpans}) read
+     * this to build {@link ClientSpanData} for submission to {@code SpanProcessingService}.
      */
-    void submitClientSpans(List<Map> spans) {
-        def resource = _resource
-        if (!resource) return
-        def data = spans.collect { new ClientSpanData(it, resource) } as List<SpanData>
-        eachExporter {SpanExporter e -> e.export(data)}
-    }
+    Resource getResource() { _resource }
 
     //--------------------------------------------------
     // Implementation
@@ -222,6 +207,15 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
             caller: this,
             startTime: startupTime.toInstant()
         )
+    }
+
+    /**
+     * Dispatch spans kept by {@link SpanProcessingService} to all registered exporters, fanning
+     * out to each exporter's {@link BatchSpanProcessor}.
+     * @internal
+     */
+    void exportSpans(List<ReadableSpan> spans) {
+        _batches.each { batch -> spans.each { batch.onEnd(it) } }
     }
 
     private TraceConfig getConfig() {
@@ -240,14 +234,6 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
             def attrsBuilder = Attributes.builder()
             otelResourceAttributes.each { k, v -> attrsBuilder.put(AttributeKey.stringKey(k), v) }
             _resource = Resource.default.merge(Resource.create(attrsBuilder.build()))
-
-            _sampleRules = config.sampleRules ?: []
-            _sampleRate = config.sampleRate.toDouble()
-
-            def providerBuilder = SdkTracerProvider.builder()
-                .setResource(_resource)
-                .setSampler(_sampler)
-                .addSpanProcessor(new TagSpanProcessor())
 
             // Built-in OTLP exporter
             if (otlpEnabled) {
@@ -269,9 +255,16 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
                 _otlpExporter = null
             }
 
-            eachExporter {SpanExporter e ->
-                providerBuilder.addSpanProcessor(new ExportSpanProcessor(e, config.alwaysSampleErrors))
-            }
+            // One BatchSpanProcessor per exporter; spanProcessingService hands drained spans here.
+            _batches = currentExporters.collect { BatchSpanProcessor.builder(it).build() }
+
+            // Sampler: ParentBased(AlwaysOn) — inherit upstream decision (including remote sampled=0 → drop),
+            // otherwise always record+sample. Keep/drop at trace level is owned by spanProcessingService,
+            // which is a singleton so its in-flight buffer survives SDK rebuilds on config change.
+            def providerBuilder = SdkTracerProvider.builder()
+                .setResource(_resource)
+                .setSampler(Sampler.parentBased(Sampler.alwaysOn()))
+                .addSpanProcessor(spanProcessingService)
 
             _otelSdk = OpenTelemetrySdk.builder()
                 .setTracerProvider(providerBuilder.build())
@@ -280,58 +273,18 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
         }
     }
 
-    private void eachExporter(Closure c) {
-        _customExporters.each(c)
-        def _otlp = _otlpExporter
-        if (_otlp) c(_otlp)
+    private List<SpanExporter> getCurrentExporters() {
+        def out = new ArrayList<SpanExporter>(_customExporters)
+        if (_otlpExporter) out.add(_otlpExporter)
+        return out
     }
 
     private void shutdownProvider() {
         _otelSdk?.sdkTracerProvider?.shutdown()
+        _batches.each { it.shutdown() }
+        _batches = []
         _otelSdk = null
         _resource = null
-    }
-
-    /**
-     * Evaluate sampling rules against a span's name and tags. Rules match on tag keys; the
-     * reserved key {@code name} is matched against the span's name (glob-capable, same as
-     * tag values). Returns the sample rate from the first matching rule, or the configured
-     * fallback rate if no rule matches.
-     */
-    private double getSampleRate(String name, Map tags) {
-        try {
-            if (!_sampleRules) return _sampleRate
-
-            for (Map rule in _sampleRules) {
-                Map match = rule.match as Map
-                if (match?.every { k, v -> matchesValue(k == 'name' ? name : tags[k], v) } &&
-                    rule.sampleRate instanceof Number
-                ) {
-                    return ((Number) rule.sampleRate).doubleValue()
-                }
-            }
-            return _sampleRate
-        } catch (Exception e) {
-            logError("Failed to compute sample rate", e)
-            return 0d
-        }
-    }
-
-    /** For strings, Simple glob matching: {@code *} = any, {@code foo*} = prefix, {@code *foo} = suffix. */
-    private boolean matchesValue(Object actual, Object pattern) {
-        if (!(actual instanceof String) || !(pattern instanceof String)) return actual == pattern
-        def patternStr = pattern as String,
-            actualStr = actual as String
-
-        if (patternStr == '*') return true
-        def startsWithWild = patternStr.startsWith('*'),
-            endsWithWild = patternStr.endsWith('*'),
-            core = patternStr.replaceAll('^\\*|\\*\$', '')
-
-        if (startsWithWild && endsWithWild) return actualStr.contains(core)
-        if (startsWithWild) return actualStr.endsWith(core)
-        if (endsWithWild) return actualStr.startsWith(core)
-        return actual == pattern
     }
 
     //--------------------------------------------------

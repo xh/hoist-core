@@ -9,6 +9,7 @@ package io.xh.hoist.telemetry.trace
 import groovy.transform.CompileStatic
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
+import io.opentelemetry.api.common.AttributesBuilder
 import io.opentelemetry.api.trace.SpanContext
 import io.opentelemetry.api.trace.SpanKind
 import io.opentelemetry.api.trace.StatusCode
@@ -17,6 +18,7 @@ import io.opentelemetry.api.trace.TraceState
 import io.opentelemetry.sdk.common.InstrumentationLibraryInfo
 import io.opentelemetry.sdk.common.InstrumentationScopeInfo
 import io.opentelemetry.sdk.resources.Resource
+import io.opentelemetry.sdk.trace.ReadableSpan
 import io.opentelemetry.sdk.trace.data.EventData
 import io.opentelemetry.sdk.trace.data.LinkData
 import io.opentelemetry.sdk.trace.data.SpanData
@@ -26,14 +28,14 @@ import io.opentelemetry.sdk.trace.data.StatusData
 import static java.util.concurrent.TimeUnit.MILLISECONDS
 
 /**
- * {@link SpanData} implementation for client-submitted spans relayed through the
- * server's OTel export pipeline.
+ * Adapter that exposes a client-submitted span as both {@link SpanData} and {@link ReadableSpan},
+ * so it can flow through the same buffer and export paths as SDK-created server spans.
  *
- * Preserves the original trace/span IDs from the client so that client and server
- * spans form a coherent distributed trace in the collector.
+ * Preserves the original trace/span IDs from the client so that client and server spans form a
+ * coherent distributed trace in the collector.
  */
 @CompileStatic
-class ClientSpanData implements SpanData {
+class ClientSpanData implements SpanData, ReadableSpan {
 
     // LIBRARY for backward compatibility
     private static final InstrumentationScopeInfo SCOPE = InstrumentationScopeInfo.create('io.xh.hoist.client')
@@ -50,7 +52,7 @@ class ClientSpanData implements SpanData {
     private final List<EventData> _events
     private final StatusData _status
 
-    ClientSpanData(Map span, Resource resource) {
+    ClientSpanData(Map span, Resource resource, Map<String, Object> extraAttrs = [:]) {
         _resource = resource
         _name = span.name as String
 
@@ -69,12 +71,12 @@ class ClientSpanData implements SpanData {
         _startEpochNanos = MILLISECONDS.toNanos(span.startTime as long)
         _endEpochNanos = MILLISECONDS.toNanos(span.endTime as long)
 
-        def tags = span.tags as Map ?: [:]
         _kind = parseSpanKind(span.kind as String)
 
-        // Build attributes from client tags
+        // Client-submitted tags + server-stamped extras (authoritative; override on collision).
+        def allTags = [*:(span.tags as Map ?: [:]), *:(extraAttrs ?: [:])]
         def ab = Attributes.builder()
-        tags.each { k, v -> ab.put(AttributeKey.stringKey(k as String), v as String) }
+        allTags.each { k, v -> putTyped(ab, k as String, v) }
         _attributes = ab.build()
 
         // Events (e.g. exception recordings)
@@ -118,6 +120,19 @@ class ClientSpanData implements SpanData {
     int getTotalRecordedLinks() { 0 }
     int getTotalAttributeCount() { _attributes.size() }
 
+    // ReadableSpan — the client span is already ended, so snapshot is just `this`.
+    SpanData toSpanData() { this }
+    long getLatencyNanos() { _endEpochNanos - _startEpochNanos }
+    def <T> T getAttribute(AttributeKey<T> key) { _attributes.get(key) }
+
+
+    private static void putTyped(AttributesBuilder ab, String key, Object value) {
+        if (value == null) return
+        if (value instanceof Boolean)   ab.put(AttributeKey.booleanKey(key), value)
+        else if (value instanceof Long) ab.put(AttributeKey.longKey(key), value)
+        else if (value instanceof Number) ab.put(AttributeKey.longKey(key), value.longValue())
+        else ab.put(AttributeKey.stringKey(key), value.toString())
+    }
 
     private static SpanKind parseSpanKind(String kind) {
         switch (kind) {

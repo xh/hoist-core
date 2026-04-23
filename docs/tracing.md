@@ -25,12 +25,14 @@ delegate to no-op implementations, so no null checks are needed in application c
   Hazelcast remote execution, maintaining parent-child span relationships.
 - **Thread context propagation** — Grails `task {}` calls automatically carry the current trace
   context to worker threads via `ContextPropagatingPromiseFactory`.
-- **Client span relay** — Browser-generated spans are submitted to `xh/submitSpans` and exported
-  through the same server-side pipeline, producing end-to-end client-to-server traces. Client
-  spans are pre-sampled in the browser — only sampled or error spans are relayed.
-- **Rule-based sampling** — Configurable `sampleRules` match span tags (with glob patterns) to
-  determine per-span sample rates. Error spans can be force-exported regardless of sampling via
-  `alwaysSampleErrors`.
+- **Client span relay** — Browser-generated spans are submitted to `xh/submitSpans` and merged
+  with concurrent server-side spans for the same trace, producing end-to-end client-to-server
+  traces. Clients submit all spans (no client-side sampling); the server owns the keep/drop
+  decision for the unified trace.
+- **Tail-based sampling** — All spans for a locally-rooted trace are buffered in memory until
+  the root ends (or the trace times out). If *any* span in the trace ended in error, every span
+  is exported. Otherwise configurable `sampleRules` decide at the trace level (matching against
+  the root span's name and tags) with a single per-trace probability roll.
 - **Log correlation** — `traceId` is captured on log markers when inside a traced context,
   enabling log-to-trace correlation.
 
@@ -48,9 +50,7 @@ delegate to no-op implementations, so no null checks are needed in application c
 | `TraceConfig.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Typed wrapper around `xhTraceConfig` |
 | `ContextPropagatingPromiseFactory.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Wraps Grails PromiseFactory to propagate OTel context to `task {}` worker threads |
 | `DelegatingOpenTelemetry.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Stable `OpenTelemetry` facade that resolves to the current SDK on every tracer/span lookup — lets library instrumentation (e.g. `opentelemetry-jdbc`) capture a reference once and follow SDK rebuilds |
-| `ExportSpanProcessor.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Wraps a `BatchSpanProcessor`; when `alwaysSampleErrors` is set, promotes `recordOnly` error spans to sampled so they're exported |
-| `TagSpanProcessor.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Stamps cross-cutting attributes (e.g. `user.name`) on every span at start time, regardless of whether the span was created by `TraceService` or by a library instrumenter |
-| `HoistSampler.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Per-span thread-local sampler driven by `sampleRules` and the fallback `sampleRate` |
+| `SpanProcessingService.groovy` | `grails-app/services/io/xh/hoist/telemetry/trace/impl/` | Singleton terminal span processor. Stamps common attributes (e.g. `user.name`, `xh.isPrimary`) at span start, buffers by traceId, decides keep/drop on flush (keep on error, missing/open root, or rolled probability). Reads `xhTraceConfig` live so config changes don't orphan its in-flight buffer; on keep, hands drained spans to `TraceService.exportSpans()` |
 | `ClientSpanData.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Adapts client-relayed span JSON into OTel `SpanData` for export through the server pipeline |
 
 ---
@@ -215,7 +215,7 @@ ObservedRun.observe(this)
 |----------|-------|
 | **Type** | `json` |
 | **Default** | See below |
-| **Client Visible** | Yes (client reads `enabled`, `sampleRate`, `sampleRules`, and `alwaysSampleErrors` for browser tracing) |
+| **Client Visible** | Yes (client reads `enabled` — sampling decisions are made server-side) |
 | **Purpose** | Distributed tracing infrastructure configuration. |
 
 **Default value:**
@@ -225,7 +225,8 @@ ObservedRun.observe(this)
     "enabled": false,
     "sampleRate": 1.0,
     "sampleRules": [],
-    "alwaysSampleErrors": true,
+    "traceTimeoutMs": 300000,
+    "maxBufferedTraces": 10000,
     "jdbcTracingEnabled": false,
     "otlpEnabled": false,
     "otlpConfig": {}
@@ -235,9 +236,10 @@ ObservedRun.observe(this)
 | Key | Type | Description |
 |-----|------|-------------|
 | `enabled` | Boolean | Master switch for tracing. When false, all tracing is no-op. Dynamic. |
-| `sampleRate` | Double | Fallback sampling rate (0.0–1.0) applied when no sampling rule matches. Dynamic. |
-| `sampleRules` | List\<Map\> | Ordered rules for per-span sampling. Each rule has a `match` map of tag patterns (plus the reserved `name` key that matches the span's name) and a `sampleRate`. First match wins; unmatched spans use the fallback `sampleRate`. See [Sampling Rules](#sampling-rules) below. Dynamic. |
-| `alwaysSampleErrors` | Boolean | When true (default), spans that end in error are exported even if unsampled. Dynamic. |
+| `sampleRate` | Double | Fallback per-trace sampling rate (0.0–1.0) applied when no rule matches the root span. Error traces always export regardless. Dynamic. |
+| `sampleRules` | List\<Map\> | Ordered rules matched against the **root span** of each trace. Each rule has a `match` map of tag patterns (plus the reserved `name` key that matches the span's name) and a `sampleRate`. First match wins; unmatched traces use the fallback `sampleRate`. See [Sampling Rules](#sampling-rules) below. Dynamic. |
+| `traceTimeoutMs` | Long | Silence threshold before an abandoned trace buffer is force-evicted. Not a trace-duration cap — long-running traces that stay active flush normally when their root ends. Defaults to `300000` (5 minutes). Dynamic. |
+| `maxBufferedTraces` | Integer | Cap on in-flight traces buffered by the tail sampler. New traces past the cap are dropped with a WARN log until pressure eases. Defaults to `10000`. Dynamic. |
 | `jdbcTracingEnabled` | Boolean | Emit CLIENT spans for all JDBC `DataSource` operations — applies to every pool (primary + any additional Grails datasources). Defaults to `false`. Dynamic. See [JDBC](#outbound-jdbc) below. |
 | `otlpEnabled` | Boolean | Enable OTLP span export (HTTP/protobuf). Dynamic. Gated by the `suppressOtlpExport` instance config (defaults to `'true'` in local dev, `'false'` otherwise). |
 | `otlpConfig` | Map | OTLP exporter config (e.g. `{"endpoint": "http://localhost:4318/v1/traces"}`). |
@@ -273,15 +275,28 @@ receive both server-generated and client-relayed spans.
 
 ---
 
-## Sampling Rules
+## Sampling
 
-Sampling rules provide fine-grained, tag-based control over which spans are sampled. Rules are
-evaluated at span creation time (head-based sampling) on both client and server. Each rule has a
-`match` map of tag patterns and a `sampleRate` — the first matching rule wins.
+Hoist uses **tail-based sampling**: all spans for a locally-rooted trace are buffered in memory
+until the root span ends (or the trace times out), and the keep/drop decision is made once for
+the entire trace. This has two consequences application developers should know:
 
-The reserved key `name` matches against the span's name (not a tag) using the same glob syntax as
-tag-value patterns — useful for targeting infrastructure spans like health checks or `xh/*` routes
-without having to stamp a dedicated tag.
+- **Error traces are always preserved in full.** If any span in a trace ends in error, every
+  span in that trace (client and server, parents and children) is exported, regardless of the
+  configured sample rate.
+- **Sample rules apply at the trace level.** Rules match the root span's name and tags — not
+  individual spans within the trace. This is more intuitive: you're asking "should we keep this
+  request's trace?" rather than deciding span-by-span.
+
+### Propagation semantics
+
+- **Outbound** from a locally-rooted trace: the outgoing `traceparent` header carries
+  `sampled=1` while we are recording. Our tail decision happens after the HTTP call has been
+  made, so downstream services see `sampled=1` even for traces we might later drop — an
+  acceptable trade for keeping full-trace context on errors.
+- **Inbound** with `sampled=1`: inherit keep — record and forward, bypass the tail buffer.
+- **Inbound** with `sampled=0`: inherit drop — do not record locally. Standard W3C semantics;
+  if upstream is dropping, there's no point producing orphan spans in the backend.
 
 ### Configuration
 
@@ -295,13 +310,13 @@ Add rules to the `sampleRules` array in `xhTraceConfig`:
         {"match": {"name": "GET health/*"}, "sampleRate": 0},
         {"match": {"xh.source": "hoist"}, "sampleRate": 0.01},
         {"match": {"user.name": "jsmith"}, "sampleRate": 1.0}
-    ],
-    "alwaysSampleErrors": true
+    ]
 }
 ```
 
-In this example: health-check spans are dropped entirely, framework-generated spans are sampled at
-1%, spans from user `jsmith` are always sampled, and everything else falls back to the 10% default.
+In this example: traces rooted on health-check requests drop entirely (unless they error),
+traces rooted on framework-generated spans keep at 1%, traces rooted by user `jsmith` always
+keep, and everything else falls back to the 10% default.
 
 ### Pattern matching
 
@@ -317,18 +332,18 @@ String tag values support simple glob patterns:
 
 Non-string values (numbers, booleans) use strict equality.
 
-### Sampling flow
+### Decision flow
 
-1. Tags are assembled on the span before the sampling decision.
-2. If a valid sampled parent context exists, the child inherits the parent's decision.
-3. Otherwise, `sampleRules` are evaluated against the span's name and tags. The first rule whose
-   `match` entries all match produces the `sampleRate` for a probabilistic decision.
-4. Unmatched spans use the fallback `sampleRate`.
-5. Unsampled spans are recorded but not exported — unless they end in error and
-   `alwaysSampleErrors` is enabled, in which case `ExportSpanProcessor` promotes them to sampled and exports them through the normal batch pipeline.
-
-The client-side `TraceService` in hoist-react evaluates the same `sampleRules` config, so
-sampling decisions are consistent across client and server spans.
+1. Every span for a locally-rooted trace is recorded and accumulated in a per-trace buffer.
+2. When the root span ends, the buffer is evaluated:
+   - If any buffered span ended in error → **keep all**, export every span.
+   - Otherwise → match `sampleRules` against the root span's name and tags; the first rule whose
+     `match` entries all match produces the `sampleRate`; otherwise use the fallback.
+3. One `nextDouble()` roll against that rate decides keep or drop for the entire trace.
+4. Traces whose root never ends (async timers, WebSocket pushes, leaked spans) are evicted by a
+   periodic sweeper after `traceTimeoutMs` of silence.
+5. Client-submitted spans are deposited into the same buffer by traceId and participate in the
+   same decision — making client-to-server traces a single all-or-nothing unit.
 
 ---
 
@@ -442,12 +457,14 @@ browser interaction through server processing.
 
 Browser-generated spans are batched and posted to the `xh/submitSpans` endpoint, which routes
 to `TraceService.submitClientSpans()`. That method converts each entry into an OTel `SpanData`
-(via `ClientSpanData`) — preserving the original trace/span IDs — and exports it through the
-same pipeline as server-generated spans. Client and server spans appear as a coherent
-distributed trace in the collector.
+(via `ClientSpanData`) — preserving the original trace/span IDs — and deposits it into the
+tail-sampling buffer, where it merges with any concurrent server-side spans for the same trace.
+Client and server spans then participate in a single unified keep/drop decision, guaranteeing
+that an error anywhere in the trace preserves the full client-plus-server span tree.
 
-Client spans are pre-sampled in the browser using the shared `sampleRules` config — only
-sampled spans (and error spans when `alwaysSampleErrors` is enabled) are relayed to the server.
+Clients submit **all** spans — no client-side sampling. The server is the single source of
+truth for which traces are exported. Client-only traces (no server counterpart) are flushed by
+the sweeper when `traceTimeoutMs` elapses with no new activity.
 
 ---
 

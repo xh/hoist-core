@@ -20,6 +20,7 @@ import io.xh.hoist.pref.Preference
 import io.xh.hoist.security.AccessAll
 import io.xh.hoist.security.BaseAuthenticationService
 import io.xh.hoist.telemetry.trace.TraceService
+import io.xh.hoist.telemetry.trace.impl.SpanProcessingService
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.user.BaseUserService
@@ -42,6 +43,7 @@ class XhController extends BaseController {
     BaseUserService userService
     ClusterService clusterService
     TraceService traceService
+    SpanProcessingService spanProcessingService
 
 
     //------------------------
@@ -167,8 +169,11 @@ class XhController extends BaseController {
     //------------------------
     def submitSpans() {
         ensureClientUsernameMatchesSession()
-        def payload = parseRequestJSONArray()
-        traceService.submitClientSpans(payload as List<Map>)
+        def resource = traceService.resource
+        if (resource) {
+            def payload = parseRequestJSONArray()
+            spanProcessingService.submitClientSpans(payload as List<Map>, resource)
+        }
         renderSuccess()
     }
 
