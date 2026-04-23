@@ -4,22 +4,27 @@
 
 ### 🎁 New Features
 
-* **JDK 25 support** — hoist-core now builds on JDK 25 while continuing to ship a JAR that runs on JDK 17+
-  (see ⚙️ Technical for the toolchain/bytecode-target contract).
+* **JDK 25 support** — hoist-core now builds on JDK 25, laying the groundwork for future
+  adoption of virtual threads, generational ZGC, and other JDK 21+ runtime features.
+  Published JAR continues to target Java 17 bytecode, so apps on JDK 17+ need no action.
 * Improvements to tracing:
-  * `TraceService.withSpan` (and `ObservedRun.run`) now always pass a non-null `SpanRef` to the
-    closure — a shared no-op `SpanRef.NOOP` is used when tracing is disabled, eliminating the need
-    for `?.` null-safe calls on the span.
-  * `sampleRules` in `xhTraceConfig` now support matching against the span's name via the reserved
-    `name` key (same syntax as tag-value patterns).
-  * Server startup is now traced via `xh.server.load` and `xh.server.hoistInit` spans.
-  * Auto-instrumentation for JDBC via `opentelemetry-jdbc` — covers direct DataSource access
-    and Hibernate/GORM (incl. multi-datasource setups). Enable via new `jdbcTracingEnabled`
-    boolean on `xhTraceConfig` (default `false`).
-  * Improvements to core `kind=SERVER` span on all http requests: Capture http error status,
-    include authentication and routing time, and skip noisy requests like 'ping' and web sockets.
-  * New span tags `xh.isPrimary` and `xh.impersonating`. `user.name` now refers to the
-    *authenticated* user.
+    * `TraceService.withSpan` (and `ObservedRun.run`) now always pass a non-null `SpanRef` to the
+      closure — a shared no-op `SpanRef.NOOP` is used when tracing is disabled, eliminating the need
+      for `?.` null-safe calls on the span.
+    * `sampleRules` in `xhTraceConfig` now support matching against the span's name via the reserved
+      `name` key (same syntax as tag-value patterns).
+    * Server startup is now traced via `xh.server.load` and `xh.server.hoistInit` spans.
+    * Auto-instrumentation for JDBC via `opentelemetry-jdbc` — covers direct DataSource access
+      and Hibernate/GORM (incl. multi-datasource setups). Enable via new `jdbcTracingEnabled`
+      boolean on `xhTraceConfig` (default `false`).
+    * Improvements to core `kind=SERVER` span on all http requests: Capture http error status,
+      include authentication and routing time, and skip noisy requests like 'ping' and web sockets.
+    * New span tags `xh.isPrimary` and `xh.impersonating`. `user.name` now refers to the
+      *authenticated* user.
+* OTLP export (metrics and traces) is now gated by the new `suppressOtlpExport` instance config —
+  defaults to `'true'` in local dev, `'false'` otherwise. In local dev, exports tag
+  `deployment.environment.name` with the OS username (e.g. `Development-johndoe`) to distinguish
+  per-developer data.
 * **Typed soft-config infrastructure** — `TypedConfigMap` now supports nested typed shapes
   (a declared property whose type extends `TypedConfigMap`) and lists of typed shapes
   (e.g. `List<LdapServerOptions>`), with property-initializer defaults propagated through
@@ -34,10 +39,10 @@
     * All built-in hoist-core JSON configs are now typed and registered via this scheme.
   * See `docs/configuration.md` for the full guide.
 
-### 🐛 Bug Fixes
+### 🐞 Bug Fixes
 
 * `TypedConfigMap` subclasses with default field initializers were silently clobbering values
-   loaded from soft config.
+  loaded from soft config.
 * Tightened defaults, coercions, and schema gaps across several built-in hoist-core configs
   surfaced during the typed-config migration — latent edge cases that would only bite under
   unusual admin-edit patterns.

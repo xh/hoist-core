@@ -245,7 +245,7 @@ See [`activity-tracking.md`](./activity-tracking.md) for documentation of the tr
 |-----|------|-------------|
 | `prometheusEnabled` | Boolean | Enable the Prometheus export registry. Dynamic — takes effect on next config refresh. |
 | `prometheusConfig` | Map | Additional Prometheus configuration properties (e.g. `{"step": "PT30S"}`). |
-| `otlpEnabled` | Boolean | Enable the OTLP export registry. Dynamic. |
+| `otlpEnabled` | Boolean | Enable the OTLP export registry. Dynamic. Gated by the `suppressOtlpExport` instance config (defaults to `'true'` in local dev, `'false'` otherwise). |
 | `otlpConfig` | Map | OTLP configuration properties (e.g. `{"url": "...", "step": "PT60S"}`). |
 
 When `xhMetricsConfig` is updated, the export registries are torn down and recreated with the

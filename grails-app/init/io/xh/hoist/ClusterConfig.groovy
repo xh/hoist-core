@@ -89,10 +89,12 @@ class ClusterConfig {
      * The returned map is used as-is — entries should use standard OTEL resource attribute keys.
      */
     Map<String, String> getOtelResourceAttributes() {
+        def envName = appEnvironment.toString()
+        if (isLocalDevelopment) envName = envName + '-' + System.getProperty('user.name')
         [
             'service.name'               : appCode,
             'service.instance.id'        : instanceName,
-            'deployment.environment.name' : appEnvironment.toString(),
+            'deployment.environment.name' : envName,
             'service.version'            : appVersion
         ]
     }
