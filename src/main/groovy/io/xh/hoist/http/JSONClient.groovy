@@ -19,7 +19,7 @@ import org.apache.hc.client5.http.impl.classic.HttpClients
 import static io.opentelemetry.api.trace.SpanKind.CLIENT
 import static io.xh.hoist.telemetry.ObservedRun.observe
 import static io.xh.hoist.util.StringUtils.elide
-import static io.xh.hoist.util.Utils.traceSupportService
+import static io.xh.hoist.util.Utils.traceImplService
 import static org.apache.hc.core5.http.HttpStatus.SC_NO_CONTENT
 import static org.apache.hc.core5.http.HttpStatus.SC_OK
 
@@ -159,7 +159,7 @@ class JSONClient {
                 ]
             )
             .run { SpanRef span ->
-                traceSupportService.injectContext(method)
+                traceImplService.injectContext(method)
                 def ret = client.execute(method)
                 span.setHttpStatus(ret.code)
                 ret

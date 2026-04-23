@@ -41,7 +41,7 @@ delegate to no-op implementations, so no null checks are needed in application c
 | File | Location | Role |
 |------|----------|------|
 | `TraceService.groovy` | `grails-app/services/io/xh/hoist/telemetry/trace/` | Central tracing service — SDK lifecycle, exporter pipeline, span API |
-| `TraceSupportService.groovy` | `grails-app/services/io/xh/hoist/telemetry/trace/` | Internal service hosting W3C context propagation (inbound filter, outbound HTTP, cluster tasks), JDBC DataSource install/uninstall, and the `task {}` PromiseFactory install |
+| `TraceImplService.groovy` | `grails-app/services/io/xh/hoist/telemetry/trace/` | Internal service hosting W3C context propagation (inbound filter, outbound HTTP, cluster tasks), JDBC DataSource install/uninstall, and the `task {}` PromiseFactory install |
 | `HoistFilter.groovy` | `src/main/groovy/io/xh/hoist/` | Wraps every request — restores trace context, enforces auth, creates the SERVER span for tracing, captures any exception, and stamps HTTP semantic-convention attributes |
 | `SpanRef.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Wrapper around an active Span + Scope with tag/status/error helpers |
 | `ObservedRun.groovy` | `src/main/groovy/io/xh/hoist/telemetry/` | Composable builder for combined tracing + logging + metrics |
@@ -372,7 +372,7 @@ Proxied requests via `BaseProxyService` automatically:
 
 ### Outbound JDBC
 
-At startup, `TraceSupportService.init()` walks down each `DataSource`'s proxy chain to the
+At startup, `TraceImplService.init()` walks down each `DataSource`'s proxy chain to the
 underlying raw pool and swaps it for an `OpenTelemetryDataSource` wrap. Wrapping at the
 *bottom* of the chain means every consumer sharing the chain — Spring DI, direct JDBC,
 Hibernate/GORM — is instrumented by a single wrap. The wrap is a no-op unless
@@ -401,7 +401,7 @@ The master `enabled` flag takes precedence regardless.
 
 **Multi-datasource apps.** Grails apps configured with multiple datasources
 (`dataSource_reporting`, `sessionFactory_reporting`, etc.) are handled automatically —
-`TraceSupportService` iterates every Spring `DataSource` bean and every Hibernate
+`TraceImplService` iterates every Spring `DataSource` bean and every Hibernate
 `SessionFactory`, covering both direct-JDBC and GORM paths. The flag applies uniformly to
 all pools; there's no per-pool gating.
 

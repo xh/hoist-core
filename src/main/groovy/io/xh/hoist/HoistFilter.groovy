@@ -21,7 +21,7 @@ import jakarta.servlet.http.HttpServletResponse
 import static io.opentelemetry.api.trace.SpanKind.SERVER
 import static io.xh.hoist.util.Utils.authenticationService
 import static io.xh.hoist.util.Utils.traceService
-import static io.xh.hoist.util.Utils.traceSupportService
+import static io.xh.hoist.util.Utils.traceImplService
 import static io.xh.hoist.util.Utils.getClusterService
 
 /**
@@ -42,15 +42,21 @@ class HoistFilter implements Filter, LogSupport {
         HttpServletRequest httpRequest = (HttpServletRequest) request
         HttpServletResponse httpResponse = (HttpServletResponse) response
 
-        try (def scope = traceSupportService.restoreContextFromRequest(httpRequest)) {
+        // Always restore trace context, but conditionally add span here.
+        try (def scope = traceImplService.restoreContextFromRequest(httpRequest)) {
             shouldTrace(httpRequest) ?
-                tracedHandleRequest(httpRequest, httpResponse, chain) :
-                handleRequest(httpRequest, httpResponse, chain)
-        } catch (Throwable t) {
-            Utils.handleException(exception: t, renderTo: httpResponse, logTo: this)
+                handleTraced(httpRequest, httpResponse, chain) :
+                handleUntraced(httpRequest, httpResponse, chain)
         }
     }
 
+    //--------------------------
+    // Implementation
+    //--------------------------
+
+    //-----------------
+    // Basic (untraced) handling
+    //----------------
     private handleRequest(HttpServletRequest req, HttpServletResponse res, FilterChain chain) {
         clusterService.ensureRunning()
 
@@ -62,7 +68,18 @@ class HoistFilter implements Filter, LogSupport {
         }
     }
 
-    private static boolean shouldTrace(HttpServletRequest req) {
+    private handleUntraced(HttpServletRequest req, HttpServletResponse res, FilterChain chain) {
+        try {
+            handleRequest(req, res, chain)
+        } catch (Throwable t) {
+            Utils.handleException(exception: t, renderTo: res, logTo: this)
+        }
+    }
+
+    //------------------------
+    // Tracing
+    //------------------------
+    private boolean shouldTrace(HttpServletRequest req) {
         if (!traceService.enabled) return false
         def uri = req.requestURI
         if (!uri) return true
@@ -71,7 +88,7 @@ class HoistFilter implements Filter, LogSupport {
         return true
     }
 
-    private void tracedHandleRequest(HttpServletRequest req, HttpServletResponse res, FilterChain chain) {
+    private void handleTraced(HttpServletRequest req, HttpServletResponse res, FilterChain chain) {
         traceService.withSpan(
             name: req.method,
             kind: SERVER,
@@ -89,11 +106,6 @@ class HoistFilter implements Filter, LogSupport {
         ) { SpanRef span ->
             try {
                 handleRequest(req, res, chain)
-            } catch (Throwable t) {
-                // Catch *inside* span so `setHttpStatus` resolved and determines span error status.
-                span.recordException(t)
-                Utils.handleException(exception: t, renderTo: res, logTo: this)
-            } finally {
                 // Workaround to gain route info after execution and more properly name
                 def controller = req.getAttribute('org.grails.CONTROLLER_NAME_ATTRIBUTE') as String,
                     action = req.getAttribute('org.grails.ACTION_NAME_ATTRIBUTE') as String
@@ -102,7 +114,11 @@ class HoistFilter implements Filter, LogSupport {
                     span.span.updateName("${req.method} $route")
                     span.setTag('http.route', route)
                 }
+            } catch (Throwable t) {
+                // Catch *inside* span so `setHttpStatus` resolved and determines span error status.
+                Utils.handleException(exception: t, renderTo: res, logTo: this)
                 span.setHttpStatus(res.status)
+                span.recordException(t)
             }
         }
     }

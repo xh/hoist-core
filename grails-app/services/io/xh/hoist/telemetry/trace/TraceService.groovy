@@ -55,7 +55,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
     static clearCachesConfigs = ['xhTraceConfig']
 
     ConfigService configService
-    TraceSupportService traceSupportService
+    TraceImplService traceImplService
 
     private List<SpanExporter> _customExporters = []
     private OpenTelemetrySdk _otelSdk
@@ -68,7 +68,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
 
     void init() {
         syncConfig()
-        traceSupportService.initialize()
+        traceImplService.initialize()
     }
 
 

@@ -36,7 +36,7 @@ import static java.util.Collections.emptySet
  * @internal - not intended for direct use by applications.
  */
 @CompileStatic
-class TraceSupportService extends BaseService {
+class TraceImplService extends BaseService {
 
     static clearCachesConfigs = ['xhTraceConfig']
 
