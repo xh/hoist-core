@@ -58,7 +58,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
     static clearCachesConfigs = ['xhTraceConfig']
 
     ConfigService configService
-    TraceSupportService traceSupportService
+    TraceImplService traceImplService
     SpanProcessingService spanProcessingService
 
     private List<SpanExporter> _customExporters = []
@@ -70,7 +70,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
 
     void init() {
         syncConfig()
-        traceSupportService.initialize()
+        traceImplService.initialize()
     }
 
     //--------------------------------------------------
