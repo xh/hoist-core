@@ -188,16 +188,16 @@ class TrackService extends BaseService {
     }
 
     boolean getEnabled() {
-        return conf.enabled == true
+        return conf.enabled
     }
 
     Long getMaxEntriesPerMin() {
-        return conf.maxEntriesPerMin as Long ?: 1000
+        return conf.maxEntriesPerMin
     }
 
 
-    Map getConf() {
-        return configService.getMap('xhActivityTrackingConfig')
+    ActivityTrackingConfig getConf() {
+        return configService.getTypedConfig(ActivityTrackingConfig)
     }
 
 
@@ -236,10 +236,11 @@ class TrackService extends BaseService {
     private TrackLog createTrackLog(Map entry) {
         // Truncate dynamic app data to fit DB constraints and avoid throwing for data/msg/url
         String data = entry.data
-        if (data?.size() > (conf.maxDataLength as Integer)) {
+        def maxDataLength = conf.maxDataLength
+        if (data?.size() > maxDataLength) {
             logTrace(
                 "Track log with message [$entry.msg] includes ${data.size()} chars of JSON data",
-                "exceeds limit of ${conf.maxDataLength}",
+                "exceeds limit of $maxDataLength",
                 "data will not be persisted"
             )
             entry.data = null
@@ -272,11 +273,7 @@ class TrackService extends BaseService {
         def data = entry.rawData,
             logData = entry.logData
         if (data && (data instanceof Map)) {
-            logData = logData != null
-                ? logData
-                : conf.logData != null
-                ? conf.logData
-                : false
+            logData = logData != null ? logData : conf.logData
 
             if (logData) {
                 Map<String, Object> dataParts = data as Map<String, Object>
@@ -297,7 +294,7 @@ class TrackService extends BaseService {
     private boolean isSeverityActive(TrackLog tl) {
         def username = tl.username as String,
             cat = tl.category as String,
-            levels = (conf.levels ?: []) as List<Map>
+            levels = conf.levels
 
         def match = levels.find {
             def levUser = it.username as String,

@@ -100,12 +100,12 @@ class MemoryMonitoringService extends BaseService {
 
         // Don't allow snapshot history to grow endlessly -
         // default cap @ 1440 samples, i.e. 24 hours * 60 snaps/hour
-        if (_snapshots.size() > (config.maxSnapshots ?: 1440)) {
+        if (_snapshots.size() > config.maxSnapshots) {
             def oldest = _snapshots.min {it.key}
             _snapshots.remove(oldest.key)
         }
 
-        if (config.writeToLog !== false) {
+        if (config.writeToLog) {
             if (intervalElapsed(1 * HOURS, _lastInfoLogged)) {
                 logInfo(newSnap)
                 _lastInfoLogged = new Date()
@@ -229,8 +229,8 @@ class MemoryMonitoringService extends BaseService {
         }
     }
 
-    private Map getConfig() {
-        return configService.getMap('xhMemoryMonitoringConfig')
+    private MemoryMonitoringConfig getConfig() {
+        return configService.getTypedConfig(MemoryMonitoringConfig)
     }
 
     private boolean getPreservePastInstances() {
@@ -238,7 +238,7 @@ class MemoryMonitoringService extends BaseService {
     }
 
     private int getMaxPastInstances() {
-        return config.maxPastInstances != null ? Math.max(config.maxPastInstances as int, 0) : 5
+        return Math.max(config.maxPastInstances, 0)
     }
 
     private double roundTo2DP(v) {

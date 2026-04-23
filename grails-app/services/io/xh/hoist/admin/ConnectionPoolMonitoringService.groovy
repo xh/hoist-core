@@ -79,12 +79,12 @@ class ConnectionPoolMonitoringService extends BaseService {
 
         // Don't allow snapshot history to grow endlessly -
         // default cap @ 1440 samples, i.e. 24 hours * 60 snaps/hour
-        if (_snapshots.size() > (config.maxSnapshots ?: 1440)) {
+        if (_snapshots.size() > config.maxSnapshots) {
             def oldest = _snapshots.min {it.key}
             _snapshots.remove(oldest.key)
         }
 
-        if (config.writeToLog !== false) {
+        if (config.writeToLog) {
             if (intervalElapsed(1 * HOURS, _lastInfoLogged)) {
                 logInfo(newSnap)
                 _lastInfoLogged = new Date()
@@ -143,8 +143,8 @@ class ConnectionPoolMonitoringService extends BaseService {
         if (!enabled) throw new DataNotAvailableException("Unable to monitor connection pool usage - service disabled via config, or no suitable DataSource detected.")
     }
 
-    private Map getConfig() {
-        return configService.getMap('xhConnPoolMonitoringConfig')
+    private ConnPoolMonitoringConfig getConfig() {
+        return configService.getTypedConfig(ConnPoolMonitoringConfig)
     }
 
     void clearCaches() {

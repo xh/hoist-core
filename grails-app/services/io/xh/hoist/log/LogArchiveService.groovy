@@ -29,7 +29,7 @@ class LogArchiveService extends BaseService {
     void init() {
         createTimer(
             name: 'archiveLogs',
-            runFn: { archiveLogs((Integer) config.archiveAfterDays)},
+            runFn: { archiveLogs(config.archiveAfterDays)},
             interval: 1 * DAYS
         )
     }
@@ -166,8 +166,8 @@ class LogArchiveService extends BaseService {
         }
     }
 
-    private Map getConfig() {
-        return configService.getMap('xhLogArchiveConfig')
+    private LogArchiveConfig getConfig() {
+        return configService.getTypedConfig(LogArchiveConfig)
     }
 
     Map getAdminStats() {[

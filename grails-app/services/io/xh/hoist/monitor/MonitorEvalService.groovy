@@ -49,7 +49,7 @@ class MonitorEvalService extends BaseService {
             def tasks = monitors.collect { m -> task {runMonitor(m, timeout)}},
                 ret = Promises.waitAll(tasks)
 
-            if (config.writeToMonitorLog != false) logResults(ret)
+            if (config.writeToMonitorLog) logResults(ret)
 
             return ret
         }
@@ -138,11 +138,11 @@ class MonitorEvalService extends BaseService {
     }
 
     private long getTimeoutSeconds() {
-        (config.monitorTimeoutSecs ?: 15) as long
+        config.monitorTimeoutSecs as long
     }
 
     private MonitorConfig getConfig() {
-        new MonitorConfig(configService.getMap('xhMonitorConfig'))
+        configService.getTypedConfig(MonitorConfig)
     }
 
     private void logResults(Collection<MonitorResult> results) {

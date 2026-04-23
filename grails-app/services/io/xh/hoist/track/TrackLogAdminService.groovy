@@ -24,16 +24,16 @@ class TrackLogAdminService extends BaseService {
     ConfigService configService
     SessionFactory sessionFactory
 
-    Boolean getEnabled() {
-        return conf.enabled == true
+    boolean getEnabled() {
+        return conf.enabled
     }
 
     @ReadOnly
     List<TrackLog> queryTrackLog(Filter filter, LocalDate startDay = null, LocalDate endDay = null, Integer maxRows = null) {
         if (!enabled) throw new DataNotAvailableException('TrackService not available.')
 
-        def maxDefault = conf.maxRows.default as Integer,
-            maxLimit = conf.maxRows.limit as Integer
+        def maxDefault = conf.maxRows.defaultValue,
+            maxLimit = conf.maxRows.limit
         maxRows = [(maxRows ? maxRows : maxDefault), maxLimit].min()
 
         withDebug(["Querying activity", [maxRows: maxRows]]) {
@@ -73,7 +73,7 @@ class TrackLogAdminService extends BaseService {
         }.sort()
     }
 
-    private Map getConf() {
-        configService.getMap('xhActivityTrackingConfig')
+    private ActivityTrackingConfig getConf() {
+        configService.getTypedConfig(ActivityTrackingConfig)
     }
 }

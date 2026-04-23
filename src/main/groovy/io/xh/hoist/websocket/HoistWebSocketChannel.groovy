@@ -55,8 +55,8 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
     HoistWebSocketChannel(WebSocketSession webSocketSession) {
         def conf = getConfig(),
             queryParams = getQueryParams(webSocketSession.uri),
-            sendTimeLimit = (int) conf.sendTimeLimitMs,
-            bufferSizeLimit = (int) conf.bufferSizeLimitBytes
+            sendTimeLimit = conf.sendTimeLimitMs,
+            bufferSizeLimit = conf.bufferSizeLimitBytes
 
         logDebug("Creating managed socket session", [sendTimeLimit: sendTimeLimit, bufferSizeLimit: bufferSizeLimit])
 
@@ -113,8 +113,8 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
         UriComponentsBuilder.fromUri(uri).build().queryParams
     }
 
-    private Map getConfig() {
-        return configService.getMap('xhWebSocketConfig')
+    private WebSocketConfig getConfig() {
+        return configService.getTypedConfig(WebSocketConfig)
     }
 
     Map formatForJSON() {

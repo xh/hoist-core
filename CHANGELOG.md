@@ -20,11 +20,27 @@
     include authentication and routing time, and skip noisy requests like 'ping' and web sockets.
   * New span tags `xh.isPrimary` and `xh.impersonating`. `user.name` now refers to the
     *authenticated* user.
+* **Typed soft-config infrastructure** — `TypedConfigMap` now supports nested typed shapes
+  (a declared property whose type extends `TypedConfigMap`) and lists of typed shapes
+  (e.g. `List<LdapServerOptions>`), with property-initializer defaults propagated through
+  nested population. New `ConfigService.getTypedConfig(Class)` API and an optional
+  `typedClass:` key on `ensureRequiredConfigsCreated` entries that together make the typed
+  class the single source of truth for a config's shape on both server and client:
+    * For `clientVisible` typed configs, `getClientConfig()` now populates the payload
+      through the typed class, so declared defaults reach client code instead of being
+      duplicated in hoist-react.
+    * Startup `WARN` emitted when a typed-class property default disagrees with the
+      BootStrap `defaultValue` for the same key — flags drift between the two.
+    * All built-in hoist-core JSON configs are now typed and registered via this scheme.
+  * See `docs/configuration.md` for the full guide.
 
 ### 🐛 Bug Fixes
 
 * `TypedConfigMap` subclasses with default field initializers were silently clobbering values
    loaded from soft config.
+* Tightened defaults, coercions, and schema gaps across several built-in hoist-core configs
+  surfaced during the typed-config migration — latent edge cases that would only bite under
+  unusual admin-edit patterns.
 
 ### 📚 Libraries
 

@@ -224,7 +224,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
     }
 
     private TraceConfig getConfig() {
-        new TraceConfig(configService.getMap('xhTraceConfig'))
+        configService.getTypedConfig(TraceConfig)
     }
 
     private synchronized void syncConfig() {
