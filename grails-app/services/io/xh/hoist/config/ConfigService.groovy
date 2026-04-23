@@ -114,14 +114,18 @@ class ConfigService extends BaseService {
             AppConfig config = (AppConfig) it
             def name = config.name
             try {
+                // Sanitize via `externalValue` as the single source of truth for client-bound
+                // output — handles instance-config overrides, JSON parsing, and password
+                // obscuring uniformly for every config.
+                def external = config.externalValue(obscurePassword: true, jsonAsObject: true)
                 def typedClass = typedConfigs[name]
-                if (typedClass && config.valueType == 'json') {
-                    // Typed instance implements JSONFormat — Jackson auto-serializes via
-                    // formatForJSON(), so declared property defaults reach the client even for
-                    // keys missing from the stored map.
-                    ret[name] = getTypedConfig(typedClass)
+                if (typedClass && config.valueType == 'json' && external instanceof Map) {
+                    // Populate the typed class from the sanitized external value. Typed instance
+                    // implements JSONFormat — Jackson recurses via formatForJSON() at render
+                    // time, so declared property defaults reach the client even for missing keys.
+                    ret[name] = typedClass.getDeclaredConstructor(Map).newInstance(external)
                 } else {
-                    ret[name] = config.externalValue(obscurePassword: true, jsonAsObject: true)
+                    ret[name] = external
                 }
             } catch (Exception e) {
                 logError("Exception while getting client config: '$name'", e)
