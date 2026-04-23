@@ -239,7 +239,7 @@ ObservedRun.observe(this)
 | `sampleRules` | List\<Map\> | Ordered rules for per-span sampling. Each rule has a `match` map of tag patterns (plus the reserved `name` key that matches the span's name) and a `sampleRate`. First match wins; unmatched spans use the fallback `sampleRate`. See [Sampling Rules](#sampling-rules) below. Dynamic. |
 | `alwaysSampleErrors` | Boolean | When true (default), spans that end in error are exported even if unsampled. Dynamic. |
 | `jdbcTracingEnabled` | Boolean | Emit CLIENT spans for all JDBC `DataSource` operations — applies to every pool (primary + any additional Grails datasources). Defaults to `false`. Dynamic. See [JDBC](#outbound-jdbc) below. |
-| `otlpEnabled` | Boolean | Enable OTLP span export (HTTP/protobuf). Dynamic. |
+| `otlpEnabled` | Boolean | Enable OTLP span export (HTTP/protobuf). Dynamic. Gated by the `suppressOtlpExport` instance config (defaults to `'true'` in local dev, `'false'` otherwise). |
 | `otlpConfig` | Map | OTLP exporter config (e.g. `{"endpoint": "http://localhost:4318/v1/traces"}`). |
 
 When `xhTraceConfig` is updated, the exporter pipeline is torn down and recreated. This is

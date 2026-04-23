@@ -21,6 +21,10 @@
       include authentication and routing time, and skip noisy requests like 'ping' and web sockets.
     * New span tags `xh.isPrimary` and `xh.impersonating`. `user.name` now refers to the
       *authenticated* user.
+* OTLP export (metrics and traces) is now gated by the new `suppressOtlpExport` instance config —
+  defaults to `'true'` in local dev, `'false'` otherwise. In local dev, exports tag
+  `deployment.environment.name` with the OS username (e.g. `Development-johndoe`) to distinguish
+  per-developer data.
 
 ### 🐞 Bug Fixes
 

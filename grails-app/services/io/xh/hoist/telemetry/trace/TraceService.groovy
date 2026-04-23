@@ -32,6 +32,7 @@ import org.springframework.context.ApplicationListener
 
 import java.time.Instant
 
+import static io.xh.hoist.telemetry.OtelUtils.getSuppressOtlpExport
 import static io.xh.hoist.cluster.ClusterService.otelResourceAttributes
 import static io.xh.hoist.cluster.ClusterService.startupTime
 import static io.xh.hoist.util.Utils.exceptionHandler
@@ -229,8 +230,9 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
 
     private synchronized void syncConfig() {
         def config = getConfig()
+        def otlpEnabled = config.otlpEnabled && !suppressOtlpExport
 
-        withDebug(['Syncing tracing pipeline', [enabled: config.enabled, otlp: config.otlpEnabled]]) {
+        withDebug(['Syncing tracing pipeline', [enabled: config.enabled, otlp: otlpEnabled]]) {
             shutdownProvider()
 
             if (!config.enabled) return
@@ -248,7 +250,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
                 .addSpanProcessor(new TagSpanProcessor())
 
             // Built-in OTLP exporter
-            if (config.otlpEnabled) {
+            if (otlpEnabled) {
                 def otlpBuilder = OtlpHttpSpanExporter.builder()
                 def conf = config.otlpConfig
                 if (conf.endpoint) {
