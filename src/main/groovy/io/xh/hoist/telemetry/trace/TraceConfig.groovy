@@ -17,6 +17,14 @@ class TraceConfig extends TypedConfigMap {
     boolean otlpEnabled
     Map otlpConfig
 
+    /**
+     * Master switch for the tail-sampling buffer. When false, server and client spans are
+     * handed straight to the export pipeline as they complete — `sampleRate`, `sampleRules`,
+     * `traceTimeoutMs`, and `maxBufferedTraces` are all unused and sampling is effectively
+     * deferred to downstream (e.g. an OTel Collector). Defaults to true.
+     */
+    boolean tailSamplingEnabled = true
+
     /** Ordered match rules for per-trace sampling. Evaluated against the root span. First match wins. */
     List<Map> sampleRules = []
 

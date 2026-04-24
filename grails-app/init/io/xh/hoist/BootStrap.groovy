@@ -330,6 +330,7 @@ class BootStrap implements LogSupport {
                 valueType: 'json',
                 defaultValue: [
                     enabled: false,
+                    tailSamplingEnabled: true,
                     sampleRate: 1.0,
                     sampleRules: [],
                     traceTimeoutMs: 300000,

@@ -223,6 +223,7 @@ ObservedRun.observe(this)
 ```json
 {
     "enabled": false,
+    "tailSamplingEnabled": true,
     "sampleRate": 1.0,
     "sampleRules": [],
     "traceTimeoutMs": 300000,
@@ -236,10 +237,11 @@ ObservedRun.observe(this)
 | Key | Type | Description |
 |-----|------|-------------|
 | `enabled` | Boolean | Master switch for tracing. When false, all tracing is no-op. Dynamic. |
-| `sampleRate` | Double | Fallback per-trace sampling rate (0.0–1.0) applied when no rule matches the root span. Error traces always export regardless. Dynamic. |
-| `sampleRules` | List\<Map\> | Ordered rules matched against the **root span** of each trace. Each rule has a `match` map of tag patterns (plus the reserved `name` key that matches the span's name) and a `sampleRate`. First match wins; unmatched traces use the fallback `sampleRate`. See [Sampling Rules](#sampling-rules) below. Dynamic. |
-| `traceTimeoutMs` | Long | Silence threshold before an abandoned trace buffer is force-evicted. Not a trace-duration cap — long-running traces that stay active flush normally when their root ends. Defaults to `300000` (5 minutes). Dynamic. |
-| `maxBufferedTraces` | Integer | Cap on in-flight traces buffered by the tail sampler. New traces past the cap are dropped with a WARN log until pressure eases. Defaults to `10000`. Dynamic. |
+| `tailSamplingEnabled` | Boolean | When true (default), server and client spans flow through Hoist's per-trace tail-sampling buffer and the keep/drop decision is made server-side. When false, spans are exported as they complete and `sampleRate`/`sampleRules`/`traceTimeoutMs`/`maxBufferedTraces` are unused — sampling is delegated to downstream infrastructure (e.g. an OTel Collector). Dynamic. See [Sampling](#sampling) below. |
+| `sampleRate` | Double | Fallback per-trace sampling rate (0.0–1.0) applied when no rule matches the root span. Error traces always export regardless. Ignored when `tailSamplingEnabled` is false. Dynamic. |
+| `sampleRules` | List\<Map\> | Ordered rules matched against the **root span** of each trace. Each rule has a `match` map of tag patterns (plus the reserved `name` key that matches the span's name) and a `sampleRate`. First match wins; unmatched traces use the fallback `sampleRate`. Ignored when `tailSamplingEnabled` is false. See [Sampling Rules](#sampling-rules) below. Dynamic. |
+| `traceTimeoutMs` | Long | Silence threshold before an abandoned trace buffer is force-evicted. Not a trace-duration cap — long-running traces that stay active flush normally when their root ends. Ignored when `tailSamplingEnabled` is false. Defaults to `300000` (5 minutes). Dynamic. |
+| `maxBufferedTraces` | Integer | Cap on in-flight traces buffered by the tail sampler. New traces past the cap are dropped with a WARN log until pressure eases. Ignored when `tailSamplingEnabled` is false. Defaults to `10000`. Dynamic. |
 | `jdbcTracingEnabled` | Boolean | Emit CLIENT spans for all JDBC `DataSource` operations — applies to every pool (primary + any additional Grails datasources). Defaults to `false`. Dynamic. See [JDBC](#outbound-jdbc) below. |
 | `otlpEnabled` | Boolean | Enable OTLP span export (HTTP/protobuf). Dynamic. Gated by the `suppressOtlpExport` instance config (defaults to `'true'` in local dev, `'false'` otherwise). |
 | `otlpConfig` | Map | OTLP exporter config (e.g. `{"endpoint": "http://localhost:4318/v1/traces"}`). |
@@ -287,6 +289,15 @@ the entire trace. This has two consequences application developers should know:
 - **Sample rules apply at the trace level.** Rules match the root span's name and tags — not
   individual spans within the trace. This is more intuitive: you're asking "should we keep this
   request's trace?" rather than deciding span-by-span.
+
+### Pass-through mode
+
+Setting `tailSamplingEnabled: false` bypasses the buffer entirely. Server and client spans are
+handed directly to the export pipeline as they complete, and all sampling-related config
+(`sampleRate`, `sampleRules`, `traceTimeoutMs`, `maxBufferedTraces`) is ignored. Use this mode
+when a downstream OTel Collector (or equivalent) owns the keep/drop decision — the application
+simply produces and exports every recorded span. Inbound W3C `sampled=0` is still honored, so
+upstream drop decisions continue to propagate.
 
 ### Propagation semantics
 

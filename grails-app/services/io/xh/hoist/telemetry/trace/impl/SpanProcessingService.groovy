@@ -67,12 +67,17 @@ class SpanProcessingService extends BaseService implements SpanProcessor {
     //-----------------------------------
     /**
      * Accept client-submitted spans: wrap as {@link ClientSpanData} (with server-stamped
-     * common attrs) and merge into the same per-traceId buffer as server spans.
+     * common attrs) and merge into the same per-traceId buffer as server spans. When tail
+     * sampling is disabled, hand spans straight to the export pipeline instead.
      */
     void submitClientSpans(List<Map> spans, Resource resource) {
         def extras = commonAttrs()
-        spans.each { Map raw ->
-            def span = new ClientSpanData(raw, resource, extras)
+        def wrapped = spans.collect { Map raw -> new ClientSpanData(raw, resource, extras) }
+        if (!config.tailSamplingEnabled) {
+            Utils.traceService.exportSpans(wrapped as List<ReadableSpan>)
+            return
+        }
+        wrapped.each { span ->
             def buffer = getOrCreateBuffer(span.spanContext.traceId)
             buffer?.addSpan(span)
         }
@@ -100,6 +105,7 @@ class SpanProcessingService extends BaseService implements SpanProcessor {
 
     void onStart(Context ctx, ReadWriteSpan span) {
         commonAttrs().each { k, v -> setAttr(span, k, v) }
+        if (!config.tailSamplingEnabled) return
         def buffer = getOrCreateBuffer(span.spanContext.traceId)
         if (buffer) {
             // Record the root early so the sweeper can tell "open root" from "no root arrived."
@@ -109,6 +115,10 @@ class SpanProcessingService extends BaseService implements SpanProcessor {
     }
 
     void onEnd(ReadableSpan span) {
+        if (!config.tailSamplingEnabled) {
+            Utils.traceService.exportSpans([span])
+            return
+        }
         def buffer = _buffers.get(span.spanContext.traceId)
         buffer?.addSpan(span)
     }
@@ -128,6 +138,16 @@ class SpanProcessingService extends BaseService implements SpanProcessor {
     //-----------------------------------
     void sweep() {
         def cfg = config
+        // Drain any leftover buffers immediately if tail sampling has been turned off.
+        // Pass-through mode means "export everything," so skip the keep/drop roll.
+        if (!cfg.tailSamplingEnabled) {
+            _buffers.values().each { buffer ->
+                if (_buffers.remove(buffer.traceId, buffer)) {
+                    Utils.traceService.exportSpans(buffer.drainSpans())
+                }
+            }
+            return
+        }
         def timeoutCutoff = System.currentTimeMillis() - cfg.traceTimeoutMs,
             laggingParentCutoff = System.currentTimeMillis() - LAGGING_PARENT_MS
         _buffers.values().each { TraceBuffer buffer ->
