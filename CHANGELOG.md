@@ -23,6 +23,8 @@
       *authenticated* user.
     * Switched to **tail-based sampling**: whole traces kept or dropped as a unit, errors always
       preserved. Removes `alwaysSampleErrors`; adds `traceTimeoutMs` and `maxBufferedTraces`.
+      Tail sampling is now opt-in via `sampleEnabled` on `xhTraceConfig` (default `false`) — when
+      off, spans are exported directly without buffering.
 * OTLP export (metrics and traces) is now gated by the new `suppressOtlpExport` instance config —
   defaults to `'true'` in local dev, `'false'` otherwise. In local dev, exports tag
   `deployment.environment.name` with the OS username (e.g. `Development-johndoe`) to distinguish

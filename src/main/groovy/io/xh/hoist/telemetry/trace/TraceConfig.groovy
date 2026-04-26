@@ -13,6 +13,13 @@ import io.xh.hoist.config.TypedConfigMap
  */
 class TraceConfig extends TypedConfigMap {
     boolean enabled
+    /**
+     * Master switch for tail-based sampling. When true, spans flow through
+     * {@code TailSamplingService} for per-trace keep/drop decisions. When false (default),
+     * spans bypass the sampler entirely and are exported directly — useful for low-volume
+     * environments or when an upstream collector handles sampling.
+     */
+    boolean sampleEnabled = false
     double sampleRate
     boolean otlpEnabled
     Map otlpConfig

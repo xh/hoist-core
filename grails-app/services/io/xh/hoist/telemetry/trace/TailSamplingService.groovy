@@ -4,24 +4,21 @@
  *
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
-package io.xh.hoist.telemetry.trace.impl
+package io.xh.hoist.telemetry.trace
 
 import groovy.transform.CompileStatic
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.trace.StatusCode
 import io.opentelemetry.context.Context
 import io.opentelemetry.sdk.common.CompletableResultCode
-import io.opentelemetry.sdk.resources.Resource
 import io.opentelemetry.sdk.trace.ReadWriteSpan
 import io.opentelemetry.sdk.trace.ReadableSpan
 import io.opentelemetry.sdk.trace.SpanProcessor
+import io.opentelemetry.sdk.trace.data.SpanData
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.telemetry.trace.ClientSpanData
-import io.xh.hoist.telemetry.trace.TraceConfig
+import io.xh.hoist.util.DateTimeUtils
 import io.xh.hoist.util.Utils
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ThreadLocalRandom
@@ -30,24 +27,23 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static java.lang.System.currentTimeMillis
 
 /**
- * Singleton service that implements the terminal {@link SpanProcessor} for Hoist tracing.
+ * Singleton service that implements an optional buffering {@link SpanProcessor} for tracing.
  *
  * Buffers spans by traceId, makes one keep/drop decision per trace at flush time. Keeps any
  * trace that errored or lacks a completed root; otherwise rolls against the per-trace rate
  * from {@code sampleRules}. Config is read live from {@code xhTraceConfig} — no state is
  * baked in at construction, so config changes can't orphan the in-flight buffer.
  *
- * Server spans arrive via {@link #onEnd}; client spans via {@link #submitClientSpans} as
- * {@link ClientSpanData}. Both buffered as {@link ReadableSpan}.
+ * Server spans arrive via {@link #onEnd}; client spans via {@link #submitSpan}.
+ * Both buffered as {@link ReadableSpan}.
  *
  * Flushing is driven by {@link #processTraces} (timer): root ended → flush; open root or
- * {@code fromHoistClient} with no root yet → wait up to {@code traceTimeoutMs} of silence;
+ * {@code rootAtHoistClient} with no root yet → wait up to {@code traceTimeoutMs} of silence;
  * otherwise → flush after a short lagging-parent window. On a keep decision, drained spans are
- * handed to {@code TraceService.exportSpans()} for batched export — this service does not own
- * any exporter state.
+ * handed to {@code TraceService.exportProcessor} — this service does not own any exporter state.
  */
 @CompileStatic
-class SpanProcessingService extends BaseService implements SpanProcessor {
+class TailSamplingService extends BaseService implements SpanProcessor {
 
     static clearCachesConfigs = ['xhTraceConfig']
 
@@ -58,10 +54,6 @@ class SpanProcessingService extends BaseService implements SpanProcessor {
     private final ConcurrentHashMap<String, TraceBuffer> _buffers = new ConcurrentHashMap<>()
     private volatile TraceConfig _config
 
-    // Re-entry guard against recursion when OTel auto-instrumentation creates spans for our own work.
-    private static final ThreadLocal<Boolean> inOnStart = ThreadLocal.withInitial { false }
-    private static final AttributeKey<Boolean> DROPPED_RECURSIVE = AttributeKey.booleanKey('xh.droppedByGuard')
-
     void init() {
         loadConfig()
         createTimer(name: 'processTraces', runFn: this.&processTraces, interval: 5 * SECONDS)
@@ -71,33 +63,14 @@ class SpanProcessingService extends BaseService implements SpanProcessor {
     // Public hooks
     //-----------------------------------
     /**
-     * Accept client-submitted spans: wrap as {@link ClientSpanData} (with server-stamped
-     * common attrs) and merge into the same per-traceId buffer as server spans.
+     * Accept an external span that won't arrive via SpanProcessor API (e.g. client spans)
      */
-    void submitClientSpans(List<Map> spans, Resource resource) {
-        def extras = commonAttrs()
-        spans.each { Map raw ->
-            def span = new ClientSpanData(raw, resource, extras)
-            def buffer = getOrCreateBuffer(span.spanContext.traceId)
-            if (buffer) {
-                buffer.noteSpanStarted(span)
-                buffer.noteSpanComplete(span)
-            }
+    void submitSpan(ReadableSpan span) {
+        def buffer = getOrCreateBuffer(span.spanContext.traceId)
+        if (buffer) {
+            buffer.noteSpanStarted(span)
+            buffer.noteSpanComplete(span)
         }
-    }
-
-    /** Server-authoritative attributes stamped on every span (server and client). */
-    Map<String, Object> commonAttrs() {
-        def attrs = [:] as Map<String, Object>
-        def identityService = Utils.identityService,
-            authUsername = identityService?.authUsername,
-            username = identityService?.username
-        if (authUsername) {
-            attrs['user.name'] = authUsername
-            if (authUsername != username) attrs['xh.impersonating'] = username
-        }
-        attrs['xh.isPrimary'] = Utils.clusterService.isPrimary
-        return attrs
     }
 
     //-----------------------------------
@@ -107,33 +80,14 @@ class SpanProcessingService extends BaseService implements SpanProcessor {
     boolean isEndRequired() { true }
 
     void onStart(Context ctx, ReadWriteSpan span) {
-        if (inOnStart.get()) {
-            // Nested span from our own onStart work - tag and bail to avoid infinite recursion
-            span.setAttribute(DROPPED_RECURSIVE, true)
-            return
-        }
-        inOnStart.set(true)
-        try {
-            commonAttrs().each { k, v -> setAttr(span, k, v) }
-            getOrCreateBuffer(span.spanContext.traceId)?.noteSpanStarted(span)
-        } finally {
-            inOnStart.set(false)
-        }
+        getOrCreateBuffer(span.spanContext.traceId)?.noteSpanStarted(span)
     }
 
     void onEnd(ReadableSpan span) {
-        if (!span.toSpanData().attributes.get(DROPPED_RECURSIVE)) {
-            _buffers.get(span.spanContext.traceId)?.noteSpanComplete(span)
-        }
+        _buffers.get(span.spanContext.traceId)?.noteSpanComplete(span)
     }
 
-    /**
-     * No-op: called by SDK on TracerProvider rebuild. We intentionally preserve buffers across
-     * config/exporter changes. App shutdown flushing is handled via BaseService.destroy() if
-     * needed — for now we accept dropping anything in flight at JVM stop.
-     */
     CompletableResultCode shutdown() { CompletableResultCode.ofSuccess() }
-
     CompletableResultCode forceFlush() { CompletableResultCode.ofSuccess() }
 
 
@@ -141,31 +95,36 @@ class SpanProcessingService extends BaseService implements SpanProcessor {
     // Implementation
     //-----------------------------------
     private void processTraces() {
-        def cfg = config
-        def timeoutCutoff = currentTimeMillis() - cfg.traceTimeoutMs,
+        // Sampling disabled — drain anything still buffered (e.g. from before a runtime flip)
+        if (!_config.sampleEnabled) {
+            _buffers.values().each { flushAndRemove(it) }
+            return
+        }
+
+        def timeoutCutoff = currentTimeMillis() - _config.traceTimeoutMs,
             laggingParentCutoff = currentTimeMillis() - LAGGING_PARENT_MS
         _buffers.values().each { TraceBuffer buffer ->
             def root = buffer.root,
                 lastActivityMs = buffer.lastActivityMs,
-                fromHoistClient = buffer.fromHoistClient
+                rootAtHoistClient = buffer.rootAtHoistClient
 
             // 1) Happy path — root completed, trace is done.
             if (root?.hasEnded()) {
-                flushAndRemove(buffer, cfg)
+                flushAndRemove(buffer)
                 return
             }
 
-            // 2) Timeout paths.
-            if (root != null || fromHoistClient) {
+            // 2) Timeout paths.I
+            if (root != null || rootAtHoistClient) {
                 // Running root, or no root yet but it's in a Hoist client still working on it.
                 if (lastActivityMs < timeoutCutoff) {
-                    logWarn("Trace timed out after ${cfg.traceTimeoutMs}ms of inactivity", [traceId: buffer.traceId])
-                    flushAndRemove(buffer, cfg)
+                    logWarn("Trace timed out after ${_config.traceTimeoutMs}ms of inactivity", [traceId: buffer.traceId])
+                    flushAndRemove(buffer)
                 }
             } else {
                 // No parent arrived — external parent we'll never see, or a missing local parent.
                 // Short wait to avoid flushing mid-stream, then drop-or-export.
-                if (lastActivityMs < laggingParentCutoff) flushAndRemove(buffer, cfg)
+                if (lastActivityMs < laggingParentCutoff) flushAndRemove(buffer)
             }
         }
     }
@@ -174,11 +133,8 @@ class SpanProcessingService extends BaseService implements SpanProcessor {
         def existing = _buffers.get(traceId)
         if (existing) return existing
 
-        // Skip buffering if config not yet loaded — avoids recursion when our own config-load
-        // DB call triggers onStart before init() finishes its first loadConfig().
-        def cfg = _config
-        if (cfg == null) return null
-        def size = _buffers.size()
+        def cfg = _config,
+            size = _buffers.size()
         if (size >= cfg.maxBufferedTraces) return null
         if (size == cfg.maxBufferedTraces - 1) {
             logWarn('Span buffer reached max. Next trace may be skipped.', [limit: cfg.maxBufferedTraces])
@@ -187,25 +143,29 @@ class SpanProcessingService extends BaseService implements SpanProcessor {
         return _buffers.putIfAbsent(traceId, created) ?: created
     }
 
-    private void flushAndRemove(TraceBuffer buffer, TraceConfig cfg) {
+    private void flushAndRemove(TraceBuffer buffer) {
         if (!_buffers.remove(buffer.traceId, buffer)) return
-        if (!shouldKeep(buffer, cfg)) return
-        Utils.traceService.exportSpans(buffer.drainSpans())
+        if (shouldKeep(buffer)) {
+            buffer.drainSpans().each { traceService.exportProcessor.submitSpan(it) }
+        }
     }
 
-    private boolean shouldKeep(TraceBuffer buffer, TraceConfig cfg) {
+    private boolean shouldKeep(TraceBuffer buffer) {
         // Keep on error or when we lack context to decide (no root, or root never ended).
         return buffer.hasError ||
             !buffer.root?.hasEnded() ||
-            ThreadLocalRandom.current().nextDouble() < getSampleRate(buffer, cfg)
+            ThreadLocalRandom.current().nextDouble() < getSampleRate(buffer)
     }
 
-    private double getSampleRate(TraceBuffer buffer, TraceConfig cfg) {
-        def rules = cfg.sampleRules
-        if (!rules) return cfg.sampleRate
+    private double getSampleRate(TraceBuffer buffer) {
+        def enabled = _config.sampleEnabled,
+            rules = _config.sampleRules,
+            rate = _config.sampleRate
+        if (!enabled) return 1d
+        if (!rules) return rate
         try {
-            def rootName = buffer.rootName
-            def rootTags = buffer.rootTags
+            def rootName = buffer.root?.name,
+                rootTags = buffer.rootTags
             for (Map rule in rules) {
                 Map match = rule.match as Map
                 if (match?.every { k, v ->
@@ -214,7 +174,7 @@ class SpanProcessingService extends BaseService implements SpanProcessor {
                     return ((Number) rule.sampleRate).doubleValue()
                 }
             }
-            return cfg.sampleRate
+            return rate
         } catch (Exception e) {
             logError('Failed to compute sample rate for trace', e)
             return 0d
@@ -235,14 +195,6 @@ class SpanProcessingService extends BaseService implements SpanProcessor {
         return actual == pattern
     }
 
-    private static void setAttr(ReadWriteSpan span, String k, Object v) {
-        if (v instanceof Boolean) span.setAttribute(k, v)
-        else if (v instanceof Number) span.setAttribute(k, v.longValue())
-        else span.setAttribute(k, v.toString())
-    }
-
-    private TraceConfig getConfig() { _config }
-
     private void loadConfig() {
         _config = new TraceConfig(configService.getMap('xhTraceConfig'))
     }
@@ -261,17 +213,14 @@ class SpanProcessingService extends BaseService implements SpanProcessor {
     // TraceBuffer — per-trace span accumulator
     //------------------------------------------
     @CompileStatic
-    private static class TraceBuffer {
-        private static final Logger log = LoggerFactory.getLogger(SpanProcessingService)
-        private static final AttributeKey<Boolean> FROM_HOIST_CLIENT_KEY = AttributeKey.booleanKey('xh.fromHoistClient')
-
+    private class TraceBuffer {
         final String traceId
 
         private List<ReadableSpan> _completedSpans = []
         private volatile long _lastActivityMs = currentTimeMillis()
         volatile boolean hasError
         volatile boolean overflowed
-        volatile boolean fromHoistClient
+        volatile boolean rootAtHoistClient
         volatile ReadableSpan root
 
         TraceBuffer(String traceId) {
@@ -287,8 +236,12 @@ class SpanProcessingService extends BaseService implements SpanProcessor {
         long getLastActivityMs() { _lastActivityMs }
 
         synchronized void noteSpanStarted(ReadableSpan span) {
-            // Record the root early so the sweeper can tell "open root" from "no root arrived."
-            if (!span.parentSpanContext.isValid()) root = span
+            def parent = span.parentSpanContext
+            if (!parent.isValid()) {
+                root = span
+            } else if (parent.isRemote() && Utils.currentRequest?.getHeader('X-Hoist-Client') == '1') {
+                rootAtHoistClient = true
+            }
             _lastActivityMs = currentTimeMillis()
         }
 
@@ -296,18 +249,14 @@ class SpanProcessingService extends BaseService implements SpanProcessor {
             if (_completedSpans.size() >= MAX_SPANS_PER_TRACE) {
                 if (!overflowed) {
                     overflowed = true
-                    log.warn("Trace truncated — span cap reached [traceId={}, limit={}]", traceId, MAX_SPANS_PER_TRACE)
+                    logWarn('Trace truncated — span cap reached', [traceId: traceId, limit: MAX_SPANS_PER_TRACE])
                 }
                 return
             }
             _completedSpans << span
-            def data = span.toSpanData()
-            if (data.status.statusCode == StatusCode.ERROR) hasError = true
-            if (data.attributes.get(FROM_HOIST_CLIENT_KEY)) fromHoistClient = true
+            if (span.toSpanData().status.statusCode == StatusCode.ERROR) hasError = true
             _lastActivityMs = currentTimeMillis()
         }
-
-        String getRootName() { root?.name }
 
         Map<String, Object> getRootTags() {
             def attrs = root?.toSpanData()?.attributes
