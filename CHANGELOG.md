@@ -4,9 +4,10 @@
 
 ### 💥 Breaking Changes
 
-* Removed the `alwaysSampleErrors` option from `xhTraceConfig` — error spans now follow the same
-  sampling rules as everything else. Apps relying on always-on error capture should set a
-  `sampleRules` entry matching on span status, or raise the fallback `sampleRate`.
+* `TraceService` no longer supports the `alwaysSampleErrors` flag, which was deemed inappropriate
+  for head-based sampling. This change is consistent with a similar update in hoist-core v86. Apps
+  requiring full visibility into error spans for a particular set of errors should ensure they
+  are sampled via the existing rules.
 
 ### 🎁 New Features
 
