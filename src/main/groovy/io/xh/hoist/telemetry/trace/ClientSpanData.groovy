@@ -17,6 +17,7 @@ import io.opentelemetry.api.trace.TraceState
 import io.opentelemetry.sdk.common.InstrumentationLibraryInfo
 import io.opentelemetry.sdk.common.InstrumentationScopeInfo
 import io.opentelemetry.sdk.resources.Resource
+import io.opentelemetry.sdk.trace.ReadableSpan
 import io.opentelemetry.sdk.trace.data.EventData
 import io.opentelemetry.sdk.trace.data.LinkData
 import io.opentelemetry.sdk.trace.data.SpanData
@@ -33,7 +34,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS
  * spans form a coherent distributed trace in the collector.
  */
 @CompileStatic
-class ClientSpanData implements SpanData {
+class ClientSpanData implements SpanData, ReadableSpan {
 
     // LIBRARY for backward compatibility
     private static final InstrumentationScopeInfo SCOPE = InstrumentationScopeInfo.create('io.xh.hoist.client')
@@ -120,6 +121,11 @@ class ClientSpanData implements SpanData {
     int getTotalRecordedEvents() { _events.size() }
     int getTotalRecordedLinks() { 0 }
     int getTotalAttributeCount() { _attributes.size() }
+
+    // ReadableSpan
+    SpanData toSpanData() { this }
+    long getLatencyNanos() { _endEpochNanos - _startEpochNanos }
+    def <T> T getAttribute(AttributeKey<T> key) { _attributes.get(key) }
 
 
     private static SpanKind parseSpanKind(String kind) {

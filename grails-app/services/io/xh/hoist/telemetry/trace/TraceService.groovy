@@ -152,7 +152,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
         def sdk = _otelSdk
         if (!sdk) return SpanRef.NOOP
 
-        // Build complete tag set
+        // Build complete tag set. hoistTags applied here (early) so they're visible to the sampler.
         // Remove nulls at end, they are used in this API to just prevent defaults
         tags = [
             'xh.source': name.startsWith('xh.') ? 'hoist' : 'app',
@@ -216,7 +216,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
         if (!resource) return
         def extraTags = hoistTags()
         spans.each {
-            exportProcessor.submitSpan(new ClientSpanData(it, resource, extraTags) as ReadableSpan)
+            exportProcessor.submitSpan(new ClientSpanData(it, resource, extraTags))
         }
     }
 
@@ -412,13 +412,17 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
         CompletableResultCode forceFlush() { CompletableResultCode.ofSuccess() }
     }
 
+    /**
+     * Stamps hoistTags onto every span covering auto-instrumented spans that bypass createSpan.
+     */
     @CompileStatic
     class TagSpanProcessor implements SpanProcessor {
         boolean isStartRequired() { true }
         boolean isEndRequired() { false }
         void onStart(Context ctx, ReadWriteSpan span) {
+            def ref = new SpanRef(span, Scope.noop())
             hoistTags().each { k, v ->
-                if (v != null) span.setAttribute(k, v as String)
+                if (v != null) ref.setTag(k, v)
             }
         }
         void onEnd(ReadableSpan span) {}

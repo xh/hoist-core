@@ -198,7 +198,7 @@ class Utils {
     /**
      * Sanitizes, pre-processes, and logs exception.
      *
-     * Used by BaseController, ClusterRequest, Timer, and AccessInterceptor to handle
+     * Used by BaseController, ClusterRequest, Timer, and HoistInterceptor to handle
      * otherwise unhandled exception.
      *
      *  @see ExceptionHandler, which may be overridden to customize this behavior.

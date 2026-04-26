@@ -12,6 +12,7 @@ import groovy.transform.CompileStatic
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.cluster.ClusterResult
 import io.xh.hoist.json.JSONParser
+import io.xh.hoist.telemetry.trace.SpanRef
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser
@@ -23,6 +24,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import static grails.async.web.WebPromises.task
+import static io.xh.hoist.HoistFilter.REQUEST_SPAN_ATTR
 import static org.apache.hc.core5.http.HttpStatus.SC_NO_CONTENT
 import static org.apache.hc.core5.http.HttpStatus.SC_OK
 
@@ -149,6 +151,8 @@ abstract class BaseController implements LogSupport, IdentitySupport {
     }
 
     private void handleUncaughtInternal(Throwable t) {
+        def span = request.getAttribute(REQUEST_SPAN_ATTR) as SpanRef
+        span?.recordException(t)
         Utils.handleException(
             exception: t,
             logTo: this,

@@ -11,6 +11,7 @@ import io.opentelemetry.api.trace.Span
 import io.opentelemetry.api.trace.SpanKind
 import io.opentelemetry.api.trace.StatusCode
 import io.opentelemetry.context.Scope
+import io.xh.hoist.exception.RoutineException
 
 /**
  * An active span and its associated scope, returned by {@link TraceService#createSpan}.
@@ -43,6 +44,11 @@ class SpanRef implements Closeable {
         this.span = span
         this.scope = scope
         this.kind = kind
+    }
+
+    /** Update the span's display name. */
+    void updateName(String name) {
+        span.updateName(name)
     }
 
     /** Set attributes on the span. Values can be String, long, boolean, or double. */
@@ -78,6 +84,8 @@ class SpanRef implements Closeable {
 
     /** Record an exception as an event on the span. Does not change span status.*/
     void recordException(Throwable t) {
+        // Skip routine exceptions -- Datadog's OTLP intake maps any exception event onto error.* tags.
+        if (t instanceof RoutineException) return
         span.recordException(t)
     }
 

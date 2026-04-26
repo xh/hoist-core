@@ -57,7 +57,7 @@ Foundational patterns that everything else builds on.
 | Document | Description | Key Topics |
 |----------|-------------|------------|
 | [`base-classes.md`](./base-classes.md) | Base classes for services and controllers — lifecycle, resource factories, CRUD patterns | BaseService, `init`/`destroy`, `createCache`, `createCachedValue`, `createTimer`, `createIMap`, BaseController, `renderJSON`, `parseRequestJSON`, RestController, `doCreate`/`doList`/`doUpdate`/`doDelete` |
-| [`request-flow.md`](./request-flow.md) | How an HTTP request flows through the Hoist framework | HoistCoreGrailsPlugin, HoistFilter, UrlMappings, AccessInterceptor, controller dispatch, JSON response |
+| [`request-flow.md`](./request-flow.md) | How an HTTP request flows through the Hoist framework | HoistCoreGrailsPlugin, HoistFilter, UrlMappings, HoistInterceptor, controller dispatch, JSON response |
 | [`authentication.md`](./authentication.md) | Authentication service contract and user identity | BaseAuthenticationService, BaseUserService, HoistUser, IdentityService, impersonation |
 | [`authorization.md`](./authorization.md) | Role-based access control and controller security annotations | BaseRoleService, DefaultRoleService, Role, RoleMember, `@AccessRequiresRole`, `@AccessAll`, built-in roles |
 

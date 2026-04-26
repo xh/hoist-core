@@ -5,12 +5,18 @@
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.security
+package io.xh.hoist
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.exception.NotAuthorizedException
 import io.xh.hoist.exception.NotFoundException
 import io.xh.hoist.log.LogSupport
+import io.xh.hoist.security.Access
+import io.xh.hoist.security.AccessAll
+import io.xh.hoist.security.AccessRequiresAllRoles
+import io.xh.hoist.security.AccessRequiresAnyRole
+import io.xh.hoist.security.AccessRequiresRole
+import io.xh.hoist.telemetry.trace.SpanRef
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
 import io.xh.hoist.util.Utils
@@ -20,10 +26,11 @@ import jakarta.servlet.http.HttpServletRequest
 import java.lang.annotation.Annotation
 import java.lang.reflect.Method
 
+import static io.xh.hoist.HoistFilter.REQUEST_SPAN_ATTR
 import static org.springframework.util.ReflectionUtils.findMethod
 
 @CompileStatic
-class AccessInterceptor implements LogSupport {
+class HoistInterceptor implements LogSupport {
 
     IdentityService identityService
 
@@ -35,7 +42,7 @@ class AccessInterceptor implements LogSupport {
         AccessAll
     ]
 
-    AccessInterceptor() {
+    HoistInterceptor() {
         matchAll()
     }
 
@@ -51,6 +58,14 @@ class AccessInterceptor implements LogSupport {
             Class clazz = controllerClass?.clazz
             String actionNm = actionName ?: controllerClass?.defaultAction
             Method method = clazz && actionNm ? findMethod(clazz, actionNm) : null
+
+            // Stamp the SERVER span (created by HoistFilter) now that route mapping is known.
+            def span = req.getAttribute(REQUEST_SPAN_ATTR) as SpanRef
+            if (span && controllerName) {
+                def route = "$controllerName/${actionNm ?: 'index'}"
+                span.updateName("${req.method} $route")
+                span.setTag('http.route', route)
+            }
 
             // Paranoia? This should already have been mapped to xh/notFound
             if (!method) throw new NotFoundException()
