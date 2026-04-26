@@ -39,10 +39,11 @@ import org.springframework.context.ApplicationListener
 
 import java.time.Instant
 
-import static io.xh.hoist.telemetry.OtelUtils.getSuppressOtlpExport
+import static io.xh.hoist.telemetry.OtelUtils.getOtlpEnabledInLocalDev
 import static io.xh.hoist.cluster.ClusterService.otelResourceAttributes
 import static io.xh.hoist.cluster.ClusterService.startupTime
 import static io.xh.hoist.util.Utils.exceptionHandler
+import static io.xh.hoist.util.Utils.isLocalDevelopment
 import static java.lang.Long.parseLong
 import static java.util.concurrent.TimeUnit.MILLISECONDS
 
@@ -254,7 +255,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
 
     private synchronized void syncConfig() {
         _config = new TraceConfig(configService.getMap('xhTraceConfig'))
-        def otlpEnabled = _config.otlpEnabled && !suppressOtlpExport
+        def otlpEnabled = _config.otlpEnabled && (!isLocalDevelopment || otlpEnabledInLocalDev)
 
         withDebug(['Syncing tracing pipeline', [enabled: _config.enabled, otlp: otlpEnabled]]) {
             shutdownProvider()

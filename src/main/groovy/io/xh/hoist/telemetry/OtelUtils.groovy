@@ -7,16 +7,14 @@
 package io.xh.hoist.telemetry
 
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
-import static io.xh.hoist.util.Utils.isLocalDevelopment
 
 class OtelUtils {
 
     /**
-     * True if OTLP export (metrics + traces) is suppressed. Defaults to false in local dev,
-     * true otherwise — override via `suppressOtlpExport` instance config.
+     * True if OTLP export (metrics + traces) should run in local development. Defaults to false —
+     * set the `otlpEnabledInLocalDev` instance config to `'true'` to opt in. No effect elsewhere.
      **/
-    static boolean getSuppressOtlpExport() {
-        def val = getInstanceConfig('suppressOtlpExport')
-        return val != null ? val == 'true' : isLocalDevelopment
+    static boolean getOtlpEnabledInLocalDev() {
+        return getInstanceConfig('otlpEnabledInLocalDev') == 'true'
     }
 }
