@@ -50,7 +50,7 @@ class ClientSpanData implements SpanData {
     private final List<EventData> _events
     private final StatusData _status
 
-    ClientSpanData(Map span, Resource resource) {
+    ClientSpanData(Map span, Resource resource, Map<String, ?> extraTags = [:]) {
         _resource = resource
         _name = span.name as String
 
@@ -72,9 +72,12 @@ class ClientSpanData implements SpanData {
         def tags = span.tags as Map ?: [:]
         _kind = parseSpanKind(span.kind as String)
 
-        // Build attributes from client tags
+        // Build attributes from client tags + server-side cross-cutting tags
         def ab = Attributes.builder()
         tags.each { k, v -> ab.put(AttributeKey.stringKey(k as String), v as String) }
+        extraTags?.each { k, v ->
+            if (v != null) ab.put(AttributeKey.stringKey(k as String), v as String)
+        }
         _attributes = ab.build()
 
         // Events (e.g. exception recordings)

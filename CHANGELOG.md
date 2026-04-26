@@ -2,6 +2,12 @@
 
 ## 39.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes
+
+* Removed the `alwaysSampleErrors` option from `xhTraceConfig` — error spans now follow the same
+  sampling rules as everything else. Apps relying on always-on error capture should set a
+  `sampleRules` entry matching on span status, or raise the fallback `sampleRate`.
+
 ### 🎁 New Features
 
 * **JDK 25 support** — hoist-core now builds on JDK 25, laying the groundwork for future

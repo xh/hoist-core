@@ -12,19 +12,26 @@ import groovy.transform.NamedVariant
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.trace.Span
 import io.opentelemetry.api.trace.SpanKind
+import io.opentelemetry.context.Context
 import io.opentelemetry.context.Scope
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator
 import io.opentelemetry.context.propagation.ContextPropagators
 import io.opentelemetry.sdk.OpenTelemetrySdk
+import io.opentelemetry.sdk.common.CompletableResultCode
 import io.opentelemetry.sdk.resources.Resource
+import io.opentelemetry.sdk.trace.ReadWriteSpan
+import io.opentelemetry.sdk.trace.ReadableSpan
 import io.opentelemetry.sdk.trace.SdkTracerProvider
+import io.opentelemetry.sdk.trace.SpanProcessor
 import io.opentelemetry.sdk.trace.data.SpanData
 import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter
+import io.opentelemetry.sdk.trace.export.BatchSpanProcessor
 import io.opentelemetry.sdk.trace.export.SpanExporter
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.exception.RoutineException
 import io.opentelemetry.api.common.AttributeKey
+import io.xh.hoist.util.Utils
 import org.springframework.boot.context.event.ApplicationFailedEvent
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.context.event.SpringApplicationEvent
@@ -61,10 +68,12 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
     private OpenTelemetrySdk _otelSdk
     private SpanExporter _otlpExporter
     private Resource _resource
-    private List<Map> _sampleRules = []
-    private double _sampleRate = 1.0
+    private TraceConfig _config
     private final HoistSampler _sampler = new HoistSampler()
     private SpanRef _serverLoadSpan
+
+    /** Sink for exporting spans. @internal*/
+    ExportProcessor exportProcessor
 
     void init() {
         syncConfig()
@@ -125,8 +134,6 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
      * The `xh.source` tag defaults to `'hoist'` for spans whose name starts with `'xh.'` and
      * `'app'` otherwise. Callers may override all tag values, including setting to null to prevent
      * any default tag from being applied.
-     *
-     * @internal
      */
     @NamedVariant
     private SpanRef createSpan(
@@ -149,6 +156,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
         tags = [
             'xh.source': name.startsWith('xh.') ? 'hoist' : 'app',
             'code.namespace': caller?.class?.name,
+            *:hoistTags(),
             *:tags
         ] as Map<String, ?>
         tags.removeAll({it.value == null})
@@ -196,21 +204,21 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
      * Converts the client span JSON into OTel {@link io.opentelemetry.sdk.trace.data.SpanData}
      * objects and exports them through the configured export pipeline.
      *
-     * Client spans are pre-sampled by the client -- only exportable (i.e. sampled spans or error spans)
+     * Client spans are pre-sampled by the client -- only exportable (i.e. sampled spans)
      * are expected here.
      *
-     * @param spans - list of span maps as serialized by the client {@code Span.toJSON()}
+     * @param spans - list of span maps as serialized by the client}
+     * @internal
      */
     void submitClientSpans(List<Map> spans) {
         def resource = _resource
         if (!resource) return
-        def data = spans.collect { new ClientSpanData(it, resource) } as List<SpanData>
-        eachExporter {SpanExporter e -> e.export(data)}
+        def extraTags = hoistTags()
+        spans.each {
+            exportProcessor.submitSpan(new ClientSpanData(it, resource, extraTags) as ReadableSpan)
+        }
     }
 
-    //--------------------------------------------------
-    // Implementation
-    //--------------------------------------------------
     /**
      * Open the outer 'xh.server.load' span, backdated to {@link io.xh.hoist.cluster.ClusterService#startupTime}.
      * Must be called from hoist-core's BootStrap thread.
@@ -224,35 +232,43 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
         )
     }
 
-    private TraceConfig getConfig() {
-        new TraceConfig(configService.getMap('xhTraceConfig'))
+    //----------------
+    // Implementation
+    //----------------
+    /**
+     * Cross-cutting tags stamped on every span — both server-generated
+     * (via {@link ExportProcessor#onStart}) and client-relayed (via {@link ClientSpanData}).
+     *
+     * Note: must never generate spans itself to avoid infinitee recursion.  Keep simple.
+     */
+    private Map<String, ?> hoistTags() {
+        def identityService = Utils.identityService,
+            authUsername = identityService?.authUsername,
+            username = identityService?.username
+        return [
+            'user.name': authUsername,
+            'xh.impersonating': (authUsername && authUsername != username) ? username : null,
+            'xh.isPrimary': Utils.clusterService?.isPrimary
+        ]
     }
 
     private synchronized void syncConfig() {
-        def config = getConfig()
-        def otlpEnabled = config.otlpEnabled && !suppressOtlpExport
+        _config = new TraceConfig(configService.getMap('xhTraceConfig'))
+        def otlpEnabled = _config.otlpEnabled && !suppressOtlpExport
 
-        withDebug(['Syncing tracing pipeline', [enabled: config.enabled, otlp: otlpEnabled]]) {
+        withDebug(['Syncing tracing pipeline', [enabled: _config.enabled, otlp: otlpEnabled]]) {
             shutdownProvider()
 
-            if (!config.enabled) return
+            if (!_config.enabled) return
 
             def attrsBuilder = Attributes.builder()
             otelResourceAttributes.each { k, v -> attrsBuilder.put(AttributeKey.stringKey(k), v) }
             _resource = Resource.default.merge(Resource.create(attrsBuilder.build()))
 
-            _sampleRules = config.sampleRules ?: []
-            _sampleRate = config.sampleRate.toDouble()
-
-            def providerBuilder = SdkTracerProvider.builder()
-                .setResource(_resource)
-                .setSampler(_sampler)
-                .addSpanProcessor(new TagSpanProcessor())
-
             // Built-in OTLP exporter
             if (otlpEnabled) {
                 def otlpBuilder = OtlpHttpSpanExporter.builder()
-                def conf = config.otlpConfig
+                def conf = _config.otlpConfig
                 if (conf.endpoint) {
                     otlpBuilder.setEndpoint(conf.endpoint as String)
                 }
@@ -269,21 +285,18 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
                 _otlpExporter = null
             }
 
-            eachExporter {SpanExporter e ->
-                providerBuilder.addSpanProcessor(new ExportSpanProcessor(e, config.alwaysSampleErrors))
-            }
+            exportProcessor = new ExportProcessor()
+            def providerBuilder = SdkTracerProvider.builder()
+                .setResource(_resource)
+                .setSampler(_sampler)
+                .addSpanProcessor(new TagSpanProcessor())
+                .addSpanProcessor(exportProcessor)
 
             _otelSdk = OpenTelemetrySdk.builder()
                 .setTracerProvider(providerBuilder.build())
                 .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.instance))
                 .build()
         }
-    }
-
-    private void eachExporter(Closure c) {
-        _customExporters.each(c)
-        def _otlp = _otlpExporter
-        if (_otlp) c(_otlp)
     }
 
     private void shutdownProvider() {
@@ -300,9 +313,11 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
      */
     private double getSampleRate(String name, Map tags) {
         try {
-            if (!_sampleRules) return _sampleRate
+            def fallback = _config.sampleRate.toDouble(),
+                rules = _config.sampleRules
+            if (!rules) return fallback
 
-            for (Map rule in _sampleRules) {
+            for (Map rule in rules) {
                 Map match = rule.match as Map
                 if (match?.every { k, v -> matchesValue(k == 'name' ? name : tags[k], v) } &&
                     rule.sampleRate instanceof Number
@@ -310,7 +325,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
                     return ((Number) rule.sampleRate).doubleValue()
                 }
             }
-            return _sampleRate
+            return fallback
         } catch (Exception e) {
             logError("Failed to compute sample rate", e)
             return 0d
@@ -366,4 +381,47 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
         config: configForAdminStats('xhTraceConfig')
     ]}
 
+
+    //------------------------
+    // Support inner classes
+    //------------------------
+    @CompileStatic
+    class ExportProcessor implements SpanProcessor {
+        List<BatchSpanProcessor> batchExporters
+        ExportProcessor() {
+            def exporters = _otlpExporter ? _customExporters + [_otlpExporter] : _customExporters
+            batchExporters = exporters.collect { BatchSpanProcessor.builder(it).build() }
+        }
+
+        void submitSpan(ReadableSpan span) {
+            onEnd(span)
+        }
+
+        boolean isStartRequired() { false }
+        boolean isEndRequired() { true }
+        void onStart(Context ctx, ReadWriteSpan span) {}
+        void onEnd(ReadableSpan span) {
+            batchExporters.each { it.onEnd(span) }
+        }
+
+        CompletableResultCode shutdown() {
+            batchExporters.each { it.shutdown() }
+            CompletableResultCode.ofSuccess()
+        }
+        CompletableResultCode forceFlush() { CompletableResultCode.ofSuccess() }
+    }
+
+    @CompileStatic
+    class TagSpanProcessor implements SpanProcessor {
+        boolean isStartRequired() { true }
+        boolean isEndRequired() { false }
+        void onStart(Context ctx, ReadWriteSpan span) {
+            hoistTags().each { k, v ->
+                if (v != null) span.setAttribute(k, v as String)
+            }
+        }
+        void onEnd(ReadableSpan span) {}
+        CompletableResultCode shutdown() { CompletableResultCode.ofSuccess() }
+        CompletableResultCode forceFlush() { CompletableResultCode.ofSuccess() }
+    }
 }

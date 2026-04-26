@@ -20,9 +20,6 @@ class TraceConfig extends TypedConfigMap {
     /** Ordered tag-match rules for sampling. First match wins. */
     List<Map> sampleRules = []
 
-    /** Always export error spans, bypassing sample-rate filtering. Defaults to true. */
-    boolean alwaysSampleErrors = true
-
     /** Emit CLIENT spans for all JDBC operations. Defaults to false. */
     boolean jdbcTracingEnabled = false
 
