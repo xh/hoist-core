@@ -47,6 +47,13 @@ abstract class TypedConfigMap implements LogSupport, JSONFormat {
     // for both inbound binding (`init`) and outbound serialization (`formatForJSON`).
     private static final Map<Class, Map<String, Field>> fieldsByClass = new ConcurrentHashMap<>()
 
+    // Primitive → boxed map for `checkAssignable` — without it, Groovy coerces anything
+    // truthy/falsy into a `boolean` field (so `5` silently becomes `true`).
+    private static final Map<Class, Class> PRIMITIVE_BOXED = [
+        (boolean): Boolean, (int): Integer, (long): Long, (double): Double,
+        (float): Float, (short): Short, (byte): Byte, (char): Character
+    ]
+
     /**
      * Assign values from `args` onto matching declared properties. Nested `TypedConfigMap`
      * properties (including in `List<Foo>` and `Map<String, Foo>` shapes) are constructed
@@ -100,9 +107,22 @@ abstract class TypedConfigMap implements LogSupport, JSONFormat {
                     this[key] = v
                 }
             } else {
+                checkAssignable(simpleName, key, propType, v)
                 this[key] = v
             }
         }
+    }
+
+    // Strict type guard — Groovy's setter would silently coerce wrong-type values into
+    // `boolean`/`String` fields. Number-to-Number widening is allowed.
+    private static void checkAssignable(String typeName, String key, Class propType, Object v) {
+        if (v == null) return
+        Class boxed = PRIMITIVE_BOXED[propType] ?: propType
+        if (boxed.isInstance(v)) return
+        if (Number.isAssignableFrom(boxed) && v instanceof Number) return
+        throw new IllegalArgumentException(
+            "Field '$key' on $typeName expects ${boxed.simpleName} but got ${v.getClass().simpleName}"
+        )
     }
 
     Map formatForJSON() {

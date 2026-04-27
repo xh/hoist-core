@@ -68,7 +68,7 @@ class AppConfig implements JSONFormat, LogSupport {
                 try {
                     typedClass.getDeclaredConstructor(Map).newInstance(JSONParser.parseObject(val))
                 } catch (Exception e) {
-                    return "Cannot apply value to ${typedClass.simpleName}: ${e.cause?.message ?: e.message}"
+                    return ['default.invalid.typedConfig.message', typedClass.simpleName, e.cause?.message ?: e.message]
                 }
             }
         }
