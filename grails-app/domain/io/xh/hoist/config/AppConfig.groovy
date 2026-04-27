@@ -43,7 +43,7 @@ class AppConfig implements JSONFormat, LogSupport {
     static constraints = {
         name(unique: true, nullable: false, blank: false, maxSize: 50)
         value(nullable: false, blank: false, validator: AppConfig.isValid)
-        valueType(inList: AppConfig.TYPES, validator: AppConfig.isTypeValid)
+        valueType(inList: AppConfig.TYPES)
         note(nullable: true, maxSize: 1200)
         lastUpdatedBy(nullable: true, maxSize: 50)
         groupName(nullable: false, blank: false)
@@ -84,12 +84,6 @@ class AppConfig implements JSONFormat, LogSupport {
     //--------------------------------------
     // Implementation
     //--------------------------------------
-    static isTypeValid = { String val, AppConfig obj ->
-        return (
-            AppConfig.isValid(obj.value, obj).is(true)
-        )
-    }
-
     def beforeInsert() {encryptIfPwd(true)}
     def beforeUpdate() {
         encryptIfPwd(false)

@@ -55,6 +55,8 @@
 * Tightened defaults, coercions, and schema gaps across several built-in hoist-core configs
     surfaced during the typed-config migration — latent edge cases that would only bite under
     unusual admin-edit patterns.
+* `AppConfig` validation errors no longer render twice — removed a redundant `valueType`
+  validator that re-ran the `value` check and emitted a duplicate generic message.
 
 ### 🤖 AI Docs + Tooling
 
