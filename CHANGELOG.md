@@ -28,6 +28,8 @@
       include authentication and routing time, and skip noisy requests like 'ping' and web sockets.
     * New span tags `xh.isPrimary` and `xh.impersonating`. `user.name` now refers to the
       *authenticated* user.
+    * New `BaseService.span(name, kind?, tags?)` shortcut for the common case of starting an
+      `ObservedRun` with an initial span — equivalent to `observe().span(...)`.
 * OTLP export (metrics and traces) is now suppressed by default while running in local
   development. Set the new `otlpEnabledInLocalDev` instance config to `'true'` to opt in. In local
   dev, exports tag `deployment.environment.name` with the OS username (e.g. `Development-johndoe`)
