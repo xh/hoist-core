@@ -35,6 +35,9 @@ import static io.xh.hoist.util.Utils.getClusterService
 @CompileStatic
 class HoistFilter implements Filter, LogSupport {
 
+    /** Request attribute key for the per-request SERVER {@link SpanRef}, when tracing is enabled. */
+    public static final String REQUEST_SPAN_ATTR = 'io.xh.hoist.requestSpan'
+
     void init(FilterConfig filterConfig) {}
     void destroy() {}
 
@@ -89,6 +92,8 @@ class HoistFilter implements Filter, LogSupport {
     }
 
     private void handleTraced(HttpServletRequest req, HttpServletResponse res, FilterChain chain) {
+        // Span published on request: HoistInterceptor renames it post-routing
+        // (e.g. "GET app/config"); BaseController records handled exceptions onto it.
         traceService.withSpan(
             name: req.method,
             kind: SERVER,
@@ -104,21 +109,14 @@ class HoistFilter implements Filter, LogSupport {
             ],
             caller: this
         ) { SpanRef span ->
+            req.setAttribute(REQUEST_SPAN_ATTR, span)
             try {
                 handleRequest(req, res, chain)
-                // Workaround to gain route info after execution and more properly name
-                def controller = req.getAttribute('org.grails.CONTROLLER_NAME_ATTRIBUTE') as String,
-                    action = req.getAttribute('org.grails.ACTION_NAME_ATTRIBUTE') as String
-                if (controller) {
-                    def route = "$controller/${action ?: 'index'}"
-                    span.span.updateName("${req.method} $route")
-                    span.setTag('http.route', route)
-                }
             } catch (Throwable t) {
-                // Catch *inside* span so `setHttpStatus` resolved and determines span error status.
                 Utils.handleException(exception: t, renderTo: res, logTo: this)
-                span.setHttpStatus(res.status)
                 span.recordException(t)
+            } finally {
+                span.setHttpStatusAndErrorStatus(res.status)
             }
         }
     }

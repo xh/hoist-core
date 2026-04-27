@@ -2,6 +2,13 @@
 
 ## 39.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes
+
+* `TraceService` no longer supports the `alwaysSampleErrors` flag, which was deemed inappropriate
+  for head-based sampling. This change is consistent with a similar update in hoist-core v85. Apps
+  requiring full visibility into error spans for a particular set of errors should ensure they
+  are sampled via the existing rules.
+
 ### 🎁 New Features
 
 * **JDK 25 support** — hoist-core now builds on JDK 25, laying the groundwork for future
@@ -21,10 +28,10 @@
       include authentication and routing time, and skip noisy requests like 'ping' and web sockets.
     * New span tags `xh.isPrimary` and `xh.impersonating`. `user.name` now refers to the
       *authenticated* user.
-* OTLP export (metrics and traces) is now gated by the new `suppressOtlpExport` instance config —
-  defaults to `'true'` in local dev, `'false'` otherwise. In local dev, exports tag
-  `deployment.environment.name` with the OS username (e.g. `Development-johndoe`) to distinguish
-  per-developer data.
+* OTLP export (metrics and traces) is now suppressed by default while running in local
+  development. Set the new `otlpEnabledInLocalDev` instance config to `'true'` to opt in. In local
+  dev, exports tag `deployment.environment.name` with the OS username (e.g. `Development-johndoe`)
+  to distinguish per-developer data.
 
 ### 🐞 Bug Fixes
 

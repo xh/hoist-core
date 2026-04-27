@@ -92,7 +92,7 @@ abstract class BaseProxyService extends BaseService {
                 traceImplService.injectContext(method)
                 try (CloseableHttpResponse sourceResponse = sourceClient.execute(method)) {
                     response.setStatus(sourceResponse.code)
-                    span.setHttpStatus(sourceResponse.code)
+                    span.setHttpStatusAndErrorStatus(sourceResponse.code)
                     installResponseHeaders(response, sourceResponse)
 
                     sourceResponse.entity?.writeTo(response.outputStream)

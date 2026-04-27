@@ -332,7 +332,6 @@ class BootStrap implements LogSupport {
                     enabled: false,
                     sampleRate: 1.0,
                     sampleRules: [],
-                    alwaysSampleErrors: true,
                     jdbcTracingEnabled: false,
                     otlpEnabled: false,
                     otlpConfig: [:]

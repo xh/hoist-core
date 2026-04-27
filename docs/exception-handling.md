@@ -48,7 +48,7 @@ tells the client this is a routine condition — all without any per-endpoint pl
 | `ThrowableSerializer` | `src/main/groovy/io/xh/hoist/json/serializer/` | Jackson serializer — converts exceptions to JSON |
 | `BaseController` | `grails-app/controllers/io/xh/hoist/` | Controller base class — catches unhandled exceptions |
 | `HoistFilter` | `src/main/groovy/io/xh/hoist/` | Servlet filter — catches exceptions from auth/cluster checks |
-| `AccessInterceptor` | `grails-app/controllers/io/xh/hoist/security/` | Grails interceptor — throws `NotAuthorizedException`/`NotFoundException` |
+| `HoistInterceptor` | `grails-app/controllers/io/xh/hoist/` | Grails interceptor — throws `NotAuthorizedException`/`NotFoundException` |
 | `Utils` | `src/main/groovy/io/xh/hoist/util/` | Static `handleException()` entry point |
 
 ## Key Classes
@@ -121,8 +121,8 @@ instances (with one exception — `ExternalHttpException`, discussed below).
 | Class | Status Code | Implements `RoutineException`? | Typical Usage |
 |-------|-------------|-------------------------------|---------------|
 | `NotAuthenticatedException` | 401 | Yes | Thrown by `BaseAuthenticationService` when a request cannot be authenticated |
-| `NotAuthorizedException` | 403 | Yes | Thrown by `AccessInterceptor` when user lacks required roles, or by app code for authorization failures |
-| `NotFoundException` | 404 | No | Thrown by `AccessInterceptor` when no controller method matches, or by app code for missing resources |
+| `NotAuthorizedException` | 403 | Yes | Thrown by `HoistInterceptor` when user lacks required roles, or by app code for authorization failures |
+| `NotFoundException` | 404 | No | Thrown by `HoistInterceptor` when no controller method matches, or by app code for missing resources |
 | `ExternalHttpException` | varies | No | Wraps failures from HTTP calls to external services; carries the remote status code but is **not** used for the response status (see below) |
 
 **`ExternalHttpException` status code handling.** When `ExceptionHandler.getHttpStatus()`
@@ -166,7 +166,7 @@ provides three capabilities:
 
 1. **`handleException()`** — Preprocesses, logs, and optionally renders an exception to an HTTP
    response. Called indirectly via `Utils.handleException()` by `BaseController`, `HoistFilter`,
-   `AccessInterceptor`, and `Timer`.
+   `HoistInterceptor`, and `Timer`.
 
 2. **`getHttpStatus()`** — Determines the HTTP status code for an exception.
 
@@ -261,7 +261,7 @@ HTTP Request
     │
     ├── HoistFilter.doFilter()                ← catches auth/cluster exceptions
     │       │
-    │       └── AccessInterceptor.before()    ← catches role/route check exceptions
+    │       └── HoistInterceptor.before()    ← catches role/route check exceptions
     │               │
     │               └── BaseController        ← catches controller action exceptions
     │                       │
@@ -272,7 +272,7 @@ HTTP Request
 or `authenticationService.allowRequest()` throws, the exception is caught here. This handles
 `InstanceNotAvailableException` (cluster not ready) and `NotAuthenticatedException`.
 
-**`AccessInterceptor`** — Checks controller access annotations (`@AccessRequiresRole`, etc.)
+**`HoistInterceptor`** — Checks controller access annotations (`@AccessRequiresRole`, etc.)
 before the controller action executes. Throws `NotFoundException` if no matching controller method
 is found, or `NotAuthorizedException` if the user lacks the required role(s). Catches its own
 exceptions and delegates to `Utils.handleException()`.

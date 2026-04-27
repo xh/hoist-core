@@ -34,7 +34,7 @@ class ExceptionHandler {
     /**
      * Sanitizes, pre-processes, and logs exception.
      *
-     * Used by BaseController, ClusterRequest, Timer, and AccessInterceptor to handle
+     * Used by BaseController, ClusterRequest, Timer, and HoistInterceptor to handle
      * otherwise unhandled exception.
      *
      * @internal -- Applications should call Utils.handleException instead

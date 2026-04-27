@@ -18,9 +18,7 @@ import io.opentelemetry.sdk.trace.samplers.SamplingResult
  * OTel {@link Sampler} that applies a per-span sample rate set via a thread-local.
  *
  * Callers set the rate with {@link #setSampleRate} before {@code startSpan()} and
- * clear it afterwards. Inherits a sampled parent's decision. Returns
- * {@code recordOnly()} (not {@code drop()}) for unsampled spans so that
- * {@link ExportSpanProcessor} can still promote error spans.
+ * clear it afterwards. Inherits a sampled parent's decision.
  */
 @CompileStatic
 class HoistSampler implements Sampler {
@@ -50,12 +48,12 @@ class HoistSampler implements Sampler {
         if (parent.isValid()) {
             return parent.isSampled() ?
                 SamplingResult.recordAndSample() :
-                SamplingResult.recordOnly()
+                SamplingResult.drop()
         }
         def rate = _sampleRate.get() ?: 0d
         return Math.random() < rate ?
             SamplingResult.recordAndSample() :
-            SamplingResult.recordOnly()
+            SamplingResult.drop()
     }
 
     @Override
