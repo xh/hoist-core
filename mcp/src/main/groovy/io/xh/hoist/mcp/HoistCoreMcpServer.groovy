@@ -5,6 +5,7 @@ import io.modelcontextprotocol.server.McpSyncServer
 import io.modelcontextprotocol.json.McpJsonDefaults
 import io.modelcontextprotocol.server.transport.StdioServerTransportProvider
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities
+import io.xh.hoist.mcp.cli.HoistCoreCli
 import io.xh.hoist.mcp.data.DocRegistry
 import io.xh.hoist.mcp.data.GroovyRegistry
 import io.xh.hoist.mcp.resources.DocResources
@@ -13,14 +14,21 @@ import io.xh.hoist.mcp.tools.GroovyTools
 import io.xh.hoist.mcp.util.McpLog
 
 /**
- * Entry point for the hoist-core MCP server.
+ * Entry point for the hoist-core MCP server and embedded CLI.
  *
- * Provides Claude Code with structured access to hoist-core documentation and
- * Groovy/Java symbol information via the Model Context Protocol.
+ * Default invocation (no args, or `--source` / `--root` only) starts the stdio
+ * MCP server. Invoking with `cli` as the first argument dispatches the
+ * remaining args to {@link HoistCoreCli} for shell-style usage. This dual mode
+ * lets a single fat JAR back both the MCP server and the CLI tools.
  */
 class HoistCoreMcpServer {
 
     static void main(String[] args) {
+        if (args?.length > 0 && args[0] == 'cli') {
+            int exit = HoistCoreCli.run(args.length > 1 ? args[1..-1] as String[] : new String[0])
+            System.exit(exit)
+        }
+
         try {
             def config = parseArgs(args)
             def contentSource = createContentSource(config)

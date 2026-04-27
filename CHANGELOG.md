@@ -42,7 +42,8 @@
 
 ### 🤖 AI Docs + Tooling
 
-* **New `coding-conventions.md` doc** — authoritative coding conventions reference for hoist-core, consolidating guidance previously scattered across `CLAUDE.md` and individual feature docs. Paired sibling to the hoist-react `coding-conventions.md`. Covers naming, logging (`LogSupport`, `withInfo`/`withDebug`, structured map form), exceptions, services and lifecycle, controllers and security, GORM, clustering, HTTP/email/background work, Groovy idioms, and commit/PR formatting.
+* Added paired CLI tools `hoist-core-docs` and `hoist-core-symbols` exposing the MCP server's documentation and Groovy/Java symbol surface for environments that block MCP traffic. Bundled hoist-core docs and source files directly into the published fat JAR so the tools work fully offline once resolved through Maven Central or an internal Artifactory mirror. Added a new `hoist-core-read-doc` MCP tool. See [mcp/README.md](mcp/README.md) for the app-side Gradle install snippet.
+* Added [`coding-conventions.md`](docs/coding-conventions.md), the authoritative reference for server-side hoist-core coding conventions.
 
 ### 📚 Libraries
 
