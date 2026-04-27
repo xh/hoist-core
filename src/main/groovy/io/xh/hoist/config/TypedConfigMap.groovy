@@ -34,10 +34,10 @@ import java.util.concurrent.ConcurrentHashMap
  * are surfaced without breaking startup.
  *
  * Nesting is supported: a declared property whose type extends `TypedConfigMap` is populated
- * recursively, and a `List<Foo>` where `Foo` extends `TypedConfigMap` converts each supplied
- * map to a `Foo`. Top-level subclasses are bound to a backing `AppConfig` name by registering
- * them in `ensureRequiredConfigsCreated` (`typedClass:` entry); they can then be loaded via
- * `ConfigService.getObject(Class)`.
+ * recursively, and `List<Foo>` / `Map<String, Foo>` properties (where `Foo` extends
+ * `TypedConfigMap`) convert each supplied map to a `Foo`. Top-level subclasses are bound to a
+ * backing `AppConfig` name by registering them in `ensureRequiredConfigsCreated` (`typedClass:`
+ * entry); they can then be loaded via `ConfigService.getObject(Class)`.
  */
 abstract class TypedConfigMap implements LogSupport, JSONFormat {
 

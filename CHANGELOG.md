@@ -36,11 +36,12 @@
   to distinguish per-developer data.
 
 * **Typed soft-config infrastructure** — `TypedConfigMap` now supports nested typed shapes
-  (a declared property whose type extends `TypedConfigMap`) and lists of typed shapes
-  (e.g. `List<LdapServerOptions>`), with property-initializer defaults propagated through
-  nested population. New `ConfigService.getObject(Class)` API and an optional
-  `typedClass:` key on `ensureRequiredConfigsCreated` entries that together make the typed
-  class the single source of truth for a config's shape on both server and client:
+  (a declared property whose type extends `TypedConfigMap`), lists of typed shapes
+  (e.g. `List<LdapServerOptions>`), and maps of typed shapes (`Map<String, Foo>`), with
+  property-initializer defaults propagated through nested population. New
+  `ConfigService.getObject(Class)` API and an optional `typedClass:` key on
+  `ensureRequiredConfigsCreated` entries that together make the typed class the single
+  source of truth for a config's shape on both server and client:
     * For `clientVisible` typed configs, `getClientConfig()` now populates the payload
       through the typed class, so declared defaults reach client code instead of being
       duplicated in hoist-react.

@@ -348,8 +348,8 @@ configs — continue using `getMap` / `getList` for those.
 
 **Nested shapes.** A property whose declared type is itself a `TypedConfigMap` subclass is
 populated recursively — existing defaults on the nested instance are preserved for any keys
-the stored value doesn't supply. Likewise, a `List<Foo>` property where `Foo extends
-TypedConfigMap` converts each supplied map to a typed `Foo` instance. See
+the stored value doesn't supply. Likewise, a `List<Foo>` or `Map<String, Foo>` property where
+`Foo extends TypedConfigMap` converts each supplied map to a typed `Foo` instance. See
 `ActivityTrackingConfig` (nested `ClientHealthReport` and `MaxRows`) and `LdapConfig`
 (nested `List<LdapServerOptions>`) in hoist-core for in-framework examples.
 
