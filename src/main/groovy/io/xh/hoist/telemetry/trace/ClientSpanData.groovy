@@ -9,6 +9,7 @@ package io.xh.hoist.telemetry.trace
 import groovy.transform.CompileStatic
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
+import io.opentelemetry.api.common.AttributesBuilder
 import io.opentelemetry.api.trace.SpanContext
 import io.opentelemetry.api.trace.SpanKind
 import io.opentelemetry.api.trace.StatusCode
@@ -75,9 +76,9 @@ class ClientSpanData implements SpanData, ReadableSpan {
 
         // Build attributes from client tags + server-side cross-cutting tags
         def ab = Attributes.builder()
-        tags.each { k, v -> ab.put(AttributeKey.stringKey(k as String), v as String) }
+        tags.each { k, v -> putAttribute(ab, k as String, v) }
         extraTags?.each { k, v ->
-            if (v != null) ab.put(AttributeKey.stringKey(k as String), v as String)
+            if (v != null) putAttribute(ab, k as String, v)
         }
         _attributes = ab.build()
 
@@ -85,7 +86,7 @@ class ClientSpanData implements SpanData, ReadableSpan {
         _events = ((span.events as List<Map>) ?: []).collect { Map evt ->
             def evtAttrs = Attributes.builder()
             (evt.attributes as Map)?.each { k, v ->
-                evtAttrs.put(AttributeKey.stringKey(k as String), v as String)
+                putAttribute(evtAttrs, k as String, v)
             }
             def attrs = evtAttrs.build()
             EventData.create(
@@ -127,6 +128,16 @@ class ClientSpanData implements SpanData, ReadableSpan {
     long getLatencyNanos() { _endEpochNanos - _startEpochNanos }
     def <T> T getAttribute(AttributeKey<T> key) { _attributes.get(key) }
 
+
+    private static void putAttribute(AttributesBuilder builder, String key, Object value) {
+        switch (value) {
+            case Long:    builder.put(key, (long) value); break
+            case Integer: builder.put(key, (long) value); break
+            case Boolean: builder.put(key, (boolean) value); break
+            case Double:  builder.put(key, (double) value); break
+            default:      builder.put(key, value?.toString())
+        }
+    }
 
     private static SpanKind parseSpanKind(String kind) {
         switch (kind) {
