@@ -85,7 +85,7 @@ abstract class TypedConfigMap implements LogSupport, JSONFormat {
                     this[key] = propType.getDeclaredConstructor(Map).newInstance(v)
                 }
             } else if (List.isAssignableFrom(propType) && v instanceof List) {
-                def elementType = typeArg(field, 0, 1)
+                def elementType = TypedConfigMap.typeArg(field, 0, 1)
                 if (elementType && TypedConfigMap.isAssignableFrom(elementType)) {
                     this[key] = v.collect { item ->
                         item instanceof Map
@@ -96,7 +96,7 @@ abstract class TypedConfigMap implements LogSupport, JSONFormat {
                     this[key] = v
                 }
             } else if (Map.isAssignableFrom(propType) && v instanceof Map) {
-                def valueType = typeArg(field, 1, 2)
+                def valueType = TypedConfigMap.typeArg(field, 1, 2)
                 if (valueType && TypedConfigMap.isAssignableFrom(valueType)) {
                     this[key] = v.collectEntries { mk, mv ->
                         [(mk): mv instanceof Map
@@ -107,7 +107,7 @@ abstract class TypedConfigMap implements LogSupport, JSONFormat {
                     this[key] = v
                 }
             } else {
-                checkAssignable(simpleName, key, propType, v)
+                TypedConfigMap.checkAssignable(simpleName, key, propType, v)
                 this[key] = v
             }
         }
