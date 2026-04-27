@@ -167,7 +167,7 @@ class LogArchiveService extends BaseService {
     }
 
     private LogArchiveConfig getConfig() {
-        return configService.getTypedConfig(LogArchiveConfig)
+        return configService.getObject(LogArchiveConfig)
     }
 
     Map getAdminStats() {[

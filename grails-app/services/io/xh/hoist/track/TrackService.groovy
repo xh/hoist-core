@@ -197,7 +197,7 @@ class TrackService extends BaseService {
 
 
     ActivityTrackingConfig getConf() {
-        return configService.getTypedConfig(ActivityTrackingConfig)
+        return configService.getObject(ActivityTrackingConfig)
     }
 
 

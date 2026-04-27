@@ -14,8 +14,6 @@ import io.xh.hoist.config.TypedConfigMap
  */
 class LogArchiveConfig extends TypedConfigMap {
 
-    String getConfigName() { 'xhLogArchiveConfig' }
-
     /**
      * Age (days) beyond which log files are eligible for archival. Files newer than this
      * remain in place. A non-positive value disables archival.

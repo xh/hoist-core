@@ -16,8 +16,6 @@ import io.xh.hoist.config.TypedConfigMap
  */
 class ActivityTrackingConfig extends TypedConfigMap {
 
-    String getConfigName() { 'xhActivityTrackingConfig' }
-
     /** Master switch for activity tracking. When false, no entries are recorded. */
     boolean enabled = true
 

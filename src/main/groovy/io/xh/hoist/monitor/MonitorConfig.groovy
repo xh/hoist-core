@@ -15,8 +15,6 @@ import io.xh.hoist.config.TypedConfigMap
  */
 class MonitorConfig extends TypedConfigMap {
 
-    String getConfigName() { 'xhMonitorConfig' }
-
     /** Interval at which the primary instance re-runs all active monitors. */
     Integer monitorRefreshMins = 10
 

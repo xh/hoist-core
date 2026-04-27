@@ -5,12 +5,20 @@
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.config
+package io.xh.hoist.config.impl
 
 import grails.gorm.transactions.Transactional
 import grails.web.databinding.DataBinder
 import io.xh.hoist.BaseService
+import io.xh.hoist.config.AppConfig
 
+/**
+ * Internal support service backing the Admin Console's config diff/import workflow — applies
+ * a batch of remote `AppConfig` values onto the local database (creating, updating, or
+ * deleting rows to match the supplied snapshot).
+ *
+ * @internal - not intended for direct use by applications.
+ */
 class ConfigDiffService extends BaseService implements DataBinder {
 
     @Transactional

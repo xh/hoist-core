@@ -250,7 +250,7 @@ class LdapService extends BaseService {
     }
 
     private LdapConfig getConfig() {
-        configService.getTypedConfig(LdapConfig)
+        configService.getObject(LdapConfig)
     }
 
     private String getQueryUsername() {

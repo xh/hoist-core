@@ -14,8 +14,6 @@ import io.xh.hoist.config.TypedConfigMap
  */
 class ClientErrorConfig extends TypedConfigMap {
 
-    String getConfigName() { 'xhClientErrorConfig' }
-
     /** Interval (minutes) between digest email emissions. */
     Integer intervalMins = 2
 

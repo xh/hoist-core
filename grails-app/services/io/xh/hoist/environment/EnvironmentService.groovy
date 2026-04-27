@@ -72,7 +72,7 @@ class EnvironmentService extends BaseService {
                 webSocketsEnabled:      webSocketService.enabled,
                 instanceName:           clusterService.instanceName,
                 alertBanner:            alertBannerService.alertBanner,
-                pollConfig:             configService.getTypedConfig(EnvPollConfig),
+                pollConfig:             configService.getObject(EnvPollConfig),
         ]
 
         if (authUser.isHoistAdminReader) {
@@ -96,7 +96,7 @@ class EnvironmentService extends BaseService {
             appBuild    : Utils.appBuild,
             instanceName: clusterService.instanceName,
             alertBanner : alertBannerService.alertBanner,
-            pollConfig  : configService.getTypedConfig(EnvPollConfig)
+            pollConfig  : configService.getObject(EnvPollConfig)
         ]
     }
 

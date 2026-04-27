@@ -12,6 +12,7 @@ import grails.gorm.transactions.ReadOnly
 import grails.gorm.transactions.Transactional
 import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
+import io.xh.hoist.config.impl.ConfigDriftService
 
 import static io.xh.hoist.json.JSONSerializer.serializePretty
 
@@ -33,11 +34,11 @@ import static io.xh.hoist.json.JSONSerializer.serializePretty
 @GrailsCompileStatic
 class ConfigService extends BaseService {
 
-    // Registry of typed config classes, keyed by backing config name. Populated when apps declare
-    // a `typedClass:` entry in `ensureRequiredConfigsCreated`. Used to (a) validate name/class
-    // alignment at startup, (b) populate `getClientConfig()` payloads with typed-class defaults,
-    // and (c) flag drift between declared property defaults and BootStrap `defaultValue`.
-    private final Map<String, Class<? extends TypedConfigMap>> typedConfigs = [:]
+    ConfigDriftService configDriftService
+
+    // Bidirectional registry of typed classes ↔ backing config names. Populated in `ensureRequiredConfigsCreated`.
+    private final Map<String, Class<? extends TypedConfigMap>> configTypeByName = [:]
+    private final Map<Class<? extends TypedConfigMap>, String> nameByConfigType = [:]
 
     String getString(String name, String notFoundValue = null) {
         return (String) getInternalByName(name, 'string', notFoundValue)
@@ -75,24 +76,19 @@ class ConfigService extends BaseService {
      * Load a typed representation of a JSON soft config, with declared property defaults
      * applied for any keys missing from the stored value.
      *
-     * The supplied class must extend {@link TypedConfigMap} and declare the backing config
-     * name via `getConfigName()`. This is the preferred way to read structured configs —
-     * it centralizes defaults and documentation on the typed class itself, rather than
-     * scattering `?:` fallbacks across call sites.
+     * The supplied class must extend {@link TypedConfigMap} and be registered against a
+     * backing `AppConfig` name via a `typedClass:` entry in `ensureRequiredConfigsCreated`.
+     * This is the preferred way to read structured configs — it centralizes defaults and
+     * documentation on the typed class itself, rather than scattering `?:` fallbacks across
+     * call sites.
      */
-    <T extends TypedConfigMap> T getTypedConfig(Class<T> clazz) {
-        // Resolve config name: prefer registry (avoids constructing twice), fall back to an
-        // empty instance to read the name if the class hasn't been registered via BootStrap.
-        String name = typedConfigs.find { it.value == clazz }?.key
-            ?: ((TypedConfigMap) clazz.getDeclaredConstructor(Map).newInstance([:])).configName
+    <T extends TypedConfigMap> T getObject(Class<T> clazz) {
+        String name = nameByConfigType[clazz]
         if (!name) {
             throw new RuntimeException(
-                "${clazz.simpleName} must declare getConfigName() to be loadable via getTypedConfig()"
+                "${clazz.simpleName} is not registered as a typedClass — declare it via ensureRequiredConfigsCreated to be loadable via getObject()"
             )
         }
-        // Construct via Map constructor — subclass is expected to call `init(args)` in its
-        // constructor body, where declared field initializers have already run. (If init ran
-        // via `super(args)`, field initializers would clobber the applied values.)
         return (T) clazz.getDeclaredConstructor(Map).newInstance(getMap(name, [:]))
     }
 
@@ -115,18 +111,12 @@ class ConfigService extends BaseService {
             def name = config.name
             try {
                 // Sanitize via `externalValue` as the single source of truth for client-bound
-                // output — handles instance-config overrides, JSON parsing, and password
-                // obscuring uniformly for every config.
+                // output — handles instance-config overrides, JSON parsing, and password obscuring
                 def external = config.externalValue(obscurePassword: true, jsonAsObject: true)
-                def typedClass = typedConfigs[name]
-                if (typedClass && config.valueType == 'json' && external instanceof Map) {
-                    // Populate the typed class from the sanitized external value. Typed instance
-                    // implements JSONFormat — Jackson recurses via formatForJSON() at render
-                    // time, so declared property defaults reach the client even for missing keys.
-                    ret[name] = typedClass.getDeclaredConstructor(Map).newInstance(external)
-                } else {
-                    ret[name] = external
-                }
+                def typedClass = configTypeByName[name]
+                ret[name] = (typedClass && external instanceof Map)
+                    ? typedClass.getDeclaredConstructor(Map).newInstance(external)
+                    : external
             } catch (Exception e) {
                 logError("Exception while getting client config: '$name'", e)
             }
@@ -201,16 +191,14 @@ class ConfigService extends BaseService {
      *  - `clientVisible` — true to include in `getClientConfig()` payloads
      *  - `groupName`, `note` — metadata shown in the Admin Console
      *  - `typedClass` (optional, JSON-type configs only) — a concrete {@link TypedConfigMap}
-     *    subclass whose `getConfigName()` matches the entry's key. When present:
-     *      + Server code can load the config via {@link #getTypedConfig(Class)}.
+     *    subclass to bind to the entry's key. When present:
+     *      + Server code can load the config via {@link #getObject(Class)}.
      *      + The class's property-initializer defaults are applied at read time for any
      *        key missing from the stored map — centralizing defaults next to the type.
-     *      + For `clientVisible` configs, the payload sent to the client is populated
-     *        through the typed class, so declared defaults reach client code as well.
      *      + A `WARN` is logged at startup for any key whose typed-class default differs
      *        from the BootStrap `defaultValue`, flagging drift between the two.
-     *    `typedClass` is fully optional — entries without it retain the prior behavior
-     *    (raw map served to clients, inline fallbacks at call sites).
+     *    `typedClass` is fully optional — entries without it may still be gained as a generic JSON
+     *     object via getMap().
      *
      * @param reqConfigs - map of configName to entry-config map as described above
      */
@@ -270,94 +258,18 @@ class ConfigService extends BaseService {
         logDebug("Validated presense of ${reqConfigs.size()} required configs", "created ${created}")
     }
 
-    //-------------------
+    //---------------------------
     //  Typed Config Registration
-    //-------------------
+    //---------------------------
     private void registerTypedConfig(String confName, Class typedClass, Map bootstrapDefault) {
         if (!TypedConfigMap.isAssignableFrom(typedClass)) {
-            logError("typedClass for config '$confName' must extend TypedConfigMap", "got: ${typedClass.name}")
+            logError("typedClass for config '$confName' must extend TypedConfigMap")
             return
         }
-        TypedConfigMap sample
-        try {
-            // Map ctor with empty arg: subclass calls init([:]) in body, which no-ops
-            // and leaves declared field defaults in place.
-            sample = (TypedConfigMap) typedClass.getDeclaredConstructor(Map).newInstance([:])
-        } catch (Exception e) {
-            logError("Unable to instantiate typedClass ${typedClass.simpleName} for config '$confName'", e.message)
-            return
-        }
-
-        def declaredName = sample.configName
-        if (declaredName != confName) {
-            logError(
-                "typedClass ${typedClass.simpleName}.configName ('$declaredName') does not match registered config name",
-                "expected: '$confName'",
-                'review and fix!'
-            )
-            return
-        }
-
-        typedConfigs[confName] = typedClass as Class<? extends TypedConfigMap>
-        checkTypedConfigDivergence(confName, sample, bootstrapDefault)
-    }
-
-    private void checkTypedConfigDivergence(String confName, TypedConfigMap sample, Map bootstrapDefault) {
-        if (!bootstrapDefault) return
-
-        def divergences = collectDivergences(sample.formatForJSON(), bootstrapDefault, sample.getClass().simpleName)
-        if (divergences) {
-            logWarn(
-                "Typed config defaults diverge from BootStrap for '$confName'",
-                divergences.join(' | '),
-                'align BootStrap defaultValue with property initializers on ' + sample.getClass().simpleName
-            )
-        }
-    }
-
-    // Recursively compare a typed-class's declared defaults (a Map that may contain nested
-    // TypedConfigMap instances) against a BootStrap defaultValue Map. Produces a flat list of
-    // divergence messages.
-    private List<String> collectDivergences(Map typedDefaults, Map bootstrapDefault, String typedClassName, String pathPrefix = '') {
-        List<String> divergences = []
-        typedDefaults.each { k, tv ->
-            if (!bootstrapDefault.containsKey(k)) return
-            def bv = bootstrapDefault[k]
-            String path = pathPrefix ? "${pathPrefix}.${k}" : "${k}"
-
-            // Typed submap vs. Map in bootstrap → recurse. Empty bootstrap map is the
-            // accepted convention for "typed class fully owns the nested shape".
-            if (tv instanceof TypedConfigMap && bv instanceof Map) {
-                if (bv) divergences.addAll(collectDivergences(tv.formatForJSON(), bv, typedClassName, path))
-                return
-            }
-            // List containing TypedConfigMap vs. List in bootstrap → compare element-wise.
-            // Needed because TypedConfigMap instances don't override equals, so a direct List
-            // comparison would always report divergence for the same-shape typed list.
-            if (tv instanceof List && bv instanceof List && tv.any { it instanceof TypedConfigMap }) {
-                List tvList = tv, bvList = bv
-                if (tvList.size() != bvList.size()) {
-                    divergences << "'$path': typedClass has ${tvList.size()} element(s), bootstrap has ${bvList.size()}".toString()
-                } else {
-                    tvList.eachWithIndex { tvElem, i ->
-                        def bvElem = bvList[i]
-                        String elemPath = "${path}[${i}]"
-                        if (tvElem instanceof TypedConfigMap && bvElem instanceof Map) {
-                            divergences.addAll(collectDivergences(tvElem.formatForJSON(), bvElem, typedClassName, elemPath))
-                        } else if (tvElem != bvElem) {
-                            divergences << "'$elemPath': typedClass=${tvElem} bootstrap=${bvElem}".toString()
-                        }
-                    }
-                }
-                return
-            }
-            if (tv != bv) divergences << "'$path': typedClass=${tv} bootstrap=${bv}".toString()
-        }
-        bootstrapDefault.keySet().findAll { !typedDefaults.containsKey(it) }.each {
-            String path = pathPrefix ? "${pathPrefix}.${it}" : "${it}"
-            divergences << "'$path': declared in BootStrap defaultValue but not on $typedClassName".toString()
-        }
-        return divergences
+        def asTyped = typedClass as Class<? extends TypedConfigMap>
+        configTypeByName[confName] = asTyped
+        nameByConfigType[asTyped] = confName
+        configDriftService.checkTypedConfigDivergence(confName, asTyped, bootstrapDefault)
     }
 
     void fireConfigChanged(AppConfig obj) {

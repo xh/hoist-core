@@ -15,8 +15,6 @@ import io.xh.hoist.config.TypedConfigMap
  */
 class TraceConfig extends TypedConfigMap {
 
-    String getConfigName() { 'xhTraceConfig' }
-
     /** Master switch for distributed tracing. When false, no spans are recorded or exported. */
     boolean enabled = false
 

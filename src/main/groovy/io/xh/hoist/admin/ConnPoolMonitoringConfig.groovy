@@ -14,8 +14,6 @@ import io.xh.hoist.config.TypedConfigMap
  */
 class ConnPoolMonitoringConfig extends TypedConfigMap {
 
-    String getConfigName() { 'xhConnPoolMonitoringConfig' }
-
     /** Master switch for periodic JDBC pool sampling. */
     boolean enabled = true
 

@@ -14,8 +14,6 @@ import io.xh.hoist.config.TypedConfigMap
  */
 class ExportConfig extends TypedConfigMap {
 
-    String getConfigName() { 'xhExportConfig' }
-
     /**
      * Cell count above which exports are written in streaming mode (SXSSF) to keep memory
      * pressure bounded. Read by server-side `GridExportImplService`.

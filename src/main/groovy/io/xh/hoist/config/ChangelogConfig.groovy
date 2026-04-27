@@ -17,8 +17,6 @@ package io.xh.hoist.config
  */
 class ChangelogConfig extends TypedConfigMap {
 
-    String getConfigName() { 'xhChangelogConfig' }
-
     /** Master switch for the in-app changelog viewer. */
     boolean enabled = true
 

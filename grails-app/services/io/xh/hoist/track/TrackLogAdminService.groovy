@@ -74,6 +74,6 @@ class TrackLogAdminService extends BaseService {
     }
 
     private ActivityTrackingConfig getConf() {
-        configService.getTypedConfig(ActivityTrackingConfig)
+        configService.getObject(ActivityTrackingConfig)
     }
 }

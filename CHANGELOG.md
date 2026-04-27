@@ -38,7 +38,7 @@
 * **Typed soft-config infrastructure** — `TypedConfigMap` now supports nested typed shapes
   (a declared property whose type extends `TypedConfigMap`) and lists of typed shapes
   (e.g. `List<LdapServerOptions>`), with property-initializer defaults propagated through
-  nested population. New `ConfigService.getTypedConfig(Class)` API and an optional
+  nested population. New `ConfigService.getObject(Class)` API and an optional
   `typedClass:` key on `ensureRequiredConfigsCreated` entries that together make the typed
   class the single source of truth for a config's shape on both server and client:
     * For `clientVisible` typed configs, `getClientConfig()` now populates the payload

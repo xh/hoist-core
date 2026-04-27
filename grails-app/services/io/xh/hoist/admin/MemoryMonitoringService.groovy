@@ -230,7 +230,7 @@ class MemoryMonitoringService extends BaseService {
     }
 
     private MemoryMonitoringConfig getConfig() {
-        return configService.getTypedConfig(MemoryMonitoringConfig)
+        return configService.getObject(MemoryMonitoringConfig)
     }
 
     private boolean getPreservePastInstances() {

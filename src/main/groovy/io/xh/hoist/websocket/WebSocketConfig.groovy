@@ -14,8 +14,6 @@ import io.xh.hoist.config.TypedConfigMap
  */
 class WebSocketConfig extends TypedConfigMap {
 
-    String getConfigName() { 'xhWebSocketConfig' }
-
     /**
      * Time (milliseconds) a blocking send may wait before the underlying session is closed.
      * Guards against slow/stuck clients holding server threads.

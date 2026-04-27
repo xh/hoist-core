@@ -144,7 +144,7 @@ class ConnectionPoolMonitoringService extends BaseService {
     }
 
     private ConnPoolMonitoringConfig getConfig() {
-        return configService.getTypedConfig(ConnPoolMonitoringConfig)
+        return configService.getObject(ConnPoolMonitoringConfig)
     }
 
     void clearCaches() {

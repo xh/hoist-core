@@ -234,7 +234,7 @@ class MetricsService extends BaseService {
     }
 
     private MetricsConfig getConfig() {
-        configService.getTypedConfig(MetricsConfig)
+        configService.getObject(MetricsConfig)
     }
 
 

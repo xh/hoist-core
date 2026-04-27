@@ -130,7 +130,7 @@ class MonitorService extends BaseService {
     }
 
     private MonitorConfig getConfig() {
-        configService.getTypedConfig(MonitorConfig)
+        configService.getObject(MonitorConfig)
     }
 
     void clearCaches() {

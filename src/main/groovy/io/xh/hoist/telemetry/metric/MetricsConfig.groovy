@@ -15,8 +15,6 @@ import io.xh.hoist.config.TypedConfigMap
  */
 class MetricsConfig extends TypedConfigMap {
 
-    String getConfigName() { 'xhMetricsConfig' }
-
     /** When true, a Prometheus meter registry is installed and exposed via the scrape endpoint. */
     boolean prometheusEnabled = false
 

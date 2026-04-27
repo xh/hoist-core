@@ -17,8 +17,6 @@ package io.xh.hoist.config
  */
 class IdleConfig extends TypedConfigMap {
 
-    String getConfigName() { 'xhIdleConfig' }
-
     /** Default idle timeout (minutes). -1 disables idle-mode for apps without an override. */
     Integer timeout = 120
 

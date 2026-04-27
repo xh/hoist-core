@@ -14,8 +14,6 @@ import io.xh.hoist.config.TypedConfigMap
  */
 class MemoryMonitoringConfig extends TypedConfigMap {
 
-    String getConfigName() { 'xhMemoryMonitoringConfig' }
-
     /** Master switch for periodic memory sampling. */
     boolean enabled = true
 

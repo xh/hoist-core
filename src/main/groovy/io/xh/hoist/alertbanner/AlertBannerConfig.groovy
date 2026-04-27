@@ -17,8 +17,6 @@ import io.xh.hoist.config.TypedConfigMap
  */
 class AlertBannerConfig extends TypedConfigMap {
 
-    String getConfigName() { 'xhAlertBannerConfig' }
-
     /** True to enable the alert banner system for this application. */
     boolean enabled = true
 

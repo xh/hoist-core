@@ -9,6 +9,7 @@ package io.xh.hoist.config
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.log.LogSupport
 
+import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 import java.lang.reflect.ParameterizedType
 import java.util.concurrent.ConcurrentHashMap
@@ -16,15 +17,11 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Base class for typed representations of Hoist JSON soft-config map values.
  *
- * Subclasses declare their properties (with optional default initializers) and must call
- * {@link #init} from their own constructor body so that declared defaults run first and
- * supplied values overlay on top.
+ * Subclasses declare their properties and must call {@link #init} from their own constructor body.
  *
  * <pre>
  * {@code
  * class MyConfig extends TypedConfigMap {
- *     String getConfigName() { 'myAppConfig' }
- *
  *     boolean enabled = false       // default applied when key is missing from map
  *     String endpoint
  *
@@ -38,48 +35,40 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * Nesting is supported: a declared property whose type extends `TypedConfigMap` is populated
  * recursively, and a `List<Foo>` where `Foo` extends `TypedConfigMap` converts each supplied
- * map to a `Foo`. Nested typed subclasses should leave {@link #getConfigName()} as null —
- * it's only required on top-level classes loaded via `ConfigService.getTypedConfig(Class)`.
+ * map to a `Foo`. Top-level subclasses are bound to a backing `AppConfig` name by registering
+ * them in `ensureRequiredConfigsCreated` (`typedClass:` entry); they can then be loaded via
+ * `ConfigService.getObject(Class)`.
  */
 abstract class TypedConfigMap implements LogSupport, JSONFormat {
 
     private static final Set<String> warnedUnknownKeys = ConcurrentHashMap.newKeySet()
 
-    /**
-     * Name of the top-level `AppConfig` (JSON-type) that supplies this object's values.
-     *
-     * Required for classes loaded via `ConfigService.getTypedConfig(Class)`. Nested
-     * typed subclasses (declared as properties on a parent config class) leave this as null.
-     */
-    String getConfigName() { null }
+    // Cache of the declared config fields for each subclass — walked once, lazily, then reused
+    // for both inbound binding (`init`) and outbound serialization (`formatForJSON`).
+    private static final Map<Class, Map<String, Field>> fieldsByClass = new ConcurrentHashMap<>()
 
     /**
-     * Assign values from `args` onto matching declared properties.
-     *
-     *  - Matching property of a `TypedConfigMap` subtype and value is a Map → recursively
-     *    populate the existing nested instance, preserving its declared defaults for any
-     *    keys not supplied.
-     *  - Matching property declared as `List<Foo>` where `Foo` extends `TypedConfigMap` and
-     *    value is a List of Maps → convert each element to a `Foo` via its Map constructor.
-     *  - Matching property of any other type → assign directly.
-     *  - No matching property → log at WARN and ignore.
+     * Assign values from `args` onto matching declared properties. Nested `TypedConfigMap`
+     * properties (including in `List<Foo>` and `Map<String, Foo>` shapes) are constructed
+     * recursively. Unknown keys are logged at WARN and ignored.
      */
     protected void init(Map args) {
         // Capture outside the closure — inside, getClass() resolves to the closure, not `this`.
         String simpleName = getClass().simpleName
-        String cfgName = configName
+        def fields = configFields()
         args?.each { k, v ->
             def key = k as String
-            if (!this.hasProperty(key)) {
+            def field = fields[key]
+            if (!field) {
                 // Deduplicated so high-frequency timer-driven config reads don't spam the log.
-                String dedupKey = "${cfgName ?: simpleName}:${key}"
+                String dedupKey = "${simpleName}:${key}"
                 if (warnedUnknownKeys.add(dedupKey)) {
-                    logWarn("Unknown key '$key' for $simpleName" + (cfgName ? " (config '$cfgName')" : ''))
+                    logWarn("Unknown key '$key' for $simpleName")
                 }
                 return
             }
 
-            def propType = this.metaClass.getMetaProperty(key).type
+            def propType = field.type
 
             if (TypedConfigMap.isAssignableFrom(propType) && v instanceof Map) {
                 def existing = this[key] as TypedConfigMap
@@ -89,12 +78,23 @@ abstract class TypedConfigMap implements LogSupport, JSONFormat {
                     this[key] = propType.getDeclaredConstructor(Map).newInstance(v)
                 }
             } else if (List.isAssignableFrom(propType) && v instanceof List) {
-                def elementType = getListElementType(key)
+                def elementType = typeArg(field, 0, 1)
                 if (elementType && TypedConfigMap.isAssignableFrom(elementType)) {
                     this[key] = v.collect { item ->
                         item instanceof Map
                             ? elementType.getDeclaredConstructor(Map).newInstance(item)
                             : item
+                    }
+                } else {
+                    this[key] = v
+                }
+            } else if (Map.isAssignableFrom(propType) && v instanceof Map) {
+                def valueType = typeArg(field, 1, 2)
+                if (valueType && TypedConfigMap.isAssignableFrom(valueType)) {
+                    this[key] = v.collectEntries { mk, mv ->
+                        [(mk): mv instanceof Map
+                            ? valueType.getDeclaredConstructor(Map).newInstance(mv)
+                            : mv]
                     }
                 } else {
                     this[key] = v
@@ -105,46 +105,34 @@ abstract class TypedConfigMap implements LogSupport, JSONFormat {
         }
     }
 
-    /**
-     * Shallow map of declared properties on this instance. Nested `TypedConfigMap` values
-     * (including lists of them) are left as-is — Jackson's `JSONFormatSerializer` picks
-     * up the `JSONFormat` interface and recurses naturally when rendering to JSON.
-     *
-     * Used by Hoist's JSON serializer to emit fully populated (default-filled) payloads to
-     * clients for `clientVisible` typed configs, and by
-     * `ConfigService.ensureRequiredConfigsCreated` to compare typed-class defaults against
-     * each config's BootStrap `defaultValue`.
-     */
     Map formatForJSON() {
-        def result = [:]
-        // Walk the class hierarchy so that fields declared on intermediate subclasses are
-        // included — supports patterns like `SpecificConfig extends AbstractConfig extends TypedConfigMap`.
-        def cls = getClass()
-        while (cls && cls != TypedConfigMap && cls != Object) {
-            cls.declaredFields
-                .findAll { !it.synthetic && !Modifier.isStatic(it.modifiers) }
-                .each { field -> result[field.name] = this[field.name] }
-            cls = cls.superclass
-        }
-        return result
+        // Field-driven serialization.  Emits exactly the declared config shape.
+        configFields().collectEntries { name, field -> [name, this[name]] }
     }
 
-    protected Class getListElementType(String fieldName) {
-        def cls = getClass()
-        // Walk the hierarchy so list fields declared on intermediate subclasses are found.
-        while (cls && cls != TypedConfigMap && cls != Object) {
-            def field = cls.declaredFields.find { it.name == fieldName }
-            if (field) {
-                def genericType = field.genericType
-                if (genericType instanceof ParameterizedType) {
-                    def types = ((ParameterizedType) genericType).actualTypeArguments
-                    if (types.length == 1 && types[0] instanceof Class) {
-                        return (Class) types[0]
-                    }
-                }
-                return null
+    // Walk the class hierarchy from `this` up to (but not including) `TypedConfigMap` to collect
+    // declared, non-static, non-synthetic fields. Subclass fields take precedence over same-named
+    // fields on intermediate ancestors. Cached per-class.
+    private Map<String, Field> configFields() {
+        fieldsByClass.computeIfAbsent(getClass()) { Class cls ->
+            Map<String, Field> result = [:]
+            while (cls && cls != TypedConfigMap && cls != Object) {
+                cls.declaredFields
+                    .findAll { !it.synthetic && !Modifier.isStatic(it.modifiers) }
+                    .each { field -> result.putIfAbsent(field.name, field) }
+                cls = cls.superclass
             }
-            cls = cls.superclass
+            result
+        }
+    }
+
+    private static Class typeArg(Field field, int index, int expectedCount) {
+        def genericType = field.genericType
+        if (genericType instanceof ParameterizedType) {
+            def types = ((ParameterizedType) genericType).actualTypeArguments
+            if (types.length == expectedCount && types[index] instanceof Class) {
+                return (Class) types[index]
+            }
         }
         return null
     }

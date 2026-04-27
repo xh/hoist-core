@@ -28,7 +28,7 @@ class ClientErrorEmailService extends BaseService {
     EmailService emailService
 
     private int getAlertInterval() {
-        configService.getTypedConfig(ClientErrorConfig).intervalMins * DateTimeUtils.MINUTES
+        configService.getObject(ClientErrorConfig).intervalMins * DateTimeUtils.MINUTES
     }
 
     private List<String> getToAddress() { emailService.parseMailConfig('xhEmailSupport') }

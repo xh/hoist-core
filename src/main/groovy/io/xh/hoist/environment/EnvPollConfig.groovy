@@ -16,8 +16,6 @@ import io.xh.hoist.config.TypedConfigMap
  */
 class EnvPollConfig extends TypedConfigMap {
 
-    String getConfigName() { 'xhEnvPollConfig' }
-
     /** Client poll frequency (seconds). -1 disables polling entirely. */
     Integer interval = 10
 

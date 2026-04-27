@@ -114,7 +114,7 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
     }
 
     private WebSocketConfig getConfig() {
-        return configService.getTypedConfig(WebSocketConfig)
+        return configService.getObject(WebSocketConfig)
     }
 
     Map formatForJSON() {

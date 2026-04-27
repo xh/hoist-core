@@ -142,7 +142,7 @@ class MonitorEvalService extends BaseService {
     }
 
     private MonitorConfig getConfig() {
-        configService.getTypedConfig(MonitorConfig)
+        configService.getObject(MonitorConfig)
     }
 
     private void logResults(Collection<MonitorResult> results) {

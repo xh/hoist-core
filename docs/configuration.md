@@ -299,7 +299,7 @@ entry. This gives you:
 
 1. **One source of truth for shape + defaults.** Property initializers on the class are the
    fallback values; when the stored map is missing a key, the declared default applies.
-2. **Typed server-side reads** via `configService.getTypedConfig(Class)`.
+2. **Typed server-side reads** via `configService.getObject(Class)`.
 3. **Populated client payloads** — for `clientVisible: true` configs, the map sent to the
    client via `getClientConfig()` is filled in through the typed class, so the same defaults
    reach browser code without duplicating them in TypeScript.
@@ -314,7 +314,6 @@ Example:
 ```groovy
 // 1. Declare the typed class. Property initializers are the defaults.
 class PricingConfig extends TypedConfigMap {
-    String getConfigName() { 'pricingSourceConfig' }
 
     /** Upstream HTTP endpoint. */
     String endpoint = 'https://prices.example.com'
@@ -338,7 +337,7 @@ configService.ensureRequiredConfigsCreated([
 ])
 
 // 3. Read it, anywhere.
-PricingConfig config = configService.getTypedConfig(PricingConfig)
+PricingConfig config = configService.getObject(PricingConfig)
 ```
 
 `typedClass:` is **fully optional** — entries without it retain the prior behavior (raw map
@@ -359,7 +358,7 @@ subclass declares a single `MyConfig(Map args) { init(args) }` constructor. Do N
 subclass constructor that calls `super(args)`: Java/Groovy run subclass field initializers
 *after* the super constructor returns, so any values `init(args)` set via super would be
 silently overwritten by declared defaults. Calling `init(args)` in the subclass body runs
-after the initializers, which is the order we need. `getTypedConfig` and the nested-shape
+after the initializers, which is the order we need. `getObject` and the nested-shape
 machinery both invoke the Map constructor for you — you should rarely call it directly.
 
 In-framework examples: `MonitorConfig`, `TraceConfig`, `MetricsConfig`, `ActivityTrackingConfig`,

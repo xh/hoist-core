@@ -14,8 +14,6 @@ import io.xh.hoist.config.TypedConfigMap
  */
 class LdapConfig extends TypedConfigMap {
 
-    String getConfigName() { 'xhLdapConfig' }
-
     /** Master switch — when false, LdapService returns no results and performs no binds. */
     boolean enabled = false
 

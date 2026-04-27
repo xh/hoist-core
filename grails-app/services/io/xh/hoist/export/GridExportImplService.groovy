@@ -369,7 +369,7 @@ class GridExportImplService extends BaseService {
     }
 
     private ExportConfig getConfig() {
-        configService.getTypedConfig(ExportConfig)
+        configService.getObject(ExportConfig)
     }
 
 
