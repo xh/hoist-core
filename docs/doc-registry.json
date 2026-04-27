@@ -62,7 +62,7 @@
             "mcpCategory": "concepts",
             "viewerCategory": "core-features",
             "description": "Database-backed soft configuration with typed values.",
-            "keywords": ["AppConfig", "ConfigService", "clientVisible", "pwd", "encryption", "xhConfigChanged"]
+            "keywords": ["AppConfig", "ConfigService", "clientVisible", "pwd", "encryption", "xhConfigChanged", "TypedConfigMap", "getObject"]
         },
         {
             "id": "docs/preferences.md",

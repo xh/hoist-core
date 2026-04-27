@@ -248,7 +248,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
     }
 
     private synchronized void syncConfig() {
-        _config = new TraceConfig(configService.getMap('xhTraceConfig'))
+        _config = configService.getObject(TraceConfig)
         def otlpEnabled = _config.otlpEnabled && (!isLocalDevelopment || otlpEnabledInLocalDev)
 
         withDebug(['Syncing tracing pipeline', [enabled: _config.enabled, otlp: otlpEnabled]]) {

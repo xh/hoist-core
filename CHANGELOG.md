@@ -35,10 +35,28 @@
   dev, exports tag `deployment.environment.name` with the OS username (e.g. `Development-johndoe`)
   to distinguish per-developer data.
 
+* **`ConfigService.getObject(Class)`** — new API for reading a JSON soft config as a typed
+  object instead of a raw `Map`. Pair it with an optional `typedClass:` key on
+  `ensureRequiredConfigsCreated` to make the supplied `TypedConfigMap` subclass the single
+  source of truth for the config's shape, defaults, and documentation on both server and
+  client:
+    * `TypedConfigMap` supports declared property defaults and nested shapes — including
+       `List<Foo>` and `Map<String, Foo>` — populated recursively.
+    * Validation: reads via `getObject` and admin-console saves throw if the stored value can't
+      populate the typed class.
+    * On startup `WARN` on drift between default bootstrap value and database.
+    * All built-in hoist-core JSON configs are now typed and registered via this scheme.
+    * See `docs/configuration.md` for the full guide.
+
 ### 🐞 Bug Fixes
 
 * `TypedConfigMap` subclasses with default field initializers were silently clobbering values
   loaded from soft config.
+* Tightened defaults, coercions, and schema gaps across several built-in hoist-core configs
+    surfaced during the typed-config migration — latent edge cases that would only bite under
+    unusual admin-edit patterns.
+* `AppConfig` validation errors no longer render twice — removed a redundant `valueType`
+  validator that re-ran the `value` check and emitted a duplicate generic message.
 
 ### 🤖 AI Docs + Tooling
 

@@ -452,6 +452,24 @@ Map opts = configService.getMap('myAppOptions')
 def region = AppConfig.findByName('myAppRegion').value
 ```
 
+For JSON configs with a stable, known set of keys, prefer `configService.getObject(Class)` over
+`getMap` — it returns a typed `TypedConfigMap` subclass with declared property defaults applied
+for any missing keys, and centralizes shape and documentation on the class itself rather than
+scattering `?:` fallbacks across call sites:
+
+```groovy
+// Do: typed read, defaults baked into the class
+PricingConfig config = configService.getObject(PricingConfig)
+
+// Don't: untyped Map plus per-call defaults
+def m = configService.getMap('pricingSourceConfig')
+def endpoint = m.endpoint ?: 'https://prices.example.com'
+```
+
+The class must extend `TypedConfigMap` and be registered with `typedClass:` on its
+`ensureRequiredConfigsCreated` entry. See [Configuration](configuration.md#typed-configs-via-typedconfigmap)
+for the full guide.
+
 ## Controllers and Security
 
 See [Authorization](authorization.md) and [Request Flow](request-flow.md) for the full picture. The
