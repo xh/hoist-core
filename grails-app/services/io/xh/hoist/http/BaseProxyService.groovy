@@ -77,38 +77,36 @@ abstract class BaseProxyService extends BaseService {
         }
         installRequestHeaders(request, method)
 
-        observe()
-            .span(
-                name: request.method,
-                kind: CLIENT,
-                tags: [
-                    'http.request.method': request.method,
-                    'url.full'           : fullPath,
-                    'server.address'     : method.uri.host,
-                    'xh.source'          : 'hoist'
-                ]
-            )
-            .run { SpanRef span ->
-                traceImplService.injectContext(method)
-                try (CloseableHttpResponse sourceResponse = sourceClient.execute(method)) {
-                    response.setStatus(sourceResponse.code)
-                    span.setHttpStatusAndErrorStatus(sourceResponse.code)
-                    installResponseHeaders(response, sourceResponse)
+        span(
+            name: request.method,
+            kind: CLIENT,
+            tags: [
+                'http.request.method': request.method,
+                'url.full'           : fullPath,
+                'server.address'     : method.uri.host,
+                'xh.source'          : 'hoist'
+            ]
+        ).run { SpanRef span ->
+            traceImplService.injectContext(method)
+            try (CloseableHttpResponse sourceResponse = sourceClient.execute(method)) {
+                response.setStatus(sourceResponse.code)
+                span.setHttpStatusAndErrorStatus(sourceResponse.code)
+                installResponseHeaders(response, sourceResponse)
 
-                    sourceResponse.entity?.writeTo(response.outputStream)
+                sourceResponse.entity?.writeTo(response.outputStream)
 
-                    response.flushBuffer()
-                } catch (ClientAbortException ignored) {
-                    logDebug("Client has aborted request to [$endpoint] - ignoring")
-                } catch (Throwable t) {
-                    // Log ...and rethrow exception for normal handling, if not too late
-                    logError("Error occurred during proxy streaming of [$endpoint]", t)
-                    if (!response.isCommitted()) {
-                        response.reset()
-                        throw t
-                    }
+                response.flushBuffer()
+            } catch (ClientAbortException ignored) {
+                logDebug("Client has aborted request to [$endpoint] - ignoring")
+            } catch (Throwable t) {
+                // Log ...and rethrow exception for normal handling, if not too late
+                logError("Error occurred during proxy streaming of [$endpoint]", t)
+                if (!response.isCommitted()) {
+                    response.reset()
+                    throw t
                 }
             }
+        }
     }
 
 

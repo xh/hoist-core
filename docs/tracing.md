@@ -14,7 +14,8 @@ delegate to no-op implementations, so no null checks are needed in application c
 - **Central service** — `TraceService` manages the OpenTelemetry SDK lifecycle, exporter
   pipeline, and provides span creation APIs (`withSpan` and `createSpan`).
 - **Combined observability** — `ObservedRun` is a composable builder that wraps a closure with
-  any combination of tracing, logging, and metrics. Accessed via `BaseService.observe()`.
+  any combination of tracing, logging, and metrics. Typically started via `BaseService.span()`,
+  with `BaseService.observe()` available for the rare case where no span is wanted.
 - **Automatic request spans** — `HoistFilter` creates SERVER spans for every request.
   `HoistFilter` extracts incoming W3C `traceparent` headers so request spans join existing traces.
 - **Export** — OTLP (HTTP/protobuf) export configured via soft config. Applications can register
@@ -68,7 +69,7 @@ root span otherwise. Exceptions are recorded on the span and re-thrown. The clos
 accept a `SpanRef` parameter, which may be further enhanced with tags, or information about errors.
 Note that a NoOp span is passed even if tracing is disabled.
 
-For combined tracing + logging + metrics, use `ObservedRun` via `BaseService.observe()` instead.
+For combined tracing + logging + metrics, use `ObservedRun` via `BaseService.span()` instead.
 
 **Arguments** (passed as named params):
 
@@ -116,8 +117,11 @@ A composable builder for wrapping a closure with any combination of tracing, log
 Each concern is opt-in via dedicated builder methods, then executed with `run()`. The closure is
 wrapped in an onion from outermost to innermost: span → log → timer → counter → closure.
 
-Access via `BaseService.observe()`, which creates a builder pre-configured with the service as
-the caller (used for span `code.namespace` and log context).
+Access via `BaseService.span(name, kind?, tags?)`, which creates a builder pre-configured with
+the service as the caller (used for span `code.namespace` and log context) and an initial span.
+Additional builder methods (`logInfo`, `timer`, `counter`, etc.) can be chained as needed.
+`BaseService.observe()` returns the same builder without an initial span — use it only when no
+span is wanted.
 
 ### Builder methods
 
@@ -138,8 +142,7 @@ When multiple log levels are configured, `ObservedRun` selects the finest enable
 level wins:
 
 ```groovy
-observe()
-    .span(name: 'importData')
+span('importData')
     .logInfo('Importing data')
     .logDebug(['Importing data', [source: url, batchSize: n]])
     .run {
@@ -158,8 +161,7 @@ class PortfolioService extends BaseService {
     Timer generationTimer  // pre-registered Micrometer timer
 
     private Portfolio generatePortfolio() {
-        observe()
-            .span(name: 'generatePortfolio')
+        span('generatePortfolio')
             .logInfo('Generating Portfolio')
             .timer(generationTimer)
             .run {
@@ -172,19 +174,20 @@ class PortfolioService extends BaseService {
 **Span + log only:**
 
 ```groovy
-observe()
-    .span(name: 'generateOrders')
+span('generateOrders')
     .logDebug("Generating ${count} orders")
     .run {
         // business logic
     }
 ```
 
-**Span with SpanRef access:**
+**Span only (with SpanRef access):**
+
+For the common case of a span without logging or metrics, `BaseService.span()` is a shortcut for
+`observe().span(...)`:
 
 ```groovy
-observe()
-    .span(name: 'processOrder', tags: [orderId: id])
+span(name: 'processOrder', tags: [orderId: id])
     .run { SpanRef span ->
         def result = doWork()
         span.setTag('resultCount', result.size())
@@ -196,7 +199,7 @@ observe()
 
 ```groovy
 ObservedRun.observe(this)
-    .span(name: 'myOp')
+    .span('myOp')
     .logDebug('Working')
     .run {
         // works from any LogSupport implementor
@@ -235,7 +238,7 @@ ObservedRun.observe(this)
 | `sampleRate` | Double | Fallback sampling rate (0.0–1.0) applied when no sampling rule matches. Dynamic. |
 | `sampleRules` | List\<Map\> | Ordered rules for per-span sampling. Each rule has a `match` map of tag patterns (plus the reserved `name` key that matches the span's name) and a `sampleRate`. First match wins; unmatched spans use the fallback `sampleRate`. See [Sampling Rules](#sampling-rules) below. Dynamic. |
 | `jdbcTracingEnabled` | Boolean | Emit CLIENT spans for all JDBC `DataSource` operations — applies to every pool (primary + any additional Grails datasources). Defaults to `false`. Dynamic. See [JDBC](#outbound-jdbc) below. |
-| `otlpEnabled` | Boolean | Enable OTLP span export (HTTP/protobuf). Dynamic. In local development, additionally gated by the `otlpEnabledInLocalDev` instance config (defaults to `'false'`); has no effect in other environments. |
+| `otlpEnabled` | Boolean | Enable OTLP span export (HTTP/protobuf). Dynamic. Gated by the `suppressOtlpExport` instance config (defaults to `'true'` in local dev, `'false'` otherwise). |
 | `otlpConfig` | Map | OTLP exporter config (e.g. `{"endpoint": "http://localhost:4318/v1/traces"}`). |
 
 When `xhTraceConfig` is updated, the exporter pipeline is torn down and recreated. This is
