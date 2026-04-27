@@ -193,6 +193,14 @@
             "keywords": ["CHANGELOG", "changelog", "release notes", "breaking changes", "difficulty rating", "entry format"]
         },
         {
+            "id": "docs/coding-conventions.md",
+            "title": "Coding Conventions",
+            "mcpCategory": "conventions",
+            "viewerCategory": "overview",
+            "description": "Authoritative coding conventions for hoist-core framework and applications — naming, logging, exceptions, services, controllers, GORM, clustering, HTTP/email, background work, code style, and commit/PR formatting.",
+            "keywords": ["conventions", "coding standards", "style guide", "naming", "xh prefix", "LogSupport", "withInfo", "withDebug", "RoutineRuntimeException", "BaseService", "createCache", "createTimer", "clearCaches", "clearCachesConfigs", "ensureRequiredConfigsCreated", "configService", "AccessRequiresRole", "renderJSON", "parseRequestJSON", "ReadOnly", "Transactional", "N+1", "fetch join", "batchSize", "JSONFormat", "primaryOnly", "replicate", "JSONClient", "xhEmailOverride", "withNewSession", "pushToAllChannels", "pushToLocalChannels", "Groovy idioms", "commit messages", "no hard wrap"]
+        },
+        {
             "id": "docs/upgrade-notes/v38-upgrade-notes.md",
             "title": "v38 Upgrade Notes",
             "mcpCategory": "devops",

@@ -17,7 +17,7 @@ authentication, and knowing where to add cross-cutting concerns.
 | `HoistCoreGrailsPlugin` | `src/main/groovy/io/xh/hoist/` | Plugin descriptor — registers filter, initializes Hazelcast |
 | `HoistFilter` | `src/main/groovy/io/xh/hoist/` | Servlet filter — auth gating, instance readiness, top-level exception catching |
 | `UrlMappings` | `grails-app/controllers/io/xh/hoist/` | URL pattern routing |
-| `AccessInterceptor` | `grails-app/controllers/io/xh/hoist/security/` | Grails interceptor — role annotation checks |
+| `HoistInterceptor` | `grails-app/controllers/io/xh/hoist/` | Grails interceptor — role annotation checks |
 | `BaseController` | `grails-app/controllers/io/xh/hoist/` | Base controller — JSON rendering, exception handling |
 
 ## Architecture
@@ -45,7 +45,7 @@ HTTP Request
     │
     ▼
 ┌─────────────────────────────┐
-│  3. AccessInterceptor       │  Grails interceptor (matches all)
+│  3. HoistInterceptor       │  Grails interceptor (matches all)
 │     • Find controller method│  Resolve action to a Method
 │     • Check @Access* ann.   │  Evaluate role annotations
 │     • 404 if no method      │  NotFoundException for bad routes
@@ -138,7 +138,7 @@ Defines URL patterns that route requests to controller actions:
 The REST URL pattern uses HTTP method dispatch — the same URL maps to different actions based on
 whether the request is `GET`, `POST`, `PUT`, or `DELETE`.
 
-### AccessInterceptor
+### HoistInterceptor
 
 A Grails interceptor that matches all requests (`matchAll()`) and enforces role-based access control
 before any controller action executes.
@@ -176,7 +176,7 @@ Exceptions can be thrown at multiple stages and are handled at four levels:
 2. **`HoistFilter` catch block** — Catches any `Throwable` from the rest of the pipeline. This is
    the safety net for instance readiness failures (`ensureRunning()`), Grails internals, and any
    other unexpected errors that escape lower-level handlers.
-3. **`AccessInterceptor.before()` try/catch** — The interceptor wraps its own logic in a try/catch
+3. **`HoistInterceptor.before()` try/catch** — The interceptor wraps its own logic in a try/catch
    block. Exceptions thrown during access checks (e.g., `NotFoundException`,
    `NotAuthorizedException`) are caught within the interceptor itself and rendered directly to the
    response via `Utils.handleException(exception: e, ..., renderTo: response)`. These exceptions
@@ -223,11 +223,11 @@ never hits your controller code, check:
 1. Is the instance running? (`ensureRunning()` rejection)
 2. Is the user authenticated? (`allowRequest()` returning `false`)
 3. Is the URL mapping correct? (wrong URL pattern → 404 from `UrlMappings`)
-4. Does the user have the right role? (`AccessInterceptor` → 403)
+4. Does the user have the right role? (`HoistInterceptor` → 403)
 
 ### WebSocket and actuator bypass
 
-The `AccessInterceptor` explicitly skips WebSocket upgrade requests (matched by both the
+The `HoistInterceptor` explicitly skips WebSocket upgrade requests (matched by both the
 `upgrade: websocket` header and the configured WebSocket URI path) and `/actuator/` endpoints.
 WebSocket security is handled separately by the WebSocket framework. Actuator endpoints should be
 secured at the deployment/infrastructure level.

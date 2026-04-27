@@ -218,7 +218,7 @@ Controllers use `renderJSON()` and `parseRequestJSON()`. Custom serializers are 
   `@AccessRequiresRole`, etc.) on method or class — framework throws if missing.
 - Use `renderJSON()` for all JSON responses — never Grails `render()`. Use
   `parseRequestJSON()` — never `request.JSON`.
-- `AccessInterceptor` enforces roles **before** controller code runs, so role checks are not
+- `HoistInterceptor` enforces roles **before** controller code runs, so role checks are not
   needed in action logic. For service-layer authorization, use `user.hasRole()`.
 
 ### GORM & Data Access

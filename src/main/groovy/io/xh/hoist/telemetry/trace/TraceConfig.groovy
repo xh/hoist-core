@@ -29,9 +29,6 @@ class TraceConfig extends TypedConfigMap {
      */
     List<Map> sampleRules = []
 
-    /** When true, error spans bypass sample-rate filtering and are always recorded. */
-    boolean alwaysSampleErrors = true
-
     /** When true, recorded spans are exported via the built-in OTLP HTTP exporter. */
     boolean otlpEnabled = false
 

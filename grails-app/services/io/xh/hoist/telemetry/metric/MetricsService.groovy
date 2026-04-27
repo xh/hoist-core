@@ -26,10 +26,11 @@ import io.xh.hoist.config.ConfigService
 import static io.micrometer.core.instrument.config.MeterFilterReply.DENY
 import static io.micrometer.core.instrument.config.MeterFilterReply.NEUTRAL
 import static io.xh.hoist.cluster.ClusterService.instanceName
-import static io.xh.hoist.telemetry.OtelUtils.getSuppressOtlpExport
+import static io.xh.hoist.telemetry.OtelUtils.getOtlpEnabledInLocalDev
 import static io.xh.hoist.cluster.ClusterService.otelResourceAttributes
 import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 import static io.xh.hoist.util.Utils.appCode
+import static io.xh.hoist.util.Utils.isLocalDevelopment
 
 /**
  * Central service for Micrometer metrics in a Hoist application.
@@ -187,7 +188,7 @@ class MetricsService extends BaseService {
     }
 
     private synchronized void syncConfig() {
-        def otlpEnabled = config.otlpEnabled && !suppressOtlpExport
+        def otlpEnabled = config.otlpEnabled && (!isLocalDevelopment || otlpEnabledInLocalDev)
         withDebug(['Syncing config', [prometheus: config.prometheusEnabled, otlp: otlpEnabled]]) {
 
             // Remove all publish registries from main registry

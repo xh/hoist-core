@@ -135,7 +135,7 @@ variable wins.
 | `dbPassword` | Database password |
 | `bootstrapAdminUser` | Admin user for local dev (see [authorization.md](./authorization.md)) |
 | `multiInstanceEnabled` | Set to `'false'` to disable multi-instance clustering |
-| `suppressOtlpExport` | Suppress OTLP export for metrics and traces. Defaults to `'true'` in local dev, `'false'` otherwise. |
+| `otlpEnabledInLocalDev` | Set to `'true'` to allow OTLP export of metrics and traces while running in local development. Defaults to `'false'` and has no effect outside of local dev. |
 
 ### AppEnvironment
 

@@ -2,6 +2,13 @@
 
 ## 39.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes
+
+* `TraceService` no longer supports the `alwaysSampleErrors` flag, which was deemed inappropriate
+  for head-based sampling. This change is consistent with a similar update in hoist-core v85. Apps
+  requiring full visibility into error spans for a particular set of errors should ensure they
+  are sampled via the existing rules.
+
 ### 🎁 New Features
 
 * **JDK 25 support** — hoist-core now builds on JDK 25, laying the groundwork for future
@@ -21,10 +28,13 @@
       include authentication and routing time, and skip noisy requests like 'ping' and web sockets.
     * New span tags `xh.isPrimary` and `xh.impersonating`. `user.name` now refers to the
       *authenticated* user.
-* OTLP export (metrics and traces) is now gated by the new `suppressOtlpExport` instance config —
-  defaults to `'true'` in local dev, `'false'` otherwise. In local dev, exports tag
-  `deployment.environment.name` with the OS username (e.g. `Development-johndoe`) to distinguish
-  per-developer data.
+    * New `BaseService.span(name, kind?, tags?)` shortcut for the common case of starting an
+      `ObservedRun` with an initial span — equivalent to `observe().span(...)`.
+* OTLP export (metrics and traces) is now suppressed by default while running in local
+  development. Set the new `otlpEnabledInLocalDev` instance config to `'true'` to opt in. In local
+  dev, exports tag `deployment.environment.name` with the OS username (e.g. `Development-johndoe`)
+  to distinguish per-developer data.
+
 * **Typed soft-config infrastructure** — `TypedConfigMap` now supports nested typed shapes
   (a declared property whose type extends `TypedConfigMap`) and lists of typed shapes
   (e.g. `List<LdapServerOptions>`), with property-initializer defaults propagated through
@@ -37,15 +47,19 @@
     * Startup `WARN` emitted when a typed-class property default disagrees with the
       BootStrap `defaultValue` for the same key — flags drift between the two.
     * All built-in hoist-core JSON configs are now typed and registered via this scheme.
-  * See `docs/configuration.md` for the full guide.
+    * See `docs/configuration.md` for the full guide.
 
 ### 🐞 Bug Fixes
 
 * `TypedConfigMap` subclasses with default field initializers were silently clobbering values
   loaded from soft config.
 * Tightened defaults, coercions, and schema gaps across several built-in hoist-core configs
-  surfaced during the typed-config migration — latent edge cases that would only bite under
-  unusual admin-edit patterns.
+    surfaced during the typed-config migration — latent edge cases that would only bite under
+    unusual admin-edit patterns.
+
+### 🤖 AI Docs + Tooling
+
+* **New `coding-conventions.md` doc** — authoritative coding conventions reference for hoist-core, consolidating guidance previously scattered across `CLAUDE.md` and individual feature docs. Paired sibling to the hoist-react `coding-conventions.md`. Covers naming, logging (`LogSupport`, `withInfo`/`withDebug`, structured map form), exceptions, services and lifecycle, controllers and security, GORM, clustering, HTTP/email/background work, Groovy idioms, and commit/PR formatting.
 
 ### 📚 Libraries
 
