@@ -40,6 +40,10 @@
 * `TypedConfigMap` subclasses with default field initializers were silently clobbering values
   loaded from soft config.
 
+### 🤖 AI Docs + Tooling
+
+* **New `coding-conventions.md` doc** — authoritative coding conventions reference for hoist-core, consolidating guidance previously scattered across `CLAUDE.md` and individual feature docs. Paired sibling to the hoist-react `coding-conventions.md`. Covers naming, logging (`LogSupport`, `withInfo`/`withDebug`, structured map form), exceptions, services and lifecycle, controllers and security, GORM, clustering, HTTP/email/background work, Groovy idioms, and commit/PR formatting.
+
 ### 📚 Libraries
 
 * Grails `7.0.5 → 7.0.8`

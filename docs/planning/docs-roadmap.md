@@ -81,6 +81,16 @@ Guides to building, structuring, and deploying Hoist applications, plus CI/CD an
 | [`build-and-publish.md`](../build-and-publish.md) | `build.gradle`, `settings.gradle`, `gradle.properties`, `.github/workflows/*.yml` | Gradle build configuration, GitHub Actions CI/CD workflows (CI, snapshot, release), Maven Central publishing via Sonatype Central Portal, GPG artifact signing, `nexus-publish-plugin`, legacy `repo.xh.io` publishing, version numbering, required GitHub secrets | Draft |
 | [`changelog-format.md`](../changelog-format.md) | `CHANGELOG.md` | Conventions for writing and reviewing CHANGELOG entries — section headers, emoji prefixes, voice/tense, difficulty ratings, breaking changes, libraries, application changelog differences | Done |
 
+## Conventions
+
+Authoritative standards references for hoist-core development. These docs consolidate conventions
+that were previously scattered across `CLAUDE.md`/`AGENTS.md`, individual feature docs, and tribal
+knowledge.
+
+| Document | Source Files | Description | Status |
+|----------|-------------|-------------|--------|
+| [`coding-conventions.md`](../coding-conventions.md) | `CLAUDE.md`, `AGENTS.md`, hoist-react `coding-conventions.md` (template), feature docs | Naming (`xh` prefix, env vars), logging (`LogSupport`, `withInfo`/`withDebug`, structured map form), exceptions (`RoutineRuntimeException`, `HttpException`), services (`BaseService`, resource factories, `clearCaches` discipline, `clearCachesConfigs`, `ensureRequired*Created`), controllers (mandatory access annotations, `renderJSON`/`parseRequestJSON`, no try/catch, no role re-checks), GORM (`@ReadOnly`/`@Transactional`, N+1 avoidance, judicious `flush: true`, `JSONFormat`), clustering (`primaryOnly`, `replicate`, IMap, serializability, eventual consistency, `forceRun()`), HTTP/email/background work, Groovy idioms, tracing-API pointer, commit/PR formatting (no hard wrap) | Done |
+
 ## Documentation Guidelines
 
 ### Review Workflow
@@ -211,6 +221,7 @@ _For detailed session-by-session notes, see [docs-roadmap-log.md](./docs-roadmap
   http-client), 1 in Draft (exception-handling)
 - **Grails Platform:** gorm-domain-objects Done
 - **Development & Builds:** 2 in Draft (application-structure, build-and-publish)
+- **Conventions:** coding-conventions Done (consolidates CLAUDE.md/AGENTS.md guidance)
 - **Priority 4 (Supporting Features):** All 6 docs still Planned
 - **Documentation index** (`docs/README.md`) created and maintained alongside feature docs
 
