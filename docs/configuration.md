@@ -208,6 +208,7 @@ Key capabilities:
 | `AppConfig` | `grails-app/domain/io/xh/hoist/config/` | GORM domain — database-backed config entries |
 | `ConfigService` | `grails-app/services/io/xh/hoist/config/` | Primary service — typed getters, event publishing |
 | `ConfigDiffService` | `grails-app/services/io/xh/hoist/config/` | Cross-environment config synchronization |
+| `ConfigSpec` | `src/main/groovy/io/xh/hoist/config/` | Typed specification for required config definitions |
 | `ConfigAdminController` | `grails-app/controllers/io/xh/hoist/admin/` | Admin console endpoint for config management |
 
 ### Key Classes
@@ -294,8 +295,8 @@ the requested type doesn't match the config's `valueType`.
 ##### Typed configs via `TypedConfigMap`
 
 For structured JSON configs with a stable, known key set, declare a `TypedConfigMap` subclass
-and wire it in via the `typedClass:` key on the config's `ensureRequiredConfigsCreated`
-entry. This gives you:
+and wire it in via the `typedClass:` field on the config's `ConfigSpec` entry passed to
+`ensureRequiredConfigsCreated`. This gives you:
 
 1. **One source of truth for shape + defaults.** Property initializers on the class are the
    fallback values; when the stored map is missing a key, the declared default applies.
@@ -327,13 +328,14 @@ class PricingConfig extends TypedConfigMap {
 
 // 2. Register it in BootStrap alongside the other config metadata.
 configService.ensureRequiredConfigsCreated([
-    pricingSourceConfig: [
+    new ConfigSpec(
+        name: 'pricingSourceConfig',
         valueType: 'json',
         defaultValue: [endpoint: 'https://prices.example.com', timeoutMs: 5000, fallbackEnabled: true],
         typedClass: PricingConfig,
         groupName: 'Pricing',
         note: '...'
-    ]
+    )
 ])
 
 // 3. Read it, anywhere.
@@ -401,39 +403,49 @@ obscured as `'*********'`, and JSON values are parsed to objects.
 
 ##### `ensureRequiredConfigsCreated(reqConfigs)`
 
-Called during application bootstrap to declare configs the application depends on. Creates missing
-configs with default values; logs errors for type mismatches or `clientVisible` flag mismatches on
-existing configs (but does not auto-fix them).
+Called during application bootstrap to declare configs the application depends on. Accepts a
+`List<ConfigSpec>` where each `ConfigSpec` specifies the config's `name`, `valueType`,
+`defaultValue`, and optional fields (`clientVisible`, `groupName`, `note`). Creates missing configs
+with default values; logs errors for type mismatches or `clientVisible` flag mismatches on existing
+configs (but does not auto-fix them).
 
 Applications should declare all long-lived, expected configs here — not just those that are
 strictly required at startup. This serves as an effective inventory of the application's soft
 configs, ensures that an app starting against a fresh database has a complete set of entries
 visible and adjustable in the Admin Console, and guarantees consistency across environments.
 
+A deprecated overload accepting `Map<String, Map>` (where the outer key is the config name) is
+still supported for backward compatibility but should be migrated to `ConfigSpec`.
+
 ```groovy
+import io.xh.hoist.config.ConfigSpec
+
 class BootStrap {
     def configService
 
     def init = {
         configService.ensureRequiredConfigsCreated([
-            'apiEndpoint': [
+            new ConfigSpec(
+                name: 'apiEndpoint',
                 valueType: 'string',
                 defaultValue: 'https://api.example.com',
                 clientVisible: true,
                 groupName: 'API',
                 note: 'External API base URL'
-            ],
-            'maxConnections': [
+            ),
+            new ConfigSpec(
+                name: 'maxConnections',
                 valueType: 'int',
                 defaultValue: '100',
                 groupName: 'Performance'
-            ],
-            'apiSecret': [
+            ),
+            new ConfigSpec(
+                name: 'apiSecret',
                 valueType: 'pwd',
                 defaultValue: 'changeme',
                 groupName: 'API',
                 note: 'API authentication secret'
-            ]
+            )
         ])
     }
 }

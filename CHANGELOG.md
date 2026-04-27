@@ -58,6 +58,15 @@
 * `AppConfig` validation errors no longer render twice — removed a redundant `valueType`
   validator that re-ran the `value` check and emitted a duplicate generic message.
 
+### ⚙️ Technical
+
+* Added `ConfigSpec`, `PreferenceSpec`, and `RoleSpec` typed classes for use with
+  `ensureRequiredConfigsCreated()`, `ensureRequiredPrefsCreated()`, and
+  `ensureRequiredRolesCreated()`, replacing untyped `Map` arguments with classes that provide IDE
+  autocomplete and compile-time validation. Previous `Map`-based signatures remain supported as
+  deprecated overloads and will be removed in v42. `ConfigSpec.typedClass` is the supported way to
+  register a `TypedConfigMap` subclass against a JSON config.
+
 ### 🤖 AI Docs + Tooling
 
 * **New `coding-conventions.md` doc** — authoritative coding conventions reference for hoist-core, consolidating guidance previously scattered across `CLAUDE.md` and individual feature docs. Paired sibling to the hoist-react `coding-conventions.md`. Covers naming, logging (`LogSupport`, `withInfo`/`withDebug`, structured map form), exceptions, services and lifecycle, controllers and security, GORM, clustering, HTTP/email/background work, Groovy idioms, and commit/PR formatting.

@@ -18,7 +18,8 @@ import java.lang.annotation.Target
  * Controller annotation to list roles required to execute any action.
  * Current user must have ALL roles listed to access.
  *
- * @deprecated - use @AccessRequiresRole or @AccessRequiresAllRoles instead.
+ * @deprecated Use @AccessRequiresRole or @AccessRequiresAllRoles instead.
+ *     Targeted for removal in v40.
  */
 @Deprecated
 @Inherited

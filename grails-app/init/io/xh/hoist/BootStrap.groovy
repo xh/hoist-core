@@ -12,6 +12,7 @@ import io.xh.hoist.admin.MemoryMonitoringConfig
 import io.xh.hoist.alertbanner.AlertBannerConfig
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ChangelogConfig
+import io.xh.hoist.config.ConfigSpec
 import io.xh.hoist.config.IdleConfig
 import io.xh.hoist.environment.EnvPollConfig
 import io.xh.hoist.export.ExportConfig
@@ -19,6 +20,7 @@ import io.xh.hoist.ldap.LdapConfig
 import io.xh.hoist.log.LogArchiveConfig
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.monitor.MonitorConfig
+import io.xh.hoist.pref.PreferenceSpec
 import io.xh.hoist.telemetry.metric.MetricsConfig
 import io.xh.hoist.telemetry.trace.TraceConfig
 import io.xh.hoist.track.ActivityTrackingConfig
@@ -95,7 +97,8 @@ class BootStrap implements LogSupport {
 
     private void ensureRequiredConfigsCreated() {
         configService.ensureRequiredConfigsCreated([
-            xhActivityTrackingConfig: [
+            new ConfigSpec(
+                name: 'xhActivityTrackingConfig',
                 valueType: 'json',
                 defaultValue: [
                     clientHealthReport: [intervalMins: -1],
@@ -110,52 +113,59 @@ class BootStrap implements LogSupport {
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Configures built-in Activity Tracking via TrackService.'
-            ],
-            xhAlertBannerConfig: [
+            ),
+            new ConfigSpec(
+                name: 'xhAlertBannerConfig',
                 valueType: 'json',
                 defaultValue: [enabled: true],
                 typedClass: AlertBannerConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Configures support for showing an app-wide alert banner.\n\nAdmins configure and activate alert banners from the Hoist Admin console. To generally enable this system, set "enabled" to true. The xhEnvPollConfig.interval config governs client polling for updates.'
-            ],
-            xhAppInstances: [
+            ),
+            new ConfigSpec(
+                name: 'xhAppInstances',
                 valueType: 'json',
                 defaultValue: [],
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'List of root URLs for running instances of this app across environments. Currently only used for as a convenience feature in the Admin config diff tool.'
-            ],
-            xhAppTimeZone: [
+            ),
+            new ConfigSpec(
+                name: 'xhAppTimeZone',
                 valueType: 'string',
                 defaultValue: 'UTC',
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Official TimeZone for this application - e.g. the zone of the head office. Used to format/parse business related dates that need to be considered and displayed consistently at all locations. Set to a valid Java TimeZone ID.'
-            ],
-            xhAutoRefreshIntervals: [
+            ),
+            new ConfigSpec(
+                name: 'xhAutoRefreshIntervals',
                 valueType: 'json',
                 defaultValue: [app: -1],
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Map of clientAppCodes to intervals (in seconds) on which the client-side AutoRefreshService should fire. Note the xhAutoRefreshEnabled preference must also be true for the client service to activate.'
-            ],
-            xhChangelogConfig: [
+            ),
+            new ConfigSpec(
+                name: 'xhChangelogConfig',
                 valueType: 'json',
                 defaultValue: [enabled: true, excludedVersions: [], excludedCategories: [], limitToRoles: []],
                 typedClass: ChangelogConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Configures built-in application changelog (release notes), with options to disable the feature entirely, exclude particular releases or categories of changes from the log, and/or only show to users with selected roles.'
-            ],
-            xhClientErrorConfig: [
+            ),
+            new ConfigSpec(
+                name: 'xhClientErrorConfig',
                 valueType: 'json',
                 defaultValue: [intervalMins: 2],
                 typedClass: ClientErrorConfig,
                 groupName: 'xh.io',
                 note: 'Configures handling of client error reports. Errors are queued when received and processed every [intervalMins].'
-            ],
-            xhConnPoolMonitoringConfig: [
+            ),
+            new ConfigSpec(
+                name: 'xhConnPoolMonitoringConfig',
                 valueType: 'json',
                 defaultValue: [
                     enabled: true,
@@ -166,60 +176,69 @@ class BootStrap implements LogSupport {
                 typedClass: ConnPoolMonitoringConfig,
                 groupName: 'xh.io',
                 note: 'Configures built-in JDBC connection pool monitoring.'
-            ],
-            xhEmailDefaultDomain: [
+            ),
+            new ConfigSpec(
+                name: 'xhEmailDefaultDomain',
                 valueType: 'string',
                 defaultValue: 'example.com',
                 groupName: 'xh.io',
                 note: 'Default domain name appended by Hoist EmailServices when unqualified usernames are passed to the service as email recipients/senders.'
-            ],
-            xhEmailDefaultSender: [
+            ),
+            new ConfigSpec(
+                name: 'xhEmailDefaultSender',
                 valueType: 'string',
                 defaultValue: 'support@example.com',
                 groupName: 'xh.io',
                 note: 'Email address for Hoist EmailService to use as default sender address.'
-            ],
-            xhEmailFilter: [
+            ),
+            new ConfigSpec(
+                name: 'xhEmailFilter',
                 valueType: 'string',
                 defaultValue: 'none',
                 groupName: 'xh.io',
                 note: 'Comma-separated list of email addresses to which Hoist EmailService can send mail. For testing / dev purposes. If specified, emails to addresses not in this list will be quietly dropped. Value "none" does not filter recipients.'
-            ],
-            xhEmailOverride: [
+            ),
+            new ConfigSpec(
+                name: 'xhEmailOverride',
                 valueType: 'string',
                 defaultValue: 'none',
                 groupName: 'xh.io',
                 note: 'Email address to which Hoist emailService should send all mail, regardless of specified recipient. For testing / dev purposes. Use to test actual sending of mails while still not mailing end-users. Value "none" disables any override.'
-            ],
-            xhEmailSupport: [
+            ),
+            new ConfigSpec(
+                name: 'xhEmailSupport',
                 valueType: 'string',
                 defaultValue: 'none',
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Email address to which support and feedback submissions should be sent. Value "none" to disable support emails.'
-            ],
-            xhEnableImpersonation: [
+            ),
+            new ConfigSpec(
+                name: 'xhEnableImpersonation',
                 valueType: 'bool',
                 defaultValue: false,
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'True to enable identity impersonation by authorized users.'
-            ],
-            xhEnableLogViewer: [
+            ),
+            new ConfigSpec(
+                name: 'xhEnableLogViewer',
                 valueType: 'bool',
                 defaultValue: true,
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'True to enable the log viewer included with the Hoist Admin console as well as the associated server-side endpoints.'
-            ],
-            xhEnableMonitoring: [
+            ),
+            new ConfigSpec(
+                name: 'xhEnableMonitoring',
                 valueType: 'bool',
                 defaultValue: true,
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'True to enable the monitor tab included with the Hoist Admin console and the associated server-side jobs'
-            ],
-            xhEnvPollConfig: [
+            ),
+            new ConfigSpec(
+                name: 'xhEnvPollConfig',
                 valueType: 'json',
                 defaultValue: [
                     interval: 10,
@@ -233,14 +252,16 @@ class BootStrap implements LogSupport {
                     "\t+ 'forceReload': Force clients to refresh immediately. To be used when an updated server is known to be incompatible with a previously deployed client.\n" +
                     "\t+ 'promptReload': Show an update prompt banner, allowing users to refresh when convenient.\n" +
                     "\t+ 'silent': No action taken."
-            ],
-            xhExpectedServerTimeZone: [
+            ),
+            new ConfigSpec(
+                name: 'xhExpectedServerTimeZone',
                 valueType: 'string',
                 defaultValue: '*',
                 groupName: 'xh.io',
                 note: 'Expected time zone of the server-side JVM - set to a valid Java TimeZone ID. NOTE: this config is checked at startup to ensure the server is running in the expected zone and will throw a fatal exception if it is invalid or does not match the zone reported by Java.\n\nChanging this config has no effect on a running server, and will not itself change the default Zone of the JVM.\n\nIf you REALLY do not want this behavior, a value of "*" will suppress this check.'
-            ],
-            xhExportConfig: [
+            ),
+            new ConfigSpec(
+                name: 'xhExportConfig',
                 valueType: 'json',
                 defaultValue: [
                     streamingCellThreshold: 100000,
@@ -250,23 +271,26 @@ class BootStrap implements LogSupport {
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Configures exporting data to Excel.'
-            ],
-            xhFlags: [
+            ),
+            new ConfigSpec(
+                name: 'xhFlags',
                 valueType: 'json',
                 defaultValue: [:],
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Flags for experimental features.'
-            ],
-            xhIdleConfig: [
+            ),
+            new ConfigSpec(
+                name: 'xhIdleConfig',
                 valueType: 'json',
                 defaultValue: [timeout: 120, appTimeouts: [:]],
                 typedClass: IdleConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Governs how client application will enter "sleep mode", suspending background requests and prompting the user to reload to resume.  Timeouts are in minutes of inactivity. -1 to disable.'
-            ],
-            xhLdapConfig: [
+            ),
+            new ConfigSpec(
+                name: 'xhLdapConfig',
                 valueType: 'json',
                 defaultValue: [
                     enabled: false,
@@ -285,18 +309,21 @@ class BootStrap implements LogSupport {
                 typedClass: LdapConfig,
                 groupName: 'xh.io',
                 note: 'Supports connecting to LDAP servers.'
-            ],
-            xhLdapUsername: [
+            ),
+            new ConfigSpec(
+                name: 'xhLdapUsername',
                 valueType: 'string',
                 defaultValue: 'none',
                 groupName: 'xh.io'
-            ],
-            xhLdapPassword: [
+            ),
+            new ConfigSpec(
+                name: 'xhLdapPassword',
                 valueType: 'pwd',
                 defaultValue: 'none',
                 groupName: 'xh.io'
-            ],
-            xhLogArchiveConfig: [
+            ),
+            new ConfigSpec(
+                name: 'xhLogArchiveConfig',
                 valueType: 'json',
                 defaultValue: [
                     archiveAfterDays: 30,
@@ -305,8 +332,9 @@ class BootStrap implements LogSupport {
                 typedClass: LogArchiveConfig,
                 groupName: 'xh.io',
                 note: 'Configures automatic cleanup and archiving of log files. Files older than "archiveAfterDays" will be moved into zipped bundles within the specified "archiveFolder".'
-            ],
-            xhMemoryMonitoringConfig: [
+            ),
+            new ConfigSpec(
+                name: 'xhMemoryMonitoringConfig',
                 valueType: 'json',
                 defaultValue: [
                     enabled: true,
@@ -321,8 +349,9 @@ class BootStrap implements LogSupport {
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Configures built-in memory usage and GC monitoring.'
-            ],
-            xhMonitorConfig: [
+            ),
+            new ConfigSpec(
+                name: 'xhMonitorConfig',
                 valueType: 'json',
                 defaultValue: [
                     monitorRefreshMins: 10,
@@ -336,14 +365,16 @@ class BootStrap implements LogSupport {
                 typedClass: MonitorConfig,
                 groupName: 'xh.io',
                 note: 'Configures server-side status monitoring and notifications. Note failNotifyThreshold and warnNotifyThreshold are the number of refresh cycles a monitor will need to be in said status to trigger "alertMode".'
-            ],
-            xhMonitorEmailRecipients: [
+            ),
+            new ConfigSpec(
+                name: 'xhMonitorEmailRecipients',
                 valueType: 'string',
                 defaultValue: 'none',
                 groupName: 'xh.io',
                 note: 'Email address to which status monitor alerts should be sent. Value "none" disables emailed alerts.'
-            ],
-            xhMetricsConfig: [
+            ),
+            new ConfigSpec(
+                name: 'xhMetricsConfig',
                 valueType: 'json',
                 defaultValue: [
                     prometheusEnabled: false,
@@ -354,8 +385,9 @@ class BootStrap implements LogSupport {
                 typedClass: MetricsConfig,
                 groupName: 'xh.io',
                 note: 'Parameters for observable metric support'
-            ],
-            xhTraceConfig: [
+            ),
+            new ConfigSpec(
+                name: 'xhTraceConfig',
                 valueType: 'json',
                 defaultValue: [
                     enabled: false,
@@ -369,14 +401,16 @@ class BootStrap implements LogSupport {
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Parameters for distributed tracing support.'
-            ],
-            xhMetricsPublished: [
+            ),
+            new ConfigSpec(
+                name: 'xhMetricsPublished',
                 valueType: 'json',
                 defaultValue: [],
                 groupName: 'xh.io',
                 note: 'List of metric names to include in Prometheus, OTLP or other exports. Empty list = no metrics exported.'
-            ],
-            xhWebSocketConfig: [
+            ),
+            new ConfigSpec(
+                name: 'xhWebSocketConfig',
                 valueType: 'json',
                 defaultValue: [
                     sendTimeLimitMs: 1000,
@@ -385,48 +419,54 @@ class BootStrap implements LogSupport {
                 typedClass: WebSocketConfig,
                 groupName: 'xh.io',
                 note: 'Parameters for the managed WebSocket sessions created by Hoist.'
-            ]
+            )
         ])
     }
 
     private void ensureRequiredPrefsCreated() {
         prefService.ensureRequiredPrefsCreated([
-            xhAutoRefreshEnabled: [
+            new PreferenceSpec(
+                name: 'xhAutoRefreshEnabled',
                 type: 'bool',
                 defaultValue: true,
                 groupName: 'xh.io',
-                note: 'True to enable the client AutoRefreshService, which will trigger a refresh of client app data if/as specified by the xhAutoRefreshIntervals config. Note if disabled at the app level via config, this pref will have no effect.'
-            ],
-            xhIdleDetectionDisabled: [
+                notes: 'True to enable the client AutoRefreshService, which will trigger a refresh of client app data if/as specified by the xhAutoRefreshIntervals config. Note if disabled at the app level via config, this pref will have no effect.'
+            ),
+            new PreferenceSpec(
+                name: 'xhIdleDetectionDisabled',
                 type: 'bool',
                 defaultValue: false,
                 groupName: 'xh.io',
-                note: 'Set to true prevent IdleService from suspending the application due to inactivity.'
-            ],
-            xhLastReadChangelog: [
+                notes: 'Set to true prevent IdleService from suspending the application due to inactivity.'
+            ),
+            new PreferenceSpec(
+                name: 'xhLastReadChangelog',
                 type: 'string',
                 defaultValue: '0.0.0',
                 groupName: 'xh.io',
-                note: 'The most recent changelog entry version viewed by the user - read/written by XH.changelogService.'
-            ],
-            xhShowVersionBar: [
+                notes: 'The most recent changelog entry version viewed by the user - read/written by XH.changelogService.'
+            ),
+            new PreferenceSpec(
+                name: 'xhShowVersionBar',
                 type: 'string',
                 defaultValue: 'auto',
                 groupName: 'xh.io',
-                note: "Control display of Hoist footer with app version info. Options are 'auto' (show in non-prod env, or always for admins), 'always', and 'never'."
-            ],
-            xhSizingMode: [
+                notes: "Control display of Hoist footer with app version info. Options are 'auto' (show in non-prod env, or always for admins), 'always', and 'never'."
+            ),
+            new PreferenceSpec(
+                name: 'xhSizingMode',
                 type: 'json',
                 defaultValue: [:],
                 groupName: 'xh.io',
-                note: 'Sizing mode used by Grid and any other responsive components. Keyed by platform: [desktop|mobile|tablet].'
-            ],
-            xhTheme: [
+                notes: 'Sizing mode used by Grid and any other responsive components. Keyed by platform: [desktop|mobile|tablet].'
+            ),
+            new PreferenceSpec(
+                name: 'xhTheme',
                 type: 'string',
                 defaultValue: 'system',
                 groupName: 'xh.io',
-                note: 'Visual theme for the client application - "light", "dark", or "system".'
-            ]
+                notes: 'Visual theme for the client application - "light", "dark", or "system".'
+            )
         ])
     }
 

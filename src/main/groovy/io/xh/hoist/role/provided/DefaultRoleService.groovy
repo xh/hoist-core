@@ -10,6 +10,7 @@ package io.xh.hoist.role.provided
 import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.config.ConfigSpec
 import io.xh.hoist.ldap.LdapService
 import io.xh.hoist.role.BaseRoleService
 import io.xh.hoist.user.HoistUser
@@ -242,59 +243,53 @@ class DefaultRoleService extends BaseRoleService {
      */
     protected void ensureRequiredConfigAndRolesCreated() {
         configService.ensureRequiredConfigsCreated([
-            xhRoleModuleConfig: [
-                valueType   : 'json',
+            new ConfigSpec(
+                name: 'xhRoleModuleConfig',
+                valueType: 'json',
                 defaultValue: [
                     refreshIntervalSecs: 300
                 ],
-                groupName   : 'xh.io',
-                note        : 'Configures built-in role management via DefaultRoleService.'
-            ]
+                groupName: 'xh.io',
+                note: 'Configures built-in role management via DefaultRoleService.'
+            )
         ])
 
         ensureRequiredRolesCreated([
-            [
-                name    : 'HOIST_ADMIN',
+            new RoleSpec(
+                name: 'HOIST_ADMIN',
                 category: 'Hoist',
-                notes   : 'Hoist Admins have full access to all Hoist Admin tools and functionality.'
-            ],
-            [
-                name    : 'HOIST_ADMIN_READER',
+                notes: 'Hoist Admins have full access to all Hoist Admin tools and functionality.'
+            ),
+            new RoleSpec(
+                name: 'HOIST_ADMIN_READER',
                 category: 'Hoist',
-                notes   : 'Hoist Admin Readers have read-only access to all Hoist Admin tools and functionality.',
-                roles   : ['HOIST_ADMIN']
-            ],
-            [
-                name    : 'HOIST_IMPERSONATOR',
+                notes: 'Hoist Admin Readers have read-only access to all Hoist Admin tools and functionality.',
+                roles: ['HOIST_ADMIN']
+            ),
+            new RoleSpec(
+                name: 'HOIST_IMPERSONATOR',
                 category: 'Hoist',
-                notes   : 'Hoist Impersonators can impersonate other users.',
-                roles   : ['HOIST_ADMIN']
-            ],
-            [
-                name    : 'HOIST_ROLE_MANAGER',
+                notes: 'Hoist Impersonators can impersonate other users.',
+                roles: ['HOIST_ADMIN']
+            ),
+            new RoleSpec(
+                name: 'HOIST_ROLE_MANAGER',
                 category: 'Hoist',
-                notes   : 'Hoist Role Managers can manage roles and their memberships.',
-            ]
+                notes: 'Hoist Role Managers can manage roles and their memberships.'
+            )
         ])
     }
 
     /**
-     * Check a list of core roles required for Hoist/application operation - ensuring that these
+     * Check a list of core roles required for Hoist/application operation — ensuring that these
      * roles are present. Will create missing roles with supplied default values if not found.
      *
-     * Note that roles that *do* exist will *not* be modified in any way - i.e. this method cannot
+     * Note that roles that *do* exist will *not* be modified in any way — i.e. this method cannot
      * be used to ensure or update the membership of existing roles, only to create new ones.
      *
-     * @param roleSpecs - collection of specs for roles to be created as needed, as Maps with keys:
-     *      - name: required, unique role name
-     *      - category: optional
-     *      - notes: optional
-     *      - users: optional, list of usernames to add as members to the role
-     *      - directoryGroups: optional, list of directory group DNs to add as members to the role
-     *      - roles: optional, list of other role names to add as members to the role, granting
-     *              users in those roles the permissions of the new role.
+     * @param roleSpecs - List of {@link RoleSpec} defining the required roles.
      */
-    void ensureRequiredRolesCreated(List<Map> roleSpecs) {
+    void ensureRequiredRolesCreated(List<RoleSpec> roleSpecs) {
         defaultRoleUpdateService.ensureRequiredRolesCreated(roleSpecs)
     }
 

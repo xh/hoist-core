@@ -11,6 +11,7 @@ import grails.gorm.transactions.ReadOnly
 import grails.gorm.transactions.Transactional
 import groovy.sql.Sql
 import io.xh.hoist.BaseService
+import io.xh.hoist.config.ConfigSpec
 import io.xh.hoist.monitor.Monitor
 import io.xh.hoist.monitor.MonitorResult
 import io.xh.hoist.monitor.MonitorSpec
@@ -146,14 +147,19 @@ class DefaultMonitorDefinitionService extends BaseService {
      */
     protected void ensureRequiredConfigAndMonitorsCreated() {
         configService.ensureRequiredConfigsCreated([
-            xhMonitorConfig: [
+            new ConfigSpec(
+                name: 'xhMonitorConfig',
                 valueType: 'json',
-                monitorRefreshMins: 5,
-                monitorStartupDelayMins: 1,
-                warnNotifyThreshold: 5,
-                failNotifyThreshold: 2,
-                monitorRepeatNotifyMins: 60
-            ]
+                defaultValue: [
+                    monitorRefreshMins: 5,
+                    monitorStartupDelayMins: 1,
+                    warnNotifyThreshold: 5,
+                    failNotifyThreshold: 2,
+                    monitorRepeatNotifyMins: 60
+                ],
+                groupName: 'xh.io',
+                note: 'Configures server-side status monitoring and notifications.'
+            )
         ])
 
         ensureRequiredMonitorsCreated([
