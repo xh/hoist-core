@@ -13,6 +13,8 @@ import io.opentelemetry.api.trace.StatusCode
 import io.opentelemetry.context.Scope
 import io.xh.hoist.exception.RoutineException
 
+import static io.xh.hoist.util.Utils.exceptionHandler
+
 /**
  * An active span and its associated scope, returned by {@link TraceService#createSpan}.
  *
@@ -71,15 +73,21 @@ class SpanRef implements Closeable {
      * Set the HTTP response status code and mark the span as ERROR when appropriate.
      * SERVER spans use >= 500 (server fault), CLIENT spans use >= 400 (request failed).
      */
-    void setHttpStatus(int statusCode) {
+    void setHttpStatusAndErrorStatus(int statusCode) {
         setTag('http.response.status_code', statusCode)
         def errorThreshold = kind == SpanKind.CLIENT ? 400 : 500
-        if (statusCode >= errorThreshold) setError()
+        if (statusCode >= errorThreshold) span.setStatus(StatusCode.ERROR)
     }
 
-    /** Mark the span status as ERROR, with an optional description. */
-    void setError(String description = null) {
-        description ? span.setStatus(StatusCode.ERROR, description) : span.setStatus(StatusCode.ERROR)
+    /**
+     * Record an exception as an event on the span and mark the span status as ERROR
+     * with a summary description derived from the throwable. No-op for {@link RoutineException}.
+     */
+    void recordExceptionAndErrorStatus(Throwable t) {
+        // Skip routine exceptions -- Datadog's OTLP intake maps any exception event onto error.* tags.
+        if (t instanceof RoutineException) return
+        span.recordException(t)
+        span.setStatus(StatusCode.ERROR, exceptionHandler.summaryTextForThrowable(t))
     }
 
     /** Record an exception as an event on the span. Does not change span status.*/

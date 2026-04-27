@@ -116,7 +116,7 @@ class HoistFilter implements Filter, LogSupport {
                 Utils.handleException(exception: t, renderTo: res, logTo: this)
                 span.recordException(t)
             } finally {
-                span.setHttpStatus(res.status)
+                span.setHttpStatusAndErrorStatus(res.status)
             }
         }
     }

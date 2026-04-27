@@ -23,13 +23,11 @@ import io.opentelemetry.sdk.trace.ReadWriteSpan
 import io.opentelemetry.sdk.trace.ReadableSpan
 import io.opentelemetry.sdk.trace.SdkTracerProvider
 import io.opentelemetry.sdk.trace.SpanProcessor
-import io.opentelemetry.sdk.trace.data.SpanData
 import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter
 import io.opentelemetry.sdk.trace.export.BatchSpanProcessor
 import io.opentelemetry.sdk.trace.export.SpanExporter
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.exception.RoutineException
 import io.opentelemetry.api.common.AttributeKey
 import io.xh.hoist.util.Utils
 import org.springframework.boot.context.event.ApplicationFailedEvent
@@ -42,7 +40,6 @@ import java.time.Instant
 import static io.xh.hoist.telemetry.OtelUtils.getOtlpEnabledInLocalDev
 import static io.xh.hoist.cluster.ClusterService.otelResourceAttributes
 import static io.xh.hoist.cluster.ClusterService.startupTime
-import static io.xh.hoist.util.Utils.exceptionHandler
 import static io.xh.hoist.util.Utils.isLocalDevelopment
 import static java.lang.Long.parseLong
 import static java.util.concurrent.TimeUnit.MILLISECONDS
@@ -115,10 +112,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
         try {
             return c.maximumNumberOfParameters > 0 ? c.call(span) : c.call()
         } catch (Throwable t) {
-            if (!(t instanceof RoutineException)) {
-                span.setError(exceptionHandler.summaryTextForThrowable(t))
-            }
-            span.recordException(t)
+            span.recordExceptionAndErrorStatus(t)
             throw t
         } finally {
             span.close()
@@ -360,9 +354,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
             _serverLoadSpan = null
         }
         if (event instanceof ApplicationFailedEvent) {
-            def t = event.exception
-            _serverLoadSpan.recordException(t)
-            _serverLoadSpan.setError(exceptionHandler.summaryTextForThrowable(t))
+            _serverLoadSpan.recordExceptionAndErrorStatus(event.exception)
             _serverLoadSpan.close()
             _serverLoadSpan = null
         }
