@@ -43,3 +43,4 @@ class TraceConfig extends TypedConfigMap {
 
     TraceConfig(Map args) { init(args) }
 }
+

@@ -31,7 +31,7 @@ class ConfigDiffService extends BaseService implements DataBinder {
             if (!config) {
                 config = new AppConfig(vals)
                 config.lastUpdatedBy = authUsername
-                config.save(flush:true)
+                config.save(flush: true, failOnError: true)
                 logInfo("Config '${config.name}' created")
                 return
             }
@@ -40,7 +40,7 @@ class ConfigDiffService extends BaseService implements DataBinder {
             if (vals) {
                 bindData(config, vals)
                 config.lastUpdatedBy = authUsername
-                config.save(flush:true)
+                config.save(flush: true, failOnError: true)
                 logInfo("Config '${config.name}' updated")
                 return
             }

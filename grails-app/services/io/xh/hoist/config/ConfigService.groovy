@@ -118,7 +118,7 @@ class ConfigService extends BaseService {
                     ? typedClass.getDeclaredConstructor(Map).newInstance(external)
                     : external
             } catch (Exception e) {
-                logError("Exception while getting client config: '$name'", e)
+                logError("Skipping config '$name' — could not be prepared for client", e.message)
             }
         }
 
@@ -263,8 +263,9 @@ class ConfigService extends BaseService {
     //---------------------------
     private void registerTypedConfig(String confName, Class typedClass, Map bootstrapDefault) {
         if (!TypedConfigMap.isAssignableFrom(typedClass)) {
-            logError("typedClass for config '$confName' must extend TypedConfigMap")
-            return
+            throw new RuntimeException(
+                "typedClass for config '$confName' must extend TypedConfigMap — got ${typedClass.name}"
+            )
         }
         def asTyped = typedClass as Class<? extends TypedConfigMap>
         configTypeByName[confName] = asTyped
@@ -276,9 +277,16 @@ class ConfigService extends BaseService {
         getTopic('xhConfigChanged').publishAsync([key: obj.name, value: obj.externalValue()])
     }
 
+
     //-------------------
     //  Implementation
     //-------------------
+    /** Registered `TypedConfigMap` subclass for the given config name.  @internal  */
+    Class<? extends TypedConfigMap> getTypedClass(String name) {
+        configTypeByName[name]
+    }
+
+
     @ReadOnly
     private Object getInternalByName(String name, String valueType, Object notFoundValue) {
         AppConfig c = AppConfig.findByName(name, [cache: true])

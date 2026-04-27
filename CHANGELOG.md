@@ -35,18 +35,16 @@
   dev, exports tag `deployment.environment.name` with the OS username (e.g. `Development-johndoe`)
   to distinguish per-developer data.
 
-* **Typed soft-config infrastructure** — `TypedConfigMap` now supports nested typed shapes
-  (a declared property whose type extends `TypedConfigMap`), lists of typed shapes
-  (e.g. `List<LdapServerOptions>`), and maps of typed shapes (`Map<String, Foo>`), with
-  property-initializer defaults propagated through nested population. New
-  `ConfigService.getObject(Class)` API and an optional `typedClass:` key on
-  `ensureRequiredConfigsCreated` entries that together make the typed class the single
-  source of truth for a config's shape on both server and client:
-    * For `clientVisible` typed configs, `getClientConfig()` now populates the payload
-      through the typed class, so declared defaults reach client code instead of being
-      duplicated in hoist-react.
-    * Startup `WARN` emitted when a typed-class property default disagrees with the
-      BootStrap `defaultValue` for the same key — flags drift between the two.
+* **`ConfigService.getObject(Class)`** — new API for reading a JSON soft config as a typed
+  object instead of a raw `Map`. Pair it with an optional `typedClass:` key on
+  `ensureRequiredConfigsCreated` to make the supplied `TypedConfigMap` subclass the single
+  source of truth for the config's shape, defaults, and documentation on both server and
+  client:
+    * `TypedConfigMap` supports declared property defaults and nested shapes — including
+       `List<Foo>` and `Map<String, Foo>` — populated recursively.
+    * Validation: reads via `getObject` and admin-console saves throw if the stored value can't
+      populate the typed class.
+    * On startup `WARN` on drift between default bootstrap value and database.
     * All built-in hoist-core JSON configs are now typed and registered via this scheme.
     * See `docs/configuration.md` for the full guide.
 

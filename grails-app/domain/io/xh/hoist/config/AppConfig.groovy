@@ -59,8 +59,18 @@ class AppConfig implements JSONFormat, LogSupport {
             return 'default.invalid.long.message'
         if (obj.valueType == 'double' && !val.isDouble())
             return 'default.invalid.double.message'
-        if (obj.valueType == 'json' && !Utils.isJSON(val)) {
-            return 'default.invalid.json.message'
+        if (obj.valueType == 'json') {
+            if (!Utils.isJSON(val)) return 'default.invalid.json.message'
+
+            // Reject saves whose value can't populate the registered typed class.
+            def typedClass = Utils.configService.getTypedClass(obj.name)
+            if (typedClass) {
+                try {
+                    typedClass.getDeclaredConstructor(Map).newInstance(JSONParser.parseObject(val))
+                } catch (Exception e) {
+                    return "Cannot apply value to ${typedClass.simpleName}: ${e.cause?.message ?: e.message}"
+                }
+            }
         }
 
         return true
