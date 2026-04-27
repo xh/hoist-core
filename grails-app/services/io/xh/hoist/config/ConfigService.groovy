@@ -253,7 +253,7 @@ class ConfigService extends BaseService {
 
     /**
      * @deprecated Use {@link #ensureRequiredConfigsCreated(List)} with {@link ConfigSpec} instead.
-     *     Targeted for removal in v40.
+     *     Targeted for removal in v42.
      */
     @Deprecated
     @Transactional

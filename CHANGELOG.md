@@ -64,7 +64,7 @@
   `ensureRequiredConfigsCreated()`, `ensureRequiredPrefsCreated()`, and
   `ensureRequiredRolesCreated()`, replacing untyped `Map` arguments with classes that provide IDE
   autocomplete and compile-time validation. Previous `Map`-based signatures remain supported as
-  deprecated overloads and will be removed in v40. `ConfigSpec.typedClass` is the supported way to
+  deprecated overloads and will be removed in v42. `ConfigSpec.typedClass` is the supported way to
   register a `TypedConfigMap` subclass against a JSON config.
 
 ### 🤖 AI Docs + Tooling

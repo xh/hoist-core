@@ -173,7 +173,7 @@ class PrefService extends BaseService {
 
     /**
      * @deprecated Use {@link #ensureRequiredPrefsCreated(List)} with {@link PreferenceSpec} instead.
-     *     Targeted for removal in v40.
+     *     Targeted for removal in v42.
      */
     @Deprecated
     @Transactional

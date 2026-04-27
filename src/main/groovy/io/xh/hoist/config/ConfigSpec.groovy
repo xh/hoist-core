@@ -28,13 +28,8 @@ class ConfigSpec {
     String note
 
     /**
-     * Optional concrete {@link TypedConfigMap} subclass to bind to this config (JSON-type only).
-     * When present:
-     *  - Server code can load the config via {@link ConfigService#getObject(Class)}.
-     *  - The class's property-initializer defaults are applied at read time for any key missing
-     *    from the stored map — centralizing defaults next to the type.
-     *  - A `WARN` is logged at startup for any key whose typed-class default differs from the
-     *    BootStrap `defaultValue`, flagging drift between the two.
+     * Optional {@link TypedConfigMap} subclass binding the shape of this config (JSON-type only).
+     * Recommended for any structured config with a stable key set — see docs/configuration.md.
      */
     Class<? extends TypedConfigMap> typedClass
 }
