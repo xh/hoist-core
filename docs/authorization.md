@@ -3,7 +3,7 @@
 ## Overview
 
 Hoist's authorization system enforces role-based access control across all controller endpoints.
-Every request is checked by `AccessInterceptor` against annotations that declare which roles are
+Every request is checked by `HoistInterceptor` against annotations that declare which roles are
 required. Roles are managed by a `RoleService` that applications provide — either by using the
 built-in `DefaultRoleService` (database-backed with Admin Console UI) or by implementing a custom
 role assignment strategy.
@@ -23,7 +23,7 @@ establishes *who* the user is, authorization determines *what* they can do.
 | `RoleSpec` | `src/main/groovy/io/xh/hoist/role/provided/` | Typed specification for required role definitions |
 | `Role` | `grails-app/domain/io/xh/hoist/role/provided/` | GORM domain — role definitions |
 | `RoleMember` | `grails-app/domain/io/xh/hoist/role/provided/` | GORM domain — role memberships |
-| `AccessInterceptor` | `grails-app/controllers/io/xh/hoist/security/` | Grails interceptor enforcing annotations |
+| `HoistInterceptor` | `grails-app/controllers/io/xh/hoist/` | Grails interceptor enforcing annotations |
 | `@AccessRequiresRole` | `src/main/groovy/io/xh/hoist/security/` | Single role annotation |
 | `@AccessRequiresAnyRole` | `src/main/groovy/io/xh/hoist/security/` | Any-of-roles annotation |
 | `@AccessRequiresAllRoles` | `src/main/groovy/io/xh/hoist/security/` | All-of-roles annotation |
@@ -34,7 +34,7 @@ establishes *who* the user is, authorization determines *what* they can do.
 
 ### Access Control Flow
 
-When a request reaches the `AccessInterceptor` (after authentication in `HoistFilter`):
+When a request reaches the `HoistInterceptor` (after authentication in `HoistFilter`):
 
 1. The interceptor resolves the controller action to a Java `Method` object.
 2. It searches for an access annotation — first on the method, then on the controller class.
@@ -425,7 +425,7 @@ See [`authentication.md`](./authentication.md) for the full identity response st
 ### Relying on client-side role checks for security
 
 Client-side role checks in hoist-react are for UI convenience only. The server's
-`AccessInterceptor` is the actual security enforcement. Always annotate controller endpoints
+`HoistInterceptor` is the actual security enforcement. Always annotate controller endpoints
 regardless of client-side checks.
 
 ### Case sensitivity in usernames

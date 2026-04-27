@@ -45,6 +45,8 @@ and conventions.
 | Work with GORM domain objects and Hibernate | [`gorm-domain-objects.md`](./gorm-domain-objects.md) |
 | Understand the build pipeline and GitHub Actions | [`build-and-publish.md`](./build-and-publish.md) |
 | Publish a release to Maven Central | [`build-and-publish.md`](./build-and-publish.md) |
+| Write or review a hoist-core library CHANGELOG entry | [`changelog-format.md`](./changelog-format.md) |
+| Look up the authoritative coding conventions for hoist-core | [`coding-conventions.md`](./coding-conventions.md) |
 | Upgrade to a new major hoist-core version | [Upgrade Notes](#upgrade-notes) |
 
 ## Feature Documentation
@@ -56,7 +58,7 @@ Foundational patterns that everything else builds on.
 | Document | Description | Key Topics |
 |----------|-------------|------------|
 | [`base-classes.md`](./base-classes.md) | Base classes for services and controllers — lifecycle, resource factories, CRUD patterns | BaseService, `init`/`destroy`, `createCache`, `createCachedValue`, `createTimer`, `createIMap`, BaseController, `renderJSON`, `parseRequestJSON`, RestController, `doCreate`/`doList`/`doUpdate`/`doDelete` |
-| [`request-flow.md`](./request-flow.md) | How an HTTP request flows through the Hoist framework | HoistCoreGrailsPlugin, HoistFilter, UrlMappings, AccessInterceptor, controller dispatch, JSON response |
+| [`request-flow.md`](./request-flow.md) | How an HTTP request flows through the Hoist framework | HoistCoreGrailsPlugin, HoistFilter, UrlMappings, HoistInterceptor, controller dispatch, JSON response |
 | [`authentication.md`](./authentication.md) | Authentication service contract and user identity | BaseAuthenticationService, BaseUserService, HoistUser, IdentityService, impersonation |
 | [`authorization.md`](./authorization.md) | Role-based access control and controller security annotations | BaseRoleService, DefaultRoleService, Role, RoleMember, `@AccessRequiresRole`, `@AccessAll`, built-in roles |
 
@@ -103,6 +105,15 @@ Guides to building, structuring, and deploying Hoist applications.
 |----------|-------------|------------|
 | [`application-structure.md`](./application-structure.md) | Standard Hoist application repository layout — server and client structure, build configuration, deployment | `build.gradle`, `gradle.properties`, `grails-app/init/`, `client-app/`, `Bootstrap.ts`, `AppModel`, Docker, Nginx, Tomcat |
 | [`build-and-publish.md`](./build-and-publish.md) | Gradle build, GitHub Actions CI, and Maven Central publishing | GitHub Actions, `deployRelease.yml`, `deploySnapshot.yml`, Sonatype, GPG signing, `nexus-publish-plugin`, `publishToSonatype`, `repo.xh.io` |
+| [`changelog-format.md`](./changelog-format.md) | Conventions for writing and reviewing hoist-core library CHANGELOG entries | Section headers, voice/tense, difficulty ratings, breaking changes, libraries, application changelogs |
+
+### Conventions
+
+Authoritative standards references for working with hoist-core code and the surrounding workflow.
+
+| Document | Description | Key Topics |
+|----------|-------------|------------|
+| [`coding-conventions.md`](./coding-conventions.md) | Authoritative coding conventions for hoist-core framework and applications | Naming (`xh` prefix, env vars), logging (`LogSupport`, `withInfo`/`withDebug`), exceptions (`RoutineRuntimeException`, `HttpException`), services (`BaseService`, resource factories, `clearCaches` discipline), controllers (mandatory access annotations, `renderJSON`/`parseRequestJSON`), GORM (`@ReadOnly`/`@Transactional`, N+1 avoidance, `JSONFormat`), clustering (`primaryOnly`, `replicate`, serializability), HTTP/email/background work, Groovy idioms, commit/PR formatting |
 
 ## Upgrade Notes
 
@@ -115,6 +126,7 @@ breaking changes, before/after code examples, and verification checklists.
 
 | Version | Key Changes |
 |---------|-------------|
+| [v38.0.0](./upgrade-notes/v38-upgrade-notes.md) | LogLevel schema additions, OTEL tag alignment, rule-based span sampling |
 | [v36.0.0](./upgrade-notes/v36-upgrade-notes.md) | Cluster-aware WebSockets, new `@AccessRequiresXXX` annotations, `@Access` deprecated |
 | [v35.0.0](./upgrade-notes/v35-upgrade-notes.md) | CacheEntry generic key type, TrackLog `clientAppCode`, POI 5.x |
 | [v34.0.1](./upgrade-notes/v34-upgrade-notes.md) | Grails 7, Gradle 8, Tomcat 10, Jakarta EE |

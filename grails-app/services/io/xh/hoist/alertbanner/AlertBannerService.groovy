@@ -104,7 +104,7 @@ class AlertBannerService extends BaseService {
     private void readFromSpec() {
         def newSpec = emptyAlert
 
-        if (configService.getMap('xhAlertBannerConfig').enabled) {
+        if (configService.getObject(AlertBannerConfig).enabled) {
             def spec = getAlertSpec(),
                 expires = spec.expires as Long
 

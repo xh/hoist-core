@@ -200,14 +200,14 @@ class LdapService extends BaseService {
         return members
     }
 
-    private <T extends LdapObject> List<T> doQuery(Map server, String baseFilter, Class<T> objType, boolean strictMode) {
+    private <T extends LdapObject> List<T> doQuery(LdapConfig.LdapServerOptions server, String baseFilter, Class<T> objType, boolean strictMode) {
         if (!enabled) throw new RuntimeException('LdapService not enabled - check xhLdapConfig app config.')
         if (queryUsername == 'none') throw new RuntimeException('LdapService enabled but query user not configured - check xhLdapUsername app config, or disable via xhLdapConfig.')
 
         boolean isPerson = LdapPerson.class.isAssignableFrom(objType)
         String host = server.host,
             filter = "(&(objectCategory=${isPerson ? 'Person' : 'Group'})$baseFilter)",
-            key = server.toString() + filter
+            key = host + filter
 
         List<T> ret = cache.get(key)
         if (ret != null) return ret
@@ -239,7 +239,7 @@ class LdapService extends BaseService {
         def ret = new LdapConnectionConfig()
         ret.ldapHost = host
         ret.ldapPort = ret.defaultLdapPort
-        ret.timeout = config.timeoutMs as Long
+        ret.timeout = config.timeoutMs
         ret.useTls = true
 
         if (config.skipTlsCertVerification) {
@@ -249,8 +249,8 @@ class LdapService extends BaseService {
         return new LdapNetworkConnection(ret)
     }
 
-    private Map getConfig() {
-        configService.getMap('xhLdapConfig')
+    private LdapConfig getConfig() {
+        configService.getObject(LdapConfig)
     }
 
     private String getQueryUsername() {

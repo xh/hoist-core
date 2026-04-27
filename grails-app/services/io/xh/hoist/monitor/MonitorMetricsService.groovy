@@ -14,7 +14,7 @@ import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import io.micrometer.core.instrument.Tags
 import io.xh.hoist.BaseService
-import io.xh.hoist.telemetry.MetricsService
+import io.xh.hoist.telemetry.metric.MetricsService
 
 import static io.xh.hoist.monitor.MonitorStatus.UNKNOWN
 import static java.lang.Double.NaN

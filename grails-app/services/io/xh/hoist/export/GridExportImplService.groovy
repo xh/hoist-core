@@ -368,8 +368,8 @@ class GridExportImplService extends BaseService {
         return ret
     }
 
-    private Map getConfig() {
-        configService.getMap('xhExportConfig')
+    private ExportConfig getConfig() {
+        configService.getObject(ExportConfig)
     }
 
 

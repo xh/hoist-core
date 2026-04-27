@@ -5,7 +5,7 @@
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.telemetry
+package io.xh.hoist.telemetry.metric
 
 import groovy.transform.CompileStatic
 import io.micrometer.core.instrument.Meter
@@ -26,9 +26,11 @@ import io.xh.hoist.config.ConfigService
 import static io.micrometer.core.instrument.config.MeterFilterReply.DENY
 import static io.micrometer.core.instrument.config.MeterFilterReply.NEUTRAL
 import static io.xh.hoist.cluster.ClusterService.instanceName
+import static io.xh.hoist.telemetry.OtelUtils.getOtlpEnabledInLocalDev
 import static io.xh.hoist.cluster.ClusterService.otelResourceAttributes
 import static io.xh.hoist.util.ClusterUtils.runOnAllInstances
 import static io.xh.hoist.util.Utils.appCode
+import static io.xh.hoist.util.Utils.isLocalDevelopment
 
 /**
  * Central service for Micrometer metrics in a Hoist application.
@@ -186,7 +188,8 @@ class MetricsService extends BaseService {
     }
 
     private synchronized void syncConfig() {
-        withDebug(['Syncing config', [prometheus: config.prometheusEnabled, otlp: config.otlpEnabled]]) {
+        def otlpEnabled = config.otlpEnabled && (!isLocalDevelopment || otlpEnabledInLocalDev)
+        withDebug(['Syncing config', [prometheus: config.prometheusEnabled, otlp: otlpEnabled]]) {
 
             // Remove all publish registries from main registry
             _publishRegistries.each { registry.remove(it) }
@@ -211,7 +214,7 @@ class MetricsService extends BaseService {
                 _otlpRegistry.close()
                 _otlpRegistry = null
             }
-            if (config.otlpEnabled) {
+            if (otlpEnabled) {
                 def otlpConf = config.otlpConfig ?: [:]
                 otlpConf.resourceAttributes = otelResourceAttributes.collect { k, v -> "${k}=${v}" }.join(',')
                 def conf = prefixKeys('otlp', otlpConf)
@@ -231,7 +234,7 @@ class MetricsService extends BaseService {
     }
 
     private MetricsConfig getConfig() {
-        new MetricsConfig(configService.getMap('xhMetricsConfig'))
+        configService.getObject(MetricsConfig)
     }
 
 

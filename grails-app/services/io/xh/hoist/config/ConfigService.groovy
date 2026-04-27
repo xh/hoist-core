@@ -12,6 +12,7 @@ import grails.gorm.transactions.ReadOnly
 import grails.gorm.transactions.Transactional
 import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
+import io.xh.hoist.config.impl.ConfigDriftService
 
 import static io.xh.hoist.json.JSONSerializer.serializePretty
 
@@ -32,6 +33,12 @@ import static io.xh.hoist.json.JSONSerializer.serializePretty
  */
 @GrailsCompileStatic
 class ConfigService extends BaseService {
+
+    ConfigDriftService configDriftService
+
+    // Bidirectional registry of typed classes ↔ backing config names. Populated in `ensureRequiredConfigsCreated`.
+    private final Map<String, Class<? extends TypedConfigMap>> configTypeByName = [:]
+    private final Map<Class<? extends TypedConfigMap>, String> nameByConfigType = [:]
 
     String getString(String name, String notFoundValue = null) {
         return (String) getInternalByName(name, 'string', notFoundValue)
@@ -65,6 +72,26 @@ class ConfigService extends BaseService {
         return (String) getInternalByName(name, 'pwd', notFoundValue)
     }
 
+    /**
+     * Load a typed representation of a JSON soft config, with declared property defaults
+     * applied for any keys missing from the stored value.
+     *
+     * The supplied class must extend {@link TypedConfigMap} and be registered against a
+     * backing `AppConfig` name via a `typedClass:` entry on the {@link ConfigSpec} passed to
+     * {@link #ensureRequiredConfigsCreated}. This is the preferred way to read structured configs —
+     * it centralizes defaults and documentation on the typed class itself, rather than scattering
+     * `?:` fallbacks across call sites.
+     */
+    <T extends TypedConfigMap> T getObject(Class<T> clazz) {
+        String name = nameByConfigType[clazz]
+        if (!name) {
+            throw new RuntimeException(
+                "${clazz.simpleName} is not registered as a typedClass — declare it via ensureRequiredConfigsCreated to be loadable via getObject()"
+            )
+        }
+        return (T) clazz.getDeclaredConstructor(Map).newInstance(getMap(name, [:]))
+    }
+
 
     /**
      * Return a map of all config values needed by client.
@@ -83,9 +110,15 @@ class ConfigService extends BaseService {
             AppConfig config = (AppConfig) it
             def name = config.name
             try {
-                ret[name] = config.externalValue(obscurePassword: true, jsonAsObject: true)
+                // Sanitize via `externalValue` as the single source of truth for client-bound
+                // output — handles instance-config overrides, JSON parsing, and password obscuring
+                def external = config.externalValue(obscurePassword: true, jsonAsObject: true)
+                def typedClass = configTypeByName[name]
+                ret[name] = (typedClass && external instanceof Map)
+                    ? typedClass.getDeclaredConstructor(Map).newInstance(external)
+                    : external
             } catch (Exception e) {
-                logError("Exception while getting client config: '$name'", e)
+                logError("Skipping config '$name' — could not be prepared for client", e.message)
             }
         }
 
@@ -152,6 +185,14 @@ class ConfigService extends BaseService {
      * that these configs are present and that their valueTypes and clientVisible flags are as
      * expected. Will create missing configs with supplied default values if not found.
      *
+     * Each {@link ConfigSpec} may optionally declare a `typedClass` (JSON-type configs only) that
+     * extends {@link TypedConfigMap}. When present:
+     *  - Server code can load the config via {@link #getObject(Class)}.
+     *  - The class's property-initializer defaults are applied at read time for any key missing
+     *    from the stored map.
+     *  - A `WARN` is logged at startup for any key whose typed-class default differs from the
+     *    BootStrap `defaultValue`, flagging drift between the two.
+     *
      * @param configSpecs - List of {@link ConfigSpec} defining the required configs.
      */
     @Transactional
@@ -201,6 +242,10 @@ class ConfigService extends BaseService {
                     )
                 }
             }
+
+            if (spec.typedClass) {
+                registerTypedConfig(spec.name, spec.typedClass, spec.defaultValue as Map)
+            }
         }
 
         logDebug("Validated presense of ${configSpecs.size()} required configs", "created ${created}")
@@ -223,9 +268,27 @@ class ConfigService extends BaseService {
         getTopic('xhConfigChanged').publishAsync([key: obj.name, value: obj.externalValue()])
     }
 
+
     //-------------------
     //  Implementation
     //-------------------
+    /** Registered `TypedConfigMap` subclass for the given config name.  @internal  */
+    Class<? extends TypedConfigMap> getTypedClass(String name) {
+        configTypeByName[name]
+    }
+
+    private void registerTypedConfig(String confName, Class typedClass, Map bootstrapDefault) {
+        if (!TypedConfigMap.isAssignableFrom(typedClass)) {
+            throw new RuntimeException(
+                "typedClass for config '$confName' must extend TypedConfigMap — got ${typedClass.name}"
+            )
+        }
+        def asTyped = typedClass as Class<? extends TypedConfigMap>
+        configTypeByName[confName] = asTyped
+        nameByConfigType[asTyped] = confName
+        configDriftService.checkTypedConfigDivergence(confName, asTyped, bootstrapDefault)
+    }
+
     @ReadOnly
     private Object getInternalByName(String name, String valueType, Object notFoundValue) {
         AppConfig c = AppConfig.findByName(name, [cache: true])

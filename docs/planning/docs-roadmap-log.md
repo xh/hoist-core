@@ -242,3 +242,64 @@
 - Added to docs/README.md (Quick Reference + Infrastructure & Operations table)
 - Added to docs/doc-registry.json (infrastructure viewerCategory, package mcpCategory)
 - Added to docs-roadmap.md Priority 3 table (marked Done, no DRAFT banner)
+
+### 2026-04-15 — New doc: changelog-format
+
+- Broke out `changelog-format.md` from the `xh-upgrade-notes` skill bundle into a top-level
+  `docs/` document — mirrors the same pattern already in place in hoist-react
+- Enhanced with "Library vs. Application changelogs" distinction and explicit Breaking Changes
+  section requirements
+- Added to README, doc-registry (`conventions` mcpCategory), and roadmap (Done)
+- Doc index entries clarify this covers the hoist-core *library* CHANGELOG; applied the same
+  clarification to hoist-react indexes for consistency
+
+### 2026-04-25 — New doc: coding-conventions (DRAFT)
+
+- Created `coding-conventions.md` as the authoritative coding conventions reference for hoist-core,
+  consolidating guidance previously scattered across `CLAUDE.md`/`AGENTS.md`, individual feature
+  docs, and tribal knowledge
+- Modeled on the hoist-react `coding-conventions.md` doc (paired-sibling structure and tone) but
+  with sections adapted to the Groovy/Grails/Hazelcast stack
+- Sections: Overview, Principles, Naming, Logging and Exceptions, Services and Lifecycle,
+  Controllers and Security, GORM and Data Access, Clustering and Caching, HTTP/Email/Background
+  Work, Code Style, Commit Messages/PRs/Comments, Reference table
+- Cross-references rather than duplicates the existing feature docs (base-classes, authorization,
+  request-flow, configuration, preferences, clustering, gorm-domain-objects, json-handling, logging,
+  exception-handling, http-client, email, websocket); each section ends with or includes a pointer
+  to its deep doc
+- Do/don't paired Groovy snippets throughout to mirror the example density of the hoist-react
+  conventions doc
+- New "Conventions" section added to `docs-roadmap.md` to house this doc; conventions docs sit
+  outside the priority tiers (mirroring how Grails Platform is organized)
+- New "Conventions" section also added to `docs/README.md` Feature Documentation, distinct from
+  the existing Development & Builds section where `changelog-format.md` lives (changelog-format is
+  release-process specific, not a general coding convention)
+- Added to doc-registry as `conventions` mcpCategory, `overview` viewerCategory (the doc applies
+  broadly across categories rather than to one feature area)
+- DRAFT banner in place; awaiting human review before promotion to Done
+- `CLAUDE.md` intentionally not modified — that file may be slimmed down later once the
+  conventions doc is reviewed and approved as the canonical reference
+
+### 2026-04-25 — coding-conventions promoted to Done
+
+- Reviewed in session and accepted; DRAFT banner removed
+- Refinements applied during review:
+    - Logging section now opens with an explicit pointer to `logging.md` for the full reference
+    - New "Pass Maps for Structured Key-Value Data" subsection documenting Hoist's structured
+      logging convention (do/don't pair, `_`-prefix metadata keys, sensitive-value caveat,
+      mixing maps with strings and trailing exceptions)
+    - Time Blocks section gained a "Consider tracing for important operations" call-out
+      pointing at `tracing.md` (`traceService.withSpan`, `BaseService.observe()` /
+      `ObservedRun`) — `withInfo`/`withDebug` for incidental timing, tracing API the moment
+      latency-by-tag inspection is needed
+    - "Mandatory Access Annotations" section now ends with a pointer to `authorization.md`
+    - `@ReadOnly` performance claim softened — "modestly faster for queries that load many
+      entities, and a guardrail against accidentally persisting in-method mutations" replaces
+      the unverified "significantly faster" framing (matches the more honest phrasing in
+      `gorm-domain-objects.md`)
+- `docs-roadmap.md` Conventions table row flipped Draft → Done; status overview line updated
+  to match
+- Two follow-up PR comments pending after commit + push:
+    - PR #545 (typed soft-config) — flag the "Use configService Typed Getters" section as
+      needing a typed-config addendum once #545 lands
+    - PR #538 — flag the "Bootstrap Required Resources" section similarly

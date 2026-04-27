@@ -218,7 +218,7 @@ Controllers use `renderJSON()` and `parseRequestJSON()`. Custom serializers are 
   `@AccessRequiresRole`, etc.) on method or class — framework throws if missing.
 - Use `renderJSON()` for all JSON responses — never Grails `render()`. Use
   `parseRequestJSON()` — never `request.JSON`.
-- `AccessInterceptor` enforces roles **before** controller code runs, so role checks are not
+- `HoistInterceptor` enforces roles **before** controller code runs, so role checks are not
   needed in action logic. For service-layer authorization, use `user.hasRole()`.
 
 ### GORM & Data Access
@@ -271,6 +271,14 @@ Controllers use `renderJSON()` and `parseRequestJSON()`. Custom serializers are 
 - **Groovy idioms** — Prefer Groovy's native features: map/list literals, GStrings, closures,
   `?.` safe navigation, `with {}` blocks. Use `null` as the "no value" sentinel. Avoid
   unnecessary type declarations where Groovy's type inference is clear.
+- **Omit `public` on methods** — Groovy methods are public by default (per the Apache
+  Groovy style guide), so writing it is redundant. This holds for generic methods too
+  (e.g. `<T> T foo(Class<T> c)` — no `public` prefix). Use `private` / `protected` only
+  when you actually mean them. Note fields behave differently: a field with no modifier
+  becomes a Groovy *property* (private field + auto getter/setter), while `public` on a
+  field preserves it as a bare public field — an intentional opt-out of property
+  generation that Hoist uses on a handful of immutable config holders (e.g. `Cache`,
+  `CachedValue`).
 - **Prefer Groovy collection methods** — Use `.collect()`, `.findAll()`, `.find()`,
   `.groupBy()`, `.collectEntries()`, `.sum()` etc. for collection operations. These are
   null-safe on the elements and more expressive than manual loops.

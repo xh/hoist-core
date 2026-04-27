@@ -1,8 +1,87 @@
 # Changelog
 
-## 38.0-SNAPSHOT - unreleased
+## 39.0-SNAPSHOT - unreleased
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
+### 💥 Breaking Changes
+
+* `TraceService` no longer supports the `alwaysSampleErrors` flag, which was deemed inappropriate
+  for head-based sampling. This change is consistent with a similar update in hoist-core v85. Apps
+  requiring full visibility into error spans for a particular set of errors should ensure they
+  are sampled via the existing rules.
+
+### 🎁 New Features
+
+* **JDK 25 support** — hoist-core now builds on JDK 25, laying the groundwork for future
+  adoption of virtual threads, generational ZGC, and other JDK 21+ runtime features.
+  Published JAR continues to target Java 17 bytecode, so apps on JDK 17+ need no action.
+* Improvements to tracing:
+    * `TraceService.withSpan` (and `ObservedRun.run`) now always pass a non-null `SpanRef` to the
+      closure — a shared no-op `SpanRef.NOOP` is used when tracing is disabled, eliminating the need
+      for `?.` null-safe calls on the span.
+    * `sampleRules` in `xhTraceConfig` now support matching against the span's name via the reserved
+      `name` key (same syntax as tag-value patterns).
+    * Server startup is now traced via `xh.server.load` and `xh.server.hoistInit` spans.
+    * Auto-instrumentation for JDBC via `opentelemetry-jdbc` — covers direct DataSource access
+      and Hibernate/GORM (incl. multi-datasource setups). Enable via new `jdbcTracingEnabled`
+      boolean on `xhTraceConfig` (default `false`).
+    * Improvements to core `kind=SERVER` span on all http requests: Capture http error status,
+      include authentication and routing time, and skip noisy requests like 'ping' and web sockets.
+    * New span tags `xh.isPrimary` and `xh.impersonating`. `user.name` now refers to the
+      *authenticated* user.
+    * New `BaseService.span(name, kind?, tags?)` shortcut for the common case of starting an
+      `ObservedRun` with an initial span — equivalent to `observe().span(...)`.
+* OTLP export (metrics and traces) is now suppressed by default while running in local
+  development. Set the new `otlpEnabledInLocalDev` instance config to `'true'` to opt in. In local
+  dev, exports tag `deployment.environment.name` with the OS username (e.g. `Development-johndoe`)
+  to distinguish per-developer data.
+
+* **`ConfigService.getObject(Class)`** — new API for reading a JSON soft config as a typed
+  object instead of a raw `Map`. Pair it with an optional `typedClass:` key on
+  `ensureRequiredConfigsCreated` to make the supplied `TypedConfigMap` subclass the single
+  source of truth for the config's shape, defaults, and documentation on both server and
+  client:
+    * `TypedConfigMap` supports declared property defaults and nested shapes — including
+       `List<Foo>` and `Map<String, Foo>` — populated recursively.
+    * Validation: reads via `getObject` and admin-console saves throw if the stored value can't
+      populate the typed class.
+    * On startup `WARN` on drift between default bootstrap value and database.
+    * All built-in hoist-core JSON configs are now typed and registered via this scheme.
+    * See `docs/configuration.md` for the full guide.
+
+### 🐞 Bug Fixes
+
+* `TypedConfigMap` subclasses with default field initializers were silently clobbering values
+  loaded from soft config.
+* Tightened defaults, coercions, and schema gaps across several built-in hoist-core configs
+    surfaced during the typed-config migration — latent edge cases that would only bite under
+    unusual admin-edit patterns.
+* `AppConfig` validation errors no longer render twice — removed a redundant `valueType`
+  validator that re-ran the `value` check and emitted a duplicate generic message.
+
+### ⚙️ Technical
+
+* Added `ConfigSpec`, `PreferenceSpec`, and `RoleSpec` typed classes for use with
+  `ensureRequiredConfigsCreated()`, `ensureRequiredPrefsCreated()`, and
+  `ensureRequiredRolesCreated()`, replacing untyped `Map` arguments with classes that provide IDE
+  autocomplete and compile-time validation. Previous `Map`-based signatures remain supported as
+  deprecated overloads and will be removed in v40. `ConfigSpec.typedClass` is the supported way to
+  register a `TypedConfigMap` subclass against a JSON config.
+
+### 🤖 AI Docs + Tooling
+
+* **New `coding-conventions.md` doc** — authoritative coding conventions reference for hoist-core, consolidating guidance previously scattered across `CLAUDE.md` and individual feature docs. Paired sibling to the hoist-react `coding-conventions.md`. Covers naming, logging (`LogSupport`, `withInfo`/`withDebug`, structured map form), exceptions, services and lifecycle, controllers and security, GORM, clustering, HTTP/email/background work, Groovy idioms, and commit/PR formatting.
+
+### 📚 Libraries
+
+* Grails `7.0.5 → 7.0.8`
+* Groovy `4.0.29 → 4.0.30`
+
+## 38.0.0 - 2026-04-15
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - minor nullable column adds)
+
+See [`docs/upgrade-notes/v38-upgrade-notes.md`](docs/upgrade-notes/v38-upgrade-notes.md) for
+detailed, step-by-step upgrade instructions with before/after code examples.
 
 * Two new nullable `Boolean` columns must be added to the `xh_log_level` table:
   `suppress_stack_trace` and `include_start_messages`. Apps with `dbCreate: update` will have
@@ -12,18 +91,11 @@
   ALTER TABLE xh_log_level ADD suppress_stack_trace BIT NULL;
   ALTER TABLE xh_log_level ADD include_start_messages BIT NULL;
   ```
-* Aligned span and metric tag names with OTEL semantic conventions:
-    - `source` → `xh.source`
-    - `application` → `xh.application`
-    - `instance` → `xh.instance`
-    - `user` → `user.name` (on spans)
-    - `deployment.environment` → `deployment.environment.name` (on resource attributes)
 
 ### 🎁 New Features
 
 * Added rule-based span sampling to `TraceService` via new `sampleRules` and `alwaysSampleErrors`
-  options in `xhTraceConfig`. Rules match span tags with glob patterns to set per-span sample rates,
-  and error spans can be force-exported regardless of sampling.
+  options in `xhTraceConfig`. Rules match span tags with glob patterns to set per-span sample rates.
 * Apps can now customize OTEL resource attributes by overriding `getOtelResourceAttributes()` on
   their `ClusterConfig` subclass. These attributes are applied to both traces and metrics
   exporters.
@@ -34,23 +106,28 @@
   to enable. Both support specificity ordering for fine-grained overrides. Replaces the
   previous TRACE-level gating for stacktraces and finer-level gating for start messages.
 
-### 🐞 Bug Fixes
-
-* Fixed MCP server not invalidating its cached GitHub source archive for branch refs (e.g.
-  `develop`), causing documentation to become stale over time. Branch caches are now re-downloaded
-  after 24 hours; tag and SHA refs remain cached indefinitely.
-
 ### ⚙️ Technical
 
-* Added `ConfigSpec`, `PreferenceSpec`, and `RoleSpec` typed classes for use with
-  `ensureRequiredConfigsCreated()`, `ensureRequiredPrefsCreated()`, and
-  `ensureRequiredRolesCreated()`, replacing untyped `Map` arguments with classes that provide IDE
-  autocomplete and compile-time validation. Previous `Map`-based signatures remain supported as
-  deprecated overloads and will be removed in v40.
+* Aligned span and metric tag names with OTEL semantic conventions (`source` → `xh.source`,
+  `application` → `xh.application`, `instance` → `xh.instance`, `user` → `user.name`,
+  `deployment.environment` → `deployment.environment.name`) and added new `xh.isPrimaryInstance`
+  tag to all spans.
 * Added `server.port`, `client.address`, and `user_agent.original` to SERVER spans; added
   `server.port` to CLIENT spans.
+* Migrated CI workflows to shared GitHub Actions from hoist-dev-utils.
+
+### 🤖 AI Docs + Tooling
+
+* Fixed MCP server not invalidating its cached GitHub source archive for branch refs (e.g.
+  `develop`), causing documentation to become stale over time.
 * Added MCP resource support for full document downloads via `hoist-core://docs/{docId}` URIs,
   enabling AI coding agents to read complete documentation content in addition to keyword search.
+* Improved `xh-upgrade-notes` skill.
+
+### 📚 Libraries
+
+* OpenTelemetry BOM `1.49.0 → 1.61.0`
+* opentelemetry-proto `1.5.0-alpha → 1.10.0-alpha`
 
 ## 37.0.2 - 2026-03-30
 

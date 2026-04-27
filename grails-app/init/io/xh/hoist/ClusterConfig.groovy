@@ -11,10 +11,6 @@ import com.hazelcast.config.EvictionConfig
 import com.hazelcast.config.EvictionPolicy
 import com.hazelcast.config.InMemoryFormat
 import com.hazelcast.config.NearCacheConfig
-import com.hazelcast.map.IMap
-import com.hazelcast.replicatedmap.ReplicatedMap
-import com.hazelcast.topic.ITopic
-import com.hazelcast.collection.ISet
 import com.hazelcast.config.MaxSizePolicy
 import grails.core.GrailsClass
 import io.xh.hoist.kryo.KryoSupport
@@ -85,18 +81,20 @@ class ClusterConfig {
     /**
      * Standard OpenTelemetry resource attributes identifying this application instance.
      *
-     * Used by both {@link io.xh.hoist.telemetry.TraceService} and
-     * {@link io.xh.hoist.telemetry.MetricsService} to tag OTLP exports with consistent
+     * Used by both {@link io.xh.hoist.telemetry.trace.TraceService} and
+     * {@link io.xh.hoist.telemetry.metric.MetricsService} to tag OTLP exports with consistent
      * service identity. Override this method to customize the values sent to your
      * telemetry backend (e.g. mapping environment names to match platform conventions).
      *
      * The returned map is used as-is — entries should use standard OTEL resource attribute keys.
      */
     Map<String, String> getOtelResourceAttributes() {
+        def envName = appEnvironment.toString()
+        if (isLocalDevelopment) envName = envName + '-' + System.getProperty('user.name')
         [
             'service.name'               : appCode,
             'service.instance.id'        : instanceName,
-            'deployment.environment.name' : appEnvironment.toString(),
+            'deployment.environment.name' : envName,
             'service.version'            : appVersion
         ]
     }

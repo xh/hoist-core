@@ -5,7 +5,7 @@
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.telemetry
+package io.xh.hoist.telemetry.metric
 
 import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic

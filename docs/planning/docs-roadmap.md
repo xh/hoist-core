@@ -18,9 +18,9 @@ is essential for working effectively with any part of hoist-core.
 | Document | Source Files | Description | Status |
 |----------|-------------|-------------|--------|
 | [`base-classes.md`](../base-classes.md) | BaseService, BaseController, RestController, Cache, CachedValue, Timer, IMap | BaseService lifecycle (`init`, `destroy`, `parallelInit`), resource factories (`createCache`, `createCachedValue`, `createTimer`, `createIMap`), BaseController (`renderJSON`, `parseRequestJSON`, async support), RestController template-method CRUD (`doCreate`, `doList`, `doUpdate`, `doDelete`, `restTarget`) | Done |
-| [`request-flow.md`](../request-flow.md) | HoistCoreGrailsPlugin, HoistFilter, UrlMappings, AccessInterceptor, BaseController | Full request lifecycle: plugin initialization → HoistFilter (auth gating, instance readiness, exception catching) → UrlMappings routing → AccessInterceptor annotation checks → controller dispatch → JSON response | Done |
+| [`request-flow.md`](../request-flow.md) | HoistCoreGrailsPlugin, HoistFilter, UrlMappings, HoistInterceptor, BaseController | Full request lifecycle: plugin initialization → HoistFilter (auth gating, instance readiness, exception catching) → UrlMappings routing → HoistInterceptor annotation checks → controller dispatch → JSON response | Done |
 | [`authentication.md`](../authentication.md) | BaseAuthenticationService, BaseUserService, HoistUser, IdentityService, IdentitySupport | Abstract auth service contract, `allowRequest()` / `completeAuthentication()`, user lookup and HoistUser trait, IdentityService (current user, `getUser()`/`getAuthUser()`), impersonation support | Done |
-| [`authorization.md`](../authorization.md) | BaseRoleService, DefaultRoleService, Role, RoleMember, AccessInterceptor, access annotations | Role assignment contract, `DefaultRoleService` (database-backed with admin UI), Role/RoleMember domains, `@AccessRequiresRole`/`@AccessRequiresAnyRole`/`@AccessRequiresAllRoles`/`@AccessAll` annotations, built-in roles (`HOIST_ADMIN`, `HOIST_ADMIN_READER`, `HOIST_IMPERSONATOR`, `HOIST_ROLE_MANAGER`) | Done |
+| [`authorization.md`](../authorization.md) | BaseRoleService, DefaultRoleService, Role, RoleMember, HoistInterceptor, access annotations | Role assignment contract, `DefaultRoleService` (database-backed with admin UI), Role/RoleMember domains, `@AccessRequiresRole`/`@AccessRequiresAnyRole`/`@AccessRequiresAllRoles`/`@AccessAll` annotations, built-in roles (`HOIST_ADMIN`, `HOIST_ADMIN_READER`, `HOIST_IMPERSONATOR`, `HOIST_ROLE_MANAGER`) | Done |
 
 ## Priority 2 — Core Features
 
@@ -79,6 +79,17 @@ Guides to building, structuring, and deploying Hoist applications, plus CI/CD an
 |----------|-------------|-------------|--------|
 | [`application-structure.md`](../application-structure.md) | `build.gradle`, `gradle.properties`, `settings.gradle`, `.env.template`, `grails-app/init/`, `grails-app/conf/`, `client-app/`, `docker/` | Standard Hoist application repository layout — root directory structure, Gradle build configuration, server-side Grails conventions (init files, conf, controllers, services, domain), client-side React/TypeScript conventions (Bootstrap.ts, entry points, AppModel/AppComponent, shared code), Docker deployment (Nginx + Tomcat), local development workflow | Draft |
 | [`build-and-publish.md`](../build-and-publish.md) | `build.gradle`, `settings.gradle`, `gradle.properties`, `.github/workflows/*.yml` | Gradle build configuration, GitHub Actions CI/CD workflows (CI, snapshot, release), Maven Central publishing via Sonatype Central Portal, GPG artifact signing, `nexus-publish-plugin`, legacy `repo.xh.io` publishing, version numbering, required GitHub secrets | Draft |
+| [`changelog-format.md`](../changelog-format.md) | `CHANGELOG.md` | Conventions for writing and reviewing CHANGELOG entries — section headers, emoji prefixes, voice/tense, difficulty ratings, breaking changes, libraries, application changelog differences | Done |
+
+## Conventions
+
+Authoritative standards references for hoist-core development. These docs consolidate conventions
+that were previously scattered across `CLAUDE.md`/`AGENTS.md`, individual feature docs, and tribal
+knowledge.
+
+| Document | Source Files | Description | Status |
+|----------|-------------|-------------|--------|
+| [`coding-conventions.md`](../coding-conventions.md) | `CLAUDE.md`, `AGENTS.md`, hoist-react `coding-conventions.md` (template), feature docs | Naming (`xh` prefix, env vars), logging (`LogSupport`, `withInfo`/`withDebug`, structured map form), exceptions (`RoutineRuntimeException`, `HttpException`), services (`BaseService`, resource factories, `clearCaches` discipline, `clearCachesConfigs`, `ensureRequired*Created`), controllers (mandatory access annotations, `renderJSON`/`parseRequestJSON`, no try/catch, no role re-checks), GORM (`@ReadOnly`/`@Transactional`, N+1 avoidance, judicious `flush: true`, `JSONFormat`), clustering (`primaryOnly`, `replicate`, IMap, serializability, eventual consistency, `forceRun()`), HTTP/email/background work, Groovy idioms, tracing-API pointer, commit/PR formatting (no hard wrap) | Done |
 
 ## Documentation Guidelines
 
@@ -210,6 +221,7 @@ _For detailed session-by-session notes, see [docs-roadmap-log.md](./docs-roadmap
   http-client), 1 in Draft (exception-handling)
 - **Grails Platform:** gorm-domain-objects Done
 - **Development & Builds:** 2 in Draft (application-structure, build-and-publish)
+- **Conventions:** coding-conventions Done (consolidates CLAUDE.md/AGENTS.md guidance)
 - **Priority 4 (Supporting Features):** All 6 docs still Planned
 - **Documentation index** (`docs/README.md`) created and maintained alongside feature docs
 

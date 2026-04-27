@@ -17,11 +17,12 @@ import grails.util.GrailsClassUtils
 import groovy.transform.CompileDynamic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
+import io.opentelemetry.api.trace.SpanKind
 import io.xh.hoist.cache.Cache
 import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.telemetry.ObservedRun
-import io.xh.hoist.telemetry.TraceService
+import io.xh.hoist.telemetry.trace.TraceService
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.IdentitySupport
 import io.xh.hoist.util.Timer
@@ -297,6 +298,18 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     /** Create an {@link ObservedRun} builder with this service as the caller. */
     ObservedRun observe() {
         ObservedRun.observe(this)
+    }
+
+    /**
+     * Create an {@link ObservedRun} builder with an initial span and this server as a caller.
+     **/
+    @NamedVariant
+    ObservedRun span(
+        @NamedParam(required = true) String name,
+        @NamedParam SpanKind kind = SpanKind.INTERNAL,
+        @NamedParam Map<String, ?> tags = [:]
+    ) {
+        observe().span(name, kind, tags)
     }
 
     //-------------------------------

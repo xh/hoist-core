@@ -12,7 +12,7 @@ import static org.apache.hc.core5.http.HttpStatus.SC_FORBIDDEN
 /**
  * Exception for use when the authenticated user does not have access to the resource in question.
  *
- * This exception is thrown by Hoist's by {@link io.xh.hoist.security.AccessInterceptor} if an
+ * This exception is thrown by Hoist's by {@link io.xh.hoist.HoistInterceptor} if an
  * authenticated user does not have roles required by a controller's `@AccessXXX` annotation.
  *
  * Applications may also throw this exception, or subclasses of it, directly in response to requests

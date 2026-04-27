@@ -29,7 +29,8 @@ import io.xh.hoist.role.BaseRoleService
 import io.xh.hoist.security.BaseAuthenticationService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.user.IdentityService
-import io.xh.hoist.telemetry.TraceService
+import io.xh.hoist.telemetry.trace.TraceService
+import io.xh.hoist.telemetry.trace.TraceImplService
 import io.xh.hoist.websocket.WebSocketService
 import org.grails.web.servlet.mvc.GrailsWebRequest
 
@@ -147,6 +148,10 @@ class Utils {
         return (TraceService) appContext.traceService
     }
 
+    static TraceImplService getTraceImplService() {
+        return (TraceImplService) appContext.traceImplService
+    }
+
     static WebSocketService getWebSocketService() {
         return (WebSocketService) appContext.webSocketService
     }
@@ -193,7 +198,7 @@ class Utils {
     /**
      * Sanitizes, pre-processes, and logs exception.
      *
-     * Used by BaseController, ClusterRequest, Timer, and AccessInterceptor to handle
+     * Used by BaseController, ClusterRequest, Timer, and HoistInterceptor to handle
      * otherwise unhandled exception.
      *
      *  @see ExceptionHandler, which may be overridden to customize this behavior.

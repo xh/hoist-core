@@ -135,6 +135,7 @@ variable wins.
 | `dbPassword` | Database password |
 | `bootstrapAdminUser` | Admin user for local dev (see [authorization.md](./authorization.md)) |
 | `multiInstanceEnabled` | Set to `'false'` to disable multi-instance clustering |
+| `otlpEnabledInLocalDev` | Set to `'true'` to allow OTLP export of metrics and traces while running in local development. Defaults to `'false'` and has no effect outside of local dev. |
 
 ### AppEnvironment
 
@@ -290,6 +291,82 @@ String password  = configService.getPwd('apiSecret')          // returns decrypt
 All getters accept an optional `notFoundValue` parameter. If the config doesn't exist and no
 `notFoundValue` is provided, a `RuntimeException` is thrown. A `RuntimeException` is also thrown if
 the requested type doesn't match the config's `valueType`.
+
+##### Typed configs via `TypedConfigMap`
+
+For structured JSON configs with a stable, known key set, declare a `TypedConfigMap` subclass
+and wire it in via the `typedClass:` field on the config's `ConfigSpec` entry passed to
+`ensureRequiredConfigsCreated`. This gives you:
+
+1. **One source of truth for shape + defaults.** Property initializers on the class are the
+   fallback values; when the stored map is missing a key, the declared default applies.
+2. **Typed server-side reads** via `configService.getObject(Class)`.
+3. **Populated client payloads** — for `clientVisible: true` configs, the map sent to the
+   client via `getClientConfig()` is filled in through the typed class, so the same defaults
+   reach browser code without duplicating them in TypeScript.
+4. **Startup drift detection** — a `WARN` is logged when a typed-class property default
+   disagrees with the BootStrap `defaultValue` for the same key, flagging stale declarations
+   on either side.
+5. **Unknown keys** are logged at WARN and ignored — stale or mistyped entries in soft config
+   surface without breaking startup.
+
+Example:
+
+```groovy
+// 1. Declare the typed class. Property initializers are the defaults.
+class PricingConfig extends TypedConfigMap {
+
+    /** Upstream HTTP endpoint. */
+    String endpoint = 'https://prices.example.com'
+    /** Timeout (ms) for a single price fetch. */
+    Integer timeoutMs = 5000
+    /** Whether to fall back to last-known prices when the upstream is unavailable. */
+    boolean fallbackEnabled = true
+
+    PricingConfig(Map args) { init(args) }
+}
+
+// 2. Register it in BootStrap alongside the other config metadata.
+configService.ensureRequiredConfigsCreated([
+    new ConfigSpec(
+        name: 'pricingSourceConfig',
+        valueType: 'json',
+        defaultValue: [endpoint: 'https://prices.example.com', timeoutMs: 5000, fallbackEnabled: true],
+        typedClass: PricingConfig,
+        groupName: 'Pricing',
+        note: '...'
+    )
+])
+
+// 3. Read it, anywhere.
+PricingConfig config = configService.getObject(PricingConfig)
+```
+
+`typedClass:` is **fully optional** — entries without it retain the prior behavior (raw map
+served to clients via `getClientConfig()`, inline fallbacks at call sites). Recommended when
+a config has a stable, known set of keys you want typed and documented. Not recommended for
+free-form key/value maps (e.g. feature-flag bags keyed by arbitrary strings) or list-valued
+configs — continue using `getMap` / `getList` for those.
+
+**Nested shapes.** A property whose declared type is itself a `TypedConfigMap` subclass is
+populated recursively — existing defaults on the nested instance are preserved for any keys
+the stored value doesn't supply. Likewise, a `List<Foo>` or `Map<String, Foo>` property where
+`Foo extends TypedConfigMap` converts each supplied map to a typed `Foo` instance. See
+`ActivityTrackingConfig` (nested `ClientHealthReport` and `MaxRows`) and `LdapConfig`
+(nested `List<LdapServerOptions>`) in hoist-core for in-framework examples.
+
+**Construction — call `init(args)` in the constructor body, not `super(args)`.** Each
+subclass declares a single `MyConfig(Map args) { init(args) }` constructor. Do NOT write a
+subclass constructor that calls `super(args)`: Java/Groovy run subclass field initializers
+*after* the super constructor returns, so any values `init(args)` set via super would be
+silently overwritten by declared defaults. Calling `init(args)` in the subclass body runs
+after the initializers, which is the order we need. `getObject` and the nested-shape
+machinery both invoke the Map constructor for you — you should rarely call it directly.
+
+In-framework examples: `MonitorConfig`, `TraceConfig`, `MetricsConfig`, `ActivityTrackingConfig`,
+`AlertBannerConfig`, `ChangelogConfig`, `ClientErrorConfig`, `ConnPoolMonitoringConfig`,
+`EnvPollConfig`, `ExportConfig`, `IdleConfig`, `LdapConfig`, `LogArchiveConfig`,
+`MemoryMonitoringConfig`, `WebSocketConfig`.
 
 ##### `getStringList(configName)`
 

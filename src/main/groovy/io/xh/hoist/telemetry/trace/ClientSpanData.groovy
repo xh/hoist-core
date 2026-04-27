@@ -4,11 +4,12 @@
  *
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
-package io.xh.hoist.telemetry
+package io.xh.hoist.telemetry.trace
 
 import groovy.transform.CompileStatic
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
+import io.opentelemetry.api.common.AttributesBuilder
 import io.opentelemetry.api.trace.SpanContext
 import io.opentelemetry.api.trace.SpanKind
 import io.opentelemetry.api.trace.StatusCode
@@ -17,6 +18,7 @@ import io.opentelemetry.api.trace.TraceState
 import io.opentelemetry.sdk.common.InstrumentationLibraryInfo
 import io.opentelemetry.sdk.common.InstrumentationScopeInfo
 import io.opentelemetry.sdk.resources.Resource
+import io.opentelemetry.sdk.trace.ReadableSpan
 import io.opentelemetry.sdk.trace.data.EventData
 import io.opentelemetry.sdk.trace.data.LinkData
 import io.opentelemetry.sdk.trace.data.SpanData
@@ -33,7 +35,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS
  * spans form a coherent distributed trace in the collector.
  */
 @CompileStatic
-class ClientSpanData implements SpanData {
+class ClientSpanData implements SpanData, ReadableSpan {
 
     // LIBRARY for backward compatibility
     private static final InstrumentationScopeInfo SCOPE = InstrumentationScopeInfo.create('io.xh.hoist.client')
@@ -50,7 +52,7 @@ class ClientSpanData implements SpanData {
     private final List<EventData> _events
     private final StatusData _status
 
-    ClientSpanData(Map span, Resource resource) {
+    ClientSpanData(Map span, Resource resource, Map<String, ?> extraTags = [:]) {
         _resource = resource
         _name = span.name as String
 
@@ -72,16 +74,19 @@ class ClientSpanData implements SpanData {
         def tags = span.tags as Map ?: [:]
         _kind = parseSpanKind(span.kind as String)
 
-        // Build attributes from client tags
+        // Build attributes from client tags + server-side cross-cutting tags
         def ab = Attributes.builder()
-        tags.each { k, v -> ab.put(AttributeKey.stringKey(k as String), v as String) }
+        tags.each { k, v -> putAttribute(ab, k as String, v) }
+        extraTags?.each { k, v ->
+            if (v != null) putAttribute(ab, k as String, v)
+        }
         _attributes = ab.build()
 
         // Events (e.g. exception recordings)
         _events = ((span.events as List<Map>) ?: []).collect { Map evt ->
             def evtAttrs = Attributes.builder()
             (evt.attributes as Map)?.each { k, v ->
-                evtAttrs.put(AttributeKey.stringKey(k as String), v as String)
+                putAttribute(evtAttrs, k as String, v)
             }
             def attrs = evtAttrs.build()
             EventData.create(
@@ -118,6 +123,21 @@ class ClientSpanData implements SpanData {
     int getTotalRecordedLinks() { 0 }
     int getTotalAttributeCount() { _attributes.size() }
 
+    // ReadableSpan
+    SpanData toSpanData() { this }
+    long getLatencyNanos() { _endEpochNanos - _startEpochNanos }
+    def <T> T getAttribute(AttributeKey<T> key) { _attributes.get(key) }
+
+
+    private static void putAttribute(AttributesBuilder builder, String key, Object value) {
+        switch (value) {
+            case Long:    builder.put(key, (long) value); break
+            case Integer: builder.put(key, (long) value); break
+            case Boolean: builder.put(key, (boolean) value); break
+            case Double:  builder.put(key, (double) value); break
+            default:      builder.put(key, value?.toString())
+        }
+    }
 
     private static SpanKind parseSpanKind(String kind) {
         switch (kind) {

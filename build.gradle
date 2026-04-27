@@ -96,19 +96,26 @@ dependencies {
     api "io.micrometer:micrometer-registry-prometheus"
     api "io.micrometer:micrometer-registry-otlp"
 
-    api platform("io.opentelemetry:opentelemetry-bom:1.49.0")
+    api platform("io.opentelemetry:opentelemetry-bom:1.61.0")
     api "io.opentelemetry:opentelemetry-sdk"
     api "io.opentelemetry:opentelemetry-exporter-otlp"
     api "io.opentelemetry:opentelemetry-exporter-common"
     api "io.opentelemetry:opentelemetry-context"
+    api "io.opentelemetry.instrumentation:opentelemetry-jdbc:2.26.1-alpha"
+    // Required transitively by opentelemetry-jdbc (via opentelemetry-api-incubator's
+    api "io.opentelemetry:opentelemetry-common"
 
     // Workaround needed by micrometer-registry-otlp at compile time
-    api "io.opentelemetry.proto:opentelemetry-proto:1.5.0-alpha"
+    api "io.opentelemetry.proto:opentelemetry-proto:1.10.0-alpha"
 
     // Workaround needed by opentelemetry exporter
     api "io.opentelemetry:opentelemetry-exporter-sender-okhttp"
 
 }
+
+// Override the OTel version managed by Spring Boot's BOM (which pins 1.49.0). The
+// opentelemetry-jdbc:2.26.1-alpha instrumentation requires >= 1.60.1
+ext['opentelemetry.version'] = '1.61.0'
 
 tasks.withType(GroovyCompile) {
     configure(groovyOptions) {
@@ -123,16 +130,26 @@ tasks.bootRun.doFirst {
 
 //--------------------
 // JDK
+//
+// hoist-core compiles with a JDK 25 toolchain but targets Java 17 bytecode so the published JAR
+// still runs on any JDK 17+ runtime. Contributors must not use Java 18+ APIs in hoist-core
+// source — the CI build enforces this by also running the test suite on JDK 17.
 //-------------------
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+        languageVersion = JavaLanguageVersion.of(25)
     }
     withSourcesJar()
     withJavadocJar()
 }
 tasks.withType(JavaCompile) {
     options.release = 17
+}
+tasks.withType(GroovyCompile) {
+    options.release = 17
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
+    groovyOptions.parameters = true
 }
 tasks.withType(Javadoc) {
     options.addStringOption('Xdoclint:none', '-quiet')

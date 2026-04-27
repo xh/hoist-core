@@ -7,12 +7,28 @@
 package io.xh.hoist
 
 import grails.util.Holders
+import io.xh.hoist.admin.ConnPoolMonitoringConfig
+import io.xh.hoist.admin.MemoryMonitoringConfig
+import io.xh.hoist.alertbanner.AlertBannerConfig
 import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.config.ChangelogConfig
 import io.xh.hoist.config.ConfigSpec
+import io.xh.hoist.config.IdleConfig
+import io.xh.hoist.environment.EnvPollConfig
+import io.xh.hoist.export.ExportConfig
+import io.xh.hoist.ldap.LdapConfig
+import io.xh.hoist.log.LogArchiveConfig
 import io.xh.hoist.log.LogSupport
+import io.xh.hoist.monitor.MonitorConfig
 import io.xh.hoist.pref.PreferenceSpec
+import io.xh.hoist.telemetry.metric.MetricsConfig
+import io.xh.hoist.telemetry.trace.TraceConfig
+import io.xh.hoist.track.ActivityTrackingConfig
+import io.xh.hoist.track.ClientErrorConfig
 import io.xh.hoist.util.Utils
+import io.xh.hoist.websocket.WebSocketConfig
 
+import java.time.Instant
 import java.time.ZoneId
 
 import static io.xh.hoist.util.DateTimeUtils.serverZoneId
@@ -29,23 +45,27 @@ class BootStrap implements LogSupport {
         prefService
 
     def init = {servletContext ->
+        def initStart = Instant.now()
         logStartupMsg()
 
-        parallelInit([configService])
+        // Ordered, early initialization of core services
+        configService.initialize()
         ensureRequiredConfigsCreated()
         ensureExpectedServerTimeZone()
 
-        // Ordered, early initialization of core service used by other services.
-        parallelInit([logLevelService])
-        parallelInit([clusterService])
-        parallelInit([metricsService])
-        parallelInit([traceService])
+        traceService.initialize()
+        traceService.startServerLoadSpan()
+        traceService.withSpan(name: 'xh.server.hoistInit', startTime: initStart, caller: this) {
+            logLevelService.initialize()
+            clusterService.initialize()
+            metricsService.initialize()
 
-        // All other services in parallel
-        def services = Utils.xhServices.findAll {it.class.canonicalName.startsWith('io.xh.hoist')}
-        parallelInit(services)
+            // All other services in parallel...
+            def services = Utils.xhServices.findAll { it.class.canonicalName.startsWith('io.xh.hoist') }
+            parallelInit(services)
 
-        ensureRequiredPrefsCreated()
+            ensureRequiredPrefsCreated()
+        }
     }
 
     def destroy = {}
@@ -89,6 +109,7 @@ class BootStrap implements LogSupport {
                     maxEntriesPerMin: 1000,
                     maxRows: [default: 10000, limit: 25000, options: [1000, 5000, 10000, 25000]]
                 ],
+                typedClass: ActivityTrackingConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Configures built-in Activity Tracking via TrackService.'
@@ -97,6 +118,7 @@ class BootStrap implements LogSupport {
                 name: 'xhAlertBannerConfig',
                 valueType: 'json',
                 defaultValue: [enabled: true],
+                typedClass: AlertBannerConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Configures support for showing an app-wide alert banner.\n\nAdmins configure and activate alert banners from the Hoist Admin console. To generally enable this system, set "enabled" to true. The xhEnvPollConfig.interval config governs client polling for updates.'
@@ -129,6 +151,7 @@ class BootStrap implements LogSupport {
                 name: 'xhChangelogConfig',
                 valueType: 'json',
                 defaultValue: [enabled: true, excludedVersions: [], excludedCategories: [], limitToRoles: []],
+                typedClass: ChangelogConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Configures built-in application changelog (release notes), with options to disable the feature entirely, exclude particular releases or categories of changes from the log, and/or only show to users with selected roles.'
@@ -137,6 +160,7 @@ class BootStrap implements LogSupport {
                 name: 'xhClientErrorConfig',
                 valueType: 'json',
                 defaultValue: [intervalMins: 2],
+                typedClass: ClientErrorConfig,
                 groupName: 'xh.io',
                 note: 'Configures handling of client error reports. Errors are queued when received and processed every [intervalMins].'
             ),
@@ -149,6 +173,7 @@ class BootStrap implements LogSupport {
                     maxSnapshots: 1440,
                     writeToLog: false
                 ],
+                typedClass: ConnPoolMonitoringConfig,
                 groupName: 'xh.io',
                 note: 'Configures built-in JDBC connection pool monitoring.'
             ),
@@ -219,6 +244,7 @@ class BootStrap implements LogSupport {
                     interval: 10,
                     onVersionChange: configService.getMap('xhAppVersionCheck', [mode: 'promptReload']).get('mode')
                 ],
+                typedClass: EnvPollConfig,
                 groupName: 'xh.io',
                 note: "Controls client calls to server to poll for version, instance changes, or auth changes. Supports the following options:\n\n" +
                     "- interval: Frequency (in seconds) with which the status of the app server should be polled. Value of -1 disables checking.\n" +
@@ -241,6 +267,7 @@ class BootStrap implements LogSupport {
                     streamingCellThreshold: 100000,
                     toastCellThreshold: 3000
                 ],
+                typedClass: ExportConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Configures exporting data to Excel.'
@@ -257,6 +284,7 @@ class BootStrap implements LogSupport {
                 name: 'xhIdleConfig',
                 valueType: 'json',
                 defaultValue: [timeout: 120, appTimeouts: [:]],
+                typedClass: IdleConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Governs how client application will enter "sleep mode", suspending background requests and prompting the user to reload to resume.  Timeouts are in minutes of inactivity. -1 to disable.'
@@ -269,6 +297,7 @@ class BootStrap implements LogSupport {
                     timeoutMs: 60000,
                     cacheExpireSecs: 300,
                     useMatchingRuleInChain: false,
+                    skipTlsCertVerification: false,
                     servers: [
                         [
                             host: '',
@@ -277,6 +306,7 @@ class BootStrap implements LogSupport {
                         ]
                     ]
                 ],
+                typedClass: LdapConfig,
                 groupName: 'xh.io',
                 note: 'Supports connecting to LDAP servers.'
             ),
@@ -299,6 +329,7 @@ class BootStrap implements LogSupport {
                     archiveAfterDays: 30,
                     archiveFolder: 'archive'
                 ],
+                typedClass: LogArchiveConfig,
                 groupName: 'xh.io',
                 note: 'Configures automatic cleanup and archiving of log files. Files older than "archiveAfterDays" will be moved into zipped bundles within the specified "archiveFolder".'
             ),
@@ -314,6 +345,7 @@ class BootStrap implements LogSupport {
                     maxPastInstances: 10,
                     writeToLog: true
                 ],
+                typedClass: MemoryMonitoringConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Configures built-in memory usage and GC monitoring.'
@@ -330,6 +362,7 @@ class BootStrap implements LogSupport {
                     monitorTimeoutSecs: 15,
                     writeToMonitorLog: true
                 ],
+                typedClass: MonitorConfig,
                 groupName: 'xh.io',
                 note: 'Configures server-side status monitoring and notifications. Note failNotifyThreshold and warnNotifyThreshold are the number of refresh cycles a monitor will need to be in said status to trigger "alertMode".'
             ),
@@ -349,6 +382,7 @@ class BootStrap implements LogSupport {
                     prometheusConfig: [:],
                     otlpConfig: [:]
                 ],
+                typedClass: MetricsConfig,
                 groupName: 'xh.io',
                 note: 'Parameters for observable metric support'
             ),
@@ -359,10 +393,11 @@ class BootStrap implements LogSupport {
                     enabled: false,
                     sampleRate: 1.0,
                     sampleRules: [],
-                    alwaysSampleErrors: true,
+                    jdbcTracingEnabled: false,
                     otlpEnabled: false,
                     otlpConfig: [:]
                 ],
+                typedClass: TraceConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Parameters for distributed tracing support.'
@@ -381,6 +416,7 @@ class BootStrap implements LogSupport {
                     sendTimeLimitMs: 1000,
                     bufferSizeLimitBytes: 1000000
                 ],
+                typedClass: WebSocketConfig,
                 groupName: 'xh.io',
                 note: 'Parameters for the managed WebSocket sessions created by Hoist.'
             )
