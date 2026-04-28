@@ -213,7 +213,9 @@ the primary instance. These metrics are cluster-scoped (`instance=cluster`) and 
 | `hoist.client.load.authTime` | Timer | App load authentication phase duration |
 
 Load timers are recorded only for `App` / `Loaded` track entries that include a `timings` map in
-their data payload, confirming they represent a standard Hoist client load event.
+their data payload, confirming they represent a standard Hoist client load event. Both timers
+emit percentile histograms, supporting server-side aggregation (e.g. p90/p99) in Prometheus and
+OTLP-receiving backends.
 
 See [`activity-tracking.md`](./activity-tracking.md) for documentation of the track log system.
 
