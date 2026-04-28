@@ -132,7 +132,7 @@ span is wanted.
 | `.logInfo(msg)` | Log at INFO via `LogSupport.withInfo`. |
 | `.logDebug(msg)` | Log at DEBUG via `LogSupport.withDebug`. |
 | `.logTrace(msg)` | Log at TRACE via `LogSupport.withTrace`. |
-| `.timer(Timer)` / `.timer(name, histogram?)` | Record elapsed time on a Micrometer Timer. Pass `histogram: true` to emit percentile histograms (server-side aggregation in Prometheus/OTLP). |
+| `.timer(Timer)` / `.timer(String)` | Record elapsed time on a Micrometer Timer. |
 | `.counter(Counter)` / `.counter(String)` | Increment a Micrometer Counter (counts attempts). |
 | `.run(closure)` | Terminal — execute with all configured observability. |
 

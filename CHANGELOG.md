@@ -36,8 +36,7 @@
   to distinguish per-developer data.
 * Timer percentile histograms — built-in `hoist.client.load.totalTime` and
   `hoist.client.load.authTime` now emit histogram buckets, surfacing p50/p90/p99 etc. in
-  Prometheus and OTLP backends. New `histogram: true` opt-in on `ObservedRun.timer(name: ...)`
-  enables the same for auto-registered application timers.
+  Prometheus and OTLP backends.
 
 * **`ConfigService.getObject(Class)`** — new API for reading a JSON soft config as a typed
   object instead of a raw `Map`. Pair it with an optional `typedClass:` key on
