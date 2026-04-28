@@ -29,6 +29,7 @@ import io.opentelemetry.sdk.trace.export.SpanExporter
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import io.opentelemetry.api.common.AttributeKey
+import io.xh.hoist.telemetry.trace.impl.JdbcTraceService
 import io.xh.hoist.util.Utils
 import org.springframework.boot.context.event.ApplicationFailedEvent
 import org.springframework.boot.context.event.ApplicationReadyEvent
@@ -60,14 +61,15 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
     static clearCachesConfigs = ['xhTraceConfig']
 
     ConfigService configService
-    TraceImplService traceImplService
+    JdbcTraceService jdbcTraceService
+    TraceContextService traceContextService
 
     private List<SpanExporter> _customExporters = []
     private OpenTelemetrySdk _otelSdk
     private SpanExporter _otlpExporter
     private Resource _resource
     private TraceConfig _config
-    private final HoistSampler _sampler = new HoistSampler()
+    private final ManualRateSampler _sampler = new ManualRateSampler()
     private SpanRef _serverLoadSpan
 
     /** Sink for exporting spans. @internal*/
@@ -75,7 +77,8 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
 
     void init() {
         syncConfig()
-        traceImplService.initialize()
+        traceContextService.initialize()
+        jdbcTraceService.initialize()
     }
 
 
