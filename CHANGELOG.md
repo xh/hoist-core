@@ -2,77 +2,74 @@
 
 ## 39.0-SNAPSHOT - unreleased
 
-### 💥 Breaking Changes
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - mostly mechanical)
 
-* `TraceService` no longer supports the `alwaysSampleErrors` flag, which was deemed inappropriate
-  for head-based sampling. This change is consistent with a similar update in hoist-core v85. Apps
-  requiring full visibility into error spans for a particular set of errors should ensure they
-  are sampled via the existing rules.
+See [`docs/upgrade-notes/v39-upgrade-notes.md`](docs/upgrade-notes/v39-upgrade-notes.md) for
+detailed, step-by-step upgrade instructions, including a recommended migration to the new typed
+`ConfigSpec` / `PreferenceSpec` / `RoleSpec` APIs and an optional opt-in to the new typed-config
+system for app-defined JSON configs.
+
+* Recommended pairing with `hoist-react >= 85.0` - both releases drop `alwaysSampleErrors` and
+  add name-based `sampleRules` matching. No hard minimum bump; v84.x continues to work.
+* **Telemetry package restructuring** - classes under `io.xh.hoist.telemetry` moved into
+  `telemetry.metric` and `telemetry.trace` subpackages, with a few renames (notably
+  `HoistSampler` → `ManualRateSampler`, and `AccessInterceptor` → `HoistInterceptor`, the
+  latter moved to `io.xh.hoist` since it now governs more than access checks). Compiler-caught
+  and IDE-fixable.
+* `xhTraceConfig.alwaysSampleErrors` removed - the flag was inappropriate for head-based
+  sampling. Mirrors the matching change in hoist-react v85. Use `sampleRules` to force-sample
+  specific error patterns.
+* `ensureRequiredConfigsCreated()` / `ensureRequiredPrefsCreated()` /
+  `ensureRequiredRolesCreated()` `Map`-based signatures are deprecated in favor of typed
+  `ConfigSpec` / `PreferenceSpec` / `RoleSpec`. Old form still works (with a startup `WARN`);
+  removal in v42.
 
 ### 🎁 New Features
 
-* **JDK 25 support** — hoist-core now builds on JDK 25, laying the groundwork for future
-  adoption of virtual threads, generational ZGC, and other JDK 21+ runtime features.
-  Published JAR continues to target Java 17 bytecode, so apps on JDK 17+ need no action.
+* **JDK 25 support** - hoist-core now builds on JDK 25. Published JAR continues to target Java
+  17 bytecode, so apps on JDK 17+ need no action.
 * Improvements to tracing:
-    * `TraceService.withSpan` (and `ObservedRun.run`) now always pass a non-null `SpanRef` to the
-      closure — a shared no-op `SpanRef.NOOP` is used when tracing is disabled, eliminating the need
-      for `?.` null-safe calls on the span.
-    * `sampleRules` in `xhTraceConfig` now support matching against the span's name via the reserved
-      `name` key (same syntax as tag-value patterns).
+    * `TraceService.withSpan` (and `ObservedRun.run`) now always pass a non-null `SpanRef` to
+      the closure (a shared `SpanRef.NOOP` when tracing is disabled), removing the need for
+      `?.` null-safe calls.
+    * `sampleRules` in `xhTraceConfig` now match against the span's name via the reserved
+      `name` key.
     * Server startup is now traced via `xh.server.load` and `xh.server.hoistInit` spans.
-    * Auto-instrumentation for JDBC via `opentelemetry-jdbc` — covers direct DataSource access
+    * Auto-instrumentation for JDBC via `opentelemetry-jdbc` - covers direct DataSource access
       and Hibernate/GORM (incl. multi-datasource setups). Enable via new `jdbcTracingEnabled`
-      boolean on `xhTraceConfig` (default `false`).
-    * Improvements to core `kind=SERVER` span on all http requests: Capture http error status,
-      include authentication and routing time, and skip noisy requests like 'ping' and web sockets.
-    * New span tags `xh.isPrimary` and `xh.impersonating`. `user.name` now refers to the
+      on `xhTraceConfig` (default `false`).
+    * `kind=SERVER` request spans now capture HTTP error status, include authentication and
+      routing time, and skip noisy requests (ping, websockets).
+    * New span tags `xh.isPrimary` and `xh.impersonating`. The `user.name` tag now refers to the
       *authenticated* user.
-    * New `BaseService.span(name, kind?, tags?)` shortcut for the common case of starting an
-      `ObservedRun` with an initial span — equivalent to `observe().span(...)`.
-* OTLP export (metrics and traces) is now suppressed by default while running in local
-  development. Set the new `otlpEnabledInLocalDev` instance config to `'true'` to opt in. In local
-  dev, exports tag `deployment.environment.name` with the OS username (e.g. `Development-johndoe`)
-  to distinguish per-developer data.
-* Timer percentile histograms — built-in `hoist.client.load.totalTime` and
+    * New `BaseService.span(name, kind?, tags?)` shortcut - equivalent to `observe().span(...)`.
+* OTLP export (metrics and traces) is now suppressed by default in local development; set the
+  new `otlpEnabledInLocalDev` instance config to `'true'` to opt in. See
+  [`docs/tracing.md`](docs/tracing.md#local-development-gating) for details, including the
+  per-developer `deployment.environment.name` suffix applied when local-dev export is enabled.
+* Timer percentile histograms - built-in `hoist.client.load.totalTime` and
   `hoist.client.load.authTime` now emit histogram buckets, surfacing p50/p90/p99 etc. in
   Prometheus and OTLP backends.
-
-* **`ConfigService.getObject(Class)`** — new API for reading a JSON soft config as a typed
-  object instead of a raw `Map`. Pair it with an optional `typedClass:` key on
-  `ensureRequiredConfigsCreated` to make the supplied `TypedConfigMap` subclass the single
-  source of truth for the config's shape, defaults, and documentation on both server and
-  client:
-    * `TypedConfigMap` supports declared property defaults and nested shapes — including
-       `List<Foo>` and `Map<String, Foo>` — populated recursively.
-    * Validation: reads via `getObject` and admin-console saves throw if the stored value can't
-      populate the typed class.
-    * On startup `WARN` on drift between default bootstrap value and database.
-    * All built-in hoist-core JSON configs are now typed and registered via this scheme.
-    * See `docs/configuration.md` for the full guide.
+* **`ConfigService.getObject(Class)`** - read a JSON soft config as a typed `TypedConfigMap`
+  subclass with declared property defaults applied. Wire it up via the new optional
+  `typedClass:` field on `ConfigSpec` to make the class the single source of truth for the
+  config's shape on both server and client. All built-in hoist-core JSON configs are now typed
+  via this scheme. See [`docs/configuration.md`](docs/configuration.md#typed-configs-via-typedconfigmap).
 
 ### 🐞 Bug Fixes
 
 * `TypedConfigMap` subclasses with default field initializers were silently clobbering values
   loaded from soft config.
-* Tightened defaults, coercions, and schema gaps across several built-in hoist-core configs
-    surfaced during the typed-config migration — latent edge cases that would only bite under
-    unusual admin-edit patterns.
-* `AppConfig` validation errors no longer render twice — removed a redundant `valueType`
-  validator that re-ran the `value` check and emitted a duplicate generic message.
-
-### ⚙️ Technical
-
-* Added `ConfigSpec`, `PreferenceSpec`, and `RoleSpec` typed classes for use with
-  `ensureRequiredConfigsCreated()`, `ensureRequiredPrefsCreated()`, and
-  `ensureRequiredRolesCreated()`, replacing untyped `Map` arguments with classes that provide IDE
-  autocomplete and compile-time validation. Previous `Map`-based signatures remain supported as
-  deprecated overloads and will be removed in v42. `ConfigSpec.typedClass` is the supported way to
-  register a `TypedConfigMap` subclass against a JSON config.
+* Tightened defaults, coercions, and schema gaps across several built-in hoist-core configs,
+  surfaced during the typed-config migration.
+* `AppConfig` validation errors no longer render twice - removed a redundant `valueType`
+  validator that re-ran the `value` check.
 
 ### 🤖 AI Docs + Tooling
 
-* **New `coding-conventions.md` doc** — authoritative coding conventions reference for hoist-core, consolidating guidance previously scattered across `CLAUDE.md` and individual feature docs. Paired sibling to the hoist-react `coding-conventions.md`. Covers naming, logging (`LogSupport`, `withInfo`/`withDebug`, structured map form), exceptions, services and lifecycle, controllers and security, GORM, clustering, HTTP/email/background work, Groovy idioms, and commit/PR formatting.
+* **New [`coding-conventions.md`](docs/coding-conventions.md) doc** - consolidates conventions
+  previously scattered across `CLAUDE.md` and individual feature docs. Paired sibling to the
+  hoist-react `coding-conventions.md`.
 
 ### 📚 Libraries
 
@@ -152,7 +149,7 @@ detailed, step-by-step upgrade instructions with before/after code examples.
 See [`docs/upgrade-notes/v37-upgrade-notes.md`](docs/upgrade-notes/v37-upgrade-notes.md) for
 detailed, step-by-step upgrade instructions with before/after code examples.
 
-* Recommended pairing with `hoist-react >= 83.0` (paired major release -- tracing and metrics
+* Recommended pairing with `hoist-react >= 83.0` (paired major release - tracing and metrics
   publishing features require client-side updates).
 * Removed automatic namespace prefixing from `MetricsService`. Metrics are now registered under
   the exact name provided - apps should include any desired prefix (e.g. app code) in the metric
@@ -167,17 +164,17 @@ detailed, step-by-step upgrade instructions with before/after code examples.
       automatic request spans, outbound HTTP propagation, and cluster context propagation.
     - `ObservedRun` composable builder via `BaseService.observe()` wraps a closure with any
       combination of tracing, logging, and Micrometer metrics in a single fluent call chain.
-    - Client span relay via `ClientTraceService` -- browser-generated spans are exported through
+    - Client span relay via `ClientTraceService` - browser-generated spans are exported through
       the same server-side pipeline for coherent end-to-end traces.
     - Automatic trace context propagation across Grails `task {}` thread boundaries.
     - Exception JSON responses now include `traceId` when an active trace context is available,
       enabling client-side correlation with server traces.
 * Added opt-in metrics publishing. Metrics export is now gated by the `xhMetricsPublished`
-  config -- a list of metric names to include in Prometheus/OTLP export sinks. An empty list
+  config - a list of metric names to include in Prometheus/OTLP export sinks. An empty list
   (the default) means nothing is exported.
     * Recommended `hoist-react >= 83.0` for Admin Console support for editing this new config
       via the Servers > Metrics tab.
-* Added `MetricsService.publishRegistry` -- a `CompositeMeterRegistry` that gates all export
+* Added `MetricsService.publishRegistry` - a `CompositeMeterRegistry` that gates all export
   sinks with the publish filter. Applications can add custom export registries (e.g. Datadog)
   via `publishRegistry.add()` and they will automatically respect the published metrics list.
 
@@ -208,7 +205,7 @@ detailed, step-by-step upgrade instructions with before/after code examples.
 
 ### 🎁 New Features
 
-* Added `MetricsService` — a central Micrometer-based metrics infrastructure for Hoist applications.
+* Added `MetricsService` - a central Micrometer-based metrics infrastructure for Hoist applications.
   Exposes a `CompositeMeterRegistry` with automatic namespace prefixing and default tags, built-in
   support for Prometheus and OTLP export registries (configured via `xhMetricsConfig`), and
   cluster-wide Prometheus scrape. Built-in metrics are provided for JVM health, JDBC connection
@@ -258,11 +255,11 @@ detailed, step-by-step upgrade instructions with before/after code examples.
   detailed, step-by-step upgrade
   instructions with before/after code examples.
 * Deprecated `@Access` in favor of new `@AccessRequiresRole`, `@AccessRequiresAllRoles`, and
-  `@AccessRequiresAnyRole` annotations. `@Access` continues to function but should be migrated —
+  `@AccessRequiresAnyRole` annotations. `@Access` continues to function but should be migrated -
   see upgrade notes for find-and-replace patterns.
 * `getAllChannels()` now returns `Collection<Map>` (cluster-wide) instead of
   `Collection<HoistWebSocketChannel>` (local-only). Any app calling this method must update code
-  that accesses channel properties (e.g. `.user`) — see upgrade notes.
+  that accesses channel properties (e.g. `.user`) - see upgrade notes.
 * Apps leveraging both multi-instance clustering and websockets should also review the additional
   `WebSocketService` API changes below and understand the new cross-cluster behavior.
     * Replace `allChannels`-based broadcast patterns with `pushToAllChannels()` or
@@ -279,9 +276,9 @@ detailed, step-by-step upgrade instructions with before/after code examples.
       Use new variants `hasLocalChannel()` and `getLocalChannels()` to target local instance only.
     * Added new methods `pushToAllChannels()` and `pushToLocalChannels()`.
 * Introduced new security annotations:
-    * `@AccessRequiresRole` — check a single role.
-    * `@AccessRequiresAllRoles` — check a list of roles and require user to have all.
-    * `@AccessRequiresAnyRole` — check a list of roles and require user to have at least one.
+    * `@AccessRequiresRole` - check a single role.
+    * `@AccessRequiresAllRoles` - check a list of roles and require user to have all.
+    * `@AccessRequiresAnyRole` - check a list of roles and require user to have at least one.
     * ⚠️ `@Access` has been deprecated and will be removed in a future version of Hoist.
 
 ### 🐞 Bug Fixes
@@ -304,7 +301,7 @@ detailed, step-by-step upgrade instructions with before/after code examples.
   support non-string key types. Adjust any explicit declarations of this type to include the key
   type parameter.
 * Added `clientAppCode` column to `TrackLog` for tracking activity across multiple client apps.
-  Requires a new `client_app_code` column and index on the `xh_track_log` table — see upgrade
+  Requires a new `client_app_code` column and index on the `xh_track_log` table - see upgrade
   notes for SQL.
 
 ### 🎁 New Features
@@ -321,7 +318,7 @@ detailed, step-by-step upgrade instructions with before/after code examples.
 ### ⚙️ Technical
 
 * Synchronized logging behavior in `MemoryMonitoringService` and `ConnectionPoolMonitoringService`
-  — info-level output now logged once per hour with debug-level between intervals. Added optional
+  - info-level output now logged once per hour with debug-level between intervals. Added optional
   `writeToLog` configuration parameter (defaults to `true`).
 
 ### 📚 Libraries
@@ -347,7 +344,7 @@ detailed, step-by-step upgrade instructions with before/after code examples.
     * Buildscript dependencies use `org.apache.grails` (was `org.grails`).
     * Repository URL changed to `https://repo.grails.org/grails/restricted`.
     * Use `platform("org.apache.grails:grails-bom:$grailsVersion")` for version management.
-* Clean up `gradle.properties` — remove version properties now managed by the Grails BOM
+* Clean up `gradle.properties` - remove version properties now managed by the Grails BOM
   (e.g. `groovyVersion`, `grailsGradlePluginVersion`, `grailsHibernatePluginVersion`,
   `gormVersion`, `logback.version`).
 * Migrate logging configuration: delete `grails-app/conf/logback.groovy` and create a
@@ -550,7 +547,7 @@ for additional background on the underlying framework changes.
   nested group memberships. The service now uses recursive lookups into child groups, which perform
   better under most conditions. A new `xhLdapConfig.useMatchingRuleInChain` config flag can be used
   to revert to the previous behavior.
-* Improved handling of system shutdown — if an app's Hazelcast instance unexpectedly terminates,
+* Improved handling of system shutdown - if an app's Hazelcast instance unexpectedly terminates,
   the entire app now shuts down with it.
 
 ### 📚 Libraries
@@ -857,8 +854,8 @@ Many apps will *not* need to implement significant changes to run with multiple 
 will setup the cluster, elect a primary instance, provide cluster-aware Hibernate caching and
 logging, and ensure cross-server consistency for its own APIs.
 
-However, complex applications -- notably those that maintain significant server-side state or use
-their server to interact within external systems -- should take care to ensure the app is safe to
+However, complex applications - notably those that maintain significant server-side state or use
+their server to interact within external systems - should take care to ensure the app is safe to
 run in multi-instance mode. Distributed data structures (e.g. Hazelcast Maps) should be used as
 needed, as well as limiting certain actions to the "primary" server.
 
@@ -1324,7 +1321,7 @@ It should be fully compatible with Java 11 and Java 17.
 Version 15 includes changes to support more flexible logging of structured data:
 
 * The bulk of Hoist conventions around log formatting have been moved from `LogSupport` to a new
-  log converter -- `LogSupportConverter`. This allows applications to more easily and fully
+  log converter - `LogSupportConverter`. This allows applications to more easily and fully
   customize their log formats by specifying custom converters.
 * `LogSupport` should still be the main entry point for most application logging. This class
   provides the support for enhanced meta data-handling as well as some important APIs -
@@ -2407,7 +2404,7 @@ enterprise plugin and not require individual app changes.)
 
 ### 🐞 Bug Fixes
 
-+ IdentityService.getUser() should not throw when called outside context of a request -- just return
++ IdentityService.getUser() should not throw when called outside context of a request - just return
   null. Important when e.g. looking for a username within service calls that might be triggered by a
   controller-based web request or a timer-based thread. 4130a9add8dd8ba22376ea69cfa3a3d095bdf6b0
 

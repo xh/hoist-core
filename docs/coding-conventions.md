@@ -958,7 +958,9 @@ Use these where they help; don't require them everywhere.
 
 Use plain ASCII in code comments and Groovydoc — em dashes (`—`), curly quotes, and other non-ASCII
 characters can break tooling (grep, diff, MCP indexing) and offer no benefit in a monospace context.
-Em dashes are fine in markdown documentation where they render naturally.
+Em dashes are fine in narrative markdown documentation where they render naturally.
+**Exception:** the `CHANGELOG.md` file follows a stricter plain-ASCII rule - see
+[changelog-format.md](./changelog-format.md#general-guidelines).
 
 ## Commit Messages, PRs, and Comments
 

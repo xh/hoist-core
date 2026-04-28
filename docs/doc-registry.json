@@ -201,6 +201,14 @@
             "keywords": ["conventions", "coding standards", "style guide", "naming", "xh prefix", "LogSupport", "withInfo", "withDebug", "RoutineRuntimeException", "BaseService", "createCache", "createTimer", "clearCaches", "clearCachesConfigs", "ensureRequiredConfigsCreated", "configService", "AccessRequiresRole", "renderJSON", "parseRequestJSON", "ReadOnly", "Transactional", "N+1", "fetch join", "batchSize", "JSONFormat", "primaryOnly", "replicate", "JSONClient", "xhEmailOverride", "withNewSession", "pushToAllChannels", "pushToLocalChannels", "Groovy idioms", "commit messages", "no hard wrap"]
         },
         {
+            "id": "docs/upgrade-notes/v39-upgrade-notes.md",
+            "title": "v39 Upgrade Notes",
+            "mcpCategory": "devops",
+            "viewerCategory": "upgrade",
+            "description": "Upgrade guide from v38.x to v39. Low difficulty.",
+            "keywords": ["v39", "upgrade", "migration", "breaking changes", "v38", "alwaysSampleErrors", "AccessInterceptor"]
+        },
+        {
             "id": "docs/upgrade-notes/v38-upgrade-notes.md",
             "title": "v38 Upgrade Notes",
             "mcpCategory": "devops",

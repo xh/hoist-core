@@ -128,6 +128,25 @@ When `otlpEnabled: true`, an `OtlpMeterRegistry` is added for push-based export 
 Grafana Cloud, New Relic, or any OTLP-compatible backend). Configuration properties are passed via
 `otlpConfig` (e.g. `{"url": "https://otlp.example.com/v1/metrics", "step": "PT60S"}`).
 
+### Local-development gating
+
+OTLP export is suppressed by default when the app is running in local development, even when
+`otlpEnabled: true` in `xhMetricsConfig`. This avoids polluting a shared OTLP backend with
+developer-machine metrics during routine work. The same gating applies to trace export — see
+[`tracing.md`](./tracing.md#local-development-gating).
+
+To opt in, set the `otlpEnabledInLocalDev` instance config to `'true'`. Local-development
+detection follows `Utils.isLocalDevelopment`, which reflects the Grails runtime mode
+(`Environment.isDevelopmentMode()` — true when started via `bootRun`, false in a deployed war).
+This is independent of the configured `appEnvironment`, so a deployed instance configured as
+`Development` is not affected by this flag.
+
+When OTLP export runs in local dev, the `deployment.environment.name` resource attribute is
+suffixed with the OS username (e.g. `Development-johndoe`) so per-developer data can be
+distinguished in a shared backend. Override
+[`ClusterConfig.getOtelResourceAttributes()`](https://github.com/xh/hoist-core/blob/develop/grails-app/init/io/xh/hoist/ClusterConfig.groovy)
+if your backend prefers a different scheme.
+
 ### Adding custom registries
 
 Applications can add additional export registries programmatically:
@@ -247,7 +266,7 @@ See [`activity-tracking.md`](./activity-tracking.md) for documentation of the tr
 |-----|------|-------------|
 | `prometheusEnabled` | Boolean | Enable the Prometheus export registry. Dynamic — takes effect on next config refresh. |
 | `prometheusConfig` | Map | Additional Prometheus configuration properties (e.g. `{"step": "PT30S"}`). |
-| `otlpEnabled` | Boolean | Enable the OTLP export registry. Dynamic. In local development, additionally gated by the `otlpEnabledInLocalDev` instance config (defaults to `'false'`); has no effect in other environments. |
+| `otlpEnabled` | Boolean | Enable the OTLP export registry. Dynamic. In local development, additionally gated — see [Local-development gating](#local-development-gating). |
 | `otlpConfig` | Map | OTLP configuration properties (e.g. `{"url": "...", "step": "PT60S"}`). |
 
 When `xhMetricsConfig` is updated, the export registries are torn down and recreated with the

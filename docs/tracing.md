@@ -239,7 +239,7 @@ ObservedRun.observe(this)
 | `sampleRate` | Double | Fallback sampling rate (0.0–1.0) applied when no sampling rule matches. Dynamic. |
 | `sampleRules` | List\<Map\> | Ordered rules for per-span sampling. Each rule has a `match` map of tag patterns (plus the reserved `name` key that matches the span's name) and a `sampleRate`. First match wins; unmatched spans use the fallback `sampleRate`. See [Sampling Rules](#sampling-rules) below. Dynamic. |
 | `jdbcTracingEnabled` | Boolean | Emit CLIENT spans for all JDBC `DataSource` operations — applies to every pool (primary + any additional Grails datasources). Defaults to `false`. Dynamic. See [JDBC](#outbound-jdbc) below. |
-| `otlpEnabled` | Boolean | Enable OTLP span export (HTTP/protobuf). Dynamic. In local development, additionally gated by the `otlpEnabledInLocalDev` instance config (defaults to `'false'`); has no effect in other environments. |
+| `otlpEnabled` | Boolean | Enable OTLP span export (HTTP/protobuf). Dynamic. In local development, additionally gated — see [Local-development gating](#local-development-gating). |
 | `otlpConfig` | Map | OTLP exporter config (e.g. `{"endpoint": "http://localhost:4318/v1/traces"}`). |
 
 When `xhTraceConfig` is updated, the exporter pipeline is torn down and recreated. This is
@@ -265,6 +265,25 @@ When `otlpEnabled: true`, spans are exported via HTTP/protobuf to an OTLP-compat
     }
 }
 ```
+
+### Local-development gating
+
+OTLP export is suppressed by default when the app is running in local development, even when
+`otlpEnabled: true` in `xhTraceConfig`. This avoids polluting a shared OTLP backend with
+developer-machine spans during routine work. The same gating applies to metrics export — see
+[`metrics.md`](./metrics.md#local-development-gating).
+
+To opt in, set the `otlpEnabledInLocalDev` instance config to `'true'`. Local-development
+detection follows `Utils.isLocalDevelopment`, which reflects the Grails runtime mode
+(`Environment.isDevelopmentMode()` — true when started via `bootRun`, false in a deployed war).
+This is independent of the configured `appEnvironment`, so a deployed instance configured as
+`Development` is not affected by this flag.
+
+When OTLP export runs in local dev, the `deployment.environment.name` resource attribute is
+suffixed with the OS username (e.g. `Development-johndoe`) so per-developer data can be
+distinguished in a shared backend. Override
+[`ClusterConfig.getOtelResourceAttributes()`](https://github.com/xh/hoist-core/blob/develop/grails-app/init/io/xh/hoist/ClusterConfig.groovy)
+if your backend prefers a different scheme.
 
 ### Custom exporters
 
