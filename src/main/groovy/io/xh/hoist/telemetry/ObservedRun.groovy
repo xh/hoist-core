@@ -123,9 +123,20 @@ class ObservedRun {
         this
     }
 
-    /** Record elapsed time, auto-registering a tag-free {@link Timer} with the given metric name. */
-    ObservedRun timer(String name) {
-        timer = Timer.builder(name).register(metricsService.registry)
+    /**
+     * Record elapsed time, auto-registering a {@link Timer} with the given metric name.
+     *
+     * Set {@code histogram} to enable server-side percentile aggregation (e.g. p50/p90/p99)
+     * via Micrometer's {@code publishPercentileHistogram}.
+     */
+    @NamedVariant
+    ObservedRun timer(
+        @NamedParam(required = true) String name,
+        @NamedParam boolean histogram = false
+    ) {
+        def builder = Timer.builder(name)
+        if (histogram) builder.publishPercentileHistogram()
+        timer = builder.register(metricsService.registry)
         this
     }
 
