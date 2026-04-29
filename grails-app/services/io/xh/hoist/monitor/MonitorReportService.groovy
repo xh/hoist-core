@@ -84,7 +84,7 @@ class MonitorReportService extends BaseService {
     }
 
     private MonitorConfig getConfig() {
-        new MonitorConfig(configService.getMap('xhMonitorConfig'))
+        configService.getObject(MonitorConfig)
     }
 
     Map getAdminStats() {[

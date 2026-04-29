@@ -208,6 +208,7 @@ Key capabilities:
 | `AppConfig` | `grails-app/domain/io/xh/hoist/config/` | GORM domain — database-backed config entries |
 | `ConfigService` | `grails-app/services/io/xh/hoist/config/` | Primary service — typed getters, event publishing |
 | `ConfigDiffService` | `grails-app/services/io/xh/hoist/config/` | Cross-environment config synchronization |
+| `ConfigSpec` | `src/main/groovy/io/xh/hoist/config/` | Typed specification for required config definitions |
 | `ConfigAdminController` | `grails-app/controllers/io/xh/hoist/admin/` | Admin console endpoint for config management |
 
 ### Key Classes
@@ -291,6 +292,82 @@ All getters accept an optional `notFoundValue` parameter. If the config doesn't 
 `notFoundValue` is provided, a `RuntimeException` is thrown. A `RuntimeException` is also thrown if
 the requested type doesn't match the config's `valueType`.
 
+##### Typed configs via `TypedConfigMap`
+
+For structured JSON configs with a stable, known key set, declare a `TypedConfigMap` subclass
+and wire it in via the `typedClass:` field on the config's `ConfigSpec` entry passed to
+`ensureRequiredConfigsCreated`. This gives you:
+
+1. **One source of truth for shape + defaults.** Property initializers on the class are the
+   fallback values; when the stored map is missing a key, the declared default applies.
+2. **Typed server-side reads** via `configService.getObject(Class)`.
+3. **Populated client payloads** — for `clientVisible: true` configs, the map sent to the
+   client via `getClientConfig()` is filled in through the typed class, so the same defaults
+   reach browser code without duplicating them in TypeScript.
+4. **Startup drift detection** — a `WARN` is logged when a typed-class property default
+   disagrees with the BootStrap `defaultValue` for the same key, flagging stale declarations
+   on either side.
+5. **Unknown keys** are logged at WARN and ignored — stale or mistyped entries in soft config
+   surface without breaking startup.
+
+Example:
+
+```groovy
+// 1. Declare the typed class. Property initializers are the defaults.
+class PricingConfig extends TypedConfigMap {
+
+    /** Upstream HTTP endpoint. */
+    String endpoint = 'https://prices.example.com'
+    /** Timeout (ms) for a single price fetch. */
+    Integer timeoutMs = 5000
+    /** Whether to fall back to last-known prices when the upstream is unavailable. */
+    boolean fallbackEnabled = true
+
+    PricingConfig(Map args) { init(args) }
+}
+
+// 2. Register it in BootStrap alongside the other config metadata.
+configService.ensureRequiredConfigsCreated([
+    new ConfigSpec(
+        name: 'pricingSourceConfig',
+        valueType: 'json',
+        defaultValue: [endpoint: 'https://prices.example.com', timeoutMs: 5000, fallbackEnabled: true],
+        typedClass: PricingConfig,
+        groupName: 'Pricing',
+        note: '...'
+    )
+])
+
+// 3. Read it, anywhere.
+PricingConfig config = configService.getObject(PricingConfig)
+```
+
+`typedClass:` is **fully optional** — entries without it retain the prior behavior (raw map
+served to clients via `getClientConfig()`, inline fallbacks at call sites). Recommended when
+a config has a stable, known set of keys you want typed and documented. Not recommended for
+free-form key/value maps (e.g. feature-flag bags keyed by arbitrary strings) or list-valued
+configs — continue using `getMap` / `getList` for those.
+
+**Nested shapes.** A property whose declared type is itself a `TypedConfigMap` subclass is
+populated recursively — existing defaults on the nested instance are preserved for any keys
+the stored value doesn't supply. Likewise, a `List<Foo>` or `Map<String, Foo>` property where
+`Foo extends TypedConfigMap` converts each supplied map to a typed `Foo` instance. See
+`ActivityTrackingConfig` (nested `ClientHealthReport` and `MaxRows`) and `LdapConfig`
+(nested `List<LdapServerOptions>`) in hoist-core for in-framework examples.
+
+**Construction — call `init(args)` in the constructor body, not `super(args)`.** Each
+subclass declares a single `MyConfig(Map args) { init(args) }` constructor. Do NOT write a
+subclass constructor that calls `super(args)`: Java/Groovy run subclass field initializers
+*after* the super constructor returns, so any values `init(args)` set via super would be
+silently overwritten by declared defaults. Calling `init(args)` in the subclass body runs
+after the initializers, which is the order we need. `getObject` and the nested-shape
+machinery both invoke the Map constructor for you — you should rarely call it directly.
+
+In-framework examples: `MonitorConfig`, `TraceConfig`, `MetricsConfig`, `ActivityTrackingConfig`,
+`AlertBannerConfig`, `ChangelogConfig`, `ClientErrorConfig`, `ConnPoolMonitoringConfig`,
+`EnvPollConfig`, `ExportConfig`, `IdleConfig`, `LdapConfig`, `LogArchiveConfig`,
+`MemoryMonitoringConfig`, `WebSocketConfig`.
+
 ##### `getStringList(configName)`
 
 Parses a config value into a list of trimmed strings. Supports a special `[configName]` syntax for
@@ -326,39 +403,49 @@ obscured as `'*********'`, and JSON values are parsed to objects.
 
 ##### `ensureRequiredConfigsCreated(reqConfigs)`
 
-Called during application bootstrap to declare configs the application depends on. Creates missing
-configs with default values; logs errors for type mismatches or `clientVisible` flag mismatches on
-existing configs (but does not auto-fix them).
+Called during application bootstrap to declare configs the application depends on. Accepts a
+`List<ConfigSpec>` where each `ConfigSpec` specifies the config's `name`, `valueType`,
+`defaultValue`, and optional fields (`clientVisible`, `groupName`, `note`). Creates missing configs
+with default values; logs errors for type mismatches or `clientVisible` flag mismatches on existing
+configs (but does not auto-fix them).
 
 Applications should declare all long-lived, expected configs here — not just those that are
 strictly required at startup. This serves as an effective inventory of the application's soft
 configs, ensures that an app starting against a fresh database has a complete set of entries
 visible and adjustable in the Admin Console, and guarantees consistency across environments.
 
+A deprecated overload accepting `Map<String, Map>` (where the outer key is the config name) is
+still supported for backward compatibility but should be migrated to `ConfigSpec`.
+
 ```groovy
+import io.xh.hoist.config.ConfigSpec
+
 class BootStrap {
     def configService
 
     def init = {
         configService.ensureRequiredConfigsCreated([
-            'apiEndpoint': [
+            new ConfigSpec(
+                name: 'apiEndpoint',
                 valueType: 'string',
                 defaultValue: 'https://api.example.com',
                 clientVisible: true,
                 groupName: 'API',
                 note: 'External API base URL'
-            ],
-            'maxConnections': [
+            ),
+            new ConfigSpec(
+                name: 'maxConnections',
                 valueType: 'int',
                 defaultValue: '100',
                 groupName: 'Performance'
-            ],
-            'apiSecret': [
+            ),
+            new ConfigSpec(
+                name: 'apiSecret',
                 valueType: 'pwd',
                 defaultValue: 'changeme',
                 groupName: 'API',
                 note: 'API authentication secret'
-            ]
+            )
         ])
     }
 }

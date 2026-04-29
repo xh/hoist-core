@@ -20,6 +20,7 @@ establishes *who* the user is, authorization determines *what* they can do.
 | `DefaultRoleAdminService` | `grails-app/services/io/xh/hoist/role/provided/` | Admin Console read operations (role listing with effective memberships) |
 | `DefaultRoleUpdateService` | `grails-app/services/io/xh/hoist/role/provided/` | Role mutations (CRUD, `ensureRequiredRolesCreated`, `assignRole`) |
 | `RoleAdminController` | `grails-app/controllers/io/xh/hoist/admin/` | Admin Console endpoints for role management |
+| `RoleSpec` | `src/main/groovy/io/xh/hoist/role/provided/` | Typed specification for required role definitions |
 | `Role` | `grails-app/domain/io/xh/hoist/role/provided/` | GORM domain — role definitions |
 | `RoleMember` | `grails-app/domain/io/xh/hoist/role/provided/` | GORM domain — role memberships |
 | `HoistInterceptor` | `grails-app/controllers/io/xh/hoist/` | Grails interceptor enforcing annotations |
@@ -158,6 +159,7 @@ The simplest approach — extend it as your app's `RoleService`:
 package com.myapp
 
 import io.xh.hoist.role.provided.DefaultRoleService
+import io.xh.hoist.role.provided.RoleSpec
 
 class RoleService extends DefaultRoleService {
 
@@ -166,9 +168,9 @@ class RoleService extends DefaultRoleService {
 
         // Create app-specific roles (no-op if they already exist)
         ensureRequiredRolesCreated([
-            [name: 'APP_USER', category: 'App', notes: 'Standard application access', roles: ['APP_ADMIN']],
-            [name: 'APP_ADMIN', category: 'App', notes: 'Full admin access'],
-            [name: 'TRADER', category: 'Trading', notes: 'Can execute trades']
+            new RoleSpec(name: 'APP_USER', category: 'App', notes: 'Standard application access', roles: ['APP_ADMIN']),
+            new RoleSpec(name: 'APP_ADMIN', category: 'App', notes: 'Full admin access'),
+            new RoleSpec(name: 'TRADER', category: 'Trading', notes: 'Can execute trades')
         ])
     }
 }
@@ -190,8 +192,8 @@ role definition means "members of these listed roles also get this role":
 
 ```groovy
 ensureRequiredRolesCreated([
-    [name: 'APP_USER',  category: 'App', roles: ['APP_ADMIN']],  // admins also get APP_USER
-    [name: 'APP_ADMIN', category: 'App'],
+    new RoleSpec(name: 'APP_USER',  category: 'App', roles: ['APP_ADMIN']),  // admins also get APP_USER
+    new RoleSpec(name: 'APP_ADMIN', category: 'App'),
 ])
 ```
 
@@ -205,7 +207,7 @@ via `LdapService`:
 
 ```groovy
 ensureRequiredRolesCreated([
-    [name: 'APP_USER', directoryGroups: ['CN=AppUsers,OU=Groups,DC=company,DC=com']]
+    new RoleSpec(name: 'APP_USER', directoryGroups: ['CN=AppUsers,OU=Groups,DC=company,DC=com'])
 ])
 ```
 
@@ -311,6 +313,12 @@ has `HOIST_ROLE_MANAGER`. This prevents an admin from impersonating a role manag
 `DefaultRoleService` is a strong default — it's production-ready, self-contained within the app and
 its database, and provides a complete Admin Console UI for managing roles. Most applications should
 extend it and create app-specific roles in `ensureRequiredConfigAndRolesCreated()`.
+
+The `ensureRequiredRolesCreated()` method accepts a `List<RoleSpec>` where each `RoleSpec` specifies
+the role's `name` and optional fields (`category`, `notes`, `users`, `directoryGroups`, `roles`).
+It creates any missing roles with the supplied defaults — existing roles are never modified. A
+deprecated overload accepting `List<Map>` is still supported for backward compatibility but should
+be migrated to `RoleSpec`.
 
 ### Custom RoleService
 

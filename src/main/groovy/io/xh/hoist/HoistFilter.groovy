@@ -21,7 +21,7 @@ import jakarta.servlet.http.HttpServletResponse
 import static io.opentelemetry.api.trace.SpanKind.SERVER
 import static io.xh.hoist.util.Utils.authenticationService
 import static io.xh.hoist.util.Utils.traceService
-import static io.xh.hoist.util.Utils.traceImplService
+import static io.xh.hoist.util.Utils.traceContextService
 import static io.xh.hoist.util.Utils.getClusterService
 
 /**
@@ -46,7 +46,7 @@ class HoistFilter implements Filter, LogSupport {
         HttpServletResponse httpResponse = (HttpServletResponse) response
 
         // Always restore trace context, but conditionally add span here.
-        try (def scope = traceImplService.restoreContextFromRequest(httpRequest)) {
+        try (def scope = traceContextService.restoreContextFromRequest(httpRequest)) {
             shouldTrace(httpRequest) ?
                 handleTraced(httpRequest, httpResponse, chain) :
                 handleUntraced(httpRequest, httpResponse, chain)

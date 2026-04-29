@@ -142,6 +142,12 @@ Use abbreviated versions where the minor/patch isn't significant (e.g. `7.0` not
   behavioral impact, tooling updates) do not need to be included.
 - **No duplication**: Don't repeat the same change across sections. Pick the most relevant section.
 - **Punctuation**: End each bullet with a period.
+- **Plain ASCII punctuation**: Use a single hyphen (` - `) for in-sentence breaks. Do not use
+  em dashes (`—`), en dashes (`–`), or double hyphens (`--`). The CHANGELOG is grep'd, parsed,
+  and viewed across many tools where Unicode dashes cause encoding friction with no rendering
+  benefit. This is stricter than the general
+  [coding-conventions](./coding-conventions.md#avoid-unicode-in-code-comments) rule, which
+  allows em dashes in narrative markdown.
 
 ## Application Changelogs
 

@@ -29,8 +29,9 @@ import io.xh.hoist.role.BaseRoleService
 import io.xh.hoist.security.BaseAuthenticationService
 import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.user.IdentityService
+import io.xh.hoist.telemetry.trace.TraceContextService
 import io.xh.hoist.telemetry.trace.TraceService
-import io.xh.hoist.telemetry.trace.TraceImplService
+import io.xh.hoist.telemetry.trace.impl.JdbcTraceService
 import io.xh.hoist.websocket.WebSocketService
 import org.grails.web.servlet.mvc.GrailsWebRequest
 
@@ -148,8 +149,8 @@ class Utils {
         return (TraceService) appContext.traceService
     }
 
-    static TraceImplService getTraceImplService() {
-        return (TraceImplService) appContext.traceImplService
+    static TraceContextService getTraceContextService() {
+        return (TraceContextService) appContext.traceContextService
     }
 
     static WebSocketService getWebSocketService() {

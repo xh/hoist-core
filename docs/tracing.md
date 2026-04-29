@@ -41,7 +41,8 @@ delegate to no-op implementations, so no null checks are needed in application c
 | File | Location | Role |
 |------|----------|------|
 | `TraceService.groovy` | `grails-app/services/io/xh/hoist/telemetry/trace/` | Central tracing service — SDK lifecycle, exporter pipeline, span API |
-| `TraceImplService.groovy` | `grails-app/services/io/xh/hoist/telemetry/trace/` | Internal service hosting W3C context propagation (inbound filter, outbound HTTP, cluster tasks), JDBC DataSource install/uninstall, and the `task {}` PromiseFactory install |
+| `JdbcTraceService.groovy` | `grails-app/services/io/xh/hoist/telemetry/trace/impl/` | Internal service that installs/uninstalls JDBC DataSource instrumentation in sync with the trace config |
+| `TraceContextService.groovy` | `grails-app/services/io/xh/hoist/telemetry/trace/` | Internal service hosting W3C context propagation (inbound filter, outbound HTTP, cluster tasks) and the `task {}` PromiseFactory install |
 | `HoistFilter.groovy` | `src/main/groovy/io/xh/hoist/` | Wraps every request — restores trace context, enforces auth, creates the SERVER span for tracing, captures any exception, and stamps HTTP semantic-convention attributes |
 | `SpanRef.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Wrapper around an active Span + Scope with tag/status/error helpers |
 | `ObservedRun.groovy` | `src/main/groovy/io/xh/hoist/telemetry/` | Composable builder for combined tracing + logging + metrics |
@@ -49,7 +50,7 @@ delegate to no-op implementations, so no null checks are needed in application c
 | `ContextPropagatingPromiseFactory.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Wraps Grails PromiseFactory to propagate OTel context to `task {}` worker threads |
 | `DelegatingOpenTelemetry.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Stable `OpenTelemetry` facade that resolves to the current SDK on every tracer/span lookup — lets library instrumentation (e.g. `opentelemetry-jdbc`) capture a reference once and follow SDK rebuilds |
 | `TagSpanProcessor.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Stamps cross-cutting attributes (e.g. `user.name`) on every span at start time, regardless of whether the span was created by `TraceService` or by a library instrumenter |
-| `HoistSampler.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Per-span thread-local sampler driven by `sampleRules` and the fallback `sampleRate` |
+| `ManualRateSampler.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Per-span thread-local sampler driven by `sampleRules` and the fallback `sampleRate` |
 | `ClientSpanData.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Adapts client-relayed span JSON into OTel `SpanData` for export through the server pipeline |
 
 ---
@@ -238,7 +239,7 @@ ObservedRun.observe(this)
 | `sampleRate` | Double | Fallback sampling rate (0.0–1.0) applied when no sampling rule matches. Dynamic. |
 | `sampleRules` | List\<Map\> | Ordered rules for per-span sampling. Each rule has a `match` map of tag patterns (plus the reserved `name` key that matches the span's name) and a `sampleRate`. First match wins; unmatched spans use the fallback `sampleRate`. See [Sampling Rules](#sampling-rules) below. Dynamic. |
 | `jdbcTracingEnabled` | Boolean | Emit CLIENT spans for all JDBC `DataSource` operations — applies to every pool (primary + any additional Grails datasources). Defaults to `false`. Dynamic. See [JDBC](#outbound-jdbc) below. |
-| `otlpEnabled` | Boolean | Enable OTLP span export (HTTP/protobuf). Dynamic. In local development, additionally gated by the `otlpEnabledInLocalDev` instance config (defaults to `'false'`); has no effect in other environments. |
+| `otlpEnabled` | Boolean | Enable OTLP span export (HTTP/protobuf). Dynamic. In local development, additionally gated — see [Local-development gating](#local-development-gating). |
 | `otlpConfig` | Map | OTLP exporter config (e.g. `{"endpoint": "http://localhost:4318/v1/traces"}`). |
 
 When `xhTraceConfig` is updated, the exporter pipeline is torn down and recreated. This is
@@ -264,6 +265,25 @@ When `otlpEnabled: true`, spans are exported via HTTP/protobuf to an OTLP-compat
     }
 }
 ```
+
+### Local-development gating
+
+OTLP export is suppressed by default when the app is running in local development, even when
+`otlpEnabled: true` in `xhTraceConfig`. This avoids polluting a shared OTLP backend with
+developer-machine spans during routine work. The same gating applies to metrics export — see
+[`metrics.md`](./metrics.md#local-development-gating).
+
+To opt in, set the `otlpEnabledInLocalDev` instance config to `'true'`. Local-development
+detection follows `Utils.isLocalDevelopment`, which reflects the Grails runtime mode
+(`Environment.isDevelopmentMode()` — true when started via `bootRun`, false in a deployed war).
+This is independent of the configured `appEnvironment`, so a deployed instance configured as
+`Development` is not affected by this flag.
+
+When OTLP export runs in local dev, the `deployment.environment.name` resource attribute is
+suffixed with the OS username (e.g. `Development-johndoe`) so per-developer data can be
+distinguished in a shared backend. Override
+[`ClusterConfig.getOtelResourceAttributes()`](https://github.com/xh/hoist-core/blob/develop/grails-app/init/io/xh/hoist/ClusterConfig.groovy)
+if your backend prefers a different scheme.
 
 ### Custom exporters
 
@@ -369,7 +389,7 @@ Proxied requests via `BaseProxyService` automatically:
 
 ### Outbound JDBC
 
-At startup, `TraceImplService.init()` walks down each `DataSource`'s proxy chain to the
+At startup, `JdbcTraceService.init()` walks down each `DataSource`'s proxy chain to the
 underlying raw pool and swaps it for an `OpenTelemetryDataSource` wrap. Wrapping at the
 *bottom* of the chain means every consumer sharing the chain — Spring DI, direct JDBC,
 Hibernate/GORM — is instrumented by a single wrap. The wrap is a no-op unless
@@ -398,7 +418,7 @@ The master `enabled` flag takes precedence regardless.
 
 **Multi-datasource apps.** Grails apps configured with multiple datasources
 (`dataSource_reporting`, `sessionFactory_reporting`, etc.) are handled automatically —
-`TraceImplService` iterates every Spring `DataSource` bean and every Hibernate
+`JdbcTraceService` iterates every Spring `DataSource` bean and every Hibernate
 `SessionFactory`, covering both direct-JDBC and GORM paths. The flag applies uniformly to
 all pools; there's no per-pool gating.
 

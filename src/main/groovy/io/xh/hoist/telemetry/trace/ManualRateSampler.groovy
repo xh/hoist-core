@@ -21,7 +21,7 @@ import io.opentelemetry.sdk.trace.samplers.SamplingResult
  * clear it afterwards. Inherits a sampled parent's decision.
  */
 @CompileStatic
-class HoistSampler implements Sampler {
+class ManualRateSampler implements Sampler {
 
     private final ThreadLocal<Double> _sampleRate = new ThreadLocal<>()
 
@@ -57,5 +57,5 @@ class HoistSampler implements Sampler {
     }
 
     @Override
-    String getDescription() { return 'HoistSampler' }
+    String getDescription() { return 'ManualRateSampler' }
 }

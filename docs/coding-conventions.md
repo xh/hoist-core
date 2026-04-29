@@ -403,37 +403,76 @@ case.
 
 ### Bootstrap Required Resources
 
-Services that depend on specific configs, prefs, or roles should declare them in the corresponding
-`ensureRequired*Created()` hook. The framework runs these during bootstrap so a fresh database comes
-up with the rows needed:
+Apps declare the configs, prefs, and roles they depend on so a fresh database comes up with the
+rows needed. Use the typed spec classes (`ConfigSpec`, `PreferenceSpec`, `RoleSpec`) — they give
+you IDE autocomplete, compile-time validation of field names, and a stable contract that mirrors
+the seedable fields of the underlying domain class.
+
+Configs and prefs are typically declared from `BootStrap.groovy` by calling the corresponding
+service:
 
 ```groovy
-class PortfolioService extends BaseService {
+import io.xh.hoist.config.ConfigSpec
+import io.xh.hoist.pref.PreferenceSpec
 
-    Map<String, Map> getRequiredConfigs() {
-        [
-            myAppPortfolioRefreshInterval: [
-                valueType   : 'int',
+class BootStrap {
+
+    def configService
+    def prefService
+
+    def init = { servletContext ->
+        configService.ensureRequiredConfigsCreated([
+            new ConfigSpec(
+                name: 'myAppPortfolioRefreshInterval',
+                valueType: 'int',
                 defaultValue: 60,
-                groupName   : 'PortfolioService',
-                note        : 'Refresh interval in seconds'
-            ]
-        ]
-    }
+                groupName: 'PortfolioService',
+                note: 'Refresh interval in seconds'
+            ),
+            new ConfigSpec(
+                name: 'myAppPricingSource',
+                valueType: 'json',
+                defaultValue: [endpoint: 'https://prices.example.com'],
+                typedClass: PricingConfig,
+                groupName: 'PortfolioService'
+            )
+        ])
 
-    Map<String, Map> getRequiredPrefs() {
-        [
-            myAppPortfolioDefaultView: [
-                type        : 'string',
+        prefService.ensureRequiredPrefsCreated([
+            new PreferenceSpec(
+                name: 'myAppPortfolioDefaultView',
+                type: 'string',
                 defaultValue: 'summary',
-                groupName   : 'PortfolioService'
-            ]
-        ]
+                groupName: 'PortfolioService'
+            )
+        ])
     }
 }
 ```
 
-See [Configuration](configuration.md) and [Preferences](preferences.md) for full schemas.
+Roles are declared by overriding `ensureRequiredConfigAndRolesCreated()` in the app's
+`RoleService` (extending `DefaultRoleService`):
+
+```groovy
+import io.xh.hoist.role.provided.DefaultRoleService
+import io.xh.hoist.role.provided.RoleSpec
+
+class RoleService extends DefaultRoleService {
+
+    protected void ensureRequiredConfigAndRolesCreated() {
+        super.ensureRequiredConfigAndRolesCreated()
+
+        ensureRequiredRolesCreated([
+            new RoleSpec(name: 'APP_USER',  category: 'App', notes: 'Standard access', roles: ['APP_ADMIN']),
+            new RoleSpec(name: 'APP_ADMIN', category: 'App', notes: 'Full admin access'),
+            new RoleSpec(name: 'TRADER',    category: 'Trading', notes: 'Can execute trades')
+        ])
+    }
+}
+```
+
+See [Configuration](configuration.md), [Preferences](preferences.md), and
+[Authorization](authorization.md) for the full schemas.
 
 ### Use `configService` Typed Getters
 
@@ -451,6 +490,24 @@ Map opts = configService.getMap('myAppOptions')
 // Don't: bypasses type coercion, decryption, and error handling
 def region = AppConfig.findByName('myAppRegion').value
 ```
+
+For JSON configs with a stable, known set of keys, prefer `configService.getObject(Class)` over
+`getMap` — it returns a typed `TypedConfigMap` subclass with declared property defaults applied
+for any missing keys, and centralizes shape and documentation on the class itself rather than
+scattering `?:` fallbacks across call sites:
+
+```groovy
+// Do: typed read, defaults baked into the class
+PricingConfig config = configService.getObject(PricingConfig)
+
+// Don't: untyped Map plus per-call defaults
+def m = configService.getMap('pricingSourceConfig')
+def endpoint = m.endpoint ?: 'https://prices.example.com'
+```
+
+The class must extend `TypedConfigMap` and be registered with `typedClass:` on its
+`ensureRequiredConfigsCreated` entry. See [Configuration](configuration.md#typed-configs-via-typedconfigmap)
+for the full guide.
 
 ## Controllers and Security
 
@@ -901,7 +958,9 @@ Use these where they help; don't require them everywhere.
 
 Use plain ASCII in code comments and Groovydoc — em dashes (`—`), curly quotes, and other non-ASCII
 characters can break tooling (grep, diff, MCP indexing) and offer no benefit in a monospace context.
-Em dashes are fine in markdown documentation where they render naturally.
+Em dashes are fine in narrative markdown documentation where they render naturally.
+**Exception:** the `CHANGELOG.md` file follows a stricter plain-ASCII rule - see
+[changelog-format.md](./changelog-format.md#general-guidelines).
 
 ## Commit Messages, PRs, and Comments
 

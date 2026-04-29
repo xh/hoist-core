@@ -94,11 +94,13 @@ class TrackMetricsService extends BaseService {
             totalTime = Timer.builder('hoist.client.load.totalTime')
                 .description('Total app load elapsed time')
                 .tags(tags)
+                .publishPercentileHistogram()
                 .register(registry)
 
             authTime = Timer.builder('hoist.client.load.authTime')
                 .description('App load authentication phase duration')
                 .tags(tags)
+                .publishPercentileHistogram()
                 .register(registry)
         }
     }
