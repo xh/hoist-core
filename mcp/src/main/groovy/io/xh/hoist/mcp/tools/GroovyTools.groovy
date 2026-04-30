@@ -6,17 +6,18 @@ import io.modelcontextprotocol.spec.McpSchema.JsonSchema
 import io.modelcontextprotocol.spec.McpSchema.TextContent
 import io.modelcontextprotocol.spec.McpSchema.Tool
 import io.xh.hoist.mcp.data.GroovyRegistry
-import io.xh.hoist.mcp.data.GroovyRegistry.MemberInfo
+import io.xh.hoist.mcp.formatters.GroovyFormatter
 
 /**
  * Creates Groovy symbol exploration tool specifications:
  *  - hoist-core-search-symbols
  *  - hoist-core-get-symbol
  *  - hoist-core-get-members
+ *
+ * Each tool is a thin adapter: parse args, delegate to {@link GroovyFormatter},
+ * append the appropriate MCP-side hint, and wrap as a {@link CallToolResult}.
  */
 class GroovyTools {
-
-    private static final int MAX_TYPE_LENGTH = 200
 
     static List<SyncToolSpecification> create(GroovyRegistry registry) {
         return [
@@ -65,44 +66,14 @@ class GroovyTools {
             int symbolLimit = (args?.limit as Integer) ?: 20
 
             def symbolResults = registry.searchSymbols(query, kind, symbolLimit)
-
-            // Search members with separate cap; if no symbols match, give members more room
             int memberLimit = symbolResults.empty ? symbolLimit : 15
             def memberResults = registry.searchMembers(query, memberLimit)
 
-            def lines = []
-
-            if (symbolResults) {
-                lines << "Symbols (${symbolResults.size()} matches):\n"
-                symbolResults.eachWithIndex { result, i ->
-                    def abstractTag = result.isAbstract ? ' (abstract)' : ''
-                    lines << "${i + 1}. [${result.kind}] ${result.name}${abstractTag} (category: ${result.sourceCategory}, file: ${result.filePath})"
-                }
+            def text = GroovyFormatter.formatSearchSymbols(query, symbolResults, memberResults)
+            if (symbolResults || memberResults) {
+                text += '\n\nTip: Use hoist-core-get-members to see all members of a specific class.'
             }
-
-            if (memberResults) {
-                if (lines) lines << ''
-                lines << "Members of key classes (${memberResults.size()} matches):\n"
-                memberResults.eachWithIndex { m, i ->
-                    def staticPrefix = m.isStatic ? 'static ' : ''
-                    def typeStr = truncateType(m.type)
-                    lines << "${i + 1}. [${m.memberKind}] ${staticPrefix}${m.name}: ${typeStr} (on ${m.ownerName})"
-                    if (m.groovydoc) lines << "    ${m.groovydoc}"
-                }
-            }
-
-            if (lines) {
-                lines << ''
-                lines << 'Tip: Use hoist-core-get-members to see all members of a specific class.'
-            }
-
-            def text = lines ? lines.join('\n') : "No symbols or members found matching '${query}'. Try a broader search term."
-
-            return CallToolResult
-                .builder()
-                .content([new TextContent(text)])
-                .isError(false)
-                .build()
+            return textResult(text)
         })
     }
 
@@ -137,45 +108,14 @@ class GroovyTools {
             String filePath = args?.filePath
 
             def detail = registry.getSymbolDetail(name, filePath)
-
-            String text
             if (!detail) {
-                text = "Symbol '${name}' not found. Use hoist-core-search-symbols to find available symbols."
-            } else {
-                def lines = [
-                    "# ${detail.name} (${detail.kind})",
-                    "Package: ${detail.packageName}",
-                    "File: ${detail.filePath}",
-                    "Category: ${detail.sourceCategory}"
-                ]
-
-                if (detail.extendsClass) lines << "Extends: ${detail.extendsClass}"
-                if (detail.implementsList) lines << "Implements: ${detail.implementsList.join(', ')}"
-                if (detail.annotations) lines << "Annotations: ${detail.annotations.collect { '@' + it }.join(', ')}"
-
-                lines << ''
-                lines << '## Signature'
-                lines << detail.signature
-
-                if (detail.groovydoc) {
-                    lines << ''
-                    lines << '## Documentation'
-                    lines << detail.groovydoc
-                }
-
-                if (detail.kind in ['class', 'interface', 'trait']) {
-                    lines << ''
-                    lines << 'Use hoist-core-get-members to see all properties and methods.'
-                }
-
-                text = lines.join('\n')
+                return textResult(GroovyFormatter.formatSymbolNotFound(name) + ' Use hoist-core-search-symbols to find available symbols.')
             }
-
-            return CallToolResult
-                .builder()
-                .content([new TextContent(text)])
-                .isError(false)
-                .build()
+            def text = GroovyFormatter.formatSymbolDetail(detail)
+            if (detail.kind in ['class', 'interface', 'trait']) {
+                text += '\n\nUse hoist-core-get-members to see all properties and methods.'
+            }
+            return textResult(text)
         })
     }
 
@@ -210,81 +150,21 @@ class GroovyTools {
             String filePath = args?.filePath
 
             def members = registry.getMembers(name, filePath)
-
-            String text
             if (members == null) {
-                text = "Symbol '${name}' not found or is not a class/interface. Use hoist-core-search-symbols to find the correct symbol name."
-            } else {
-                def instanceProps = members.findAll { !it.isStatic && it.kind in ['property', 'field'] }
-                def instanceMethods = members.findAll { !it.isStatic && it.kind == 'method' }
-                def staticProps = members.findAll { it.isStatic && it.kind in ['property', 'field'] }
-                def staticMethods = members.findAll { it.isStatic && it.kind == 'method' }
-
-                def lines = ["# ${name} Members\n"]
-
-                if (instanceProps) {
-                    lines << "## Properties (${instanceProps.size()})"
-                    instanceProps.each { lines << formatMember(it) }
-                    lines << ''
-                }
-
-                if (instanceMethods) {
-                    lines << "## Methods (${instanceMethods.size()})"
-                    instanceMethods.each { lines << formatMember(it) }
-                    lines << ''
-                }
-
-                if (staticProps) {
-                    lines << "## Static Properties (${staticProps.size()})"
-                    staticProps.each { lines << formatMember(it) }
-                    lines << ''
-                }
-
-                if (staticMethods) {
-                    lines << "## Static Methods (${staticMethods.size()})"
-                    staticMethods.each { lines << formatMember(it) }
-                    lines << ''
-                }
-
-                if (members.empty) {
-                    lines << 'No members found.'
-                }
-
-                text = lines.join('\n')
+                return textResult(GroovyFormatter.formatMembersNotFound(name) + ' Use hoist-core-search-symbols to find the correct symbol name.')
             }
-
-            return CallToolResult
-                .builder()
-                .content([new TextContent(text)])
-                .isError(false)
-                .build()
+            return textResult(GroovyFormatter.formatMembers(name, members))
         })
     }
 
     //------------------------------------------------------------------
-    // Formatting helpers
+    // helpers
     //------------------------------------------------------------------
-    private static String formatMember(MemberInfo member) {
-        def lines = []
-        def annotationPrefix = member.annotations ? member.annotations.collect { "@${it}" }.join(' ') + ' ' : ''
-
-        if (member.kind == 'method') {
-            def params = member.parameters?.collect { "${it.name}: ${truncateType(it.type)}" }?.join(', ') ?: ''
-            def ret = truncateType(member.type ?: 'void')
-            lines << "- ${annotationPrefix}${member.name}(${params}): ${ret}"
-        } else {
-            lines << "- ${annotationPrefix}${member.name}: ${truncateType(member.type)}"
-        }
-
-        if (member.groovydoc) {
-            lines << "    ${member.groovydoc.split('\n')[0]}"
-        }
-
-        return lines.join('\n')
-    }
-
-    private static String truncateType(String typeStr) {
-        if (!typeStr) return 'Object'
-        return typeStr.length() > MAX_TYPE_LENGTH ? typeStr.take(MAX_TYPE_LENGTH) + '...' : typeStr
+    private static CallToolResult textResult(String text) {
+        return CallToolResult
+            .builder()
+            .content([new TextContent(text)])
+            .isError(false)
+            .build()
     }
 }

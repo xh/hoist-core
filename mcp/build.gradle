@@ -23,6 +23,7 @@ dependencies {
     implementation 'org.apache.groovy:groovy-json:4.0.30'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.+'
     implementation 'org.apache.commons:commons-compress:1.27.1'
+    implementation 'info.picocli:picocli:4.7.6'
 }
 
 application {
@@ -32,6 +33,21 @@ application {
 shadowJar {
     archiveClassifier = 'all'
     mergeServiceFiles()
+
+    // Bundle hoist-core docs and source content into the JAR so the embedded
+    // CLI and MCP server can run fully offline against version-locked content.
+    // SOURCE_DIRS here must match data/GroovyRegistry.groovy SOURCE_DIRS.
+    from(rootProject.projectDir) {
+        include 'docs/doc-registry.json'
+        include 'docs/**/*.md'
+        include 'grails-app/controllers/**/*.groovy'
+        include 'grails-app/domain/**/*.groovy'
+        include 'grails-app/services/**/*.groovy'
+        include 'grails-app/init/**/*.groovy'
+        include 'src/main/groovy/**/*.groovy'
+        into 'hoist-core-content'
+    }
+
     manifest {
         attributes 'Implementation-Version': project.version
     }

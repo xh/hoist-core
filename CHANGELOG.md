@@ -54,7 +54,8 @@ system for app-defined JSON configs.
   subclass with declared property defaults applied. Wire it up via the new optional
   `typedClass:` field on `ConfigSpec` to make the class the single source of truth for the
   config's shape on both server and client. All built-in hoist-core JSON configs are now typed
-  via this scheme. See [`docs/configuration.md`](docs/configuration.md#typed-configs-via-typedconfigmap).
+  via this scheme. See [
+  `docs/configuration.md`](docs/configuration.md#typed-configs-via-typedconfigmap).
 
 ### 🐞 Bug Fixes
 
@@ -67,9 +68,14 @@ system for app-defined JSON configs.
 
 ### 🤖 AI Docs + Tooling
 
-* **New [`coding-conventions.md`](docs/coding-conventions.md) doc** - consolidates conventions
-  previously scattered across `CLAUDE.md` and individual feature docs. Paired sibling to the
-  hoist-react `coding-conventions.md`.
+* Added paired CLI tools `hoist-core-docs` and `hoist-core-symbols` exposing the MCP server's
+  documentation and Groovy/Java symbol surface for environments that block MCP traffic. Bundled
+  hoist-core docs and source files directly into the published fat JAR so the tools work fully
+  offline once resolved through Maven Central or an internal Artifactory mirror. Added a new
+  `hoist-core-read-doc` MCP tool. See [mcp/README.md](mcp/README.md) for the app-side Gradle install
+  snippet.
+* Added [`coding-conventions.md`](docs/coding-conventions.md), the authoritative reference for
+  server-side hoist-core coding conventions.
 
 ### 📚 Libraries
 
@@ -318,8 +324,8 @@ detailed, step-by-step upgrade instructions with before/after code examples.
 ### ⚙️ Technical
 
 * Synchronized logging behavior in `MemoryMonitoringService` and `ConnectionPoolMonitoringService`
-  - info-level output now logged once per hour with debug-level between intervals. Added optional
-  `writeToLog` configuration parameter (defaults to `true`).
+    - info-level output now logged once per hour with debug-level between intervals. Added optional
+      `writeToLog` configuration parameter (defaults to `true`).
 
 ### 📚 Libraries
 

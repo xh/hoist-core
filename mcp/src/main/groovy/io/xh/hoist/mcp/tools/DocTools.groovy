@@ -6,12 +6,17 @@ import io.modelcontextprotocol.spec.McpSchema.JsonSchema
 import io.modelcontextprotocol.spec.McpSchema.TextContent
 import io.modelcontextprotocol.spec.McpSchema.Tool
 import io.xh.hoist.mcp.data.DocRegistry
+import io.xh.hoist.mcp.formatters.DocFormatter
 
 /**
  * Creates documentation tool specifications for the MCP server:
  *  - hoist-core-search-docs
  *  - hoist-core-list-docs
+ *  - hoist-core-read-doc
  *  - hoist-core-ping
+ *
+ * Each tool is a thin adapter: parse args, delegate to {@link DocFormatter},
+ * append the appropriate MCP-side hint, and wrap as a {@link CallToolResult}.
  */
 class DocTools {
 
@@ -19,6 +24,7 @@ class DocTools {
         return [
             createSearchDocs(registry),
             createListDocs(registry),
+            createReadDoc(registry),
             createPing()
         ]
     }
@@ -64,29 +70,11 @@ class DocTools {
             int limit = (args?.limit as Integer) ?: 10
 
             def results = registry.searchDocs(query, category, limit)
-
-            String text
-            if (results.empty) {
-                text = "No documents matched your search for \"${query}\"."
-            } else {
-                def lines = ["Found ${results.size()} result${results.size() > 1 ? 's' : ''} for \"${query}\":\n"]
-                results.eachWithIndex { result, i ->
-                    lines << "${i + 1}. [${result.entry.title}] (id: ${result.entry.id}, category: ${result.entry.mcpCategory})"
-                    lines << "   ${result.entry.description}"
-                    lines << "   Matches: ${result.matchCount} | Snippets:"
-                    for (snippet in result.snippets) {
-                        lines << "   - L${snippet.lineNumber}: ${snippet.text}"
-                    }
-                    lines << ''
-                }
-                text = lines.join('\n')
+            def text = DocFormatter.formatSearchDocs(query, results)
+            if (results) {
+                text += '\n\nTip: Use hoist-core-read-doc with an id to read the full document.'
             }
-
-            return CallToolResult
-                .builder()
-                .content([new TextContent(text)])
-                .isError(false)
-                .build()
+            return textResult(text)
         })
     }
 
@@ -119,26 +107,46 @@ class DocTools {
             String category = args?.category
 
             def filtered = registry.listDocs(category)
-            def lines = ["Hoist Core Documentation (${filtered.size()} documents):\n"]
+            def text = DocFormatter.formatListDocs(filtered, registry.mcpCategories)
+            text += '\n\nUse hoist-core-search-docs with keywords to find specific content within documents.'
+            return textResult(text)
+        })
+    }
 
-            for (catMeta in registry.mcpCategories) {
-                def catEntries = filtered.findAll { it.mcpCategory == catMeta.id }
-                if (!catEntries) continue
+    //------------------------------------------------------------------
+    // hoist-core-read-doc
+    //------------------------------------------------------------------
+    private static SyncToolSpecification createReadDoc(DocRegistry registry) {
+        def tool = Tool.builder()
+            .name('hoist-core-read-doc')
+            .title('Read a hoist-core doc')
+            .description('Read the full content of a hoist-core documentation file by id. Use hoist-core-search-docs or hoist-core-list-docs first to discover ids.')
+            .inputSchema(new JsonSchema(
+                'object',
+                [
+                    id: [
+                        type: 'string',
+                        description: 'Document id (e.g. "docs/base-classes.md", "docs/coding-conventions.md")'
+                    ]
+                ],
+                ['id'],
+                null, null, null
+            ))
+            .build()
 
-                lines << "## ${catMeta.title} (${catEntries.size()} doc${catEntries.size() > 1 ? 's' : ''})"
-                for (entry in catEntries) {
-                    lines << "- ${entry.id}: ${entry.description}"
-                }
-                lines << ''
+        return new SyncToolSpecification(tool, { exchange, request ->
+            def args = request?.arguments() ?: [:]
+            String id = args?.id ?: ''
+
+            def entry = registry.entries.find { it.id == id }
+            if (!entry) {
+                return textResult(DocFormatter.formatDocNotFound(id, registry.entries))
             }
-
-            lines << 'Use hoist-core-search-docs with keywords to find specific content within documents.'
-
-            return CallToolResult
-                .builder()
-                .content([new TextContent(lines.join('\n'))])
-                .isError(false)
-                .build()
+            def content = registry.loadContent(id)
+            if (content == null) {
+                return textResult("Document file not readable: \"${id}\".")
+            }
+            return textResult(DocFormatter.formatReadDoc(entry, content))
         })
     }
 
@@ -154,11 +162,18 @@ class DocTools {
             .build()
 
         return new SyncToolSpecification(tool, { exchange, request ->
-            return CallToolResult
-                .builder()
-                .content([new TextContent('hoist-core MCP server is running.')])
-                .isError(false)
-                .build()
+            return textResult('hoist-core MCP server is running.')
         })
+    }
+
+    //------------------------------------------------------------------
+    // helpers
+    //------------------------------------------------------------------
+    private static CallToolResult textResult(String text) {
+        return CallToolResult
+            .builder()
+            .content([new TextContent(text)])
+            .isError(false)
+            .build()
     }
 }
