@@ -1,5 +1,7 @@
 # Changelog
 
+## 40.0-SNAPSHOT - unreleased
+
 ## 39.0.0 - 2026-04-30
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - mostly mechanical)
