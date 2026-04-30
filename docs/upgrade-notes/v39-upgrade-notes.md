@@ -1,6 +1,6 @@
 # Hoist Core v39 Upgrade Notes
 
-> **From:** v38.x → v39.0.0 | **Released:** _TBD_ | **Difficulty:** 🟢 LOW
+> **From:** v38.x → v39.0.0 | **Released:** 2026-04-30 | **Difficulty:** 🟢 LOW
 
 ## Overview
 

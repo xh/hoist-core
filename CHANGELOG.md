@@ -1,6 +1,6 @@
 # Changelog
 
-## 39.0-SNAPSHOT - unreleased
+## 39.0.0 - 2026-04-30
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - mostly mechanical)
 
@@ -79,8 +79,9 @@ system for app-defined JSON configs.
 
 ### 📚 Libraries
 
-* Grails `7.0.5 → 7.0.8`
+* Grails `7.0.5 → 7.0.9`
 * Groovy `4.0.29 → 4.0.30`
+* `opentelemetry-jdbc` `added @ 2.26.1-alpha`
 
 ## 38.0.0 - 2026-04-15
 
