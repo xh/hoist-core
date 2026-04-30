@@ -256,6 +256,7 @@ tasks.register('installHoistCoreTools', Sync) {
         def jar = fileTree("$buildDir/hoist-core-tools/lib").singleFile
         def binDir = file('bin')
         binDir.mkdirs()
+        def launcherNames = []
         ['mcp', 'docs', 'symbols'].each { topic ->
             // mcp mode: pass --source bundled so the server reads JAR-embedded content. Without
             //           this, HoistCoreMcpServer defaults to local mode and fails when the app
@@ -268,7 +269,13 @@ tasks.register('installHoistCoreTools', Sync) {
             }
             new File(binDir, "hoist-core-${topic}.bat").text =
                 "@echo off\r\njava -jar \"${jar.absolutePath}\" ${args} %*\r\n"
+            launcherNames << "hoist-core-${topic}"
+            launcherNames << "hoist-core-${topic}.bat"
         }
+        // Generated launchers embed an absolute path to the resolved JAR, so they are
+        // machine-specific and must not be committed. Write a scoped bin/.gitignore that
+        // excludes only the generated launchers, leaving the rest of bin/ untouched.
+        new File(binDir, '.gitignore').text = launcherNames.sort().join('\n') + '\n'
     }
 }
 ```
@@ -284,6 +291,7 @@ This produces project-local launchers under `<project>/bin/`:
 ```
 <project>/
 ├── bin/
+│   ├── .gitignore            # scoped ignore for the generated launchers (commit this)
 │   ├── hoist-core-mcp        # invoked by .mcp.json (replaces start-hoist-core-mcp.sh)
 │   ├── hoist-core-docs       # CLI: docs search/list/read/conventions/index/ping
 │   ├── hoist-core-symbols    # CLI: symbols search/symbol/members
@@ -304,10 +312,19 @@ Then update `.mcp.json` to point at the local launcher:
 }
 ```
 
-The launchers can be `.gitignore`d (regenerated on demand) or committed -- the snippet writes
-them deterministically either way. The JAR itself comes through Gradle / the project's resolved
-Maven repositories, so enterprise Artifactory mirrors with their scanning rules see it on the
-same channel as `io.xh:hoist-core` itself.
+**Do not commit the generated launchers.** Each script embeds an absolute path to the
+resolved JAR (e.g. `/Users/alice/dev/myapp/build/hoist-core-tools/lib/hoist-core-mcp-<version>-all.jar`),
+so it is specific to the machine and project layout that generated it -- a committed launcher
+will silently break for every other developer. The install task takes care of this for you:
+it writes `bin/.gitignore` with entries for `hoist-core-{mcp,docs,symbols}` and their `.bat`
+counterparts, leaving the rest of `bin/` (if the project uses it for other things) untouched.
+**Commit `bin/.gitignore` once**, and subsequent regenerations stay out of source control
+automatically. Re-run `./gradlew installHoistCoreTools` after a hoist-core version bump or after
+a fresh checkout to materialize the launchers locally.
+
+The JAR itself comes through Gradle / the project's resolved Maven repositories, so enterprise
+Artifactory mirrors with their scanning rules see it on the same channel as `io.xh:hoist-core`
+itself.
 
 **Future plugin path.** This snippet is intentionally plugin-shaped: a future
 `io.xh.hoist-core-cli` Gradle plugin will register the configuration and task on `apply plugin`,
