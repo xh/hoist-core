@@ -257,13 +257,17 @@ tasks.register('installHoistCoreTools', Sync) {
         def binDir = file('bin')
         binDir.mkdirs()
         ['mcp', 'docs', 'symbols'].each { topic ->
-            def cliPrefix = topic == 'mcp' ? '' : "cli ${topic}"
+            // mcp mode: pass --source bundled so the server reads JAR-embedded content. Without
+            //           this, HoistCoreMcpServer defaults to local mode and fails when the app
+            //           has no hoist-core checkout sibling.
+            // docs/symbols: dispatched via `cli`, which routes to picocli (defaults to bundled).
+            def args = topic == 'mcp' ? '--source bundled' : "cli ${topic}"
             new File(binDir, "hoist-core-${topic}").with {
-                text = "#!/usr/bin/env bash\nexec java -jar \"${jar.absolutePath}\" ${cliPrefix} \"\$@\"\n"
+                text = "#!/usr/bin/env bash\nexec java -jar \"${jar.absolutePath}\" ${args} \"\$@\"\n"
                 setExecutable(true)
             }
             new File(binDir, "hoist-core-${topic}.bat").text =
-                "@echo off\r\njava -jar \"${jar.absolutePath}\" ${cliPrefix} %*\r\n"
+                "@echo off\r\njava -jar \"${jar.absolutePath}\" ${args} %*\r\n"
         }
     }
 }

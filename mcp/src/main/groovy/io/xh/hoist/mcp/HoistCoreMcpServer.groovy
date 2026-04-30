@@ -6,6 +6,7 @@ import io.modelcontextprotocol.json.McpJsonDefaults
 import io.modelcontextprotocol.server.transport.StdioServerTransportProvider
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities
 import io.xh.hoist.mcp.cli.HoistCoreCli
+import io.xh.hoist.mcp.BundledContentSource
 import io.xh.hoist.mcp.data.DocRegistry
 import io.xh.hoist.mcp.data.GroovyRegistry
 import io.xh.hoist.mcp.resources.DocResources
@@ -20,6 +21,14 @@ import io.xh.hoist.mcp.util.McpLog
  * MCP server. Invoking with `cli` as the first argument dispatches the
  * remaining args to {@link HoistCoreCli} for shell-style usage. This dual mode
  * lets a single fat JAR back both the MCP server and the CLI tools.
+ *
+ * Source selection mirrors {@link io.xh.hoist.mcp.cli.CliContext}:
+ *   --source bundled        → JAR-embedded content (use for app-side installs;
+ *                             see App-Side Distribution in mcp/README.md)
+ *   --source local --root P → local checkout (default — used by framework devs
+ *                             running the JAR from inside hoist-core)
+ *   --source github:REF     → downloaded GitHub tarball (existing version-mode
+ *                             bootstrap of the MCP server)
  */
 class HoistCoreMcpServer {
 
@@ -56,7 +65,9 @@ class HoistCoreMcpServer {
 
     private static ContentSource createContentSource(Map config) {
         String source = config.source
-        if (source == 'local') {
+        if (source == 'bundled') {
+            return new BundledContentSource()
+        } else if (source == 'local') {
             String root = config.root ?: resolveRepoRoot()
             return new LocalContentSource(root)
         } else if (source.startsWith('github:')) {
