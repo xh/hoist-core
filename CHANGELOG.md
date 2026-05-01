@@ -1,6 +1,12 @@
 # Changelog
 
-## 40.0-SNAPSHOT - unreleased
+## 39.0.1 - 2026-04-30
+
+### 🐞 Bug Fixes
+
+* Fixed `LdapService` cache key collision when multiple `xhLdapConfig.servers` entries share
+  a `host` but search different `baseUserDn` / `baseGroupDn` subtrees - entries under the
+  second (or later) server's base DN could be missed.
 
 ## 39.0.0 - 2026-04-30
 

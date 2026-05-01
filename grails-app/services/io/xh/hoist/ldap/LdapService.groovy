@@ -168,6 +168,13 @@ class LdapService extends BaseService {
         }
     }
 
+    Map getAdminStats() {[
+        config: configForAdminStats('xhLdapConfig', 'xhLdapUsername'),
+        enabled: enabled
+    ]}
+
+    List<String> getComparableAdminStats() { ['enabled'] }
+
     //----------------------
     // Implementation
     //----------------------
@@ -205,16 +212,23 @@ class LdapService extends BaseService {
         if (queryUsername == 'none') throw new RuntimeException('LdapService enabled but query user not configured - check xhLdapUsername app config, or disable via xhLdapConfig.')
 
         boolean isPerson = LdapPerson.class.isAssignableFrom(objType)
+        // Cache key MUST include `baseDn` alongside `host` and `filter`. Apps commonly
+        // configure multiple `servers` entries that share a `host` but search different
+        // `baseUserDn` / `baseGroupDn` subtrees; if `baseDn` is dropped from the key, the
+        // first server's (possibly empty) result short-circuits every subsequent server
+        // for the same filter and entries under the other base DNs become invisible.
+        // See PR #336 for the original fix; PR #545 silently regressed this when the
+        // server param was retyped and the key was simplified to `host + filter`.
         String host = server.host,
+            baseDn = isPerson ? server.baseUserDn : server.baseGroupDn,
             filter = "(&(objectCategory=${isPerson ? 'Person' : 'Group'})$baseFilter)",
-            key = host + filter
+            key = "$host|$baseDn|$filter"
 
         List<T> ret = cache.get(key)
         if (ret != null) return ret
 
         withTrace(["Querying LDAP", [host: host, filter: filter]]) {
             try (def conn = createConnection(host)) {
-                String baseDn = isPerson ? server.baseUserDn : server.baseGroupDn
                 String[] keys = objType.keys.toArray() as String[]
                 boolean didBind = false
                 try {
