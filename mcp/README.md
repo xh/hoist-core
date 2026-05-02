@@ -263,8 +263,30 @@ tasks.register('installHoistCoreTools', Sync) {
             //           has no hoist-core checkout sibling.
             // docs/symbols: dispatched via `cli`, which routes to picocli (defaults to bundled).
             def args = topic == 'mcp' ? '--source bundled' : "cli ${topic}"
+            // The bash launcher resolves `java` from PATH, falling back to JAVA_HOME, so it
+            // works under MCP clients launched from non-interactive shells where a JDK version
+            // manager (mise, asdf, jenv) may not have activated.
             new File(binDir, "hoist-core-${topic}").with {
-                text = "#!/usr/bin/env bash\nexec java -jar \"${jar.absolutePath}\" ${args} \"\$@\"\n"
+                text = """\
+#!/usr/bin/env bash
+if command -v java >/dev/null 2>&1; then
+    JAVA=java
+elif [ -n "\$JAVA_HOME" ] && [ -x "\$JAVA_HOME/bin/java" ]; then
+    JAVA="\$JAVA_HOME/bin/java"
+else
+    cat >&2 <<'EOF'
+[hoist-core] ERROR: 'java' not on PATH and JAVA_HOME is unset or invalid.
+
+If you use a JDK version manager (mise, asdf, jenv), it likely activates only in
+interactive shells - but this script runs in the non-interactive shell launched by
+your MCP client. Either export JAVA_HOME from a non-interactive init file (e.g.
+~/.bash_profile, ~/.zshenv) so it is visible here, or activate the version manager
+from one of those files. Pointing JAVA_HOME at any JDK 17+ install is sufficient.
+EOF
+    exit 1
+fi
+exec "\$JAVA" -jar "${jar.absolutePath}" ${args} "\$@"
+"""
                 setExecutable(true)
             }
             new File(binDir, "hoist-core-${topic}.bat").text =

@@ -72,11 +72,7 @@ class DocsCli implements Runnable {
                 println JsonOutput.prettyPrint(JsonOutput.toJson(DocFormatter.searchDocsAsMap(query, results)))
                 return 0
             }
-            def text = DocFormatter.formatSearchDocs(query, results)
-            if (results) {
-                text += '\n\nTip: Read any document with `hoist-core-docs read <id>`.'
-            }
-            println text
+            println DocFormatter.formatSearchDocs(query, results)
             return 0
         }
     }
@@ -100,9 +96,7 @@ class DocsCli implements Runnable {
                 ))
                 return 0
             }
-            def text = DocFormatter.formatListDocs(filtered, ctx.docRegistry.mcpCategories)
-            text += '\n\nTip: Read any document with `hoist-core-docs read <id>`.'
-            println text
+            println DocFormatter.formatListDocs(filtered, ctx.docRegistry.mcpCategories)
             return 0
         }
     }
@@ -110,7 +104,7 @@ class DocsCli implements Runnable {
     //------------------------------------------------------------------
     // read
     //------------------------------------------------------------------
-    @Command(name = 'read', description = 'Read a specific document by id.', mixinStandardHelpOptions = true)
+    @Command(name = 'read', aliases = ['get'], description = 'Read a specific document by id.', mixinStandardHelpOptions = true)
     static class Read implements Callable<Integer> {
         @ParentCommand DocsCli parent
         @Parameters(paramLabel = '<docId>', description = 'Document id (e.g. "docs/coding-conventions.md")') String docId
@@ -119,8 +113,22 @@ class DocsCli implements Runnable {
         @Override
         Integer call() {
             def ctx = HoistCoreCli.contextFrom(parent.spec)
-            def entry = ctx.docRegistry.entries.find { it.id == docId }
-            if (!entry) {
+            def res = ctx.docRegistry.resolve(docId)
+            if (res.ambiguous) {
+                if (json) {
+                    println JsonOutput.prettyPrint(JsonOutput.toJson([
+                        schemaVersion: DocFormatter.SCHEMA_VERSION,
+                        id: docId,
+                        found: false,
+                        ambiguous: true,
+                        candidateIds: res.candidates*.id.sort()
+                    ]))
+                    return 1
+                }
+                System.err.println(DocFormatter.formatDocAmbiguous(docId, res.candidates))
+                return 1
+            }
+            if (!res.found) {
                 if (json) {
                     println JsonOutput.prettyPrint(JsonOutput.toJson([
                         schemaVersion: DocFormatter.SCHEMA_VERSION,
@@ -133,9 +141,10 @@ class DocsCli implements Runnable {
                 System.err.println(DocFormatter.formatDocNotFound(docId, ctx.docRegistry.entries))
                 return 1
             }
-            def content = ctx.docRegistry.loadContent(docId)
+            def entry = res.entry
+            def content = ctx.docRegistry.loadContent(entry.id)
             if (content == null) {
-                System.err.println("Document file not readable: \"${docId}\".")
+                System.err.println("Document file not readable: \"${entry.id}\".")
                 return 1
             }
             if (json) {

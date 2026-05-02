@@ -74,11 +74,7 @@ class SymbolsCli implements Runnable {
                 ))
                 return 0
             }
-            def text = GroovyFormatter.formatSearchSymbols(query, symbolResults, memberResults)
-            if (symbolResults || memberResults) {
-                text += '\n\nTip: Use `hoist-core-symbols members <Name>` to list all members of a class.'
-            }
-            println text
+            println GroovyFormatter.formatSearchSymbols(query, symbolResults, memberResults)
             return 0
         }
     }
@@ -86,7 +82,7 @@ class SymbolsCli implements Runnable {
     //------------------------------------------------------------------
     // symbol
     //------------------------------------------------------------------
-    @Command(name = 'symbol', description = 'Get detailed type info for a specific symbol.', mixinStandardHelpOptions = true)
+    @Command(name = 'symbol', aliases = ['get'], description = 'Get detailed type info for a specific symbol.', mixinStandardHelpOptions = true)
     static class Symbol implements Callable<Integer> {
         @ParentCommand SymbolsCli parent
         @Parameters(paramLabel = '<name>', description = 'Exact symbol name (e.g. "BaseService")') String name
@@ -96,20 +92,28 @@ class SymbolsCli implements Runnable {
         @Override
         Integer call() {
             def ctx = HoistCoreCli.contextFrom(parent.spec)
-            def detail = ctx.groovyRegistry.getSymbolDetail(name, file)
+            def reg = ctx.groovyRegistry
+            def detail = reg.getSymbolDetail(name, file)
+            // Fallback: if no class/interface match, check the indexed-member surface.
+            // `get-symbol createCache` → method on BaseService instead of "not found".
+            def memberMatches = detail ? [] : reg.findMembersByName(name)
             if (json) {
-                println JsonOutput.prettyPrint(JsonOutput.toJson(GroovyFormatter.getSymbolAsMap(name, detail)))
+                if (detail) {
+                    println JsonOutput.prettyPrint(JsonOutput.toJson(GroovyFormatter.getSymbolAsMap(name, detail)))
+                } else {
+                    println JsonOutput.prettyPrint(JsonOutput.toJson(GroovyFormatter.getMemberAsSymbolAsMap(name, memberMatches)))
+                }
                 return 0
             }
-            if (!detail) {
-                System.err.println(GroovyFormatter.formatSymbolNotFound(name) + ' Use `hoist-core-symbols search` to find available symbols.')
+            if (!detail && !memberMatches) {
+                System.err.println(GroovyFormatter.formatSymbolNotFound(name) + ' Use the `search` subcommand to find available symbols.')
                 return 1
             }
-            def text = GroovyFormatter.formatSymbolDetail(detail)
-            if (detail.kind in ['class', 'interface', 'trait']) {
-                text += "\n\nTip: Use `hoist-core-symbols members ${name}` to see all properties and methods."
+            if (detail) {
+                println GroovyFormatter.formatSymbolDetail(detail)
+            } else {
+                println GroovyFormatter.formatMemberAsSymbol(name, memberMatches)
             }
-            println text
             return 0
         }
     }
@@ -117,7 +121,7 @@ class SymbolsCli implements Runnable {
     //------------------------------------------------------------------
     // members
     //------------------------------------------------------------------
-    @Command(name = 'members', description = 'List all properties and methods of a class or interface.', mixinStandardHelpOptions = true)
+    @Command(name = 'members', aliases = ['list'], description = 'List all properties and methods of a class or interface.', mixinStandardHelpOptions = true)
     static class Members implements Callable<Integer> {
         @ParentCommand SymbolsCli parent
         @Parameters(paramLabel = '<name>', description = 'Class or interface name') String name
@@ -133,7 +137,7 @@ class SymbolsCli implements Runnable {
                 return 0
             }
             if (members == null) {
-                System.err.println(GroovyFormatter.formatMembersNotFound(name) + ' Use `hoist-core-symbols search` to find the correct name.')
+                System.err.println(GroovyFormatter.formatMembersNotFound(name) + ' Use the `search` subcommand to find the correct name.')
                 return 1
             }
             println GroovyFormatter.formatMembers(name, members)

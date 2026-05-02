@@ -60,6 +60,44 @@ class DocRegistry {
         return contentSource.readFile(entry.id)
     }
 
+    /**
+     * Resolve a doc id with friendly fallbacks for agent-supplied paths:
+     *  1. Exact match.
+     *  2. Auto-prepend `docs/` (handles `tracing.md` → `docs/tracing.md`).
+     *  3. Unambiguous match on the final path segment (handles `tracing.md`
+     *     pointing at `docs/admin-console/tracing.md` if no top-level conflict).
+     * If multiple suffix matches exist, returns a resolution with `candidates`
+     * populated so the caller can ask the user to disambiguate.
+     */
+    DocResolution resolve(String requested) {
+        if (!requested) return new DocResolution()
+
+        // 1. Exact match
+        def exact = entries.find { it.id == requested }
+        if (exact) return new DocResolution(entry: exact)
+
+        // 2. Prepend `docs/` if not already prefixed
+        if (!requested.startsWith('docs/')) {
+            def prefixed = entries.find { it.id == "docs/${requested}" }
+            if (prefixed) return new DocResolution(entry: prefixed)
+        }
+
+        // 3. Suffix match on final path segment
+        def lastSeg = requested.tokenize('/').last()
+        def suffixMatches = entries.findAll { it.id.tokenize('/').last() == lastSeg }
+        if (suffixMatches.size() == 1) return new DocResolution(entry: suffixMatches[0])
+        if (suffixMatches.size() > 1) return new DocResolution(candidates: suffixMatches)
+
+        return new DocResolution()
+    }
+
+    static class DocResolution {
+        DocEntry entry
+        List<DocEntry> candidates = []
+        boolean isFound() { entry != null }
+        boolean isAmbiguous() { entry == null && !candidates.empty }
+    }
+
     //------------------------------------------------------------------
     // JSON loading
     //------------------------------------------------------------------
