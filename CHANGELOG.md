@@ -6,6 +6,16 @@
 
 * OTLP exports now include a `service.build.id` resource attribute alongside `service.version`.
 
+### 🤖 AI Docs + Tooling
+
+* Fidelity and ergonomics improvements to `hoist-core-symbols` / `hoist-core-docs` (CLI + MCP):
+  cleaner Groovydoc rendering, constructors and nested classes indexed, FQN inputs accepted,
+  `get-symbol` falls back to indexed members, `docs read` resolves bare filenames, MCP-aligned
+  CLI verb aliases, and `$JAVA_HOME` launcher fallback.
+* `hoist-core-symbols` now indexes `.java` sources alongside `.groovy` under
+  `src/main/groovy/`, surfacing types previously missing from search and member listings
+  (e.g. `JSONSerializer`, `JSONParser`, `JSONFormat`, `CollectionUtils`, `RoutineException`).
+
 ## 39.0.1 - 2026-04-30
 
 ### 🐞 Bug Fixes

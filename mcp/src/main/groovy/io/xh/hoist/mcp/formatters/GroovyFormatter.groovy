@@ -45,7 +45,7 @@ class GroovyFormatter {
                 def staticPrefix = m.isStatic ? 'static ' : ''
                 def typeStr = truncateType(m.type)
                 lines << "${i + 1}. [${m.memberKind}] ${staticPrefix}${m.name}: ${typeStr} (on ${m.ownerName})"
-                if (m.groovydoc) lines << "    ${m.groovydoc}"
+                if (m.groovydoc) lines << "    ${docPreview(m.groovydoc)}"
             }
         }
         return lines.join('\n').stripTrailing()
@@ -111,6 +111,77 @@ class GroovyFormatter {
         return lines.join('\n').stripTrailing()
     }
 
+    /**
+     * Member-as-symbol fallback view, used when `get-symbol <name>` matches an indexed
+     * member rather than a class (e.g. `createCache` → method on `BaseService`).
+     * Renders enough signature + Groovydoc to be useful, and points at the owning class
+     * so the agent can pivot to `get-members` if they want full context.
+     */
+    static String formatMemberAsSymbol(String name, List<MemberIndexEntry> matches) {
+        if (!matches) return formatSymbolNotFound(name)
+
+        def displayName = io.xh.hoist.mcp.data.GroovyRegistry.simpleSymbolName(name)
+        def lines = []
+        if (matches.size() == 1) {
+            lines << "# ${displayName} (${matches[0].memberKind}, member of ${matches[0].ownerName})"
+        } else {
+            lines << "# ${displayName} — ${matches.size()} member matches"
+        }
+        lines << ''
+        matches.eachWithIndex { m, i ->
+            if (matches.size() > 1) {
+                lines << "## ${i + 1}. on ${m.ownerName}"
+            }
+            lines << "Owner: ${m.ownerName}"
+            lines << "File: ${m.filePath}"
+            lines << "Kind: ${m.memberKind}${m.isStatic ? ' (static)' : ''}"
+            lines << ''
+            lines << '## Signature'
+            lines << memberSignature(m)
+            if (m.groovydoc) {
+                lines << ''
+                lines << '## Documentation'
+                lines << m.groovydoc
+            }
+            if (i < matches.size() - 1) lines << ''
+        }
+        return lines.join('\n').stripTrailing()
+    }
+
+    static Map getMemberAsSymbolAsMap(String name, List<MemberIndexEntry> matches) {
+        return [
+            schemaVersion: SCHEMA_VERSION,
+            name: name,
+            found: !matches.empty,
+            resolution: 'member',
+            matches: matches.collect { m ->
+                [
+                    name: m.name,
+                    memberKind: m.memberKind,
+                    ownerName: m.ownerName,
+                    filePath: m.filePath,
+                    sourceCategory: m.sourceCategory,
+                    type: m.type,
+                    isStatic: m.isStatic,
+                    annotations: m.annotations ?: [],
+                    parameters: m.parameters?.collect { [name: it.name, type: it.type] } ?: [],
+                    groovydoc: m.groovydoc ?: ''
+                ]
+            }
+        ]
+    }
+
+    private static String memberSignature(MemberIndexEntry m) {
+        def staticPrefix = m.isStatic ? 'static ' : ''
+        def annotationPrefix = m.annotations ? m.annotations.collect { "@${it}" }.join(' ') + ' ' : ''
+        if (m.memberKind == 'method') {
+            def params = m.parameters?.collect { "${it.name}: ${truncateType(it.type)}" }?.join(', ') ?: ''
+            def ret = truncateType(m.type ?: 'void')
+            return "${staticPrefix}${annotationPrefix}${m.name}(${params}): ${ret}"
+        }
+        return "${staticPrefix}${annotationPrefix}${m.name}: ${truncateType(m.type)}"
+    }
+
     static Map getSymbolAsMap(String name, SymbolDetail detail) {
         if (!detail) {
             return [schemaVersion: SCHEMA_VERSION, name: name, found: false, symbol: null]
@@ -143,13 +214,20 @@ class GroovyFormatter {
     }
 
     static String formatMembers(String name, List<MemberInfo> members) {
+        def constructors = members.findAll { it.kind == 'constructor' }
         def instanceProps = members.findAll { !it.isStatic && it.kind in ['property', 'field'] }
         def instanceMethods = members.findAll { !it.isStatic && it.kind == 'method' }
         def staticProps = members.findAll { it.isStatic && it.kind in ['property', 'field'] }
         def staticMethods = members.findAll { it.isStatic && it.kind == 'method' }
 
-        def lines = ["# ${name} Members", '']
+        def displayName = io.xh.hoist.mcp.data.GroovyRegistry.simpleSymbolName(name)
+        def lines = ["# ${displayName} Members", '']
 
+        if (constructors) {
+            lines << "## Constructors (${constructors.size()})"
+            constructors.each { lines << formatMemberLine(it) }
+            lines << ''
+        }
         if (instanceProps) {
             lines << "## Properties (${instanceProps.size()})"
             instanceProps.each { lines << formatMemberLine(it) }
@@ -210,13 +288,26 @@ class GroovyFormatter {
             def params = member.parameters?.collect { "${it.name}: ${truncateType(it.type)}" }?.join(', ') ?: ''
             def ret = truncateType(member.type ?: 'void')
             lines << "- ${annotationPrefix}${member.name}(${params}): ${ret}"
+        } else if (member.kind == 'constructor') {
+            def params = member.parameters?.collect { "${it.name}: ${truncateType(it.type)}" }?.join(', ') ?: ''
+            lines << "- ${annotationPrefix}${member.name}(${params})"
         } else {
             lines << "- ${annotationPrefix}${member.name}: ${truncateType(member.type)}"
         }
         if (member.groovydoc) {
-            lines << "    ${member.groovydoc.split('\n')[0]}"
+            lines << "    ${docPreview(member.groovydoc)}"
         }
         return lines.join('\n')
+    }
+
+    /**
+     * One-line preview: first paragraph of the Groovydoc with soft line-wraps collapsed.
+     * Source Groovydocs often wrap prose at ~80 chars; taking just the first physical
+     * line would cut mid-clause.
+     */
+    private static String docPreview(String groovydoc) {
+        def firstPara = groovydoc.split(/\n\s*\n/, 2)[0]
+        return firstPara.split('\n').collect { it.trim() }.findAll { it }.join(' ')
     }
 
     private static String truncateType(String typeStr) {

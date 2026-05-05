@@ -69,11 +69,7 @@ class GroovyTools {
             int memberLimit = symbolResults.empty ? symbolLimit : 15
             def memberResults = registry.searchMembers(query, memberLimit)
 
-            def text = GroovyFormatter.formatSearchSymbols(query, symbolResults, memberResults)
-            if (symbolResults || memberResults) {
-                text += '\n\nTip: Use hoist-core-get-members to see all members of a specific class.'
-            }
-            return textResult(text)
+            return textResult(GroovyFormatter.formatSearchSymbols(query, symbolResults, memberResults))
         })
     }
 
@@ -108,14 +104,16 @@ class GroovyTools {
             String filePath = args?.filePath
 
             def detail = registry.getSymbolDetail(name, filePath)
-            if (!detail) {
-                return textResult(GroovyFormatter.formatSymbolNotFound(name) + ' Use hoist-core-search-symbols to find available symbols.')
+            if (detail) {
+                return textResult(GroovyFormatter.formatSymbolDetail(detail))
             }
-            def text = GroovyFormatter.formatSymbolDetail(detail)
-            if (detail.kind in ['class', 'interface', 'trait']) {
-                text += '\n\nUse hoist-core-get-members to see all properties and methods.'
+            // Fallback: try the indexed-member surface so `get-symbol createCache` resolves to
+            // the method on BaseService rather than dead-ending at "not found".
+            def memberMatches = registry.findMembersByName(name)
+            if (memberMatches) {
+                return textResult(GroovyFormatter.formatMemberAsSymbol(name, memberMatches))
             }
-            return textResult(text)
+            return textResult(GroovyFormatter.formatSymbolNotFound(name) + ' Use hoist-core-search-symbols to find available symbols.')
         })
     }
 

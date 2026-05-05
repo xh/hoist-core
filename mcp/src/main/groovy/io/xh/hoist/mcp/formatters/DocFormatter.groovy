@@ -117,4 +117,10 @@ class DocFormatter {
         def ids = available*.id.sort().join(', ')
         return "Unknown document id: \"${docId}\". Available ids: ${ids}"
     }
+
+    /** Error text when a doc id matches multiple entries by suffix; lists candidates. */
+    static String formatDocAmbiguous(String docId, List<DocEntry> candidates) {
+        def ids = candidates*.id.sort().join(', ')
+        return "Ambiguous document id: \"${docId}\" matches multiple entries. Specify one of: ${ids}"
+    }
 }
