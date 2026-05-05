@@ -21,6 +21,26 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Resolve java: prefer PATH, fall back to JAVA_HOME. JDK version managers (mise, asdf, jenv)
+# typically activate only in interactive shells, so a script launched by an MCP client may
+# see neither - in that case, print an actionable error pointing at the likely cause.
+if command -v java >/dev/null 2>&1; then
+    JAVA=java
+elif [ -n "$JAVA_HOME" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+    JAVA="$JAVA_HOME/bin/java"
+else
+    cat >&2 <<'EOF'
+[hoist-core-mcp] ERROR: 'java' not on PATH and JAVA_HOME is unset or invalid.
+
+If you use a JDK version manager (mise, asdf, jenv), it likely activates only in
+interactive shells - but this script runs in the non-interactive shell launched by
+your MCP client. Either export JAVA_HOME from a non-interactive init file (e.g.
+~/.bash_profile, ~/.zshenv) so it is visible here, or activate the version manager
+from one of those files. Pointing JAVA_HOME at any JDK 17+ install is sufficient.
+EOF
+    exit 1
+fi
+
 if [ -n "$VERSION" ]; then
     mkdir -p "$CACHE_DIR/jars"
 
@@ -58,7 +78,7 @@ if [ -n "$VERSION" ]; then
         [ -z "$SOURCE_ARGS" ] && SOURCE_ARGS="--source github:v$VERSION"
     fi
 
-    exec java -jar "$JAR" $SOURCE_ARGS
+    exec "$JAVA" -jar "$JAR" $SOURCE_ARGS
 else
     # Local mode: clean build to ensure JAR reflects current source.
     echo "[hoist-core-mcp] Building MCP server..." >&2
@@ -67,5 +87,5 @@ else
     if [ -z "$JAR" ]; then
         echo "[hoist-core-mcp] ERROR: Could not find or build MCP JAR" >&2; exit 1
     fi
-    exec java -jar "$JAR" $SOURCE_ARGS
+    exec "$JAVA" -jar "$JAR" $SOURCE_ARGS
 fi

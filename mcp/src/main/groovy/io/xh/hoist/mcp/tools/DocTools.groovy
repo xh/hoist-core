@@ -70,11 +70,7 @@ class DocTools {
             int limit = (args?.limit as Integer) ?: 10
 
             def results = registry.searchDocs(query, category, limit)
-            def text = DocFormatter.formatSearchDocs(query, results)
-            if (results) {
-                text += '\n\nTip: Use hoist-core-read-doc with an id to read the full document.'
-            }
-            return textResult(text)
+            return textResult(DocFormatter.formatSearchDocs(query, results))
         })
     }
 
@@ -138,15 +134,18 @@ class DocTools {
             def args = request?.arguments() ?: [:]
             String id = args?.id ?: ''
 
-            def entry = registry.entries.find { it.id == id }
-            if (!entry) {
+            def res = registry.resolve(id)
+            if (res.ambiguous) {
+                return textResult(DocFormatter.formatDocAmbiguous(id, res.candidates))
+            }
+            if (!res.found) {
                 return textResult(DocFormatter.formatDocNotFound(id, registry.entries))
             }
-            def content = registry.loadContent(id)
+            def content = registry.loadContent(res.entry.id)
             if (content == null) {
-                return textResult("Document file not readable: \"${id}\".")
+                return textResult("Document file not readable: \"${res.entry.id}\".")
             }
-            return textResult(DocFormatter.formatReadDoc(entry, content))
+            return textResult(DocFormatter.formatReadDoc(res.entry, content))
         })
     }
 
