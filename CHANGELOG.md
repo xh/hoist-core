@@ -1,6 +1,10 @@
 # Changelog
 
-## 40.0-SNAPSHOT
+## 40.0-SNAPSHOT - unreleased
+
+### 🎁 New Features
+
+* OTLP exports now include a `service.build.id` resource attribute alongside `service.version`.
 
 ### 🤖 AI Docs + Tooling
 
