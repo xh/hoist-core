@@ -237,7 +237,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
      * Cross-cutting tags stamped on every span — both server-generated
      * (via {@link ExportProcessor#onStart}) and client-relayed (via {@link ClientSpanData}).
      *
-     * Note: must never generate spans itself to avoid infinitee recursion.  Keep simple.
+     * Note: must never generate spans itself to avoid infinite recursion.  Keep simple.
      */
     private Map<String, ?> hoistTags() {
         def identityService = Utils.identityService,

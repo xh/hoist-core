@@ -94,9 +94,10 @@ class ClusterConfig {
         [
             'service.name'               : appCode,
             'service.instance.id'        : instanceName,
-            'deployment.environment.name' : envName,
-            'service.version'            : appVersion
-        ]
+            'deployment.environment.name': envName,
+            'service.version'            : appVersion,
+            'service.build.id'           : appBuild != 'UNKNOWN' ? appBuild : null
+        ].findAll { it.value != null }
     }
 
     /**
