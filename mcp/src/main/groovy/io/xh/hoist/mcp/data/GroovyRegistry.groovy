@@ -17,6 +17,10 @@ import java.util.concurrent.CountDownLatch
 /**
  * AST-based symbol extraction from hoist-core Groovy/Java source files.
  * Provides indexed search over classes, methods, and properties.
+ *
+ * Both .groovy and .java sources are parsed via Groovy's CompilationUnit at
+ * CompilePhase.CONVERSION — this surfaces ClassNodes, methods, fields, and
+ * Javadoc/Groovydoc uniformly without a separate Java parser dependency.
  */
 class GroovyRegistry {
 
@@ -194,7 +198,8 @@ class GroovyRegistry {
         int fileCount = 0, symbolCount = 0, memberCount = 0
 
         for (sourceDir in SOURCE_DIRS) {
-            def files = contentSource.findFiles(sourceDir.dir, '.groovy')
+            def files = contentSource.findFiles(sourceDir.dir, '.groovy') +
+                contentSource.findFiles(sourceDir.dir, '.java')
             for (relPath in files) {
                 try {
                     def classes = parseFileClasses(relPath)
@@ -355,6 +360,9 @@ class GroovyRegistry {
             if (isPrivate(method.name)) continue
             if (method.isSynthetic()) continue
             if (method.name.startsWith('$')) continue
+            // Skip JVM-synthesized initializer methods (<clinit>, <init>) that surface
+            // when parsing Java sources via Groovy's CompilationUnit.
+            if (method.name.startsWith('<')) continue
             // Skip property getters/setters
             if (isPropertyAccessor(method, propertyNames)) continue
 

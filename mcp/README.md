@@ -135,13 +135,15 @@ with other consumers (e.g. documentation viewers) and aligned with the `docs/REA
 tables. The tradeoff is manual maintenance -- see
 [Maintaining the MCP Server](#maintaining-the-mcp-server).
 
-**Eager Groovy AST initialization.** Parsing hoist-core's Groovy source files with the Groovy
+**Eager Groovy AST initialization.** Parsing hoist-core's source files with the Groovy
 compiler's AST is expensive. After the server starts, `beginInitialization()` kicks off index
 building in a background thread so it runs concurrently while the client sets up. If a tool call
 arrives before init completes, `ensureInitialized()` blocks until the in-flight work finishes. In
 practice, the index is typically ready before the first tool invocation. The index is built using
 Groovy's `CompilationUnit` at the `CONVERSION` phase -- enough for class/method/property extraction
-without full type resolution.
+without full type resolution. Both `.groovy` and `.java` sources under `SOURCE_DIRS` are parsed
+through the same path, so Java types in `src/main/groovy/` (e.g. `JSONSerializer`,
+`CollectionUtils`) are indexed alongside Groovy classes.
 
 **Stdio transport with stderr logging discipline.** Stdout corruption from stray print statements
 is the most common bug in MCP server implementations. A single log statement corrupts the JSON-RPC
@@ -521,8 +523,8 @@ missing, stale, or moved entries and update the registry accordingly.
 Two constants control which source directories are scanned and which classes have their members
 indexed for search:
 
-**`SOURCE_DIRS`** -- lists all source directories to scan for Groovy files. Update when new
-top-level source directories are added to hoist-core.
+**`SOURCE_DIRS`** -- lists all source directories to scan for Groovy and Java files. Update
+when new top-level source directories are added to hoist-core.
 
 **`MEMBER_INDEXED_CLASSES`** -- lists classes whose public members are individually indexed for
 search. Update when a new key base class is added to the framework and should have its members
@@ -533,9 +535,10 @@ searchable, or when an indexed class is renamed or removed.
 **File:** `mcp/build.gradle` (`shadowJar { from(rootProject.projectDir) { include ... } }`)
 
 The fat JAR bundles `docs/`, the `grails-app/{controllers,domain,services,init}` directories,
-and `src/main/groovy/` under the `hoist-core-content/` resource prefix. The `include` patterns
-must match the `SOURCE_DIRS` constant in `data/GroovyRegistry.groovy` -- any new top-level
-source directory must be added to both places.
+and `src/main/groovy/` (both `.groovy` and `.java`) under the `hoist-core-content/` resource
+prefix. The `include` patterns must match the `SOURCE_DIRS` constant in
+`data/GroovyRegistry.groovy` -- any new top-level source directory must be added to both
+places, and any new file extension scanned by the registry must be added to the bundle.
 
 **When to update:**
 - A new top-level source directory is added that the symbol index should scan
