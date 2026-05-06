@@ -26,7 +26,6 @@ import io.micrometer.core.instrument.binder.system.UptimeMetrics
 import io.micrometer.core.instrument.binder.tomcat.TomcatMetrics
 import io.xh.hoist.BaseService
 import org.apache.tomcat.jdbc.pool.DataSource as PooledDataSource
-import org.springframework.boot.jdbc.DataSourceUnwrapper
 
 import javax.sql.DataSource
 
@@ -88,14 +87,14 @@ class StandardMetricsService extends BaseService {
      * Includes standard + tomcat pool specific
      */
     private void registerConnectionPoolMeters() {
-        def readDsProp
-        try {
-            def _pooledDataSource = DataSourceUnwrapper.unwrap(dataSource as DataSource, PooledDataSource.class)
-            readDsProp = {String prop -> {_pooledDataSource[prop] as double} as Closure}
-        } catch (e) {
-            logError("Primary DataSource not org.apache.tomcat.jdbc.pool.DataSource - JDBC metrics unavailable.", e)
+        def ds = dataSource as DataSource
+
+        ds = ds.isWrapperFor(PooledDataSource) ? ds.unwrap(PooledDataSource) : null
+        if (!ds) {
+            logWarn("Primary DataSource not org.apache.tomcat.jdbc.pool.DataSource - JDBC metrics unavailable.")
             return
         }
+        def readDsProp = {String prop -> {(ds[prop] ?: 0d) as double} as Closure}
 
         def prefix = 'jdbc.connections'
         List builders = [

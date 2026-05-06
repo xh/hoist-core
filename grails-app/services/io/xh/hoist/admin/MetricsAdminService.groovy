@@ -22,47 +22,56 @@ class MetricsAdminService extends BaseService {
         metricsService.readOnlyRegistry.meters.collect { Meter meter ->
             def id = meter.id,
                 name = id.name,
-                type = id.type,
-                description = id.description,
                 tags = id.tags.collect { [key: it.key, value: it.value] },
-                stats = meter.measure().collectEntries { [it.statistic.name(), it.value] },
                 baseUnit = meter instanceof MicrometerTimer || meter instanceof LongTaskTimer
                     ? meter.baseTimeUnit().name().toLowerCase()
                     : id.baseUnit
-
-            def value, count, max
-            switch (type) {
-                case GAUGE:
-                    value = stats.VALUE
-                    break
-                case COUNTER:
-                    value = stats.COUNT
-                    break
-                case TIMER:
-                case LONG_TASK_TIMER:
-                case DISTRIBUTION_SUMMARY:
-                    count = stats.COUNT
-                    max = stats.MAX
-                    value = count ? (stats.TOTAL_TIME ?: stats.TOTAL ?: 0) / count : 0
-                    break
-                default:
-                    value = stats.VALUE ?: stats.COUNT ?: 0
-            }
-
-            [
+            def row = [
                 id: "$name|${tags.collect { "${it.key}=${it.value}" }.join('|')}",
                 name: name,
-                type: type.name(),
-                value: value,
-                count: count,
-                max: max,
-                description: description,
+                type: id.type.name(),
+                description: id.description,
                 baseUnit: baseUnit,
                 tags: tags,
-                stats: stats,
                 published: published.contains(name)
             ]
+            try {
+                evaluateMeter(meter, row)
+            } catch (Throwable t) {
+                logDebug("Failed to read meter '$name'", t)
+                row.error = t.message ?: t.class.simpleName
+            }
+            row
         }
+    }
+
+    private void evaluateMeter(Meter meter, Map row) {
+        def type = meter.id.type,
+            stats = meter.measure().collectEntries { [it.statistic.name(), it.value] }
+
+        def value, count, max
+        switch (type) {
+            case GAUGE:
+                value = stats.VALUE
+                break
+            case COUNTER:
+                value = stats.COUNT
+                break
+            case TIMER:
+            case LONG_TASK_TIMER:
+            case DISTRIBUTION_SUMMARY:
+                count = stats.COUNT
+                max = stats.MAX
+                value = count ? (stats.TOTAL_TIME ?: stats.TOTAL ?: 0) / count : 0
+                break
+            default:
+                value = stats.VALUE ?: stats.COUNT ?: 0
+        }
+
+        row.value = value
+        row.count = count
+        row.max = max
+        row.stats = stats
     }
 
 }

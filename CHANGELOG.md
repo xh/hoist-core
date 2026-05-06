@@ -16,6 +16,11 @@
   `src/main/groovy/`, surfacing types previously missing from search and member listings
   (e.g. `JSONSerializer`, `JSONParser`, `JSONFormat`, `CollectionUtils`, `RoutineException`).
 
+* Fixed `StandardMetricsService` JDBC pool metrics throwing NPE when JDBC tracing is enabled,
+  and hardened `MetricsAdminService.listMetrics()` so a single throwing meter no longer breaks
+  the admin metrics view.
+
+
 ## 39.0.1 - 2026-04-30
 
 ### 🐞 Bug Fixes
