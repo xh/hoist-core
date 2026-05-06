@@ -5,7 +5,7 @@
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.telemetry.metric
+package io.xh.hoist.telemetry.metric.impl
 
 import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
@@ -25,6 +25,7 @@ import io.micrometer.core.instrument.binder.system.ProcessorMetrics
 import io.micrometer.core.instrument.binder.system.UptimeMetrics
 import io.micrometer.core.instrument.binder.tomcat.TomcatMetrics
 import io.xh.hoist.BaseService
+import io.xh.hoist.telemetry.metric.MetricsService
 import org.apache.tomcat.jdbc.pool.DataSource as PooledDataSource
 
 import javax.sql.DataSource
@@ -40,7 +41,7 @@ import javax.sql.DataSource
  * @internal - not intended for direct use by applications.
  */
 @CompileStatic
-class StandardMetricsService extends BaseService {
+class BuiltInMetricsService extends BaseService {
 
     def dataSource
 

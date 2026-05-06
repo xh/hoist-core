@@ -2,8 +2,24 @@
 
 ## 40.0-SNAPSHOT - unreleased
 
+### ⚠️ Breaking Changes (minor)
+* Removed `ObservedRun.timer(Timer)` and `ObservedRun.counter(Counter)` - the pre-built-instance
+  variants. Use the by-name forms `timer(name: ...)` / `counter(name: ...)` and configure
+  Timer-level options centrally via `MetricsService.configureTimer`.
+* `ObservedRun.counter(name: ...)` semantic changed: previously incremented before the closure
+  ran (counted attempts), now increments on completion alongside the timer. Both timer and
+  counter now attach an `xh.outcome` tag with value `success` or `failure` based on whether
+  the closure threw.
+
+
 ### 🎁 New Features
 
+* Client-side metrics support: new `/xh/recordMetrics` endpoint accepts batched timer and counter
+  entries from the JS client.
+* New `MetricsService.configureTimer(name, ...)` and `configureCounter(name, ...)` for
+  one-shot init-time configuration of named meters. `configureTimer` sets percentiles, SLOs,
+  and histogram bounds applied to all tagged variants of the configured name; both surface a
+  description in the admin metrics view.
 * OTLP exports now include a `service.build.id` resource attribute alongside `service.version`.
 
 ### 🤖 AI Docs + Tooling
@@ -15,6 +31,8 @@
 * `hoist-core-symbols` now indexes `.java` sources alongside `.groovy` under
   `src/main/groovy/`, surfacing types previously missing from search and member listings
   (e.g. `JSONSerializer`, `JSONParser`, `JSONFormat`, `CollectionUtils`, `RoutineException`).
+
+### 🐞 Bug Fixes
 
 * Fixed `StandardMetricsService` JDBC pool metrics throwing NPE when JDBC tracing is enabled,
   and hardened `MetricsAdminService.listMetrics()` so a single throwing meter no longer breaks
