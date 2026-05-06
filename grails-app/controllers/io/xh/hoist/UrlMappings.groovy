@@ -29,7 +29,7 @@ class UrlMappings {
         "/rest/$controller/bulkDelete"{action='bulkDelete'}
         "/rest/$controller/bulkUpdate"{action='bulkUpdate'}
         "/rest/$controller/$id?"{
-            action = [POST: 'create', GET: 'read', PUT: 'update', DELETE: 'delete']
+            action = [POST: 'create', GET: 'read', PUT: 'update', PATCH: 'update', DELETE: 'delete']
         }
 
         //------------------------
