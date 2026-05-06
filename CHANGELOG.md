@@ -5,8 +5,7 @@
 ### 🎁 New Features
 
 * OTLP exports now include a `service.build.id` resource attribute alongside `service.version`.
-* `RestController` `update` action is now reachable via `PATCH` in addition to `PUT`, better
-  reflecting its partial-update semantics. Existing `PUT`-based clients continue to work.
+* `RestController` `update` now also accepts `PATCH` (in addition to `PUT`).
 
 ### 🤖 AI Docs + Tooling
 
