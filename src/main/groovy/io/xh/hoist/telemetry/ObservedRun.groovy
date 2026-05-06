@@ -9,8 +9,6 @@ package io.xh.hoist.telemetry
 import groovy.transform.CompileStatic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
-import io.micrometer.core.instrument.Counter
-import io.micrometer.core.instrument.Timer
 import io.opentelemetry.api.trace.SpanKind
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.telemetry.metric.MetricsService
@@ -19,19 +17,21 @@ import io.xh.hoist.telemetry.trace.TraceService
 import io.xh.hoist.util.Utils
 import org.codehaus.groovy.runtime.InvokerHelper
 
+import static java.lang.System.currentTimeMillis
+
 /**
  * Composable builder for wrapping a closure with tracing, logging, and metrics.
  *
  * Each concern is opt-in via dedicated builder methods, then executed with {@link #run}.
  * The closure is wrapped according to the precedence below, regardless of the order the
  * methods are called in:
- *      span → log → timer → counter → user closure.
+ *      span → log → metrics → user closure.
  *
  * <pre>
  * observe()
  *     .span(name: 'processOrder', tags: [orderId: id])
  *     .logInfo('Processing order')
- *     .timer(orderTimer)
+ *     .timer(name: 'orderProcessing')
  *     .run {
  *         // business logic
  *     }
@@ -57,8 +57,8 @@ class ObservedRun {
     private SpanRef activeSpan = SpanRef.NOOP
 
     // Metrics support
-    private Timer timer
-    private Counter counter
+    private String timerName, counterName
+    private Map<String, String> timerTags, counterTags
 
     private ObservedRun(Object caller) {
         this.caller = caller
@@ -108,8 +108,8 @@ class ObservedRun {
     @NamedVariant
     ObservedRun span(
         @NamedParam(required = true) String name,
-        @NamedParam SpanKind kind = SpanKind.INTERNAL,
-        @NamedParam Map<String, ?> tags = [:]
+        @NamedParam Map<String, ?> tags = [:],
+        @NamedParam SpanKind kind = SpanKind.INTERNAL
     ) {
         spanArgs = [name: prefixed(name), kind: kind, tags: tags, caller: caller]
         this
@@ -118,39 +118,33 @@ class ObservedRun {
     //---------------------------
     // Metrics configuration
     //---------------------------
-    /** Record elapsed time on a pre-registered Micrometer {@link Timer}. */
-    ObservedRun timer(Timer timer) {
-        this.timer = timer
-        this
-    }
-
-    /** Record elapsed time on a {@link Timer} with the given metric name and optional tags. */
+    /**
+     * Record elapsed time on a Timer with the given metric name and optional tags. On completion,
+     * an {@code xh.outcome} tag is added with value {@code success} or {@code failure} based
+     * on whether the closure threw.
+     */
     @NamedVariant
     ObservedRun timer(
         @NamedParam(required = true) String name,
         @NamedParam Map<String, String> tags = [:]
     ) {
-        def builder = Timer.builder(prefixed(name))
-        tags.each { k, v -> builder.tag(k, v) }
-        timer = builder.register(metricsService.registry)
+        timerName = prefixed(name)
+        timerTags = tags
         this
     }
 
-    /** Increment a pre-registered Micrometer {@link Counter} (counts attempts, not completions). */
-    ObservedRun counter(Counter counter) {
-        this.counter = counter
-        this
-    }
-
-    /** Increment an auto-registered {@link Counter} with the given metric name and optional tags. */
+    /**
+     * Increment a Counter with the given metric name and optional tags. On completion,
+     * an {@code xh.outcome} tag is added with value {@code success} or {@code failure} based
+     * on whether the closure threw.
+     */
     @NamedVariant
     ObservedRun counter(
         @NamedParam(required = true) String name,
         @NamedParam Map<String, String> tags = [:]
     ) {
-        def builder = Counter.builder(prefixed(name))
-        tags.each { k, v -> builder.tag(k, v) }
-        counter = builder.register(metricsService.registry)
+        counterName = prefixed(name)
+        counterTags = tags
         this
     }
 
@@ -160,13 +154,12 @@ class ObservedRun {
     /**
      * Execute the closure with all configured observability.
      *
-     * Wrapping order (outermost → innermost): span → log → counter → timer -> closure.
+     * Wrapping order (outermost → innermost): span → log → metrics -> closure.
      * The closure may optionally accept a {@link SpanRef} parameter.
      */
     <T> T run(Closure<T> c) {
         Closure onion = c.maximumNumberOfParameters > 0 ? { -> c.call(activeSpan) } : c
-        onion = wrapWithTimer(onion)
-        onion = wrapWithCounter(onion)
+        onion = wrapWithMetrics(onion)
         onion = wrapWithLog(onion)
         onion = wrapWithSpan(onion)
         return onion.call() as T
@@ -186,12 +179,33 @@ class ObservedRun {
         }
     }
 
-    private Closure wrapWithCounter(Closure inner) {
-        return counter ? { -> counter.increment(); inner.call() } : inner
-    }
+    private Closure wrapWithMetrics(Closure inner) {
+        if (!timerName && !counterName) return inner
 
-    private Closure wrapWithTimer(Closure inner) {
-        return timer ? { -> timer.recordCallable(inner) } : inner
+        return { ->
+            long start = currentTimeMillis()
+            String outcome = 'failure'
+            try {
+                def result = inner.call()
+                outcome = 'success'
+                return result
+            } finally {
+                if (timerName) {
+                    metricsService.recordTimer(
+                        name: timerName,
+                        valueMs: currentTimeMillis() - start,
+                        tags: (timerTags ?: [:]) + ['xh.outcome': outcome]
+                    )
+                }
+                if (counterName) {
+                    metricsService.recordCount(
+                        name: counterName,
+                        value: 1d,
+                        tags: (counterTags ?: [:]) + ['xh.outcome': outcome]
+                    )
+                }
+            }
+        }
     }
 
     private Closure wrapWithLog(Closure inner) {
@@ -213,10 +227,10 @@ class ObservedRun {
         return inner
     }
 
-    /** Prepend `caller.tracePrefix` (if defined and non-empty) to the given metric/span name. */
+    /** Prepend `caller.telemetryPrefix` (if defined and non-empty) to the given metric/span name. */
     private String prefixed(String name) {
         if (caller == null) return name
-        def mp = InvokerHelper.getMetaClass(caller).hasProperty(caller, 'tracePrefix')
+        def mp = InvokerHelper.getMetaClass(caller).hasProperty(caller, 'telemetryPrefix')
         def prefix = mp?.getProperty(caller)
         prefix ? "${prefix}.${name}" : name
     }

@@ -14,7 +14,10 @@ import io.micrometer.core.instrument.Meter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Tag
 import io.micrometer.core.instrument.Tags
+import io.micrometer.core.instrument.distribution.DistributionStatisticConfig
 
+import java.time.Duration
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry
 import io.micrometer.core.instrument.config.MeterFilter
@@ -81,10 +84,76 @@ class MetricsService extends BaseService {
     private PrometheusMeterRegistry _prometheusRegistry
     private OtlpMeterRegistry _otlpRegistry
 
+    private final Map<String, TimerSpec> _timerSpecs = new ConcurrentHashMap<>()
+    private final Map<String, CounterSpec> _counterSpecs = new ConcurrentHashMap<>()
+
     void init() {
         registry.add(readOnlyRegistry)
         applyFilters()
         syncConfig()
+    }
+
+    /**
+     * Configure a named Timer with distribution statistics and metadata.
+     *
+     * Apply once at app init - typically from your app's metrics service or bootstrap.
+     * Configuration is keyed by metric name and applies to all tagged variants of that name.
+     *
+     * Distribution config (percentiles, slos, etc.) is applied via a {@link MeterFilter} and
+     * must be configured before the affected meters are first registered, otherwise the meter
+     * is created with the unfiltered config and this call has no effect for that instance.
+     *
+     * Description is stored in a side-map and surfaced through the admin metrics view; it is
+     * not exported through Micrometer's {@code Meter.Id} description (which would require
+     * pre-registering an anchor meter per name).
+     *
+     * @param name              metric name (must match the name used at the call site)
+     * @param description       human-readable description shown in the admin metrics view
+     * @param percentiles       client-side percentiles to compute (e.g. [0.5, 0.95, 0.99])
+     * @param slos              service-level-objective buckets for histogram output
+     * @param publishHistogram  publish a percentile histogram for server-side aggregation
+     *                          (e.g. Prometheus histogram_quantile)
+     * @param minExpected       minimum expected value - used to size the histogram
+     * @param maxExpected       maximum expected value - used to size the histogram
+     */
+    @NamedVariant
+    void configureTimer(
+        @NamedParam(required = true) String name,
+        @NamedParam String description = null,
+        @NamedParam List<Double> percentiles = null,
+        @NamedParam List<Duration> slos = null,
+        @NamedParam boolean publishHistogram = false,
+        @NamedParam Duration minExpected = null,
+        @NamedParam Duration maxExpected = null
+    ) {
+        _timerSpecs[name] = new TimerSpec(
+            name: name,
+            description: description,
+            percentiles: percentiles,
+            slos: slos,
+            publishHistogram: publishHistogram,
+            minExpected: minExpected,
+            maxExpected: maxExpected
+        )
+    }
+
+    /**
+     * Configure a named Counter with descriptive metadata.
+     *
+     * Description is stored in a side-map and surfaced through the admin metrics view.
+     * Counters have no distribution config, so this is purely informational.
+     */
+    @NamedVariant
+    void configureCounter(
+        @NamedParam(required = true) String name,
+        @NamedParam String description = null
+    ) {
+        _counterSpecs[name] = new CounterSpec(name: name, description: description)
+    }
+
+    /** Lookup the description for a named Timer or Counter, or null if none configured. */
+    String getMeterDescription(String name) {
+        _timerSpecs[name]?.description ?: _counterSpecs[name]?.description
     }
 
 
@@ -200,6 +269,21 @@ class MetricsService extends BaseService {
     // Implementation
     //------------------------
     private void applyFilters() {
+        // Apply per-name distribution config from configureTimer() specs
+        registry.config().meterFilter(new MeterFilter() {
+            DistributionStatisticConfig configure(Meter.Id id, DistributionStatisticConfig config) {
+                def spec = _timerSpecs[id.name]
+                if (!spec) return config
+                def b = DistributionStatisticConfig.builder()
+                if (spec.percentiles) b.percentiles(spec.percentiles as double[])
+                if (spec.slos) b.serviceLevelObjectives(spec.slos.collect { it.toNanos() as double } as double[])
+                if (spec.publishHistogram) b.percentilesHistogram(true)
+                if (spec.minExpected) b.minimumExpectedValue(spec.minExpected.toNanos() as Double)
+                if (spec.maxExpected) b.maximumExpectedValue(spec.maxExpected.toNanos() as Double)
+                b.build().merge(config)
+            }
+        })
+
         // Deny cluster-scoped metrics on non-primary instances
         registry.config().meterFilter(new MeterFilter() {
             MeterFilterReply accept(Meter.Id id) {
