@@ -237,7 +237,7 @@ class JSONClient {
     }
 
     private static long timeoutMs(Timeout t) {
-        t == null ? 0L : t.toMilliseconds()
+        t?.toMilliseconds() ?: 0L
     }
 
 }

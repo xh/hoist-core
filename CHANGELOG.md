@@ -19,9 +19,8 @@
 * Fixed `StandardMetricsService` JDBC pool metrics throwing NPE when JDBC tracing is enabled,
   and hardened `MetricsAdminService.listMetrics()` so a single throwing meter no longer breaks
   the admin metrics view.
-* `JSONClient` now schedules a hard `abort()` backstop on requests that have a bounded
-  `responseTimeout`, ensuring blocked socket reads are released and surfaced as a 504-flavored
-  `ExternalHttpException` rather than hanging request threads (#241).
+* `JSONClient` now hard-aborts requests that exceed their `responseTimeout`, surfacing as a
+  504 `ExternalHttpException` instead of hanging the request thread (#241).
 
 
 ## 39.0.1 - 2026-04-30
