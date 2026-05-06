@@ -17,6 +17,7 @@ import io.xh.hoist.telemetry.metric.MetricsService
 import io.xh.hoist.telemetry.trace.SpanRef
 import io.xh.hoist.telemetry.trace.TraceService
 import io.xh.hoist.util.Utils
+import org.codehaus.groovy.runtime.InvokerHelper
 
 /**
  * Composable builder for wrapping a closure with tracing, logging, and metrics.
@@ -110,7 +111,7 @@ class ObservedRun {
         @NamedParam SpanKind kind = SpanKind.INTERNAL,
         @NamedParam Map<String, ?> tags = [:]
     ) {
-        spanArgs = [name: name, kind: kind, tags: tags, caller: caller]
+        spanArgs = [name: prefixed(name), kind: kind, tags: tags, caller: caller]
         this
     }
 
@@ -123,9 +124,15 @@ class ObservedRun {
         this
     }
 
-    /** Record elapsed time, auto-registering a tag-free {@link Timer} with the given metric name. */
-    ObservedRun timer(String name) {
-        timer = Timer.builder(name).register(metricsService.registry)
+    /** Record elapsed time on a {@link Timer} with the given metric name and optional tags. */
+    @NamedVariant
+    ObservedRun timer(
+        @NamedParam(required = true) String name,
+        @NamedParam Map<String, String> tags = [:]
+    ) {
+        def builder = Timer.builder(prefixed(name))
+        tags.each { k, v -> builder.tag(k, v) }
+        timer = builder.register(metricsService.registry)
         this
     }
 
@@ -135,9 +142,15 @@ class ObservedRun {
         this
     }
 
-    /** Increment an auto-registered tag-free {@link Counter} with the given metric name. */
-    ObservedRun counter(String name) {
-        counter = Counter.builder(name).register(metricsService.registry)
+    /** Increment an auto-registered {@link Counter} with the given metric name and optional tags. */
+    @NamedVariant
+    ObservedRun counter(
+        @NamedParam(required = true) String name,
+        @NamedParam Map<String, String> tags = [:]
+    ) {
+        def builder = Counter.builder(prefixed(name))
+        tags.each { k, v -> builder.tag(k, v) }
+        counter = builder.register(metricsService.registry)
         this
     }
 
@@ -198,6 +211,14 @@ class ObservedRun {
         }
 
         return inner
+    }
+
+    /** Prepend `caller.tracePrefix` (if defined and non-empty) to the given metric/span name. */
+    private String prefixed(String name) {
+        if (caller == null) return name
+        def mp = InvokerHelper.getMetaClass(caller).hasProperty(caller, 'tracePrefix')
+        def prefix = mp?.getProperty(caller)
+        prefix ? "${prefix}.${name}" : name
     }
 
     private static TraceService getTraceService() {

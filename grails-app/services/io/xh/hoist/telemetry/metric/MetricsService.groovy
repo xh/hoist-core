@@ -8,9 +8,14 @@
 package io.xh.hoist.telemetry.metric
 
 import groovy.transform.CompileStatic
+import groovy.transform.NamedParam
+import groovy.transform.NamedVariant
 import io.micrometer.core.instrument.Meter
 import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.Tag
 import io.micrometer.core.instrument.Tags
+
+import java.util.concurrent.TimeUnit
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry
 import io.micrometer.core.instrument.config.MeterFilter
 import io.micrometer.core.instrument.config.MeterFilterReply
@@ -102,6 +107,57 @@ class MetricsService extends BaseService {
             .join('\n')
     }
 
+    /**
+     * Record an elapsed time for a named timer. Auto-creates the timer on first use.
+     * Tags are applied as-is; the standard default tags are added by the registry.
+     */
+    @NamedVariant
+    void recordTimer(
+        @NamedParam(required = true) String name,
+        @NamedParam(required = true) double valueMs,
+        @NamedParam Map<String, String> tags = [:]
+    ) {
+        registry.timer(name, toTags(tags)).record((long)valueMs, TimeUnit.MILLISECONDS)
+    }
+
+    /**
+     * Increment a named counter by `value`. Auto-creates the counter on first use.
+     * Tags are applied as-is; the standard default tags are added by the registry.
+     */
+    @NamedVariant
+    void recordCount(
+        @NamedParam(required = true) String name,
+        @NamedParam(required = true) double value,
+        @NamedParam Map<String, String> tags = [:]
+    ) {
+        registry.counter(name, toTags(tags)).increment(value)
+    }
+
+    /**
+     * Record a batch of metric entries, each a Map with `type` ('timer' | 'count'),
+     * `name`, `value`, and optional `tags`. Used by the client-side metrics endpoint.
+     */
+    void submitClientMetrics(List<Map> entries) {
+        entries.each { Map e ->
+            def name = e.name as String,
+                value = e.value as Number,
+                tags = (e.tags ?: [:]) as Map<String, String>
+            if (!name || value == null) {
+                logWarn('Skipping invalid metric entry', e)
+                return
+            }
+
+            switch (e.type) {
+                case 'timer': recordTimer(name, value.doubleValue(), tags); break
+                case 'count': recordCount(name, value.doubleValue(), tags); break
+                default: logWarn('Unknown metric type', e)
+            }
+        }
+    }
+
+    private static List<Tag> toTags(Map<String, String> tags) {
+        tags.collect { k, v -> Tag.of(k, v) }
+    }
 
     /** List of metric names published to export sinks. */
     List<String> getPublishedMetrics() {
@@ -183,7 +239,7 @@ class MetricsService extends BaseService {
     }
 
     private static boolean isDefaultHoistSource(String name) {
-        ['hoist.', 'jdbc.', 'jvm.', 'system.', 'process.', 'disk.', 'logback.', 'tomcat.']
+        ['hoist.', 'xh.', 'jdbc.', 'jvm.', 'system.', 'process.', 'disk.', 'logback.', 'tomcat.']
             .any { name.startsWith(it) }
     }
 
