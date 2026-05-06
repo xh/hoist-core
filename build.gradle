@@ -38,7 +38,7 @@ repositories {
 dependencies {
 
     constraints {
-        api("org.apache.mina:mina-core:2.2.4") {
+        api("org.apache.mina:mina-core:2.2.6") {
             because "CVE-2024-52046 - deserialization vulnerability in < 2.2.4"
         }
     }
