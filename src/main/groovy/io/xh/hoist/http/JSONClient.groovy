@@ -11,15 +11,19 @@ import groovy.transform.CompileStatic
 import io.xh.hoist.exception.ExternalHttpException
 import io.xh.hoist.telemetry.trace.SpanRef
 import io.xh.hoist.json.JSONParser
+import org.apache.hc.client5.http.config.RequestConfig
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
 import org.apache.hc.client5.http.impl.classic.HttpClients
+import org.apache.hc.core5.util.Timeout
 
 import static io.opentelemetry.api.trace.SpanKind.CLIENT
 import static io.xh.hoist.telemetry.ObservedRun.observe
+import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.StringUtils.elide
 import static io.xh.hoist.util.Utils.traceContextService
+import static org.apache.hc.core5.http.HttpStatus.SC_GATEWAY_TIMEOUT
 import static org.apache.hc.core5.http.HttpStatus.SC_NO_CONTENT
 import static org.apache.hc.core5.http.HttpStatus.SC_OK
 
@@ -50,14 +54,13 @@ class JSONClient {
      * Execute and parse a request expected to return a single JSON object.
      */
     Map executeAsMap(HttpUriRequestBase method) {
-        def response = null
-        try {
-            response = execute(method)
-            def statusCode = response.code
-            if (statusCode == SC_NO_CONTENT) return null
-            return JSONParser.parseObject(response.entity.content)
+        TimerTask abortTask = getAbortTask(method)
+        try (CloseableHttpResponse response = execute(method)) {
+            return response.code == SC_NO_CONTENT
+                ? null
+                : JSONParser.parseObject(response.entity.content)
         } finally {
-            response?.close()
+            abortTask?.cancel()
         }
     }
 
@@ -65,14 +68,13 @@ class JSONClient {
      * Execute and parse a request expected to return an array of JSON objects.
      */
     List executeAsList(HttpUriRequestBase method) {
-        def response = null
-        try {
-            response = execute(method)
-            def statusCode = response.code
-            if (statusCode == SC_NO_CONTENT) return null
-            return JSONParser.parseArray(response.entity.content)
+        TimerTask abortTask = getAbortTask(method)
+        try (CloseableHttpResponse response = execute(method)) {
+            return response.code == SC_NO_CONTENT
+                ? null
+                : JSONParser.parseArray(response.entity.content)
         } finally {
-            response?.close()
+            abortTask?.cancel()
         }
     }
 
@@ -80,14 +82,11 @@ class JSONClient {
      * Execute request and return raw content string.
      */
     String executeAsString(HttpUriRequestBase method) {
-        def response = null
-        try {
-            response = execute(method)
-            def statusCode = response.code
-            if (statusCode == SC_NO_CONTENT) return null
-            return response.entity.content.text
+        TimerTask abortTask = getAbortTask(method)
+        try (CloseableHttpResponse response = execute(method)) {
+            return response.code == SC_NO_CONTENT ? null : response.entity.content.text
         } finally {
-            response?.close()
+            abortTask?.cancel()
         }
     }
 
@@ -95,12 +94,11 @@ class JSONClient {
      * Execute request and return status code only.
      */
     Integer executeAsStatusCode(HttpUriRequestBase method) {
-        def response = null
-        try {
-            response = execute(method)
+        TimerTask abortTask = getAbortTask(method)
+        try (CloseableHttpResponse response = execute(method)) {
             return response.code
         } finally {
-            response?.close()
+            abortTask?.cancel()
         }
     }
 
@@ -134,6 +132,10 @@ class JSONClient {
         } catch (Throwable e) {
             cause = e
             statusText = e.message
+            if (method.aborted) {
+                statusCode = SC_GATEWAY_TIMEOUT
+                statusText = 'aborted after exceeding configured timeout'
+            }
             success = false
         }
 
@@ -207,6 +209,35 @@ class JSONClient {
         } catch (Exception ignored) {
             return null
         }
+    }
+
+    //------------------------
+    // Hard abort backstop
+    //------------------------
+    // Apache HttpClient's RequestConfig timeouts (connect / response / connectionRequest) do not
+    // always reliably abort an in-flight request. We schedule an explicit `abort()` as
+    // a backstop so request threads are reliably released. See xh/hoist-core#241.
+    private static final java.util.Timer ABORT_TIMER = new java.util.Timer('JSONClientAbort', true)
+
+    private static TimerTask getAbortTask(HttpUriRequestBase method) {
+        // Only act when the caller has bounded the response phase
+        RequestConfig config = method.config
+        long responseMs = timeoutMs(config?.responseTimeout)
+        if (responseMs <= 0) return null
+
+        // Add headroom for connect time + grace period so HttpClient's own timeout machinery can fire
+        long deadlineMs = responseMs + timeoutMs(config.connectionRequestTimeout) + 5 * SECONDS
+        TimerTask task = new TimerTask() {
+            void run() {
+                try { method.abort() } catch (Throwable ignored) {}
+            }
+        }
+        ABORT_TIMER.schedule(task, deadlineMs)
+        return task
+    }
+
+    private static long timeoutMs(Timeout t) {
+        (t == null || t.disabled) ? 0L : t.toMilliseconds()
     }
 
 }
