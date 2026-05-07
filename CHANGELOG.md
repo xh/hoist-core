@@ -20,8 +20,14 @@
 * Fixed `StandardMetricsService` JDBC pool metrics throwing NPE when JDBC tracing is enabled,
   and hardened `MetricsAdminService.listMetrics()` so a single throwing meter no longer breaks
   the admin metrics view.
-* `JSONClient` now hard-aborts requests that exceed their `responseTimeout`, surfacing as a
-  504 `ExternalHttpException` instead of hanging the request thread (#241).
+* `JSONClient` now exposes a single `timeoutMs` that bounds the total duration of every
+  request, settable per-client (constructor) or per-call (optional method arg). When
+  exceeded, the in-flight request is forcibly aborted and surfaces as a 504
+  `ExternalHttpException`. Replaces the prior approach of reading
+  `RequestConfig.responseTimeout` off the request — Apache HttpClient's per-phase timeouts
+  have no end-to-end deadline and have documented gaps for proxy CONNECT, TLS handshake,
+  slow-trickle responses, and retries. Constructor accepts named or positional args, e.g.
+  `new JSONClient(timeoutMs: 5000)` or `new JSONClient(customClient, 5000)` (#241).
 
 
 ## 39.0.1 - 2026-04-30
