@@ -7,6 +7,11 @@
 * OTLP exports now include a `service.build.id` resource attribute alongside `service.version`.
 * `RestController` `update` now also accepts `PATCH` (in addition to `PUT`).
 
+### 🐞 Bug Fixes
+
+* User comments submitted via the exception dialog now merge onto the matching prior auto-logged
+  client error instead of creating a duplicate row + duplicate email.
+
 ### 🤖 AI Docs + Tooling
 
 * Fidelity and ergonomics improvements to `hoist-core-symbols` / `hoist-core-docs` (CLI + MCP):
