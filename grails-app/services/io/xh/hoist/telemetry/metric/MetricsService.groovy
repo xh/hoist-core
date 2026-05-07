@@ -215,12 +215,11 @@ class MetricsService extends BaseService {
                 _otlpRegistry = null
             }
             if (otlpEnabled) {
-                Map<String, ?> otlpConf = [
-                    *: (config.otlpConfig ?: [:]),
-                    resourceAttributes: otelResourceAttributes.collect { k, v -> "${k}=${v}" }.join(',')
-                ]
+                Map<String, ?> otlpConf = new LinkedHashMap<String, Object>()
+                otlpConf.putAll(config.otlpConfig ?: [:])
+                otlpConf.resourceAttributes = otelResourceAttributes.collect { k, v -> "${k}=${v}" }.join(',')
                 Map<String, String> conf = prefixKeys('otlp', otlpConf)
-                _otlpRegistry = new OtlpMeterRegistry({conf[it]} as OtlpConfig, Clock.SYSTEM)
+                _otlpRegistry = new OtlpMeterRegistry({ String k -> conf[k] } as OtlpConfig, Clock.SYSTEM)
                 _otlpRegistry.config().meterFilter(publishFilter)
                 regs.add(_otlpRegistry)
             }
