@@ -6,10 +6,11 @@
 
 * OTLP exports now include a `service.build.id` resource attribute alongside `service.version`.
 * `RestController` `update` now also accepts `PATCH` (in addition to `PUT`).
-* When a user submits a comment via the exception dialog, `TrackService` now merges it onto the
-  matching prior auto-logged client error (same user, same `data.error`, within 30m) instead of
-  creating a duplicate row. `ClientErrorEmailService` sends a follow-up "User Comment Added"
-  email on the new `xhClientErrorCommented` topic.
+
+### 🐞 Bug Fixes
+
+* User comments submitted via the exception dialog now merge onto the matching prior auto-logged
+  client error instead of creating a duplicate row + duplicate email.
 
 ### 🤖 AI Docs + Tooling
 
