@@ -148,11 +148,12 @@ class JSONClient {
                 statusText = statusCode.toString()
             }
         } catch (Throwable e) {
-            cause = e
-            statusText = e.message
             if (abort.fired) {
                 statusCode = SC_GATEWAY_TIMEOUT
-                statusText = "aborted after exceeding ${timeoutMs}ms timeout"
+                statusText = "Aborted after exceeding ${timeoutMs}ms timeout"
+            } else {
+                cause = e
+                statusText = e.message
             }
             success = false
         }
