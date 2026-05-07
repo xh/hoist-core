@@ -45,6 +45,11 @@ class ClientErrorEmailService extends BaseService {
             delay: 15 * DateTimeUtils.SECONDS,
             primaryOnly: true
         )
+        subscribeToTopic(
+            topic: 'xhClientErrorCommented',
+            primaryOnly: true,
+            onMessage: { TrackLog tl -> sendCommentMail(tl) }
+        )
     }
 
     //------------------
@@ -82,6 +87,16 @@ class ClientErrorEmailService extends BaseService {
             emailService.sendEmail(async: true, to: to, subject: subject, html: html)
             emailsSent++
         }
+    }
+
+    // Sent immediately when a user-comment supplement is merged onto a prior client error.
+    private void sendCommentMail(TrackLog tl) {
+        def to = toAddress
+        if (!to) return
+        def subject = "$appName Client Error - User Comment Added"
+        logInfo('Sending user-comment supplement email', [trackLogId: tl.id, to: to])
+        emailService.sendEmail(async: true, to: to, subject: subject, html: formatSingle(tl))
+        emailsSent++
     }
 
     private String formatSingle(TrackLog tl, boolean withDetails = true) {
