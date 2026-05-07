@@ -92,11 +92,12 @@ class ClientErrorEmailService extends BaseService {
     // Sent immediately when a user-comment supplement is merged onto a prior client error.
     private void sendCommentMail(TrackLog tl) {
         def to = toAddress
-        if (!to) return
-        def subject = "$appName Client Error - User Comment Added"
-        logInfo('Sending user-comment supplement email', [trackLogId: tl.id, to: to])
-        emailService.sendEmail(async: true, to: to, subject: subject, html: formatSingle(tl))
-        emailsSent++
+        if (to) {
+            def subject = "$appName Client Error - User Comment Added"
+            logInfo('Sending user-comment supplement email', [trackLogId: tl.id, to: to])
+            emailService.sendEmail(async: true, to: to, subject: subject, html: formatSingle(tl))
+            emailsSent++
+        }
     }
 
     private String formatSingle(TrackLog tl, boolean withDetails = true) {

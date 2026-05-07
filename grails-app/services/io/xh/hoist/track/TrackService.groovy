@@ -247,11 +247,13 @@ class TrackService extends BaseService {
         Map rawData = entry.rawData as Map
         String userMessage = rawData?.userMessage
         Map errorData = rawData?.error as Map
-        if (!userMessage || !errorData) return false
+        String loadId = entry.loadId as String
+        if (!userMessage || !errorData || !loadId) return false
 
-        Date cutoff = new Date(System.currentTimeMillis() - 30 * MINUTES)
-        List<TrackLog> candidates = TrackLog.findAllByCategoryAndUsernameAndDateCreatedGreaterThanEquals(
-            'Client Error', entry.username as String, cutoff,
+        // Match within the same app load (same browser tab session) for safety.
+        Date cutoff = new Date(System.currentTimeMillis() - 15 * MINUTES)
+        List<TrackLog> candidates = TrackLog.findAllByCategoryAndUsernameAndLoadIdAndDateCreatedGreaterThanEquals(
+            'Client Error', entry.username as String, loadId, cutoff,
             [max: 10, sort: 'dateCreated', order: 'desc']
         )
         TrackLog prior = candidates.find { p ->
