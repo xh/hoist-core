@@ -48,7 +48,7 @@ class ClientErrorEmailService extends BaseService {
         subscribeToTopic(
             topic: 'xhClientErrorCommented',
             primaryOnly: true,
-            onMessage: { TrackLog tl -> sendCommentMail(tl) }
+            onMessage: this.&sendCommentMail
         )
     }
 
