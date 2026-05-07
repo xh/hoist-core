@@ -5,6 +5,7 @@
 ### 🎁 New Features
 
 * OTLP exports now include a `service.build.id` resource attribute alongside `service.version`.
+* `RestController` `update` now also accepts `PATCH` (in addition to `PUT`).
 
 ### 🤖 AI Docs + Tooling
 
