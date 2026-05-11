@@ -7,6 +7,7 @@
 
 package io.xh.hoist.track
 
+import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
@@ -166,6 +167,10 @@ class TrackService extends BaseService {
                         TimestampedLogEntry logEntry = createLogEntry(it)
                         trackLoggingService.logEntry(logEntry)
 
+                        // If this is a user-comment supplement to a recent identical client
+                        // error, merge it onto the prior row instead of creating a duplicate.
+                        if (doPersist && tryMergeClientErrorComment(it)) return
+
                         TrackLog tl = createTrackLog(it)
                         if (doPersist && isSeverityActive(tl)) {
                             tl.save()
@@ -231,6 +236,40 @@ class TrackService extends BaseService {
             browser       : getBrowser(currentRequest),
             device        : getDevice(currentRequest)
         ]
+    }
+
+    // If `entry` is a Client Error carrying a userMessage and matching a recent prior row that
+    // lacks one, merge the comment onto that prior row and publish `xhClientErrorCommented`.
+    // Returns true if merged (caller should then skip creating a new row).
+    @CompileDynamic
+    private boolean tryMergeClientErrorComment(Map entry) {
+        if (entry.category != 'Client Error') return false
+        Map rawData = entry.rawData as Map
+        String userMessage = rawData?.userMessage
+        Map errorData = rawData?.error as Map
+        String loadId = entry.loadId as String
+        String username = entry.username as String
+        if (!userMessage || !errorData || !loadId) return false
+
+        // Match within the same app load (same browser tab session) for safety.
+        Date cutoff = new Date(System.currentTimeMillis() - 15 * MINUTES)
+        List<TrackLog> candidates = TrackLog.findAllByCategoryAndUsernameAndLoadIdAndDateCreatedGreaterThanEquals(
+            'Client Error', username, loadId, cutoff,
+            [max: 10, sort: 'dateCreated', order: 'desc']
+        )
+        TrackLog prior = candidates.find { p ->
+            Map d = p.dataAsObject
+            d && !d.userMessage && d.error == errorData
+        }
+        if (!prior) return false
+
+        Map merged = prior.dataAsObject
+        merged.userMessage = userMessage
+        prior.data = serialize(merged)
+        prior.save()
+        getTopic('xhClientErrorCommented').publishAsync(prior)
+        logDebug('Merged user comment onto prior client error', [trackLogId: prior.id])
+        return true
     }
 
     private TrackLog createTrackLog(Map entry) {
