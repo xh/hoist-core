@@ -111,7 +111,7 @@ class ObservedRun {
         @NamedParam Map<String, ?> tags = [:],
         @NamedParam SpanKind kind = SpanKind.INTERNAL
     ) {
-        spanArgs = [name: prefixed(name), kind: kind, tags: tags, caller: caller]
+        spanArgs = [name: name, kind: kind, tags: tags, caller: caller]
         this
     }
 
@@ -128,7 +128,7 @@ class ObservedRun {
         @NamedParam(required = true) String name,
         @NamedParam Map<String, String> tags = [:]
     ) {
-        timerName = prefixed(name)
+        timerName = name
         timerTags = tags
         this
     }
@@ -143,7 +143,7 @@ class ObservedRun {
         @NamedParam(required = true) String name,
         @NamedParam Map<String, String> tags = [:]
     ) {
-        counterName = prefixed(name)
+        counterName = name
         counterTags = tags
         this
     }
@@ -225,14 +225,6 @@ class ObservedRun {
         }
 
         return inner
-    }
-
-    /** Prepend `caller.telemetryPrefix` (if defined and non-empty) to the given metric/span name. */
-    private String prefixed(String name) {
-        if (caller == null) return name
-        def mp = InvokerHelper.getMetaClass(caller).hasProperty(caller, 'telemetryPrefix')
-        def prefix = mp?.getProperty(caller)
-        prefix ? "${prefix}.${name}" : name
     }
 
     private static TraceService getTraceService() {
