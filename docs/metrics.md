@@ -49,25 +49,36 @@ framework and application meters register through.
 
 ### Registry and meter registration
 
-Access the registry via `metricsService.registry`. This is a standard Micrometer
-`CompositeMeterRegistry` — all Micrometer meter builders (Gauge, Counter, Timer, etc.) work as
-documented in the [Micrometer docs](https://micrometer.io/docs).
+Access the registry via `metricsService.registry` — a standard Micrometer
+`CompositeMeterRegistry` that supports all Micrometer meter builders directly. For convenience,
+`BaseService` provides four `createMetricXxx` helpers that wrap the common cases, apply the
+service's `telemetryPrefix`, register on `metricsService.registry`, and accept default `tags`:
+
+| Helper | Use for |
+|---|---|
+| `createMetricTimer(name, description?, tags?, percentiles?, slos?, publishHistogram?, minExpected?, maxExpected?)` | Configures distribution stats and metadata for a named Timer. |
+| `createMetricCounter(name, description?, tags?)` | Configures descriptive metadata for a named Counter. |
+| `createMetricGauge(name, valueFn, description?, tags?)` | Registers a Gauge whose value is read from `valueFn` on demand. |
+| `createMetricFunctionCounter(name, countFn, description?, tags?)` | Registers a monotonically-increasing FunctionCounter from `countFn`. |
 
 ```groovy
-import io.micrometer.core.instrument.Gauge
-
 class MyService extends BaseService {
 
-    MetricsService metricsService
+    String telemetryPrefix = 'myService'
 
     void init() {
-        Gauge.builder('myService.queueDepth', this, { queueSize() as double })
-            .description('Current items in processing queue')
-            .baseUnit('items')
-            .register(metricsService.registry)
+        createMetricGauge(
+            name: 'queueDepth',
+            description: 'Current items in processing queue',
+            valueFn: { queueSize() }
+        )
     }
 }
 ```
+
+For meter shapes the helpers don't cover (e.g. `DistributionSummary`), use the underlying
+`metricsService.registry` directly with the Micrometer builder API — remember to prefix the
+metric name yourself, e.g. `"${telemetryPrefix}.myMeter"`.
 
 ### Default tags
 

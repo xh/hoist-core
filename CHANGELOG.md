@@ -5,24 +5,28 @@
 ### ⚠️ Breaking Changes (minor)
 * Removed `ObservedRun.timer(Timer)` and `ObservedRun.counter(Counter)` - the pre-built-instance
   variants. Use the by-name forms `timer(name: ...)` / `counter(name: ...)` and configure
-  Timer-level options centrally via `MetricsService.configureTimer`.
+  Timer-level options centrally via `BaseService.createMetricTimer` (see below).
 * `ObservedRun.counter(name: ...)` semantic changed: previously incremented before the closure
-  ran (counted attempts), now increments on completion alongside the timer. Both timer and
-  counter now attach an `xh.outcome` tag with value `success` or `failure` based on whether
-  the closure threw.
+  ran (counted attempts), now increments on completion alongside the timer.
 
 
 ### 🎁 New Features
 
+* Expanded support for registering metrics and spans on `BaseService`:
+  * New `createMetricTimer` / `createMetricCounter` / `createMetricGauge` /
+    `createMetricFunctionCounter` helpers that wrap the matching new
+    `MetricsService.createXxx` registrations.
+  * Each helper accepts `description` and default `tags`; the Timer variant additionally
+    accepts `percentiles`, `slos`, `publishHistogram`, and `minExpected` / `maxExpected`
+    histogram bounds.
+  * New `telemetryPrefix` property — when set on a subclass, is auto-prepended (with a
+    `.` separator) to meter and span names emitted through these helpers and through
+    `ObservedRun.span` / `.timer` / `.counter`.
+* `ObservedRun.timer` and `.counter` now attach an `xh.outcome` tag with value `success` or
+  `failure` based on whether the closure threw, making it trivial to slice timings and counts
+  by success rate.
 * Client-side metrics support: new `/xh/recordMetrics` endpoint accepts batched timer and counter
   entries from the JS client.
-* New `BaseService.configureTimer(name, ...)` and `BaseService.configureCounter(name, ...)` for
-  one-shot init-time configuration of named meters. `configureTimer` sets percentiles, SLOs,
-  and histogram bounds applied to all tagged variants of the configured name; both surface a
-  description in the admin metrics view.
-* New `BaseService.telemetryPrefix` property — when set on a subclass, is auto-prepended (with a
-  `.` separator) to metric and span names registered via `BaseService.configureMetricTimer` /
-  `configureMetricCounter` and `ObservedRun.span` / `.timer` / `.counter`.
 
 
 ## 39.1.0 - 2026-05-12

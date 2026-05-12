@@ -10,6 +10,8 @@ package io.xh.hoist.telemetry.metric
 import groovy.transform.CompileStatic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
+import io.micrometer.core.instrument.FunctionCounter
+import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.Meter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Tag
@@ -19,6 +21,7 @@ import io.micrometer.core.instrument.distribution.DistributionStatisticConfig
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import java.util.function.ToDoubleFunction
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry
 import io.micrometer.core.instrument.config.MeterFilter
 import io.micrometer.core.instrument.config.MeterFilterReply
@@ -94,14 +97,15 @@ class MetricsService extends BaseService {
     }
 
     /**
-     * Configure a named Timer with distribution statistics and metadata.
+     * Register a named Timer with distribution statistics and metadata.
      *
-     * Apply once at app init - typically from your app services `init()` method.
-     * Configuration is keyed by metric name and applies to all tagged variants of that name.
+     * Call once at app init — typically from a service `init()` method. Configuration is keyed
+     * by metric name and applies to all tagged variants of that name created later by
+     * {@link #recordTimer} or {@link io.xh.hoist.telemetry.ObservedRun#timer}.
      *
      * Distribution config (percentiles, slos, etc.) is applied via a {@link MeterFilter} and
-     * must be configured before the affected meters are first registered, otherwise the meter
-     * is created with the unfiltered config and this call has no effect for that instance.
+     * must be set before the affected meters are first recorded — otherwise the meter is
+     * created with the unfiltered config and this call has no effect for that instance.
      *
      * Description is stored in a side-map and surfaced through the admin metrics view; it is
      * not exported through Micrometer's {@code Meter.Id} description (which would require
@@ -109,6 +113,9 @@ class MetricsService extends BaseService {
      *
      * @param name              metric name (must match the name used at the call site)
      * @param description       human-readable description shown in the admin metrics view
+     * @param tags              default tags applied to every recorded variant of `name` —
+     *                          merged in at meter registration if not already present on the
+     *                          call site's tag set
      * @param percentiles       client-side percentiles to compute (e.g. [0.5, 0.95, 0.99])
      * @param slos              service-level-objective buckets for histogram output
      * @param publishHistogram  publish a percentile histogram for server-side aggregation
@@ -117,9 +124,10 @@ class MetricsService extends BaseService {
      * @param maxExpected       maximum expected value - used to size the histogram
      */
     @NamedVariant
-    void configureTimer(
+    void createTimer(
         @NamedParam(required = true) String name,
         @NamedParam String description = null,
+        @NamedParam Map<String, String> tags = null,
         @NamedParam List<Double> percentiles = null,
         @NamedParam List<Duration> slos = null,
         @NamedParam boolean publishHistogram = false,
@@ -129,6 +137,7 @@ class MetricsService extends BaseService {
         _timerSpecs[name] = new TimerSpec(
             name: name,
             description: description,
+            tags: tags,
             percentiles: percentiles,
             slos: slos,
             publishHistogram: publishHistogram,
@@ -138,17 +147,55 @@ class MetricsService extends BaseService {
     }
 
     /**
-     * Configure a named Counter with descriptive metadata.
+     * Configure a named Counter with descriptive metadata and optional default tags.
      *
      * Description is stored in a side-map and surfaced through the admin metrics view.
-     * Counters have no distribution config, so this is purely informational.
+     * `tags` are merged into every recorded variant of `name` if not already present.
      */
     @NamedVariant
-    void configureCounter(
+    void createCounter(
         @NamedParam(required = true) String name,
-        @NamedParam String description = null
+        @NamedParam String description = null,
+        @NamedParam Map<String, String> tags = null
     ) {
-        _counterSpecs[name] = new CounterSpec(name: name, description: description)
+        _counterSpecs[name] = new CounterSpec(name: name, description: description, tags: tags)
+    }
+
+    /**
+     * Register a Gauge that reads its current value from `valueFn` on demand.
+     *
+     * The closure may return any {@link Number} (including null — surfaced as `NaN`, which
+     * causes the gauge to skip emission rather than report a misleading `0`).
+     */
+    @NamedVariant
+    Gauge createGauge(
+        @NamedParam(required = true) String name,
+        @NamedParam(required = true) Closure<? extends Number> valueFn,
+        @NamedParam String description = null,
+        @NamedParam Map<String, String> tags = null
+    ) {
+        Gauge.builder(name, this, { valueFn.call()?.doubleValue() ?: Double.NaN } as ToDoubleFunction)
+            .description(description)
+            .tags(toTags(tags ?: [:]))
+            .register(registry)
+    }
+
+    /**
+     * Register a FunctionCounter that reads a monotonically-increasing total from `countFn`.
+     *
+     * Null returns are treated as `0` to preserve the monotonic-counter contract.
+     */
+    @NamedVariant
+    FunctionCounter createFunctionCounter(
+        @NamedParam(required = true) String name,
+        @NamedParam(required = true) Closure<? extends Number> countFn,
+        @NamedParam String description = null,
+        @NamedParam Map<String, String> tags = null
+    ) {
+        FunctionCounter.builder(name, this, { countFn.call()?.doubleValue() ?: 0d } as ToDoubleFunction)
+            .description(description)
+            .tags(toTags(tags ?: [:]))
+            .register(registry)
     }
 
     /** Lookup the description for a named Timer or Counter, or null if none configured. */
@@ -269,7 +316,7 @@ class MetricsService extends BaseService {
     // Implementation
     //------------------------
     private void applyFilters() {
-        // Apply per-name distribution config from configureTimer() specs
+        // Apply per-name distribution config from createTimer() specs
         registry.config().meterFilter(new MeterFilter() {
             DistributionStatisticConfig configure(Meter.Id id, DistributionStatisticConfig config) {
                 def spec = _timerSpecs[id.name]
@@ -306,6 +353,16 @@ class MetricsService extends BaseService {
 
                 // apply default tags (including source) if not present
                 ['xh.application': appCode, 'xh.instance': instanceName, 'xh.source': source].each { k, v ->
+                    if (!id.getTag(k)) {
+                        id = id.withTags(Tags.of(k, v))
+                    }
+                }
+
+                // apply spec-defined default tags if not present
+                TimerSpec ts = _timerSpecs[name]
+                CounterSpec cs = _counterSpecs[name]
+                Map<String, String> specTags = ts?.tags ?: cs?.tags
+                specTags?.each { String k, String v ->
                     if (!id.getTag(k)) {
                         id = id.withTags(Tags.of(k, v))
                     }

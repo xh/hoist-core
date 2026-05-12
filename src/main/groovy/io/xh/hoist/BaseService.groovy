@@ -17,6 +17,8 @@ import grails.util.GrailsClassUtils
 import groovy.transform.CompileDynamic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
+import io.micrometer.core.instrument.FunctionCounter
+import io.micrometer.core.instrument.Gauge
 import io.opentelemetry.api.trace.SpanKind
 import io.xh.hoist.cache.Cache
 import io.xh.hoist.cachedvalue.CachedValue
@@ -76,12 +78,9 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
 
     /**
-     * Prefix prepended (with a `.` separator) to timer, counter and span names configured through
+     * Prefix prepended (with a `.` separator) to meter and span names configured through
      * this service or accessed via {@link ObservedRun}. Set on subclasses to namespace telemetry
      * emitted by this service.
-     *
-     * Meters built and registered directly via the Micrometer API (e.g. {@code Gauge.builder})
-     * bypass this helper — apply the prefix manually, e.g. {@code "${telemetryPrefix}.myGauge"}.
      */
     String telemetryPrefix = null
 
@@ -328,15 +327,16 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     /**
      * Configure distribution stats and metadata for a named Timer.
      *
-     *  See {@link MetricsService#configureTimer} for details on the remaining arguments.
+     *  See {@link MetricsService#createTimer} for details on the remaining arguments.
      *
      * When `useNamePrefix` is true (the default), {@link #telemetryPrefix} is prepended to
      * `name`.
      */
     @NamedVariant
-    void configureMetricTimer(
+    void createMetricTimer(
         @NamedParam(required = true) String name,
         @NamedParam String description = null,
+        @NamedParam Map<String, String> tags = null,
         @NamedParam List<Double> percentiles = null,
         @NamedParam List<Duration> slos = null,
         @NamedParam boolean publishHistogram = false,
@@ -344,9 +344,10 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         @NamedParam Duration maxExpected = null,
         @NamedParam boolean useNamePrefix = true
     ) {
-        metricsService.configureTimer(
+        metricsService.createTimer(
             name: applyTelemetryPrefix(useNamePrefix, name),
             description: description,
+            tags: tags,
             percentiles: percentiles,
             slos: slos,
             publishHistogram: publishHistogram,
@@ -358,19 +359,63 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     /**
      * Configure descriptive metadata for a named Counter.
      *
-     * See {@link MetricsService#configureCounter} for more info.
+     * See {@link MetricsService#createCounter} for more info.
      *
      * When `useNamePrefix` is true (the default), {@link #telemetryPrefix} is prepended to  `name`.
      */
     @NamedVariant
-    void configureMetricCounter(
+    void createMetricCounter(
         @NamedParam(required = true) String name,
         @NamedParam String description = null,
+        @NamedParam Map<String, String> tags = null,
         @NamedParam boolean useNamePrefix = true
     ) {
-        metricsService.configureCounter(
+        metricsService.createCounter(
             name: applyTelemetryPrefix(useNamePrefix, name),
-            description: description
+            description: description,
+            tags: tags
+        )
+    }
+
+    /**
+     * Register a Gauge that reads its current value from `valueFn` on demand.
+     *
+     * When `useNamePrefix` is true (the default), {@link #telemetryPrefix} is prepended to `name`.
+     */
+    @NamedVariant
+    Gauge createMetricGauge(
+        @NamedParam(required = true) String name,
+        @NamedParam(required = true) Closure<? extends Number> valueFn,
+        @NamedParam String description = null,
+        @NamedParam Map<String, String> tags = null,
+        @NamedParam boolean useNamePrefix = true
+    ) {
+        metricsService.createGauge(
+            name: applyTelemetryPrefix(useNamePrefix, name),
+            valueFn: valueFn,
+            description: description,
+            tags: tags
+        )
+    }
+
+    /**
+     * Register a FunctionCounter that reads a monotonically-increasing total from `countFn`.
+     *
+     * When `useNamePrefix` is true (the default), {@link #telemetryPrefix} is prepended to `name`.
+     */
+    @NamedVariant
+    FunctionCounter createMetricFunctionCounter(
+        @NamedParam(required = true) String name,
+        @NamedParam(required = true) Closure<? extends Number> countFn,
+        @NamedParam String description = null,
+        @NamedParam Map<String, String> tags = null,
+        @NamedParam boolean useNamePrefix = true
+    ) {
+        metricsService.createFunctionCounter(
+            name: applyTelemetryPrefix(useNamePrefix, name),
+            countFn: countFn,
+            description: description,
+            tags: tags
         )
     }
 

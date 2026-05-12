@@ -11,7 +11,7 @@ import groovy.transform.CompileStatic
 import java.time.Duration
 
 /**
- * Internal storage type for {@link MetricsService#configureTimer} - holds the configuration
+ * Internal storage type for {@link MetricsService#createTimer} - holds the configuration
  * captured at init time so it can be applied via a {@link io.micrometer.core.instrument.config.MeterFilter}
  * and surfaced in the admin metrics view.
  *
@@ -21,6 +21,7 @@ import java.time.Duration
 class TimerSpec {
     String name
     String description
+    Map<String, String> tags
     List<Double> percentiles
     List<Duration> slos
     boolean publishHistogram

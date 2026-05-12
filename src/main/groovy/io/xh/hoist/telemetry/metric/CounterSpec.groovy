@@ -9,7 +9,7 @@ package io.xh.hoist.telemetry.metric
 import groovy.transform.CompileStatic
 
 /**
- * Internal storage type for {@link MetricsService#configureCounter} - holds the description
+ * Internal storage type for {@link MetricsService#createCounter} - holds the description
  * captured at init time so it can be surfaced in the admin metrics view.
  * @internal
  */
@@ -17,4 +17,5 @@ import groovy.transform.CompileStatic
 class CounterSpec {
     String name
     String description
+    Map<String, String> tags
 }
