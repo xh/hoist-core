@@ -1,6 +1,6 @@
 # Changelog
 
-## 40.0-SNAPSHOT - unreleased
+## 39.1.0 - 2026-05-12
 
 ### 🎁 New Features
 
@@ -26,9 +26,9 @@
   and hardened `MetricsAdminService.listMetrics()` so a single throwing meter no longer breaks
   the admin metrics view.
 * `JSONClient` now exposes a single `timeoutMs` that bounds the total duration of every
-  request, settable per-client (constructor) or per-call (optional method arg). Offers an 
-  a simpler alternative to the prior approach of setting `RequestConfig.responseTimeout` on 
-  the request — Apache HttpClient's per-phase timeouts have no end-to-end deadline and have 
+  request, settable per-client (constructor) or per-call (optional method arg). Offers an
+  a simpler alternative to the prior approach of setting `RequestConfig.responseTimeout` on
+  the request — Apache HttpClient's per-phase timeouts have no end-to-end deadline and have
   documented gaps.
 
 ## 39.0.1 - 2026-04-30
