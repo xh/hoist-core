@@ -1,6 +1,6 @@
 # Changelog
 
-## 40.0-SNAPSHOT - unreleased
+## 39.1.0 - 2026-05-12
 
 ### ⚠️ Breaking Changes (minor)
 * Removed `ObservedRun.timer(Timer)` and `ObservedRun.counter(Counter)` - the pre-built-instance
