@@ -1,6 +1,6 @@
 # Changelog
 
-## 39.1.0 - 2026-05-12
+## 40.0.0-SNAPSHOT - unreleased
 
 ### ⚠️ Breaking Changes (minor)
 * Removed `ObservedRun.timer(Timer)` and `ObservedRun.counter(Counter)` - the pre-built-instance
@@ -23,6 +23,12 @@
 * New `BaseService.telemetryPrefix` property — when set on a subclass, is auto-prepended (with a
   `.` separator) to metric and span names registered via `BaseService.configureMetricTimer` /
   `configureMetricCounter` and `ObservedRun.span` / `.timer` / `.counter`.
+
+
+## 39.1.0 - 2026-05-12
+
+### 🎁 New Features
+
 * OTLP exports now include a `service.build.id` resource attribute alongside `service.version`.
 * `RestController` `update` now also accepts `PATCH` (in addition to `PUT`).
 
@@ -41,9 +47,7 @@
   `src/main/groovy/`, surfacing types previously missing from search and member listings
   (e.g. `JSONSerializer`, `JSONParser`, `JSONFormat`, `CollectionUtils`, `RoutineException`).
 
-### 🐞 Bug Fixes
-
-* Fixed JDBC pool metrics throwing NPE when JDBC tracing is enabled,
+* Fixed `StandardMetricsService` JDBC pool metrics throwing NPE when JDBC tracing is enabled,
   and hardened `MetricsAdminService.listMetrics()` so a single throwing meter no longer breaks
   the admin metrics view.
 * `JSONClient` now exposes a single `timeoutMs` that bounds the total duration of every
