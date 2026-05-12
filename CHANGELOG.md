@@ -1,5 +1,7 @@
 # Changelog
 
+## 40.0-SNAPSHOT - unreleased
+
 ## 39.1.0 - 2026-05-12
 
 ### 🎁 New Features
