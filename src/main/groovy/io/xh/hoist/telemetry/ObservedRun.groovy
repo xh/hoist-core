@@ -10,12 +10,12 @@ import groovy.transform.CompileStatic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
 import io.opentelemetry.api.trace.SpanKind
+import io.xh.hoist.BaseService
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.telemetry.metric.MetricsService
 import io.xh.hoist.telemetry.trace.SpanRef
 import io.xh.hoist.telemetry.trace.TraceService
 import io.xh.hoist.util.Utils
-import org.codehaus.groovy.runtime.InvokerHelper
 
 import static java.lang.System.currentTimeMillis
 
@@ -104,14 +104,22 @@ class ObservedRun {
     //---------------------------
     // Span configuration
     //---------------------------
-    /** Configure a trace span. See {@link TraceService#createSpan} for parameter documentation. */
+    /**
+     * Configure a trace span.
+     *
+     * See {@link TraceService#createSpan} for more info.
+     *
+     * When `useNamePrefix` is true (the default), and the caller is a BaseService,
+     * {@link BaseService#getTelemetryPrefix} is prepended to `name`.
+     */
     @NamedVariant
     ObservedRun span(
         @NamedParam(required = true) String name,
         @NamedParam Map<String, ?> tags = [:],
-        @NamedParam SpanKind kind = SpanKind.INTERNAL
+        @NamedParam SpanKind kind = SpanKind.INTERNAL,
+        @NamedParam boolean useNamePrefix = true
     ) {
-        spanArgs = [name: name, kind: kind, tags: tags, caller: caller]
+        spanArgs = [name: applyPrefix(useNamePrefix, name), kind: kind, tags: tags, caller: caller]
         this
     }
 
@@ -122,13 +130,17 @@ class ObservedRun {
      * Record elapsed time on a Timer with the given metric name and optional tags. On completion,
      * an {@code xh.outcome} tag is added with value {@code success} or {@code failure} based
      * on whether the closure threw.
+     *
+     * When `useNamePrefix` is true (the default), and the caller is a BaseService,
+     * {@link BaseService#getTelemetryPrefix} is prepended to `name`.
      */
     @NamedVariant
     ObservedRun timer(
         @NamedParam(required = true) String name,
-        @NamedParam Map<String, String> tags = [:]
+        @NamedParam Map<String, String> tags = [:],
+        @NamedParam boolean useNamePrefix = true
     ) {
-        timerName = name
+        timerName = applyPrefix(useNamePrefix, name)
         timerTags = tags
         this
     }
@@ -137,13 +149,17 @@ class ObservedRun {
      * Increment a Counter with the given metric name and optional tags. On completion,
      * an {@code xh.outcome} tag is added with value {@code success} or {@code failure} based
      * on whether the closure threw.
+     *
+     * When `useNamePrefix` is true (the default), and the caller is a BaseService,
+     * {@link BaseService#getTelemetryPrefix} is prepended to `name`.
      */
     @NamedVariant
     ObservedRun counter(
         @NamedParam(required = true) String name,
-        @NamedParam Map<String, String> tags = [:]
+        @NamedParam Map<String, String> tags = [:],
+        @NamedParam boolean useNamePrefix = true
     ) {
-        counterName = name
+        counterName = applyPrefix(useNamePrefix, name)
         counterTags = tags
         this
     }
@@ -225,6 +241,12 @@ class ObservedRun {
         }
 
         return inner
+    }
+
+    private String applyPrefix(boolean useNamePrefix, String name) {
+        if (!useNamePrefix || !(caller instanceof BaseService)) return name
+        def prefix = ((BaseService) caller).telemetryPrefix
+        prefix ? "${prefix}.${name}" : name
     }
 
     private static TraceService getTraceService() {

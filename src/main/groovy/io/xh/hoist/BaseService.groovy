@@ -22,6 +22,7 @@ import io.xh.hoist.cache.Cache
 import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.telemetry.ObservedRun
+import io.xh.hoist.telemetry.metric.MetricsService
 import io.xh.hoist.telemetry.trace.TraceService
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.IdentitySupport
@@ -33,6 +34,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.DisposableBean
 
+import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
@@ -61,6 +63,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     IdentityService identityService
     ClusterService clusterService
     TraceService traceService
+    MetricsService metricsService
     Date initializedDate = null
     Date lastCachesCleared = null
 
@@ -71,6 +74,16 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
     private final Logger _log = LoggerFactory.getLogger(this.class)
 
+
+    /**
+     * Prefix prepended (with a `.` separator) to timer, counter and span names configured through
+     * this service or accessed via {@link ObservedRun}. Set on subclasses to namespace telemetry
+     * emitted by this service.
+     *
+     * Meters built and registered directly via the Micrometer API (e.g. {@code Gauge.builder})
+     * bypass this helper — apply the prefix manually, e.g. {@code "${telemetryPrefix}.myGauge"}.
+     */
+    String telemetryPrefix = null
 
     /**
      * Initialize a collection of BaseServices in parallel.
@@ -312,6 +325,55 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         observe().span(name, kind, tags)
     }
 
+    /**
+     * Configure distribution stats and metadata for a named Timer.
+     *
+     *  See {@link MetricsService#configureTimer} for details on the remaining arguments.
+     *
+     * When `useNamePrefix` is true (the default), {@link #telemetryPrefix} is prepended to
+     * `name`.
+     */
+    @NamedVariant
+    void configureMetricTimer(
+        @NamedParam(required = true) String name,
+        @NamedParam String description = null,
+        @NamedParam List<Double> percentiles = null,
+        @NamedParam List<Duration> slos = null,
+        @NamedParam boolean publishHistogram = false,
+        @NamedParam Duration minExpected = null,
+        @NamedParam Duration maxExpected = null,
+        @NamedParam boolean useNamePrefix = true
+    ) {
+        metricsService.configureTimer(
+            name: applyTelemetryPrefix(useNamePrefix, name),
+            description: description,
+            percentiles: percentiles,
+            slos: slos,
+            publishHistogram: publishHistogram,
+            minExpected: minExpected,
+            maxExpected: maxExpected
+        )
+    }
+
+    /**
+     * Configure descriptive metadata for a named Counter.
+     *
+     * See {@link MetricsService#configureCounter} for more info.
+     *
+     * When `useNamePrefix` is true (the default), {@link #telemetryPrefix} is prepended to  `name`.
+     */
+    @NamedVariant
+    void configureMetricCounter(
+        @NamedParam(required = true) String name,
+        @NamedParam String description = null,
+        @NamedParam boolean useNamePrefix = true
+    ) {
+        metricsService.configureCounter(
+            name: applyTelemetryPrefix(useNamePrefix, name),
+            description: description
+        )
+    }
+
     //-------------------------------
     // Core template methods for override
     //-----------------------------------
@@ -438,5 +500,9 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         }
         resources[name] = resource
         return resource
+    }
+
+    private String applyTelemetryPrefix(boolean useNamePrefix, String name) {
+        useNamePrefix && telemetryPrefix ? "${telemetryPrefix}.${name}" : name
     }
 }

@@ -16,10 +16,13 @@
 
 * Client-side metrics support: new `/xh/recordMetrics` endpoint accepts batched timer and counter
   entries from the JS client.
-* New `MetricsService.configureTimer(name, ...)` and `configureCounter(name, ...)` for
+* New `BaseService.configureTimer(name, ...)` and `BaseService.configureCounter(name, ...)` for
   one-shot init-time configuration of named meters. `configureTimer` sets percentiles, SLOs,
   and histogram bounds applied to all tagged variants of the configured name; both surface a
   description in the admin metrics view.
+* New `BaseService.telemetryPrefix` property — when set on a subclass, is auto-prepended (with a
+  `.` separator) to metric and span names registered via `BaseService.configureMetricTimer` /
+  `configureMetricCounter` and `ObservedRun.span` / `.timer` / `.counter`.
 * OTLP exports now include a `service.build.id` resource attribute alongside `service.version`.
 * `RestController` `update` now also accepts `PATCH` (in addition to `PUT`).
 
