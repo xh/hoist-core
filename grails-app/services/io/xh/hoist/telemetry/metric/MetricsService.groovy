@@ -96,7 +96,7 @@ class MetricsService extends BaseService {
     /**
      * Configure a named Timer with distribution statistics and metadata.
      *
-     * Apply once at app init - typically from your app's metrics service or bootstrap.
+     * Apply once at app init - typically from your app services `init()` method.
      * Configuration is keyed by metric name and applies to all tagged variants of that name.
      *
      * Distribution config (percentiles, slos, etc.) is applied via a {@link MeterFilter} and
@@ -278,8 +278,8 @@ class MetricsService extends BaseService {
                 if (spec.percentiles) b.percentiles(spec.percentiles as double[])
                 if (spec.slos) b.serviceLevelObjectives(spec.slos.collect { it.toNanos() as double } as double[])
                 if (spec.publishHistogram) b.percentilesHistogram(true)
-                if (spec.minExpected) b.minimumExpectedValue(spec.minExpected.toNanos() as Double)
-                if (spec.maxExpected) b.maximumExpectedValue(spec.maxExpected.toNanos() as Double)
+                if (spec.minExpected != null) b.minimumExpectedValue(spec.minExpected.toNanos() as Double)
+                if (spec.maxExpected != null) b.maximumExpectedValue(spec.maxExpected.toNanos() as Double)
                 b.build().merge(config)
             }
         })
