@@ -3,6 +3,7 @@
 ## 40.0.0-SNAPSHOT - unreleased
 
 ### ⚠️ Breaking Changes (minor)
+
 * Removed `ObservedRun.timer(Timer)` and `ObservedRun.counter(Counter)` - the pre-built-instance
   variants. Use the by-name forms `timer(name: ...)` / `counter(name: ...)` and configure
   Timer-level options centrally via `BaseService.createMetricTimer` (see below).
