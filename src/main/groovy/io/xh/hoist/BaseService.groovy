@@ -327,7 +327,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     /**
      * Configure distribution stats and metadata for a named Timer.
      *
-     *  See {@link MetricsService#createTimer} for details on the remaining arguments.
+     *  See {@link MetricsService#configureTimer} for details on the remaining arguments.
      *
      * When `useNamePrefix` is true (the default), {@link #telemetryPrefix} is prepended to
      * `name`.
@@ -344,7 +344,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         @NamedParam Duration maxExpected = null,
         @NamedParam boolean useNamePrefix = true
     ) {
-        metricsService.createTimer(
+        metricsService.configureTimer(
             name: applyTelemetryPrefix(useNamePrefix, name),
             description: description,
             tags: tags,
@@ -359,7 +359,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     /**
      * Configure descriptive metadata for a named Counter.
      *
-     * See {@link MetricsService#createCounter} for more info.
+     * See {@link MetricsService#configureCounter} for more info.
      *
      * When `useNamePrefix` is true (the default), {@link #telemetryPrefix} is prepended to  `name`.
      */
@@ -370,7 +370,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         @NamedParam Map<String, String> tags = null,
         @NamedParam boolean useNamePrefix = true
     ) {
-        metricsService.createCounter(
+        metricsService.configureCounter(
             name: applyTelemetryPrefix(useNamePrefix, name),
             description: description,
             tags: tags
@@ -390,7 +390,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         @NamedParam Map<String, String> tags = null,
         @NamedParam boolean useNamePrefix = true
     ) {
-        metricsService.createGauge(
+        metricsService.registerGauge(
             name: applyTelemetryPrefix(useNamePrefix, name),
             valueFn: valueFn,
             description: description,
@@ -411,7 +411,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         @NamedParam Map<String, String> tags = null,
         @NamedParam boolean useNamePrefix = true
     ) {
-        metricsService.createFunctionCounter(
+        metricsService.registerFunctionCounter(
             name: applyTelemetryPrefix(useNamePrefix, name),
             countFn: countFn,
             description: description,

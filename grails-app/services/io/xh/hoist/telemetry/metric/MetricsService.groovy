@@ -124,7 +124,7 @@ class MetricsService extends BaseService {
      * @param maxExpected       maximum expected value - used to size the histogram
      */
     @NamedVariant
-    void createTimer(
+    void configureTimer(
         @NamedParam(required = true) String name,
         @NamedParam String description = null,
         @NamedParam Map<String, String> tags = null,
@@ -153,7 +153,7 @@ class MetricsService extends BaseService {
      * `tags` are merged into every recorded variant of `name` if not already present.
      */
     @NamedVariant
-    void createCounter(
+    void configureCounter(
         @NamedParam(required = true) String name,
         @NamedParam String description = null,
         @NamedParam Map<String, String> tags = null
@@ -168,7 +168,7 @@ class MetricsService extends BaseService {
      * causes the gauge to skip emission rather than report a misleading `0`).
      */
     @NamedVariant
-    Gauge createGauge(
+    Gauge registerGauge(
         @NamedParam(required = true) String name,
         @NamedParam(required = true) Closure<? extends Number> valueFn,
         @NamedParam String description = null,
@@ -186,7 +186,7 @@ class MetricsService extends BaseService {
      * Null returns are treated as `0` to preserve the monotonic-counter contract.
      */
     @NamedVariant
-    FunctionCounter createFunctionCounter(
+    FunctionCounter registerFunctionCounter(
         @NamedParam(required = true) String name,
         @NamedParam(required = true) Closure<? extends Number> countFn,
         @NamedParam String description = null,
