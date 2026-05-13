@@ -9,7 +9,6 @@ package io.xh.hoist.track
 
 
 import io.micrometer.core.instrument.Counter
-import io.micrometer.core.instrument.Tags
 import io.micrometer.core.instrument.Timer
 import io.xh.hoist.BaseService
 import io.xh.hoist.telemetry.metric.MetricsService
@@ -30,11 +29,43 @@ import java.util.concurrent.TimeUnit
  */
 class TrackMetricsService extends BaseService {
 
+    String telemetryPrefix = 'xh.client'
+
     MetricsService metricsService
 
     private final Map<String, AppMeters> metersByApp = new ConcurrentHashMap<>()
 
     void init() {
+        // Description, default tags, and distribution config are per-name — applied via the
+        // meter filter pipeline to all tagged variants registered later by AppMeters.
+        def defaultTags = ['xh.instance': 'cluster']
+        metricsService.configureCounter(
+            name: 'track.messages',
+            description: 'Track log entries received',
+            tags: defaultTags,
+            owner: this
+        )
+        metricsService.configureCounter(
+            name: 'track.errors',
+            description: 'Client error track entries',
+            tags: defaultTags,
+            owner: this
+        )
+        metricsService.configureTimer(
+            name: 'load.totalTime',
+            description: 'Total app load elapsed time',
+            tags: defaultTags,
+            publishHistogram: true,
+            owner: this
+        )
+        metricsService.configureTimer(
+            name: 'load.authTime',
+            description: 'App load authentication phase duration',
+            tags: defaultTags,
+            publishHistogram: true,
+            owner: this
+        )
+
         subscribeToTopic(
             topic: 'xhTrackReceived',
             onMessage: this.&onTrackReceived,
@@ -78,30 +109,13 @@ class TrackMetricsService extends BaseService {
         final Timer authTime
 
         AppMeters(String app, TrackMetricsService svc) {
-            def tags = Tags.of('xh.source', 'hoist', 'xh.instance', 'cluster', 'clientApp', app),
-                registry = svc.metricsService.registry
+            def tags = [clientApp: app],
+                ms = svc.metricsService
 
-            messages = Counter.builder('hoist.client.track.messages')
-                .description('Track log entries received')
-                .tags(tags)
-                .register(registry)
-
-            errors = Counter.builder('hoist.client.track.errors')
-                .description('Client error track entries')
-                .tags(tags)
-                .register(registry)
-
-            totalTime = Timer.builder('hoist.client.load.totalTime')
-                .description('Total app load elapsed time')
-                .tags(tags)
-                .publishPercentileHistogram()
-                .register(registry)
-
-            authTime = Timer.builder('hoist.client.load.authTime')
-                .description('App load authentication phase duration')
-                .tags(tags)
-                .publishPercentileHistogram()
-                .register(registry)
+            messages = ms.registerCounter(name: 'track.messages', tags: tags, owner: svc)
+            errors = ms.registerCounter(name: 'track.errors', tags: tags, owner: svc)
+            totalTime = ms.registerTimer(name: 'load.totalTime', tags: tags, owner: svc)
+            authTime = ms.registerTimer(name: 'load.authTime', tags: tags, owner: svc)
         }
     }
 

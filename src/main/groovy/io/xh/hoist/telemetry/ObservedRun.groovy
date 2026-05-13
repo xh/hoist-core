@@ -47,7 +47,7 @@ import static java.lang.System.currentTimeMillis
 @CompileStatic
 class ObservedRun {
 
-    private final Object caller
+    private final Object owner
 
     // Log support — up to one entry per level
     private Object infoMsgs, debugMsgs, traceMsgs
@@ -60,21 +60,21 @@ class ObservedRun {
     private String timerName, counterName
     private Map<String, String> timerTags, counterTags
 
-    private ObservedRun(Object caller) {
-        this.caller = caller
+    private ObservedRun(Object owner) {
+        this.owner = owner
     }
 
 
     /**
-     * Create an ObservedRun with the given caller.
+     * Create an ObservedRun with the given owner.
      *
-     * @param caller object owning the observed work — typically a service or other {@link LogSupport}
+     * @param owner object owning the observed work — typically a service or other {@link LogSupport}
      *     implementor. Used to set the span {@code code.namespace} attribute and as the logging context
      *     for {@link #logInfo}, {@link #logDebug}, and {@link #logTrace}. May be null for anonymous usage
      *     that does not require logging.
      */
-    static ObservedRun observe(Object caller = null) {
-        new ObservedRun(caller)
+    static ObservedRun observe(Object owner = null) {
+        new ObservedRun(owner)
     }
 
     //---------------------------
@@ -109,7 +109,7 @@ class ObservedRun {
      *
      * See {@link TraceService#createSpan} for more info.
      *
-     * When `useNamePrefix` is true (the default), and the caller is a BaseService,
+     * When `useNamePrefix` is true (the default), and the owner is a BaseService,
      * {@link BaseService#getTelemetryPrefix} is prepended to `name`.
      */
     @NamedVariant
@@ -119,7 +119,7 @@ class ObservedRun {
         @NamedParam SpanKind kind = SpanKind.INTERNAL,
         @NamedParam boolean useNamePrefix = true
     ) {
-        spanArgs = [name: applyPrefix(useNamePrefix, name), kind: kind, tags: tags, caller: caller]
+        spanArgs = [name: applyPrefix(useNamePrefix, name), kind: kind, tags: tags, caller: owner]
         this
     }
 
@@ -131,7 +131,7 @@ class ObservedRun {
      * an {@code xh.outcome} tag is added with value {@code success} or {@code failure} based
      * on whether the closure threw.
      *
-     * When `useNamePrefix` is true (the default), and the caller is a BaseService,
+     * When `useNamePrefix` is true (the default), and the owner is a BaseService,
      * {@link BaseService#getTelemetryPrefix} is prepended to `name`.
      */
     @NamedVariant
@@ -150,7 +150,7 @@ class ObservedRun {
      * an {@code xh.outcome} tag is added with value {@code success} or {@code failure} based
      * on whether the closure threw.
      *
-     * When `useNamePrefix` is true (the default), and the caller is a BaseService,
+     * When `useNamePrefix` is true (the default), and the owner is a BaseService,
      * {@link BaseService#getTelemetryPrefix} is prepended to `name`.
      */
     @NamedVariant
@@ -227,7 +227,7 @@ class ObservedRun {
     private Closure wrapWithLog(Closure inner) {
         if (!traceMsgs && !debugMsgs && !infoMsgs) return inner
 
-        LogSupport ls = (LogSupport) caller
+        LogSupport ls = (LogSupport) owner
 
         // Select the finest enabled level when multiple are configured
         if (traceMsgs && ls.instanceLog.isTraceEnabled()) {
@@ -244,8 +244,8 @@ class ObservedRun {
     }
 
     private String applyPrefix(boolean useNamePrefix, String name) {
-        if (!useNamePrefix || !(caller instanceof BaseService)) return name
-        def prefix = ((BaseService) caller).telemetryPrefix
+        if (!useNamePrefix || !(owner instanceof BaseService)) return name
+        def prefix = ((BaseService) owner).telemetryPrefix
         prefix ? "${prefix}.${name}" : name
     }
 
@@ -258,8 +258,8 @@ class ObservedRun {
     }
 
     private void requireLogSupport() {
-        if (!(caller instanceof LogSupport)) {
-            throw new RuntimeException('ObservedRun requires a LogSupport caller for log methods')
+        if (!(owner instanceof LogSupport)) {
+            throw new RuntimeException('ObservedRun requires a LogSupport owner for log methods')
         }
     }
 }

@@ -190,10 +190,10 @@ to distinguish activity from different client applications.
 
 | Metric | Type | Description |
 |--------|------|-------------|
-| `hoist.client.track.messages` | Counter | All track log entries received |
-| `hoist.client.track.errors` | Counter | Client error entries |
-| `hoist.client.load.totalTime` | Timer | Total app load elapsed time |
-| `hoist.client.load.authTime` | Timer | Authentication phase duration |
+| `xh.client.track.messages` | Counter | All track log entries received |
+| `xh.client.track.errors` | Counter | Client error entries |
+| `xh.client.load.totalTime` | Timer | Total app load elapsed time |
+| `xh.client.load.authTime` | Timer | Authentication phase duration |
 
 See [`metrics.md`](./metrics.md) for full documentation of the metrics infrastructure.
 

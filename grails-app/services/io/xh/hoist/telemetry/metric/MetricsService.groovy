@@ -10,12 +10,14 @@ package io.xh.hoist.telemetry.metric
 import groovy.transform.CompileStatic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
+import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.FunctionCounter
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.Meter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Tag
 import io.micrometer.core.instrument.Tags
+import io.micrometer.core.instrument.Timer
 import io.micrometer.core.instrument.distribution.DistributionStatisticConfig
 
 import java.time.Duration
@@ -97,19 +99,18 @@ class MetricsService extends BaseService {
     }
 
     /**
-     * Register a named Timer with distribution statistics and metadata.
+     * Configure a timer name with default tags, distribution statistics and metadata.
      *
      * Call once at app init — typically from a service `init()` method. Configuration is keyed
      * by metric name and applies to all tagged variants of that name created later by
      * {@link #recordTimer} or {@link io.xh.hoist.telemetry.ObservedRun#timer}.
      *
+     * This method does not register an actual Timer. To create and register a Timer with a
+     * concrete and fixed set of tags use {@link #registerTimer} instead.
+     *
      * Distribution config (percentiles, slos, etc.) is applied via a {@link MeterFilter} and
      * must be set before the affected meters are first recorded — otherwise the meter is
      * created with the unfiltered config and this call has no effect for that instance.
-     *
-     * Description is stored in a side-map and surfaced through the admin metrics view; it is
-     * not exported through Micrometer's {@code Meter.Id} description (which would require
-     * pre-registering an anchor meter per name).
      *
      * @param name              metric name (must match the name used at the call site)
      * @param description       human-readable description shown in the admin metrics view
@@ -122,6 +123,9 @@ class MetricsService extends BaseService {
      *                          (e.g. Prometheus histogram_quantile)
      * @param minExpected       minimum expected value - used to size the histogram
      * @param maxExpected       maximum expected value - used to size the histogram
+     * @param owner             optional BaseService creating this metric — used for tagging
+     *                          and naming the metric.
+     * @param useNamePrefix     when true (the default), the owner's name prefix is applied.
      */
     @NamedVariant
     void configureTimer(
@@ -132,8 +136,12 @@ class MetricsService extends BaseService {
         @NamedParam List<Duration> slos = null,
         @NamedParam boolean publishHistogram = false,
         @NamedParam Duration minExpected = null,
-        @NamedParam Duration maxExpected = null
+        @NamedParam Duration maxExpected = null,
+        @NamedParam BaseService owner = null,
+        @NamedParam boolean useNamePrefix = true
     ) {
+        name = applyOwnerPrefix(name, owner, useNamePrefix)
+        tags = applyOwnerTag(tags, owner)
         _timerSpecs[name] = new TimerSpec(
             name: name,
             description: description,
@@ -147,54 +155,154 @@ class MetricsService extends BaseService {
     }
 
     /**
-     * Configure a named Counter with descriptive metadata and optional default tags.
+     * Create and register a concrete Micrometer {@link Timer} with a fixed set of tags.
      *
-     * Description is stored in a side-map and surfaced through the admin metrics view.
-     * `tags` are merged into every recorded variant of `name` if not already present.
+     * Distribution config (percentiles, SLOs, histogram, min/max expected) is intentionally
+     * *not* a parameter here — set those once for the metric name via {@link #configureTimer}
+     * and they will be applied to this Timer (and any other variants of the same name) via the
+     * meter filter pipeline.
+     */
+    @NamedVariant
+    Timer registerTimer(
+        @NamedParam(required = true) String name,
+        @NamedParam String description = null,
+        @NamedParam Map<String, String> tags = null,
+        @NamedParam BaseService owner = null,
+        @NamedParam boolean useNamePrefix = true
+    ) {
+        name = applyOwnerPrefix(name, owner, useNamePrefix)
+        tags = applyOwnerTag(tags, owner)
+        Timer.builder(name)
+            .description(description)
+            .tags(toTags(tags))
+            .register(registry)
+    }
+
+    /**
+     * Configure a counter name with default tags and metadata.
+     *
+     * Call once at app init — typically from a service `init()` method. Configuration is keyed
+     * by metric name and applies to all tagged variants of that name created later by
+     * {@link #recordCount} or {@link io.xh.hoist.telemetry.ObservedRun#counter}.
+     *
+     * This method does not register an actual Counter. Description is stored in a side-map and
+     * surfaced through the admin metrics view.
+     *
+     * @param name              metric name (must match the name used at the call site)
+     * @param description       human-readable description shown in the admin metrics view
+     * @param tags              default tags applied to every recorded variant of `name` —
+     *                          merged in at meter registration if not already present on the
+     *                          call site's tag set
+     * @param owner             optional BaseService creating this metric — used for tagging
+     *                          and naming the metric.
+     * @param useNamePrefix     when true (the default), the owner's name prefix is applied.
      */
     @NamedVariant
     void configureCounter(
         @NamedParam(required = true) String name,
         @NamedParam String description = null,
-        @NamedParam Map<String, String> tags = null
+        @NamedParam Map<String, String> tags = null,
+        @NamedParam BaseService owner = null,
+        @NamedParam boolean useNamePrefix = true
     ) {
+        name = applyOwnerPrefix(name, owner, useNamePrefix)
+        tags = applyOwnerTag(tags, owner)
         _counterSpecs[name] = new CounterSpec(name: name, description: description, tags: tags)
     }
 
     /**
-     * Register a Gauge that reads its current value from `valueFn` on demand.
+     * Create and register a concrete Micrometer {@link Counter} with a fixed set of tags.
+     */
+    @NamedVariant
+    Counter registerCounter(
+        @NamedParam(required = true) String name,
+        @NamedParam String description = null,
+        @NamedParam Map<String, String> tags = null,
+        @NamedParam BaseService owner = null,
+        @NamedParam boolean useNamePrefix = true
+    ) {
+        name = applyOwnerPrefix(name, owner, useNamePrefix)
+        tags = applyOwnerTag(tags, owner)
+        Counter.builder(name)
+            .description(description)
+            .tags(toTags(tags))
+            .register(registry)
+    }
+
+    /**
+     * Create and register a {@link Gauge} that reads its current value from `valueFn` on demand.
      *
-     * The closure may return any {@link Number} (including null — surfaced as `NaN`, which
-     * causes the gauge to skip emission rather than report a misleading `0`).
+     * Unlike Timers and Counters — whose tagged variants are auto-created on first record —
+     * a Gauge must be explicitly registered, as it needs a value-producing closure.
+     *
+     * @param name              metric name
+     * @param valueFn           closure returning the current value. May return any
+     *                          {@link Number} including null — null is surfaced as `NaN`, which
+     *                          causes the gauge to skip emission rather than report a misleading
+     *                          `0`.
+     * @param description       human-readable description shown in the admin metrics view
+     * @param tags              tags applied to this Gauge — merged with the standard default
+     *                          tags applied by the registry
+     * @param baseUnit          optional base unit for the gauge (e.g. 'bytes', 'milliseconds')
+     * @param owner             optional BaseService creating this metric — used for tagging
+     *                          and naming the metric.
+     * @param useNamePrefix     when true (the default), the owner's name prefix is applied.
      */
     @NamedVariant
     Gauge registerGauge(
         @NamedParam(required = true) String name,
         @NamedParam(required = true) Closure<? extends Number> valueFn,
         @NamedParam String description = null,
-        @NamedParam Map<String, String> tags = null
+        @NamedParam Map<String, String> tags = null,
+        @NamedParam String baseUnit = null,
+        @NamedParam BaseService owner = null,
+        @NamedParam boolean useNamePrefix = true
     ) {
-        Gauge.builder(name, this, { valueFn.call()?.doubleValue() ?: Double.NaN } as ToDoubleFunction)
+        name = applyOwnerPrefix(name, owner, useNamePrefix)
+        tags = applyOwnerTag(tags, owner)
+        Gauge.builder(name, owner ?: this, { def v = valueFn.call(); v == null ? Double.NaN : v.doubleValue() } as ToDoubleFunction)
             .description(description)
-            .tags(toTags(tags ?: [:]))
+            .tags(toTags(tags))
+            .baseUnit(baseUnit)
             .register(registry)
     }
 
+
     /**
-     * Register a FunctionCounter that reads a monotonically-increasing total from `countFn`.
+     * Create and register a {@link FunctionCounter} that reads a monotonically-increasing total
+     * from `countFn` on demand.
      *
-     * Null returns are treated as `0` to preserve the monotonic-counter contract.
+     * Like {@link #registerGauge}, a FunctionCounter must be explicitly registered with a
+     * value-producing closure — unlike a regular Counter whose tagged variants are auto-created
+     * on first record.
+     *
+     * @param name              metric name
+     * @param countFn           closure returning the current total. Null returns are treated as
+     *                          `0` to preserve the monotonic-counter contract.
+     * @param description       human-readable description shown in the admin metrics view
+     * @param tags              tags applied to this FunctionCounter — merged with the standard
+     *                          default tags applied by the registry
+     * @param baseUnit          optional base unit for the counter (e.g. 'bytes')
+     * @param owner             optional BaseService creating this metric — used for tagging
+     *                          and naming the metric.
+     * @param useNamePrefix     when true (the default), the owner's name prefix is applied.
      */
     @NamedVariant
     FunctionCounter registerFunctionCounter(
         @NamedParam(required = true) String name,
         @NamedParam(required = true) Closure<? extends Number> countFn,
         @NamedParam String description = null,
-        @NamedParam Map<String, String> tags = null
+        @NamedParam Map<String, String> tags = null,
+        @NamedParam String baseUnit = null,
+        @NamedParam BaseService owner = null,
+        @NamedParam boolean useNamePrefix = true
     ) {
-        FunctionCounter.builder(name, this, { countFn.call()?.doubleValue() ?: 0d } as ToDoubleFunction)
+        name = applyOwnerPrefix(name, owner, useNamePrefix)
+        tags = applyOwnerTag(tags, owner)
+        FunctionCounter.builder(name, owner ?: this, { countFn.call()?.doubleValue() ?: 0d } as ToDoubleFunction)
             .description(description)
-            .tags(toTags(tags ?: [:]))
+            .tags(toTags(tags))
+            .baseUnit(baseUnit)
             .register(registry)
     }
 
@@ -226,6 +334,8 @@ class MetricsService extends BaseService {
     /**
      * Record an elapsed time for a named timer. Auto-creates the timer on first use.
      * Tags are applied as-is; the standard default tags are added by the registry.
+     *
+     * The named timer should typically be configured ahead of time via {@link #configureTimer}.
      */
     @NamedVariant
     void recordTimer(
@@ -239,6 +349,8 @@ class MetricsService extends BaseService {
     /**
      * Increment a named counter by `value`. Auto-creates the counter on first use.
      * Tags are applied as-is; the standard default tags are added by the registry.
+     *
+     * The named counter should typically be configured ahead of time via {@link #configureCounter}.
      */
     @NamedVariant
     void recordCount(
@@ -269,10 +381,6 @@ class MetricsService extends BaseService {
                 default: logWarn('Unknown metric type', e)
             }
         }
-    }
-
-    private static List<Tag> toTags(Map<String, String> tags) {
-        tags.collect { k, v -> Tag.of(k, v) }
     }
 
     /** List of metric names published to export sinks. */
@@ -316,7 +424,7 @@ class MetricsService extends BaseService {
     // Implementation
     //------------------------
     private void applyFilters() {
-        // Apply per-name distribution config from createTimer() specs
+        // Apply per-name distribution config from configureTimer() specs
         registry.config().meterFilter(new MeterFilter() {
             DistributionStatisticConfig configure(Meter.Id id, DistributionStatisticConfig config) {
                 def spec = _timerSpecs[id.name]
@@ -380,7 +488,7 @@ class MetricsService extends BaseService {
     }
 
     private static boolean isDefaultHoistSource(String name) {
-        ['hoist.', 'xh.', 'jdbc.', 'jvm.', 'system.', 'process.', 'disk.', 'logback.', 'tomcat.']
+        ['xh.', 'jdbc.', 'jvm.', 'system.', 'process.', 'disk.', 'logback.', 'tomcat.']
             .any { name.startsWith(it) }
     }
 
@@ -433,6 +541,24 @@ class MetricsService extends BaseService {
 
     private MetricsConfig getConfig() {
         configService.getObject(MetricsConfig)
+    }
+
+
+    private static List<Tag> toTags(Map<String, String> tags) {
+        tags?.collect { k, v -> Tag.of(k, v) } ?: []
+    }
+
+    private static String applyOwnerPrefix(String name, BaseService owner, boolean useNamePrefix) {
+        def prefix = useNamePrefix ? owner?.telemetryPrefix : null
+        prefix ? "${prefix}.${name}" : name
+    }
+
+    private static Map<String, String> applyOwnerTag(Map<String, String> tags, BaseService owner) {
+        if (!owner) return tags
+        def merged = new LinkedHashMap<String, String>()
+        merged['xh.owner'] = owner.class.name
+        if (tags) merged.putAll(tags)
+        merged
     }
 
 
