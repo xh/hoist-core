@@ -321,7 +321,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         @NamedParam SpanKind kind = SpanKind.INTERNAL,
         @NamedParam Map<String, ?> tags = [:]
     ) {
-        observe().span(name, kind, tags)
+        observe().span(name: name, kind: kind, tags: tags)
     }
 
     /**
