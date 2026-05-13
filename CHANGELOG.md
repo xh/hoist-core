@@ -2,13 +2,11 @@
 
 ## 40.0.0-SNAPSHOT - unreleased
 
-### ⚠️ Breaking Changes (minor)
+### ⚠️ Breaking Changes (upgrade difficulty: 🟢 LOW - updates to new OTEL APIs)
+
 * Removed `ObservedRun.timer(Timer)` and `ObservedRun.counter(Counter)` - the pre-built-instance
   variants. Use the by-name forms `timer(name: ...)` / `counter(name: ...)` and configure
   Timer-level options centrally via `BaseService.createMetricTimer` (see below).
-* `ObservedRun.counter(name: ...)` semantic changed: previously incremented before the closure
-  ran (counted attempts), now increments on completion alongside the timer.
-
 
 ### 🎁 New Features
 
@@ -38,25 +36,17 @@
 
 * User comments submitted via the exception dialog now merge onto the matching prior auto-logged
   client error instead of creating a duplicate row + duplicate email.
+* Fixed `StandardMetricsService` JDBC pool metrics throwing NPE when JDBC tracing is enabled,
+  and hardened `MetricsAdminService.listMetrics()` so a single throwing meter no longer breaks
+  the Admin Console metrics view.
 
 ### 🤖 AI Docs + Tooling
 
-* Fidelity and ergonomics improvements to `hoist-core-symbols` / `hoist-core-docs` (CLI + MCP):
+* Improved fidelity and ergonomics of `hoist-core-symbols` / `hoist-core-docs` (CLI + MCP):
   cleaner Groovydoc rendering, constructors and nested classes indexed, FQN inputs accepted,
   `get-symbol` falls back to indexed members, `docs read` resolves bare filenames, MCP-aligned
   CLI verb aliases, and `$JAVA_HOME` launcher fallback.
-* `hoist-core-symbols` now indexes `.java` sources alongside `.groovy` under
-  `src/main/groovy/`, surfacing types previously missing from search and member listings
-  (e.g. `JSONSerializer`, `JSONParser`, `JSONFormat`, `CollectionUtils`, `RoutineException`).
-
-* Fixed `StandardMetricsService` JDBC pool metrics throwing NPE when JDBC tracing is enabled,
-  and hardened `MetricsAdminService.listMetrics()` so a single throwing meter no longer breaks
-  the admin metrics view.
-* `JSONClient` now exposes a single `timeoutMs` that bounds the total duration of every
-  request, settable per-client (constructor) or per-call (optional method arg). Offers an
-  a simpler alternative to the prior approach of setting `RequestConfig.responseTimeout` on
-  the request — Apache HttpClient's per-phase timeouts have no end-to-end deadline and have
-  documented gaps.
+* Improved `hoist-core-symbols` to ensure `.java` sources are indexed as expected.
 
 ## 39.0.1 - 2026-04-30
 
@@ -77,29 +67,24 @@ system for app-defined JSON configs.
 
 * Recommended pairing with `hoist-react >= 85.0` - both releases drop `alwaysSampleErrors` and
   add name-based `sampleRules` matching. No hard minimum bump; v84.x continues to work.
-* **Telemetry package restructuring** - classes under `io.xh.hoist.telemetry` moved into
+* Restructured the new telemetry packages - classes under `io.xh.hoist.telemetry` moved into
   `telemetry.metric` and `telemetry.trace` subpackages, with a few renames (notably
-  `HoistSampler` → `ManualRateSampler`, and `AccessInterceptor` → `HoistInterceptor`, the
-  latter moved to `io.xh.hoist` since it now governs more than access checks). Compiler-caught
-  and IDE-fixable.
-* `xhTraceConfig.alwaysSampleErrors` removed - the flag was inappropriate for head-based
+  `HoistSampler` → `ManualRateSampler`, and `AccessInterceptor` → `HoistInterceptor`.
+* Removed `xhTraceConfig.alwaysSampleErrors` - the flag was inappropriate for head-based
   sampling. Mirrors the matching change in hoist-react v85. Use `sampleRules` to force-sample
   specific error patterns.
-* `ensureRequiredConfigsCreated()` / `ensureRequiredPrefsCreated()` /
-  `ensureRequiredRolesCreated()` `Map`-based signatures are deprecated in favor of typed
-  `ConfigSpec` / `PreferenceSpec` / `RoleSpec`. Old form still works (with a startup `WARN`);
-  removal in v42.
+* Deprecated `Map`-based signatures of `ensureRequiredConfigsCreated()` /
+  `ensureRequiredPrefsCreated()` / `ensureRequiredRolesCreated()`  in favor of typed `ConfigSpec` /
+  `PreferenceSpec` / `RoleSpec`. Old form still works; removal scheduled for v42.
 
 ### 🎁 New Features
 
 * **JDK 25 support** - hoist-core now builds on JDK 25. Published JAR continues to target Java
   17 bytecode, so apps on JDK 17+ need no action.
-* Improvements to tracing:
+* Improved evolving APIs and configs for OTEL tracing:
     * `TraceService.withSpan` (and `ObservedRun.run`) now always pass a non-null `SpanRef` to
-      the closure (a shared `SpanRef.NOOP` when tracing is disabled), removing the need for
-      `?.` null-safe calls.
-    * `sampleRules` in `xhTraceConfig` now match against the span's name via the reserved
-      `name` key.
+      the closure (a shared `SpanRef.NOOP` when tracing is disabled).
+    * `sampleRules` in `xhTraceConfig` now match against the span's name via reserved `name` key.
     * Server startup is now traced via `xh.server.load` and `xh.server.hoistInit` spans.
     * Auto-instrumentation for JDBC via `opentelemetry-jdbc` - covers direct DataSource access
       and Hibernate/GORM (incl. multi-datasource setups). Enable via new `jdbcTracingEnabled`
@@ -116,7 +101,7 @@ system for app-defined JSON configs.
 * Timer percentile histograms - built-in `hoist.client.load.totalTime` and
   `hoist.client.load.authTime` now emit histogram buckets, surfacing p50/p90/p99 etc. in
   Prometheus and OTLP backends.
-* **`ConfigService.getObject(Class)`** - read a JSON soft config as a typed `TypedConfigMap`
+* Added new `ConfigService.getObject(Class)` API to read a JSON soft config as a `TypedConfigMap`
   subclass with declared property defaults applied. Wire it up via the new optional
   `typedClass:` field on `ConfigSpec` to make the class the single source of truth for the
   config's shape on both server and client. All built-in hoist-core JSON configs are now typed
@@ -125,8 +110,8 @@ system for app-defined JSON configs.
 
 ### 🐞 Bug Fixes
 
-* `TypedConfigMap` subclasses with default field initializers were silently clobbering values
-  loaded from soft config.
+* Fixed issue with new `TypedConfigMap` subclasses with default field initializers silently
+  clobbering values loaded from soft config.
 * Tightened defaults, coercions, and schema gaps across several built-in hoist-core configs,
   surfaced during the typed-config migration.
 * `AppConfig` validation errors no longer render twice - removed a redundant `valueType`
@@ -138,7 +123,7 @@ system for app-defined JSON configs.
   documentation and Groovy/Java symbol surface for environments that block MCP traffic. Bundled
   hoist-core docs and source files directly into the published fat JAR so the tools work fully
   offline once resolved through Maven Central or an internal Artifactory mirror. Added a new
-  `hoist-core-read-doc` MCP tool. See [mcp/README.md](mcp/README.md) for the app-side Gradle install
+  `hoist-core-read-doc` MCP tool. See [mcp/README.md](mcp/README.md) for the app-side Gradle
   snippet.
 * Added [`coding-conventions.md`](docs/coding-conventions.md), the authoritative reference for
   server-side hoist-core coding conventions.
@@ -147,7 +132,7 @@ system for app-defined JSON configs.
 
 * Grails `7.0.5 → 7.0.9`
 * Groovy `4.0.29 → 4.0.30`
-* `opentelemetry-jdbc` `added @ 2.26.1-alpha`
+* opentelemetry-jdbc `added @ 2.26.1-alpha`
 
 ## 38.0.0 - 2026-04-15
 
