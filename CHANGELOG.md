@@ -2,13 +2,11 @@
 
 ## 40.0.0-SNAPSHOT - unreleased
 
-### ⚠️ Breaking Changes (minor)
+### ⚠️ Breaking Changes (upgrade difficulty: 🟢 LOW - updates to new OTEL APIs)
 
 * Removed `ObservedRun.timer(Timer)` and `ObservedRun.counter(Counter)` - the pre-built-instance
   variants. Use the by-name forms `timer(name: ...)` / `counter(name: ...)` and configure
   Timer-level options centrally via `BaseService.createMetricTimer` (see below).
-* `ObservedRun.counter(name: ...)` semantic changed: previously incremented before the closure
-  ran (counted attempts), now increments on completion alongside the timer.
 
 ### 🎁 New Features
 
@@ -22,6 +20,7 @@
 * `ObservedRun.timer` and `.counter` now attach an `xh.outcome` tag with value `success` or
   `failure` based on whether the closure threw, making it trivial to slice timings and counts
   by success rate.
+* `ObservedRun.counter(name: ...)` now increments on completion of the run, instead of at the start.
 * Added new `/xh/recordMetrics` endpoint to support client-side metrics in `hoist-react >= 86.0`.
 
 ## 39.1.0 - 2026-05-12
