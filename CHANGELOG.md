@@ -10,25 +10,19 @@
 * `ObservedRun.counter(name: ...)` semantic changed: previously incremented before the closure
   ran (counted attempts), now increments on completion alongside the timer.
 
-
 ### 🎁 New Features
 
 * Expanded support for registering metrics and spans on `BaseService`:
-  * New `createMetricTimer` / `createMetricCounter` / `createMetricGauge` /
-    `createMetricFunctionCounter` helpers that wrap the matching new
-    `MetricsService.createXxx` registrations.
-  * Each helper accepts `description` and default `tags`; the Timer variant additionally
-    accepts `percentiles`, `slos`, `publishHistogram`, and `minExpected` / `maxExpected`
-    histogram bounds.
-  * New `telemetryPrefix` property — when set on a subclass, is auto-prepended (with a
-    `.` separator) to meter and span names emitted through these helpers and through
-    `ObservedRun.span` / `.timer` / `.counter`.
+    * Added `createMetricXxx` helpers wrapping matching `MetricsService` APIs.
+    * Each helper accepts `description` and default `tags`; the Timer variant accepts `percentiles`,
+      `slos`, `publishHistogram`, and `min/MaxExpected` histogram bounds.
+    * New `telemetryPrefix` property — when set on a subclass, is auto-prepended (with a
+      `.` separator) to meter and span names emitted through these helpers and through
+      `ObservedRun.span` / `.timer` / `.counter`.
 * `ObservedRun.timer` and `.counter` now attach an `xh.outcome` tag with value `success` or
   `failure` based on whether the closure threw, making it trivial to slice timings and counts
   by success rate.
-* Client-side metrics support: new `/xh/recordMetrics` endpoint accepts batched timer and counter
-  entries from the JS client.
-
+* Added new `/xh/recordMetrics` endpoint to support client-side metrics in `hoist-react >= 86.0`.
 
 ## 39.1.0 - 2026-05-12
 
@@ -130,7 +124,8 @@ system for app-defined JSON configs.
   documentation and Groovy/Java symbol surface for environments that block MCP traffic. Bundled
   hoist-core docs and source files directly into the published fat JAR so the tools work fully
   offline once resolved through Maven Central or an internal Artifactory mirror. Added a new
-  `hoist-core-read-doc` MCP tool. See [mcp/README.md](mcp/README.md) for the app-side Gradle snippet.
+  `hoist-core-read-doc` MCP tool. See [mcp/README.md](mcp/README.md) for the app-side Gradle
+  snippet.
 * Added [`coding-conventions.md`](docs/coding-conventions.md), the authoritative reference for
   server-side hoist-core coding conventions.
 
