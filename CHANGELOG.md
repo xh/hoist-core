@@ -1,6 +1,6 @@
 # Changelog
 
-## 40.0.0-SNAPSHOT - unreleased
+## 40.0.0 - 05-25-2026
 
 ### ⚠️ Breaking Changes (upgrade difficulty: 🟢 LOW - updates to new OTEL APIs)
 
@@ -27,6 +27,8 @@
   `failure` based on whether the closure threw, making it trivial to slice timings and counts
   by success rate.
 * Added new `/xh/recordMetrics` endpoint to support client-side metrics in `hoist-react >= 86.0`.
+* Hoist built-in metrics are now prefixed with `xh.` rather than `hoist.` for brevity and
+ consistency with framework span and telemetry tag names.
 
 
 ### 📚 Libraries
