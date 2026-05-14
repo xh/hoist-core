@@ -30,6 +30,11 @@
 * Hoist built-in metrics are now prefixed with `xh.` rather than `hoist.` for brevity and
  consistency with framework span and telemetry tag names.
 
+### 🐞 Bug Fixes
+
+* Fixes error with `LdapService.authenticate` introduced in v39.
+
+
 
 ### 📚 Libraries
 

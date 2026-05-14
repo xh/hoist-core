@@ -146,7 +146,7 @@ class LdapService extends BaseService {
      */
     boolean authenticate(String username, String password) {
         withDebug(["Attempting LDAP bind to authenticate user", [username: username]]) {
-            for (Map server in config.servers) {
+            for (server in config.servers) {
                 String host = server.host
                 List<LdapPerson> matches = doQuery(server, "(sAMAccountName=$username)", LdapPerson, true)
                 if (matches) {
