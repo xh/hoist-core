@@ -109,7 +109,7 @@ class TrackMetricsService extends BaseService {
         final Timer authTime
 
         AppMeters(String app, TrackMetricsService svc) {
-            def tags = [clientApp: app],
+            def tags = ['xh.clientApp': app],
                 ms = svc.metricsService
 
             messages = ms.registerCounter(name: 'track.messages', tags: tags, owner: svc)
