@@ -30,7 +30,7 @@ class MetricsAdminService extends BaseService {
                 id: "$name|${tags.collect { "${it.key}=${it.value}" }.join('|')}",
                 name: name,
                 type: id.type.name(),
-                description: id.description,
+                description: id.description ?: metricsService.getMeterDescription(name),
                 baseUnit: baseUnit,
                 tags: tags,
                 published: published.contains(name)

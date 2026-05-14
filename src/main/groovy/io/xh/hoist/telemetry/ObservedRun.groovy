@@ -9,14 +9,15 @@ package io.xh.hoist.telemetry
 import groovy.transform.CompileStatic
 import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
-import io.micrometer.core.instrument.Counter
-import io.micrometer.core.instrument.Timer
 import io.opentelemetry.api.trace.SpanKind
+import io.xh.hoist.BaseService
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.telemetry.metric.MetricsService
 import io.xh.hoist.telemetry.trace.SpanRef
 import io.xh.hoist.telemetry.trace.TraceService
 import io.xh.hoist.util.Utils
+
+import static java.lang.System.currentTimeMillis
 
 /**
  * Composable builder for wrapping a closure with tracing, logging, and metrics.
@@ -24,13 +25,13 @@ import io.xh.hoist.util.Utils
  * Each concern is opt-in via dedicated builder methods, then executed with {@link #run}.
  * The closure is wrapped according to the precedence below, regardless of the order the
  * methods are called in:
- *      span → log → timer → counter → user closure.
+ *      span → log → metrics → user closure.
  *
  * <pre>
  * observe()
  *     .span(name: 'processOrder', tags: [orderId: id])
  *     .logInfo('Processing order')
- *     .timer(orderTimer)
+ *     .timer(name: 'orderProcessing')
  *     .run {
  *         // business logic
  *     }
@@ -46,7 +47,7 @@ import io.xh.hoist.util.Utils
 @CompileStatic
 class ObservedRun {
 
-    private final Object caller
+    private final Object owner
 
     // Log support — up to one entry per level
     private Object infoMsgs, debugMsgs, traceMsgs
@@ -56,24 +57,24 @@ class ObservedRun {
     private SpanRef activeSpan = SpanRef.NOOP
 
     // Metrics support
-    private Timer timer
-    private Counter counter
+    private String timerName, counterName
+    private Map<String, String> timerTags, counterTags
 
-    private ObservedRun(Object caller) {
-        this.caller = caller
+    private ObservedRun(Object owner) {
+        this.owner = owner
     }
 
 
     /**
-     * Create an ObservedRun with the given caller.
+     * Create an ObservedRun with the given owner.
      *
-     * @param caller object owning the observed work — typically a service or other {@link LogSupport}
+     * @param owner object owning the observed work — typically a service or other {@link LogSupport}
      *     implementor. Used to set the span {@code code.namespace} attribute and as the logging context
      *     for {@link #logInfo}, {@link #logDebug}, and {@link #logTrace}. May be null for anonymous usage
      *     that does not require logging.
      */
-    static ObservedRun observe(Object caller = null) {
-        new ObservedRun(caller)
+    static ObservedRun observe(Object owner = null) {
+        new ObservedRun(owner)
     }
 
     //---------------------------
@@ -103,41 +104,63 @@ class ObservedRun {
     //---------------------------
     // Span configuration
     //---------------------------
-    /** Configure a trace span. See {@link TraceService#createSpan} for parameter documentation. */
+    /**
+     * Configure a trace span.
+     *
+     * See {@link TraceService#createSpan} for more info.
+     *
+     * When `useNamePrefix` is true (the default), and the owner is a BaseService,
+     * {@link BaseService#getTelemetryPrefix} is prepended to `name`.
+     */
     @NamedVariant
     ObservedRun span(
         @NamedParam(required = true) String name,
+        @NamedParam Map<String, ?> tags = [:],
         @NamedParam SpanKind kind = SpanKind.INTERNAL,
-        @NamedParam Map<String, ?> tags = [:]
+        @NamedParam boolean useNamePrefix = true
     ) {
-        spanArgs = [name: name, kind: kind, tags: tags, caller: caller]
+        spanArgs = [name: applyPrefix(useNamePrefix, name), kind: kind, tags: tags, caller: owner]
         this
     }
 
     //---------------------------
     // Metrics configuration
     //---------------------------
-    /** Record elapsed time on a pre-registered Micrometer {@link Timer}. */
-    ObservedRun timer(Timer timer) {
-        this.timer = timer
+    /**
+     * Record elapsed time on a Timer with the given metric name and optional tags. On completion,
+     * an {@code xh.outcome} tag is added with value {@code success} or {@code failure} based
+     * on whether the closure threw.
+     *
+     * When `useNamePrefix` is true (the default), and the owner is a BaseService,
+     * {@link BaseService#getTelemetryPrefix} is prepended to `name`.
+     */
+    @NamedVariant
+    ObservedRun timer(
+        @NamedParam(required = true) String name,
+        @NamedParam Map<String, String> tags = [:],
+        @NamedParam boolean useNamePrefix = true
+    ) {
+        timerName = applyPrefix(useNamePrefix, name)
+        timerTags = tags
         this
     }
 
-    /** Record elapsed time, auto-registering a tag-free {@link Timer} with the given metric name. */
-    ObservedRun timer(String name) {
-        timer = Timer.builder(name).register(metricsService.registry)
-        this
-    }
-
-    /** Increment a pre-registered Micrometer {@link Counter} (counts attempts, not completions). */
-    ObservedRun counter(Counter counter) {
-        this.counter = counter
-        this
-    }
-
-    /** Increment an auto-registered tag-free {@link Counter} with the given metric name. */
-    ObservedRun counter(String name) {
-        counter = Counter.builder(name).register(metricsService.registry)
+    /**
+     * Increment a Counter with the given metric name and optional tags. On completion,
+     * an {@code xh.outcome} tag is added with value {@code success} or {@code failure} based
+     * on whether the closure threw.
+     *
+     * When `useNamePrefix` is true (the default), and the owner is a BaseService,
+     * {@link BaseService#getTelemetryPrefix} is prepended to `name`.
+     */
+    @NamedVariant
+    ObservedRun counter(
+        @NamedParam(required = true) String name,
+        @NamedParam Map<String, String> tags = [:],
+        @NamedParam boolean useNamePrefix = true
+    ) {
+        counterName = applyPrefix(useNamePrefix, name)
+        counterTags = tags
         this
     }
 
@@ -147,13 +170,12 @@ class ObservedRun {
     /**
      * Execute the closure with all configured observability.
      *
-     * Wrapping order (outermost → innermost): span → log → counter → timer -> closure.
+     * Wrapping order (outermost → innermost): span → log → metrics -> closure.
      * The closure may optionally accept a {@link SpanRef} parameter.
      */
     <T> T run(Closure<T> c) {
         Closure onion = c.maximumNumberOfParameters > 0 ? { -> c.call(activeSpan) } : c
-        onion = wrapWithTimer(onion)
-        onion = wrapWithCounter(onion)
+        onion = wrapWithMetrics(onion)
         onion = wrapWithLog(onion)
         onion = wrapWithSpan(onion)
         return onion.call() as T
@@ -173,18 +195,39 @@ class ObservedRun {
         }
     }
 
-    private Closure wrapWithCounter(Closure inner) {
-        return counter ? { -> counter.increment(); inner.call() } : inner
-    }
+    private Closure wrapWithMetrics(Closure inner) {
+        if (!timerName && !counterName) return inner
 
-    private Closure wrapWithTimer(Closure inner) {
-        return timer ? { -> timer.recordCallable(inner) } : inner
+        return { ->
+            long start = currentTimeMillis()
+            String outcome = 'failure'
+            try {
+                def result = inner.call()
+                outcome = 'success'
+                return result
+            } finally {
+                if (timerName) {
+                    metricsService.recordTimer(
+                        name: timerName,
+                        valueMs: currentTimeMillis() - start,
+                        tags: (timerTags ?: [:]) + ['xh.outcome': outcome]
+                    )
+                }
+                if (counterName) {
+                    metricsService.recordCount(
+                        name: counterName,
+                        value: 1d,
+                        tags: (counterTags ?: [:]) + ['xh.outcome': outcome]
+                    )
+                }
+            }
+        }
     }
 
     private Closure wrapWithLog(Closure inner) {
         if (!traceMsgs && !debugMsgs && !infoMsgs) return inner
 
-        LogSupport ls = (LogSupport) caller
+        LogSupport ls = (LogSupport) owner
 
         // Select the finest enabled level when multiple are configured
         if (traceMsgs && ls.instanceLog.isTraceEnabled()) {
@@ -200,6 +243,12 @@ class ObservedRun {
         return inner
     }
 
+    private String applyPrefix(boolean useNamePrefix, String name) {
+        if (!useNamePrefix || !(owner instanceof BaseService)) return name
+        def prefix = ((BaseService) owner).telemetryPrefix
+        prefix ? "${prefix}.${name}" : name
+    }
+
     private static TraceService getTraceService() {
         Utils.appContext.getBean(TraceService)
     }
@@ -209,8 +258,8 @@ class ObservedRun {
     }
 
     private void requireLogSupport() {
-        if (!(caller instanceof LogSupport)) {
-            throw new RuntimeException('ObservedRun requires a LogSupport caller for log methods')
+        if (!(owner instanceof LogSupport)) {
+            throw new RuntimeException('ObservedRun requires a LogSupport owner for log methods')
         }
     }
 }

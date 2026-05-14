@@ -73,6 +73,13 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
 
 
     /**
+     * Prefix prepended (with a `.` separator) to meter and span names configured through
+     * this service or accessed via {@link ObservedRun}. Set on subclasses to namespace telemetry
+     * emitted by this service.
+     */
+    String telemetryPrefix = null
+
+    /**
      * Initialize a collection of BaseServices in parallel.
      *
      * This is a blocking method.  Applications should make one or more calls to it to batch
@@ -306,11 +313,13 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     @NamedVariant
     ObservedRun span(
         @NamedParam(required = true) String name,
+        @NamedParam Map<String, ?> tags = [:],
         @NamedParam SpanKind kind = SpanKind.INTERNAL,
-        @NamedParam Map<String, ?> tags = [:]
+        @NamedParam boolean useNamePrefix = true
     ) {
-        observe().span(name, kind, tags)
+        observe().span(name: name, tags: tags, kind: kind, useNamePrefix: useNamePrefix)
     }
+
 
     //-------------------------------
     // Core template methods for override

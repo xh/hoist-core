@@ -19,6 +19,7 @@ import io.xh.hoist.pref.PrefService
 import io.xh.hoist.pref.Preference
 import io.xh.hoist.security.AccessAll
 import io.xh.hoist.security.BaseAuthenticationService
+import io.xh.hoist.telemetry.metric.MetricsService
 import io.xh.hoist.telemetry.trace.TraceService
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.environment.EnvironmentService
@@ -42,6 +43,7 @@ class XhController extends BaseController {
     BaseUserService userService
     ClusterService clusterService
     TraceService traceService
+    MetricsService metricsService
 
 
     //------------------------
@@ -114,6 +116,17 @@ class XhController extends BaseController {
         def payload = parseRequestJSON([safeEncode: true]),
             entries =  payload.entries as List
         trackService.trackAll(entries)
+        renderSuccess()
+    }
+
+    //------------------------
+    // Client Metrics
+    //------------------------
+    def recordMetrics() {
+        ensureClientUsernameMatchesSession()
+        def payload = parseRequestJSON(),
+            entries = payload.entries as List<Map>
+        metricsService.submitClientMetrics(entries)
         renderSuccess()
     }
 

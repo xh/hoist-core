@@ -8,16 +8,12 @@
 package io.xh.hoist.monitor
 
 import groovy.transform.CompileDynamic
-import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.Meter
 import io.micrometer.core.instrument.MeterRegistry
-import io.micrometer.core.instrument.Timer
-import io.micrometer.core.instrument.Tags
 import io.xh.hoist.BaseService
 import io.xh.hoist.telemetry.metric.MetricsService
 
 import static io.xh.hoist.monitor.MonitorStatus.UNKNOWN
-import static java.lang.Double.NaN
 import static java.util.concurrent.TimeUnit.MILLISECONDS
 
 /**
@@ -28,9 +24,9 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS
  * aggregated by {@link io.xh.hoist.monitor.MonitorService}.
  *
  * Three metrics are published per monitor (monitor code embedded in the metric name):
- *  - `hoist.monitor.status.{code}` — Gauge of status severity (0=INACTIVE .. 4=FAIL)
- *  - `hoist.monitor.value.{code}` — Gauge of the monitor's current numeric metric
- *  - `hoist.monitor.executionTime.{code}` — Timer of the monitor's current execution time
+ *  - `xh.monitor.status.{code}` — Gauge of status severity (0=INACTIVE .. 4=FAIL)
+ *  - `xh.monitor.value.{code}` — Gauge of the monitor's current numeric metric
+ *  - `xh.monitor.executionTime.{code}` — Timer of the monitor's current execution time
 
  * In all cases, an {@code instance} tag will indicate the instance the monitor was running on,
  * with a value of 'cluster' indicating cluster-level metrics (currently status metric only).
@@ -44,6 +40,8 @@ class MonitorMetricsService extends BaseService {
     MonitorService monitorService
 
     private final Map<String, Meter> meters = new HashMap()
+
+    String telemetryPrefix = 'xh.monitor'
 
     /**
      * Ensure gauges/timers are registered for all monitors in result, and
@@ -70,48 +68,54 @@ class MonitorMetricsService extends BaseService {
     //------------------------
     private void ensureAggregateMeters(AggregateMonitorResult aggResult) {
         def code = aggResult.monitor.code,
-            name = "hoist.monitor.status.${code}"
+            name = "status.${code}"
 
-        meters["${name}.cluster"] ?= Gauge.builder(name, this) {
-            def status = monitorService.getResult(code)?.status ?: UNKNOWN
-            status.severity as double
-        }.tags('xh.source', 'hoist', 'xh.instance', 'cluster')
-            .description(aggResult.monitor.name)
-            .register(registry)
+        meters["${name}.cluster"] ?=
+            metricsService.registerGauge(
+                name: name,
+                tags: ['xh.source': 'hoist', 'xh.instance': 'cluster' ],
+                valueFn: {monitorService.getResult(code)?.status?.severity ?: UNKNOWN.severity },
+                description: aggResult.monitor.name,
+                owner: this
+            )
     }
 
     private void ensureAndRecordInstanceMeters(MonitorResult result) {
         //  A) Ensure all meters for this result set
         def code = result.code,
             instance = result.instance,
-            tags = Tags.of('xh.source', 'hoist', 'xh.instance', instance),
+            tags = ['xh.source': 'hoist', 'xh.instance': instance],
             description = result.monitor.name
 
-        def statusName = "hoist.monitor.status.${code}"
+        def statusName = "status.${code}"
         meters["${statusName}.${instance}"] ?=
-            Gauge.builder(statusName, this) {
-                def status = getResult(code, instance)?.status ?: UNKNOWN
-                status.severity as double
-            }.tags(tags)
-                .description(description)
-                .register(registry)
+            metricsService.registerGauge(
+                name: statusName,
+                valueFn: {getResult(code, instance)?.status?.severity ?: UNKNOWN.severity},
+                tags: tags,
+                description: description,
+                owner: this
+            )
 
-        def valueName = "hoist.monitor.value.${code}"
+        def valueName = "value.${code}"
         meters["${valueName}.${instance}"] ?=
-            Gauge.builder(valueName, this) {
-                def m = getResult(code, instance)?.metric
-                m instanceof Number ? m.doubleValue() : NaN
-            }.tags(tags)
-                .description(description)
-                .baseUnit(result.monitor.metricUnit ?: '')
-                .register(registry)
+            metricsService.registerGauge(
+                name: valueName,
+                valueFn: { getResult(code, instance)?.metric },
+                tags: tags,
+                description: description,
+                baseUnit: result.monitor.metricUnit,
+                owner: this
+            )
 
-        def execName = "hoist.monitor.executionTime.${code}"
+        def execName = "executionTime.${code}"
         meters["${execName}.${instance}"] ?=
-            Timer.builder(execName)
-                .tags(tags)
-                .description(description)
-                .register(registry)
+            metricsService.registerTimer(
+                name: execName,
+                tags: tags,
+                description: description,
+                owner: this
+            )
 
         // B) Be sure to imperatively record the timer as well
         meters["${execName}.${instance}"].record(result.elapsed, MILLISECONDS)

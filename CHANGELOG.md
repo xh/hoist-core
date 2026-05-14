@@ -1,6 +1,31 @@
 # Changelog
 
-## 40.0-SNAPSHOT - unreleased
+## 40.0.0-SNAPSHOT - unreleased
+
+### ⚠️ Breaking Changes (upgrade difficulty: 🟢 LOW - updates to new OTEL APIs)
+
+* Removed `ObservedRun.timer(Timer)` and `ObservedRun.counter(Counter)` - the pre-built-instance
+  variants. Use the by-name forms `timer(name: ...)` / `counter(name: ...)` and configure
+  Timer-level options centrally via `MetricsService.configureTimer` / `registerTimer` (see below).
+* `ObservedRun.span` / `BaseService.span` now use named args (e.g. `span(name: ..., tags: ...)`),
+  or a bare name string (e.g. `span('processOrder')`).
+
+### 🎁 New Features
+
+* Expanded `MetricsService` meter-registration API:
+    * `configureTimer` / `registerTimer`, `configureCounter` / `registerCounter`, `registerGauge`,
+      and `registerFunctionCounter`. The `configureXxx` variants record default tags and
+      distribution config for a name; the `registerXxx` variants additionally register a concrete
+      meter.
+    * Each method accepts an optional `owner: BaseService` — used to namespace the metric name
+      and tag it for attribution.
+    * New `telemetryPrefix` property on `BaseService` — when set on a subclass, is auto-prepended
+      (with a `.` separator) to meter and span names emitted through these methods (when passed
+      as `owner`) and through `ObservedRun.span` / `.timer` / `.counter`.
+* `ObservedRun.timer` and `.counter` now attach an `xh.outcome` tag with value `success` or
+  `failure` based on whether the closure threw, making it trivial to slice timings and counts
+  by success rate.
+* Added new `/xh/recordMetrics` endpoint to support client-side metrics in `hoist-react >= 86.0`.
 
 ## 39.1.0 - 2026-05-12
 
@@ -77,8 +102,8 @@ system for app-defined JSON configs.
   new `otlpEnabledInLocalDev` instance config to `'true'` to opt in. See
   [`docs/tracing.md`](docs/tracing.md#local-development-gating) for details, including the
   per-developer `deployment.environment.name` suffix applied when local-dev export is enabled.
-* Timer percentile histograms - built-in `hoist.client.load.totalTime` and
-  `hoist.client.load.authTime` now emit histogram buckets, surfacing p50/p90/p99 etc. in
+* Timer percentile histograms - built-in `xh.client.load.totalTime` and
+  `xh.client.load.authTime` now emit histogram buckets, surfacing p50/p90/p99 etc. in
   Prometheus and OTLP backends.
 * Added new `ConfigService.getObject(Class)` API to read a JSON soft config as a `TypedConfigMap`
   subclass with declared property defaults applied. Wire it up via the new optional
@@ -102,7 +127,8 @@ system for app-defined JSON configs.
   documentation and Groovy/Java symbol surface for environments that block MCP traffic. Bundled
   hoist-core docs and source files directly into the published fat JAR so the tools work fully
   offline once resolved through Maven Central or an internal Artifactory mirror. Added a new
-  `hoist-core-read-doc` MCP tool. See [mcp/README.md](mcp/README.md) for the app-side Gradle snippet.
+  `hoist-core-read-doc` MCP tool. See [mcp/README.md](mcp/README.md) for the app-side Gradle
+  snippet.
 * Added [`coding-conventions.md`](docs/coding-conventions.md), the authoritative reference for
   server-side hoist-core coding conventions.
 

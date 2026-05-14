@@ -5,12 +5,10 @@
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.telemetry.metric
+package io.xh.hoist.telemetry.metric.impl
 
 import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
-import io.micrometer.core.instrument.FunctionCounter
-import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.binder.MeterBinder
 import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmCompilationMetrics
@@ -25,6 +23,7 @@ import io.micrometer.core.instrument.binder.system.ProcessorMetrics
 import io.micrometer.core.instrument.binder.system.UptimeMetrics
 import io.micrometer.core.instrument.binder.tomcat.TomcatMetrics
 import io.xh.hoist.BaseService
+import io.xh.hoist.telemetry.metric.MetricsService
 import org.apache.tomcat.jdbc.pool.DataSource as PooledDataSource
 
 import javax.sql.DataSource
@@ -40,7 +39,7 @@ import javax.sql.DataSource
  * @internal - not intended for direct use by applications.
  */
 @CompileStatic
-class StandardMetricsService extends BaseService {
+class BuiltInMetricsService extends BaseService {
 
     def dataSource
 
@@ -94,52 +93,41 @@ class StandardMetricsService extends BaseService {
             logWarn("Primary DataSource not org.apache.tomcat.jdbc.pool.DataSource - JDBC metrics unavailable.")
             return
         }
-        def readDsProp = {String prop -> {(ds[prop] ?: 0d) as double} as Closure}
+        def readDsProp = {String prop -> { ds[prop] ?: 0d } as Closure}
 
-        def prefix = 'jdbc.connections'
-        List builders = [
-
-            // Spring Boot standard metrics -- generic for all pools.
-            Gauge.builder("${prefix}.active", this, readDsProp('active'))
-                .description('Active/in-use connections'),
-
-            Gauge.builder("${prefix}.idle", this, readDsProp('idle'))
-                .description('Idle connections'),
-
-            Gauge.builder("${prefix}.max", this, readDsProp('maxActive'))
-                .description('Maximum pool size'),
-
-            Gauge.builder("${prefix}.min", this, readDsProp('minIdle'))
-                .description('Minimum idle connections'),
-
-            // Tomcat JDBC pool specifics
-            Gauge.builder("${prefix}.pending", this, readDsProp('waitCount'))
-                .description('Threads waiting for a connection'),
-
-            FunctionCounter.builder("${prefix}.borrowed", this, readDsProp('borrowedCount'))
-                .description('Connections borrowed from pool'),
-
-            FunctionCounter.builder("${prefix}.returned", this, readDsProp('returnedCount'))
-                .description('Connections returned to pool'),
-
-            FunctionCounter.builder("${prefix}.created", this, readDsProp('createdCount'))
-                .description('Connections created'),
-
-            FunctionCounter.builder("${prefix}.released", this, readDsProp('releasedCount'))
-                .description('Connections released/destroyed'),
-
-            FunctionCounter.builder("${prefix}.reconnected", this, readDsProp('reconnectedCount'))
-                .description('Connections re-established after failure'),
-
-            FunctionCounter.builder("${prefix}.abandoned", this, readDsProp('removeAbandonedCount'))
-                .description('Connections removed due to abandonment'),
-
-            FunctionCounter.builder("${prefix}.evicted", this, readDsProp('releasedIdleCount'))
-                .description('Idle connections released by evictor')
-        ]
-
-        builders.each {
-            it.register(metricsService.registry)
+        def gauge = { String suffix, String prop, String desc ->
+            metricsService.registerGauge(
+                name: "jdbc.connections.${suffix}",
+                valueFn: readDsProp(prop),
+                description: desc,
+                owner: this,
+                useNamePrefix: false
+            )
         }
+        def fnCounter = { String suffix, String prop, String desc ->
+            metricsService.registerFunctionCounter(
+                name: "jdbc.connections.${suffix}",
+                countFn: readDsProp(prop),
+                description: desc,
+                owner: this,
+                useNamePrefix: false
+            )
+        }
+
+        // Spring Boot standard metrics -- generic for all pools.
+        gauge('active', 'active', 'Active/in-use connections')
+        gauge('idle', 'idle', 'Idle connections')
+        gauge('max', 'maxActive', 'Maximum pool size')
+        gauge('min', 'minIdle', 'Minimum idle connections')
+
+        // Tomcat JDBC pool specifics
+        gauge('pending', 'waitCount', 'Threads waiting for a connection')
+        fnCounter('borrowed', 'borrowedCount', 'Connections borrowed from pool')
+        fnCounter('returned', 'returnedCount', 'Connections returned to pool')
+        fnCounter('created', 'createdCount', 'Connections created')
+        fnCounter('released', 'releasedCount', 'Connections released/destroyed')
+        fnCounter('reconnected', 'reconnectedCount', 'Connections re-established after failure')
+        fnCounter('abandoned', 'removeAbandonedCount', 'Connections removed due to abandonment')
+        fnCounter('evicted', 'releasedIdleCount', 'Idle connections released by evictor')
     }
 }

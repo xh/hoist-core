@@ -60,6 +60,8 @@ class WebSocketService extends BaseService implements EventPublisher {
     static final String CHANNEL_CLOSED_EVENT = 'xhWebSocketClosed'
     static final String MSG_RECEIVED_EVENT = 'xhWebSocketMessageReceived'
 
+    String telemetryPrefix = 'xh.websocket'
+
     MetricsService metricsService
 
     private Map<WebSocketSession, HoistWebSocketChannel> _channels = new ConcurrentHashMap<>()
@@ -242,32 +244,37 @@ class WebSocketService extends BaseService implements EventPublisher {
     // Implementation
     //------------------------
     private void initMetrics() {
-        def prefix = 'hoist.websocket',
-            registry = metricsService.registry
-
-        channelGauge = Gauge.builder("${prefix}.channels", this, { _channels.size().toDouble() })
-            .description('Active WebSocket channels')
-            .register(registry)
-
-        sentCounter = Counter.builder("${prefix}.messages.sent")
-            .description('Messages sent successfully')
-            .register(registry)
-
-        receivedCounter = Counter.builder("${prefix}.messages.received")
-            .description('Messages received from clients')
-            .register(registry)
-
-        sendErrorCounter = Counter.builder("${prefix}.messages.sendErrors")
-            .description('Message send failures')
-            .register(registry)
-
-        sessionsOpenedCounter = Counter.builder("${prefix}.sessions.opened")
-            .description('WebSocket sessions registered')
-            .register(registry)
-
-        sessionsClosedCounter = Counter.builder("${prefix}.sessions.closed")
-            .description('WebSocket sessions unregistered')
-            .register(registry)
+        channelGauge = metricsService.registerGauge(
+            name: 'channels',
+            valueFn: { _channels.size() },
+            description: 'Active WebSocket channels',
+            owner: this
+        )
+        sentCounter = metricsService.registerCounter(
+            name: 'messages.sent',
+            description: 'Messages sent successfully',
+            owner: this
+        )
+        receivedCounter = metricsService.registerCounter(
+            name: 'messages.received',
+            description: 'Messages received from clients',
+            owner: this
+        )
+        sendErrorCounter = metricsService.registerCounter(
+            name: 'messages.sendErrors',
+            description: 'Message send failures',
+            owner: this
+        )
+        sessionsOpenedCounter = metricsService.registerCounter(
+            name: 'sessions.opened',
+            description: 'WebSocket sessions registered',
+            owner: this
+        )
+        sessionsClosedCounter = metricsService.registerCounter(
+            name: 'sessions.closed',
+            description: 'WebSocket sessions unregistered',
+            owner: this
+        )
     }
 
     private String instanceFromKey(String channelKey) {

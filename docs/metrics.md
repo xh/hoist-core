@@ -49,25 +49,44 @@ framework and application meters register through.
 
 ### Registry and meter registration
 
-Access the registry via `metricsService.registry`. This is a standard Micrometer
-`CompositeMeterRegistry` — all Micrometer meter builders (Gauge, Counter, Timer, etc.) work as
-documented in the [Micrometer docs](https://micrometer.io/docs).
+Access the registry via `metricsService.registry` — a standard Micrometer
+`CompositeMeterRegistry` that supports all Micrometer meter builders directly. For the common
+cases, `MetricsService` exposes a family of methods that handle registration, default tags,
+distribution config, and name-prefixing from an optional `owner` BaseService's `telemetryPrefix`:
+
+| Method | Use for |
+|---|---|
+| `configureTimer(name, description?, tags?, percentiles?, slos?, publishHistogram?, minExpected?, maxExpected?, owner?, useNamePrefix?)` | Configures distribution stats and default metadata for a named Timer (no concrete Timer registered). |
+| `registerTimer(name, description?, tags?, owner?, useNamePrefix?)` | Registers a concrete Timer (uses distribution config from any prior `configureTimer`). |
+| `configureCounter(name, description?, tags?, owner?, useNamePrefix?)` | Configures default metadata for a named Counter. |
+| `registerCounter(name, description?, tags?, owner?, useNamePrefix?)` | Registers a concrete Counter for the name. |
+| `registerGauge(name, valueFn, description?, tags?, baseUnit?, owner?, useNamePrefix?)` | Registers a Gauge whose value is read from `valueFn` on demand. |
+| `registerFunctionCounter(name, countFn, description?, tags?, baseUnit?, owner?, useNamePrefix?)` | Registers a monotonically-increasing FunctionCounter from `countFn`. |
+
+Pass `owner: this` from your service to have its `telemetryPrefix` prepended to the metric name
+and an `xh.owner` tag added automatically. Set `useNamePrefix: false` to opt out of prefixing
+when supplying a fully-qualified name.
 
 ```groovy
-import io.micrometer.core.instrument.Gauge
-
 class MyService extends BaseService {
 
+    String telemetryPrefix = 'myService'
     MetricsService metricsService
 
     void init() {
-        Gauge.builder('myService.queueDepth', this, { queueSize() as double })
-            .description('Current items in processing queue')
-            .baseUnit('items')
-            .register(metricsService.registry)
+        metricsService.registerGauge(
+            name: 'queueDepth',
+            description: 'Current items in processing queue',
+            valueFn: { queueSize() },
+            owner: this
+        )
     }
 }
 ```
+
+For meter shapes the above methods don't cover (e.g. `DistributionSummary`), use the underlying
+`metricsService.registry` directly with the Micrometer builder API — remember to prefix the
+metric name yourself, e.g. `"${telemetryPrefix}.myMeter"`.
 
 ### Default tags
 
@@ -226,10 +245,10 @@ the primary instance. These metrics are cluster-scoped (`instance=cluster`) and 
 
 | Metric | Type | Description |
 |--------|------|-------------|
-| `hoist.client.track.messages` | Counter | All track log entries received |
-| `hoist.client.track.errors` | Counter | Client error track entries (`category == 'Client Error'`) |
-| `hoist.client.load.totalTime` | Timer | Total app load elapsed time |
-| `hoist.client.load.authTime` | Timer | App load authentication phase duration |
+| `xh.client.track.messages` | Counter | All track log entries received |
+| `xh.client.track.errors` | Counter | Client error track entries (`category == 'Client Error'`) |
+| `xh.client.load.totalTime` | Timer | Total app load elapsed time |
+| `xh.client.load.authTime` | Timer | App load authentication phase duration |
 
 Load timers are recorded only for `App` / `Loaded` track entries that include a `timings` map in
 their data payload, confirming they represent a standard Hoist client load event. Both timers
