@@ -209,11 +209,12 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
      * @internal
      */
     void submitClientSpans(List<Map> spans) {
-        def resource = _resource
-        if (!resource) return
+        def resource = _resource,
+            processor = exportProcessor
+        if (!resource || !processor) return
         def extraTags = hoistTags()
         spans.each {
-            exportProcessor.submitSpan(new ClientSpanData(it, resource, extraTags))
+            processor.submitSpan(new ClientSpanData(it, resource, extraTags))
         }
     }
 
@@ -301,6 +302,7 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
         _otelSdk?.sdkTracerProvider?.shutdown()
         _otelSdk = null
         _resource = null
+        exportProcessor = null
     }
 
     /**
