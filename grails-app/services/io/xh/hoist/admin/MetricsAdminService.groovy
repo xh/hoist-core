@@ -15,6 +15,8 @@ import static io.micrometer.core.instrument.Meter.Type.*
 
 class MetricsAdminService extends BaseService {
 
+    def metricsService
+
     List<Map> listMetrics() {
         def published = metricsService.publishedMetrics as Set
         metricsService.readOnlyRegistry.meters.collect { Meter meter ->

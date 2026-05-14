@@ -7,6 +7,8 @@
 * Removed `ObservedRun.timer(Timer)` and `ObservedRun.counter(Counter)` - the pre-built-instance
   variants. Use the by-name forms `timer(name: ...)` / `counter(name: ...)` and configure
   Timer-level options centrally via `MetricsService.configureTimer` / `registerTimer` (see below).
+* `ObservedRun.span` / `BaseService.span` now use named args (e.g. `span(name: ..., tags: ...)`),
+  or a bare name string (e.g. `span('processOrder')`).
 
 ### 🎁 New Features
 

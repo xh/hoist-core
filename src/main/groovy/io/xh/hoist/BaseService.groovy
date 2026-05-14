@@ -313,10 +313,11 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     @NamedVariant
     ObservedRun span(
         @NamedParam(required = true) String name,
+        @NamedParam Map<String, ?> tags = [:],
         @NamedParam SpanKind kind = SpanKind.INTERNAL,
-        @NamedParam Map<String, ?> tags = [:]
+        @NamedParam boolean useNamePrefix = true
     ) {
-        observe().span(name: name, kind: kind, tags: tags)
+        observe().span(name: name, tags: tags, kind: kind, useNamePrefix: useNamePrefix)
     }
 
 
