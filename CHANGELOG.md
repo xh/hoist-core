@@ -1,7 +1,5 @@
 # Changelog
 
-## 41.0-SNAPSHOT - unreleased
-
 ## 40.0.1 - 2026-05-14
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - updates to new metrics APIs)
