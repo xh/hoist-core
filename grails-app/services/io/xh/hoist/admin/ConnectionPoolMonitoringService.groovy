@@ -8,14 +8,15 @@
 package io.xh.hoist.admin
 
 import io.xh.hoist.BaseService
+import io.xh.hoist.config.ConfigService
 import io.xh.hoist.exception.DataNotAvailableException
 import org.apache.tomcat.jdbc.pool.DataSource as PooledDataSource
 import org.apache.tomcat.jdbc.pool.PoolConfiguration
-import org.springframework.boot.jdbc.DataSourceUnwrapper
 
 import javax.sql.DataSource
 import java.util.concurrent.ConcurrentHashMap
 
+import static io.xh.hoist.util.DataSourceUtils.findPooledDataSource
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
 import static io.xh.hoist.util.DateTimeUtils.getHOURS
 import static io.xh.hoist.util.DateTimeUtils.intervalElapsed
@@ -28,15 +29,18 @@ import static java.lang.System.currentTimeMillis
  */
 class ConnectionPoolMonitoringService extends BaseService {
 
-    def configService,
-        dataSource
+    ConfigService configService
+    DataSource dataSource
 
     private Map<Long, Map> _snapshots = new ConcurrentHashMap()
     private Date _lastInfoLogged
-    private PooledDataSource _pooledDataSource
-    private boolean unwrapAttempted = false
+    private PooledDataSource pooledDataSource
 
     void init() {
+        pooledDataSource = findPooledDataSource(dataSource)
+        if (!pooledDataSource) {
+            logError("Failed to unwrap primary Datasource to org.apache.tomcat.jdbc.pool.DataSource - cannot monitor connection pool usage.")
+        }
         createTimer(
             name: 'takeSnapshot',
             runFn: this.&takeSnapshot,
@@ -102,7 +106,7 @@ class ConnectionPoolMonitoringService extends BaseService {
      */
     Map resetStats() {
         ensureEnabled()
-        pooledDataSource.pool.resetStats()
+        pooledDataSource?.pool?.resetStats()
         takeSnapshot()
     }
 
@@ -113,30 +117,18 @@ class ConnectionPoolMonitoringService extends BaseService {
         def ds = pooledDataSource
         return [
             timestamp: currentTimeMillis(),
-            size: ds.size,
-            active: ds.active,
-            idle: ds.idle,
-            waitCount: ds.waitCount,
-            borrowed: ds.borrowedCount,
-            returned: ds.returnedCount,
-            created: ds.createdCount,
-            released: ds.releasedCount,
-            reconnected: ds.reconnectedCount,
-            removeAbandoned: ds.removeAbandonedCount,
-            releasedIdle: ds.releasedIdleCount
+            size: ds?.size,
+            active: ds?.active,
+            idle: ds?.idle,
+            waitCount: ds?.waitCount,
+            borrowed: ds?.borrowedCount,
+            returned: ds?.returnedCount,
+            created: ds?.createdCount,
+            released: ds?.releasedCount,
+            reconnected: ds?.reconnectedCount,
+            removeAbandoned: ds?.removeAbandonedCount,
+            releasedIdle: ds?.releasedIdleCount
         ]
-    }
-
-    private PooledDataSource getPooledDataSource() {
-        if (!_pooledDataSource && !unwrapAttempted) {
-            try {
-                unwrapAttempted = true
-                _pooledDataSource = DataSourceUnwrapper.unwrap(dataSource as DataSource, PooledDataSource.class)
-            } catch (e) {
-                logError("Failed to unwrap primary Datasource to org.apache.tomcat.jdbc.pool.DataSource - cannot monitor connection pool usage.", e)
-            }
-        }
-        return _pooledDataSource
     }
 
     private void ensureEnabled() {

@@ -74,10 +74,10 @@ class HoistInterceptor implements LogSupport {
             def ann = annotations.findResult {method.getAnnotation(it)} ?: annotations.findResult {clazz.getAnnotation(it)}
             if (
                 (ann instanceof AccessAll) ||
-                (ann instanceof AccessRequiresRole && user?.hasRole(ann.value() as String)) ||
-                (ann instanceof AccessRequiresAnyRole  && user?.hasAnyRole(ann.value() as String[])) ||
-                (ann instanceof AccessRequiresAllRoles && user?.hasAllRoles(ann.value() as String[])) ||
-                (ann instanceof Access && user?.hasAllRoles(ann.value() as String[]))
+                (ann instanceof AccessRequiresRole     && user?.hasRole(((AccessRequiresRole) ann).value())) ||
+                (ann instanceof AccessRequiresAnyRole  && user?.hasAnyRole(((AccessRequiresAnyRole) ann).value())) ||
+                (ann instanceof AccessRequiresAllRoles && user?.hasAllRoles(((AccessRequiresAllRoles) ann).value())) ||
+                (ann instanceof Access                 && user?.hasAllRoles(((Access) ann).value()))
             ) return true
 
             def username = user?.username ?: 'UNKNOWN'
@@ -106,7 +106,7 @@ class HoistInterceptor implements LogSupport {
     }
 
     private boolean isActuator(HttpServletRequest req) {
-        req?.requestURI.startsWith('/actuator/')
+        req?.requestURI?.startsWith('/actuator/')
     }
 
 }

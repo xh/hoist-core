@@ -9,6 +9,7 @@
   Timer-level options centrally via `MetricsService.configureTimer` / `registerTimer` (see below).
 * `ObservedRun.span` / `BaseService.span` now use named args (e.g. `span(name: ..., tags: ...)`),
   or a bare name string (e.g. `span('processOrder')`).
+* Apps must add `opentelemetry.version=1.62.0` to their `gradle.properties`.
 
 ### 🎁 New Features
 
@@ -26,6 +27,15 @@
   `failure` based on whether the closure threw, making it trivial to slice timings and counts
   by success rate.
 * Added new `/xh/recordMetrics` endpoint to support client-side metrics in `hoist-react >= 86.0`.
+
+
+### 📚 Libraries
+
+* Grails `7.0.9 → 7.1.1`
+* Hazelcast `5.6.0 → 5.7.0`
+* commons-io `2.21.0 → 2.22.0`
+* OpenTelemetry BOM `1.61.0 → 1.62.0`
+* opentelemetry-jdbc `2.26.1-alpha → 2.27.0-alpha`
 
 ## 39.1.0 - 2026-05-12
 
