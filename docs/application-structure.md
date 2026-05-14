@@ -112,6 +112,41 @@ JVM arguments for `bootRun`, and extends `grails.build.info` with Hoist metadata
 highly consistent across apps — the primary differences are database driver choices and
 app-specific dependencies (e.g. JWT libraries, cloud SDKs).
 
+### JDK Choice
+
+We recommend **JDK 17** or **JDK 21** for client app builds. The published hoist-core JAR
+targets Java 17 bytecode and runs on any JDK 17+ runtime, so apps are not forced to track
+hoist-core's own build JDK.
+
+When building Docker images, use the matching xh-tomcat base image variant for your runtime
+JDK: `next-tc10-jdk17` or `next-tc10-jdk21`.
+
+#### JDK 25 on a Grails 7 / Gradle 8.x App
+
+Pointing Gradle directly at JDK 25 will fail:
+
+> Your build is currently configured to use incompatible Java 25 and Gradle 8.x. The maximum
+> compatible Gradle JVM version is 24.
+
+Grails 7 is stuck with Gradle 8.x, which cannot run its daemon on JDK 25. If you want to build
+with JDK 25 anyway, run Gradle itself on **JDK 24** and use a Gradle toolchain to compile against
+**JDK 25**:
+
+1. Install **BOTH JDK 24 AND JDK 25** locally (IntelliJ: *File → Project Structure → SDKs*). Set JDK 25
+   as the project SDK.
+2. Set the **Gradle JVM** to JDK 24 (IntelliJ: *Settings → Build, Execution, Deployment → Build
+   Tools → Gradle → Gradle JVM*).
+3. Declare the compile toolchain in `build.gradle`:
+   ```groovy
+   java {
+       toolchain { languageVersion = JavaLanguageVersion.of(25) }
+   }
+   ```
+
+Gradle will provision JDK 25 for compilation while the daemon itself runs on JDK 24. This will
+become unnecessary once the next Gradle major (compatible with JDK 25 as a daemon JVM) lands in
+a future Grails release.
+
 ### `.env.template` and `.env`
 
 Instance configuration is provided via environment variables loaded by the

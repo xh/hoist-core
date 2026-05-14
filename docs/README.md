@@ -24,6 +24,7 @@ and conventions.
 | If you need to... | Start here |
 |---|---|
 | Understand a Hoist app's directory structure and boilerplate | [`application-structure.md`](./application-structure.md) |
+| Choose a JDK for your app build, or work around the Gradle 8.x / JDK 25 incompatibility | [`application-structure.md`](./application-structure.md#jdk-choice) |
 | Understand BaseService lifecycle and resource factories | [`base-classes.md`](./base-classes.md) |
 | Understand BaseController / RestController patterns | [`base-classes.md`](./base-classes.md) |
 | Trace an HTTP request through the framework | [`request-flow.md`](./request-flow.md) |
@@ -103,7 +104,7 @@ Guides to building, structuring, and deploying Hoist applications.
 
 | Document | Description | Key Topics |
 |----------|-------------|------------|
-| [`application-structure.md`](./application-structure.md) | Standard Hoist application repository layout — server and client structure, build configuration, deployment | `build.gradle`, `gradle.properties`, `grails-app/init/`, `client-app/`, `Bootstrap.ts`, `AppModel`, Docker, Nginx, Tomcat |
+| [`application-structure.md`](./application-structure.md) | Standard Hoist application repository layout — server and client structure, build configuration, deployment, JDK choice | `build.gradle`, `gradle.properties`, `grails-app/init/`, `client-app/`, `Bootstrap.ts`, `AppModel`, Docker, Nginx, Tomcat, JDK 17/21/25, Gradle toolchain |
 | [`build-and-publish.md`](./build-and-publish.md) | Gradle build, GitHub Actions CI, and Maven Central publishing | GitHub Actions, `deployRelease.yml`, `deploySnapshot.yml`, Sonatype, GPG signing, `nexus-publish-plugin`, `publishToSonatype`, `repo.xh.io` |
 | [`changelog-format.md`](./changelog-format.md) | Conventions for writing and reviewing hoist-core library CHANGELOG entries | Section headers, voice/tense, difficulty ratings, breaking changes, libraries, application changelogs |
 
