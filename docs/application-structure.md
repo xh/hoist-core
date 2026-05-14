@@ -123,14 +123,15 @@ JDK: `next-tc10-jdk17` or `next-tc10-jdk21`.
 
 #### JDK 25 on a Grails 7 / Gradle 8.x App
 
-Pointing Gradle directly at JDK 25 will fail:
+JDK 25 is fully supported for client app builds — it just requires running Gradle itself on a
+pre-JDK 25 JVM and using a Gradle toolchain to compile against JDK 25. Grails 7 relies on
+deprecated features that were removed in Gradle 9, so apps are pinned to Gradle 8.x — whose
+daemon does not support JDK 25 as its runtime JVM. Pointing Gradle directly at JDK 25 results in:
 
 > Your build is currently configured to use incompatible Java 25 and Gradle 8.x. The maximum
 > compatible Gradle JVM version is 24.
 
-Grails 7 is stuck with Gradle 8.x, which cannot run its daemon on JDK 25. If you want to build
-with JDK 25 anyway, run Gradle itself on **JDK 24** and use a Gradle toolchain to compile against
-**JDK 25**:
+To build with JDK 25, run Gradle on **JDK 24** and target **JDK 25** via a toolchain:
 
 1. Install **BOTH JDK 24 AND JDK 25** locally (IntelliJ: *File → Project Structure → SDKs*). Set JDK 25
    as the project SDK.
