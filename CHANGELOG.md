@@ -1,5 +1,7 @@
 # Changelog
 
+## 41.0.0-SNAPSHOT - unreleased
+
 ## 40.0.0 - 2026-05-14
 
 ### ⚠️ Breaking Changes (upgrade difficulty: 🟢 LOW - updates to new OTEL APIs)
