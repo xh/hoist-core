@@ -1,16 +1,21 @@
 # Changelog
 
-## 41.0.0-SNAPSHOT - unreleased
+## 41.0-SNAPSHOT - unreleased
 
-## 40.0.0 - 2026-05-14
+## 40.0.1 - 2026-05-14
 
-### ⚠️ Breaking Changes (upgrade difficulty: 🟢 LOW - updates to new OTEL APIs)
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - updates to new metrics APIs)
+
+See [`docs/upgrade-notes/v40-upgrade-notes.md`](docs/upgrade-notes/v40-upgrade-notes.md) for
+detailed, step-by-step upgrade instructions with before/after code examples.
 
 * Removed `ObservedRun.timer(Timer)` and `ObservedRun.counter(Counter)` - the pre-built-instance
   variants. Use the by-name forms `timer(name: ...)` / `counter(name: ...)` and configure
   Timer-level options centrally via `MetricsService.configureTimer` / `registerTimer` (see below).
 * `ObservedRun.span` / `BaseService.span` now use named args (e.g. `span(name: ..., tags: ...)`),
   or a bare name string (e.g. `span('processOrder')`).
+* Renamed all Hoist built-in metrics from the `hoist.*` prefix to `xh.*` for brevity and
+  consistency with framework span and telemetry tag names.
 * Apps must add `opentelemetry.version=1.62.0` to their `gradle.properties`.
 
 ### 🎁 New Features
@@ -20,23 +25,21 @@
       and `registerFunctionCounter`. The `configureXxx` variants record default tags and
       distribution config for a name; the `registerXxx` variants additionally register a concrete
       meter.
-    * Each method accepts an optional `owner: BaseService` — used to namespace the metric name
+    * Each method accepts an optional `owner: BaseService` - used to namespace the metric name
       and tag it for attribution.
-    * New `telemetryPrefix` property on `BaseService` — when set on a subclass, is auto-prepended
+    * New `telemetryPrefix` property on `BaseService` - when set on a subclass, is auto-prepended
       (with a `.` separator) to meter and span names emitted through these methods (when passed
       as `owner`) and through `ObservedRun.span` / `.timer` / `.counter`.
 * `ObservedRun.timer` and `.counter` now attach an `xh.outcome` tag with value `success` or
   `failure` based on whether the closure threw, making it trivial to slice timings and counts
   by success rate.
 * Added new `/xh/recordMetrics` endpoint to support client-side metrics in `hoist-react >= 86.0`.
-* Hoist built-in metrics are now prefixed with `xh.` rather than `hoist.` for brevity and
- consistency with framework span and telemetry tag names.
 
 ### 🐞 Bug Fixes
 
-* Fixes error with `LdapService.authenticate` introduced in v39.
-
-
+* Fixed regression in `LdapService.authenticate` introduced in v39.
+* Fixed JDBC connection-pool metrics and admin connection-pool monitoring when `JdbcTraceService`
+  is enabled.
 
 ### 📚 Libraries
 

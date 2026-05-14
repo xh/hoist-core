@@ -125,8 +125,9 @@ breaking changes, before/after code examples, and verification checklists.
 > [`develop` branch on GitHub](https://github.com/xh/hoist-core/tree/develop/docs/upgrade-notes).**
 > Upgrade notes are refined after release as developers report issues and new patterns emerge.
 
-| Version | Key Changes |
-|---------|-------------|
+| Version                                         | Key Changes |
+|-------------------------------------------------|-------------|
+| [v40.0.1](./upgrade-notes/v40-upgrade-notes.md) | Grails 7.1, `MetricsService` registration API, `BaseService.telemetryPrefix`, `ObservedRun` metrics by-name, `hoist.*` → `xh.*` built-in metric rename, client-side metrics endpoint |
 | [v39.0.0](./upgrade-notes/v39-upgrade-notes.md) | Typed `ConfigSpec` / `PreferenceSpec` / `RoleSpec`, optional `TypedConfigMap` opt-in, telemetry package restructuring, `alwaysSampleErrors` removed, JDK 25 toolchain |
 | [v38.0.0](./upgrade-notes/v38-upgrade-notes.md) | LogLevel schema additions, OTEL tag alignment, rule-based span sampling |
 | [v36.0.0](./upgrade-notes/v36-upgrade-notes.md) | Cluster-aware WebSockets, new `@AccessRequiresXXX` annotations, `@Access` deprecated |
