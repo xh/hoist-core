@@ -24,9 +24,9 @@ import io.micrometer.core.instrument.binder.system.UptimeMetrics
 import io.micrometer.core.instrument.binder.tomcat.TomcatMetrics
 import io.xh.hoist.BaseService
 import io.xh.hoist.telemetry.metric.MetricsService
-import org.apache.tomcat.jdbc.pool.DataSource as PooledDataSource
-
 import javax.sql.DataSource
+
+import static io.xh.hoist.util.DataSourceUtils.findPooledDataSource
 
 /**
  * Registers standard infrastructure metrics with the application's
@@ -41,7 +41,7 @@ import javax.sql.DataSource
 @CompileStatic
 class BuiltInMetricsService extends BaseService {
 
-    def dataSource
+    DataSource dataSource
 
     MetricsService metricsService
 
@@ -86,9 +86,7 @@ class BuiltInMetricsService extends BaseService {
      * Includes standard + tomcat pool specific
      */
     private void registerConnectionPoolMeters() {
-        def ds = dataSource as DataSource
-
-        ds = ds.isWrapperFor(PooledDataSource) ? ds.unwrap(PooledDataSource) : null
+        def ds = findPooledDataSource(dataSource)
         if (!ds) {
             logWarn("Primary DataSource not org.apache.tomcat.jdbc.pool.DataSource - JDBC metrics unavailable.")
             return
