@@ -1,6 +1,6 @@
 # Changelog
 
-## 40.0.0 - 05-25-2026
+## 40.0.0 - 2026-05-14
 
 ### ⚠️ Breaking Changes (upgrade difficulty: 🟢 LOW - updates to new OTEL APIs)
 
