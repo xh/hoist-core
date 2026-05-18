@@ -246,16 +246,26 @@ configurations {
 }
 
 dependencies {
-    hoistCoreCli "io.xh:hoist-core-mcp:${hoistCoreVersion}:all@jar"
+    // Resolve the active hoist-core version lazily from the runtime classpath. Works whether
+    // hoist-core is declared directly, via gradle.properties, or pulled in transitively via a
+    // client plugin -- the install task stays aligned with whatever hoist-core version actually
+    // resolves at build time.
+    hoistCoreCli providers.provider {
+        def hc = configurations.runtimeClasspath.incoming.resolutionResult.allComponents
+            .find { it.moduleVersion?.group == 'io.xh' && it.moduleVersion?.name == 'hoist-core' }
+        if (!hc) throw new GradleException(
+            'hoist-core not found on the runtimeClasspath -- cannot install hoist-core tools.')
+        "io.xh:hoist-core-mcp:${hc.moduleVersion.version}:all@jar"
+    }
 }
 
 tasks.register('installHoistCoreTools', Sync) {
     description = 'Install version-locked launchers for the hoist-core MCP server and CLI tools.'
     group = 'hoist'
     from configurations.hoistCoreCli
-    into "$buildDir/hoist-core-tools/lib"
+    into layout.buildDirectory.dir('hoist-core-tools/lib')
     doLast {
-        def jar = fileTree("$buildDir/hoist-core-tools/lib").singleFile
+        def jar = fileTree(layout.buildDirectory.dir('hoist-core-tools/lib')).singleFile
         def binDir = file('bin')
         binDir.mkdirs()
         def launcherNames = []
@@ -303,6 +313,12 @@ exec "\$JAVA" -jar "${jar.absolutePath}" ${args} "\$@"
     }
 }
 ```
+
+> **Mirrored in the `using-hoist-core-reference` Claude Code skill.** The snippet above is
+> embedded verbatim in the [`xh/hoist-ai`](https://github.com/xh/hoist-ai) plugin's
+> `using-hoist-core-reference` skill so coding agents can install the tooling in an app that
+> doesn't yet have it. When you change the snippet here, update the skill in lockstep -- see
+> the maintenance checklist at the bottom of this document.
 
 Run once after adding the snippet, and again after a version bump:
 
@@ -553,6 +569,7 @@ places, and any new file extension scanned by the registry must be added to the 
 | Add/rename/remove a source directory | `GroovyRegistry.groovy` (`SOURCE_DIRS`) AND `mcp/build.gradle` (shadowJar `include`) |
 | Add/rename/remove a member-indexed class | `GroovyRegistry.groovy` (`MEMBER_INDEXED_CLASSES`) |
 | Add a new MCP tool or CLI subcommand | `tools/*.groovy` and/or `cli/*.groovy`; update `formatters/*.groovy` if needed |
+| Edit the app-side install snippet ([App-Side Distribution](#app-side-distribution)) | This file AND the `using-hoist-core-reference` skill mirror in [`xh/hoist-ai`](https://github.com/xh/hoist-ai/blob/main/skills/using-hoist-core-reference/SKILL.md) |
 
 ## Common Pitfalls
 
