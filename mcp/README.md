@@ -241,6 +241,7 @@ Gradle dependency resolution -- no separate downloads, no shell scripts that fet
 GitHub. Add this snippet to the app's `build.gradle`:
 
 ```groovy
+// hoist-ai-snippet: hoist-core-install/v1 -- DO NOT REMOVE (drift marker, see hoist-core/mcp/README.md)
 configurations {
     hoistCoreCli
 }
@@ -312,6 +313,7 @@ exec "\$JAVA" -jar "${jar.absolutePath}" ${args} "\$@"
         new File(binDir, '.gitignore').text = launcherNames.sort().join('\n') + '\n'
     }
 }
+// end hoist-ai-snippet
 ```
 
 > **Mirrored in the `using-hoist-core-reference` Claude Code skill.** The snippet above is
@@ -319,6 +321,13 @@ exec "\$JAVA" -jar "${jar.absolutePath}" ${args} "\$@"
 > `using-hoist-core-reference` skill so coding agents can install the tooling in an app that
 > doesn't yet have it. When you change the snippet here, update the skill in lockstep -- see
 > the maintenance checklist at the bottom of this document.
+>
+> **About the `hoist-ai-snippet` markers.** The leading `// hoist-ai-snippet: hoist-core-install/v<N>`
+> and trailing `// end hoist-ai-snippet` lines are read by the skill's preflight to detect when an
+> app's pasted snippet has drifted from this canonical. Apps installing the snippet should keep both
+> markers verbatim. Bump the version (`v1` → `v2` etc.) whenever the snippet has a semantic change
+> (Provider logic, Gradle API surface, launcher script body, task wiring) so the skill can flag
+> stale installs and offer to refresh them. Do not bump on pure comment or whitespace edits.
 
 Run once after adding the snippet, and again after a version bump:
 
@@ -569,7 +578,7 @@ places, and any new file extension scanned by the registry must be added to the 
 | Add/rename/remove a source directory | `GroovyRegistry.groovy` (`SOURCE_DIRS`) AND `mcp/build.gradle` (shadowJar `include`) |
 | Add/rename/remove a member-indexed class | `GroovyRegistry.groovy` (`MEMBER_INDEXED_CLASSES`) |
 | Add a new MCP tool or CLI subcommand | `tools/*.groovy` and/or `cli/*.groovy`; update `formatters/*.groovy` if needed |
-| Edit the app-side install snippet ([App-Side Distribution](#app-side-distribution)) | This file AND the `using-hoist-core-reference` skill mirror in [`xh/hoist-ai`](https://github.com/xh/hoist-ai/blob/main/skills/using-hoist-core-reference/SKILL.md) |
+| Edit the app-side install snippet ([App-Side Distribution](#app-side-distribution)) -- bump the `hoist-ai-snippet:` version on semantic changes | This file (snippet + checklist) AND the `using-hoist-core-reference` skill mirror in [`xh/hoist-ai`](https://github.com/xh/hoist-ai/blob/main/skills/using-hoist-core-reference/SKILL.md) (mirrored snippet AND the canonical-version constant in the Preflight section) |
 
 ## Common Pitfalls
 
