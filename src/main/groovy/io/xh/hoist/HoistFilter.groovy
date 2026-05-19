@@ -45,11 +45,10 @@ class HoistFilter implements Filter, LogSupport {
         HttpServletRequest httpRequest = (HttpServletRequest) request
         HttpServletResponse httpResponse = (HttpServletResponse) response
 
-        // ERROR dispatches (e.g. Spring Boot's /error forward) carry a wrapped request whose
-        // underlying RequestFacade may have already been recycled by Tomcat — touching headers
-        // or the session through such a wrapper throws IllegalStateException. Reroute the
-        // original cause through hoist's exception pipeline without opening a SERVER span or
-        // restoring trace context. (FORWARD/INCLUDE/ASYNC are excluded at filter registration.)
+        // ERROR dispatches (e.g. Spring Boot's /error forward) can arrive on a request whose
+        // session has been invalidated/recycled by Tomcat — `request.getSession(...)` then
+        // throws IllegalStateException. Skip tracing and auth on these (both paths reach the
+        // session); just reroute the original cause through the exception pipeline.
         if (httpRequest.dispatcherType == DispatcherType.ERROR) {
             try {
                 rethrowErrorDispatches(httpRequest)
