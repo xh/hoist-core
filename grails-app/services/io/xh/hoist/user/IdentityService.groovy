@@ -16,34 +16,31 @@ import io.xh.hoist.track.TrackService
 import static io.xh.hoist.util.Utils.getCurrentRequest
 
 import jakarta.servlet.http.HttpServletRequest
-import jakarta.servlet.http.HttpSession
+import org.springframework.web.socket.WebSocketSession
 
 /**
  * Primary service for retrieving the logged-in HoistUser (aka the application user), with support
  * for impersonation. This service powers the getUser() and getUsername() methods in Hoist's
  * BaseService and BaseController classes.
  *
- * The session remains the durable source of truth for identity, but accessors read from a
- * per-thread {@link HoistIdentity} cache that is populated lazily on first access (request
- * thread) or installed explicitly at thread entry (async workers via
- * {@link IdentityPropagatingPromiseFactory}, {@link io.xh.hoist.cluster.ClusterTask}). The cache
- * is cleared at request end by {@link io.xh.hoist.HoistFilter} so request threads returned to
- * the Tomcat pool do not leak identity to the next request.
- *
- * Mutating operations ({@link #login}, {@link #logout}, {@link #impersonate},
- * {@link #endImpersonate}, {@link #noteUserAuthenticated}) update the session and the cache
- * together.
- *
  * This service is *not* intended for override or customization at the application level.
+ *
+ * Implementation notes:
+ * The session is the durable source of truth for identity, but accessors read from a per-thread
+ * {@link HoistIdentity} cache installed explicitly at each thread entry point:
+ * {@link io.xh.hoist.HoistFilter} (HTTP request), {@link io.xh.hoist.websocket.HoistWebSocketHandler}
+ * (WS lifecycle callbacks), {@link IdentityPropagatingPromiseFactory} (async {@code task} workers),
+ * and {@link io.xh.hoist.cluster.ClusterTask} (cluster RPC). Mutating operations
+ * ({@link #login}, {@link #logout}, {@link #impersonate}, {@link #endImpersonate},
+ * {@link #noteUserAuthenticated}) update the session and the cache together.
  */
 @CompileStatic
 class IdentityService extends BaseService {
 
-    /** Per-thread identity cache — authoritative source for accessors after first population. */
     final ThreadLocal<HoistIdentity> threadIdentity = new ThreadLocal<HoistIdentity>()
 
-    static public String AUTH_USER_KEY = 'xhAuthUser'
-    static public String APPARENT_USER_KEY = 'xhApparentUser'
+    private static final String AUTH_USER_KEY = 'xhAuthUser'
+    private static final String APPARENT_USER_KEY = 'xhApparentUser'
 
     BaseAuthenticationService authenticationService
     BaseUserService userService
@@ -58,28 +55,30 @@ class IdentityService extends BaseService {
     //------------------------------------
     // Implementation of IdentitySupport
     //-------------------------------------
-    HoistUser getUser() {
-        findHoistUser(false)
-    }
-
     String getUsername() {
-        getIdentity()?.username
-    }
-
-    HoistUser getAuthUser() {
-        findHoistUser(true)
+        threadIdentity.get()?.username
     }
 
     String getAuthUsername() {
-        getIdentity()?.authUsername
+        threadIdentity.get()?.authUsername
+    }
+
+    HoistUser getUser() {
+        def name = username
+        name ? userService.find(name) : null
+    }
+
+    HoistUser getAuthUser() {
+        def name = authUsername
+        name ? userService.find(name) : null
     }
 
     /**
      * Is the authorized user currently impersonating someone else?
      */
     boolean isImpersonating() {
-        def id = getIdentity()
-        id && id.username != id.authUsername
+        def identity = threadIdentity.get()
+        identity && identity.username != identity.authUsername
     }
 
     /**
@@ -119,8 +118,7 @@ class IdentityService extends BaseService {
         // first explicitly end any existing impersonation session -- important for tracking.
         if (impersonating) endImpersonate()
 
-        request.session[APPARENT_USER_KEY] = targetUser.username
-        threadIdentity.set(new HoistIdentity(targetUser.username, authUser.username))
+        setIdentity(targetUser.username, authUser.username)
 
         trackImpersonate('Started impersonation', [target: targetUser.username])
         logInfo("User '$authUser.username' has started impersonating user '$targetUser.username'")
@@ -138,8 +136,7 @@ class IdentityService extends BaseService {
         if (apparentUser != authUser) {
             trackImpersonate("Stopped impersonation", [target: apparentUser.username])
             logInfo("User '$authUser.username' has stopped impersonating user '$apparentUser.username'")
-            currentRequest.session[APPARENT_USER_KEY] = authUser.username
-            threadIdentity.set(new HoistIdentity(authUser.username, authUser.username))
+            setIdentity(authUser.username, authUser.username)
         }
     }
 
@@ -180,9 +177,7 @@ class IdentityService extends BaseService {
      */
     boolean logout() {
         if (authenticationService.logout()) {
-            def session = getSessionIfExists()
-            if (session) session[APPARENT_USER_KEY] = session[AUTH_USER_KEY] = null
-            threadIdentity.remove()
+            clearIdentity()
             return true
         }
 
@@ -194,34 +189,72 @@ class IdentityService extends BaseService {
      * Called by authenticationService when HoistUser has first been established for this session.
      */
     void noteUserAuthenticated(HttpServletRequest request, HoistUser user) {
-        def session = request.session
-        session[APPARENT_USER_KEY] = session[AUTH_USER_KEY] = user.username
-        threadIdentity.set(new HoistIdentity(user.username, user.username))
+        setIdentity(user.username, user.username)
+    }
+
+
+    //-----------------
+    // Framework
+    //----------------
+
+    /**
+     * Install the given identity on the current thread (or clear it, if null). Used by
+     * {@link IdentityPropagatingPromiseFactory} and {@link io.xh.hoist.cluster.ClusterTask}
+     * to propagate identity captured/trampolined from an originating thread or node.
+     *
+     *  @internal - not for application use
+     */
+    void installThreadIdentity(HoistIdentity identity) {
+        if (identity == null) {
+            threadIdentity.remove()
+        } else {
+            threadIdentity.set(identity)
+        }
     }
 
     /**
-     * Entry Point for AuthenticationService
-     * Called by authenticationService to determine if user has been set on this session
+     * Install thread identity from the given request's existing session (does not create one).
+     * Called by {@link io.xh.hoist.HoistFilter} at request entry.
+     *
+     * @internal - not for application use
      */
-    HoistUser findAuthUser(HttpServletRequest request) {
-        HttpSession session = getSessionIfExists(request)
-        String username = session ? session[AUTH_USER_KEY] : null
-        username ? userService.find(username) : null
+    void installIdentityFromRequest(HttpServletRequest request) {
+        def session = request?.getSession(false)
+        installThreadIdentity(session ? new HoistIdentity(
+            session.getAttribute(APPARENT_USER_KEY) as String,
+            session.getAttribute(AUTH_USER_KEY) as String
+        ) : null)
     }
 
     /**
-     * Clear the per-thread identity cache. Called by {@link io.xh.hoist.HoistFilter} at the end
-     * of every request to prevent identity from leaking between requests when Tomcat returns the
-     * thread to its pool. Also called by async/cluster propagation helpers in their {@code finally}
-     * blocks.
+     * Install thread identity from a WebSocket session's handshake-captured attribute map.
+     * Called by {@link io.xh.hoist.websocket.HoistWebSocketHandler} on each lifecycle callback.
+     *
+     * @internal - not for application use
      */
-    void clearThreadIdentity() {
-        threadIdentity.remove()
+    void installIdentityFromWebSocketSession(WebSocketSession session) {
+        installThreadIdentity(session ? new HoistIdentity(
+            session.attributes[APPARENT_USER_KEY] as String,
+            session.attributes[AUTH_USER_KEY] as String
+        ) : null)
     }
 
     //----------------------
     // Implementation
     //----------------------
+    private void setIdentity(String username, String authUsername) {
+        def session = currentRequest.session
+        session[APPARENT_USER_KEY] = username
+        session[AUTH_USER_KEY] = authUsername
+        threadIdentity.set(new HoistIdentity(username, authUsername))
+    }
+
+    private void clearIdentity() {
+        def session = currentRequest?.getSession(false)
+        if (session) session[APPARENT_USER_KEY] = session[AUTH_USER_KEY] = null
+        threadIdentity.remove()
+    }
+
     private void checkImpersonationEnabled() {
         if (!configService.getBool('xhEnableImpersonation')) {
             throw new RuntimeException('Impersonation is disabled for this app.')
@@ -237,43 +270,6 @@ class IdentityService extends BaseService {
         )
     }
 
-    private HoistUser findHoistUser(boolean authUser) {
-        String name = authUser ? getAuthUsername() : getUsername()
-        name ? userService.find(name) : null
-    }
-
-    /**
-     * Resolve the identity for the current thread, populating from the live session on first
-     * access if running on the request thread. Returns null when no identity is associated with
-     * the thread and no live session is available (e.g. background timers, recycled-request
-     * continuations that did not propagate identity).
-     */
-    private HoistIdentity getIdentity() {
-        def id = threadIdentity.get()
-        if (id != null) return id
-
-        HttpSession session = getSessionIfExists()
-        if (!session) return null
-
-        id = new HoistIdentity(
-            session[APPARENT_USER_KEY] as String,
-            session[AUTH_USER_KEY] as String
-        )
-        threadIdentity.set(id)
-        return id
-    }
-
-    private HttpSession getSessionIfExists(HttpServletRequest request = currentRequest) {
-        // Do *not* create session for simple, early checks (avoid DOS attack).
-        // Guard against IllegalStateException from a recycled RequestFacade — can occur when
-        // identity is resolved on a thread whose RequestContextHolder still references a request
-        // that has been recycled by Tomcat (e.g. async continuations).
-        try {
-            return request?.getSession(false)
-        } catch (IllegalStateException ignored) {
-            return null
-        }
-    }
 
     private void installIdentityPromisePropagation() {
         if (!(Promises.promiseFactory instanceof IdentityPropagatingPromiseFactory)) {

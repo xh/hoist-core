@@ -2,6 +2,17 @@
 
 ## 41.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* Reworked identity resolution onto an explicit per-thread `HoistIdentity` cache, installed at
+  every framework thread-entry point (`HoistFilter`, `HoistWebSocketHandler`, async `task` workers
+  via a new `IdentityPropagatingPromiseFactory`, and `ClusterTask`). Identity accessors
+  (`identityService.username`/`authUsername`/etc.) no longer dereference the live servlet request
+  or session on each call. Eliminates `IllegalStateException: request object has been recycled`
+  errors when identity is resolved on async continuations, propagates identity into Grails
+  `task {}` workers automatically, and makes `identityService` usable inside WebSocket message
+  handlers. See [docs/planning/identity-async-safety.md](docs/planning/identity-async-safety.md).
+
 ## 40.0.1 - 2026-05-14
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - updates to new metrics APIs)

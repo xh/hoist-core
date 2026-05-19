@@ -46,7 +46,7 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
     }
 
     ClusterResult call() {
-        identityService.threadIdentity.set(new HoistIdentity(username, authUsername))
+        identityService.installThreadIdentity(new HoistIdentity(username, authUsername))
 
         try (def traceScope = traceContextService.restoreContextFromTraceparent(traceparent)) {
             clusterService.ensureRunning()
@@ -65,7 +65,7 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
             )
             return new ClusterResult(exception: new ClusterTaskException(t))
         } finally {
-            identityService.clearThreadIdentity()
+            identityService.installThreadIdentity(null)
         }
     }
 }

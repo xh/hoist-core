@@ -69,20 +69,11 @@ class IdentityPropagatingPromiseFactory implements PromiseFactory {
     private <T> Closure<T> wrapClosure(Closure<T> closure) {
         def captured = identityService.threadIdentity.get()
         return { ->
-            def prior = identityService.threadIdentity.get()
-            if (captured != null) {
-                identityService.threadIdentity.set(captured)
-            } else {
-                identityService.threadIdentity.remove()
-            }
+            identityService.installThreadIdentity(captured)
             try {
                 return closure.call()
             } finally {
-                if (prior != null) {
-                    identityService.threadIdentity.set(prior)
-                } else {
-                    identityService.threadIdentity.remove()
-                }
+                identityService.installThreadIdentity(null)
             }
         } as Closure<T>
     }

@@ -46,6 +46,8 @@ class HoistFilter implements Filter, LogSupport {
         HttpServletRequest httpRequest = (HttpServletRequest) request
         HttpServletResponse httpResponse = (HttpServletResponse) response
 
+        identityService.installIdentityFromRequest(httpRequest)
+
         // Always restore trace context, but conditionally add span here.
         try (def scope = traceContextService.restoreContextFromRequest(httpRequest)) {
             shouldTrace(httpRequest) ?
@@ -53,7 +55,7 @@ class HoistFilter implements Filter, LogSupport {
                 handleUntraced(httpRequest, httpResponse, chain)
         } finally {
             // Prevent identity leaking between requests when Tomcat returns the thread to the pool.
-            identityService.clearThreadIdentity()
+            identityService.installThreadIdentity(null)
         }
     }
 
