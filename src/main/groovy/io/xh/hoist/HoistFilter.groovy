@@ -45,6 +45,25 @@ class HoistFilter implements Filter, LogSupport {
         HttpServletRequest httpRequest = (HttpServletRequest) request
         HttpServletResponse httpResponse = (HttpServletResponse) response
 
+        // Internal re-dispatches (FORWARD/INCLUDE/ASYNC/ERROR) carry a wrapped request whose
+        // underlying RequestFacade may have already been recycled by Tomcat — touching headers
+        // or the session through such a wrapper throws IllegalStateException. Skip tracing,
+        // trace-context restoration, and auth on these dispatches. ERROR dispatches are
+        // additionally rerouted through hoist's exception pipeline so the original cause is
+        // rendered consistently (e.g. multipart size exceeded).
+        if (httpRequest.dispatcherType != DispatcherType.REQUEST) {
+            if (httpRequest.dispatcherType == DispatcherType.ERROR) {
+                try {
+                    rethrowErrorDispatches(httpRequest)
+                } catch (Throwable t) {
+                    Utils.handleException(exception: t, renderTo: httpResponse, logTo: this)
+                }
+            } else {
+                chain.doFilter(request, response)
+            }
+            return
+        }
+
         // Always restore trace context, but conditionally add span here.
         try (def scope = traceContextService.restoreContextFromRequest(httpRequest)) {
             shouldTrace(httpRequest) ?
@@ -62,9 +81,6 @@ class HoistFilter implements Filter, LogSupport {
     //----------------
     private handleRequest(HttpServletRequest req, HttpServletResponse res, FilterChain chain) {
         clusterService.ensureRunning()
-
-        // Rethrow spring/tc errors early. Intentionally post-auth and context restore
-        rethrowErrorDispatches(req)
 
         if (authenticationService.allowRequest(req, res)) {
             chain.doFilter(req, res)

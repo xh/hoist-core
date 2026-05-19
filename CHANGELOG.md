@@ -2,6 +2,14 @@
 
 ## 41.0-SNAPSHOT - unreleased
 
+### 🐞 Bug Fixes
+
+* Fixed `IllegalStateException: The request object has been recycled` thrown from
+  `HoistFilter` on internal servlet re-dispatches (ERROR/FORWARD/INCLUDE/ASYNC) — most
+  visibly during Spring Boot's `/error` forward for unrouted requests. `HoistFilter` now
+  skips tracing, trace-context restoration, and auth for non-REQUEST dispatches, and reroutes
+  ERROR dispatches through hoist's exception pipeline without opening a SERVER span.
+
 ## 40.0.1 - 2026-05-14
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - updates to new metrics APIs)
