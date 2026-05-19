@@ -45,21 +45,16 @@ class HoistFilter implements Filter, LogSupport {
         HttpServletRequest httpRequest = (HttpServletRequest) request
         HttpServletResponse httpResponse = (HttpServletResponse) response
 
-        // Internal re-dispatches (FORWARD/INCLUDE/ASYNC/ERROR) carry a wrapped request whose
+        // ERROR dispatches (e.g. Spring Boot's /error forward) carry a wrapped request whose
         // underlying RequestFacade may have already been recycled by Tomcat — touching headers
-        // or the session through such a wrapper throws IllegalStateException. Skip tracing,
-        // trace-context restoration, and auth on these dispatches. ERROR dispatches are
-        // additionally rerouted through hoist's exception pipeline so the original cause is
-        // rendered consistently (e.g. multipart size exceeded).
-        if (httpRequest.dispatcherType != DispatcherType.REQUEST) {
-            if (httpRequest.dispatcherType == DispatcherType.ERROR) {
-                try {
-                    rethrowErrorDispatches(httpRequest)
-                } catch (Throwable t) {
-                    Utils.handleException(exception: t, renderTo: httpResponse, logTo: this)
-                }
-            } else {
-                chain.doFilter(request, response)
+        // or the session through such a wrapper throws IllegalStateException. Reroute the
+        // original cause through hoist's exception pipeline without opening a SERVER span or
+        // restoring trace context. (FORWARD/INCLUDE/ASYNC are excluded at filter registration.)
+        if (httpRequest.dispatcherType == DispatcherType.ERROR) {
+            try {
+                rethrowErrorDispatches(httpRequest)
+            } catch (Throwable t) {
+                Utils.handleException(exception: t, renderTo: httpResponse, logTo: this)
             }
             return
         }
