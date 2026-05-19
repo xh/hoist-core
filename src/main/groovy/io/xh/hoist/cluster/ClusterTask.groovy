@@ -8,6 +8,7 @@ package io.xh.hoist.cluster
 
 import io.xh.hoist.BaseService
 import io.xh.hoist.log.LogSupport
+import io.xh.hoist.user.HoistIdentity
 import io.xh.hoist.util.Utils
 import java.util.concurrent.Callable
 
@@ -45,8 +46,7 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
     }
 
     ClusterResult call() {
-        identityService.threadUsername.set(username)
-        identityService.threadAuthUsername.set(authUsername)
+        identityService.threadIdentity.set(new HoistIdentity(username, authUsername))
 
         try (def traceScope = traceContextService.restoreContextFromTraceparent(traceparent)) {
             clusterService.ensureRunning()
@@ -65,8 +65,7 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
             )
             return new ClusterResult(exception: new ClusterTaskException(t))
         } finally {
-            identityService.threadUsername.remove()
-            identityService.threadAuthUsername.remove()
+            identityService.clearThreadIdentity()
         }
     }
 }

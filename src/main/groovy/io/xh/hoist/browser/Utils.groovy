@@ -16,16 +16,29 @@ class Utils {
 
     static Browser getBrowser(HttpServletRequest request) {
         if (!request) return null
-        def ua = request.getHeader('User-Agent'),
-            uaHints = request.getHeader('Sec-Ch-UA')
+        def ua = safeHeader(request, 'User-Agent'),
+            uaHints = safeHeader(request, 'Sec-Ch-UA')
         findMatch(uaHints, BROWSER_MATCHERS) ?: findMatch(ua, BROWSER_MATCHERS) ?: Browser.OTHER
     }
 
     static Device getDevice(HttpServletRequest request) {
         if (!request) return null
-        def ua = request.getHeader('User-Agent'),
-            uaPlatformHints = request.getHeader('Sec-Ch-UA-Platform')
+        def ua = safeHeader(request, 'User-Agent'),
+            uaPlatformHints = safeHeader(request, 'Sec-Ch-UA-Platform')
         findMatch(uaPlatformHints, DEVICE_MATCHERS) ?: findMatch(ua, DEVICE_MATCHERS) ?: Device.OTHER
+    }
+
+    /**
+     * Read a header from a servlet request, returning null if the underlying RequestFacade
+     * has been recycled by Tomcat. Tolerates identity/observability calls that arrive on
+     * threads whose request reference is no longer valid (e.g. async continuations).
+     */
+    static String safeHeader(HttpServletRequest request, String name) {
+        try {
+            return request?.getHeader(name)
+        } catch (IllegalStateException ignored) {
+            return null
+        }
     }
 
     //--------------------

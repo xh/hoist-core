@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpServletResponse
 
 import static io.opentelemetry.api.trace.SpanKind.SERVER
 import static io.xh.hoist.util.Utils.authenticationService
+import static io.xh.hoist.util.Utils.identityService
 import static io.xh.hoist.util.Utils.traceService
 import static io.xh.hoist.util.Utils.traceContextService
 import static io.xh.hoist.util.Utils.getClusterService
@@ -50,6 +51,9 @@ class HoistFilter implements Filter, LogSupport {
             shouldTrace(httpRequest) ?
                 handleTraced(httpRequest, httpResponse, chain) :
                 handleUntraced(httpRequest, httpResponse, chain)
+        } finally {
+            // Prevent identity leaking between requests when Tomcat returns the thread to the pool.
+            identityService.clearThreadIdentity()
         }
     }
 
