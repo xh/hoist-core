@@ -45,43 +45,31 @@ class HoistFilter implements Filter, LogSupport {
         HttpServletRequest httpRequest = (HttpServletRequest) request
         HttpServletResponse httpResponse = (HttpServletResponse) response
 
-        // Always restore trace context, but conditionally add span here.
-        try (def scope = traceContextService.restoreContextFromRequest(httpRequest)) {
-            shouldTrace(httpRequest) ?
-                handleTraced(httpRequest, httpResponse, chain) :
-                handleUntraced(httpRequest, httpResponse, chain)
+        try {
+            rethrowErrorDispatches(httpRequest)
+
+            // Always restore trace context, but conditionally add span here.
+            try (def scope = traceContextService.restoreContextFromRequest(httpRequest)) {
+                shouldTrace(httpRequest) ?
+                    handleTraced(httpRequest, httpResponse, chain) :
+                    handleRequest(httpRequest, httpResponse, chain)
+            }
+
+        } catch (Throwable t) {
+            Utils.handleException(exception: t, renderTo: httpResponse, logTo: this)
         }
     }
 
     //--------------------------
     // Implementation
     //--------------------------
-
-    //-----------------
-    // Basic (untraced) handling
-    //----------------
     private handleRequest(HttpServletRequest req, HttpServletResponse res, FilterChain chain) {
         clusterService.ensureRunning()
-
-        // Rethrow spring/tc errors early. Intentionally post-auth and context restore
-        rethrowErrorDispatches(req)
-
         if (authenticationService.allowRequest(req, res)) {
             chain.doFilter(req, res)
         }
     }
 
-    private handleUntraced(HttpServletRequest req, HttpServletResponse res, FilterChain chain) {
-        try {
-            handleRequest(req, res, chain)
-        } catch (Throwable t) {
-            Utils.handleException(exception: t, renderTo: res, logTo: this)
-        }
-    }
-
-    //------------------------
-    // Tracing
-    //------------------------
     private boolean shouldTrace(HttpServletRequest req) {
         if (!traceService.enabled) return false
         def uri = req.requestURI
@@ -128,10 +116,8 @@ class HoistFilter implements Filter, LogSupport {
                 req.getAttribute('org.springframework.web.servlet.DispatcherServlet.EXCEPTION') ?:
                     req.getAttribute('jakarta.servlet.error.exception')
             ) as Throwable
-
             def message = cause?.message ?: 'An unexpected error occurred',
                 statusCode = req.getAttribute('jakarta.servlet.error.status_code') as Integer ?: 500
-
             throw new HttpException(message, cause, statusCode)
         }
     }

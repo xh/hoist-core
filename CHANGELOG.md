@@ -1,6 +1,14 @@
 # Changelog
 
-## 41.0-SNAPSHOT - unreleased
+## 40.0.2 - 2026-05-19
+
+### 🐞 Bug Fixes
+
+* Hardened request handling in `HoistFilter` so failures during trace-context restoration,
+  span construction, or servlet error dispatches are all funneled through hoist's standard
+  exception pipeline rather than escaping the filter unhandled. Resolves intermittent
+  `IllegalStateException: The request object has been recycled` errors observed in
+  production.
 
 ## 40.0.1 - 2026-05-14
 

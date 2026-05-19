@@ -221,7 +221,12 @@ class IdentityService extends BaseService {
     }
 
     private HttpSession getSessionIfExists(HttpServletRequest request = currentRequest) {
-        // Do *not* create session for simple, early checks (avoid DOS attack)
-        request?.getSession(false)
+        // Do *not* create session for simple, early checks (avoid DOS attack).
+        // Guard against IllegalStateException from recycled RequestFacade (e.g. ERROR dispatches).
+        try {
+            return request?.getSession(false)
+        } catch (IllegalStateException ignored) {
+            return null
+        }
     }
 }
