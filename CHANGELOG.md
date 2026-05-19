@@ -8,10 +8,18 @@
   every framework thread-entry point (`HoistFilter`, `HoistWebSocketHandler`, async `task` workers
   via a new `IdentityPropagatingPromiseFactory`, and `ClusterTask`). Identity accessors
   (`identityService.username`/`authUsername`/etc.) no longer dereference the live servlet request
-  or session on each call. Eliminates `IllegalStateException: request object has been recycled`
-  errors when identity is resolved on async continuations, propagates identity into Grails
-  `task {}` workers automatically, and makes `identityService` usable inside WebSocket message
-  handlers. See [docs/planning/identity-async-safety.md](docs/planning/identity-async-safety.md).
+  or session on each call. Propagates identity into Grails `task {}` workers automatically, and makes
+  `identityService` usable inside WebSocket message handlers.
+
+## 40.0.2 - 2026-05-19
+
+### 🐞 Bug Fixes
+
+* Hardened request handling in `HoistFilter` so failures during trace-context restoration,
+  span construction, or servlet error dispatches are all funneled through hoist's standard
+  exception pipeline rather than escaping the filter unhandled. Resolves intermittent
+  `IllegalStateException: The request object has been recycled` errors observed in
+  production.
 
 ## 40.0.1 - 2026-05-14
 
