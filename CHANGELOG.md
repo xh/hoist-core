@@ -1,5 +1,7 @@
 # Changelog
 
+## 41.0-SNAPSHOT - unreleased
+
 ## 40.0.2 - 2026-05-19
 
 ### 🐞 Bug Fixes
