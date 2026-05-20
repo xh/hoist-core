@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpServletResponse
 
 import static io.opentelemetry.api.trace.SpanKind.SERVER
 import static io.xh.hoist.util.Utils.authenticationService
+import static io.xh.hoist.util.Utils.identityService
 import static io.xh.hoist.util.Utils.traceService
 import static io.xh.hoist.util.Utils.traceContextService
 import static io.xh.hoist.util.Utils.getClusterService
@@ -50,9 +51,12 @@ class HoistFilter implements Filter, LogSupport {
 
             // Always restore trace context, but conditionally add span here.
             try (def scope = traceContextService.restoreContextFromRequest(httpRequest)) {
+                identityService.installIdentityFromRequest(httpRequest)
                 shouldTrace(httpRequest) ?
-                    handleTraced(httpRequest, httpResponse, chain) :
+                    handleRequestTraced(httpRequest, httpResponse, chain) :
                     handleRequest(httpRequest, httpResponse, chain)
+            } finally {
+                identityService.installThreadIdentity(null)
             }
 
         } catch (Throwable t) {
@@ -79,7 +83,7 @@ class HoistFilter implements Filter, LogSupport {
         return true
     }
 
-    private void handleTraced(HttpServletRequest req, HttpServletResponse res, FilterChain chain) {
+    private void handleRequestTraced(HttpServletRequest req, HttpServletResponse res, FilterChain chain) {
         // Span published on request: HoistInterceptor renames it post-routing
         // (e.g. "GET app/config"); BaseController records handled exceptions onto it.
         traceService.withSpan(

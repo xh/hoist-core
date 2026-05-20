@@ -12,7 +12,6 @@ import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser
-import io.xh.hoist.user.IdentityService
 import org.springframework.util.MultiValueMap
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
@@ -23,6 +22,7 @@ import org.springframework.web.util.UriComponentsBuilder
 import java.time.Instant
 
 import static io.xh.hoist.util.Utils.configService
+import static io.xh.hoist.util.Utils.identityService
 import static io.xh.hoist.util.Utils.userService
 import static java.util.UUID.randomUUID
 
@@ -61,8 +61,8 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
         logDebug("Creating managed socket session", [sendTimeLimit: sendTimeLimit, bufferSizeLimit: bufferSizeLimit])
 
         session = new ConcurrentWebSocketSessionDecorator(webSocketSession, sendTimeLimit, bufferSizeLimit)
-        authUsername = getAuthUsernameFromSession()
-        apparentUsername = getApparentUsernameFromSession()
+        authUsername = identityService.authUsername ?: 'unknownUser'
+        apparentUsername = identityService.username ?: 'unknownUser'
         appVersion = queryParams.getFirst('appVersion')
         appBuild = queryParams.getFirst('appBuild')
         loadId = queryParams.getFirst('loadId')
@@ -101,14 +101,6 @@ class HoistWebSocketChannel implements JSONFormat, LogSupport {
     //------------------------
     // Implementation
     //------------------------
-    private String getAuthUsernameFromSession() {
-        return (String) session.attributes[IdentityService.AUTH_USER_KEY] ?: 'unknownUser'
-    }
-
-    private String getApparentUsernameFromSession() {
-        return (String) session.attributes[IdentityService.APPARENT_USER_KEY] ?: 'unknownUser'
-    }
-
     private MultiValueMap<String, String> getQueryParams(URI uri) {
         UriComponentsBuilder.fromUri(uri).build().queryParams
     }

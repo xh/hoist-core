@@ -6,7 +6,6 @@
  */
 package io.xh.hoist.telemetry.trace
 
-import grails.async.Promises
 import groovy.transform.CompileStatic
 import io.opentelemetry.api.trace.Span
 import io.opentelemetry.context.Context
@@ -23,17 +22,13 @@ import static java.util.Collections.emptySet
  * Support service for {@link TraceService}.
  *
  * Supports W3C trace-context propagation plumbing used by framework-level instrumentation
- * (inbound request filter, outbound, HTTP/proxy clients, cluster task hand-off), and propagates
- * OTel context across Grails Promise worker threads.
+ * (inbound request filter, outbound, HTTP/proxy clients, cluster task hand-off). OTel context
+ * propagation across Grails Promise worker threads is handled by {@link io.xh.hoist.HoistPromiseFactory}.
  */
 @CompileStatic
 class TraceContextService extends BaseService {
 
     TraceService traceService
-
-    void init() {
-        installPromiseContextPropagation()
-    }
 
     //--------------------------------
     // HTTP
@@ -84,19 +79,6 @@ class TraceContextService extends BaseService {
         if (!sdk) return null
         def context = sdk.propagators.textMapPropagator.extract(Context.current(), request, HTTP_GETTER)
         context.makeCurrent()
-    }
-
-    //------------
-    // Promises
-    //------------
-    /**
-     * Install a delegating PromiseFactory that propagates OTel trace context to worker
-     * threads spawned by Grails {@code task {}} calls. Installed once at startup.
-     */
-    private void installPromiseContextPropagation() {
-        if (!(Promises.promiseFactory instanceof ContextPropagatingPromiseFactory)) {
-            Promises.promiseFactory = new ContextPropagatingPromiseFactory(Promises.promiseFactory)
-        }
     }
 
     //------------

@@ -2,6 +2,16 @@
 
 ## 41.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* Reworked identity resolution onto an explicit per-thread `HoistIdentity` cache, installed at
+  every framework thread-entry point (`HoistFilter`, `HoistWebSocketHandler`, async `task` workers
+  via a new `HoistPromiseFactory`, and `ClusterTask`). Identity accessors
+  (`identityService.username`/`authUsername`/etc.) no longer dereference the live servlet request
+  or session on each call. Propagates identity into Grails `task {}` workers automatically, and makes
+  `identityService` usable inside WebSocket message handlers.
+
+
 ## 41.0.3 - 2026-05-20
 
 ### 🐞 Bug Fixes

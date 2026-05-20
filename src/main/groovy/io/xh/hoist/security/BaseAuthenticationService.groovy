@@ -105,7 +105,7 @@ abstract class BaseAuthenticationService extends BaseService {
      */
     boolean allowRequest(HttpServletRequest request, HttpServletResponse response) {
         try {
-            if (identityService.findAuthUser(request) || isWhitelist(request)) {
+            if (identityService.authUser || isWhitelist(request)) {
                 return true
             }
 
@@ -113,7 +113,7 @@ abstract class BaseAuthenticationService extends BaseService {
                 return false
             }
 
-            if (!identityService.findAuthUser(request)) {
+            if (!identityService.authUser) {
                 throw new NotAuthenticatedException()
             }
 
