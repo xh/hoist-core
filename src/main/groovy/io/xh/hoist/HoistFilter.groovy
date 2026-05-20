@@ -21,7 +21,6 @@ import jakarta.servlet.http.HttpServletResponse
 import static io.opentelemetry.api.trace.SpanKind.SERVER
 import static io.xh.hoist.util.Utils.authenticationService
 import static io.xh.hoist.util.Utils.identityService
-import static io.xh.hoist.util.Utils.getIdentityService
 import static io.xh.hoist.util.Utils.traceService
 import static io.xh.hoist.util.Utils.traceContextService
 import static io.xh.hoist.util.Utils.getClusterService

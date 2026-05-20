@@ -7,7 +7,6 @@
 
 package io.xh.hoist.user
 
-import grails.async.Promises
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
@@ -29,7 +28,7 @@ import org.springframework.web.socket.WebSocketSession
  * The session is the durable source of truth for identity, but accessors read from a per-thread
  * {@link HoistIdentity} cache installed explicitly at each thread entry point:
  * {@link io.xh.hoist.HoistFilter} (HTTP request), {@link io.xh.hoist.websocket.HoistWebSocketHandler}
- * (WS lifecycle callbacks), {@link IdentityPropagatingPromiseFactory} (async {@code task} workers),
+ * (WS lifecycle callbacks), {@link io.xh.hoist.HoistPromiseFactory} (async {@code task} workers),
  * and {@link io.xh.hoist.cluster.ClusterTask} (cluster RPC). Mutating operations
  * ({@link #login}, {@link #logout}, {@link #impersonate}, {@link #endImpersonate},
  * {@link #noteUserAuthenticated}) update the session and the cache together.
@@ -46,11 +45,6 @@ class IdentityService extends BaseService {
     BaseUserService userService
     TrackService trackService
     ConfigService configService
-
-    void init() {
-        super.init()
-        installIdentityPromisePropagation()
-    }
 
     //------------------------------------
     // Implementation of IdentitySupport
@@ -189,7 +183,7 @@ class IdentityService extends BaseService {
      * Called by authenticationService when HoistUser has first been established for this session.
      */
     void noteUserAuthenticated(HttpServletRequest request, HoistUser user) {
-        setIdentity(user.username, user.username)
+        setIdentity(user.username, user.username, request)
     }
 
 
@@ -199,7 +193,7 @@ class IdentityService extends BaseService {
 
     /**
      * Install the given identity on the current thread (or clear it, if null). Used by
-     * {@link IdentityPropagatingPromiseFactory} and {@link io.xh.hoist.cluster.ClusterTask}
+     * {@link io.xh.hoist.HoistPromiseFactory} and {@link io.xh.hoist.cluster.ClusterTask}
      * to propagate identity captured/trampolined from an originating thread or node.
      *
      *  @internal - not for application use
@@ -242,8 +236,8 @@ class IdentityService extends BaseService {
     //----------------------
     // Implementation
     //----------------------
-    private void setIdentity(String username, String authUsername) {
-        def session = currentRequest.session
+    private void setIdentity(String username, String authUsername, HttpServletRequest request = currentRequest) {
+        def session = request.session
         session[APPARENT_USER_KEY] = username
         session[AUTH_USER_KEY] = authUsername
         threadIdentity.set(new HoistIdentity(username, authUsername))
@@ -271,9 +265,4 @@ class IdentityService extends BaseService {
     }
 
 
-    private void installIdentityPromisePropagation() {
-        if (!(Promises.promiseFactory instanceof IdentityPropagatingPromiseFactory)) {
-            Promises.promiseFactory = new IdentityPropagatingPromiseFactory(Promises.promiseFactory, this)
-        }
-    }
 }

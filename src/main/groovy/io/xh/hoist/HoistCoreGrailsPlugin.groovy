@@ -7,6 +7,7 @@
 
 package io.xh.hoist
 
+import grails.async.Promises
 import grails.plugins.Plugin
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.cluster.InstanceState
@@ -65,7 +66,9 @@ class HoistCoreGrailsPlugin extends Plugin {
         }
     }
 
-    void doWithApplicationContext() {}
+    void doWithApplicationContext() {
+        Promises.promiseFactory = new HoistPromiseFactory(Promises.promiseFactory)
+    }
 
     void onConfigChange(Map<String, Object> event) {}
 

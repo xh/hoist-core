@@ -6,7 +6,7 @@
 
 * Reworked identity resolution onto an explicit per-thread `HoistIdentity` cache, installed at
   every framework thread-entry point (`HoistFilter`, `HoistWebSocketHandler`, async `task` workers
-  via a new `IdentityPropagatingPromiseFactory`, and `ClusterTask`). Identity accessors
+  via a new `HoistPromiseFactory`, and `ClusterTask`). Identity accessors
   (`identityService.username`/`authUsername`/etc.) no longer dereference the live servlet request
   or session on each call. Propagates identity into Grails `task {}` workers automatically, and makes
   `identityService` usable inside WebSocket message handlers.
