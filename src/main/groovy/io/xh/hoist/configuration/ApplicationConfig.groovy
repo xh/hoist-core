@@ -41,6 +41,7 @@ class ApplicationConfig {
                 autoconfigure.exclude = [
                     'org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration',
                     'org.springframework.boot.actuate.autoconfigure.metrics.CompositeMeterRegistryAutoConfiguration',
+                    'org.springframework.boot.actuate.autoconfigure.metrics.export.otlp.OtlpMetricsExportAutoConfiguration',
                     'org.springframework.boot.actuate.autoconfigure.observation.web.servlet.WebMvcObservationAutoConfiguration'
                 ]
             }
