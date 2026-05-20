@@ -12,7 +12,7 @@
   `identityService` usable inside WebSocket message handlers.
 
 
-## 41.0.3 - 2026-05-20
+## 40.0.3 - 2026-05-20
 
 ### 🐞 Bug Fixes
 
