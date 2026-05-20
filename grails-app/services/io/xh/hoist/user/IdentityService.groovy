@@ -38,8 +38,7 @@ class IdentityService extends BaseService {
 
     final ThreadLocal<HoistIdentity> threadIdentity = new ThreadLocal<HoistIdentity>()
 
-    private static final String AUTH_USER_KEY = 'xhAuthUser'
-    private static final String APPARENT_USER_KEY = 'xhApparentUser'
+    private static final String IDENTITY_KEY = 'xhIdentity'
 
     BaseAuthenticationService authenticationService
     BaseUserService userService
@@ -214,10 +213,7 @@ class IdentityService extends BaseService {
      */
     void installIdentityFromRequest(HttpServletRequest request) {
         def session = request?.getSession(false)
-        installThreadIdentity(session ? new HoistIdentity(
-            session.getAttribute(APPARENT_USER_KEY) as String,
-            session.getAttribute(AUTH_USER_KEY) as String
-        ) : null)
+        installThreadIdentity(session?.getAttribute(IDENTITY_KEY) as HoistIdentity)
     }
 
     /**
@@ -227,25 +223,21 @@ class IdentityService extends BaseService {
      * @internal - not for application use
      */
     void installIdentityFromWebSocketSession(WebSocketSession session) {
-        installThreadIdentity(session ? new HoistIdentity(
-            session.attributes[APPARENT_USER_KEY] as String,
-            session.attributes[AUTH_USER_KEY] as String
-        ) : null)
+        installThreadIdentity(session?.attributes?.get(IDENTITY_KEY) as HoistIdentity)
     }
 
     //----------------------
     // Implementation
     //----------------------
     private void setIdentity(String username, String authUsername, HttpServletRequest request = currentRequest) {
-        def session = request.session
-        session[APPARENT_USER_KEY] = username
-        session[AUTH_USER_KEY] = authUsername
-        threadIdentity.set(new HoistIdentity(username, authUsername))
+        def identity = new HoistIdentity(username, authUsername)
+        request.session[IDENTITY_KEY] = identity
+        threadIdentity.set(identity)
     }
 
     private void clearIdentity() {
         def session = currentRequest?.getSession(false)
-        if (session) session[APPARENT_USER_KEY] = session[AUTH_USER_KEY] = null
+        if (session) session[IDENTITY_KEY] = null
         threadIdentity.remove()
     }
 
