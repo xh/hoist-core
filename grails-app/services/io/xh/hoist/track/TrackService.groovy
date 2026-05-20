@@ -19,7 +19,6 @@ import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.browser.Utils.getBrowser
 import static io.xh.hoist.browser.Utils.getDevice
-import static io.xh.hoist.browser.Utils.safeHeader
 import static io.xh.hoist.json.JSONSerializer.serialize
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 import static grails.async.Promises.task
@@ -233,7 +232,7 @@ class TrackService extends BaseService {
             // From request/context
             instance      : ClusterService.instanceName,
             appEnvironment: Utils.appEnvironment,
-            userAgent     : safeHeader(currentRequest, 'User-Agent'),
+            userAgent     : currentRequest?.getHeader('User-Agent'),
             browser       : getBrowser(currentRequest),
             device        : getDevice(currentRequest)
         ]
