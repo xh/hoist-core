@@ -117,7 +117,9 @@ class WebSocketService extends BaseService implements EventPublisher {
         if (!channelKeys) return
 
         def msg = serialize(topic, data),
-            byInstance = channelKeys.groupBy { instanceFromKey(it) }
+            byInstance = channelKeys
+                .findAll { instanceFromKey(it) != null }
+                .groupBy { instanceFromKey(it) }
 
         asyncEach(byInstance.entrySet()) { Entry e ->
             def instance = e.key as String,
@@ -185,6 +187,7 @@ class WebSocketService extends BaseService implements EventPublisher {
      */
     boolean hasChannel(String channelKey) {
         def instance = instanceFromKey(channelKey)
+        if (instance == null) return false
         if (instance == instanceName) return hasLocalChannel(channelKey)
 
         def result = runOnInstance(this.&hasLocalChannel, instance, [channelKey])
@@ -277,8 +280,14 @@ class WebSocketService extends BaseService implements EventPublisher {
         )
     }
 
+    // Channel keys are produced by HoistWebSocketChannel in the form
+    // `{authUsername}|{instanceName}|{uuid}`. Defensive against keys from older
+    // clients (or other malformed input) that may not match this format - return
+    // null rather than throwing, so callers can silently drop the request.
     private String instanceFromKey(String channelKey) {
-        channelKey.split('\\|')[1]
+        if (!channelKey) return null
+        def parts = channelKey.split('\\|')
+        parts.length >= 2 ? parts[1] : null
     }
 
     private void pushInternal(Collection<String> channelKeys, TextMessage textMessage) {
