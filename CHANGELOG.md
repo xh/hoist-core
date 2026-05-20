@@ -11,6 +11,13 @@
   or session on each call. Propagates identity into Grails `task {}` workers automatically, and makes
   `identityService` usable inside WebSocket message handlers.
 
+
+## 41.0.3 - 2026-05-20
+
+### 🐞 Bug Fixes
+
+* Hardened `WebSocketService` channel-routing against malformed channel keys (e.g. presented by older clients that predate the current `{authUsername}|{instanceName}|{uuid}` format). `pushToChannel`, `pushToChannels`, and `hasChannel` now silently drop unparseable keys instead of throwing `ArrayIndexOutOfBoundsException` out of the private `instanceFromKey` helper.
+
 ## 40.0.2 - 2026-05-19
 
 ### 🐞 Bug Fixes
