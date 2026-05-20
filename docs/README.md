@@ -48,6 +48,7 @@ and conventions.
 | Publish a release to Maven Central | [`build-and-publish.md`](./build-and-publish.md) |
 | Write or review a hoist-core library CHANGELOG entry | [`changelog-format.md`](./changelog-format.md) |
 | Look up the authoritative coding conventions for hoist-core | [`coding-conventions.md`](./coding-conventions.md) |
+| Install or extend the hoist-core MCP server and CLI tools | [`../mcp/README.md`](../mcp/README.md) |
 | Upgrade to a new major hoist-core version | [Upgrade Notes](#upgrade-notes) |
 
 ## Feature Documentation
@@ -106,6 +107,7 @@ Guides to building, structuring, and deploying Hoist applications.
 |----------|-------------|------------|
 | [`application-structure.md`](./application-structure.md) | Standard Hoist application repository layout — server and client structure, build configuration, deployment, JDK choice | `build.gradle`, `gradle.properties`, `grails-app/init/`, `client-app/`, `Bootstrap.ts`, `AppModel`, Docker, Nginx, Tomcat, JDK 17/21/25, Gradle toolchain |
 | [`build-and-publish.md`](./build-and-publish.md) | Gradle build, GitHub Actions CI, and Maven Central publishing | GitHub Actions, `deployRelease.yml`, `deploySnapshot.yml`, Sonatype, GPG signing, `nexus-publish-plugin`, `publishToSonatype`, `repo.xh.io` |
+| [`../mcp/README.md`](../mcp/README.md) | Hoist-core MCP server and CLI tools — architecture, app-side install snippet, tools reference, and maintenance checklist | `hoist-core-mcp`, `hoist-core-docs`, `hoist-core-symbols`, `installHoistCoreTools`, `BundledContentSource`, `ContentSource`, `bootstrap.sh`, `doc-registry.json` |
 | [`changelog-format.md`](./changelog-format.md) | Conventions for writing and reviewing hoist-core library CHANGELOG entries | Section headers, voice/tense, difficulty ratings, breaking changes, libraries, application changelogs |
 
 ### Conventions

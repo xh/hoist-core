@@ -185,6 +185,14 @@
             "keywords": ["GitHub Actions", "deployRelease", "deploySnapshot", "Sonatype", "GPG signing", "nexus-publish-plugin", "publishToSonatype"]
         },
         {
+            "id": "mcp/README.md",
+            "title": "MCP Server and CLI Tools",
+            "mcpCategory": "devops",
+            "viewerCategory": "devops",
+            "description": "Hoist-core MCP server and CLI tools — architecture, app-side install snippet, tools reference, and maintenance checklist.",
+            "keywords": ["MCP", "CLI", "hoist-core-mcp", "hoist-core-docs", "hoist-core-symbols", "installHoistCoreTools", "bootstrap.sh", "BundledContentSource", "ContentSource", "doc-registry.json"]
+        },
+        {
             "id": "docs/changelog-format.md",
             "title": "CHANGELOG Entry Format",
             "mcpCategory": "conventions",

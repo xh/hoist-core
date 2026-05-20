@@ -1,15 +1,15 @@
 # MCP Server and CLI Tools
 
-| Section | Description |
-|---------|-------------|
-| [Overview](#overview) | Purpose, audience, and design rationale |
-| [Architecture](#architecture) | Directory structure, data flow, and design decisions |
-| [CLI Tools](#cli-tools) | `hoist-core-docs` and `hoist-core-symbols` shell commands |
-| [App-Side Distribution](#app-side-distribution) | Gradle snippet that installs the launchers in a consuming app |
-| [MCP Server Setup](#mcp-server-setup) | Prerequisites, startup methods, debug logging |
-| [Tools Reference](#tools-reference) | Documentation and Groovy/Java tool APIs |
-| [Maintaining the Developer Tools](#maintaining-the-developer-tools) | Registry sync, maintenance checklist |
-| [Common Pitfalls](#common-pitfalls) | Stdout corruption, path traversal, registry sync |
+| Section                                                             | Description                                                   |
+|---------------------------------------------------------------------|---------------------------------------------------------------|
+| [Overview](#overview)                                               | Purpose, audience, and design rationale                       |
+| [Architecture](#architecture)                                       | Directory structure, data flow, and design decisions          |
+| [CLI Tools](#cli-tools)                                             | `hoist-core-docs` and `hoist-core-symbols` shell commands     |
+| [App-Side Distribution](#app-side-distribution)                     | Gradle snippet that installs the launchers in a consuming app |
+| [MCP Server Setup](#mcp-server-setup)                               | Prerequisites, startup methods, debug logging                 |
+| [Tools Reference](#tools-reference)                                 | Documentation and Groovy/Java tool APIs                       |
+| [Maintaining the Developer Tools](#maintaining-the-developer-tools) | Registry sync, maintenance checklist                          |
+| [Common Pitfalls](#common-pitfalls)                                 | Stdout corruption, path traversal, registry sync              |
 
 ## Overview
 
@@ -27,7 +27,8 @@ or an internal Artifactory mirror.
 
 **What they provide:**
 
-- **Documentation tools** -- search, list, and read all hoist-core feature docs, concept docs, and upgrade notes
+- **Documentation tools** -- search, list, and read all hoist-core feature docs, concept docs, and
+  upgrade notes
 - **Groovy/Java tools** -- search symbols, inspect classes, and list class members via AST parsing
 
 **Audience:** AI assistants working with hoist-core codebases, and developers configuring those
@@ -107,8 +108,9 @@ checkout (used for framework development); `GitHubContentSource` downloads a tar
 (used by the existing version-mode bootstrap of the MCP server). The `--source` and `--root`
 flags select the backend.
 
-**Bundled content over runtime downloads.** The fat JAR bundles `docs/`, `grails-app/{controllers,domain,services,init}`,
-and `src/main/groovy/` under the resource prefix `hoist-core-content/` at build time. This keeps
+**Bundled content over runtime downloads.** The fat JAR bundles `docs/`, this `mcp/README.md`,
+`grails-app/{controllers,domain,services,init}`, and `src/main/groovy/` under the resource prefix
+`hoist-core-content/` at build time. This keeps
 the JAR fully self-contained: an app developer pulling `io.xh:hoist-core-mcp:<version>:all`
 from Maven Central or an internal Artifactory mirror gets everything the tools need without
 further network access. Content is version-locked to the JAR -- the docs and source you query
@@ -133,7 +135,7 @@ well-known (~25 files), and each entry needs curated metadata (title, descriptio
 search keywords) that cannot be reliably derived from filenames alone. The registry is shared
 with other consumers (e.g. documentation viewers) and aligned with the `docs/README.md` index
 tables. The tradeoff is manual maintenance -- see
-[Maintaining the MCP Server](#maintaining-the-mcp-server).
+[Maintaining the Developer Tools](#maintaining-the-developer-tools).
 
 **Eager Groovy AST initialization.** Parsing hoist-core's source files with the Groovy
 compiler's AST is expensive. After the server starts, `beginInitialization()` kicks off index
@@ -147,7 +149,8 @@ through the same path, so Java types in `src/main/groovy/` (e.g. `JSONSerializer
 
 **Stdio transport with stderr logging discipline.** Stdout corruption from stray print statements
 is the most common bug in MCP server implementations. A single log statement corrupts the JSON-RPC
-stream, manifesting as mysterious protocol errors. The `McpLog` utility writes exclusively to stderr.
+stream, manifesting as mysterious protocol errors. The `McpLog` utility writes exclusively to
+stderr.
 
 **Shadow JAR distribution.** The server is distributed as a fat JAR via Maven Central, packaging all
 dependencies (MCP SDK, Groovy, Jackson, Commons Compress, Picocli) plus the bundled hoist-core
@@ -322,7 +325,8 @@ exec "\$JAVA" -jar "${jar.absolutePath}" ${args} "\$@"
 > doesn't yet have it. When you change the snippet here, update the skill in lockstep -- see
 > the maintenance checklist at the bottom of this document.
 >
-> **About the `hoist-ai-snippet` markers.** The leading `// hoist-ai-snippet: hoist-core-install/v<N>`
+> **About the `hoist-ai-snippet` markers.** The leading
+`// hoist-ai-snippet: hoist-core-install/v<N>`
 > and trailing `// end hoist-ai-snippet` lines are read by the skill's preflight to detect when an
 > app's pasted snippet has drifted from this canonical. Apps installing the snippet should keep both
 > markers verbatim. Bump the version (`v1` → `v2` etc.) whenever the snippet has a semantic change
@@ -353,16 +357,17 @@ Then update `.mcp.json` to point at the local launcher:
 
 ```json
 {
-  "mcpServers": {
-    "hoist-core": {
-      "command": "./bin/hoist-core-mcp"
+    "mcpServers": {
+        "hoist-core": {
+            "command": "./bin/hoist-core-mcp"
+        }
     }
-  }
 }
 ```
 
 **Do not commit the generated launchers.** Each script embeds an absolute path to the
-resolved JAR (e.g. `/Users/alice/dev/myapp/build/hoist-core-tools/lib/hoist-core-mcp-<version>-all.jar`),
+resolved JAR (e.g.
+`/Users/alice/dev/myapp/build/hoist-core-tools/lib/hoist-core-mcp-<version>-all.jar`),
 so it is specific to the machine and project layout that generated it -- a committed launcher
 will silently break for every other developer. The install task takes care of this for you:
 it writes `bin/.gitignore` with entries for `hoist-core-{mcp,docs,symbols}` and their `.bat`
@@ -441,18 +446,18 @@ verbose output.
 Search across all hoist-core documentation by keyword. Returns matching documents with context
 snippets showing where terms appear.
 
-| Parameter  | Type   | Required | Description |
-|------------|--------|----------|-------------|
-| `query`    | string | Yes      | Search keywords (e.g. `"BaseService lifecycle"`, `"authentication OAuth"`) |
+| Parameter  | Type   | Required | Description                                                                     |
+|------------|--------|----------|---------------------------------------------------------------------------------|
+| `query`    | string | Yes      | Search keywords (e.g. `"BaseService lifecycle"`, `"authentication OAuth"`)      |
 | `category` | enum   | No       | Filter: `package`, `concept`, `devops`, `conventions`, `index`, `all` (default) |
-| `limit`    | number | No       | Max results, 1-20. Default: 10 |
+| `limit`    | number | No       | Max results, 1-20. Default: 10                                                  |
 
 #### `hoist-core-list-docs`
 
 List all available documentation with descriptions, grouped by category.
 
-| Parameter  | Type | Required | Description |
-|------------|------|----------|-------------|
+| Parameter  | Type | Required | Description                                              |
+|------------|------|----------|----------------------------------------------------------|
 | `category` | enum | No       | Filter by category (same values as search). Default: all |
 
 #### `hoist-core-read-doc`
@@ -460,8 +465,8 @@ List all available documentation with descriptions, grouped by category.
 Read the full content of a hoist-core documentation file by id. Use `hoist-core-search-docs` or
 `hoist-core-list-docs` first to discover ids.
 
-| Parameter | Type   | Required | Description |
-|-----------|--------|----------|-------------|
+| Parameter | Type   | Required | Description                                                                 |
+|-----------|--------|----------|-----------------------------------------------------------------------------|
 | `id`      | string | Yes      | Document id (e.g. `"docs/base-classes.md"`, `"docs/coding-conventions.md"`) |
 
 #### `hoist-core-ping`
@@ -476,11 +481,11 @@ Search for Groovy/Java classes, interfaces, traits, and enums by name. Also sear
 (properties, methods, fields) of key framework classes, returning results in two sections: matching
 symbols and matching members with their owning class.
 
-| Parameter | Type   | Required | Description |
-|-----------|--------|----------|-------------|
+| Parameter | Type   | Required | Description                                                              |
+|-----------|--------|----------|--------------------------------------------------------------------------|
 | `query`   | string | Yes      | Symbol or member name (e.g. `"BaseService"`, `"Cache"`, `"createTimer"`) |
-| `kind`    | enum   | No       | Filter symbols: `class`, `interface`, `trait`, `enum` |
-| `limit`   | number | No       | Max symbol results, 1-50. Default: 20 |
+| `kind`    | enum   | No       | Filter symbols: `class`, `interface`, `trait`, `enum`                    |
+| `limit`   | number | No       | Max symbol results, 1-50. Default: 20                                    |
 
 **Member-indexed classes:** BaseService, BaseController, RestController, HoistUser, Cache,
 CachedValue, Timer, Filter, FieldFilter, CompoundFilter, JSONClient, ClusterService, ConfigService,
@@ -495,19 +500,19 @@ ready before the first tool call. Subsequent calls are fast in-memory lookups.
 Get detailed type information for a specific symbol: signature, Groovydoc, inheritance, annotations,
 and source location. Use `hoist-core-search-symbols` first to find the exact name.
 
-| Parameter  | Type   | Required | Description |
-|------------|--------|----------|-------------|
+| Parameter  | Type   | Required | Description                                         |
+|------------|--------|----------|-----------------------------------------------------|
 | `name`     | string | Yes      | Exact symbol name (e.g. `"BaseService"`, `"Cache"`) |
-| `filePath` | string | No       | Source file path to disambiguate duplicate names |
+| `filePath` | string | No       | Source file path to disambiguate duplicate names    |
 
 #### `hoist-core-get-members`
 
 List all properties and methods of a class or interface with types, annotations, and Groovydoc.
 
-| Parameter  | Type   | Required | Description |
-|------------|--------|----------|-------------|
+| Parameter  | Type   | Required | Description                                               |
+|------------|--------|----------|-----------------------------------------------------------|
 | `name`     | string | Yes      | Class or interface name (e.g. `"BaseService"`, `"Cache"`) |
-| `filePath` | string | No       | Source file path to disambiguate duplicate names |
+| `filePath` | string | No       | Source file path to disambiguate duplicate names          |
 
 ## Maintaining the Developer Tools
 
@@ -526,6 +531,7 @@ root), `title`, `mcpCategory`, `description`, and `keywords` list. The registry 
 viewer UI). `DocRegistry.groovy` loads and indexes this JSON at startup.
 
 **When to update:**
+
 - A new feature doc or concept doc is added to hoist-core
 - A new major version's upgrade notes are created in `docs/upgrade-notes/`
 - A documentation file is renamed or moved
@@ -559,25 +565,26 @@ searchable, or when an indexed class is renamed or removed.
 
 **File:** `mcp/build.gradle` (`shadowJar { from(rootProject.projectDir) { include ... } }`)
 
-The fat JAR bundles `docs/`, the `grails-app/{controllers,domain,services,init}` directories,
-and `src/main/groovy/` (both `.groovy` and `.java`) under the `hoist-core-content/` resource
-prefix. The `include` patterns must match the `SOURCE_DIRS` constant in
-`data/GroovyRegistry.groovy` -- any new top-level source directory must be added to both
-places, and any new file extension scanned by the registry must be added to the bundle.
+The fat JAR bundles `docs/`, `mcp/README.md`, the `grails-app/{controllers,domain,services,init}`
+directories, and `src/main/groovy/` (both `.groovy` and `.java`) under the `hoist-core-content/`
+resource prefix. The source-directory `include` patterns must match the `SOURCE_DIRS` constant in
+`data/GroovyRegistry.groovy` -- any new top-level source directory must be added to both places,
+and any new file extension scanned by the registry must be added to the bundle.
 
 **When to update:**
+
 - A new top-level source directory is added that the symbol index should scan
 - A new top-level docs subdirectory is added that should be searchable
 
 ### Summary: Maintenance Checklist
 
-| Change | Files to Update |
-|--------|----------------|
-| Add/rename/remove a documentation file | `docs/doc-registry.json`, `docs/README.md` |
-| Add upgrade notes for a new major version | `docs/doc-registry.json`, `docs/README.md` |
-| Add/rename/remove a source directory | `GroovyRegistry.groovy` (`SOURCE_DIRS`) AND `mcp/build.gradle` (shadowJar `include`) |
-| Add/rename/remove a member-indexed class | `GroovyRegistry.groovy` (`MEMBER_INDEXED_CLASSES`) |
-| Add a new MCP tool or CLI subcommand | `tools/*.groovy` and/or `cli/*.groovy`; update `formatters/*.groovy` if needed |
+| Change                                                                                                                                          | Files to Update                                                                                                                                                                                                                                                          |
+|-------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Add/rename/remove a documentation file                                                                                                          | `docs/doc-registry.json`, `docs/README.md`                                                                                                                                                                                                                               |
+| Add upgrade notes for a new major version                                                                                                       | `docs/doc-registry.json`, `docs/README.md`                                                                                                                                                                                                                               |
+| Add/rename/remove a source directory                                                                                                            | `GroovyRegistry.groovy` (`SOURCE_DIRS`) AND `mcp/build.gradle` (shadowJar `include`)                                                                                                                                                                                     |
+| Add/rename/remove a member-indexed class                                                                                                        | `GroovyRegistry.groovy` (`MEMBER_INDEXED_CLASSES`)                                                                                                                                                                                                                       |
+| Add a new MCP tool or CLI subcommand                                                                                                            | `tools/*.groovy` and/or `cli/*.groovy`; update `formatters/*.groovy` if needed                                                                                                                                                                                           |
 | Edit the app-side install snippet ([App-Side Distribution](#app-side-distribution)) -- bump the `hoist-ai-snippet:` version on semantic changes | This file (snippet + checklist) AND the `using-hoist-core-reference` skill mirror in [`xh/hoist-ai`](https://github.com/xh/hoist-ai/blob/main/skills/using-hoist-core-reference/SKILL.md) (mirrored snippet AND the canonical-version constant in the Preflight section) |
 
 ## Common Pitfalls

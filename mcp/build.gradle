@@ -40,6 +40,7 @@ shadowJar {
     from(rootProject.projectDir) {
         include 'docs/doc-registry.json'
         include 'docs/**/*.md'
+        include 'mcp/README.md'
         include 'grails-app/controllers/**/*.groovy'
         include 'grails-app/domain/**/*.groovy'
         include 'grails-app/services/**/*.groovy'
