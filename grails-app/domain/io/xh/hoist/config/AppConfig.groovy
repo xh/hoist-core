@@ -11,8 +11,8 @@ import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.security.crypto.AesTextCipher
+import io.xh.hoist.security.crypto.ConfigValueDigester
 import io.xh.hoist.security.crypto.LegacyJasyptDecrypter
-import io.xh.hoist.security.crypto.SaltedSha256Digester
 import io.xh.hoist.util.InstanceConfigUtils
 import io.xh.hoist.util.Utils
 
@@ -20,18 +20,20 @@ import static grails.async.Promises.task
 
 class AppConfig implements JSONFormat, LogSupport {
 
-    // Hard-coded encryption password — preserved across the jasypt removal in v41 so that
-    // pwd-typed config values written by hoist-core <= v40 (which used jasypt's
-    // BasicTextEncryptor under this same password) remain decryptable via the legacy fallback.
-    // The same string seeds the new AES-GCM cipher via PBKDF2, but new ciphertext is
-    // distinguishable from legacy by the AesTextCipher.FORMAT_PREFIX marker, so the two
-    // never collide. (See the v41 upgrade notes for context — sourcing this key from
-    // instance config is a future enhancement.)
-    private static final String CONFIG_ENCRYPTION_PASSWORD = 'dsd899s_*)jsk9dsl2fd223hpdj32))I@333'
+    // Fixed at-rest obfuscation key for `pwd`-typed config values stored in the Hoist
+    // application database. This is NOT a confidentiality boundary: anyone with source access can
+    // decrypt `pwd` values from a DB dump. The `pwd` config type is an admin-UI convenience for
+    // avoiding plaintext display of API keys etc., not a true secrets-management primitive — real
+    // secrets belong in instance config / env vars / a dedicated secrets manager.
+    //
+    // Preserved verbatim from the pre-v41 jasypt-based implementation so existing ciphertexts
+    // continue to decrypt without DB migration; see the v41 upgrade notes.
+    // gitleaks:allow pragma: allowlist secret
+    private static final String CONFIG_VALUE_OBFUSCATION_KEY = 'dsd899s_*)jsk9dsl2fd223hpdj32))I@333'
 
-    static private final AesTextCipher encryptor = new AesTextCipher(CONFIG_ENCRYPTION_PASSWORD)
-    static private final LegacyJasyptDecrypter legacyDecrypter = new LegacyJasyptDecrypter(CONFIG_ENCRYPTION_PASSWORD)
-    static private final SaltedSha256Digester digestEncryptor = new SaltedSha256Digester()
+    static private final AesTextCipher encryptor = new AesTextCipher(CONFIG_VALUE_OBFUSCATION_KEY)
+    static private final LegacyJasyptDecrypter legacyDecrypter = new LegacyJasyptDecrypter(CONFIG_VALUE_OBFUSCATION_KEY)
+    static private final ConfigValueDigester digestEncryptor = new ConfigValueDigester()
 
     static List TYPES = ['string', 'int', 'long', 'double', 'bool', 'json', 'pwd']
 
@@ -151,12 +153,8 @@ class AppConfig implements JSONFormat, LogSupport {
         digestEncryptor.digest(isEncrypted ? decryptPassword(value) : value)
     }
 
-    /**
-     * Decrypt a stored pwd-type value. Transparently handles both the current v41+ AES-GCM
-     * format and legacy values written by hoist-core <= v40 (jasypt's PBEWithMD5AndDES).
-     * Legacy values are not rewritten in-place by this read path — they upgrade to the new
-     * format the next time the AppConfig row is saved (e.g. via the admin UI).
-     */
+    // Reads both the current AES-GCM format and legacy jasypt-format values. Legacy values
+    // upgrade in place the next time the AppConfig row is saved.
     private static String decryptPassword(String value) {
         if (AesTextCipher.isHoistFormat(value)) {
             return encryptor.decrypt(value)
