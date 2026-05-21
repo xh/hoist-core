@@ -178,7 +178,9 @@ handles primary-only tasks (e.g., timers with `primaryOnly: true`). Distributed 
 
 `AppConfig` domain objects store typed config values (`string|int|long|double|bool|json|pwd`)
 in the database. `ConfigService` provides typed getters. Configs can be marked `clientVisible`
-for the JS client. The `pwd` type stores values encrypted via Jasypt.
+for the JS client. The `pwd` type stores values encrypted at rest via AES-256-GCM
+(`io.xh.hoist.security.crypto.AesTextCipher`), with transparent fallback decryption of legacy
+jasypt-format values left over from hoist-core <= v40.
 
 ### JSON Handling
 
@@ -302,7 +304,8 @@ unwrapped line and let the viewing tool handle display wrapping.
 - **Apache POI 5** - Excel/spreadsheet generation
 - **Micrometer** - Observable metrics with Prometheus and OTLP export
 - **Kryo 5** - Fast serialization for Hazelcast distributed structures
-- **Jasypt** - Encryption for `pwd`-type soft configuration values
+- **Spring Security Crypto** - BCrypt password hashing (via `HoistPasswordEncoder`) and JDK-backed
+  symmetric encryption for `pwd`-type soft config values
 - **Apache Directory API** - LDAP/Active Directory integration
 
 ## Reference Implementation: Toolbox
