@@ -21,28 +21,25 @@ import java.text.Normalizer
 /**
  * Read-only, pure-JDK reproduction of jasypt 1.9.3's default symmetric text encryption
  * ({@code BasicTextEncryptor}) and one-way password hash ({@code BasicPasswordEncryptor})
- * algorithms. Used to verify and migrate legacy values produced by hoist-core <= v40 and apps
- * whose User domains historically depended on jasypt directly.
+ * algorithms. Supports a one-release transition window for legacy values until they migrate
+ * organically (re-saving a `pwd` config, logging in as a local user, etc.).
  *
- * <p>This class exists strictly to support a one-release transition window: new ciphertexts and
- * hashes are written by {@link AesTextCipher} and
- * {@link io.xh.hoist.security.HoistPasswordEncoder}, while legacy values continue to be readable
- * via this helper until they have been organically migrated (re-saving a `pwd` config, logging
- * in as a local user, etc.).
- *
- * <h3>Compatibility notes</h3>
+ * <h3>Cipher / digest parameters (must match jasypt 1.9.3 exactly)</h3>
  * <ul>
- *   <li><strong>Text decrypt</strong>: PBEWithMD5AndDES, 1000 iterations, 8-byte random salt
- *       prepended to ciphertext, Base64-encoded. Matches jasypt's
- *       {@code BasicTextEncryptor.decrypt(String)}.</li>
- *   <li><strong>Password check</strong>: MD5, 1000 iterations, 8-byte salt prepended to digest,
- *       Base64-encoded. Matches jasypt's {@code BasicPasswordEncryptor.checkPassword(plain, encoded)}.</li>
+ *   <li><b>Text decrypt</b> — algorithm {@code PBEWithMD5AndDES}; key derivation per PKCS#5 PBES1
+ *       (MD5, 1000 iterations); 8-byte random salt prepended to ciphertext; output
+ *       Base64-encoded; no format marker. Mirrors
+ *       {@code org.jasypt.encryption.pbe.StandardPBEStringEncryptor} with default config.</li>
+ *   <li><b>Password digest</b> — MD5, 1000 iterations; 8-byte random salt prepended to the
+ *       digest output; digest is iterated WITHOUT re-prepending salt after the first round (see
+ *       {@code org.jasypt.digest.StandardByteDigester.digest}); resulting 24 raw bytes
+ *       (8 salt + 16 MD5) Base64-encoded.</li>
+ *   <li><b>Unicode</b> — both algorithms apply NFC normalization to character inputs before
+ *       processing, matching jasypt's
+ *       {@code org.jasypt.normalization.Normalizer.normalizeWithJavaNormalizer}. We invoke
+ *       {@link java.text.Normalizer} directly here; jasypt's failure on JDK 21+ is in its
+ *       reflective wrapper around the same JDK API.</li>
  * </ul>
- *
- * <p>Both algorithms apply NFC Unicode normalization to inputs before processing, mirroring
- * jasypt. (We use {@link java.text.Normalizer} directly here, which on its own is not the
- * codepath that breaks under Spring Boot's launcher classloader — jasypt's failure is in its
- * reflective wrapper around the same JDK API.)
  */
 @CompileStatic
 final class LegacyJasyptDecrypter {
@@ -63,11 +60,7 @@ final class LegacyJasyptDecrypter {
         this.password = password.toCharArray()
     }
 
-    /**
-     * Decrypt a value previously produced by jasypt's {@code BasicTextEncryptor.encrypt(plain)}
-     * with the same password. The input is the raw Base64 string jasypt wrote into the
-     * database — no marker prefix.
-     */
+    /** Decrypt a Base64 string produced by jasypt's {@code BasicTextEncryptor.encrypt(plain)}. */
     String decrypt(String encodedCiphertext) {
         if (encodedCiphertext == null) throw new IllegalArgumentException('ciphertext must not be null')
 
@@ -101,10 +94,7 @@ final class LegacyJasyptDecrypter {
     // Legacy password (one-way digest) verification
     //----------------------------------------------------------------
 
-    /**
-     * True if the given plaintext password, hashed with jasypt's {@code BasicPasswordEncryptor}
-     * algorithm using the salt extracted from {@code legacyEncoded}, matches the encoded digest.
-     */
+    /** True if hashing {@code plain} with the salt embedded in {@code legacyEncoded} matches it. */
     static boolean matchesLegacyPasswordHash(String plain, String legacyEncoded) {
         if (plain == null || legacyEncoded == null) return false
         byte[] packed
@@ -124,11 +114,7 @@ final class LegacyJasyptDecrypter {
         return MessageDigest.isEqual(expected, actual)
     }
 
-    /**
-     * Heuristic: the given encoded string has the shape of a jasypt
-     * {@code BasicPasswordEncryptor} digest (Base64-encoded 24 raw bytes = 8 salt + 16 MD5).
-     * Used to decide whether to attempt legacy verification or fall through.
-     */
+    /** Shape check: Base64 of exactly 24 raw bytes (8 salt + 16 MD5). */
     static boolean looksLikeLegacyPasswordHash(String encoded) {
         if (encoded == null || encoded.isEmpty()) return false
         byte[] decoded

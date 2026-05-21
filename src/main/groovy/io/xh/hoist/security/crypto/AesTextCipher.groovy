@@ -19,15 +19,9 @@ import java.security.SecureRandom
 
 /**
  * Symmetric AES-256-GCM text encryption with a PBKDF2-derived key, used internally by
- * {@link io.xh.hoist.config.AppConfig} to protect `pwd`-typed config values at rest.
- *
- * <p>Replaces the historical use of jasypt's {@code BasicTextEncryptor}. Values produced by this
- * cipher carry the {@link #FORMAT_PREFIX} marker so callers can distinguish them from values
- * produced by the legacy encryptor (see
- * {@link io.xh.hoist.security.crypto.LegacyJasyptDecrypter}).
- *
- * <p>This class is internal to hoist-core. App code should not depend on its output format —
- * see {@link io.xh.hoist.security.HoistPasswordEncoder} for the user-facing password hashing API.
+ * {@link io.xh.hoist.config.AppConfig} to obfuscate `pwd`-typed config values at rest. Output
+ * carries the {@link #FORMAT_PREFIX} marker so callers can distinguish it from legacy values
+ * decryptable via {@link LegacyJasyptDecrypter}.
  */
 @CompileStatic
 final class AesTextCipher {
@@ -51,10 +45,7 @@ final class AesTextCipher {
         this.password = password.toCharArray()
     }
 
-    /**
-     * Encrypt the given plaintext, returning a single self-contained Base64-encoded string
-     * prefixed with {@link #FORMAT_PREFIX}. Each call uses a freshly random salt and IV.
-     */
+    /** Encrypt to a self-contained Base64 string with a freshly-random salt and IV per call. */
     String encrypt(String plaintext) {
         if (plaintext == null) throw new IllegalArgumentException('plaintext must not be null')
 
@@ -77,10 +68,7 @@ final class AesTextCipher {
         return FORMAT_PREFIX + Base64.encoder.encodeToString(packed)
     }
 
-    /**
-     * Decrypt a value previously produced by {@link #encrypt}. Throws
-     * {@link IllegalArgumentException} if the input does not carry the expected format prefix.
-     */
+    /** Decrypt a value produced by {@link #encrypt}; throws if the format prefix is missing. */
     String decrypt(String ciphertext) {
         if (ciphertext == null) throw new IllegalArgumentException('ciphertext must not be null')
         if (!isHoistFormat(ciphertext)) {
