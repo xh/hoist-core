@@ -148,6 +148,12 @@ through a `LegacyJasyptDecrypter` shim; values written after the upgrade use AES
 to the new format. No mass migration is needed; the shim can be removed in a future major
 version once all known clients have rolled forward.
 
+The hard-coded `AppConfig` obfuscation key (`CONFIG_VALUE_OBFUSCATION_KEY` in source) is
+unchanged from prior releases, so existing `pwd` ciphertexts decrypt without action. As
+before, this key is at-rest obfuscation for low-sensitivity admin-UI display, not a
+confidentiality boundary — anyone with source access can decrypt `pwd` values from a DB dump.
+Real secrets belong in instance config / env vars / a dedicated secrets manager.
+
 ### 5. Verify and ship
 
 After steps 1–2, your build should compile cleanly with no remaining `import org.jasypt.*`

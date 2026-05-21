@@ -88,10 +88,19 @@ enable it for Claude Code.
 ```bash
 ./gradlew assemble               # Compile all sources (Groovy + Java) and build the JAR
 ./gradlew clean assemble         # Clean rebuild
+./gradlew test                   # Run Spock unit tests under src/test/groovy
+./gradlew clean build            # Full build incl. test
 ```
 
 This is a plugin — `bootRun` is not supported. To run locally, use a wrapper app project that
 includes hoist-core as a dependency.
+
+## Tests
+
+Spock-based unit tests live under `src/test/groovy/io/xh/hoist/` and target pure-JDK code only —
+no Grails context, no DB, no clustering. See
+[`src/test/groovy/README.md`](src/test/groovy/README.md) for conventions, how to add specs, and
+notes on the jasypt-1.9.3 legacy fixture data used by the `io.xh.hoist.security.*` specs.
 
 ## Source Layout
 

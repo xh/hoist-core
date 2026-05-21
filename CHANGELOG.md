@@ -5,43 +5,17 @@
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - only affects apps with local user passwords)
 
 See [`docs/upgrade-notes/v41-upgrade-notes.md`](docs/upgrade-notes/v41-upgrade-notes.md) for
-detailed migration instructions.
+detailed, step-by-step upgrade instructions with before/after code examples.
 
-* Removed the `org.jasypt:jasypt:1.9.3` dependency. Jasypt was end-of-life (last released 2014) and
-  broke at runtime on JDK 21+ under Spring Boot's launcher classloader due to a
-  Unicode-normalization reflection bug — observable as
-  `EncryptionInitializationException: Could not perform a valid UNICODE normalization` thrown from
-  `BasicPasswordEncryptor.encryptPassword` or `BasicTextEncryptor.encrypt` during `bootRun`. Apps
-  that imported `org.jasypt.util.password.BasicPasswordEncryptor` in their User domain classes (
-  transitively via hoist-core's `api` scope) must switch to the new
-  `io.xh.hoist.security.HoistPasswordEncoder` — see the upgrade notes for a drop-in snippet. The
-  encoder's `matches()` method transparently verifies both new BCrypt hashes and legacy
-  jasypt-format hashes, so existing user passwords continue to work without a forced reset;
-  `isLegacyHash()` lets apps re-encode on next successful login if desired.
+* Removed the `org.jasypt:jasypt:1.9.3` dependency. Apps importing `org.jasypt.*` (typically `BasicPasswordEncryptor` in a `User` domain class) must switch to `io.xh.hoist.security.HoistPasswordEncoder`. Legacy user-password hashes continue to verify transparently.
 
 ### ⚙️ Technical
 
-* Replaced jasypt's internal use in `AppConfig` with pure-JDK AES-256-GCM (key derived via
-  PBKDF2WithHmacSHA256) for symmetric `pwd`-value encryption and a salted SHA-256 digester for the
-  admin UI's config-diff fingerprint. New ciphertexts carry the `$hoist-aes1$` marker prefix so they
-  are unambiguously distinguishable from legacy values; a one-release `LegacyJasyptDecrypter` shim
-  handles in-place read of pre-v41 ciphertexts written by the previous `BasicTextEncryptor`
-  codepath, with no DB migration required.
-* Added `io.xh.hoist.security.HoistPasswordEncoder`, a thin wrapper around Spring Security's
-  `BCryptPasswordEncoder` for app-level local-user password hashing. Replaces the historical
-  convention of importing jasypt directly in each app's User domain class.
-* Added `org.springframework.security:spring-security-crypto` (crypto module only — no controllers,
-  filters, or other Spring Security surface area pulled in). Version managed by the Spring Boot BOM.
-* Added a `src/test/groovy/` tree with Spock specs covering the new crypto utilities — first unit
-  tests landed in hoist-core. Test fixtures include known-good ciphertexts and digests generated
-  out-of-band by jasypt 1.9.3 to verify legacy compatibility.
-* Reworked identity resolution onto an explicit per-thread `HoistIdentity` cache, installed at
-  every framework thread-entry point (`HoistFilter`, `HoistWebSocketHandler`, async `task` workers
-  via a new `HoistPromiseFactory`, and `ClusterTask`). Identity accessors
-  (`identityService.username`/`authUsername`/etc.) no longer dereference the live servlet request
-  or session on each call. Propagates identity into Grails `task {}` workers automatically, and
-  makes
-  `identityService` usable inside WebSocket message handlers.
+* Replaced jasypt's internal use in `AppConfig` with pure-JDK AES-256-GCM (PBKDF2 key) for `pwd`-value encryption and a deterministic SHA-256 of plaintext for the admin Config Diff fingerprint. New ciphertexts carry a `$hoist-aes1$` marker; pre-v41 values continue to read through a one-release `LegacyJasyptDecrypter` shim with no DB migration.
+* Added `io.xh.hoist.security.HoistPasswordEncoder`, a thin BCrypt wrapper for app `User` domain classes. Verifies both new BCrypt hashes and legacy jasypt-default hashes; `isLegacyHash()` supports opportunistic re-encoding on login.
+* Added `org.springframework.security:spring-security-crypto` (crypto module only). Version managed by the Spring Boot BOM.
+* Added `src/test/groovy/` with Spock unit tests covering the new crypto utilities. First unit tests in hoist-core; see `src/test/groovy/README.md` for conventions.
+* Reworked identity resolution onto an explicit per-thread `HoistIdentity` cache installed at every framework thread-entry point (`HoistFilter`, `HoistWebSocketHandler`, async `task` workers via a new `HoistPromiseFactory`, and `ClusterTask`). Identity accessors no longer dereference the live servlet request on each call; identity now propagates into Grails `task {}` workers and is usable inside WebSocket message handlers.
 
 ## 40.0.3 - 2026-05-20
 
