@@ -110,6 +110,14 @@ dependencies {
     // Workaround needed by micrometer-registry-otlp at compile time
     api "io.opentelemetry.proto:opentelemetry-proto:1.10.0-alpha"
 
+    //--------------------
+    // Test
+    //--------------------
+    testImplementation "org.spockframework:spock-core:2.3-groovy-4.0"
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
 }
 
 tasks.withType(GroovyCompile) {
