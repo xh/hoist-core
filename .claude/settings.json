@@ -3,7 +3,6 @@
   "permissions": {
     "allow": [
       "Edit",
-      "MultiEdit",
       "Read",
       "WebFetch",
       "WebSearch",
