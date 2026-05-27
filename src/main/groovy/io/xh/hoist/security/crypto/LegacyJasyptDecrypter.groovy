@@ -24,6 +24,13 @@ import java.text.Normalizer
  * algorithms. Supports a one-release transition window for legacy values until they migrate
  * organically (re-saving a `pwd` config, logging in as a local user, etc.).
  *
+ * <h3>Intended scope — migration shim only</h3>
+ * The sole purpose of this class is reading pre-v41 `pwd` AppConfig ciphertexts and verifying
+ * legacy local-user password hashes long enough for them to be re-written in modern formats.
+ * The algorithms reproduced here (PBE-MD5-DES, MD5+8-byte-salt) are obsolete by modern
+ * standards and offer no meaningful security; the AppConfig use case is at-rest obfuscation
+ * only (see {@link AesTextCipher}). Do not adopt this class for any new use case.
+ *
  * <h3>Cipher / digest parameters (must match jasypt 1.9.3 exactly)</h3>
  * <ul>
  *   <li><b>Text decrypt</b> — algorithm {@code PBEWithMD5AndDES}; key derivation per PKCS#5 PBES1

@@ -19,7 +19,7 @@ Two surfaces are affected:
 
 1. **Internal:** `AppConfig` used jasypt for both symmetric encryption of `pwd`-typed config
    values at rest and a one-way digest used by the admin UI's config-differ. These have moved to
-   pure-JDK implementations (AES-256-GCM + PBKDF2 and salted SHA-256, respectively) — no app
+   pure-JDK implementations (AES-256-GCM + PBKDF2 and deterministic SHA-256, respectively) — no app
    action required, and **no DB migration needed**: existing encrypted `pwd` values continue to
    decrypt transparently via a one-release `LegacyJasyptDecrypter` shim.
 2. **App-facing:** Apps that store local user passwords historically imported
@@ -174,6 +174,6 @@ Because jasypt has had no release in over a decade and `jasypt-spring-boot` (an 
 community shim) still depends on the same broken `jasypt-1.9.3` artifact, the only durable fix
 is to remove the dependency.
 
-The replacements (`HoistPasswordEncoder` / `AesTextCipher` / `SaltedSha256Digester`) prefer
+The replacements (`HoistPasswordEncoder` / `AesTextCipher` / `ConfigValueDigester`) prefer
 algorithms that are JDK-bundled (PBKDF2, SHA-256, AES-GCM) or Spring-supported (BCrypt) and have
 clear migration paths for legacy data.
