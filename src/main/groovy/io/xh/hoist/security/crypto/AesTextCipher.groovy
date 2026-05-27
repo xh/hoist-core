@@ -18,16 +18,15 @@ import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
 
 /**
- * Symmetric AES-256-GCM text encryption with a PBKDF2-derived key. Output carries the
+ * Symmetric AES-256-GCM text encryption with a PBKDF2-derived key. AES-256-GCM is authenticated,
+ * so tampering with the ciphertext is detected on decrypt. Output carries the
  * {@link #FORMAT_PREFIX} marker so callers can distinguish it from legacy values decryptable via
  * {@link LegacyJasyptDecrypter}.
  *
- * <h3>Intended scope — NOT a general-purpose secrets primitive</h3>
- * Used internally by {@link io.xh.hoist.config.AppConfig} to obfuscate `pwd`-typed config values
- * at rest behind a fixed, source-visible key. This is at-rest obfuscation against casual DB-dump
- * reading — it is NOT a confidentiality boundary, and anyone with source access can decrypt.
- * Do not adopt this class for real secrets: use instance config, environment variables, or a
- * dedicated secrets manager.
+ * <p>Used internally by {@link io.xh.hoist.config.AppConfig} to encrypt `pwd`-typed config
+ * values at rest. The strength of this primitive is exactly the strength of the key its caller
+ * supplies — high-entropy keys sourced from a secrets manager (or equivalent) deliver real
+ * confidentiality; low-entropy or hardcoded keys deliver only obfuscation. Choose accordingly.
  */
 @CompileStatic
 final class AesTextCipher {

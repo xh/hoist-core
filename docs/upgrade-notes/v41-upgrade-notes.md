@@ -1,7 +1,8 @@
 # Hoist Core v41 Upgrade Notes
 
-> **From:** v40.x → v41.0 | **Released:** TBD | **Difficulty:** 🟢 LOW (unless your app stores
-> local user passwords — then 🟡 MEDIUM, ~5 LoC change per User domain class)
+> **From:** v40.x → v41.0 | **Released:** TBD | **Difficulty:** 🟢 LOW for most apps; 🟡 MEDIUM
+> if you store local user passwords (~5 LoC change per User domain class) or write `pwd`-typed
+> `AppConfig` values (one new instance config to set)
 
 ## Overview
 
@@ -15,18 +16,22 @@ normalization` — a reflection failure inside its `Normalizer` wrapper around t
 jasypt's reflective code path, not the JDK module's accessibility), making the library
 effectively unusable on modern JDKs.
 
-Two surfaces are affected:
+Three surfaces are affected:
 
-1. **Internal:** `AppConfig` used jasypt for both symmetric encryption of `pwd`-typed config
-   values at rest and a one-way digest used by the admin UI's config-differ. These have moved to
-   pure-JDK implementations (AES-256-GCM + PBKDF2 and deterministic SHA-256, respectively) — no app
-   action required, and **no DB migration needed**: existing encrypted `pwd` values continue to
-   decrypt transparently via a one-release `LegacyJasyptDecrypter` shim.
-2. **App-facing:** Apps that store local user passwords historically imported
-   `org.jasypt.util.password.BasicPasswordEncryptor` directly in their `User` (or `AppUser`)
-   domain class — this worked because hoist-core re-exported jasypt via `api` scope. That
-   transitive dependency is gone. Apps must switch to the new
+1. **App-facing — `User` domain classes (if present):** Apps that store local user passwords
+   historically imported `org.jasypt.util.password.BasicPasswordEncryptor` directly in their
+   `User` (or `AppUser`) domain class — this worked because hoist-core re-exported jasypt via
+   `api` scope. That transitive dependency is gone. Apps must switch to the new
    `io.xh.hoist.security.HoistPasswordEncoder` (~5 LoC change, see below).
+2. **App-facing — `pwd`-typed `AppConfig` values (if used):** Pre-v41 `pwd` values were
+   obfuscated under a hardcoded key checked into the open-source hoist-core repo. v41 fixes
+   that. Apps that write `pwd` configs must now supply their own high-entropy encryption key
+   via instance config `appConfigCryptoKey` (typically an env var or YAML entry sourced from a
+   secrets manager). Pre-v41 values continue to decrypt for read via a one-release migration
+   shim; writes fail closed until the key is configured. No DB migration is required.
+3. **Internal:** `AppConfig`'s admin Config Diff digest moved from jasypt's salted MD5 to a
+   pure-JDK deterministic SHA-256 of plaintext. Stable across environments, gated to
+   `HOIST_ADMIN_READER` (same trust boundary as the plaintext read path).
 
 There are no database schema changes in this release. Existing user passwords stored under the
 legacy jasypt-default format continue to authenticate without a forced reset — the new encoder's
@@ -139,28 +144,61 @@ This is purely housekeeping — the only behavioural difference is that once a u
 post-upgrade, their stored hash transitions from MD5+8-byte-salt (jasypt default) to BCrypt
 (industry standard). Adding this hook is encouraged but not required for the upgrade itself.
 
-### 4. (Internal, no action) `pwd` config values
+### 4. Configure `appConfigCryptoKey` (required if you use `pwd`-typed `AppConfig` values)
 
-`AppConfig` continues to read and write `pwd`-type values transparently. Values written before
-this upgrade (Base64-encoded PBEWithMD5AndDES under jasypt's `BasicTextEncryptor`) decrypt
-through a `LegacyJasyptDecrypter` shim; values written after the upgrade use AES-256-GCM with a
-`$hoist-aes1$` marker prefix. Re-saving any `pwd` config from the admin UI upgrades that record
-to the new format. No mass migration is needed; the shim can be removed in a future major
-version once all known clients have rolled forward.
+Pre-v41 hoist-core obfuscated `pwd` config values at rest using a hardcoded key checked into
+its own open-source source tree — adequate to mask values in the admin UI and DB-dump output,
+but not real confidentiality. v41 fixes this: `pwd` writes now use AES-256-GCM under an
+**app-supplied** key sourced from instance config. The hardcoded key from prior releases
+remains in source for one role only — letting the new `LegacyJasyptDecrypter` read pre-v41
+`pwd` values during the upgrade window.
 
-The hard-coded `AppConfig` obfuscation key (`CONFIG_VALUE_OBFUSCATION_KEY` in source) is
-unchanged from prior releases, so existing `pwd` ciphertexts decrypt without action. As
-before, this key is at-rest obfuscation for low-sensitivity admin-UI display, not a
-confidentiality boundary — anyone with source access can decrypt `pwd` values from a DB dump.
-Real secrets belong in instance config / env vars / a dedicated secrets manager.
+**Generate a key** (any high-entropy string — 32+ random characters is ample):
+
+```bash
+# example: 48 random Base64 characters
+openssl rand -base64 36
+```
+
+Store it in your secrets manager (Vault, AWS Secrets Manager, 1Password, etc.) and inject it
+into every app instance via the standard hoist instance-config channels:
+
+- **Environment variable:** `APP_<APPCODE>_APP_CONFIG_CRYPTO_KEY=<your-key>` (recommended for
+  most deployments). The `<APPCODE>` segment matches your `appCode` in `application.groovy`,
+  upper-snake-cased.
+- **YAML:** add `appConfigCryptoKey: <your-key>` to `/etc/hoist/conf/<appCode>.yml` or
+  whichever path your `-Dio.xh.hoist.instanceConfigFile` JavaOpt points at.
+
+If `appConfigCryptoKey` is not configured:
+
+- **Reads of pre-v41 `pwd` values continue to work** (via the legacy shim) — no boot-time
+  failure, no impact on apps that don't use `pwd` configs.
+- **Writes of `pwd` values fail closed** with an `IllegalStateException` naming the missing
+  instance config. The admin save attempt surfaces this back to the operator.
+
+**Migrating pre-v41 values to the new key:** existing `pwd` rows stay in the legacy format
+until something rewrites them. The simplest migration is to open each `pwd` config in the
+admin UI and re-save it — the `beforeUpdate` hook re-encrypts under the new key, and the row
+now starts with the `$hoist-aes1$` marker. For larger config sets, a one-off Grails script
+that reads each `pwd` `AppConfig` via `configService` (which triggers decryption through the
+legacy shim) and immediately re-saves it will accomplish the same thing in bulk.
+
+> ⚠️ **Do not change `appConfigCryptoKey` once `pwd` values have been written under it.**
+> Doing so will leave any v41+-format rows unreadable — the new key cannot decrypt content
+> written under the old key. If you must rotate, decrypt all `pwd` configs to plaintext under
+> the current key, change the env var, restart, and re-save each one (or run a migration
+> script that performs the decrypt-with-old / encrypt-with-new sequence in a single pass before
+> the restart).
 
 ### 5. Verify and ship
 
 After steps 1–2, your build should compile cleanly with no remaining `import org.jasypt.*`
-references in app code. Boot the app — startup that previously failed on `BootStrap` insertion
-of users / `pwd`-typed configs (the symptom that originally surfaced this bug) should now
-succeed. Existing local-user logins continue to work via the legacy verification path; new
-user records and `pwd` configs are written in the new formats.
+references in app code. After step 4, `appConfigCryptoKey` is available on every running
+instance (if you use `pwd` configs). Boot the app — startup that previously failed on
+`BootStrap` insertion of users / `pwd`-typed configs (the symptom that originally surfaced
+this bug) should now succeed. Existing local-user logins continue to work via the legacy
+verification path; new user records and (re-saved) `pwd` configs are written in the new
+formats.
 
 ## Background — why this change
 
@@ -177,3 +215,12 @@ is to remove the dependency.
 The replacements (`HoistPasswordEncoder` / `AesTextCipher` / `ConfigValueDigester`) prefer
 algorithms that are JDK-bundled (PBKDF2, SHA-256, AES-GCM) or Spring-supported (BCrypt) and have
 clear migration paths for legacy data.
+
+This release also closes a long-standing weakness in the `pwd`-typed `AppConfig` story. Prior
+versions encrypted those values under a fixed key hardcoded into hoist-core's own open-source
+source — effective at masking values in the admin UI but trivially reversible by anyone with
+access to the public source tree. v41 moves the encryption key out of source and into
+operator-controlled instance config (`appConfigCryptoKey`), restoring real confidentiality at
+rest for apps that supply a high-entropy key. The old hardcoded key remains in source for one
+role only: powering the `LegacyJasyptDecrypter` read path that lets pre-v41 ciphertexts be
+loaded one final time and re-saved under the new key.
