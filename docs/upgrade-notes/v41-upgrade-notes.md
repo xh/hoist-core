@@ -177,11 +177,9 @@ If `appConfigCryptoKey` is not configured:
   instance config. The admin save attempt surfaces this back to the operator.
 
 **Migrating pre-v41 values to the new key:** existing `pwd` rows stay in the legacy format
-until something rewrites them. The simplest migration is to open each `pwd` config in the
-admin UI and re-save it — the `beforeUpdate` hook re-encrypts under the new key, and the row
-now starts with the `$hoist-aes1$` marker. For larger config sets, a one-off Grails script
-that reads each `pwd` `AppConfig` via `configService` (which triggers decryption through the
-legacy shim) and immediately re-saves it will accomplish the same thing in bulk.
+until something rewrites them. Re-saving a `pwd` config from the admin UI triggers
+re-encryption under the new key; for larger config sets a one-off Grails script that reads
+each `pwd` `AppConfig` via `configService` and immediately re-saves it is straightforward.
 
 > ⚠️ **Do not change `appConfigCryptoKey` once `pwd` values have been written under it.**
 > Doing so will leave any v41+-format rows unreadable — the new key cannot decrypt content
