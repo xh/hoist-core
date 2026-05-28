@@ -182,7 +182,7 @@
             "mcpCategory": "devops",
             "viewerCategory": "devops",
             "description": "Gradle build, GitHub Actions CI, and Maven Central publishing.",
-            "keywords": ["GitHub Actions", "deployRelease", "deploySnapshot", "Sonatype", "GPG signing", "nexus-publish-plugin", "publishToSonatype"]
+            "keywords": ["GitHub Actions", "deployRelease", "deploySnapshot", "Sonatype", "maven", "GPG signing", "nexus-publish-plugin", "publishToSonatype"]
         },
         {
             "id": "mcp/README.md",
