@@ -303,3 +303,31 @@
     - PR #545 (typed soft-config) — flag the "Use configService Typed Getters" section as
       needing a typed-config addendum once #545 lands
     - PR #538 — flag the "Bootstrap Required Resources" section similarly
+
+### 2026-05-28 — `build-and-publish.md` legacy-archive URL updated to `maven-archive.xh.io`
+
+- Replaced the broken `repo.xh.io/content/groups/public/` Nexus-2-path snippet in the
+  "Consuming the Artifact" section with a new "Legacy versions: `maven-archive.xh.io`"
+  subsection. The old URL pre-dated the 2018 Nexus 2 → Nexus 3 migration and would have
+  404'd for anyone copy-pasting it today; the new URL points at a static S3+CloudFront
+  Maven archive that XH has provisioned as the long-term home for pre-Central
+  `io.xh:hoist-core` releases (versions `0.1.0` through `36.2.0`)
+- Doc clarifies scope explicitly: archive contains only `io.xh:hoist-core` release
+  artifacts; no snapshots, no other `io.xh.*` libraries, no third-party content. Anything
+  outside that scope returns 404
+- Doc clarifies the boundary with Maven Central: current releases (`37.x` and later) are
+  published exclusively to Central; the archive is for historical resolution only
+- `docs/README.md` Key Topics line for `build-and-publish.md` updated: `repo.xh.io` →
+  `maven-archive.xh.io (legacy 36.x-and-earlier hoist-core releases)`
+- This roadmap's Key Topics line for `build-and-publish.md` similarly updated
+- `build-and-publish.md` is still Draft (banner remains); this edit didn't change status
+- Related stale references found via grep but **not** touched in this session, flagged for
+  future review:
+    - `docs/upgrade-notes/v34-upgrade-notes.md` (lines 218, 227) — Before/After blocks both
+      cite the Nexus-2-path URL. The "Before" is appropriately historical; the "After" is
+      arguably stale since the URL it endorses has not worked since the 2018 migration.
+      Worth a small update during the next v34 review to point the "After" at
+      `maven-archive.xh.io` if any new reader follows it today
+    - `docs/planning/docs-roadmap-log.md` (this file, prior entries) — left intact per
+      append-only convention; historical references to `repo.xh.io` are accurate to their
+      time of writing

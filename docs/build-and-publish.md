@@ -264,11 +264,27 @@ repositories {
 }
 ```
 
-Apps that still resolve from the legacy repository use:
+### Legacy versions: `maven-archive.xh.io`
+
+Hoist Core was published to a private Nexus-hosted Maven repository at `repo.xh.io` prior to its
+migration to Maven Central. **Release versions up to and including `36.2.0`** are preserved at a
+static, read-only archive:
 
 ```groovy
 repositories {
-    maven { url = 'https://repo.xh.io/content/groups/public/' }
+    maven { url = 'https://maven-archive.xh.io/' }
 }
 ```
+
+This archive serves only `io.xh:hoist-core` release artifacts — JARs, sources, plugin descriptors,
+POMs, and the top-level `maven-metadata.xml` — for all 191 historical versions from `0.1.0`
+through `36.2.0`. Any other artifact coordinate returns 404 (the archive does not contain
+snapshots, other `io.xh.*` libraries, or third-party content).
+
+Current hoist-core releases (`37.x` and later) are published exclusively to
+[Maven Central](https://central.sonatype.com/artifact/io.xh/hoist-core); add the archive to a
+build's `repositories` block only when resolving historical `36.x` or earlier coordinates.
+
+The archive replaces the artifact-serving role of the original `repo.xh.io` host, which is being
+retired in 2026 as part of XH's broader sunset of that legacy infrastructure.
 
