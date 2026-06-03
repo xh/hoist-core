@@ -10,18 +10,36 @@ package io.xh.hoist.config
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.log.LogSupport
+import io.xh.hoist.security.crypto.AesTextCipher
+import io.xh.hoist.security.crypto.ConfigValueDigester
+import io.xh.hoist.security.crypto.LegacyJasyptDecrypter
 import io.xh.hoist.util.InstanceConfigUtils
 import io.xh.hoist.util.Utils
-import org.jasypt.util.password.ConfigurablePasswordEncryptor
-import org.jasypt.util.text.BasicTextEncryptor
-import org.jasypt.util.text.TextEncryptor
 
 import static grails.async.Promises.task
 
 class AppConfig implements JSONFormat, LogSupport {
 
-    static private final TextEncryptor encryptor = createEncryptor()
-    static private final ConfigurablePasswordEncryptor digestEncryptor = createDigestEncryptor()
+    // Active encryption for `pwd`-typed config values uses an app-supplied key sourced from
+    // instance config (env var `APP_{appCode}_APP_CONFIG_CRYPTO_KEY` or YAML). Apps that use
+    // `pwd` configs must configure this key; without it, `pwd` reads still work (legacy values
+    // are unaffected) but `pwd` writes fail closed. See v41 upgrade notes.
+    private static final AesTextCipher activeCipher = createActiveCipher()
+
+    // Pre-v41 jasypt obfuscation key. Public-by-design: appeared in this open-source file's
+    // source for years, kept verbatim solely so `LegacyJasyptDecrypter` can read pre-upgrade
+    // `pwd` values for the one-release migration window. NEVER used to encrypt new content —
+    // {@link #activeCipher} (configured with an app-supplied key) handles all v41+ writes.
+    // gitleaks:allow pragma: allowlist secret
+    private static final String LEGACY_OBFUSCATION_KEY = 'dsd899s_*)jsk9dsl2fd223hpdj32))I@333'
+    private static final LegacyJasyptDecrypter legacyDecrypter = new LegacyJasyptDecrypter(LEGACY_OBFUSCATION_KEY)
+
+    private static final ConfigValueDigester digestEncryptor = new ConfigValueDigester()
+
+    private static AesTextCipher createActiveCipher() {
+        String key = InstanceConfigUtils.getInstanceConfig('appConfigCryptoKey')
+        return key ? new AesTextCipher(key) : null
+    }
 
     static List TYPES = ['string', 'int', 'long', 'double', 'bool', 'json', 'pwd']
 
@@ -100,20 +118,16 @@ class AppConfig implements JSONFormat, LogSupport {
 
     private encryptIfPwd(boolean isInsert) {
         if (valueType == 'pwd' && (hasChanged('value') || isInsert)) {
-            value = encryptor.encrypt(value)
+            if (activeCipher == null) {
+                throw new IllegalStateException(
+                    "Cannot save pwd-typed AppConfig '$name': no encryption key configured. " +
+                    "Set instance config 'appConfigCryptoKey' (typically via env var " +
+                    "APP_<appCode>_APP_CONFIG_CRYPTO_KEY) to a high-entropy value held in your " +
+                    "secrets manager, then restart. See v41 upgrade notes."
+                )
+            }
+            value = activeCipher.encrypt(value)
         }
-    }
-
-    private static TextEncryptor createEncryptor() {
-        def ret = new BasicTextEncryptor()
-        ret.setPassword('dsd899s_*)jsk9dsl2fd223hpdj32))I@333')
-        return ret
-    }
-
-    private static ConfigurablePasswordEncryptor createDigestEncryptor() {
-        def ret = new ConfigurablePasswordEncryptor()
-        ret.setPlainDigest(true)
-        ret
     }
 
     private Object overrideValue(Map opts = [:]) {
@@ -150,11 +164,25 @@ class AppConfig implements JSONFormat, LogSupport {
 
     // Allow pwd values to be compared in the admin config differ, without exposing the actual value.
     private static String digestPassword(String value, boolean isEncrypted) {
-        digestEncryptor.encryptPassword(isEncrypted ? decryptPassword(value) : value)
+        digestEncryptor.digest(isEncrypted ? decryptPassword(value) : value)
     }
 
+    // Reads both the current AES-GCM format (written under the app-supplied key) and legacy
+    // jasypt-format values (under the source-visible LEGACY_OBFUSCATION_KEY). Legacy values
+    // upgrade in place the next time the AppConfig row is saved.
     private static String decryptPassword(String value) {
-        encryptor.decrypt(value)
+        if (AesTextCipher.isHoistFormat(value)) {
+            if (activeCipher == null) {
+                throw new IllegalStateException(
+                    "Cannot decrypt pwd-typed AppConfig value: value was written under an " +
+                    "app-supplied encryption key but no key is currently configured. Set " +
+                    "instance config 'appConfigCryptoKey' to the same value that wrote this " +
+                    "row, or restore from a pre-encryption backup. See v41 upgrade notes."
+                )
+            }
+            return activeCipher.decrypt(value)
+        }
+        return legacyDecrypter.decrypt(value)
     }
 
     Map formatForJSON() {

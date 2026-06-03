@@ -2,21 +2,30 @@
 
 ## 41.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW for most apps; 🟡 MEDIUM if you store local user passwords or write `pwd`-typed `AppConfig` values)
+
+See [`docs/upgrade-notes/v41-upgrade-notes.md`](docs/upgrade-notes/v41-upgrade-notes.md) for
+detailed, step-by-step upgrade instructions with before/after code examples.
+
+* Removed the `org.jasypt:jasypt:1.9.3` dependency. Apps importing `org.jasypt.*` (typically `BasicPasswordEncryptor` in a `User` domain class) must switch to `io.xh.hoist.security.HoistPasswordEncoder`. Legacy user-password hashes continue to verify transparently.
+* `pwd`-typed `AppConfig` values now require an app-supplied encryption key set via instance config `appConfigCryptoKey` (env var `APP_<appCode>_APP_CONFIG_CRYPTO_KEY` or YAML). Pre-v41 values continue to decrypt for read (one-release `LegacyJasyptDecrypter` shim), but writes fail closed until the key is configured. The pre-v41 hardcoded obfuscation key is no longer used for any new content.
+
 ### ⚙️ Technical
 
-* Reworked identity resolution onto an explicit per-thread `HoistIdentity` cache, installed at
-  every framework thread-entry point (`HoistFilter`, `HoistWebSocketHandler`, async `task` workers
-  via a new `HoistPromiseFactory`, and `ClusterTask`). Identity accessors
-  (`identityService.username`/`authUsername`/etc.) no longer dereference the live servlet request
-  or session on each call. Propagates identity into Grails `task {}` workers automatically, and makes
-  `identityService` usable inside WebSocket message handlers.
-
+* Replaced jasypt's internal use in `AppConfig` with pure-JDK AES-256-GCM (PBKDF2 key) for `pwd`-value encryption and a deterministic SHA-256 of plaintext for the admin Config Diff fingerprint. New ciphertexts carry a `$hoist-aes1$` marker and are encrypted under the app-supplied `appConfigCryptoKey`; pre-v41 values continue to read through a one-release `LegacyJasyptDecrypter` shim with no DB migration. Re-saving a `pwd` config promotes it to the new format under the configured key.
+* Added `io.xh.hoist.security.HoistPasswordEncoder`, a thin BCrypt wrapper for app `User` domain classes. Verifies both new BCrypt hashes and legacy jasypt-default hashes; `isLegacyHash()` supports opportunistic re-encoding on login.
+* Added `org.springframework.security:spring-security-crypto` (crypto module only). Version managed by the Spring Boot BOM.
+* Added `src/test/groovy/` with Spock unit tests covering the new crypto utilities. First unit tests in hoist-core; see `src/test/groovy/README.md` for conventions.
+* Reworked identity resolution onto an explicit per-thread `HoistIdentity` cache installed at every framework thread-entry point (`HoistFilter`, `HoistWebSocketHandler`, async `task` workers via a new `HoistPromiseFactory`, and `ClusterTask`). Identity accessors no longer dereference the live servlet request on each call; identity now propagates into Grails `task {}` workers and is usable inside WebSocket message handlers.
 
 ## 40.0.3 - 2026-05-20
 
 ### 🐞 Bug Fixes
 
-* Hardened `WebSocketService` channel-routing against malformed channel keys (e.g. presented by older clients that predate the current `{authUsername}|{instanceName}|{uuid}` format). `pushToChannel`, `pushToChannels`, and `hasChannel` now silently drop unparseable keys instead of throwing `ArrayIndexOutOfBoundsException` out of the private `instanceFromKey` helper.
+* Hardened `WebSocketService` channel-routing against malformed channel keys (e.g. presented by
+  older clients that predate the current `{authUsername}|{instanceName}|{uuid}` format).
+  `pushToChannel`, `pushToChannels`, and `hasChannel` now silently drop unparseable keys instead of
+  throwing `ArrayIndexOutOfBoundsException` out of the private `instanceFromKey` helper.
 
 ## 40.0.2 - 2026-05-19
 
