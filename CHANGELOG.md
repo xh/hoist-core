@@ -1,6 +1,6 @@
 # Changelog
 
-## 41.0-SNAPSHOT - unreleased
+## 40.1.0 - 2026-06-04
 
 ### ⚙️ Technical
 
@@ -10,7 +10,6 @@
   (`identityService.username`/`authUsername`/etc.) no longer dereference the live servlet request
   or session on each call. Propagates identity into Grails `task {}` workers automatically, and makes
   `identityService` usable inside WebSocket message handlers.
-
 
 ## 40.0.3 - 2026-05-20
 
