@@ -88,6 +88,7 @@ class BootStrap implements LogSupport {
           Extremely Heavy - https://xh.io
             + Cluster ${ClusterService.clusterName}
             + Instance ${ClusterService.instanceName}
+            + JDK ${System.getProperty('java.version')} (${System.getProperty('java.vendor')})
             + ${runtime.availableProcessors()} available processors
             + ${String.format('%,d', (runtime.maxMemory() / 1000000).toLong())}mb available memory
             + JVM TimeZone is ${serverZoneId}
