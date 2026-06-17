@@ -311,6 +311,14 @@ class ErrorMonitorService extends BaseService {
 }
 ```
 
+> **Reference implementation:** XH's Toolbox demo app
+> [includes a `SlackAlertService` that fleshes out this pattern](https://github.com/xh/toolbox/blob/develop/grails-app/services/io/xh/toolbox/SlackAlertService.groovy) -
+> it subscribes to `xhTrackReceived` (`primaryOnly: true`) and posts client errors and user feedback
+> to a Slack channel as formatted Block Kit messages via the Slack Web API, gated behind a typed,
+> per-event-type config. The same service also forwards monitor status reports (see
+> [monitoring](./monitoring.md)), so a single config-gated service routes all three event streams to
+> a realtime chat system - a useful starting point for any app considering topic-based custom alerting.
+
 ## Client Integration
 
 Client-side tracking is the most common use of the activity tracking system. The hoist-react client
