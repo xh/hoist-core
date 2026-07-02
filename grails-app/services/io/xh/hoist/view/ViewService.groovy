@@ -127,7 +127,17 @@ class ViewService extends BaseService {
         ret.formatForClient(true)
     }
 
-    /** Update a view's metadata */
+    /**
+     * Update a view's metadata.
+     *
+     * Supported keys in `data` include `name`, `description`, `group`, `isGlobal`, `isShared` and
+     * `isPinned`, plus an optional `groupRename: [from:, to:]` map. Groups are slash-delimited
+     * paths supporting unlimited nesting (e.g. "Reports/Sales/Monthly"). When `groupRename` is
+     * provided, all other active views of the same type and owner whose group equals or falls
+     * under the `from` path are rewritten to the `to` path within the same transaction - use when
+     * the user has renamed or re-parented a group itself, as opposed to moving this single view
+     * into a different group.
+     */
     Map updateInfo(String token, Map data, String username = username) {
         def existing = jsonBlobService.get(token, username),
             meta = parseObject(existing.meta) ?: [:],
@@ -157,7 +167,10 @@ class ViewService extends BaseService {
             }
         }
 
-        def ret = jsonBlobService.update(token, [*: core, meta: meta], username)
+        def payload = [*: core, meta: meta]
+        if (data.groupRename) payload.groupRename = data.groupRename
+
+        def ret = jsonBlobService.update(token, payload, username)
 
         if (data.containsKey('isPinned')) {
             updateState(
@@ -168,8 +181,11 @@ class ViewService extends BaseService {
             )
         }
 
-
         trackChange('Updated View Info', ret)
+        if (data.groupRename) {
+            def rename = data.groupRename as Map
+            trackChange('Renamed View Group', [type: existing.type, from: rename.from, to: rename.to])
+        }
         ret.formatForClient(true)
     }
 
