@@ -2,6 +2,11 @@
 
 ## 41.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* Disabled three unused Spring Boot auto-configurations (`HttpClientAutoConfiguration`, `RestClientAutoConfiguration`,
+ `RestTemplateAutoConfiguration`) to avoid coupling to a specific Apache HttpClient version.
+
 ## 40.1.0 - 2026-06-04
 
 ### ⚙️ Technical
