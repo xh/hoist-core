@@ -7,6 +7,9 @@
 * Added support for nested view groups in `ViewService` / `JsonBlobService`, with group values
   interpreted as slash-delimited paths (e.g. `Reports/Sales/Monthly`). Pairs with the nested-group ViewManager UI shipping
   in hoist-react v87.
+* Added `ViewService.bulkUpdateInfo` and a matching `xhView/bulkUpdateInfo` endpoint to apply the
+  same metadata updates (e.g. visibility changes) to multiple views in a single call. Pairs with
+  the bulk visibility editing UI in the hoist-react v87 ViewManager Manage dialog.
 
 ### ⚙️ Technical
 

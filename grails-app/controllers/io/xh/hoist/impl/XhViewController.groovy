@@ -49,6 +49,11 @@ class XhViewController extends BaseController {
         renderJSON(viewService.updateInfo(token, parseRequestJSON()))
     }
 
+    def bulkUpdateInfo(String tokens) {
+        viewService.bulkUpdateInfo(tokens.split(',').toList(), parseRequestJSON())
+        renderSuccess()
+    }
+
     def updateValue(String token) {
         renderJSON(viewService.updateValue(token, parseRequestJSON()))
     }

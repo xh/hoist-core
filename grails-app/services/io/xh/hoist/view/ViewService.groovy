@@ -139,6 +139,75 @@ class ViewService extends BaseService {
      * into a different group.
      */
     Map updateInfo(String token, Map data, String username = username) {
+        def ret = doUpdateInfo(token, data, username)
+
+        trackChange('Updated View Info', ret)
+        if (data.groupRename) {
+            def rename = data.groupRename as Map
+            trackChange('Renamed View Group', [type: ret.type, from: rename.from, to: rename.to])
+        }
+        ret.formatForClient(true)
+    }
+
+    /**
+     * Bulk update view metadata - applies the same updates to each of the given views.
+     * Supports the same keys in `data` as {@link #updateInfo}.
+     */
+    void bulkUpdateInfo(List<String> tokens, Map data, String username = username) {
+        List<Exception> failures = []
+        tokens.each {
+            try {
+                doUpdateInfo(it, data, username)
+            } catch (Exception e) {
+                failures << e
+                logError('Failed to update View info', [token: it], e)
+            }
+        }
+        def successCount = tokens.size() - failures.size()
+        if (successCount) {
+            trackChange('Bulk Updated View Info', [count: successCount])
+        }
+
+        if (failures) {
+            throw new RuntimeException("Failed to update ${failures.size()} view(s)", failures.first())
+        }
+    }
+
+    /** Update a view's value */
+    Map updateValue(String token, Map value, String username = username) {
+        def ret = jsonBlobService.update(token, [value: value], username);
+        if (ret.owner == null) {
+            trackChange('Updated Global View definition', ret);
+        }
+        ret.formatForClient(true)
+    }
+
+    /** Bulk Delete views */
+    void delete(List<String> tokens, String username = username) {
+        List<Exception> failures = []
+        tokens.each {
+            try {
+                jsonBlobService.archive(it, username)
+            } catch (Exception e) {
+                failures << e
+                logError('Failed to delete View', [token: it], e)
+            }
+        }
+        def successCount = tokens.size() - failures.size()
+        if (successCount) {
+            trackChange('Deleted Views', [count: successCount])
+        }
+
+        if (failures) {
+            throw new RuntimeException("Failed to delete ${failures.size()} view(s)", failures.first())
+        }
+    }
+
+
+    //--------------------
+    // Implementation
+    //---------------------
+    private JsonBlob doUpdateInfo(String token, Map data, String username) {
         def existing = jsonBlobService.get(token, username),
             meta = parseObject(existing.meta) ?: [:],
             core = [:]
@@ -181,48 +250,9 @@ class ViewService extends BaseService {
             )
         }
 
-        trackChange('Updated View Info', ret)
-        if (data.groupRename) {
-            def rename = data.groupRename as Map
-            trackChange('Renamed View Group', [type: existing.type, from: rename.from, to: rename.to])
-        }
-        ret.formatForClient(true)
+        return ret
     }
 
-    /** Update a view's value */
-    Map updateValue(String token, Map value, String username = username) {
-        def ret = jsonBlobService.update(token, [value: value], username);
-        if (ret.owner == null) {
-            trackChange('Updated Global View definition', ret);
-        }
-        ret.formatForClient(true)
-    }
-
-    /** Bulk Delete views */
-    void delete(List<String> tokens, String username = username) {
-        List<Exception> failures = []
-        tokens.each {
-            try {
-                jsonBlobService.archive(it, username)
-            } catch (Exception e) {
-                failures << e
-                logError('Failed to delete View', [token: it], e)
-            }
-        }
-        def successCount = tokens.size() - failures.size()
-        if (successCount) {
-            trackChange('Deleted Views', [count: successCount])
-        }
-
-        if (failures) {
-            throw new RuntimeException("Failed to delete ${failures.size()} view(s)", failures.first())
-        }
-    }
-
-
-    //--------------------
-    // Implementation
-    //---------------------
     private trackChange(String msg, Object data) {
         trackService.track(
             msg: msg,
