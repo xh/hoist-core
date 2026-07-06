@@ -168,7 +168,7 @@ class ViewService extends BaseService {
         }
 
         def payload = [*: core, meta: meta]
-        if (data.groupRename) payload.groupRename = data.groupRename
+        if (data.groupRename) payload.groupRename = data.groupRename as Map
 
         def ret = jsonBlobService.update(token, payload, username)
 
