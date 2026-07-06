@@ -5,11 +5,13 @@
 ### 🎁 New Features
 
 * Added support for nested view groups in `ViewService` / `JsonBlobService`, with group values
-  interpreted as slash-delimited paths (e.g. `Reports/Sales/Monthly`). `xhView/updateInfo` now
-  accepts an optional `groupRename: [from:, to:]` key - when provided, all other active blobs of
-  the same type and owner whose `meta.group` equals or falls under the renamed path are rewritten
-  to the new path within the same transaction. Pairs with the nested-group ViewManager UI shipping
+  interpreted as slash-delimited paths (e.g. `Reports/Sales/Monthly`). Pairs with the nested-group ViewManager UI shipping
   in hoist-react v87.
+
+### ⚙️ Technical
+
+* Disabled three unused Spring Boot auto-configurations (`HttpClientAutoConfiguration`, `RestClientAutoConfiguration`,
+ `RestTemplateAutoConfiguration`) to avoid coupling to a specific Apache HttpClient version.
 
 ## 40.1.0 - 2026-06-04
 
