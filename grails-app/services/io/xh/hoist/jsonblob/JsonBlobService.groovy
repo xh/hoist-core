@@ -53,6 +53,11 @@ class JsonBlobService extends BaseService implements DataBinder {
         )
     }
 
+    /**
+     * Update an active blob. Note `groupRename` is a reserved key within `data` - an optional
+     * `[from:, to:]` map that is stripped from the bound update and instead cascades a group path
+     * rename across other blobs of the same type and owner (see `cascadeGroupRename`).
+     */
     @Transactional
     JsonBlob update(String token, Map data, String username = username) {
         def blob = get(token, username)
