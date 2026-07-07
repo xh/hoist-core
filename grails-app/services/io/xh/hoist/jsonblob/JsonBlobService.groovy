@@ -117,7 +117,8 @@ class JsonBlobService extends BaseService implements DataBinder {
      *
      * Scoped to the owner the source blob had before the triggering update, so groups remain
      * namespaced per owner (or per the global, null-owner namespace) even if the update also
-     * changed the blob's owner.
+     * changed the blob's owner. Rewrites only blobs the acting user could update individually
+     * per their ACL.
      */
     private void cascadeGroupRename(JsonBlob source, String owner, String from, String to, String username) {
         if (!from?.trim() || !to?.trim() || from == to) return
@@ -131,6 +132,9 @@ class JsonBlobService extends BaseService implements DataBinder {
         def count = 0
         candidates.each { blob ->
             if (blob.token == source.token) return
+            // Rewrite only blobs the caller could update individually - the source blob's ACL
+            // must not grant transitive write access to other blobs in the owner's namespace.
+            if (!passesAcl(blob, username)) return
             Map meta
             try {
                 meta = parseObject(blob.meta)
