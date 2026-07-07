@@ -151,7 +151,8 @@ class ViewService extends BaseService {
 
     /**
      * Bulk update view metadata - applies the same updates to each of the given views.
-     * Supports the same keys in `data` as {@link #updateInfo}.
+     * Supports the same keys in `data` as {@link #updateInfo}, with the exception of
+     * `groupRename`, whose cross-view cascade is intended for single-view updates only.
      */
     void bulkUpdateInfo(List<String> tokens, Map data, String username = username) {
         List<Exception> failures = []
