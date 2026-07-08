@@ -175,6 +175,24 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     }
 
     /**
+     * Is this instance's local Hazelcast member running - i.e. not shut down or wedged?
+     *
+     * Unlike {@link #instanceState}, which reflects the coarse app lifecycle and remains RUNNING
+     * even after the underlying Hazelcast member has died (e.g. following an OOM), this reflects
+     * the actual liveness of the embedded Hazelcast member. Intended as a cheap, non-throwing
+     * signal for external health checks such as a Kubernetes liveness probe, which can restart a
+     * "zombie" instance whose Hazelcast member has stopped but whose JVM continues serving HTTP.
+     */
+    boolean getIsHazelcastRunning() {
+        try {
+            return hzInstance?.lifecycleService?.running ?: false
+        } catch (Throwable t) {
+            // NotActive / wedged member / null - treat as not running
+            return false
+        }
+    }
+
+    /**
      * Shutdown this instance of the app.
      *
      * @param delay - optional delay to allow in progress requests to complete cleanly.
@@ -302,11 +320,12 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     }
 
     Map getAdminStats() {[
-        clusterId   : cluster.clusterState.id,
-        instanceName: instanceName,
-        primaryName : primaryName,
-        isPrimary   : isPrimary,
-        members     : cluster.members.collect { it.getAttribute('instanceName') }
+        clusterId          : cluster.clusterState.id,
+        instanceName       : instanceName,
+        primaryName        : primaryName,
+        isPrimary          : isPrimary,
+        isHazelcastRunning : isHazelcastRunning,
+        members            : cluster.members.collect { it.getAttribute('instanceName') }
     ]}
 
 

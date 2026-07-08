@@ -61,6 +61,42 @@ Application Start
 | `RUNNING` | Fully ready, accepting requests |
 | `STOPPING` | Shutting down, rejecting new requests |
 
+### Health Signals
+
+`instanceState` tracks the coarse **application** lifecycle — it is set to `RUNNING` once at
+startup and only leaves that state on a deliberate shutdown. It does **not** reflect the health of
+the underlying Hazelcast member: an instance whose Hazelcast member has died (for example after an
+`OutOfMemoryError`) can keep reading `RUNNING` while the JVM continues to serve HTTP — a "zombie"
+instance.
+
+For that case, `ClusterService.isHazelcastRunning` reports whether **this instance's own** Hazelcast
+member is still live, reading the member's lifecycle state directly:
+
+```groovy
+boolean healthy = clusterService.isHazelcastRunning
+```
+
+It is cheap and non-throwing (returns `false` rather than propagating any error), making it suitable
+for a high-frequency health endpoint. The value is also included in `ClusterService.getAdminStats()`.
+
+Hoist already attempts a graceful self-heal: `ClusterService` registers a Hazelcast
+`LifecycleListener` that terminates the app if the member shuts down unexpectedly. That path is
+cooperative, however, and has been observed to stall under heap exhaustion — precisely the scenario
+it should catch. A Kubernetes **liveness probe** wired to a status endpoint backed by
+`isHazelcastRunning` provides a non-cooperative backstop: a wedged member reads as not-running, and
+k8s restarts the pod via SIGKILL without needing any cooperation from the stalled JVM.
+
+> **Caveat — pair a liveness probe with a startup probe.** `isHazelcastRunning` returns `false`
+> during startup, before the Hazelcast member is up. If a liveness probe is configured without a
+> Kubernetes `startupProbe` (or a sufficient `initialDelaySeconds`), k8s will kill instances
+> mid-boot in a crash loop. Gate the liveness probe behind a startup probe so the instance is given
+> time to initialize Hazelcast before liveness is enforced.
+
+Note this is a strict improvement over `instanceState` and the cooperative listener, not a
+universal detector: an instance can still be heap-thrashing while its Hazelcast member remains
+technically active, in which case `isHazelcastRunning` reports `true`. No single cheap flag can
+catch every degraded state.
+
 ### Primary Instance
 
 The **primary instance** is the oldest member of the Hazelcast cluster. It handles tasks that
@@ -89,6 +125,7 @@ framework.
 |-----------------|-------------|
 | `isPrimary` | `true` if this is the oldest cluster member |
 | `instanceState` | Current instance state (`STARTING`, `RUNNING`, `STOPPING`) |
+| `isHazelcastRunning` | `true` if this instance's local Hazelcast member is live (see [Health Signals](#health-signals)) |
 | `localName` | Human-readable name for this instance |
 | `hzInstance` | Direct access to the Hazelcast instance (rarely needed) |
 | `ensureRunning()` | Throws if instance is not in `RUNNING` state |

@@ -78,7 +78,7 @@
             "mcpCategory": "package",
             "viewerCategory": "core-features",
             "description": "Hazelcast-based multi-instance coordination and distributed data structures.",
-            "keywords": ["ClusterService", "Cache", "CachedValue", "IMap", "ReplicatedMap", "Topic", "primaryOnly"]
+            "keywords": ["ClusterService", "Cache", "CachedValue", "IMap", "ReplicatedMap", "Topic", "primaryOnly", "isHazelcastRunning", "instanceState", "liveness probe", "health"]
         },
         {
             "id": "docs/activity-tracking.md",
