@@ -18,6 +18,11 @@
 * Added `ClusterService.isHazelcastRunning` to report local Hazelcast member liveness, suitable for backing a
  Kubernetes liveness probe that can detect and restart a "zombie" instance whose Hazelcast member has died.
 
+### 📚 Libraries
+
+* Grails `7.1.1 → 7.2.0`
+* Gradle `8.14.4 → 8.14.5`
+
 ## 40.1.0 - 2026-06-04
 
 ### ⚙️ Technical
