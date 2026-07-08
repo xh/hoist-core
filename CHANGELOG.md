@@ -15,6 +15,8 @@
 
 * Disabled three unused Spring Boot auto-configurations (`HttpClientAutoConfiguration`, `RestClientAutoConfiguration`,
  `RestTemplateAutoConfiguration`) to avoid coupling to a specific Apache HttpClient version.
+* Added `ClusterService.isHazelcastRunning` to report local Hazelcast member liveness, suitable for backing a
+ Kubernetes liveness probe that can detect and restart a "zombie" instance whose Hazelcast member has died.
 
 ## 40.1.0 - 2026-06-04
 
