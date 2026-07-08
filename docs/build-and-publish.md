@@ -285,6 +285,6 @@ Current hoist-core releases (`37.x` and later) are published exclusively to
 [Maven Central](https://central.sonatype.com/artifact/io.xh/hoist-core); add the archive to a
 build's `repositories` block only when resolving historical `36.x` or earlier coordinates.
 
-The archive replaces the artifact-serving role of the original `repo.xh.io` host, which is being
-retired in 2026 as part of XH's broader sunset of that legacy infrastructure.
+The archive replaces the artifact-serving role of the original `repo.xh.io` host, an XH-hosted Nexus
+instance, which was retired in Q2 2026 as part of XH's broader sunset of that legacy infrastructure.
 
