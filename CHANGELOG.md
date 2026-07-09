@@ -12,6 +12,7 @@
 ### 🐞 Bug Fixes
 
 * Fixed `Cache.put()` passing the `Cache` instance itself (rather than the actual entry key) to `fireOnChange` on the non-cluster code path. This caused `CacheEntryChanged.key` to have the wrong type for `onChange` handlers on single-instance or `replicate: false` deployments. The cluster path via `CacheEntryListener` was already correct.
+* Fixed `ClusterConfig.getMultiInstanceEnabled()` using identity comparison (`!==`) instead of value equality (`!=`) when checking the `multiInstanceEnabled` instance config against `'false'`. The identity check meant a config value of `"false"` was never reference-equal to the string literal, so multi-instance mode could never actually be disabled via instance config.
 
 ### 📚 Libraries
 
