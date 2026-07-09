@@ -154,7 +154,7 @@ class Cache<K, V> implements LogSupport, AdminStats {
         } else {
             _map.put(key, new CacheEntry(key, obj, loggerName))
         }
-        if (!useCluster) fireOnChange(this, oldEntry?.value, obj)
+        if (!useCluster) fireOnChange(key, oldEntry?.value, obj)
     }
 
 
