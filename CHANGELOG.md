@@ -9,6 +9,10 @@
 * Added `ClusterService.isHazelcastRunning` to report local Hazelcast member liveness, suitable for backing a
  Kubernetes liveness probe that can detect and restart a "zombie" instance whose Hazelcast member has died.
 
+### 🐞 Bug Fixes
+
+* Fixed `Cache.put()` passing the `Cache` instance itself (rather than the actual entry key) to `fireOnChange` on the non-cluster code path. This caused `CacheEntryChanged.key` to have the wrong type for `onChange` handlers on single-instance or `replicate: false` deployments. The cluster path via `CacheEntryListener` was already correct.
+
 ### 📚 Libraries
 
 * Grails `7.1.1 → 7.2.0`
