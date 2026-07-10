@@ -57,7 +57,7 @@ class ClusterConfig {
      * instance config, or override this method to implement additional logic.
      */
     boolean getMultiInstanceEnabled() {
-        return getInstanceConfig('multiInstanceEnabled') !== 'false'
+        return getInstanceConfig('multiInstanceEnabled') != 'false'
     }
 
     /**
