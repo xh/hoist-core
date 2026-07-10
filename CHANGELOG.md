@@ -1,6 +1,6 @@
 # Changelog
 
-## 41.0-SNAPSHOT - unreleased
+## 40.2.0 - 2026-07-10
 
 ### ⚙️ Technical
 
