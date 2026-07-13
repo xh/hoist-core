@@ -4,10 +4,13 @@
 
 ### 🎁 New Features
 
-* Added support for unlimited depth view groups in `ViewService` / `JsonBlobService`. Added
-  `ViewService.bulkUpdateInfo` and a matching `xhView/bulkUpdateInfo` endpoint to apply the
-  same metadata updates (e.g. visibility changes) to multiple views in a single call. Pairs with
-  the bulk visibility editing UI in the hoist-react v87 ViewManager Manage dialog.
+* Added support for unlimited depth view groups in `ViewService` / `JsonBlobService`. Groups are
+  now slash-delimited paths (e.g. `Reports/Sales/Monthly`), and the `updateInfo` Map accepts a new
+  `groupRename: [from:, to:]` option to cascade a group rename or re-parenting across all other
+  views under the renamed path. Added `ViewService.bulkUpdateInfo` and a matching
+  `xhView/bulkUpdateInfo` endpoint to apply the same metadata updates (e.g. visibility changes)
+  to multiple views in a single call. Pairs with the nested group tree and bulk visibility
+  editing UI in the hoist-react v87 `ViewManager` Manage dialog.
 
 ## 40.2.0 - 2026-07-10
 

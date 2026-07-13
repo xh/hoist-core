@@ -134,9 +134,9 @@ class ViewService extends BaseService {
      * `isPinned`, plus an optional `groupRename: [from:, to:]` map. Groups are slash-delimited
      * paths supporting unlimited nesting (e.g. "Reports/Sales/Monthly"). When `groupRename` is
      * provided, all other active views of the same type and owner whose group equals or falls
-     * under the `from` path are rewritten to the `to` path within the same transaction - use when
-     * the user has renamed or re-parented a group itself, as opposed to moving this single view
-     * into a different group.
+     * under the `from` path have that prefix of their group path rewritten to `to` within the
+     * same transaction - use when the user has renamed or re-parented a group itself, as opposed
+     * to moving this single view into a different group.
      */
     Map updateInfo(String token, Map data, String username = username) {
         def ret = doUpdateInfo(token, data, username)
@@ -151,10 +151,13 @@ class ViewService extends BaseService {
 
     /**
      * Bulk update view metadata - applies the same updates to each of the given views.
-     * Supports the same keys in `data` as {@link #updateInfo}, with the exception of
-     * `groupRename`, whose cross-view cascade is intended for single-view updates only.
+     * Supports the same keys in `data` as {@link #updateInfo}, except `groupRename`, which is
+     * ignored here - its cross-view cascade is intended for single-view updates only. Updates
+     * are applied best-effort: failures on individual views are logged and reported via a
+     * single exception thrown after all views have been attempted.
      */
     void bulkUpdateInfo(List<String> tokens, Map data, String username = username) {
+        data = data.findAll { it.key != 'groupRename' }
         List<Exception> failures = []
         tokens.each {
             try {
