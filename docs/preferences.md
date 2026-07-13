@@ -24,7 +24,7 @@ application settings, while preferences are per-user.
 | `PrefDiffService` | `grails-app/services/io/xh/hoist/pref/` | Cross-environment preference synchronization |
 | `PreferenceSpec` | `src/main/groovy/io/xh/hoist/pref/` | Typed specification for required preference definitions |
 | `PreferenceAdminController` | `grails-app/controllers/io/xh/hoist/admin/` | Admin Console CRUD endpoints for preference definitions |
-| `XhController` | `grails-app/controllers/io/xh/hoist/impl/` | Client-facing `getPrefs` / `setPrefs` endpoints |
+| `XhController` | `grails-app/controllers/io/xh/hoist/impl/` | Client-facing `getPrefs` / `setPrefs` / `unsetPrefs` endpoints |
 
 ## Key Classes
 
@@ -143,18 +143,22 @@ Returns all preferences for the current user in a structure consumed by hoist-re
   "theme": {
     "type": "string",
     "value": "dark",
-    "defaultValue": "light"
+    "defaultValue": "light",
+    "isSet": true
   },
   "defaultPageSize": {
     "type": "int",
     "value": 25,
-    "defaultValue": 25
+    "defaultValue": 25,
+    "isSet": false
   }
 }
 ```
 
 The `value` field contains the user's custom value if set, otherwise the default. JSON values are
-parsed to objects.
+parsed to objects. The `isSet` flag reports whether a `UserPreference` record exists for the user
+(the same distinction as `isUnset`, inverted) — letting the client tell an explicitly-set value
+apart from a fallback to the default, even when the two happen to be equal.
 
 #### `ensureRequiredPrefsCreated(requiredPrefs)`
 
@@ -261,7 +265,9 @@ XH.prefService.set('theme', 'dark');  // persists to server
 ```
 
 The hoist-react `PrefService` manages the client-local state and syncs changes back to the server
-via `XhController` endpoints (`/xh/getPrefs` to load, `/xh/setPrefs` to persist).
+via `XhController` endpoints (`/xh/getPrefs` to load, `/xh/setPrefs` to persist, and `/xh/unsetPrefs`
+to clear a user's explicit value and revert to the default). The `/xh/unsetPrefs` endpoint accepts a
+JSON array of preference keys and delegates to `PrefService.unsetPreference()`.
 
 In practice, most client-side interaction with preferences happens indirectly through hoist-react's
 **persistence system**, which automatically saves and restores UI state — grid column layouts,
