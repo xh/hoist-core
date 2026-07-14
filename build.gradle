@@ -133,12 +133,12 @@ java {
     withJavadocJar()
 }
 tasks.withType(JavaCompile) {
-    options.release = 17
+    options.release = 21
 }
 tasks.withType(GroovyCompile) {
-    options.release = 17
-    sourceCompatibility = '17'
-    targetCompatibility = '17'
+    options.release = 21
+    sourceCompatibility = '21'
+    targetCompatibility = '21'
     groovyOptions.parameters = true
 }
 tasks.withType(Javadoc) {

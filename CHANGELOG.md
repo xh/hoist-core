@@ -2,6 +2,17 @@
 
 ## 41.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟠 LOW - Grails 8 / Spring Boot 4 / Java 21 upgrade)
+
+* Now requires **Java 21+** (up from Java 17), as mandated by Grails 8 / Spring Boot 4.
+
+### 📚 Libraries
+
+* Grails `7.2.0 → 8.0.0-M2`
+* Spring Boot `3.5 → 4.1`,
+* Spring Framework `6 → 7`
+* Gradle `8.14.5 → 9.6.1`
+
 ## 40.2.0 - 2026-07-10
 
 ### ⚙️ Technical
