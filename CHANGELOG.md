@@ -2,6 +2,11 @@
 
 ## 41.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Preference client config now includes a per-pref `isSet` flag, and a new `xh/unsetPrefs` endpoint
+  clears a user's explicit value - both additive for older hoist-react clients.
+
 ## 40.2.0 - 2026-07-10
 
 ### ⚙️ Technical

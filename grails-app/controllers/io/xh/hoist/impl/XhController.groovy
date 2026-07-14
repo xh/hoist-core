@@ -166,6 +166,17 @@ class XhController extends BaseController {
         renderJSON(preferences: ret)
     }
 
+    def unsetPrefs() {
+        ensureClientUsernameMatchesSession()
+
+        def keys = parseRequestJSONArray().collect { it.toString() }
+        keys.each { prefService.unsetPreference(it) }
+
+        def ret = prefService.getLimitedClientConfig(keys)
+
+        renderJSON(preferences: ret)
+    }
+
     def clearUserState() {
         ensureClientUsernameMatchesSession()
         Preference.withNewTransaction {
