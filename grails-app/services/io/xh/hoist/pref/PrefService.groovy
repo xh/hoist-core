@@ -258,7 +258,8 @@ class PrefService extends BaseService {
         return [
             type: defaultPref.type,
             value: getUserPreference(defaultPref, userPref),
-            defaultValue: defaultPref.externalDefaultValue(jsonAsObject: true)
+            defaultValue: defaultPref.externalDefaultValue(jsonAsObject: true),
+            isSet: userPref != null
         ]
     }
 }
