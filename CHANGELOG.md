@@ -2,10 +2,13 @@
 
 ## 41.0-SNAPSHOT - unreleased
 
+## 40.3.0 - 2026-07-16
+
 ### 🎁 New Features
 
 * Preference client config now includes a per-pref `isSet` flag, and a new `xh/unsetPrefs` endpoint
-  clears a user's explicit value - both additive for older hoist-react clients.
+  clears a user's explicit value.  Provides support for hoist-react v86.4.0, but
+  backward compatible for earlier hoist-react clients.
 
 * Added support for unlimited depth view groups in `ViewService` / `JsonBlobService`. Groups are
   now slash-delimited paths (e.g. `Reports/Sales/Monthly`), and the `updateInfo` Map accepts a new
