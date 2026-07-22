@@ -12,7 +12,6 @@ import grails.gorm.transactions.ReadOnly
 import grails.gorm.transactions.Transactional
 import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
-import io.xh.hoist.config.impl.ConfigDriftService
 
 import static io.xh.hoist.json.JSONSerializer.serializePretty
 
@@ -33,8 +32,6 @@ import static io.xh.hoist.json.JSONSerializer.serializePretty
  */
 @GrailsCompileStatic
 class ConfigService extends BaseService {
-
-    ConfigDriftService configDriftService
 
     // Bidirectional registry of typed classes ↔ backing config names. Populated in `ensureRequiredConfigsCreated`.
     private final Map<String, Class<? extends TypedConfigMap>> configTypeByName = [:]
@@ -78,7 +75,7 @@ class ConfigService extends BaseService {
      *
      * The supplied class must extend {@link TypedConfigMap} and be registered against a
      * backing `AppConfig` name via a `typedClass:` entry on the {@link ConfigSpec} passed to
-     * {@link #ensureRequiredConfigsCreated}. This is the preferred way to read structured configs —
+     * {@link #ensureRequiredConfigsCreated}. This is the preferred way to read structured configs -
      * it centralizes defaults and documentation on the typed class itself, rather than scattering
      * `?:` fallbacks across call sites.
      */
@@ -277,6 +274,30 @@ class ConfigService extends BaseService {
         configTypeByName[name]
     }
 
+    /**
+     * Admin-facing "resolved value" for a JSON config with a registered typedClass, or null if none
+     * is registered or the value cannot be resolved. This is the config as application code receives
+     * it via {@link #getObject} - the stored/effective value (honoring any instance config override)
+     * with the typedClass's declared defaults applied. The Admin Console shows it alongside the raw
+     * database value from {@link AppConfig#formatForJSON} and highlights the explicitly set (vs.
+     * default-supplied) keys, deriving them client-side from the stored value.
+     *
+     * @internal - consumed by AppConfig.formatForJSON for the Admin Console config editor.
+     */
+    Object getResolvedConfigValue(AppConfig config) {
+        def typedClass = configTypeByName[config.name]
+        if (!typedClass) return null
+        try {
+            def effective = config.externalValue(jsonAsObject: true)
+            if (!(effective instanceof Map)) return null
+            TypedConfigMap typed = typedClass.getDeclaredConstructor(Map).newInstance(effective as Map) as TypedConfigMap
+            return typed.formatForJSON()
+        } catch (Exception e) {
+            logDebug("Could not compute resolved value for config '${config.name}'", e.message)
+            return null
+        }
+    }
+
     private void registerTypedConfig(String confName, Class typedClass, Map bootstrapDefault) {
         if (!TypedConfigMap.isAssignableFrom(typedClass)) {
             throw new RuntimeException(
@@ -286,7 +307,13 @@ class ConfigService extends BaseService {
         def asTyped = typedClass as Class<? extends TypedConfigMap>
         configTypeByName[confName] = asTyped
         nameByConfigType[asTyped] = confName
-        configDriftService.checkTypedConfigDivergence(confName, asTyped, bootstrapDefault)
+
+        if (bootstrapDefault) {
+            logWarn(
+                "Config '$confName' declares both a typedClass and a non-empty defaultValue",
+                "defaults should live on ${asTyped.simpleName} - pass defaultValue: [:] in the ConfigSpec"
+            )
+        }
     }
 
     @ReadOnly

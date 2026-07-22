@@ -2,6 +2,16 @@
 
 ## 41.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* `AppConfig.formatForJSON` now includes a `resolvedValue` for JSON configs backed by a typed class.
+  Supports the hoist-react v87 config editor.
+
+### ⚙️ Technical
+
+* Typed (`typedClass`) configs should now declare `defaultValue: [:]` in their `ConfigSpec`, with
+  defaults living solely on the `TypedConfigMap` subclass.
+
 ## 40.3.0 - 2026-07-16
 
 ### 🎁 New Features
