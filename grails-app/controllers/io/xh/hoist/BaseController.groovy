@@ -9,6 +9,8 @@ package io.xh.hoist
 
 import grails.async.Promise
 import groovy.transform.CompileStatic
+import groovy.transform.NamedParam
+import groovy.transform.NamedVariant
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.cluster.ClusterResult
 import io.xh.hoist.json.JSONParser
@@ -24,6 +26,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import static grails.async.web.WebPromises.task
+import static java.nio.charset.StandardCharsets.UTF_8
 import static io.xh.hoist.HoistFilter.REQUEST_SPAN_ATTR
 import static org.apache.hc.core5.http.HttpStatus.SC_NO_CONTENT
 import static org.apache.hc.core5.http.HttpStatus.SC_OK
@@ -48,16 +51,70 @@ abstract class BaseController implements LogSupport, IdentitySupport {
     }
 
     /**
+     * Render a collection of objects as newline-delimited JSON (NDJSON), streaming each element
+     * to the client as it is serialized.
+     *
+     * Favor over {@link #renderJSON} for large row-oriented datasets — elements are written
+     * incrementally, so neither the full JSON string nor (for lazy sources) the full dataset is
+     * held in memory, and clients can parse rows as they arrive.
+     *
+     * The response is flushed (and committed) after the first element, so earlier failures still
+     * render a clean error response. A mid-stream failure cannot alter the committed status —
+     * instead the stream is terminated with a deliberately non-JSON line, so consumers fail
+     * parsing rather than mistaking the truncated (but otherwise well-formed) stream for a
+     * complete result. Successful streams are standard NDJSON, with every line
+     * newline-terminated and no end delimiter.
+     *
+     * @param source - an Iterable or Iterator of elements to serialize, one per line.
+     * @param contentType - defaults to 'text/plain', which (unlike 'application/x-ndjson') is on
+     *      default gzip/compressible MIME lists. Override if your deployment compresses NDJSON.
+     */
+    @NamedVariant
+    protected void renderNdJson(Object source, @NamedParam String contentType = null) {
+        Iterator<?> rows = source instanceof Iterator ? source : (source as Iterable).iterator()
+
+        response.contentType = contentType ?: 'text/plain'
+        response.characterEncoding = 'UTF-8'
+
+        BufferedOutputStream out = null
+        try {
+            while (rows.hasNext()) {
+                byte[] row = serializeNdJsonRow(rows.next())
+                boolean first = !out
+                if (first) {
+                    // Acquire the output stream lazily - first-element failures (bad source,
+                    // failing lazy query) can then still render a clean error response.
+                    out = new BufferedOutputStream(response.outputStream, ND_JSON_BUFFER_SIZE)
+                }
+                out.write(row)
+                if (first) out.flush()
+            }
+            out ? out.flush() : response.flushBuffer()
+        } catch (Throwable t) {
+            // Truncation falls at a line boundary and would otherwise read as a complete
+            // stream. Guarded so a failed write cannot mask the original exception.
+            if (response.committed) {
+                try {
+                    out.write(ND_JSON_POISON.getBytes(UTF_8))
+                    out.flush()
+                } catch (Throwable ignored) {}
+            }
+            throw t
+        }
+    }
+
+    /**
      * Parse JSON submitted in the body of the request.
      *
      * Favor this method over the direct use of grails' request.getJSON() in order
      * to utilize the customizable jackson-based parsing provided by Hoist.
      *
-     * @param  options.safeEncode, boolean.  True to run input through OWASP encoder before parsing.
+     * @param safeEncode - true to run input through OWASP encoder before parsing.
      */
-    protected Map parseRequestJSON(Map options = [:]) {
-        options.safeEncode ?
-            JSONParser.parseObject(safeEncode(request.inputStream.text)) :
+    @NamedVariant
+    protected Map parseRequestJSON(@NamedParam boolean safeEncode = false) {
+        safeEncode ?
+            JSONParser.parseObject(this.safeEncode(request.inputStream.text)) :
             JSONParser.parseObject(request.inputStream)
     }
 
@@ -67,11 +124,12 @@ abstract class BaseController implements LogSupport, IdentitySupport {
      * Favor this method over the direct use of grails' request.getJSON() in order
      * to utilize the customizable jackson-based parsing provided by Hoist.
      *
-     * @param  options.safeEncode, boolean.  True to run input through OWASP encoder before parsing.
+     * @param safeEncode - true to run input through OWASP encoder before parsing.
      */
-    protected List parseRequestJSONArray(Map options = [:]) {
-        options.safeEncode ?
-            JSONParser.parseArray(safeEncode(request.inputStream.text)) :
+    @NamedVariant
+    protected List parseRequestJSONArray(@NamedParam boolean safeEncode = false) {
+        safeEncode ?
+            JSONParser.parseArray(this.safeEncode(request.inputStream.text)) :
             JSONParser.parseArray(request.inputStream)
     }
 
@@ -146,6 +204,25 @@ abstract class BaseController implements LogSupport, IdentitySupport {
     //-------------------
     // Implementation
     //-------------------
+    /**
+     * Batches rows into large writes to amortize per-call overhead of the servlet output stream.
+     * 4x Tomcat's default 8KB response buffer and equal to the 32KB deflate window — larger
+     * values gain no throughput and only delay delivery to the client.
+     */
+    private static final int ND_JSON_BUFFER_SIZE = 32 * 1024
+
+    /**
+     * Deliberately non-JSON line written by {@link #renderNdJson} when a stream fails after the
+     * response has committed. Guarantees consumers see a parse failure rather than a truncated
+     * stream that reads as complete. Never present in a successful response, which remains
+     * standard NDJSON. No trailing newline — an incomplete final line reinforces the signal.
+     */
+    private static final String ND_JSON_POISON = '//xh-ndjson-stream-error'
+
+    private static byte[] serializeNdJsonRow(Object row) {
+        (JSONSerializer.serialize(row) + '\n').getBytes(UTF_8)
+    }
+
     void handleException(Exception ex) {
         handleUncaughtInternal(ex)
     }

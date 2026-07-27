@@ -113,7 +113,7 @@ class XhController extends BaseController {
     //------------------------
     def track() {
         ensureClientUsernameMatchesSession()
-        def payload = parseRequestJSON([safeEncode: true]),
+        def payload = parseRequestJSON(safeEncode: true),
             entries =  payload.entries as List
         trackService.trackAll(entries)
         renderSuccess()

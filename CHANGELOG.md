@@ -2,6 +2,17 @@
 
 ## 41.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* New `BaseController.renderNdJson()` streams an `Iterable` or `Iterator` to the client as
+  newline-delimited JSON (NDJSON) — suitable for very large datasets that should not be
+  materialized in memory as a single JSON string. Pairs with `XH.fetchNdjson()` in hoist-react.
+
+### ⚙️ Technical
+
+* `ExceptionHandler` no longer attempts to render an error to an already-committed response,
+  avoiding corrupted output and duplicate log entries when a streamed response fails mid-write.
+
 ## 40.3.0 - 2026-07-16
 
 ### 🎁 New Features
