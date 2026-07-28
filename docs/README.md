@@ -82,9 +82,9 @@ Features supporting production operations, integrations, and system health.
 
 | Document | Description | Key Topics |
 |----------|-------------|------------|
-| [`monitoring.md`](./monitoring.md) | Application health monitoring with configurable checks and email alerting | Monitor, MonitorResult, MonitoringService, MonitorDefinitionService, email alerts |
-| [`metrics.md`](./metrics.md) | Micrometer-based observable metrics with Prometheus and OTLP export | MetricsService, CompositeMeterRegistry, MonitorMetricsService, TrackMetricsService, Prometheus, OTLP, xhMetricsConfig |
-| [`tracing.md`](./tracing.md) | OpenTelemetry-based distributed tracing with OTLP export | TracingService, withSpan, traceparent, OTLP, Zipkin, xhTracingConfig, OpenTelemetry |
+| [`monitoring.md`](./monitoring.md) | Application health monitoring with configurable checks and email alerting | Monitor, MonitorResult, MonitorService, MonitorEvalService, MonitorReportService, MonitorDefinitionService, email alerts |
+| [`metrics.md`](./metrics.md) | Micrometer-based observable metrics with Prometheus and OTLP export | MetricsService, CompositeMeterRegistry, BuiltInMetricsService, MonitorMetricsService, TrackMetricsService, Prometheus, OTLP, xhMetricsConfig, xhMetricsPublished |
+| [`tracing.md`](./tracing.md) | OpenTelemetry-based distributed tracing with OTLP export | TraceService, withSpan, traceparent, OTLP, Zipkin, xhTraceConfig, OpenTelemetry |
 | [`websocket.md`](./websocket.md) | Cluster-aware server push to connected clients | WebSocketService, HoistWebSocketHandler, HoistWebSocketChannel, channel subscriptions |
 | [`http-client.md`](./http-client.md) | HTTP client for external API calls and request proxying | JSONClient, BaseProxyService, HttpUtils |
 | [`email.md`](./email.md) | Email sending with config-driven filtering and overrides | EmailService, `xhEmailFilter`, `xhEmailOverride`, support address config |

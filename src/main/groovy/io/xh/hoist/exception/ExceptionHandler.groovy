@@ -62,7 +62,8 @@ class ExceptionHandler {
             }
         }
 
-        if (renderTo) {
+        // Skip if committed - status/headers already sent, rendering would only corrupt the body.
+        if (renderTo && !renderTo.committed) {
             renderTo.setStatus(getHttpStatus(exception))
             renderTo.setContentType('application/json')
             renderTo.writer.write(JSONSerializer.serialize(exception))

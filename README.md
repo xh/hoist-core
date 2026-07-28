@@ -351,7 +351,7 @@ sent to which users is required.
 |----------------------------|---------------------------------------|:-----------------------------------------------------------------------:|
 | `Monitor.groovy`           | Domain object for monitor definitions |       [🏗](grails-app/domain/io/xh/hoist/monitor/Monitor.groovy)       |
 | `MonitorResult.groovy`     | In-memory object for monitor outcomes |     [🏗](src/main/groovy/io/xh/hoist/monitor/MonitorResult.groovy)     |
-| `MonitoringService.groovy` | Service that coordinates monitor runs | [🏗](grails-app/services/io/xh/hoist/monitor/MonitoringService.groovy) |
+| `MonitorService.groovy`    | Service that coordinates monitor runs |   [🏗](grails-app/services/io/xh/hoist/monitor/MonitorService.groovy)   |
 
 👍👎 Hoist provides an API and services for runtime monitoring of the application, with a
 deliberate focus on running application-specific checks that relate to the business logic and data
@@ -394,8 +394,8 @@ might get thrown (marking the check as having failed and noting the exception on
 
 Monitor results can be viewed via the Admin console. The `xhMonitorConfig` and
 `xhMonitorEmailRecipients` configs control option for email-based alerting on monitor failures,
-including support for debouncing alerts. `MonitoringService` fires a server-side
-`xhMonitorStatusReport` event that can be picked up by other custom services for additional
+including support for debouncing alerts. `MonitorReportService` publishes the report on the
+`xhMonitorStatusReport` topic, where it can be picked up by other custom services for additional
 notifications.
 
 🔮 Note an XH project is underway to provide a more general and cross-application
@@ -406,16 +406,16 @@ implementation of this monitoring API for both Hoist and non-Hoist based applica
 
 |         Class/File         |                 Note                  |                                  Link                                   |
 |----------------------------|---------------------------------------|:-----------------------------------------------------------------------:|
-| `TraceService.groovy`      | Central tracing service — SDK lifecycle, exporter pipeline, span API | [🏗](grails-app/services/io/xh/hoist/telemetry/TraceService.groovy) |
+| `TraceService.groovy`      | Central tracing service — SDK lifecycle, exporter pipeline, span API | [🏗](grails-app/services/io/xh/hoist/telemetry/trace/TraceService.groovy) |
 | `ObservedRun.groovy`       | Composable builder for combined tracing + logging + metrics | [🏗](src/main/groovy/io/xh/hoist/telemetry/ObservedRun.groovy) |
-| `SpanRef.groovy`           | Wrapper around an active Span + Scope with tag/status helpers | [🏗](src/main/groovy/io/xh/hoist/telemetry/SpanRef.groovy) |
-| `TraceInterceptor.groovy`  | Creates SERVER spans for controller actions | [🏗](grails-app/controllers/io/xh/hoist/telemetry/TraceInterceptor.groovy) |
+| `SpanRef.groovy`           | Wrapper around an active Span + Scope with tag/status helpers | [🏗](src/main/groovy/io/xh/hoist/telemetry/trace/SpanRef.groovy) |
+| `HoistFilter.groovy`       | Creates the SERVER span for each request, restoring inbound trace context | [🏗](src/main/groovy/io/xh/hoist/HoistFilter.groovy) |
 
 🔍 Hoist provides OpenTelemetry-based distributed tracing with OTLP export, configured dynamically
 via the `xhTraceConfig` soft config. Tracing is disabled by default with negligible overhead — all
 public methods delegate to no-ops when disabled.
 
-`TraceService` provides the core span API (`withSpan` and `createSpan`), while `ObservedRun`
+`TraceService` provides the core span API (`withSpan`), while `ObservedRun`
 offers a composable builder accessed via `BaseService.observe()` that wraps a closure with any
 combination of tracing, logging, and Micrometer metrics in a single fluent call chain:
 
