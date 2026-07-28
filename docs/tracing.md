@@ -84,7 +84,7 @@ For combined tracing + logging + metrics, use `ObservedRun` via `BaseService.spa
 ```groovy
 traceService.withSpan(name: 'fetchData', kind: SpanKind.CLIENT, tags: [url: endpoint]) { SpanRef span ->
     def result = httpClient.get(endpoint)
-    span.setHttpStatus(result.statusCode)
+    span.setHttpStatusAndErrorStatus(result.statusCode)
     result
 }
 ```
