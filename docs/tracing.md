@@ -12,7 +12,7 @@ delegate to no-op implementations, so no null checks are needed in application c
 ### Key capabilities
 
 - **Central service** — `TraceService` manages the OpenTelemetry SDK lifecycle, exporter
-  pipeline, and provides span creation APIs (`withSpan` and `createSpan`).
+  pipeline, and provides the `withSpan` span creation API.
 - **Combined observability** — `ObservedRun` is a composable builder that wraps a closure with
   any combination of tracing, logging, and metrics. Typically started via `BaseService.span()`,
   with `BaseService.observe()` available for the rare case where no span is wanted.
@@ -117,9 +117,9 @@ traceService.addExporter(
 
 **File:** `src/main/groovy/io/xh/hoist/telemetry/trace/SpanRef.groovy`
 
-A wrapper around an active OTel `Span` and its `Scope`, returned by `createSpan` and passed to the
-closures run by `withSpan` and `ObservedRun.run`. Use it to enrich a span in flight with tags, a
-revised name, or the outcome of the work.
+A wrapper around an active OTel `Span` and its `Scope`, passed to the closures run by `withSpan` and
+`ObservedRun.run`. Use it to enrich a span in flight with tags, a revised name, or the outcome of
+the work.
 
 A shared no-op instance (`SpanRef.NOOP`) is passed when tracing is disabled, so closure bodies can
 call these methods unconditionally without null-checking.
@@ -133,7 +133,7 @@ call these methods unconditionally without null-checking.
 | `recordException(t)` | Record an exception event. Leaves span status untouched. No-op for `RoutineException`. |
 | `recordExceptionAndErrorStatus(t)` | Record an exception event **and** mark ERROR, with a description derived from the throwable. No-op for `RoutineException`. |
 | `setHttpStatusAndErrorStatus(code)` | Set the `http.response.status_code` tag and mark ERROR per OTel HTTP conventions: CLIENT spans at ≥400, SERVER spans at ≥500. |
-| `close()` | Close the scope and end the span. Required for spans from `createSpan`; handled for you by `withSpan`. |
+| `close()` | Close the scope and end the span. Handled for you by `withSpan` and `ObservedRun.run`. |
 
 ### Flagging failures without an exception
 

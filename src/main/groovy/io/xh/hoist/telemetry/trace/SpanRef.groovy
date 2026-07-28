@@ -16,17 +16,20 @@ import io.xh.hoist.exception.RoutineException
 import static io.xh.hoist.util.Utils.exceptionHandler
 
 /**
- * An active span and its associated scope, returned by {@link TraceService#createSpan}.
- *
- * The caller is responsible for closing this when done — typically in a finally block:
+ * An active span and its associated scope, passed to closures run by
+ * {@link TraceService#withSpan} and {@link io.xh.hoist.telemetry.ObservedRun#run}. Use it to enrich
+ * a span in flight with tags, a revised name, or the outcome of the work:
  * <pre>
- * def spanRef = traceService.createSpan(name: 'myOp', kind: SpanKind.SERVER)
- * try {
- *     // ... do work, span is current context ...
- * } finally {
- *     spanRef?.close()
+ * traceService.withSpan(name: 'fetchData', kind: SpanKind.CLIENT) { SpanRef span ->
+ *     def result = doWork()
+ *     span.setTag('resultCount', result.size())
+ *     result
  * }
  * </pre>
+ *
+ * Those entry points close the span for the caller. Spans with a manually managed lifecycle come
+ * from {@code TraceService.createSpan}, which is framework-internal — that caller is responsible
+ * for calling {@link #close}, typically in a finally block.
  */
 @CompileStatic
 class SpanRef implements Closeable {
