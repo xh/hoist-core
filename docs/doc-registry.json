@@ -35,15 +35,15 @@
         {
             "id": "docs/request-flow.md",
             "title": "Request Flow",
-            "mcpCategory": "concepts",
+            "mcpCategory": "concept",
             "viewerCategory": "core-framework",
             "description": "How an HTTP request flows through the Hoist framework.",
-            "keywords": ["HoistCoreGrailsPlugin", "HoistFilter", "UrlMappings", "AccessInterceptor", "controller dispatch", "JSON response"]
+            "keywords": ["HoistCoreGrailsPlugin", "HoistFilter", "UrlMappings", "HoistInterceptor", "controller dispatch", "JSON response"]
         },
         {
             "id": "docs/authentication.md",
             "title": "Authentication",
-            "mcpCategory": "concepts",
+            "mcpCategory": "concept",
             "viewerCategory": "core-framework",
             "description": "Authentication service contract and user identity.",
             "keywords": ["BaseAuthenticationService", "BaseUserService", "HoistUser", "IdentityService", "impersonation"]
@@ -51,7 +51,7 @@
         {
             "id": "docs/authorization.md",
             "title": "Authorization",
-            "mcpCategory": "concepts",
+            "mcpCategory": "concept",
             "viewerCategory": "core-framework",
             "description": "Role-based access control and controller security annotations.",
             "keywords": ["BaseRoleService", "DefaultRoleService", "Role", "RoleMember", "AccessRequiresRole", "AccessAll"]
@@ -59,7 +59,7 @@
         {
             "id": "docs/configuration.md",
             "title": "Configuration",
-            "mcpCategory": "concepts",
+            "mcpCategory": "concept",
             "viewerCategory": "core-features",
             "description": "Database-backed soft configuration with typed values.",
             "keywords": ["AppConfig", "ConfigService", "clientVisible", "pwd", "encryption", "xhConfigChanged", "TypedConfigMap", "getObject"]
@@ -83,7 +83,7 @@
         {
             "id": "docs/activity-tracking.md",
             "title": "Activity Tracking",
-            "mcpCategory": "concepts",
+            "mcpCategory": "concept",
             "viewerCategory": "core-features",
             "description": "Usage and performance logging with email notifications.",
             "keywords": ["TrackLog", "TrackService", "categories", "elapsed", "timing", "client error", "feedback"]
@@ -102,7 +102,7 @@
             "mcpCategory": "package",
             "viewerCategory": "infrastructure",
             "description": "Application health monitoring with configurable checks and email alerting.",
-            "keywords": ["Monitor", "MonitorResult", "MonitoringService", "MonitorDefinitionService", "email alerts"]
+            "keywords": ["Monitor", "MonitorResult", "MonitorService", "MonitorEvalService", "MonitorReportService", "MonitorDefinitionService", "email alerts"]
         },
         {
             "id": "docs/metrics.md",
@@ -110,7 +110,7 @@
             "mcpCategory": "package",
             "viewerCategory": "infrastructure",
             "description": "Micrometer-based observable metrics with Prometheus and OTLP export.",
-            "keywords": ["MetricsService", "CompositeMeterRegistry", "MonitorMetricsService", "TrackMetricsService", "Prometheus", "OTLP", "xhMetricsConfig"]
+            "keywords": ["MetricsService", "CompositeMeterRegistry", "BuiltInMetricsService", "MonitorMetricsService", "TrackMetricsService", "Prometheus", "OTLP", "xhMetricsConfig", "xhMetricsPublished", "telemetryPrefix"]
         },
         {
             "id": "docs/tracing.md",
@@ -118,7 +118,7 @@
             "mcpCategory": "package",
             "viewerCategory": "infrastructure",
             "description": "OpenTelemetry-based distributed tracing with OTLP export.",
-            "keywords": ["TraceService", "withSpan", "SpanRef", "setErrorStatus", "traceparent", "OTLP", "xhTraceConfig", "OpenTelemetry", "ClientTraceService", "ContextPropagatingPromiseFactory"]
+            "keywords": ["TraceService", "withSpan", "SpanRef", "setErrorStatus", "traceparent", "OTLP", "xhTraceConfig", "OpenTelemetry", "sampleRules", "ClientSpanData", "HoistPromiseFactory"]
         },
         {
             "id": "docs/websocket.md",
@@ -171,7 +171,7 @@
         {
             "id": "docs/application-structure.md",
             "title": "Application Structure",
-            "mcpCategory": "concepts",
+            "mcpCategory": "concept",
             "viewerCategory": "devops",
             "description": "Standard Hoist application repository layout — server and client structure, build configuration, deployment, JDK choice.",
             "keywords": ["build.gradle", "gradle.properties", "grails-app/init", "client-app", "Bootstrap.ts", "AppModel", "Docker", "Nginx", "Tomcat", "JDK 17", "JDK 21", "JDK 25", "Java 25", "Gradle toolchain", "incompatible Java 25 and Gradle 8.x", "xh-tomcat"]
