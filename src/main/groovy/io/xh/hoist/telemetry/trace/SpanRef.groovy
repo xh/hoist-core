@@ -70,13 +70,30 @@ class SpanRef implements Closeable {
     }
 
     /**
-     * Set the HTTP response status code and mark the span as ERROR when appropriate.
-     * SERVER spans use >= 500 (server fault), CLIENT spans use >= 400 (request failed).
+     * Mark the span status as ERROR, with an optional short description of the failure.
+     *
+     * For failures that are neither an exception nor an HTTP response — e.g. a validation
+     * rejection, a well-formed but unusable payload from a dependency, or a batch completing
+     * with unrecoverable records. Prefer {@link #recordExceptionAndErrorStatus} when an actual
+     * Throwable is in hand, and {@link #setHttpStatusAndErrorStatus} for HTTP outcomes —
+     * do not synthesize a Throwable purely to flag a span.
+     *
+     * Note this applies the status unconditionally — unlike the recordException methods, it
+     * does not skip {@link RoutineException} cases, as the caller is explicitly asking for it.
      */
-    void setHttpStatusAndErrorStatus(int statusCode) {
-        setTag('http.response.status_code', statusCode)
-        def errorThreshold = kind == SpanKind.CLIENT ? 400 : 500
-        if (statusCode >= errorThreshold) span.setStatus(StatusCode.ERROR)
+    void setErrorStatus(String description = null) {
+        if (description) {
+            span.setStatus(StatusCode.ERROR, description)
+        } else {
+            span.setStatus(StatusCode.ERROR)
+        }
+    }
+
+    /** Record an exception as an event on the span. Does not change span status.*/
+    void recordException(Throwable t) {
+        // Skip routine exceptions -- Datadog's OTLP intake maps any exception event onto error.* tags.
+        if (t instanceof RoutineException) return
+        span.recordException(t)
     }
 
     /**
@@ -90,11 +107,14 @@ class SpanRef implements Closeable {
         span.setStatus(StatusCode.ERROR, exceptionHandler.summaryTextForThrowable(t))
     }
 
-    /** Record an exception as an event on the span. Does not change span status.*/
-    void recordException(Throwable t) {
-        // Skip routine exceptions -- Datadog's OTLP intake maps any exception event onto error.* tags.
-        if (t instanceof RoutineException) return
-        span.recordException(t)
+    /**
+     * Set the HTTP response status code and mark the span as ERROR when appropriate.
+     * SERVER spans use >= 500 (server fault), CLIENT spans use >= 400 (request failed).
+     */
+    void setHttpStatusAndErrorStatus(int statusCode) {
+        setTag('http.response.status_code', statusCode)
+        def errorThreshold = kind == SpanKind.CLIENT ? 400 : 500
+        if (statusCode >= errorThreshold) span.setStatus(StatusCode.ERROR)
     }
 
     /** Close the scope and end the span. */
