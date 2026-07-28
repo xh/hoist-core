@@ -110,6 +110,56 @@ traceService.addExporter(
 
 ---
 
+## SpanRef
+
+**File:** `src/main/groovy/io/xh/hoist/telemetry/trace/SpanRef.groovy`
+
+A wrapper around an active OTel `Span` and its `Scope`, returned by `createSpan` and passed to the
+closures run by `withSpan` and `ObservedRun.run`. Use it to enrich a span in flight with tags, a
+revised name, or the outcome of the work.
+
+A shared no-op instance (`SpanRef.NOOP`) is passed when tracing is disabled, so closure bodies can
+call these methods unconditionally without null-checking.
+
+| Method | Description |
+|--------|-------------|
+| `setTag(key, value)` | Set a single attribute. Coerces `Integer`/`Long` → long, `Boolean` → boolean, `Double` → double, anything else via `toString()`. |
+| `setTags(map)` | Set multiple attributes, with the same coercion rules. |
+| `updateName(name)` | Revise the span's display name — useful once a generic operation resolves to something more specific. |
+| `setErrorStatus(description?)` | Mark ERROR with an optional description, no exception required. |
+| `recordException(t)` | Record an exception event. Leaves span status untouched. No-op for `RoutineException`. |
+| `recordExceptionAndErrorStatus(t)` | Record an exception event **and** mark ERROR, with a description derived from the throwable. No-op for `RoutineException`. |
+| `setHttpStatusAndErrorStatus(code)` | Set the `http.response.status_code` tag and mark ERROR per OTel HTTP conventions: CLIENT spans at ≥400, SERVER spans at ≥500. |
+| `close()` | Close the scope and end the span. Required for spans from `createSpan`; handled for you by `withSpan`. |
+
+### Flagging failures without an exception
+
+Not every failure arrives as a `Throwable` or an HTTP status — a validation rejection, a
+well-formed but unusable payload from a dependency, or a batch that completes with unrecoverable
+records are all real failures with nothing to catch. Use `setErrorStatus` for these:
+
+```groovy
+span(name: 'importOrders').run { SpanRef span ->
+    def result = orderImporter.run()
+    span.setTag('rejectedCount', result.rejected.size())
+    if (result.rejected) {
+        span.setErrorStatus("Rejected ${result.rejected.size()} of ${result.total} orders")
+    }
+    result
+}
+```
+
+Do **not** synthesize a throwable just to flag a span. Beyond the fabricated stack trace, Datadog's
+OTLP intake maps any exception event onto `error.*` tags, so an invented exception yields an
+invented `error.type` and `error.stack`.
+
+Note that `setErrorStatus` is unconditional — unlike the `recordException` methods, it does not skip
+`RoutineException` cases, since the caller is explicitly asking for the status. Also note that span
+status is last-call-wins, so a later `recordExceptionAndErrorStatus` on the same span will overwrite
+an earlier description.
+
+---
+
 ## ObservedRun
 
 **File:** `src/main/groovy/io/xh/hoist/telemetry/ObservedRun.groovy`

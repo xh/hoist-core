@@ -118,7 +118,7 @@
             "mcpCategory": "package",
             "viewerCategory": "infrastructure",
             "description": "OpenTelemetry-based distributed tracing with OTLP export.",
-            "keywords": ["TraceService", "withSpan", "traceparent", "OTLP", "xhTraceConfig", "OpenTelemetry", "ClientTraceService", "ContextPropagatingPromiseFactory"]
+            "keywords": ["TraceService", "withSpan", "SpanRef", "setErrorStatus", "traceparent", "OTLP", "xhTraceConfig", "OpenTelemetry", "ClientTraceService", "ContextPropagatingPromiseFactory"]
         },
         {
             "id": "docs/websocket.md",
