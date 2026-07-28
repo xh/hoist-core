@@ -575,7 +575,7 @@ def update() {
 
 ### Don't Re-Check Roles in Action Code
 
-`AccessInterceptor` runs **before** the action method, so by the time controller code executes, the
+`HoistInterceptor` runs **before** the action method, so by the time controller code executes, the
 role check has already passed. Repeating it is dead code and a source of drift:
 
 ```groovy
