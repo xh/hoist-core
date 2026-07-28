@@ -16,8 +16,9 @@ delegate to no-op implementations, so no null checks are needed in application c
 - **Combined observability** — `ObservedRun` is a composable builder that wraps a closure with
   any combination of tracing, logging, and metrics. Typically started via `BaseService.span()`,
   with `BaseService.observe()` available for the rare case where no span is wanted.
-- **Automatic request spans** — `HoistFilter` creates SERVER spans for every request.
-  `HoistFilter` extracts incoming W3C `traceparent` headers so request spans join existing traces.
+- **Automatic request spans** — `HoistFilter` creates a SERVER span for each request, extracting
+  any inbound W3C `traceparent` so the span joins an existing trace. Pings, version checks, and
+  websocket handshakes are excluded.
 - **Export** — OTLP (HTTP/protobuf) export configured via soft config. Applications can register
   additional exporters (e.g. Zipkin) via `addExporter()`.
 - **W3C trace propagation** — incoming `traceparent` headers are honored; outbound HTTP calls
@@ -25,7 +26,7 @@ delegate to no-op implementations, so no null checks are needed in application c
 - **Cluster context propagation** — `ClusterTask` captures and restores trace context across
   Hazelcast remote execution, maintaining parent-child span relationships.
 - **Thread context propagation** — Grails `task {}` calls automatically carry the current trace
-  context to worker threads via `ContextPropagatingPromiseFactory`.
+  context to worker threads via `HoistPromiseFactory`.
 - **Client span relay** — Browser-generated spans are submitted to `xh/submitSpans` and exported
   through the same server-side pipeline, producing end-to-end client-to-server traces. Client
   spans are pre-sampled in the browser — only sampled spans are relayed.
@@ -42,14 +43,14 @@ delegate to no-op implementations, so no null checks are needed in application c
 |------|----------|------|
 | `TraceService.groovy` | `grails-app/services/io/xh/hoist/telemetry/trace/` | Central tracing service — SDK lifecycle, exporter pipeline, span API |
 | `JdbcTraceService.groovy` | `grails-app/services/io/xh/hoist/telemetry/trace/impl/` | Internal service that installs/uninstalls JDBC DataSource instrumentation in sync with the trace config |
-| `TraceContextService.groovy` | `grails-app/services/io/xh/hoist/telemetry/trace/` | Internal service hosting W3C context propagation (inbound filter, outbound HTTP, cluster tasks) and the `task {}` PromiseFactory install |
+| `TraceContextService.groovy` | `grails-app/services/io/xh/hoist/telemetry/trace/` | Internal service hosting W3C context propagation — inbound filter, outbound HTTP, cluster tasks |
 | `HoistFilter.groovy` | `src/main/groovy/io/xh/hoist/` | Wraps every request — restores trace context, enforces auth, creates the SERVER span for tracing, captures any exception, and stamps HTTP semantic-convention attributes |
 | `SpanRef.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Wrapper around an active Span + Scope with tag/status/error helpers |
 | `ObservedRun.groovy` | `src/main/groovy/io/xh/hoist/telemetry/` | Composable builder for combined tracing + logging + metrics |
 | `TraceConfig.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Typed wrapper around `xhTraceConfig` |
-| `ContextPropagatingPromiseFactory.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Wraps Grails PromiseFactory to propagate OTel context to `task {}` worker threads |
+| `HoistPromiseFactory.groovy` | `src/main/groovy/io/xh/hoist/` | Wraps the Grails PromiseFactory to propagate framework thread context — including OTel trace context — to `task {}` worker threads |
 | `DelegatingOpenTelemetry.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Stable `OpenTelemetry` facade that resolves to the current SDK on every tracer/span lookup — lets library instrumentation (e.g. `opentelemetry-jdbc`) capture a reference once and follow SDK rebuilds |
-| `TagSpanProcessor.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Stamps cross-cutting attributes (e.g. `user.name`) on every span at start time, regardless of whether the span was created by `TraceService` or by a library instrumenter |
+| `TagSpanProcessor` | Inner class of `TraceService.groovy` | Stamps cross-cutting attributes (e.g. `user.name`) on every span at start time, regardless of whether the span was created by `TraceService` or by a library instrumenter |
 | `ManualRateSampler.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Per-span thread-local sampler driven by `sampleRules` and the fallback `sampleRate` |
 | `ClientSpanData.groovy` | `src/main/groovy/io/xh/hoist/telemetry/trace/` | Adapts client-relayed span JSON into OTel `SpanData` for export through the server pipeline |
 
@@ -59,9 +60,10 @@ delegate to no-op implementations, so no null checks are needed in application c
 
 **File:** `grails-app/services/io/xh/hoist/telemetry/trace/TraceService.groovy`
 
-The central service for distributed tracing. Initialized early in the bootstrap sequence
-(after `MetricsService`), it manages the OpenTelemetry SDK, exporter pipeline, and provides
-the primary span creation API.
+The central service for distributed tracing. Initialized early in the bootstrap sequence —
+immediately after `ConfigService`, so the remainder of startup (including `MetricsService`
+initialization) runs inside a trace span. Manages the OpenTelemetry SDK and exporter pipeline,
+and provides the span creation API.
 
 ### `withSpan(args, closure)`
 
@@ -80,6 +82,7 @@ For combined tracing + logging + metrics, use `ObservedRun` via `BaseService.spa
 | `kind` | SpanKind | `INTERNAL` (default), `SERVER`, or `CLIENT`. |
 | `tags` | Map | Key-value attributes to set on the span. |
 | `caller` | Object | Object making the call, auto-sets the `code.namespace` attribute. |
+| `startTime` | Instant | Optional backdated start; defaults to now. |
 
 ```groovy
 traceService.withSpan(name: 'fetchData', kind: SpanKind.CLIENT, tags: [url: endpoint]) { SpanRef span ->
@@ -89,11 +92,11 @@ traceService.withSpan(name: 'fetchData', kind: SpanKind.CLIENT, tags: [url: endp
 }
 ```
 
-### `createSpan(args)`
+### `createSpan(args)` — framework-internal
 
-Creates and starts a new span, returning a `SpanRef` that the caller must close. Use this when
-the span lifecycle spans multiple method calls (e.g. interceptors). For simpler cases where a
-closure defines the span boundary, prefer `withSpan`.
+Creates and starts a span with a manually managed lifecycle, returning a `SpanRef` the caller must
+close. **Private to `TraceService`** — not callable from application code. Its parameters are the
+source of truth for the `withSpan` arguments documented above, which passes them straight through.
 
 ### `addExporter(exporter)` / `removeExporter(exporter)`
 
@@ -116,7 +119,7 @@ traceService.addExporter(
 
 A composable builder for wrapping a closure with any combination of tracing, logging, and metrics.
 Each concern is opt-in via dedicated builder methods, then executed with `run()`. The closure is
-wrapped in an onion from outermost to innermost: span → log → timer → counter → closure.
+wrapped in an onion from outermost to innermost: span → log → metrics → closure.
 
 Access via `BaseService.span(name, kind?, tags?)`, which creates a builder pre-configured with
 the service as the caller (used for span `code.namespace` and log context) and an initial span.
@@ -132,8 +135,8 @@ span is wanted.
 | `.logInfo(msg)` | Log at INFO via `LogSupport.withInfo`. |
 | `.logDebug(msg)` | Log at DEBUG via `LogSupport.withDebug`. |
 | `.logTrace(msg)` | Log at TRACE via `LogSupport.withTrace`. |
-| `.timer(Timer)` / `.timer(String)` | Record elapsed time on a Micrometer Timer. |
-| `.counter(Counter)` / `.counter(String)` | Increment a Micrometer Counter (counts attempts). |
+| `.timer(name, tags?)` | Record elapsed time on the named Micrometer Timer. |
+| `.counter(name, tags?)` | Increment the named Micrometer Counter. |
 | `.run(closure)` | Terminal — execute with all configured observability. |
 
 ### Multi-level logging
@@ -159,18 +162,20 @@ span('importData')
 ```groovy
 class PortfolioService extends BaseService {
 
-    Timer generationTimer  // pre-registered Micrometer timer
-
     private Portfolio generatePortfolio() {
         span('generatePortfolio')
             .logInfo('Generating Portfolio')
-            .timer(generationTimer)
+            .timer('generatePortfolio')
             .run {
                 // business logic
             }
     }
 }
 ```
+
+Both `.timer()` and `.counter()` add an `xh.outcome` tag of `success` or `failure` on completion,
+based on whether the closure threw. Metric names are prefixed with `BaseService.telemetryPrefix`
+when set on the owning service — pass `useNamePrefix: false` to opt out.
 
 **Span + log only:**
 
@@ -298,9 +303,13 @@ Sampling rules provide fine-grained, tag-based control over which spans are samp
 evaluated at span creation time (head-based sampling) on both client and server. Each rule has a
 `match` map of tag patterns and a `sampleRate` — the first matching rule wins.
 
-The reserved key `name` matches against the span's name (not a tag) using the same glob syntax as
-tag-value patterns — useful for targeting infrastructure spans like health checks or `xh/*` routes
-without having to stamp a dedicated tag.
+The reserved key `name` matches against the span's name (not a tag), using the same glob syntax as
+tag-value patterns.
+
+> **`name` matches the name at creation time, not the final name.** Request spans are created as
+> the bare HTTP method (`GET`) and only renamed to `{METHOD} {controller}/{action}` after routing —
+> so a rule like `{"name": "GET xh/health*"}` never matches. To target requests by route, match the
+> `url.path` tag, which *is* set before the sampling decision.
 
 ### Configuration
 
@@ -311,15 +320,16 @@ Add rules to the `sampleRules` array in `xhTraceConfig`:
     "enabled": true,
     "sampleRate": 0.1,
     "sampleRules": [
-        {"match": {"name": "GET health/*"}, "sampleRate": 0},
+        {"match": {"url.path": "/xh/health*"}, "sampleRate": 0},
         {"match": {"xh.source": "hoist"}, "sampleRate": 0.01},
         {"match": {"user.name": "jsmith"}, "sampleRate": 1.0}
     ]
 }
 ```
 
-In this example: health-check spans are dropped entirely, framework-generated spans are sampled at
-1%, spans from user `jsmith` are always sampled, and everything else falls back to the 10% default.
+In this example: health-check requests are dropped entirely, framework-generated spans are sampled
+at 1%, spans from user `jsmith` are always sampled, and everything else falls back to the 10%
+default.
 
 ### Pattern matching
 
@@ -338,11 +348,12 @@ Non-string values (numbers, booleans) use strict equality.
 ### Sampling flow
 
 1. Tags are assembled on the span before the sampling decision.
-2. If a valid sampled parent context exists, the child inherits the parent's decision.
+2. If a valid parent context exists, the child inherits its decision — including an unsampled
+   parent, which drops the child. Rules are not consulted.
 3. Otherwise, `sampleRules` are evaluated against the span's name and tags. The first rule whose
    `match` entries all match produces the `sampleRate` for a probabilistic decision.
 4. Unmatched spans use the fallback `sampleRate`.
-5. Unsampled spans are recorded but not exported.
+5. Unsampled spans are dropped — not recorded, and never exported.
 
 The client-side `TraceService` in hoist-react evaluates the same `sampleRules` config, so
 sampling decisions are consistent across client and server spans.
@@ -354,22 +365,25 @@ sampling decisions are consistent across client and server spans.
 ### Request spans (HoistFilter)
 
 `HoistFilter` extracts incoming W3C `traceparent` headers from the request, restoring the
-client's trace context. After auth passes, the filter wraps `chain.doFilter` in a SERVER
-span that becomes a child of the client span when a traceparent was present.
+client's trace context. It then wraps the whole of request handling — cluster readiness check,
+authentication, and `chain.doFilter` — in a SERVER span, which becomes a child of the client
+span when a traceparent was present. Because the span encloses auth, rejected requests are
+traced too.
 
-- **Name:** starts as `{METHOD} {uri}` at span creation (best info pre-dispatch); updated
-  to `{METHOD} {controller}/{action}` (e.g. `GET portfolio/positions`) once the controller
-  resolves, before the span ends.
-- **Attributes:** `http.request.method`, `http.route`, `url.path`, `url.scheme`,
+Pings (`/ping`, `/xh/ping`), `/xh/version`, and websocket handshakes are not traced.
+
+- **Name:** created as the bare HTTP method (`GET`), the only information available
+  pre-routing. `HoistInterceptor` then renames it to `{METHOD} {controller}/{action}`
+  (e.g. `GET portfolio/positions`) and adds the `http.route` tag once routing resolves.
+  See the note under [Sampling Rules](#sampling-rules) — the sampling decision sees only
+  the pre-routing name.
+- **Attributes (at creation):** `http.request.method`, `url.path`, `url.scheme`,
   `server.address`, `server.port`, `client.address`, `user_agent.original`,
-  `http.response.status_code`.
-- Exceptions thrown during dispatch are recorded on the span via `recordException` before
-  Hoist's `ExceptionHandler` renders the error response.
-
-> **Note on sample-rule matching by name**: the head-sampling decision happens at span
-> creation time, when the name is the URI form. If you want to match `sampleRules` against
-> the route form (`controller/action`), match against the URI pattern instead (e.g.
-> `name: 'GET /xh/health/*'`).
+  `xh.source=hoist`. Then `http.route` from `HoistInterceptor`, and
+  `http.response.status_code` when the span closes.
+- Exceptions escaping dispatch are rendered by Hoist's `ExceptionHandler` and then recorded
+  on the span via `recordException`. Exceptions handled inside a controller action are
+  recorded by `BaseController`.
 
 ### Outbound HTTP (JSONClient)
 
@@ -398,10 +412,10 @@ config change — no restart or re-wrapping needed.
 
 When enabled, CLIENT spans are emitted for each connection acquire and statement execution,
 parented under whatever span is active at query time — typically the request span created by
-`TraceInterceptor`, but also timer tasks, `withSpan` blocks, and cluster tasks.
+`HoistFilter`, but also timer tasks, `withSpan` blocks, and cluster tasks.
 
-- **Name:** `{operation} {schema}.{table}` where derivable, or a generic operation name
-  (e.g. `SELECT xh_app_config`).
+- **Name:** `{operation} {schema}.{table}` where derivable (e.g. `SELECT xh_app_config`),
+  otherwise the bare operation.
 - **Attributes:** standard OTel DB semconv — `db.system`, `db.namespace`, `db.statement`,
   `server.address`, `server.port`, etc.
 
@@ -414,7 +428,7 @@ parented under whatever span is active at query time — typically the request s
 }
 ```
 
-The master `enabled` flag takes precedence regardless.
+`jdbcTracingEnabled` is inert unless the master `enabled` flag is also true.
 
 **Multi-datasource apps.** Grails apps configured with multiple datasources
 (`dataSource_reporting`, `sessionFactory_reporting`, etc.) are handled automatically —
@@ -438,10 +452,10 @@ skipped.
 
 ### Thread context propagation
 
-At startup, Hoist installs a `ContextPropagatingPromiseFactory` that wraps the default Grails
+At startup, `HoistCoreGrailsPlugin` installs a `HoistPromiseFactory` that wraps the default Grails
 `PromiseFactory`. This ensures that every `task {}` call — the primary async dispatch
 mechanism in Hoist — automatically carries the calling thread's OTel trace context to the
-worker thread.
+worker thread, alongside the other framework context it propagates.
 
 This covers all Grails `task {}` usage across the codebase (e.g. `asyncEach`, `LdapService`,
 `MonitorEvalService`, `TrackService`) without any per-call-site changes.
@@ -449,9 +463,9 @@ This covers all Grails `task {}` usage across the codebase (e.g. `asyncEach`, `L
 ### Client-to-server propagation
 
 The client-side `TraceService` sends a `traceparent` header on every fetch request.
-`HoistFilter` extracts this header and restores the trace context, so the SERVER span created
-by `TraceInterceptor` becomes a child of the client's span — producing end-to-end traces from
-browser interaction through server processing.
+`HoistFilter` extracts this header and restores the trace context, so the SERVER span it creates
+becomes a child of the client's span — producing end-to-end traces from browser interaction
+through server processing.
 
 ---
 
