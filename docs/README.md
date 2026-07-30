@@ -32,6 +32,8 @@ and conventions.
 | Set up roles and access control | [`authorization.md`](./authorization.md) |
 | Work with AppConfig (soft configuration) | [`configuration.md`](./configuration.md) |
 | Work with user preferences | [`preferences.md`](./preferences.md) |
+| Cache computed or fetched data in a service | [`caching.md`](./caching.md) |
+| Work out why a cache `onChange` handler fires when it does | [`caching.md`](./caching.md#change-handlers-onchange) |
 | Understand Hazelcast clustering and distributed resources | [`clustering.md`](./clustering.md) |
 | Add activity tracking or review track logs | [`activity-tracking.md`](./activity-tracking.md) |
 | Serialize or parse JSON | [`json-handling.md`](./json-handling.md) |
@@ -72,6 +74,7 @@ Bread-and-butter features used by every Hoist application.
 |----------|-------------|------------|
 | [`configuration.md`](./configuration.md) | Database-backed soft configuration with typed values | AppConfig, ConfigService, `clientVisible`, `pwd` encryption, `xhConfigChanged`, required configs |
 | [`preferences.md`](./preferences.md) | User-specific settings and preference management | Preference, UserPreference, PrefService, `local` flag, required prefs |
+| [`caching.md`](./caching.md) | Managed in-memory caching with optional expiry and cluster replication | Cache, CachedValue, CacheEntry, `createCache`, `createCachedValue`, `expireTime`, `expireFn`, `replicate`, `onChange` handlers, `ensureAvailable`, culling |
 | [`clustering.md`](./clustering.md) | Hazelcast-based multi-instance coordination and distributed data structures | ClusterService, Cache, CachedValue, IMap, ReplicatedMap, Topic, `primaryOnly` timers |
 | [`activity-tracking.md`](./activity-tracking.md) | Usage and performance logging with email notifications | TrackLog, TrackService, categories, elapsed timing, client error emails, feedback emails |
 | [`json-handling.md`](./json-handling.md) | Jackson-based JSON serialization and parsing | JSONSerializer, JSONParser, JSONFormat, custom serializer modules, `renderJSON`, `parseRequestJSON` |
@@ -132,6 +135,7 @@ breaking changes, before/after code examples, and verification checklists.
 | [v40.0.1](./upgrade-notes/v40-upgrade-notes.md) | Grails 7.1, `MetricsService` registration API, `BaseService.telemetryPrefix`, `ObservedRun` metrics by-name, `hoist.*` → `xh.*` built-in metric rename, client-side metrics endpoint |
 | [v39.0.0](./upgrade-notes/v39-upgrade-notes.md) | Typed `ConfigSpec` / `PreferenceSpec` / `RoleSpec`, optional `TypedConfigMap` opt-in, telemetry package restructuring, `alwaysSampleErrors` removed, JDK 25 toolchain |
 | [v38.0.0](./upgrade-notes/v38-upgrade-notes.md) | LogLevel schema additions, OTEL tag alignment, rule-based span sampling |
+| [v37.0.0](./upgrade-notes/v37-upgrade-notes.md) | OpenTelemetry distributed tracing (`TraceService`), MCP server for AI agents, `xhMetricsPublished` opt-in, `MetricsService` namespace prefixing removed |
 | [v36.0.0](./upgrade-notes/v36-upgrade-notes.md) | Cluster-aware WebSockets, new `@AccessRequiresXXX` annotations, `@Access` deprecated |
 | [v35.0.0](./upgrade-notes/v35-upgrade-notes.md) | CacheEntry generic key type, TrackLog `clientAppCode`, POI 5.x |
 | [v34.0.1](./upgrade-notes/v34-upgrade-notes.md) | Grails 7, Gradle 8, Tomcat 10, Jakarta EE |
