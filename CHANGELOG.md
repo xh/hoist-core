@@ -4,13 +4,21 @@
 
 ### 🎁 New Features
 
+* New `BaseController.renderNDJSON()` streams an `Iterable` or `Iterator` to the client as
+  newline-delimited JSON (NDJSON) — suitable for very large datasets that should not be
+  materialized in memory as a single JSON string. Pairs with `XH.fetchNdjson()` in hoist-react.
+
 * `AppConfig.formatForJSON` now includes a `resolvedValue` for JSON configs backed by a typed class.
   Supports the hoist-react v87 config editor.
 
 ### ⚙️ Technical
 
+* `ExceptionHandler` no longer attempts to render an error to an already-committed response,
+  avoiding corrupted output and duplicate log entries when a streamed response fails mid-write.
+
 * Typed (`typedClass`) configs should now declare `defaultValue: [:]` in their `ConfigSpec`, with
   defaults living solely on the `TypedConfigMap` subclass.
+
 
 ## 40.3.0 - 2026-07-16
 

@@ -32,7 +32,7 @@ The build pipeline supports three GitHub Actions workflows:
    (`vX.Y.Z`), and creates a GitHub release with auto-generated notes
 7. Verify the artifact appears on
    [Maven Central](https://central.sonatype.com/artifact/io.xh/hoist-core) and the release
-   appears on the repository's [Releases](../../releases) page
+   appears on the repository's [Releases](https://github.com/xh/hoist-core/releases) page
 
 ## Source Files
 
