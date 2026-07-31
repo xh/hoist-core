@@ -93,6 +93,18 @@ class ExceptionHandler {
             SC_INTERNAL_SERVER_ERROR
     }
 
+    /**
+     * True if the given exception is a routine, expected part of the application flow, as opposed
+     * to an unexpected bug that should require attention.
+     *
+     * Recognizes both {@link RoutineException} and the exception types {@link #preprocess} would
+     * convert into one, so it may also be called by application code on an exception it has caught
+     * itself, before that exception would have reached the response boundary.
+     */
+    boolean isRoutine(Throwable t) {
+        return t instanceof RoutineException || t instanceof grails.validation.ValidationException
+    }
+
 
     //---------------------------------------------
     // Template methods.  For application override
@@ -106,7 +118,7 @@ class ExceptionHandler {
     }
 
     protected boolean shouldLogDebug(Throwable t) {
-        return t instanceof RoutineException
+        return isRoutine(t)
     }
 
     //---------------------------
