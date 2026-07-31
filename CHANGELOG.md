@@ -8,10 +8,26 @@
   newline-delimited JSON (NDJSON) — suitable for very large datasets that should not be
   materialized in memory as a single JSON string. Pairs with `XH.fetchNdjson()` in hoist-react.
 
+* Provides support for the nested view groups and bulk view editing in the hoist-react v87
+  `ViewManager` Manage dialog, which requires this release. Backward compatible for earlier
+  hoist-react clients. View groups are now slash-delimited paths supporting unlimited nesting
+  (e.g. `Reports/Sales/Monthly`), with new server-side support as follows:
+    * `ViewService.renameGroup` and a matching `xhView/renameGroup` endpoint rename or re-parent a
+      group along with its entire subtree, cascading to every view within it. The scope of the
+      rename is explicit - either the global views, or those owned by the requesting user.
+    * `JsonBlobService.renameGroup` provides the underlying support, rewriting `meta.group` across
+      all blobs of a given type within a single owner namespace in one transaction.
+    * `ViewService.bulkUpdateInfo` and a matching `xhView/bulkUpdateInfo` endpoint apply the same
+      metadata updates (e.g. visibility changes) to multiple views in a single call.
+
 ### ⚙️ Technical
 
 * `ExceptionHandler` no longer attempts to render an error to an already-committed response,
   avoiding corrupted output and duplicate log entries when a streamed response fails mid-write.
+
+* Fixed `ViewService.updateInfo` and `create` failing when passed `isPinned`. Both took the view
+  type from the caller-supplied data (which the hoist-react `ViewManager` does not send on update)
+  rather than from the view itself.
 
 ## 40.3.0 - 2026-07-16
 
@@ -20,14 +36,6 @@
 * Preference client config now includes a per-pref `isSet` flag, and a new `xh/unsetPrefs` endpoint
   clears a user's explicit value.  Provides support for hoist-react v86.4.0, but
   backward compatible for earlier hoist-react clients.
-
-* Added support for unlimited depth view groups in `ViewService` / `JsonBlobService`. Groups are
-  now slash-delimited paths (e.g. `Reports/Sales/Monthly`), and the `updateInfo` Map accepts a new
-  `groupRename: [from:, to:]` option to cascade a group rename or re-parenting across all other
-  views under the renamed path. Added `ViewService.bulkUpdateInfo` and a matching
-  `xhView/bulkUpdateInfo` endpoint to apply the same metadata updates (e.g. visibility changes)
-  to multiple views in a single call. Pairs with the nested group tree and bulk visibility
-  editing UI in the hoist-react v87 `ViewManager` Manage dialog.
 
 ## 40.2.0 - 2026-07-10
 

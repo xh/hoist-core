@@ -9,9 +9,12 @@ package io.xh.hoist.view
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
+import io.xh.hoist.exception.ExceptionHandler
+import io.xh.hoist.exception.RoutineRuntimeException
 import io.xh.hoist.jsonblob.JsonBlob
 import io.xh.hoist.jsonblob.JsonBlobService
 import io.xh.hoist.track.TrackService
+import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.json.JSONParser.parseObject
 
@@ -115,12 +118,7 @@ class ViewService extends BaseService {
             ], username)
 
         if (data.containsKey('isPinned')) {
-            updateState(
-                data.type as String,
-                'default',
-                [userPinned: [(ret.token): data.isPinned]],
-                username
-            )
+            updatePinned(ret.type, [ret.token], data.isPinned, username)
         }
 
         trackChange('Created View', ret)
@@ -131,49 +129,62 @@ class ViewService extends BaseService {
      * Update a view's metadata.
      *
      * Supported keys in `data` include `name`, `description`, `group`, `isGlobal`, `isShared` and
-     * `isPinned`, plus an optional `groupRename: [from:, to:]` map. Groups are slash-delimited
-     * paths supporting unlimited nesting (e.g. "Reports/Sales/Monthly"). When `groupRename` is
-     * provided, all other active views of the same type and owner whose group equals or falls
-     * under the `from` path have that prefix of their group path rewritten to `to` within the
-     * same transaction - use when the user has renamed or re-parented a group itself, as opposed
-     * to moving this single view into a different group.
+     * `isPinned`. Groups are slash-delimited paths supporting unlimited nesting (e.g.
+     * "Reports/Sales/Monthly"); this moves the single view in question into the given group. See
+     * {@link #renameGroup} to rename or re-parent a group across all of the views within it.
      */
     Map updateInfo(String token, Map data, String username = username) {
-        def ret = doUpdateInfo(token, data, username)
+        JsonBlob ret = doUpdateInfo(token, data, username)
+
+        if (data.containsKey('isPinned')) {
+            updatePinned(ret.type, [ret.token], data.isPinned, username)
+        }
 
         trackChange('Updated View Info', ret)
-        if (data.groupRename) {
-            def rename = data.groupRename as Map
-            trackChange('Renamed View Group', [type: ret.type, from: rename.from, to: rename.to])
-        }
         ret.formatForClient(true)
     }
 
     /**
      * Bulk update view metadata - applies the same updates to each of the given views.
-     * Supports the same keys in `data` as {@link #updateInfo}, except `groupRename`, which is
-     * ignored here - its cross-view cascade is intended for single-view updates only. Updates
-     * are applied best-effort: failures on individual views are logged and reported via a
-     * single exception thrown after all views have been attempted.
+     * Supports the same keys in `data` as {@link #updateInfo}. Any `isPinned` change is applied to
+     * all successfully updated views, in one state update per view type.
+     *
+     * Updates are applied best-effort: failures on individual views are logged and reported via
+     * a single exception, thrown after all views have been attempted and reporting the token and
+     * reason for each view that could not be updated.
      */
     void bulkUpdateInfo(List<String> tokens, Map data, String username = username) {
-        data = data.findAll { it.key != 'groupRename' }
-        List<Exception> failures = []
-        tokens.each {
+        Map<String, Exception> failures = [:]
+        List<JsonBlob> updated = []
+        tokens.each { String token ->
             try {
-                doUpdateInfo(it, data, username)
+                updated << doUpdateInfo(token, data, username)
             } catch (Exception e) {
-                failures << e
-                logError('Failed to update View info', [token: it], e)
+                failures[token] = e
+                logError('Failed to update View info', [token: token], e)
             }
         }
-        def successCount = tokens.size() - failures.size()
-        if (successCount) {
-            trackChange('Bulk Updated View Info', [count: successCount])
+
+        if (updated) {
+            // Pinned state is stored per view type, so update each type's state blob just once.
+            if (data.containsKey('isPinned')) {
+                updated.groupBy { it.type }.each { String type, List<JsonBlob> blobs ->
+                    updatePinned(type, blobs*.token, data.isPinned, username)
+                }
+            }
+            trackChange('Bulk Updated View Info', [count: updated.size()])
         }
 
         if (failures) {
-            throw new RuntimeException("Failed to update ${failures.size()} view(s)", failures.first())
+            String detail = failures.collect { token, e -> "$token: ${e.message}" }.join('; '),
+                msg = "Failed to update ${failures.size()} of ${tokens.size()} view(s) - $detail"
+
+            // Preserve routine (expected) failures as such, so a name collision or access error
+            // does not get reported to the client as a 500 and logged as a server error.
+            ExceptionHandler exceptionHandler = Utils.exceptionHandler
+            throw failures.values().every { exceptionHandler.isRoutine(it) } ?
+                new RoutineRuntimeException(msg) :
+                new RuntimeException(msg, failures.values().first())
         }
     }
 
@@ -208,12 +219,49 @@ class ViewService extends BaseService {
     }
 
 
+    //------------------
+    // Group management
+    //------------------
+    /**
+     * Rename a view group, cascading to every view at or nested under the renamed path.
+     *
+     * Groups are slash-delimited paths, so this both renames a group in place and re-parents it
+     * along with its entire subtree - e.g. renaming "Reports/Sales" to "Archive/Sales" also takes
+     * "Reports/Sales/Monthly" with it.
+     *
+     * The scope of the rename is explicit and limited to a single group namespace: either the
+     * global views, or the views owned by the requesting user (including any they have shared with
+     * others). Groups are namespaced per owner, so the same path can exist independently in each
+     * and renaming one never affects the other.
+     *
+     * @return count of views whose group path was rewritten, as `count`.
+     */
+    Map renameGroup(String type, String from, String to, boolean isGlobal, String username = username) {
+        int count = jsonBlobService.renameGroup(type, isGlobal ? null : username, from, to, username)
+
+        trackChange('Renamed View Group', [
+            type    : type,
+            from    : from,
+            to      : to,
+            isGlobal: isGlobal,
+            count   : count
+        ])
+        return [count: count]
+    }
+
+
     //--------------------
     // Implementation
     //---------------------
+    /**
+     * Apply metadata updates to a single view, returning the updated blob.
+     *
+     * Note that any `isPinned` change is *not* applied here - that state lives in a per-type
+     * sidecar blob and is updated once per call by `updateInfo` / `bulkUpdateInfo`.
+     */
     private JsonBlob doUpdateInfo(String token, Map data, String username) {
-        def existing = jsonBlobService.get(token, username),
-            meta = parseObject(existing.meta) ?: [:],
+        JsonBlob existing = jsonBlobService.get(token, username)
+        Map meta = parseObject(existing.meta) ?: [:],
             core = [:]
 
         data.each { k, v ->
@@ -240,21 +288,18 @@ class ViewService extends BaseService {
             }
         }
 
-        def payload = [*: core, meta: meta]
-        if (data.groupRename) payload.groupRename = data.groupRename as Map
+        Map payload = [*: core, meta: meta]
+        return jsonBlobService.update(token, payload, username)
+    }
 
-        def ret = jsonBlobService.update(token, payload, username)
-
-        if (data.containsKey('isPinned')) {
-            updateState(
-                data.type as String,
-                'default',
-                [userPinned: [(ret.token): data.isPinned]],
-                username
-            )
-        }
-
-        return ret
+    /** Record the user's explicit pinned state for one or more views of a single type. */
+    private void updatePinned(String type, List<String> tokens, Object isPinned, String username) {
+        updateState(
+            type,
+            'default',
+            [userPinned: tokens.collectEntries { [(it): isPinned] }],
+            username
+        )
     }
 
     private trackChange(String msg, Object data) {
