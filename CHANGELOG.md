@@ -4,7 +4,7 @@
 
 ### 🎁 New Features
 
-* New `BaseController.renderNDJSON()` streams an `Iterable` or `Iterator` to the client as
+* New `BaseController.renderNdJSON()` streams an `Iterable` or `Iterator` to the client as
   newline-delimited JSON (NDJSON) — suitable for very large datasets that should not be
   materialized in memory as a single JSON string. Pairs with `XH.fetchNdjson()` in hoist-react.
 * New `SpanRef.setErrorStatus()` marks a trace span as failed with an optional description, for

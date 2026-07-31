@@ -211,7 +211,7 @@ abstract class BaseController implements LogSupport, IdentitySupport {
     private static final int NDJSON_BUFFER_SIZE = 32 * 1024
 
     /**
-     * Deliberately non-JSON line written by {@link #renderNdjson} when a stream fails after the
+     * Deliberately non-JSON line written by {@link #renderNdJSON} when a stream fails after the
      * response has committed. Guarantees consumers see a parse failure rather than a truncated
      * stream that reads as complete. Never present in a successful response, which remains
      * standard NDJSON. No trailing newline — an incomplete final line reinforces the signal.
