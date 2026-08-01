@@ -11,6 +11,15 @@
   failures that are neither an exception nor an HTTP response. Avoids the need to synthesize a
   throwable - and its fabricated stack trace - purely to flag a span.
 
+### 🐞 Bug Fixes
+
+* `JSONFormatCached` now holds its cached JSON in a `transient` field, so it is no longer serialized
+  into Hazelcast structures (replicated `Cache`/`CachedValue`, `IMap`, Topics) or cross-instance
+  call results. Apps caching `JSONFormatCached` subclasses in replicated structures were shipping -
+  and holding in heap on every instance - a redundant copy of their own data. `getCachedJSON()` now
+  also uses double-checked locking on a `volatile` field, so concurrent first-callers no longer each
+  serialize the same object redundantly.
+
 ### ⚙️ Technical
 
 * `ExceptionHandler` no longer attempts to render an error to an already-committed response,
