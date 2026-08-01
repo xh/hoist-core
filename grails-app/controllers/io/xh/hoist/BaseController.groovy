@@ -69,7 +69,7 @@ abstract class BaseController implements LogSupport, IdentitySupport {
      * @param contentType - defaults to 'application/x-ndjson'.
      */
     @NamedVariant
-    protected void renderNdJSON(Object source, @NamedParam String contentType = null) {
+    protected void renderNDJSON(Object source, @NamedParam String contentType = null) {
         Iterator<?> rows = source instanceof Iterator ? source : (source as Iterable).iterator()
 
         response.contentType = contentType ?: 'application/x-ndjson'
