@@ -1,12 +1,12 @@
 # Changelog
 
-## 41.0-SNAPSHOT - unreleased
+## 40.4.0 - 2026-08-03
 
 ### 🎁 New Features
 
-* New `BaseController.renderNdJSON()` streams an `Iterable` or `Iterator` to the client as
+* New `BaseController.renderNDJSON()` streams an `Iterable` or `Iterator` to the client as
   newline-delimited JSON (NDJSON) — suitable for very large datasets that should not be
-  materialized in memory as a single JSON string. Pairs with `XH.fetchNdjson()` in hoist-react.
+  materialized in memory as a single JSON string. Pairs with `XH.fetchNdjson()` in hoist-react v87+.
 * New `SpanRef.setErrorStatus()` marks a trace span as failed with an optional description, for
   failures that are neither an exception nor an HTTP response. Avoids the need to synthesize a
   throwable - and its fabricated stack trace - purely to flag a span.
