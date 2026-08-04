@@ -2,11 +2,25 @@
 
 ## 41.0-SNAPSHOT - unreleased
 
+## 40.4.0 - 2026-08-03
+
 ### 🎁 New Features
 
 * New `BaseController.renderNDJSON()` streams an `Iterable` or `Iterator` to the client as
   newline-delimited JSON (NDJSON) — suitable for very large datasets that should not be
-  materialized in memory as a single JSON string. Pairs with `XH.fetchNdjson()` in hoist-react.
+  materialized in memory as a single JSON string. Pairs with `XH.fetchNdjson()` in hoist-react v87+.
+* New `SpanRef.setErrorStatus()` marks a trace span as failed with an optional description, for
+  failures that are neither an exception nor an HTTP response. Avoids the need to synthesize a
+  throwable - and its fabricated stack trace - purely to flag a span.
+
+### 🐞 Bug Fixes
+
+* `JSONFormatCached` now holds its cached JSON in a `transient` field, so it is no longer serialized
+  into Hazelcast structures (replicated `Cache`/`CachedValue`, `IMap`, Topics) or cross-instance
+  call results. Apps caching `JSONFormatCached` subclasses in replicated structures were shipping -
+  and holding in heap on every instance - a redundant copy of their own data. `getCachedJSON()` now
+  also uses double-checked locking on a `volatile` field, so concurrent first-callers no longer each
+  serialize the same object redundantly.
 
 * `AppConfig.formatForJSON` now includes a `resolvedValue` for JSON configs backed by a typed class.
   Supports the hoist-react v87 config editor.
@@ -15,6 +29,9 @@
 
 * `ExceptionHandler` no longer attempts to render an error to an already-committed response,
   avoiding corrupted output and duplicate log entries when a streamed response fails mid-write.
+* `ClientSpanData` now carries the `statusDescription` sent by client-relayed spans through to the
+  exported span status, rather than discarding it. No behavioral change with current clients, which
+  send an equivalent `exception` event.
 
 * Typed (`typedClass`) configs should now declare `defaultValue: [:]` in their `ConfigSpec`, with
   defaults living solely on the `TypedConfigMap` subclass.

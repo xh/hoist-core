@@ -46,7 +46,8 @@ class CachedValue<V> implements LogSupport, AdminStats {
     public final Closure<Boolean> expireFn
 
     /**
-     * Entry TTL as epochMillis Long, or closure { void -> Long } to return the same (optional).
+     * Entry TTL as a duration in milliseconds (Long), or closure { void -> Long } to return the
+     * same (optional). Measured from the entry's timestamp (see {@link #timestampFn}).
      * No effect if a custom expireFn is provided instead. If both null, entries will never expire.
      */
     public final Object expireTime
@@ -60,7 +61,17 @@ class CachedValue<V> implements LogSupport, AdminStats {
     /** True to replicate this cache across a cluster (default false). */
     public final boolean replicate
 
-    /** Handler closures { CachedValueChanged<V> -> void } to be called on change. */
+    /**
+     * Handler closures { CachedValueChanged<V> -> void } to be called on change.
+     *
+     * Note that these handlers are always called *asynchronously*, via a Grails Promise, and never
+     * inline within {@link #set}. This holds regardless of `replicate` and differs from
+     * {@link io.xh.hoist.cache.Cache}, which calls its handlers synchronously when not clustered.
+     *
+     * Because dispatch is asynchronous, exceptions thrown by a handler will *not* propagate to the
+     * caller of `set`. Do not write handlers or callers that depend on handlers having completed
+     * once `set` returns. See docs/caching.md ("Change Handlers") for the full contract.
+     */
     public final List<Closure> onChange = []
 
 
@@ -125,13 +136,17 @@ class CachedValue<V> implements LogSupport, AdminStats {
         set(null)
     }
 
-    /** @returns timestamp of the current entry, or null if none. */
+    /**
+     * @returns timestamp of the current entry as epochMillis. Returns 0 if the value has never
+     *      been set - the uninitialized entry carries a zero timestamp, not a null one.
+     */
     Long getTimestamp() {
         getEntryTimestamp(entry)
     }
 
     /**
-     * Wait for the replicated value to be populated.
+     * Wait for the value to be populated. Most useful for a replicated CachedValue that another
+     * instance is expected to populate, but works the same way when not replicated.
      * @param timeout, time in ms to wait.  -1 to wait indefinitely (not recommended).
      * @param interval, time in ms to wait between tests.
      * @param timeoutMessage, custom message associated with any timeout.
@@ -153,7 +168,10 @@ class CachedValue<V> implements LogSupport, AdminStats {
             throw new TimeoutException(msg)
         }
     }
-    /** @param handler called on change with a {@link CachedValueChanged} object. */
+    /**
+     * @param handler called on change with a {@link CachedValueChanged} object. Always called
+     *      asynchronously - see {@link #onChange}.
+     */
     void addChangeHandler(Closure handler) {
         onChange << handler
     }

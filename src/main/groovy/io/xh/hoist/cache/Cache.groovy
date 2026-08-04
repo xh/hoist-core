@@ -46,7 +46,8 @@ class Cache<K, V> implements LogSupport, AdminStats {
     public final Closure<Boolean> expireFn
 
     /**
-     * Entry TTL as epochMillis Long, or closure { void -> Long } to return the same (optional).
+     * Entry TTL as a duration in milliseconds (Long), or closure { void -> Long } to return the
+     * same (optional). Measured from the entry's timestamp (see {@link #timestampFn}).
      * No effect if a custom expireFn is provided instead. If both null, entries will never expire.
      */
     public final Object expireTime
@@ -60,7 +61,19 @@ class Cache<K, V> implements LogSupport, AdminStats {
     /** True to replicate this cache across a cluster (default false). */
     public final boolean replicate
 
-    /** Handler closures { CacheEntryChanged<K, V> -> void } to be called on change. */
+    /**
+     * Handler closures { CacheEntryChanged<K, V> -> void } to be called on change.
+     *
+     * When this Cache is not clustered (i.e. `replicate` is false, or multi-instance support is
+     * disabled), these handlers are called *synchronously*, inline on the thread calling
+     * {@link #put}. When clustered, `put` does not call handlers at all:
+     * they are instead driven by a Hazelcast ReplicatedMap entry listener and fire asynchronously
+     * on a Hazelcast event thread, on every instance (including the one making the change).
+     *
+     * Because the clustered path is asynchronous, exceptions thrown by a handler will *not*
+     * propagate to the caller of `put`. Do not write handlers or callers that depend on either
+     * timing. See docs/caching.md ("Change Handlers") for the full contract.
+     */
     public final List<Closure> onChange = []
 
     /**
@@ -172,7 +185,8 @@ class Cache<K, V> implements LogSupport, AdminStats {
 
     /**
      * @returns the current size of the cache.
-     * Note that this may include unexpired entries that have not yet been culled.
+     * Note that this may over-report: expired entries are counted until they are culled, either
+     * lazily on access or by the periodic cull timer. Call {@link #getMap} for an accurate count.
      */
     int size() {
         return _map.size()
@@ -185,6 +199,10 @@ class Cache<K, V> implements LogSupport, AdminStats {
         _map.each { k, v -> remove(k) }
     }
 
+    /**
+     * @param handler called on change with a {@link CacheEntryChanged} object. See {@link #onChange}
+     *      for important notes on when handlers are called synchronously vs. asynchronously.
+     */
     void addChangeHandler(Closure handler) {
         if (!onChange && _map instanceof ReplicatedMap) {
             _map.addEntryListener(new CacheEntryListener(this))

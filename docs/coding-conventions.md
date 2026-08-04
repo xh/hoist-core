@@ -385,6 +385,9 @@ void clearCaches() {
 `clearCaches()` does **not** clear `Cache`/`CachedValue` instances automatically. Each managed
 resource must be cleared explicitly.
 
+See [`caching.md`](./caching.md) for the full `Cache` / `CachedValue` reference, including expiry
+options, change-handler threading, and how the two classes differ.
+
 ### `clearCachesConfigs` for Soft-Config Reactivity
 
 Declare a static `clearCachesConfigs` list of `xh`-prefixed config names to have the service's

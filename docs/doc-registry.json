@@ -30,7 +30,7 @@
             "mcpCategory": "package",
             "viewerCategory": "core-framework",
             "description": "Base classes for services and controllers — lifecycle, resource factories, CRUD patterns.",
-            "keywords": ["BaseService", "init", "destroy", "createCache", "createCachedValue", "createTimer", "createIMap", "BaseController", "renderJSON", "parseRequestJSON", "RestController", "doCreate", "doList", "doUpdate", "doDelete"]
+            "keywords": ["BaseService", "init", "destroy", "createCache", "createCachedValue", "createTimer", "createIMap", "createISet", "BaseController", "renderJSON", "parseRequestJSON", "RestController", "doCreate", "doList", "doUpdate", "doDelete"]
         },
         {
             "id": "docs/request-flow.md",
@@ -73,12 +73,20 @@
             "keywords": ["Preference", "UserPreference", "PrefService", "local"]
         },
         {
+            "id": "docs/caching.md",
+            "title": "Caching",
+            "mcpCategory": "package",
+            "viewerCategory": "core-features",
+            "description": "Managed in-memory caching with optional expiry and cluster replication.",
+            "keywords": ["Cache", "CachedValue", "CacheEntry", "CacheEntryChanged", "createCache", "createCachedValue", "expireTime", "expireFn", "timestampFn", "replicate", "onChange", "addChangeHandler", "serializeOldValue", "ensureAvailable", "getOrCreate", "culling"]
+        },
+        {
             "id": "docs/clustering.md",
             "title": "Clustering",
             "mcpCategory": "package",
             "viewerCategory": "core-features",
             "description": "Hazelcast-based multi-instance coordination and distributed data structures.",
-            "keywords": ["ClusterService", "Cache", "CachedValue", "IMap", "ReplicatedMap", "Topic", "primaryOnly", "isHazelcastRunning", "instanceState", "liveness probe", "health"]
+            "keywords": ["ClusterService", "Cache", "CachedValue", "IMap", "ReplicatedMap", "Topic", "primaryOnly", "replicate", "onChange", "isHazelcastRunning", "instanceState", "liveness probe", "health"]
         },
         {
             "id": "docs/activity-tracking.md",
@@ -118,7 +126,7 @@
             "mcpCategory": "package",
             "viewerCategory": "infrastructure",
             "description": "OpenTelemetry-based distributed tracing with OTLP export.",
-            "keywords": ["TraceService", "withSpan", "SpanRef", "traceparent", "OTLP", "xhTraceConfig", "OpenTelemetry", "sampleRules", "ClientSpanData", "HoistPromiseFactory"]
+            "keywords": ["TraceService", "withSpan", "SpanRef", "setErrorStatus", "traceparent", "OTLP", "xhTraceConfig", "OpenTelemetry", "sampleRules", "ClientSpanData", "HoistPromiseFactory"]
         },
         {
             "id": "docs/websocket.md",
