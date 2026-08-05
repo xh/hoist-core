@@ -275,12 +275,10 @@ class ConfigService extends BaseService {
     }
 
     /**
-     * Admin-facing "resolved value" for a JSON config with a registered typedClass, or null if none
-     * is registered or the value cannot be resolved. This is the config as application code receives
-     * it via {@link #getObject} - the stored/effective value (honoring any instance config override)
-     * with the typedClass's declared defaults applied. The Admin Console shows it alongside the raw
-     * database value from {@link AppConfig#formatForJSON} and highlights the explicitly set (vs.
-     * default-supplied) keys, deriving them client-side from the stored value.
+     * Admin-facing "resolved value" for a JSON config with a registered typedClass, or null if
+     * none is registered or the value cannot be resolved. This is the config as application code
+     * receives it via {@link #getObject} - the effective value (honoring any instance config
+     * override) with the typedClass's declared defaults applied.
      *
      * @internal - consumed by AppConfig.formatForJSON for the Admin Console config editor.
      */
@@ -294,6 +292,23 @@ class ConfigService extends BaseService {
             return typed.formatForJSON()
         } catch (Exception e) {
             logDebug("Could not compute resolved value for config '${config.name}'", e.message)
+            return null
+        }
+    }
+
+    /**
+     * Admin-facing "code default" value for a JSON config with a registered typedClass, or null
+     * if none is registered - the typedClass's defaults with no stored value applied.
+     *
+     * @internal - consumed by AppConfig.formatForJSON for the Admin Console config editor.
+     */
+    Object getDefaultConfigValue(AppConfig config) {
+        def typedClass = configTypeByName[config.name]
+        if (!typedClass) return null
+        try {
+            return typedClass.getDeclaredConstructor(Map).newInstance([:]).formatForJSON()
+        } catch (Exception e) {
+            logDebug("Could not compute default value for config '${config.name}'", e.message)
             return null
         }
     }

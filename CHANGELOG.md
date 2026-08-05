@@ -22,8 +22,8 @@
   also uses double-checked locking on a `volatile` field, so concurrent first-callers no longer each
   serialize the same object redundantly.
 
-* `AppConfig.formatForJSON` now includes a `resolvedValue` for JSON configs backed by a typed class.
-  Supports the hoist-react v87 config editor.
+* `AppConfig.formatForJSON` now includes a `resolvedValue` and a `defaultValue` (the code-declared
+  defaults) for JSON configs backed by a typed class. Supports the hoist-react v87 config editor.
 
 ### ⚙️ Technical
 

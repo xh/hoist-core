@@ -166,6 +166,7 @@ class AppConfig implements JSONFormat, LogSupport {
                 value        : parseValue(value, [digestPassword: true]),
                 overrideValue: overrideValue(digestPassword: true),
                 resolvedValue: Utils.configService.getResolvedConfigValue(this),
+                defaultValue : Utils.configService.getDefaultConfigValue(this),
                 clientVisible: clientVisible,
                 note         : note,
                 lastUpdatedBy: lastUpdatedBy,
