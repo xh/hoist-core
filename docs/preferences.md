@@ -170,6 +170,13 @@ calls to `PrefService` for a non-existent preference will throw a `RuntimeExcept
 creates any missing preferences with the supplied defaults and logs errors if an existing
 preference has a mismatched type.
 
+Every spec is validated against the `Preference` field length limits - `name` at
+`Preference.MAX_NAME_LENGTH` (50) and `notes` at `Preference.MAX_NOTES_LENGTH` (1200) - before any
+preference is created. Violations are collected across all specs and reported together in a single
+thrown `RuntimeException`. This check covers *every* spec, including those whose preference already
+exists: notes are seeded on create only, so an over-length value in an established environment would
+otherwise go unnoticed until the app was next booted against a fresh database.
+
 A deprecated overload accepting `Map<String, Map>` (where the outer key is the preference name)
 is still supported for backward compatibility but should be migrated to `PreferenceSpec`. Note that
 the old Map API used `note` (singular) for consistency with the former `ensureRequiredConfigsCreated()`

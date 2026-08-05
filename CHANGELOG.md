@@ -2,6 +2,19 @@
 
 ## 41.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* `ensureRequiredConfigsCreated()` and `ensureRequiredPrefsCreated()` now validate every supplied
+  spec against the `name` and `note`/`notes` field length limits before creating anything, throwing
+  with the offending name, actual length, and limit. Violations across all specs are aggregated into
+  a single message. Previously an over-length note surfaced only as a generic GORM
+  `ValidationException` on the create path - and for a config or pref that already existed, not at
+  all, since notes are seeded on create only. That left an over-length note able to boot every
+  established environment while failing the next app started against a fresh database.
+* The length limits are now exposed as constants on the domain classes (`AppConfig.MAX_NAME_LENGTH`,
+  `AppConfig.MAX_NOTE_LENGTH`, `Preference.MAX_NAME_LENGTH`, `Preference.MAX_NOTES_LENGTH`) and
+  referenced by both the GORM constraints and the new checks, so the two cannot drift.
+
 ## 40.4.0 - 2026-08-03
 
 ### 🎁 New Features

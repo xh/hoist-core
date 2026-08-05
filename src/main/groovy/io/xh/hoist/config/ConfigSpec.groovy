@@ -32,4 +32,24 @@ class ConfigSpec {
      * Recommended for any structured config with a stable key set — see docs/configuration.md.
      */
     Class<? extends TypedConfigMap> typedClass
+
+    /**
+     * Any violations of the {@link AppConfig} field length limits by this spec, as ready-to-log
+     * messages. Empty if the spec is valid.
+     *
+     * Checked by {@link ConfigService#ensureRequiredConfigsCreated} for *all* specs, including
+     * those whose config already exists in the database. Notes are seeded on create only, so an
+     * over-length note would otherwise go unnoticed in established environments and surface only
+     * when the app is next booted against a fresh database.
+     */
+    List<String> getValidationErrors() {
+        List<String> ret = []
+        if (name?.length() > AppConfig.MAX_NAME_LENGTH) {
+            ret << "Config '$name': name is ${name.length()} chars, exceeding the ${AppConfig.MAX_NAME_LENGTH} char limit".toString()
+        }
+        if (note?.length() > AppConfig.MAX_NOTE_LENGTH) {
+            ret << "Config '$name': note is ${note.length()} chars, exceeding the ${AppConfig.MAX_NOTE_LENGTH} char limit".toString()
+        }
+        return ret
+    }
 }

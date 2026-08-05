@@ -414,6 +414,14 @@ strictly required at startup. This serves as an effective inventory of the appli
 configs, ensures that an app starting against a fresh database has a complete set of entries
 visible and adjustable in the Admin Console, and guarantees consistency across environments.
 
+Every spec is validated against the `AppConfig` field length limits - `name` at
+`AppConfig.MAX_NAME_LENGTH` (50) and `note` at `AppConfig.MAX_NOTE_LENGTH` (1200) - before any
+config is created. Violations are collected across all specs and reported together in a single
+thrown `RuntimeException`, so one restart is enough to see the full set. Note that this check
+covers *every* spec, including those whose config already exists: notes are seeded on create only,
+so an over-length note in an established environment would otherwise go unnoticed until the app was
+next booted against a fresh database.
+
 A deprecated overload accepting `Map<String, Map>` (where the outer key is the config name) is
 still supported for backward compatibility but should be migrated to `ConfigSpec`.
 

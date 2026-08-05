@@ -25,4 +25,24 @@ class PreferenceSpec {
     Object defaultValue
     String groupName = 'Default'
     String notes
+
+    /**
+     * Any violations of the {@link Preference} field length limits by this spec, as ready-to-log
+     * messages. Empty if the spec is valid.
+     *
+     * Checked by {@link PrefService#ensureRequiredPrefsCreated} for *all* specs, including those
+     * whose preference already exists in the database. Notes are seeded on create only, so an
+     * over-length note would otherwise go unnoticed in established environments and surface only
+     * when the app is next booted against a fresh database.
+     */
+    List<String> getValidationErrors() {
+        List<String> ret = []
+        if (name?.length() > Preference.MAX_NAME_LENGTH) {
+            ret << "Preference '$name': name is ${name.length()} chars, exceeding the ${Preference.MAX_NAME_LENGTH} char limit".toString()
+        }
+        if (notes?.length() > Preference.MAX_NOTES_LENGTH) {
+            ret << "Preference '$name': notes is ${notes.length()} chars, exceeding the ${Preference.MAX_NOTES_LENGTH} char limit".toString()
+        }
+        return ret
+    }
 }

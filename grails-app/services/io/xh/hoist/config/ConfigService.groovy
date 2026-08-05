@@ -201,6 +201,15 @@ class ConfigService extends BaseService {
             it instanceof ConfigSpec ? it : new ConfigSpec(it as Map)
         }
 
+        // Validate all specs up-front - including those already in the database - and report every
+        // violation at once, so a single restart is enough to see (and fix) the full set.
+        List<String> errors = configSpecs.collectMany { ConfigSpec spec -> spec.validationErrors }
+        if (errors) {
+            throw new RuntimeException(
+                "Invalid ConfigSpec(s) passed to ensureRequiredConfigsCreated:\n  " + errors.join('\n  ')
+            )
+        }
+
         def currConfigs = AppConfig.list(),
             created = 0
 
