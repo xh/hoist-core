@@ -135,59 +135,34 @@ framework.
 All distributed data structures are created through `BaseService` factory methods (see
 [`base-classes.md`](./base-classes.md) for the full API). Here we focus on the clustering aspects.
 
-#### Cache (ReplicatedMap-backed)
+#### Cache and CachedValue
 
-`Cache<K, V>` uses a Hazelcast `ReplicatedMap` when `replicate: true`, meaning every instance
-holds a complete copy of all entries. This is ideal for small-to-medium datasets that are read
-frequently. The default is `replicate: false` (local-only, backed by a `ConcurrentHashMap`).
+`Cache<K, V>` and `CachedValue<V>` are Hoist's managed caching structures, both created through
+`BaseService` and both replicable across the cluster. They are documented in full in
+[`caching.md`](./caching.md) — covered here is only how they map onto Hazelcast.
 
-```groovy
-private Cache<String, Map> priceCache
+| | Backing when `replicate: true` | Backing otherwise | Hazelcast resource name |
+|---|---|---|---|
+| `Cache` | `ReplicatedMap` | `ConcurrentHashMap` | `xhcache.{FullClassName}[{name}]` |
+| `CachedValue` | `ReliableTopic` | Plain field | `xhcachedvalue.{FullClassName}[{name}]` |
 
-void init() {
-    priceCache = createCache(
-        name: 'prices',
-        replicate: true,          // backed by Hazelcast ReplicatedMap
-        expireTime: 5 * MINUTES   // entries expire after this duration
-    )
-}
-```
+Both are *fully replicated* — every instance holds a complete copy, which is what makes reads local
+and fast, and why they suit small-to-medium datasets rather than large ones. `CachedValue`'s
+`ReliableTopic` replays the most recent value to instances joining later, so a new member picks up
+the current value without waiting for the next write.
 
-Hazelcast resource name: `xhcache.{FullClassName}[prices]`
+Two cluster-specific behaviors to be aware of:
 
-When `replicate: false`, the cache uses a local `ConcurrentHashMap` instead — useful for
-instance-specific data that doesn't need to be shared.
+- **`replicate: true` is not sufficient on its own.** The effective switch is
+  `replicate && multiInstanceEnabled`. An environment that disables `multiInstanceEnabled` runs
+  these structures in local mode regardless of the `replicate` setting.
+- **Replication changes `onChange` handler threading.** A replicated `Cache` dispatches handlers
+  asynchronously from a Hazelcast entry listener, on every instance; a non-replicated one dispatches
+  synchronously inside `put()`. See
+  [Change Handlers](./caching.md#change-handlers-onchange) for the full contract.
 
-Cache entries have a configurable `expireTime` and are culled by an internal timer. Expired entries
-are removed lazily on access and periodically by the cull timer.
-
-#### CachedValue
-
-`CachedValue<T>` stores a single value that can be replicated across the cluster. When a value is
-set on any instance, all other instances receive the update. This makes `CachedValue` ideal for
-expensive computations that should be shared — compute once on the primary, replicate to all.
-
-```groovy
-private CachedValue<Map> summary
-
-void init() {
-    summary = createCachedValue(
-        name: 'summary',
-        replicate: true,
-        expireTime: 30 * MINUTES
-    )
-}
-```
-
-Hazelcast resource name: `xhcachedvalue.{FullClassName}[summary]`
-
-CachedValue replication is backed by a Hazelcast `ReliableTopic`, which replays the most recent value to new
-instances joining the cluster.
-
-Both `Cache` and `CachedValue` provide an `ensureAvailable()` method that blocks until a value is
-present, with a configurable timeout (default 30 seconds). This is important during startup when a
-non-primary instance may need to wait for the primary to populate a replicated value before it can
-serve requests:
+`ensureAvailable()` on either structure blocks until a value is present (default 30s timeout) —
+useful during startup when a non-primary instance needs a value only the primary populates:
 
 ```groovy
 void init() {
@@ -399,10 +374,10 @@ from all cluster members.
 
 ### Large objects in replicated caches
 
-`Cache` (with `replicate: true`) and `CachedValue` (with `replicate: true`) replicate data to
-every instance. Storing large datasets (e.g., millions of rows) in these structures will consume
-memory on every instance. Use `IMap` for large datasets that can be partitioned, or `Cache` with
-`replicate: false` for instance-local data.
+`Cache` and `CachedValue` with `replicate: true` copy data to every instance, so a large dataset
+(e.g. millions of rows) consumes memory N times over. Use `IMap` for large datasets that can be
+partitioned, or `replicate: false` for instance-local data. See [`caching.md`](./caching.md) for
+the other cache-specific pitfalls, including how `replicate` affects change-handler timing.
 
 ### Forgetting `primaryOnly` on scheduled tasks
 

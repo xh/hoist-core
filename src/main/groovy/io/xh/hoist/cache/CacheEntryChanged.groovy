@@ -11,12 +11,7 @@ class CacheEntryChanged<K, V> {
     /** Source object the changed value is contained within. */
     final Cache source
 
-    /**
-     * Key of the value being changed.
-     *
-     * When source of this change is a CachedValue, this key will simply be the name
-     * of the CachedValue.
-     */
+    /** Key of the entry being changed. */
     final K key
 
     private final V _oldValue
@@ -38,8 +33,9 @@ class CacheEntryChanged<K, V> {
     /**
      * OldValue. Null if value being set for the first time.
      *
-     * Note that this property is *not* available for caches with optimizeRemoval = true,
-     * In that case, the value will always be null.
+     * Note that this property is *not* available for caches with serializeOldValue = false - the
+     * default. In that case, this getter always returns null and logs a warning. Set
+     * `serializeOldValue: true` on the Cache if your change handlers need the previous value.
      */
     V getOldValue() {
         if (!source.serializeOldValue) {

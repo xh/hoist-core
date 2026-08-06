@@ -22,11 +22,10 @@ service and endpoint inherits.
 | `BaseService` | `src/main/groovy/io/xh/hoist/` | Abstract superclass for all services |
 | `BaseController` | `grails-app/controllers/io/xh/hoist/` | Abstract superclass for all controllers |
 | `RestController` | `grails-app/controllers/io/xh/hoist/` | CRUD controller for GORM domain classes |
-| `Cache` | `src/main/groovy/io/xh/hoist/cache/` | Distributed key-value cache (Hazelcast-backed) |
-| `CacheEntry` | `src/main/groovy/io/xh/hoist/cache/` | Wrapper for cached entries with metadata |
-| `CachedValue` | `src/main/groovy/io/xh/hoist/cachedvalue/` | Distributed single-value cache |
-| `CachedValueEntry` | `src/main/groovy/io/xh/hoist/cachedvalue/` | Wrapper for cached value with metadata |
 | `Timer` | `src/main/groovy/io/xh/hoist/util/` | Managed polling timer with `primaryOnly` support |
+
+The `Cache` and `CachedValue` classes created by the factory methods below are documented in
+[`caching.md`](./caching.md).
 
 ## BaseService
 
@@ -41,7 +40,8 @@ Every Hoist service extends `BaseService` and follows a well-defined lifecycle:
 4. **`clearCaches()`** — Can be called at any time (including from the Admin Console) to reset
    service state. The base implementation only updates a `lastCachesCleared` timestamp — it does
    **not** automatically clear caches created via `createCache()` or `createCachedValue()`. Override
-   to explicitly clear each cache and reset any other custom state.
+   to explicitly clear each cache and reset any other custom state. See
+   [`caching.md`](./caching.md) on clearing and invalidating caches.
 5. **`destroy()`** — Called by Spring on clean shutdown. Cancels all managed timers.
 
 The status methods `isInitialized()` and `isDestroyed()` can be used for defensive checks during
@@ -89,92 +89,37 @@ Hazelcast objects.
 
 #### `createCache()`
 
-Creates a `Cache<K, V>` — a key-value store backed by a Hazelcast `ReplicatedMap` (when clustered)
-or a local `ConcurrentHashMap`.
+Creates a `Cache<K, V>` — a key-value store with optional entry expiry, backed by a Hazelcast
+`ReplicatedMap` when clustered or a local `ConcurrentHashMap` otherwise.
 
 ```groovy
 private Cache<String, List<Position>> positionCache
 
 void init() {
-    positionCache = createCache(
-        name: 'positions',
-        expireTime: 5 * MINUTES,     // entries expire after this duration
-        replicate: true,              // share across cluster (default: false)
-        serializeOldValue: false      // performance optimization for large values
-    )
-}
-
-// Usage — get-or-create pattern
-List<Position> getPositions(String fundId) {
-    positionCache.getOrCreate(fundId) {
-        loadPositionsFromDb(fundId)
-    }
+    positionCache = createCache(name: 'positions', expireTime: 5 * MINUTES, replicate: true)
 }
 ```
 
-Constructor parameters:
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `name` | `String` | required | Unique name within the service |
-| `expireTime` | `Long` or `Closure` | `null` | TTL in ms, or closure returning ms. If null, entries never expire |
-| `expireFn` | `Closure<Boolean>` | `null` | Custom expiration test `{ CacheEntry -> Boolean }`. Alternative to `expireTime` |
-| `timestampFn` | `Closure` | `null` | Custom timestamp `{ V -> Long\|Date\|Instant }`. Defaults to entry creation time |
-| `replicate` | `Boolean` | `false` | Share across cluster via Hazelcast `ReplicatedMap` |
-| `serializeOldValue` | `Boolean` | `false` | Include old values in `CacheEntryChanged` events. Disable for large objects |
-| `onChange` | `Closure` | `null` | Handler `{ CacheEntryChanged -> void }` called on entry changes |
-
-Key `Cache` API methods:
-
-| Method | Description |
-|--------|-------------|
-| `get(key)` | Get value at key, or null |
-| `getEntry(key)` | Get `CacheEntry` at key (includes metadata), or null |
-| `getOrCreate(key, Closure)` | Get value, creating it via the closure if absent or expired |
-| `put(key, value)` | Set entry |
-| `remove(key)` | Remove entry |
-| `clear()` | Clear all entries |
-| `getMap()` | Get a `Map<K, V>` snapshot of all current entries |
-| `getTimestamp(key)` | Get the timestamp of the entry at key |
-| `size()` | Number of entries |
-| `ensureAvailable(key, ...)` | Block until an entry exists at key (with configurable timeout) |
+Accepts `name`, `expireTime`, `expireFn`, `timestampFn`, `replicate`, `serializeOldValue`, and
+`onChange`. See [`caching.md`](./caching.md) for the full parameter and API reference, expiry
+semantics, change-handler threading, and pitfalls.
 
 #### `createCachedValue()`
 
-Creates a `CachedValue<T>` — a single-value cache. Ideal for expensive computations that should
-be shared across a cluster.
+Creates a `CachedValue<V>` — a single-value cache with a closely parallel set of expiry and
+replication options. Ideal for an expensive computation that should be shared across a cluster.
 
 ```groovy
 private CachedValue<Map> summary
 
 void init() {
-    summary = createCachedValue(
-        name: 'summary',
-        replicate: true,              // share across cluster (default: false)
-        expireTime: 30 * MINUTES
-    )
-}
-
-Map getSummary() {
-    summary.getOrCreate {
-        computeExpensiveSummary()
-    }
+    summary = createCachedValue(name: 'summary', replicate: true, expireTime: 30 * MINUTES)
 }
 ```
 
-Constructor parameters are the same as `Cache` above (minus `serializeOldValue`): `name`,
-`expireTime`, `expireFn`, `timestampFn`, `replicate`, and `onChange`.
-
-Key `CachedValue` API methods:
-
-| Method | Description |
-|--------|-------------|
-| `get()` | Get the value, or null |
-| `getOrCreate(Closure)` | Get, computing via closure if absent or expired |
-| `set(value)` | Set the value (replicates to cluster) |
-| `clear()` | Clear the value |
-| `getTimestamp()` | Get the timestamp of the current entry |
-| `ensureAvailable(...)` | Block until a value is populated (with configurable timeout) |
+Accepts `name`, `expireTime`, `expireFn`, `timestampFn`, `replicate`, and `onChange`. These mirror
+their `createCache()` counterparts but do not behave identically. See
+[`caching.md`](./caching.md#differences-from-cache) for how the two diverge.
 
 #### `createTimer()`
 
@@ -508,92 +453,11 @@ class Utils {
 }
 ```
 
-### The `getOrCreate` Pattern
+### Cache-centric Patterns
 
-The `getOrCreate` method on both `Cache` and `CachedValue` is a go-to pattern for lazily computing
-and caching expensive results. The closure runs only when the value is absent or expired, and the
-result is cached for subsequent calls:
-
-```groovy
-class CompanyService extends BaseService {
-
-    private Cache<String, Map> companyCache
-
-    void init() {
-        companyCache = createCache(
-            name: 'companies',
-            expireTime: 30 * MINUTES,
-            replicate: true
-        )
-    }
-
-    /** Returns company data, loading from the database only on cache miss. */
-    Map getCompany(String ticker) {
-        companyCache.getOrCreate(ticker) {
-            // This closure runs only when the entry is absent or expired.
-            // The key is passed as the closure argument.
-            loadCompanyFromDb(ticker)
-        }
-    }
-}
-```
-
-For single-value caches, `CachedValue.getOrCreate` works the same way without a key:
-
-```groovy
-private CachedValue<List<Map>> allCompanies
-
-Map getSummary() {
-    allCompanies.getOrCreate {
-        computeExpensiveSummary()
-    }
-}
-```
-
-### Timer-driven Cache Refresh
-
-A common pattern combines a timer with a replicated cache for periodically refreshed data. The
-primary instance fetches data on a timer and the cache replicates it to all instances:
-
-```groovy
-class MarketDataService extends BaseService {
-
-    private CachedValue<Map> marketData
-    private Timer refreshTimer
-
-    void init() {
-        marketData = createCachedValue(name: 'marketData', replicate: true)
-        refreshTimer = createTimer(
-            name: 'refreshMarketData',
-            runFn: this.&refreshMarketData,
-            interval: 'xhMarketDataRefreshSecs',  // interval from AppConfig
-            intervalUnits: SECONDS,
-            primaryOnly: true
-        )
-    }
-
-    Map getMarketData() {
-        marketData.get()
-    }
-
-    private void refreshMarketData() {
-        marketData.set(fetchFromExternalApi())
-    }
-}
-```
-
-Use `Timer.forceRun()` to trigger an immediate refresh without risk of overlapping the timer's
-regular execution. This is especially useful in `clearCaches()` implementations — rather than
-clearing the cache and leaving it empty until the next scheduled run, force the timer to re-run
-and repopulate the data:
-
-```groovy
-void clearCaches() {
-    super.clearCaches()
-    // Repopulate immediately via the existing timer — no risk of overlapping runs.
-    refreshTimer.forceRun()
-}
-```
+The `getOrCreate` lazy-computation pattern and the timer-driven refresh pattern (a `primaryOnly`
+timer populating a replicated cache) are documented in [`caching.md`](./caching.md), along with the
+use of `Timer.forceRun()` to repopulate a cache from within `clearCaches()`.
 
 ## Client Integration
 
@@ -631,6 +495,12 @@ void clearCaches() {
 All resources created via factory methods (`createCache`, `createCachedValue`, `createTimer`,
 `createIMap`, `createISet`) share a single namespace within each service. Using the same name for a
 cache and a timer will throw a `RuntimeException` at startup.
+
+### Cache-related pitfalls
+
+Pitfalls specific to `Cache` and `CachedValue` — synchronous vs. asynchronous `onChange` delivery,
+`replicate` silently changing handler timing, caching null, and inexact `size()` — are covered in
+[`caching.md`](./caching.md).
 
 ### Using Grails `render` instead of `renderJSON`
 

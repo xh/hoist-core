@@ -30,6 +30,7 @@ Bread-and-butter features used by every Hoist application.
 |----------|-------------|-------------|--------|
 | [`configuration.md`](../configuration.md) | AppConfig, ConfigService, ConfigDiffService, ConfigAdminController | AppConfig domain (typed values: `string\|int\|long\|double\|bool\|json\|pwd`), ConfigService typed getters, `clientVisible` flag, `pwd` encryption via Jasypt, required configs, `xhConfigChanged` event, config diffing across environments | Done |
 | [`preferences.md`](../preferences.md) | Preference, UserPreference, PrefService, PrefDiffService, PreferenceAdminController | Preference definitions vs UserPreference values, PrefService lookups, required prefs, pref diffing across environments | Done |
+| [`caching.md`](../caching.md) | `cache/` package (Cache, CacheEntry, CacheEntryChanged, CacheEntryListener), `cachedvalue/` package (CachedValue, CachedValueEntry, CachedValueChanged) | `createCache()` / `createCachedValue()` full reference, expiry (`expireTime`, `expireFn`, `timestampFn`), lazy vs. cull-timer eviction, `onChange` handler threading contract (sync only for non-clustered Cache), `serializeOldValue` and `oldValue` availability, `ensureAvailable()`, replication backing (ReplicatedMap vs ReliableTopic), clearing/invalidation, admin stats and per-cache loggers, Cache vs CachedValue vs IMap selection | Done |
 | [`clustering.md`](../clustering.md) | ClusterService, ClusterConfig, Cache, CachedValue, IMap, ReplicatedMap, Topic, Timer | Hazelcast cluster lifecycle, distributed data structures (Cache, CachedValue, IMap, ReplicatedMap), pub/sub via Topic (`subscribeToTopic`), primary instance coordination, `primaryOnly` timers, naming convention `{ClassName}[{resourceName}]`, ClusterService admin stats | Done |
 | [`activity-tracking.md`](../activity-tracking.md) | TrackLog, TrackService, TrackLoggingService, ClientErrorEmailService, FeedbackEmailService | TrackLog domain, TrackService (`track()` endpoint, `xhTrackReceived` event), category/severity system, elapsed timing, client error email notifications, feedback email routing, `xhActivityTrackingConfig` | Done |
 | [`json-handling.md`](../json-handling.md) | JSONSerializer, JSONParser, JSONFormat, custom serializers, BaseController | Custom Jackson-based serialization (not Grails converters), `renderJSON()` / `parseRequestJSON()` in controllers, JSONFormat trait for domain/POGO classes, registering custom serializer modules via `JSONSerializer.registerModules()`, built-in serializers | Done |
@@ -215,7 +216,7 @@ _For detailed session-by-session notes, see [docs-roadmap-log.md](./docs-roadmap
 ### Status Overview
 - **Priority 1 (Core Framework):** All 4 docs Done (base-classes, request-flow, authentication,
   authorization)
-- **Priority 2 (Core Features):** All 5 docs Done (configuration, preferences, clustering,
+- **Priority 2 (Core Features):** All 6 docs Done (configuration, preferences, caching, clustering,
   activity-tracking, json-handling)
 - **Priority 3 (Infrastructure):** 7 Done (logging, metrics, tracing, email, websocket, monitoring,
   http-client), 1 in Draft (exception-handling)
