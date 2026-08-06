@@ -331,3 +331,153 @@
     - `docs/planning/docs-roadmap-log.md` (this file, prior entries) — left intact per
       append-only convention; historical references to `repo.xh.io` are accurate to their
       time of writing
+
+### 2026-07-29 — Cache/CachedValue `onChange` threading contract documented
+
+Documented the change-handler threading contract for `Cache` and `CachedValue`, which was
+previously absent from all docs and Groovydoc. Prompted by a question about whether `replicate:
+true` affects how synchronously `onChange` handlers run — it does, and nothing said so.
+
+- **Behavior documented** (verified against source, not inferred):
+    - `Cache.put()` fires handlers *synchronously* on the calling thread only when
+      `useCluster` is false (`Cache.groovy:157`). When clustered, `put()` does not fire handlers
+      at all — a Hazelcast `ReplicatedMap` entry listener drives them asynchronously on a
+      Hazelcast event thread, on every instance including the originating one
+      (`CacheEntryListener.groovy`)
+    - `CachedValue.setInternal()` always dispatches via a Grails `Promise` (`task {}`,
+      `CachedValue.groovy:174`) regardless of `replicate` — so `Cache`-when-not-clustered is the
+      only synchronous combination of the four
+    - The switch is `replicate && ClusterService.multiInstanceEnabled`, not `replicate` alone.
+      `multiInstanceEnabled` defaults to true (`ClusterConfig.groovy:60`), so a dev environment
+      that sets it to `false` gets synchronous delivery where production gets asynchronous —
+      called out explicitly as a dev/prod divergence hazard
+- **`docs/base-classes.md`**: new `#### Change Handlers (onChange)` section under Resource
+  Factories with a 3-row delivery matrix, the `multiInstanceEnabled` caveat, exception-propagation
+  and once-per-instance consequences, a wrong/right code example, and an `oldValue` /
+  `serializeOldValue` note. `onChange` rows in the `createCache()` param table and the
+  `createCachedValue()` param paragraph now cross-reference it. New Common Pitfall: "Relying on
+  synchronous `onChange` delivery"
+- **`docs/clustering.md`**: short notes in the Cache and CachedValue sections (both linking to the
+  base-classes section rather than restating it) plus a new Common Pitfall, "Assuming `replicate`
+  doesn't change `onChange` timing"
+- **Groovydoc**: expanded `Cache.onChange`, `Cache.addChangeHandler`, `CachedValue.onChange`,
+  `CachedValue.addChangeHandler`
+- **Stale reference fixed**: `CacheEntryChanged.getOldValue()` Groovydoc cited
+  `optimizeRemoval = true`, a parameter that no longer exists — corrected to
+  `serializeOldValue = false` (the default) and noted that the getter returns null and warns.
+  Grep confirms no other `optimizeRemoval` references remain in the repo
+- **Registry**: added `onChange`/`addChangeHandler` keywords to `docs/base-classes.md` and
+  `replicate`/`onChange` to `docs/clustering.md` in `docs/doc-registry.json` for MCP
+  discoverability. No entries added or removed — both docs already registered and `Done`
+- Both docs remain `Done`; no status changes. `./gradlew assemble` passes
+- Pre-existing item **not** touched: `docs/changelog-format.md` (lines 19, 96) contains
+  `docs/upgrade-notes/v{NN}-upgrade-notes.md` links that a link checker flags as broken. These
+  are intentional template placeholders showing the naming pattern, not real links
+- Possible follow-up, not addressed here: `CacheEntryChanged.getOldValue()` logs a warning
+  whenever `serializeOldValue` is false, including on the non-clustered path where `put()` did
+  pass a real old value through and no serialization was involved. Behavior is consistent, but
+  the warning reads as a misconfiguration complaint in a case where nothing was misconfigured.
+  Worth revisiting whether the local path should surface `oldValue` without opt-in
+
+### 2026-07-30 — New doc: caching (extracted from base-classes + clustering)
+
+Created `docs/caching.md` as a dedicated home for the `cache/` and `cachedvalue/` packages. Prompted
+by the observation that the `onChange` threading work (previous entry) had pushed cache material to
+roughly a third of `base-classes.md` — a doc nominally about BaseService/BaseController/RestController.
+
+- **Scope decided interactively:** the 7 classes across `io.xh.hoist.cache` and
+  `io.xh.hoist.cachedvalue`. `IMap`, `ReplicatedMap`, `ISet`, and the Hibernate second-level cache
+  stay in `clustering.md` / `gorm-domain-objects.md` — this is not a general "caching in Hoist" doc
+- **Extraction depth:** `base-classes.md` keeps brief `createCache()` / `createCachedValue()`
+  subsections (minimal `init()` example, parameter names, pointer); all tables, semantics, patterns,
+  and pitfalls moved. `clustering.md` keeps only the Hazelcast mapping (backing structure per mode,
+  resource-name patterns, the `multiInstanceEnabled` caveat, `ensureAvailable` example)
+- **Relocated:** `createCache()`/`createCachedValue()` param + API tables, the whole
+  `Change Handlers (onChange)` section, `The getOrCreate Pattern`, `Timer-driven Cache Refresh`,
+  and 3 pitfalls (sync `onChange` reliance, `replicate` changing timing, large objects in replicated
+  caches). Left in place deliberately: `clearCachesConfigs` and the `super.clearCaches()` pitfall
+  (BaseService lifecycle, not cache mechanics), plus the non-serializable-values and
+  immediate-replication pitfalls (general to all Hazelcast structures)
+- **New material** (deliberately scoped to "light additions" per reviewer decision — Kryo
+  `serializeValue` mechanics, `CachedValueEntry` uuid dedup, and `ReliableTopic`
+  `retrieveInitialSequence` replay internals were left undocumented):
+    - `Choosing a Structure` — Cache vs CachedValue vs IMap vs ISet selection table
+    - `Differences from Cache` — added on review, after the reviewer flagged that describing
+      `CachedValue` as having "the same expiry and replication options" as `Cache` reads as a
+      guarantee that does not hold. Source comparison found six real divergences: no
+      `serializeOldValue` (so `oldValue` is always available), a null value that never expires
+      because `shouldExpire` short-circuits on it, `expireTime: 0` silently ignored because the
+      check is a Groovy truth test rather than a null test, no cull timer, a different replication
+      transport, and always-async `onChange`. The age comparison itself *is* equivalent
+      (`intervalElapsed` reduces to `now > timestamp + ttl`, matching `Cache`'s inline check), so
+      that one sameness claim is stated explicitly and kept
+    - `Expiration and Culling` — `expireTime` as closure, `expireFn` precedence over `expireTime`,
+      `timestampFn` semantics, lazy-on-access vs. the 15-minute `primaryOnly` cull timer
+    - `Waiting for Values: ensureAvailable()` — parameter table, `TimeoutException`, interaction with
+      the bounded `init()` window
+    - `Clearing and Invalidation` — why `clear()` removes key-wise (per-entry events + avoids a
+      Hazelcast `ReplicatedMap.clear()` error)
+    - `Admin Console` — `adminStats` fields per class, `comparableAdminStats` returning empty for
+      non-replicated caches, per-cache logger namespaces. Expanded on review after the reviewer read
+      the first draft as implying reporting was automatic and suspected services must surface cache
+      stats from their own `getAdminStats()`. Traced the code: reporting *is* automatic, but the
+      draft never said how, which is what made it ambiguous. Both `ServiceManagerService`
+      (Cluster > Services) and `ClusterObjectsService` (Cluster > Objects) walk `BaseService.resources`
+      and pick up anything implementing `AdminStats`; `createCache()` / `createCachedValue()` register
+      there via `addResource()`. Confirmed empirically that `DefaultRoleService` and
+      `AlertBannerService` add only *derived* data (counts, the current banner) to their own
+      `getAdminStats()`, never the cache's own stats. Section now documents the registration chain,
+      notes that `xh_`-prefixed resources are filtered from the Services tab, names the actual
+      `comparableAdminStats` keys, and warns that a directly-constructed cache is invisible to both
+      tabs — a concrete reason the factory methods are the only supported construction path
+    - Pitfalls: **caching null** (`put(key, null)` removes; a `getOrCreate` closure returning null
+      re-runs every call), **inexact `size()`** (counts expired-but-uncculled entries), and
+      **`asBoolean()` truthiness** (`if (cache)` tests non-empty, not non-null)
+- **Indexes:** `docs/README.md` row in Core Features + 2 Quick Reference entries;
+  `doc-registry.json` entry (`package` / `core-features`, 16 keywords); roadmap entry in Priority 2;
+  Status Overview updated 5 → 6 Core Features docs
+- Removed `onChange`/`addChangeHandler` from `base-classes.md`'s registry keywords (added in the
+  previous session) since that content now lives in `caching.md`; added `createISet` in their place.
+  Left `onChange` on `clustering.md`, which still discusses replication's effect on handler timing
+- **Shipped without a DRAFT banner and marked Done** at the reviewer's explicit direction, on the
+  basis that nothing is committed until they have read and approved it. Note this departs from the
+  usual Planned → Draft → Done convention; most of the content is relocated text that was already
+  reviewed as part of `base-classes.md` and `clustering.md`
+- `base-classes.md` 731 → 527 lines, stays Done (remaining content is unchanged reviewed text plus
+  pointers). `clustering.md` 443 → 399. New `caching.md` is 470 lines
+- Source-verified while writing, which surfaced four Groovydoc inaccuracies in the two packages.
+  All fixed in this session (comment-only; no behavior changed):
+    - `Cache.size()` read "may include *unexpired* entries that have not yet been culled" — it means
+      *expired*. Now states that it over-reports until culling and points at `getMap()`
+    - `expireTime` was described as "epochMillis Long" in **both** `Cache` and `CachedValue`. It is a
+      *duration* in ms — the implementation adds it to the entry timestamp
+      (`currentTimeMillis() > timestamp + expire`), so an epoch value would be nonsensical. Now
+      documented as a duration measured from the entry timestamp
+    - `CacheEntryChanged.key` carried a note that "when source of this change is a CachedValue, this
+      key will simply be the name of the CachedValue." Stale — `CachedValue` fires
+      `CachedValueChanged`, an unrelated class with no `key` and no inheritance link, and
+      `CacheEntryChanged.source` is typed `Cache`. The situation the note describes cannot occur
+    - `CachedValue.ensureAvailable()` said "wait for the *replicated* value" though it behaves
+      identically when not replicated
+- One underlying oddity found and deliberately **not** changed, flagged for a future decision:
+  `CachedValue.getTimestamp()` returns **0**, not null, before the value is ever set — the
+  uninitialized `CachedValueEntry` hard-codes `dateEntered = 0L` because Kryo serializes it as a
+  primitive `long`. Its Groovydoc previously claimed "or null if none". The comment now documents
+  the real behavior; whether the *behavior* should instead return null is a separate call, since it
+  also feeds `adminStats.timestamp`
+
+### 2026-07-30 (cont.) — Doc-consistency pass: missing v37 README row
+
+Ran the doc-links consistency check over all 33 docs after the `caching.md` extraction. The caching
+work itself reconciled clean (README row, registry entry, roadmap entry all present and accurate;
+0 broken links, 0 broken anchors). Two unrelated items surfaced:
+
+- **Fixed:** `docs/README.md`'s Upgrade Notes table was missing its `v37.0.0` row entirely. Every
+  other version from v34 through v40 was listed. The doc, its registry entry, and its roadmap entry
+  all existed, so only the README table was affected. Row added between v38 and v36 summarizing
+  OpenTelemetry tracing, the MCP server, `xhMetricsPublished`, and the `MetricsService` namespace
+  removal
+- **Not a defect:** `docs/changelog-format.md` (lines 19, 96) links to
+  `docs/upgrade-notes/v{NN}-upgrade-notes.md`, which any link checker reports as broken. These are
+  intentional template placeholders showing the filename pattern. Left as-is, and noted here so
+  future runs stop re-investigating them

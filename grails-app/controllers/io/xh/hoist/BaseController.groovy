@@ -66,14 +66,13 @@ abstract class BaseController implements LogSupport, IdentitySupport {
      * newline-terminated and no end delimiter.
      *
      * @param source - an Iterable or Iterator of elements to serialize, one per line.
-     * @param contentType - defaults to 'text/plain', which (unlike 'application/x-ndjson') is on
-     *      default gzip/compressible MIME lists. Override if your deployment compresses NDJSON.
+     * @param contentType - defaults to 'application/x-ndjson'.
      */
     @NamedVariant
-    protected void renderNdjson(Object source, @NamedParam String contentType = null) {
+    protected void renderNDJSON(Object source, @NamedParam String contentType = null) {
         Iterator<?> rows = source instanceof Iterator ? source : (source as Iterable).iterator()
 
-        response.contentType = contentType ?: 'text/plain'
+        response.contentType = contentType ?: 'application/x-ndjson'
         response.characterEncoding = 'UTF-8'
 
         BufferedOutputStream out = null
@@ -212,7 +211,7 @@ abstract class BaseController implements LogSupport, IdentitySupport {
     private static final int NDJSON_BUFFER_SIZE = 32 * 1024
 
     /**
-     * Deliberately non-JSON line written by {@link #renderNdjson} when a stream fails after the
+     * Deliberately non-JSON line written by {@link #renderNdJSON} when a stream fails after the
      * response has committed. Guarantees consumers see a parse failure rather than a truncated
      * stream that reads as complete. Never present in a successful response, which remains
      * standard NDJSON. No trailing newline — an incomplete final line reinforces the signal.
