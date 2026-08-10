@@ -133,6 +133,15 @@ class PrefService extends BaseService {
             it instanceof PreferenceSpec ? it : new PreferenceSpec(it as Map)
         }
 
+        // Validate all specs up-front - including those already in the database - and report every
+        // violation at once, so a single restart is enough to see (and fix) the full set.
+        List<String> errors = prefSpecs.collectMany { PreferenceSpec spec -> spec.validationErrors }
+        if (errors) {
+            throw new RuntimeException(
+                "Invalid PreferenceSpec(s) passed to ensureRequiredPrefsCreated:\n  " + errors.join('\n  ')
+            )
+        }
+
         def currPrefs = Preference.list(),
             created = 0
 

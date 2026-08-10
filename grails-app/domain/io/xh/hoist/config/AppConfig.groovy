@@ -25,6 +25,11 @@ class AppConfig implements JSONFormat, LogSupport {
 
     static List TYPES = ['string', 'int', 'long', 'double', 'bool', 'json', 'pwd']
 
+    // Field length limits, applied via `constraints` below and pre-validated for seeded configs
+    // by ConfigSpec.getValidationErrors(). Update in one place only.
+    static final int MAX_NAME_LENGTH = 50
+    static final int MAX_NOTE_LENGTH = 1200
+
     String name
     String value
     String valueType = 'string'
@@ -41,10 +46,10 @@ class AppConfig implements JSONFormat, LogSupport {
     }
 
     static constraints = {
-        name(unique: true, nullable: false, blank: false, maxSize: 50)
+        name(unique: true, nullable: false, blank: false, maxSize: AppConfig.MAX_NAME_LENGTH)
         value(nullable: false, blank: false, validator: AppConfig.isValid)
         valueType(inList: AppConfig.TYPES)
-        note(nullable: true, maxSize: 1200)
+        note(nullable: true, maxSize: AppConfig.MAX_NOTE_LENGTH)
         lastUpdatedBy(nullable: true, maxSize: 50)
         groupName(nullable: false, blank: false)
     }

@@ -15,6 +15,11 @@ class Preference implements JSONFormat {
 
     static List TYPES = ['string', 'int', 'long', 'double', 'bool', 'json']
 
+    // Field length limits, applied via `constraints` below and pre-validated for seeded prefs
+    // by PreferenceSpec.getValidationErrors(). Update in one place only.
+    static final int MAX_NAME_LENGTH = 50
+    static final int MAX_NOTES_LENGTH = 1200
+
     String name
     String type = 'string'
     String defaultValue
@@ -33,10 +38,10 @@ class Preference implements JSONFormat {
     }
 
     static constraints = {
-        name(maxSize: 50, unique: true)
+        name(maxSize: Preference.MAX_NAME_LENGTH, unique: true)
         type(maxSize: 20, inList: Preference.TYPES)
         defaultValue(validator: {String val, Preference obj -> obj.isValidForType(val) })
-        notes(nullable: true, maxSize: 1200)
+        notes(nullable: true, maxSize: Preference.MAX_NOTES_LENGTH)
         lastUpdatedBy(nullable: true, maxSize: 50)
         groupName(nullable: false, blank: false)
     }
