@@ -36,7 +36,6 @@
 * Typed (`typedClass`) configs should now declare `defaultValue: [:]` in their `ConfigSpec`, with
   defaults living solely on the `TypedConfigMap` subclass.
 
-
 ## 40.3.0 - 2026-07-16
 
 ### 🎁 New Features
