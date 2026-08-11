@@ -49,7 +49,25 @@ class XhViewController extends BaseController {
         renderJSON(viewService.updateInfo(token, parseRequestJSON()))
     }
 
+    def bulkUpdateInfo(String tokens) {
+        viewService.bulkUpdateInfo(tokens.split(',').toList(), parseRequestJSON())
+        renderSuccess()
+    }
+
     def updateValue(String token) {
         renderJSON(viewService.updateValue(token, parseRequestJSON()))
+    }
+
+    //------------------
+    // Group management
+    //------------------
+    def renameGroup(String type) {
+        Map data = parseRequestJSON()
+        renderJSON(viewService.renameGroup(
+            type,
+            data.from as String,
+            data.to as String,
+            data.isGlobal as boolean
+        ))
     }
 }
