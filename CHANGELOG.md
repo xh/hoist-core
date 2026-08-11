@@ -22,6 +22,9 @@
   also uses double-checked locking on a `volatile` field, so concurrent first-callers no longer each
   serialize the same object redundantly.
 
+* `AppConfig.formatForJSON` now includes a `resolvedValue` and a `defaultValue` (the code-declared
+  defaults) for JSON configs backed by a typed class. Supports the hoist-react v87 config editor.
+
 * Provides support for the nested view groups and bulk view editing in the hoist-react v87
   `ViewManager` Manage dialog, which requires this release. Backward compatible for earlier
   hoist-react clients. View groups are now slash-delimited paths supporting unlimited nesting
@@ -41,6 +44,9 @@
 * `ClientSpanData` now carries the `statusDescription` sent by client-relayed spans through to the
   exported span status, rather than discarding it. No behavioral change with current clients, which
   send an equivalent `exception` event.
+
+* Typed (`typedClass`) configs should now declare `defaultValue: [:]` in their `ConfigSpec`, with
+  defaults living solely on the `TypedConfigMap` subclass.
 
 * Fixed `ViewService.updateInfo` and `create` failing when passed `isPinned`. Both took the view
   type from the caller-supplied data (which the hoist-react `ViewManager` does not send on update)

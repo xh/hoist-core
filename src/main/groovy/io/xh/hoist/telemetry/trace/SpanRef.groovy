@@ -92,7 +92,20 @@ class SpanRef implements Closeable {
         }
     }
 
-    /** Record an exception as an event on the span. Does not change span status.*/
+    /**
+     * Record an exception as an event on the span, leaving the span's status untouched.
+     * No-op for {@link RoutineException}.
+     *
+     * Narrow variant, for handled exceptions on a span whose status is determined separately -
+     * notably a SERVER span, where {@link #setHttpStatusAndErrorStatus} derives status from the
+     * response code actually rendered to the client, and a handled 4xx should carry the exception
+     * event without failing the span.
+     *
+     * If nothing else is going to set the status, use {@link #recordExceptionAndErrorStatus}
+     * instead. Note that a throwable escaping {@link TraceService#withSpan} or
+     * {@link io.xh.hoist.telemetry.ObservedRun#run} is already recorded with an ERROR status by
+     * those entry points, so there is no need to record it again within the closure.
+     */
     void recordException(Throwable t) {
         // Skip routine exceptions -- Datadog's OTLP intake maps any exception event onto error.* tags.
         if (t instanceof RoutineException) return
@@ -102,6 +115,9 @@ class SpanRef implements Closeable {
     /**
      * Record an exception as an event on the span and mark the span status as ERROR
      * with a summary description derived from the throwable. No-op for {@link RoutineException}.
+     *
+     * The default for a throwable that failed the traced work. Prefer the narrower
+     * {@link #recordException} only when the span's status is owned elsewhere.
      */
     void recordExceptionAndErrorStatus(Throwable t) {
         // Skip routine exceptions -- Datadog's OTLP intake maps any exception event onto error.* tags.
