@@ -22,6 +22,9 @@
   also uses double-checked locking on a `volatile` field, so concurrent first-callers no longer each
   serialize the same object redundantly.
 
+* `AppConfig.formatForJSON` now includes a `resolvedValue` and a `defaultValue` (the code-declared
+  defaults) for JSON configs backed by a typed class. Supports the hoist-react v87 config editor.
+
 ### ⚙️ Technical
 
 * `ExceptionHandler` no longer attempts to render an error to an already-committed response,
@@ -29,6 +32,9 @@
 * `ClientSpanData` now carries the `statusDescription` sent by client-relayed spans through to the
   exported span status, rather than discarding it. No behavioral change with current clients, which
   send an equivalent `exception` event.
+
+* Typed (`typedClass`) configs should now declare `defaultValue: [:]` in their `ConfigSpec`, with
+  defaults living solely on the `TypedConfigMap` subclass.
 
 ## 40.3.0 - 2026-07-16
 
