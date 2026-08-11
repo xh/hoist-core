@@ -2,6 +2,34 @@
 
 ## 41.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* `AppConfig.formatForJSON` now includes a `resolvedValue` and a `defaultValue` (the code-declared
+  defaults) for JSON configs backed by a typed class. Supports the hoist-react v87 config editor.
+
+* Provides support for the nested view groups and bulk view editing in the hoist-react v87
+  `ViewManager` Manage dialog, which requires this release. Backward compatible for earlier
+  hoist-react clients. View groups are now slash-delimited paths supporting unlimited nesting
+  (e.g. `Reports/Sales/Monthly`), with new server-side support as follows:
+    * `ViewService.renameGroup` and a matching `xhView/renameGroup` endpoint rename or re-parent a
+      group along with its entire subtree, cascading to every view within it. The scope of the
+      rename is explicit - either the global views, or those owned by the requesting user.
+    * `JsonBlobService.renameGroup` provides the underlying support, rewriting `meta.group` across
+      all blobs of a given type within a single owner namespace in one transaction.
+    * `ViewService.bulkUpdateInfo` and a matching `xhView/bulkUpdateInfo` endpoint apply the same
+      metadata updates (e.g. visibility changes) to multiple views in a single call.
+
+### 🐞 Bug Fixes
+
+* Fixed `ViewService.updateInfo` and `create` failing when passed `isPinned`. Both took the view
+  type from the caller-supplied data (which the hoist-react `ViewManager` does not send on update)
+  rather than from the view itself.
+
+### ⚙️ Technical
+
+* Typed (`typedClass`) configs should now declare `defaultValue: [:]` in their `ConfigSpec`, with
+  defaults living solely on the `TypedConfigMap` subclass.
+
 ## 40.4.0 - 2026-08-03
 
 ### 🎁 New Features
@@ -22,21 +50,6 @@
   also uses double-checked locking on a `volatile` field, so concurrent first-callers no longer each
   serialize the same object redundantly.
 
-* `AppConfig.formatForJSON` now includes a `resolvedValue` and a `defaultValue` (the code-declared
-  defaults) for JSON configs backed by a typed class. Supports the hoist-react v87 config editor.
-
-* Provides support for the nested view groups and bulk view editing in the hoist-react v87
-  `ViewManager` Manage dialog, which requires this release. Backward compatible for earlier
-  hoist-react clients. View groups are now slash-delimited paths supporting unlimited nesting
-  (e.g. `Reports/Sales/Monthly`), with new server-side support as follows:
-    * `ViewService.renameGroup` and a matching `xhView/renameGroup` endpoint rename or re-parent a
-      group along with its entire subtree, cascading to every view within it. The scope of the
-      rename is explicit - either the global views, or those owned by the requesting user.
-    * `JsonBlobService.renameGroup` provides the underlying support, rewriting `meta.group` across
-      all blobs of a given type within a single owner namespace in one transaction.
-    * `ViewService.bulkUpdateInfo` and a matching `xhView/bulkUpdateInfo` endpoint apply the same
-      metadata updates (e.g. visibility changes) to multiple views in a single call.
-
 ### ⚙️ Technical
 
 * `ExceptionHandler` no longer attempts to render an error to an already-committed response,
@@ -44,13 +57,6 @@
 * `ClientSpanData` now carries the `statusDescription` sent by client-relayed spans through to the
   exported span status, rather than discarding it. No behavioral change with current clients, which
   send an equivalent `exception` event.
-
-* Typed (`typedClass`) configs should now declare `defaultValue: [:]` in their `ConfigSpec`, with
-  defaults living solely on the `TypedConfigMap` subclass.
-
-* Fixed `ViewService.updateInfo` and `create` failing when passed `isPinned`. Both took the view
-  type from the caller-supplied data (which the hoist-react `ViewManager` does not send on update)
-  rather than from the view itself.
 
 ## 40.3.0 - 2026-07-16
 
