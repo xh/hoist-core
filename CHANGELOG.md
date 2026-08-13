@@ -16,21 +16,36 @@
 
 ### 🎁 New Features
 
-* `AppConfig.formatForJSON` now includes a `resolvedValue` and a `defaultValue` (the code-declared
-  defaults) for JSON configs backed by a typed class. Supports the hoist-react v87 config editor.
-  * ⚠️Apps that bootstrap typed configs (via `typedClass`) should now declare `defaultValue: [:]` in
-    their `ConfigSpec`, with defaults living solely on the `TypedConfigMap` subclass.
-* View groups are now slash-delimited paths supporting unlimited nesting (e.g.
-  `Reports/Sales/Monthly`). The hoist-react v87 `ViewManager` Manage dialog requires this release
-  for its nested view groups and bulk view editing; earlier hoist-react clients continue to work
-  unchanged. New server-side APIs:
-    * `ViewService.renameGroup` and a matching `xhView/renameGroup` endpoint rename or re-parent a
-      group along with its entire subtree, cascading to every view within it. The scope of the
-      rename is explicit - either the global views, or those owned by the requesting user.
-    * `JsonBlobService.renameGroup` provides the underlying support, rewriting `meta.group` across
-      all blobs of a given type within a single owner namespace in one transaction.
-    * `ViewService.bulkUpdateInfo` and a matching `xhView/bulkUpdateInfo` endpoint apply the same
-      metadata updates (e.g. visibility changes) to multiple views in a single call.
+* `AppConfig.formatForJSON` now includes a `resolvedValue` and a `defaultValue` for each JSON config
+  that has a typed class. The `defaultValue` holds the defaults that the code declares. These two
+  fields support the hoist-react v87 config editor.
+    * ⚠️ An app that bootstraps a typed config with `typedClass` now gets a WARN at startup unless
+      it declares `defaultValue: [:]` in the `ConfigSpec`. Declare all defaults on the
+      `TypedConfigMap` subclass.
+* View groups are now paths that use a forward slash as the delimiter, e.g. `Reports/Sales/Monthly`.
+  A path can have an unlimited number of levels. The hoist-react v87 `ViewManager` Manage dialog
+  needs this release for its nested view groups and its bulk view edits. Earlier hoist-react clients
+  continue to work without a change. This release adds these server-side APIs:
+    * `ViewService.renameGroup` and the new `xhView/renameGroup` endpoint rename a group, or move it
+      to a different parent. The change includes the full subtree and every view in it. The caller
+      sets the scope: either global views, or views owned by the user performing the rename.
+    * `JsonBlobService.renameGroup` writes a new `meta.group` value to all blobs of a given type in
+      one owner namespace, in a single transaction. `ViewService` builds on this method.
+    * `ViewService.bulkUpdateInfo` and the new `xhView/bulkUpdateInfo` endpoint apply the same
+      metadata changes to more than one view in a single call.
+
+### ⚙️ Technical
+
+* `ExceptionHandler` now logs a Grails `ValidationException` at DEBUG, not at ERROR. This level
+  agrees with the 400 status that the handler already sends to the client. A new `isRoutine()`
+  method makes this check. Application code can also call `isRoutine()` on an exception that it
+  catches before the response boundary.
+* Hoist now bootstraps its own `xh` configs with `defaultValue: [:]`. The defaults for these configs
+  are only on the related `TypedConfigMap` class.
+    * ⚠️ In a new database, Hoist creates these config rows with the value `{}`. To read an `xh`
+      config, use `configService.getObject(SomeConfig)` to get the typed defaults. A call to
+      `configService.getMap('xhSomeConfig')` now returns an empty map. Existing databases do not
+      change, because their rows already have values.
 
 ## 40.4.0 - 2026-08-03
 
@@ -92,7 +107,7 @@
 
 ### 📚 Libraries
 
-* Grails `7.1.1 → 7.2.0`
+* Grails `7.1 → 7.2`
 * Gradle `8.14.4 → 8.14.5`
 
 ## 40.1.0 - 2026-06-04

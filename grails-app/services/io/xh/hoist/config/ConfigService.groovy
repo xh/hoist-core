@@ -187,8 +187,8 @@ class ConfigService extends BaseService {
      *  - Server code can load the config via {@link #getObject(Class)}.
      *  - The class's property-initializer defaults are applied at read time for any key missing
      *    from the stored map.
-     *  - A `WARN` is logged at startup for any key whose typed-class default differs from the
-     *    BootStrap `defaultValue`, flagging drift between the two.
+     *  - Defaults should live solely on the typed class - specs should declare
+     *    `defaultValue: [:]`, and a `WARN` is logged at startup for any that do not.
      *
      * @param configSpecs - List of {@link ConfigSpec} defining the required configs.
      */

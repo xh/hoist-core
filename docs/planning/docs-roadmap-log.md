@@ -481,3 +481,26 @@ work itself reconciled clean (README row, registry entry, roadmap entry all pres
   `docs/upgrade-notes/v{NN}-upgrade-notes.md`, which any link checker reports as broken. These are
   intentional template placeholders showing the filename pattern. Left as-is, and noted here so
   future runs stop re-investigating them
+
+### 2026-08-13 — Simplified Technical English adopted for CHANGELOG entries
+
+XH is moving written docs and changelogs to the [ASD-STE100](https://asd-ste100.org) Simplified
+Technical English standard. First application: `docs/changelog-format.md` gained a
+`## Simplified Technical English` section, and the doc's own prose was rewritten to conform.
+
+- **New guidance:** a 9-row Core Rules table (sentence length, active voice with a named subject,
+  no participial clauses, simple tenses, one word one meaning, noun-cluster limit, `because` for
+  cause, full stop over semicolon, no slash as a conjunction), plus a Modals table that retires
+  `should` in favor of stating the consequence. Articles and contractions are covered in prose
+  rather than as table rows - the rule names are self-executing and the examples were straw men
+- **Every table row is a parallel pair** - both cells carry the same content so the lesson is the
+  diff between them. An early draft had rows whose two cells described different things, which
+  teaches nothing. Worth preserving as a review check on any future rule added here
+- **Interaction with existing conventions is explicit:** STE governs sentence construction and does
+  not displace the verb-first / symbol-first openers, the explicit-subject rule, or the ASCII
+  punctuation rule. Where the two conflict, the section-specific rule wins
+- **Also tightened:** the Libraries section now requires both sides of the arrow to be abbreviated
+  to the same depth. The examples had been showing `6.2.3 → 7.0`, violating the rule they
+  illustrated. The 40.2.0 entry's `Grails 7.1.1 → 7.2.0` was normalized to `7.1 → 7.2`
+- The `41.0-SNAPSHOT` CHANGELOG entry was rewritten to the new standard and serves as the worked
+  reference for it

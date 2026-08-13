@@ -205,8 +205,8 @@
             "title": "CHANGELOG Entry Format",
             "mcpCategory": "conventions",
             "viewerCategory": "devops",
-            "description": "Conventions for writing and reviewing CHANGELOG entries in the hoist-core library CHANGELOG — section headers, voice/tense, difficulty ratings, breaking changes, libraries.",
-            "keywords": ["CHANGELOG", "changelog", "release notes", "breaking changes", "difficulty rating", "entry format"]
+            "description": "Conventions for writing and reviewing CHANGELOG entries in the hoist-core library CHANGELOG - section headers, voice/tense, Simplified Technical English, difficulty ratings, breaking changes, libraries.",
+            "keywords": ["CHANGELOG", "changelog", "release notes", "breaking changes", "difficulty rating", "entry format", "Simplified Technical English", "STE", "ASD-STE100", "plain language", "verb-first", "symbol-first"]
         },
         {
             "id": "docs/coding-conventions.md",
