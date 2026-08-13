@@ -21,27 +21,17 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
 /**
  * Service to query a set of LDAP servers for People, Groups, and Group memberships.
  *
- * Requires the following application configs:
- *      - 'xhLdapConfig' with the following options
- *          - enabled - true to enable
- *          - timeoutMs - time to wait for any individual search to resolve.
- *          - cacheExpireSecs - length of time to cache results.  Set to -1 to disable caching.
- *          - skipTlsCertVerification - true to accept untrusted certificates when binding
- *          - useMatchingRuleInChain - true to use Microsoft Active Directory's proprietary
- *           "LDAP_MATCHING_RULE_IN_CHAIN" rule (the magic `1.2.840.113556.1.4.1941` string below).
- *           This can be a more efficient way to resolve users in nested groups but should be used
- *           with caution, as it can trigger a large database walk, which has a significant
- *           performance impact that is unnecessary when queries are not expected to return deeply
- *           nested groups.
-*           - servers - list of servers to be queried, each containing:
-*              - host
-*              - baseUserDn
-*              - baseGroupDn
- *     - 'xhLdapUsername' - dn of query user.
- *     - 'xhLdapPassword' - password for user
+ * Requires the following soft configs:
+ * <ul>
+ *   <li>`xhLdapConfig` - connection, caching, and per-server search settings.
+ *       See {@link LdapConfig} for all supported options and their defaults.</li>
+ *   <li>`xhLdapUsername` - dn of the user to bind as when querying.</li>
+ *   <li>`xhLdapPassword` - password for the query user.</li>
+ * </ul>
  *
- * This service will cache results, per server, for the configured interval.
- * This service may return partial results if any particular server fails to return results.
+ * <p>Servers are queried in the order configured, with results cached per server and filter for
+ * `xhLdapConfig.cacheExpireSecs`. Queries run with `strictMode = false` will log and skip any
+ * server that fails to respond, meaning callers can receive partial results.
  */
 class LdapService extends BaseService {
 
@@ -54,22 +44,38 @@ class LdapService extends BaseService {
 
     static clearCachesConfigs = ['xhLdapConfig', 'xhLdapUsername', 'xhLdapPassword']
 
+    /**
+     * True if configured for use - all query methods below will throw if called when false.
+     */
     boolean getEnabled() {
         config.enabled
     }
 
+    /**
+     * Lookup a single user by account name, returning the first match across all servers.
+     * @param sName - sAMAccountName for user.
+     * @return matching user, or null if not found.
+     */
     LdapPerson lookupUser(String sName) {
         withDebug(["Looking up user", [sAMAccountName: sName]]) {
             searchOne("(sAMAccountName=$sName) ", LdapPerson, true)
         }
     }
 
+    /**
+     * Lookup all members of a single group, including members of any nested groups.
+     * @param dn - distinguished name of the group.
+     */
     List<LdapPerson> lookupGroupMembers(String dn) {
         withDebug(["Looking up group members", [dn: dn]]) {
             lookupGroupMembersInternal(dn, true)
         }
     }
 
+    /**
+     * Find all groups with an account name containing the given substring.
+     * @param sNamePart - partial sAMAccountName, matched with leading and trailing wildcards.
+     */
     List<LdapGroup> findGroups(String sNamePart) {
         withDebug("Finding groups with name matching *$sNamePart") {
             searchMany("(sAMAccountName=*$sNamePart*)", LdapGroup, true)
@@ -183,7 +189,7 @@ class LdapService extends BaseService {
     }
 
     private List<LdapPerson> lookupGroupMembersInternal(String dn, boolean strictMode) {
-        // See class-level comment regarding this AD-specific query
+        // See LdapConfig.useMatchingRuleInChain regarding this AD-specific query
         config.useMatchingRuleInChain ?
             searchMany("(|(memberOf=$dn) (memberOf:1.2.840.113556.1.4.1941:=$dn))", LdapPerson, strictMode) :
             lookupMembersRecursive(dn, strictMode).values().asList()
