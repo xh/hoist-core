@@ -198,11 +198,18 @@ class DefaultRoleService extends BaseRoleService {
      * <p>If strictMode is true, implementations must throw on any partial failure. Otherwise
      * they log the failure and return whatever groups they can load.
      *
+     * <p>If no directory service is enabled, the default implementation returns an error
+     * description for every group rather than throwing, keeping role resolution and the Admin
+     * Console UI functional (with inline warnings) in a misconfigured app.
+     *
      * @return Map of directory group identifier to either a Set of assigned usernames (on
      *         success) or a String description of the lookup error (on failure).
      */
     protected Map<String, Object> doLoadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
-        directoryService.loadUsersForDirectoryGroups(groups, strictMode)
+        def svc = directoryService
+        if (!groups) return emptyMap()
+        if (!svc.enabled) return notEnabledResult(groups)
+        svc.loadUsersForDirectoryGroups(groups, strictMode)
     }
 
     /**
@@ -240,9 +247,7 @@ class DefaultRoleService extends BaseRoleService {
     Map<String, Object> describeDirectoryGroups(Set<String> groups) {
         def svc = directoryService
         if (!groups) return emptyMap()
-        if (!svc.enabled) {
-            return groups.collectEntries { [it, 'No enabled directory service in this application'] }
-        }
+        if (!svc.enabled) return notEnabledResult(groups)
         svc.describeDirectoryGroups(groups)
     }
 
@@ -340,6 +345,16 @@ class DefaultRoleService extends BaseRoleService {
     /** Framework entry point for directory group resolution - apps override {@link #doLoadUsersForDirectoryGroups}. */
     final Map<String, Object> loadUsersForDirectoryGroups(Set<String> directoryGroups, boolean strictMode) {
         doLoadUsersForDirectoryGroups(directoryGroups, strictMode)
+    }
+
+    /**
+     * Per-group error descriptions for when no enabled {@link DirectoryService} is available.
+     * DirectoryService methods throw when called while not enabled - this service instead
+     * degrades gracefully, reporting the problem as data that role resolution can log and the
+     * Admin Console UI can render as inline warnings.
+     */
+    private Map<String, Object> notEnabledResult(Set<String> groups) {
+        groups.collectEntries { [it, 'No enabled directory service in this application'] }
     }
 
     void refreshRoleAssignments() {

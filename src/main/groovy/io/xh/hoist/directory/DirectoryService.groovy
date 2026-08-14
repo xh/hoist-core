@@ -20,10 +20,17 @@ package io.xh.hoist.directory
  * <p>This interface is deliberately narrow. It models only what role resolution and its Admin
  * Console UI require. Richer user and group query APIs remain on the implementing services,
  * with provider-specific types.
+ *
+ * <p>The group resolution methods below throw if called when {@link #getEnabled} is false -
+ * callers are expected to check that flag first and degrade gracefully, as
+ * {@code DefaultRoleService} does for its role resolution and Admin Console endpoints.
  */
 interface DirectoryService {
 
-    /** True if this service is configured for use. */
+    /**
+     * True if this service is configured for use. The group resolution methods on this
+     * interface throw if called when false.
+     */
     boolean getEnabled()
 
     /**

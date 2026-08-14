@@ -195,10 +195,8 @@ class EntraIdService extends BaseService implements DirectoryService {
     }
 
     Map<String, Object> loadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
+        ensureEnabled()
         if (!groups) return emptyMap()
-        if (!enabled) {
-            return groups.collectEntries { [it, 'EntraIdService not enabled in this application'] }
-        }
 
         def conf = config
         String userAttr = conf.usernameAttribute
@@ -215,12 +213,14 @@ class EntraIdService extends BaseService implements DirectoryService {
     }
 
     Map<String, Object> describeDirectoryGroups(Set<String> groups) {
+        ensureEnabled()
         lookupGroups(groups, false).collectEntries { id, group ->
             [id, group ? group.formatForJSON() : 'Directory Group not found']
         } as Map<String, Object>
     }
 
     List<Map> searchDirectoryGroups(String namePart) {
+        ensureEnabled()
         findGroups(namePart).collect { it.formatForJSON() }
     }
 

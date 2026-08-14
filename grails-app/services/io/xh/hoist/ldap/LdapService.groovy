@@ -188,10 +188,8 @@ class LdapService extends BaseService implements DirectoryService {
      * `samaccountname` default is the long-standing convention for LDAP-backed role resolution.
      */
     Map<String, Object> loadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
+        ensureEnabled()
         if (!groups) return emptyMap()
-        if (!enabled) {
-            return groups.collectEntries { [it, 'LdapService not enabled in this application'] }
-        }
 
         String userAttr = config.usernameAttribute
         if (!(userAttr in LdapPerson.keys)) {
@@ -225,12 +223,14 @@ class LdapService extends BaseService implements DirectoryService {
     }
 
     Map<String, Object> describeDirectoryGroups(Set<String> groups) {
+        ensureEnabled()
         lookupGroups(groups, false).collectEntries { dn, group ->
             [dn, group ? [id: dn, displayName: group.cn ?: group.name ?: dn] : 'Directory Group not found']
         } as Map<String, Object>
     }
 
     List<Map> searchDirectoryGroups(String namePart) {
+        ensureEnabled()
         findGroups(namePart).collect {
             [id: it.distinguishedname, displayName: it.cn ?: it.name ?: it.distinguishedname] as Map
         }
@@ -276,7 +276,7 @@ class LdapService extends BaseService implements DirectoryService {
     }
 
     private <T extends LdapObject> List<T> doQuery(LdapConfig.LdapServerOptions server, String baseFilter, Class<T> objType, boolean strictMode) {
-        if (!enabled) throw new RuntimeException('LdapService not enabled - check xhLdapConfig app config.')
+        ensureEnabled()
         if (queryUsername == 'none') throw new RuntimeException('LdapService enabled but query user not configured - check xhLdapUsername app config, or disable via xhLdapConfig.')
 
         boolean isPerson = LdapPerson.class.isAssignableFrom(objType)
@@ -329,6 +329,10 @@ class LdapService extends BaseService implements DirectoryService {
         }
 
         return new LdapNetworkConnection(ret)
+    }
+
+    private void ensureEnabled() {
+        if (!enabled) throw new RuntimeException('LdapService not enabled - check xhLdapConfig app config.')
     }
 
     private LdapConfig getConfig() {
