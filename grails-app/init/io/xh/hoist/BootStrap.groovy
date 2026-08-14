@@ -14,6 +14,7 @@ import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ChangelogConfig
 import io.xh.hoist.config.ConfigSpec
 import io.xh.hoist.config.IdleConfig
+import io.xh.hoist.entra.EntraIdConfig
 import io.xh.hoist.environment.EnvPollConfig
 import io.xh.hoist.export.ExportConfig
 import io.xh.hoist.ldap.LdapConfig
@@ -224,6 +225,21 @@ class BootStrap implements LogSupport {
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'True to enable the monitor tab included with the Hoist Admin console and the associated server-side jobs'
+            ),
+            new ConfigSpec(
+                name: 'xhEntraIdConfig',
+                valueType: 'json',
+                defaultValue: [:],
+                typedClass: EntraIdConfig,
+                groupName: 'xh.io',
+                note: 'Supports querying Microsoft Entra ID (via Microsoft Graph) for users and groups.'
+            ),
+            new ConfigSpec(
+                name: 'xhEntraIdClientSecret',
+                valueType: 'pwd',
+                defaultValue: 'none',
+                groupName: 'xh.io',
+                note: 'Client secret for the Entra ID app registration used by EntraIdService.'
             ),
             new ConfigSpec(
                 name: 'xhEnvPollConfig',

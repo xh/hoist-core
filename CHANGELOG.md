@@ -14,6 +14,25 @@
 
 ## 41.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Added `EntraIdService` - a new service that queries a Microsoft Entra ID tenant for users,
+  groups, and group memberships via the Microsoft Graph API. The service uses app-only (client
+  credentials) auth and is an opt-in alternative to `LdapService` for applications whose corporate
+  directory lives in Entra ID. Requires the new `xhEntraIdConfig` and `xhEntraIdClientSecret`
+  configs, and an app registration with admin-consented `GroupMember.Read.All` and `User.Read.All`
+  application permissions.
+* Added `DirectoryService` - a new interface that `LdapService` and `EntraIdService` both
+  implement. It models the resolution of "directory groups" to their member users for
+  `DefaultRoleService`, which now selects an enabled implementation to resolve directory-group
+  role memberships. The optional `directoryGroupProvider` key in `xhRoleModuleConfig` makes the
+  selection explicit when both services are enabled. Apps that use `LdapService` today do not
+  need to change - their existing configs and role data continue to work as before.
+* `DefaultRoleService` gained `describeDirectoryGroups` and `searchDirectoryGroups`, with matching
+  `roleAdmin/directoryGroupsInfo` and `roleAdmin/searchDirectoryGroups` endpoints. These let the
+  Admin Console show a display name for each assigned directory group and search the directory by
+  name - of particular value with Entra ID, where the stored group identifier is an opaque GUID.
+
 ## 40.5.0 - 2026-08-13
 
 ### 🎁 New Features

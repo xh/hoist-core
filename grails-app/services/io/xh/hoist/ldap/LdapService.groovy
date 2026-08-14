@@ -8,6 +8,7 @@ package io.xh.hoist.ldap
 
 import io.xh.hoist.BaseService
 import io.xh.hoist.cache.Cache
+import io.xh.hoist.directory.DirectoryService
 import org.apache.directory.api.ldap.model.entry.Attribute
 import org.apache.directory.api.ldap.model.exception.LdapAuthenticationException
 import org.apache.directory.api.ldap.model.message.SearchScope
@@ -17,6 +18,7 @@ import org.apache.directory.ldap.client.api.NoVerificationTrustManager
 
 import static grails.async.Promises.task
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static java.util.Collections.emptyMap
 
 /**
  * Service to query a set of LDAP servers for People, Groups, and Group memberships.
@@ -33,7 +35,7 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
  * `xhLdapConfig.cacheExpireSecs`. Queries run with `strictMode = false` will log and skip any
  * server that fails to respond, meaning callers can receive partial results.
  */
-class LdapService extends BaseService {
+class LdapService extends BaseService implements DirectoryService {
 
     def configService
 
@@ -171,6 +173,66 @@ class LdapService extends BaseService {
             }
             logDebug('Authentication failed, no user found', [username: username])
             return false
+        }
+    }
+
+    //------------------------
+    // DirectoryService
+    //------------------------
+    String getDirectoryGroupsDescription() {
+        'Specify the full LDAP Distinguished Name (DN) for the directory group to be included.'
+    }
+
+    /**
+     * Usernames are the members' `xhLdapConfig.usernameAttribute` values, lowercased. The
+     * `samaccountname` default is the long-standing convention for LDAP-backed role resolution.
+     */
+    Map<String, Object> loadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
+        if (!groups) return emptyMap()
+        if (!enabled) {
+            return groups.collectEntries { [it, 'LdapService not enabled in this application'] }
+        }
+
+        String userAttr = config.usernameAttribute
+        if (!(userAttr in LdapPerson.keys)) {
+            def msg = "Invalid xhLdapConfig.usernameAttribute '$userAttr' - must be one of ${LdapPerson.keys}"
+            if (strictMode) throw new RuntimeException(msg)
+            logError(msg)
+            return groups.collectEntries { [it, msg] }
+        }
+
+        Set<String> foundGroups = new HashSet()
+        Map<String, Object> ret = [:]
+
+        // 1) Determine valid groups
+        lookupGroups(groups, strictMode).each { name, group ->
+            if (group) {
+                foundGroups << name
+            } else {
+                ret[name] = 'Directory Group not found'
+            }
+        }
+
+        // 2) Search for members of valid groups
+        lookupGroupMembers(foundGroups, strictMode).each { name, members ->
+            Set<String> users = members.collect(new HashSet()) { it[userAttr]?.toString()?.toLowerCase() }
+            // Exclude members without the username attribute (e.g. email-only contacts in a DL)
+            users.remove(null)
+            ret[name] = users
+        }
+
+        return ret
+    }
+
+    Map<String, Object> describeDirectoryGroups(Set<String> groups) {
+        lookupGroups(groups, false).collectEntries { dn, group ->
+            [dn, group ? [id: dn, displayName: group.cn ?: group.name ?: dn] : 'Directory Group not found']
+        } as Map<String, Object>
+    }
+
+    List<Map> searchDirectoryGroups(String namePart) {
+        findGroups(namePart).collect {
+            [id: it.distinguishedname, displayName: it.cn ?: it.name ?: it.distinguishedname] as Map
         }
     }
 
