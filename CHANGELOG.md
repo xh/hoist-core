@@ -27,9 +27,11 @@
 * Added `EntraIdService` - a new service that queries a Microsoft Entra ID tenant for users,
   groups, and group memberships via the Microsoft Graph API. The service uses app-only (client
   credentials) auth and is an opt-in alternative to `LdapService` for applications whose corporate
-  directory lives in Entra ID. Requires the new `xhEntraIdConfig` and `xhEntraIdClientSecret`
-  configs, and an app registration with admin-consented `GroupMember.Read.All` and `User.Read.All`
-  application permissions.
+  directory lives in Entra ID. Requires the new `xhEntraIdConfig`, `xhEntraTenantId`,
+  `xhEntraClientId`, and `xhEntraClientSecret` configs, and an app registration with
+  admin-consented `GroupMember.Read.All` and `User.Read.All` application permissions. The tenant
+  and client IDs are standalone, client-visible configs so that other subsystems (e.g. client-side
+  OAuth) can share them and deployments can override them per environment via instance configs.
 * Added `DirectoryService` - a new interface that `LdapService` and `EntraIdService` both
   implement. It models the resolution of "directory groups" to their member users for
   `DefaultRoleService`, which now selects an enabled implementation to resolve directory-group

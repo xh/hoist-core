@@ -11,8 +11,9 @@ import io.xh.hoist.json.JSONFormat
 /**
  * A group returned by {@link EntraIdService} queries against Microsoft Graph.
  *
- * <p>Properties map directly to Graph `group` resource fields. If you need more fields, extend
- * this class, add matching properties, and override {@link #getKeys}.
+ * <p>Properties map directly to Graph `group` resource fields. The set of fields requested and
+ * populated is fixed - EntraIdService does not currently support custom subclasses. Apps that
+ * need additional Graph fields should query Graph directly.
  */
 class EntraGroup implements JSONFormat {
 

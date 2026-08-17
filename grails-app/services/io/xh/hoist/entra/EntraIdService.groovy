@@ -48,10 +48,16 @@ import static java.util.Collections.emptyMap
  *
  * <p>Requires the following soft configs:
  * <ul>
- *   <li>`xhEntraIdConfig` - tenant, client, and query settings. See {@link EntraIdConfig} for
+ *   <li>`xhEntraIdConfig` - query settings and master switch. See {@link EntraIdConfig} for
  *       all supported options and their defaults.</li>
- *   <li>`xhEntraIdClientSecret` - client secret for the app registration.</li>
+ *   <li>`xhEntraTenantId` - tenant ID (GUID) of the Entra ID tenant.</li>
+ *   <li>`xhEntraClientId` - client ID (GUID) of the app registration.</li>
+ *   <li>`xhEntraClientSecret` - client secret for the app registration.</li>
  * </ul>
+ *
+ * <p>The tenant ID and client ID are standalone, client-visible configs so that other
+ * subsystems (e.g. a client-side OAuth implementation) can share them, and so that they can be
+ * overridden per environment via instance configs / environment variables.
  *
  * <p>Results are cached per query for `xhEntraIdConfig.cacheExpireSecs`. Queries run with
  * `strictMode = false` will log and absorb failures, meaning callers can receive partial
@@ -63,7 +69,9 @@ class EntraIdService extends BaseService implements DirectoryService {
 
     ConfigService configService
 
-    static clearCachesConfigs = ['xhEntraIdConfig', 'xhEntraIdClientSecret']
+    static clearCachesConfigs = [
+        'xhEntraIdConfig', 'xhEntraTenantId', 'xhEntraClientId', 'xhEntraClientSecret'
+    ]
 
     static final String GRAPH_BASE_URL = 'https://graph.microsoft.com/v1.0'
 
@@ -91,7 +99,7 @@ class EntraIdService extends BaseService implements DirectoryService {
         if (enabled) {
             try {
                 acquireAccessToken()
-                logInfo('Acquired Microsoft Graph access token', [tenantId: config.tenantId])
+                logInfo('Acquired Microsoft Graph access token', [tenantId: tenantId])
             } catch (Exception e) {
                 logError('Failed to acquire Microsoft Graph access token on startup', e)
             }
@@ -233,7 +241,7 @@ class EntraIdService extends BaseService implements DirectoryService {
     // Admin stats
     //------------------------
     Map getAdminStats() {[
-        config: configForAdminStats('xhEntraIdConfig'),
+        config: configForAdminStats('xhEntraIdConfig', 'xhEntraTenantId', 'xhEntraClientId'),
         enabled: enabled
     ]}
 
@@ -382,20 +390,31 @@ class EntraIdService extends BaseService implements DirectoryService {
 
     private synchronized IConfidentialClientApplication getMsalClient() {
         if (!_msalClient) {
-            def conf = config
-            if (!conf.tenantId || !conf.clientId) {
-                throw new RuntimeException('EntraIdService enabled but tenantId/clientId not configured - check xhEntraIdConfig app config.')
+            String tenantId = getTenantId(),
+                clientId = configValue('xhEntraClientId')
+            if (!tenantId || !clientId) {
+                throw new RuntimeException('EntraIdService enabled but tenant/client not configured - check xhEntraTenantId and xhEntraClientId app configs.')
             }
-            def secret = configService.getPwd('xhEntraIdClientSecret')
+            def secret = configService.getPwd('xhEntraClientSecret')
             if (!secret || secret == 'none') {
-                throw new RuntimeException('EntraIdService enabled but client secret not configured - check xhEntraIdClientSecret app config.')
+                throw new RuntimeException('EntraIdService enabled but client secret not configured - check xhEntraClientSecret app config.')
             }
             _msalClient = ConfidentialClientApplication
-                .builder(conf.clientId, ClientCredentialFactory.createFromSecret(secret))
-                .authority("https://login.microsoftonline.com/${conf.tenantId}")
+                .builder(clientId, ClientCredentialFactory.createFromSecret(secret))
+                .authority("https://login.microsoftonline.com/${tenantId}")
                 .build()
         }
         return _msalClient
+    }
+
+    private String getTenantId() {
+        configValue('xhEntraTenantId')
+    }
+
+    /** Value of a standalone string config, with the 'none' placeholder mapped to null. */
+    private String configValue(String name) {
+        String ret = configService.getString(name)
+        ret == 'none' ? null : ret
     }
 
     private synchronized JSONClient getJsonClient() {

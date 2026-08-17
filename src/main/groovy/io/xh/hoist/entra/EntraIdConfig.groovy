@@ -12,23 +12,15 @@ import io.xh.hoist.config.TypedConfigMap
  * Typed representation of the `xhEntraIdConfig` soft config, governing the optional
  * {@link EntraIdService} for Microsoft Entra ID user/group directory lookups.
  *
- * <p>Note that the client secret used to acquire Microsoft Graph access tokens is held
- * separately, in the `xhEntraIdClientSecret` config.
+ * <p>Note that the tenant ID, client ID, and client secret used to acquire Microsoft Graph
+ * access tokens are held separately, in the standalone `xhEntraTenantId`, `xhEntraClientId`,
+ * and `xhEntraClientSecret` configs. Those identify the tenant and app registration for the
+ * application as a whole and can be referenced by other subsystems (e.g. client-side OAuth).
  */
 class EntraIdConfig extends TypedConfigMap {
 
     /** Master switch - when false, all EntraIdService query methods will throw. */
     boolean enabled = false
-
-    /** Entra ID tenant ID (GUID) to query. */
-    String tenantId = ''
-
-    /**
-     * Client ID (GUID) of the Entra ID app registration used to query Microsoft Graph. The
-     * registration must hold admin-consented application permissions - see the EntraIdService
-     * class docs for the required permission set.
-     */
-    String clientId = ''
 
     /**
      * Graph user attribute mapped to the Hoist username when resolving group members, e.g.
