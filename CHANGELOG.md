@@ -14,6 +14,14 @@
 
 ## 41.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - most apps require no changes)
+
+* `DefaultRoleService.doLoadUsersForDirectoryGroups` now returns
+  `Map<String, ErrorOr<Set<String>>>` rather than a `Map<String, Object>` holding either a `Set`
+  of usernames or a `String` error per group. Apps that do not override this method require no
+  changes. Apps that do override it must update their implementations to wrap returned values
+  with the new `ErrorOr.of(usernames)` / `ErrorOr.error(message)` factories.
+
 ### 🎁 New Features
 
 * Added `EntraIdService` - a new service that queries a Microsoft Entra ID tenant for users,
@@ -27,7 +35,12 @@
   `DefaultRoleService`, which now selects an enabled implementation to resolve directory-group
   role memberships. The optional `directoryGroupProvider` key in `xhRoleModuleConfig` makes the
   selection explicit when both services are enabled. Apps that use `LdapService` today do not
-  need to change - their existing configs and role data continue to work as before.
+  need to change their configs or role data, but apps that override
+  `doLoadUsersForDirectoryGroups` must make a small mechanical update - see Breaking Changes.
+* Added `ErrorOr` - a small generic holder for the result of an operation that can either succeed
+  with a value or fail with a String error description, used within batch results where per-entry
+  failures are reported as data alongside successful entries. Serializes to JSON as the bare
+  value or error String.
 * `DefaultRoleService` gained `describeDirectoryGroups` and `searchDirectoryGroups`, with matching
   `roleAdmin/directoryGroupsInfo` and `roleAdmin/searchDirectoryGroups` endpoints. These let the
   Admin Console show a display name for each assigned directory group and search the directory by

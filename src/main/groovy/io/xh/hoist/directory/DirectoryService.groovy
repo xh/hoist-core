@@ -6,6 +6,8 @@
  */
 package io.xh.hoist.directory
 
+import io.xh.hoist.util.ErrorOr
+
 /**
  * Contract for services that resolve "directory groups" - groups maintained in an external
  * corporate directory such as LDAP / Active Directory or Microsoft Entra ID - into their member
@@ -48,20 +50,21 @@ interface DirectoryService {
      *
      * @param groups - directory group identifiers, in the implementation-specific form
      *      described by {@link #getDirectoryGroupsDescription}.
-     * @return Map of directory group identifier to either a Set of assigned usernames (on
-     *      success) or a String description of the lookup error (on failure).
+     * @return Map of directory group identifier to an {@link ErrorOr} holding either the Set of
+     *      assigned usernames (on success) or a description of the lookup error (on failure).
      */
-    Map<String, Object> loadUsersForDirectoryGroups(Set<String> groups, boolean strictMode)
+    Map<String, ErrorOr<Set<String>>> loadUsersForDirectoryGroups(Set<String> groups, boolean strictMode)
 
     /**
      * Resolve display information for directory groups, for use by the Admin Console UI when
      * listing groups already assigned to roles.
      *
-     * @return Map of directory group identifier to either a Map with a `displayName` key (plus
-     *      any other implementation-specific detail keys) or a String description of the lookup
-     *      error. Implementations do not throw on individual lookup failures.
+     * @return Map of directory group identifier to an {@link ErrorOr} holding either a Map with
+     *      a `displayName` key (plus any other implementation-specific detail keys) or a
+     *      description of the lookup error. Implementations do not throw on individual lookup
+     *      failures.
      */
-    Map<String, Object> describeDirectoryGroups(Set<String> groups)
+    Map<String, ErrorOr<Map>> describeDirectoryGroups(Set<String> groups)
 
     /**
      * Search for directory groups by partial name, for use by the Admin Console UI when adding

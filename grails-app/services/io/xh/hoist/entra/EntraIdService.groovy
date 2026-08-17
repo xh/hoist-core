@@ -15,6 +15,7 @@ import io.xh.hoist.cache.Cache
 import io.xh.hoist.directory.DirectoryService
 import io.xh.hoist.exception.HttpException
 import io.xh.hoist.http.JSONClient
+import io.xh.hoist.util.ErrorOr
 import org.apache.hc.client5.http.classic.methods.HttpGet
 import org.apache.hc.core5.net.URIBuilder
 
@@ -194,7 +195,7 @@ class EntraIdService extends BaseService implements DirectoryService {
         'Specify the Entra ID object ID (GUID) of the directory group to be included.'
     }
 
-    Map<String, Object> loadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
+    Map<String, ErrorOr<Set<String>>> loadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
         ensureEnabled()
         if (!groups) return emptyMap()
 
@@ -205,18 +206,18 @@ class EntraIdService extends BaseService implements DirectoryService {
             def msg = "Invalid xhEntraIdConfig.usernameAttribute '$userAttr' - must be one of ${EntraUser.keys}"
             if (strictMode) throw new RuntimeException(msg)
             logError(msg)
-            return groups.collectEntries { [it, msg] }
+            return groups.collectEntries { [it, ErrorOr.error(msg)] }
         }
 
         groups.collectEntries { id -> [id, task { loadUsersForGroupInternal(id, userAttr, stripDomain, strictMode) }] }
-            .collectEntries { [it.key, it.value.get()] } as Map<String, Object>
+            .collectEntries { [it.key, it.value.get()] } as Map<String, ErrorOr<Set<String>>>
     }
 
-    Map<String, Object> describeDirectoryGroups(Set<String> groups) {
+    Map<String, ErrorOr<Map>> describeDirectoryGroups(Set<String> groups) {
         ensureEnabled()
         lookupGroups(groups, false).collectEntries { id, group ->
-            [id, group ? group.formatForJSON() : 'Directory Group not found']
-        } as Map<String, Object>
+            [id, group ? ErrorOr.of(group.formatForJSON()) : ErrorOr.error('Directory Group not found')]
+        } as Map<String, ErrorOr<Map>>
     }
 
     List<Map> searchDirectoryGroups(String namePart) {
@@ -294,10 +295,10 @@ class EntraIdService extends BaseService implements DirectoryService {
 
     /**
      * Resolve a single directory group to member usernames for the role management flow.
-     * Returns a Set of usernames on success, or a String error description when the group does
+     * Returns a successful ErrorOr with member usernames, or a failed one when the group does
      * not exist or (in non-strict mode) when the lookup fails.
      */
-    private Object loadUsersForGroupInternal(String id, String userAttr, boolean stripDomain, boolean strictMode) {
+    private ErrorOr<Set<String>> loadUsersForGroupInternal(String id, String userAttr, boolean stripDomain, boolean strictMode) {
         try {
             List<EntraUser> members = lookupGroupMembersInternal(id, true)
             Set<String> usernames = members.collect {
@@ -306,14 +307,14 @@ class EntraIdService extends BaseService implements DirectoryService {
             } as Set
             // Exclude members without a value for the configured username attribute.
             usernames.remove(null)
-            return usernames
+            return ErrorOr.of(usernames)
         } catch (Exception e) {
             // Group-not-found is reported as data, not thrown - matching the LDAP-based flow,
             // where admins can see and correct a bad group ID stored on a role.
-            if (isNotFound(e)) return 'Directory Group not found'
+            if (isNotFound(e)) return ErrorOr.error('Directory Group not found')
             if (strictMode) throw e
             logError('Error resolving users for directory group', [id: id], e)
-            return e.message ?: 'Error resolving directory group'
+            return ErrorOr.error(e.message ?: 'Error resolving directory group')
         }
     }
 

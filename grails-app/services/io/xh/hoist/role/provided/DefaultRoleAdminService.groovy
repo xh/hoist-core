@@ -41,16 +41,20 @@ class DefaultRoleAdminService extends BaseService {
         ensureEnabled()
 
         List<Role> roles = Role.list()
-        def usersForGroups = emptyMap(),
-            errorsForGroups = emptyMap()
+        Map<String, Set<String>> usersForGroups = emptyMap()
+        Map<String, String> errorsForGroups = emptyMap()
 
         if (defaultRoleService.directoryGroupsSupported) {
             Set<String> groups = roles.collectMany(new HashSet()) { it.directoryGroups }
             if (groups) {
                 try {
-                    Map<String, Object> groupsLookup = defaultRoleService.loadUsersForDirectoryGroups(groups, true)
-                    usersForGroups = groupsLookup.findAll { it.value instanceof Set }
-                    errorsForGroups = groupsLookup.findAll { !(it.value instanceof Set) }
+                    def groupsLookup = defaultRoleService.loadUsersForDirectoryGroups(groups, true)
+                    usersForGroups = groupsLookup
+                        .findAll { it.value.success }
+                        .collectEntries { [it.key, it.value.value] }
+                    errorsForGroups = groupsLookup
+                        .findAll { !it.value.success }
+                        .collectEntries { [it.key, it.value.error] }
                 } catch (Throwable e) {
                     def errMsg = 'Error resolving Directory Groups'
                     logError(errMsg, e)
@@ -136,7 +140,7 @@ class DefaultRoleAdminService extends BaseService {
     private List<EffectiveUser> getEffectiveUsers(
         List<EffectiveMember> effectiveAssignedUsers,
         List<EffectiveMember> effectiveGroups,
-        Map usersForDirectoryGroups
+        Map<String, Set<String>> usersForDirectoryGroups
     ) {
         Map<String, EffectiveUser> ret = [:].withDefault { new EffectiveUser([name: it]) }
 

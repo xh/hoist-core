@@ -16,6 +16,7 @@ import io.xh.hoist.entra.EntraIdService
 import io.xh.hoist.ldap.LdapService
 import io.xh.hoist.role.BaseRoleService
 import io.xh.hoist.user.HoistUser
+import io.xh.hoist.util.ErrorOr
 import io.xh.hoist.util.Timer
 
 import java.util.concurrent.ConcurrentHashMap
@@ -99,7 +100,7 @@ class DefaultRoleService extends BaseRoleService {
     protected ConcurrentMap<String, Set<String>> _roleAssignmentsByUser = new ConcurrentHashMap<>()
 
     // Local state for primary when computing role assignment
-    protected Map<String, Object> _usersForDirectoryGroups = emptyMap()
+    protected Map<String, Set<String>> _usersForDirectoryGroups = emptyMap()
 
     // Support granting key Hoist admin roles to an instance-configured user in local dev only,
     // for initial bootstrapping during development when databased roles not yet created.
@@ -202,10 +203,10 @@ class DefaultRoleService extends BaseRoleService {
      * description for every group rather than throwing, keeping role resolution and the Admin
      * Console UI functional (with inline warnings) in a misconfigured app.
      *
-     * @return Map of directory group identifier to either a Set of assigned usernames (on
-     *         success) or a String description of the lookup error (on failure).
+     * @return Map of directory group identifier to an {@link ErrorOr} holding either the Set of
+     *         assigned usernames (on success) or a description of the lookup error (on failure).
      */
-    protected Map<String, Object> doLoadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
+    protected Map<String, ErrorOr<Set<String>>> doLoadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
         def svc = directoryService
         if (!groups) return emptyMap()
         if (!svc.enabled) return notEnabledResult(groups)
@@ -241,10 +242,10 @@ class DefaultRoleService extends BaseRoleService {
 
     /**
      * Resolve display information for directory groups already assigned to roles, for the
-     * Admin Console UI. Returns a Map of group identifier to either a Map with a `displayName`
-     * key or a String error description.
+     * Admin Console UI. Returns a Map of group identifier to an {@link ErrorOr} holding either
+     * a Map with a `displayName` key or a description of the lookup error.
      */
-    Map<String, Object> describeDirectoryGroups(Set<String> groups) {
+    Map<String, ErrorOr<Map>> describeDirectoryGroups(Set<String> groups) {
         def svc = directoryService
         if (!groups) return emptyMap()
         if (!svc.enabled) return notEnabledResult(groups)
@@ -343,18 +344,18 @@ class DefaultRoleService extends BaseRoleService {
     // Implementation/Framework
     //---------------------------
     /** Framework entry point for directory group resolution - apps override {@link #doLoadUsersForDirectoryGroups}. */
-    final Map<String, Object> loadUsersForDirectoryGroups(Set<String> directoryGroups, boolean strictMode) {
+    final Map<String, ErrorOr<Set<String>>> loadUsersForDirectoryGroups(Set<String> directoryGroups, boolean strictMode) {
         doLoadUsersForDirectoryGroups(directoryGroups, strictMode)
     }
 
     /**
-     * Per-group error descriptions for when no enabled {@link DirectoryService} is available.
+     * Per-group error results for when no enabled {@link DirectoryService} is available.
      * DirectoryService methods throw when called while not enabled - this service instead
      * degrades gracefully, reporting the problem as data that role resolution can log and the
      * Admin Console UI can render as inline warnings.
      */
-    private Map<String, Object> notEnabledResult(Set<String> groups) {
-        groups.collectEntries { [it, 'No enabled directory service in this application'] }
+    private <T> Map<String, ErrorOr<T>> notEnabledResult(Set<String> groups) {
+        groups.collectEntries { [it, ErrorOr.error('No enabled directory service in this application')] }
     }
 
     void refreshRoleAssignments() {
@@ -375,12 +376,12 @@ class DefaultRoleService extends BaseRoleService {
             // if we do have results, never replace them with non-complete/imperfect set.
             boolean strictMode = _usersForDirectoryGroups as boolean
             try {
-                Map<String, Object> usersForDirectoryGroups = [:]
+                Map<String, Set<String>> usersForDirectoryGroups = [:]
                 loadUsersForDirectoryGroups(groups, strictMode).each { k, v ->
-                    if (v instanceof Set) {
-                        usersForDirectoryGroups[k] = v
+                    if (v.success) {
+                        usersForDirectoryGroups[k] = v.value
                     } else {
-                        logError("Error resolving users for directory group", k, v)
+                        logError("Error resolving users for directory group", k, v.error)
                     }
                 }
                 _usersForDirectoryGroups = usersForDirectoryGroups

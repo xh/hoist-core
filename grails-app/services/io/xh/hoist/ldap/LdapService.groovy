@@ -9,6 +9,7 @@ package io.xh.hoist.ldap
 import io.xh.hoist.BaseService
 import io.xh.hoist.cache.Cache
 import io.xh.hoist.directory.DirectoryService
+import io.xh.hoist.util.ErrorOr
 import org.apache.directory.api.ldap.model.entry.Attribute
 import org.apache.directory.api.ldap.model.exception.LdapAuthenticationException
 import org.apache.directory.api.ldap.model.message.SearchScope
@@ -187,7 +188,7 @@ class LdapService extends BaseService implements DirectoryService {
      * Usernames are the members' `xhLdapConfig.usernameAttribute` values, lowercased. The
      * `samaccountname` default is the long-standing convention for LDAP-backed role resolution.
      */
-    Map<String, Object> loadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
+    Map<String, ErrorOr<Set<String>>> loadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
         ensureEnabled()
         if (!groups) return emptyMap()
 
@@ -196,18 +197,18 @@ class LdapService extends BaseService implements DirectoryService {
             def msg = "Invalid xhLdapConfig.usernameAttribute '$userAttr' - must be one of ${LdapPerson.keys}"
             if (strictMode) throw new RuntimeException(msg)
             logError(msg)
-            return groups.collectEntries { [it, msg] }
+            return groups.collectEntries { [it, ErrorOr.error(msg)] }
         }
 
         Set<String> foundGroups = new HashSet()
-        Map<String, Object> ret = [:]
+        Map<String, ErrorOr<Set<String>>> ret = [:]
 
         // 1) Determine valid groups
         lookupGroups(groups, strictMode).each { name, group ->
             if (group) {
                 foundGroups << name
             } else {
-                ret[name] = 'Directory Group not found'
+                ret[name] = ErrorOr.error('Directory Group not found')
             }
         }
 
@@ -216,17 +217,20 @@ class LdapService extends BaseService implements DirectoryService {
             Set<String> users = members.collect(new HashSet()) { it[userAttr]?.toString()?.toLowerCase() }
             // Exclude members without the username attribute (e.g. email-only contacts in a DL)
             users.remove(null)
-            ret[name] = users
+            ret[name] = ErrorOr.of(users)
         }
 
         return ret
     }
 
-    Map<String, Object> describeDirectoryGroups(Set<String> groups) {
+    Map<String, ErrorOr<Map>> describeDirectoryGroups(Set<String> groups) {
         ensureEnabled()
         lookupGroups(groups, false).collectEntries { dn, group ->
-            [dn, group ? [id: dn, displayName: group.cn ?: group.name ?: dn] : 'Directory Group not found']
-        } as Map<String, Object>
+            [dn, group ?
+                ErrorOr.of([id: dn, displayName: group.cn ?: group.name ?: dn]) :
+                ErrorOr.error('Directory Group not found')
+            ]
+        } as Map<String, ErrorOr<Map>>
     }
 
     List<Map> searchDirectoryGroups(String namePart) {
