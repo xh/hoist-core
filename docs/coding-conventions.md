@@ -971,6 +971,24 @@ This is especially important for **Hoist library code itself**, which is consume
 applications: the Groovydoc on a public type or method is effectively its contract, and should be
 written from the caller's perspective.
 
+### No Dash Between `@param`/`@throws` Names and Descriptions
+
+Write `@param ids set of group object IDs`, not `@param ids - set of...`. Doc tools (IntelliJ
+quick-doc, the Groovydoc/Javadoc doclet) render their own dash separator between the name and
+description, so a dash in the source doubles up in rendered output.
+
+```groovy
+// Do
+/**
+ * @param dns set of distinguished names.
+ * @param strictMode if true, this method will throw if any lookups fail.
+ */
+
+// Don't - renders as "dns - - set of distinguished names"
+/**
+ * @param dns - set of distinguished names.
+ */
+```
 
 ### Avoid Unicode in Code Comments
 
