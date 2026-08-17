@@ -319,7 +319,7 @@ class DefaultRoleService extends BaseRoleService {
      * <p>Note that this method does not modify roles that already exist. It cannot update the
      * membership of an existing role. It can only create new roles.
      *
-     * @param roleSpecs - List of {@link RoleSpec} defining the required roles.
+     * @param roleSpecs List of {@link RoleSpec} defining the required roles.
      */
     void ensureRequiredRolesCreated(List<RoleSpec> roleSpecs) {
         defaultRoleUpdateService.ensureRequiredRolesCreated(roleSpecs)

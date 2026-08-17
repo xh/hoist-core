@@ -288,6 +288,10 @@ Controllers use `renderJSON()` and `parseRequestJSON()`. Custom serializers are 
 - **Prefer Groovy collection methods** — Use `.collect()`, `.findAll()`, `.find()`,
   `.groupBy()`, `.collectEntries()`, `.sum()` etc. for collection operations. These are
   null-safe on the elements and more expressive than manual loops.
+- **No dash between `@param`/`@throws` names and descriptions** — Write
+  `@param ids set of group object IDs`, not `@param ids - set of...`. Doc tools (IntelliJ
+  quick-doc, the Groovydoc/Javadoc doclet) render their own dash separator between the name
+  and description, so a dash in the source doubles up in rendered output.
 
 ## Git Workflow
 

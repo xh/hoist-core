@@ -141,8 +141,8 @@ class EntraIdService extends BaseService implements DirectoryService {
 
     /**
      * Lookup a number of groups by object ID, in parallel.
-     * @param ids - set of group object IDs.
-     * @param strictMode - if true, this method will throw if any lookups fail, otherwise
+     * @param ids set of group object IDs.
+     * @param strictMode if true, this method will throw if any lookups fail, otherwise
      *      failed lookups will be logged and resolved as null. Groups that do not exist
      *      resolve as null in either mode.
      */
@@ -156,7 +156,7 @@ class EntraIdService extends BaseService implements DirectoryService {
 
     /**
      * Lookup all members of a single group, including members of any nested groups.
-     * @param id - group object ID.
+     * @param id group object ID.
      */
     List<EntraUser> lookupGroupMembers(String id) {
         withDebug(["Looking up group members", [id: id]]) {
@@ -167,8 +167,8 @@ class EntraIdService extends BaseService implements DirectoryService {
     /**
      * Lookup group members for a number of groups, in parallel. Nested group memberships are
      * resolved server-side by Graph and included.
-     * @param ids - set of group object IDs.
-     * @param strictMode - if true, this method will throw if any lookups fail, otherwise
+     * @param ids set of group object IDs.
+     * @param strictMode if true, this method will throw if any lookups fail, otherwise
      *      failed lookups will be logged and resolved as null.
      */
     Map<String, List<EntraUser>> lookupGroupMembers(Set<String> ids, boolean strictMode = false) {

@@ -56,7 +56,7 @@ class LdapService extends BaseService implements DirectoryService {
 
     /**
      * Lookup a single user by account name, returning the first match across all servers.
-     * @param sName - sAMAccountName for user.
+     * @param sName sAMAccountName for user.
      * @return matching user, or null if not found.
      */
     LdapPerson lookupUser(String sName) {
@@ -67,7 +67,7 @@ class LdapService extends BaseService implements DirectoryService {
 
     /**
      * Lookup all members of a single group, including members of any nested groups.
-     * @param dn - distinguished name of the group.
+     * @param dn distinguished name of the group.
      */
     List<LdapPerson> lookupGroupMembers(String dn) {
         withDebug(["Looking up group members", [dn: dn]]) {
@@ -77,7 +77,7 @@ class LdapService extends BaseService implements DirectoryService {
 
     /**
      * Find all groups with an account name containing the given substring.
-     * @param sNamePart - partial sAMAccountName, matched with leading and trailing wildcards.
+     * @param sNamePart partial sAMAccountName, matched with leading and trailing wildcards.
      */
     List<LdapGroup> findGroups(String sNamePart) {
         withDebug("Finding groups with name matching *$sNamePart") {
@@ -87,8 +87,8 @@ class LdapService extends BaseService implements DirectoryService {
 
     /**
      * Lookup a number of groups in parallel.
-     * @param dns - set of distinguished names.
-     * @param strictMode - if true, this method will throw if any lookups fail,
+     * @param dns set of distinguished names.
+     * @param strictMode if true, this method will throw if any lookups fail,
      *      otherwise, failed lookups will be logged, and resolved as null.
      */
     Map<String, LdapGroup> lookupGroups(Set<String> dns, boolean strictMode = false) {
@@ -101,8 +101,8 @@ class LdapService extends BaseService implements DirectoryService {
 
     /**
      * Lookup group members for a number of groups in parallel.
-     * @param dns - set of distinguished names.
-     * @param strictMode - if true, this method will throw if any lookups fail,
+     * @param dns set of distinguished names.
+     * @param strictMode if true, this method will throw if any lookups fail,
      *      otherwise, failed lookups will be logged, and resolved as an empty list.
      */
     Map<String, List<LdapPerson>> lookupGroupMembers(Set<String> dns, boolean strictMode = false) {
@@ -114,9 +114,9 @@ class LdapService extends BaseService implements DirectoryService {
 
     /**
      * Search for a single object, returning the first match found.
-     * @param baseFilter - an LDAP filter to be appended to the objectCategory filter.
-     * @param objType - type of Hoist-Core LdapObject to search for - must be or extend LdapObject, LdapPerson, or LdapGroup
-     * @param strictMode - if true, this method will throw if any lookups fail
+     * @param baseFilter an LDAP filter to be appended to the objectCategory filter.
+     * @param objType type of Hoist-Core LdapObject to search for - must be or extend LdapObject, LdapPerson, or LdapGroup
+     * @param strictMode if true, this method will throw if any lookups fail
      * @return first match found in the form of objType
      */
     <T extends LdapObject> T searchOne(String baseFilter, Class<T> objType, boolean strictMode) {
@@ -129,9 +129,9 @@ class LdapService extends BaseService implements DirectoryService {
 
     /**
      * Search for multiple objects, returning all matches found.
-     * @param baseFilter - an LDAP filter to be appended to the objectCategory filter.
-     * @param objType - type of Hoist-Core LdapObject to search for - must be or extend LdapObject, LdapPerson, or LdapGroup
-     * @param strictMode - if true, this method will throw if any lookups fail
+     * @param baseFilter an LDAP filter to be appended to the objectCategory filter.
+     * @param objType type of Hoist-Core LdapObject to search for - must be or extend LdapObject, LdapPerson, or LdapGroup
+     * @param strictMode if true, this method will throw if any lookups fail
      * @return list of all matches found in the form of objType
      */
     <T extends LdapObject> List<T> searchMany(String baseFilter, Class<T> objType, boolean strictMode) {
@@ -149,8 +149,8 @@ class LdapService extends BaseService implements DirectoryService {
      * application - it is intended to support an alternate form-based login strategy as a backup
      * to primary OAuth/SSO authentication.
      *
-     * @param username - sAMAccountName for user
-     * @param password - credentials for user
+     * @param username sAMAccountName for user
+     * @param password credentials for user
      * @return true if the password is valid and the test connection succeeds
      */
     boolean authenticate(String username, String password) {

@@ -48,7 +48,7 @@ interface DirectoryService {
      * <p>If strictMode is true, implementations must throw on any partial failure. Otherwise
      * they log the failure and return an error description for the affected groups.
      *
-     * @param groups - directory group identifiers, in the implementation-specific form
+     * @param groups directory group identifiers, in the implementation-specific form
      *      described by {@link #getDirectoryGroupsDescription}.
      * @return Map of directory group identifier to an {@link ErrorOr} holding either the Set of
      *      assigned usernames (on success) or a description of the lookup error (on failure).
