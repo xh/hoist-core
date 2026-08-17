@@ -35,8 +35,8 @@ detailed, step-by-step upgrade instructions with before/after code examples.
   directory lives in Entra ID. Requires the new `xhEntraIdConfig`, `xhEntraTenantId`,
   `xhEntraClientId`, and `xhEntraClientSecret` configs, and an app registration with
   admin-consented `GroupMember.Read.All` and `User.Read.All` application permissions. The tenant
-  and client IDs are standalone, client-visible configs so that other subsystems (e.g. client-side
-  OAuth) can share them and deployments can override them per environment via instance configs.
+  and client IDs are standalone configs so that other subsystems can share them and deployments
+  can override them per environment via instance configs.
 * Added `DirectoryService` - a new interface that `LdapService` and `EntraIdService` both
   implement. It models the resolution of "directory groups" to their member users for
   `DefaultRoleService`, which now selects an enabled implementation to resolve directory-group

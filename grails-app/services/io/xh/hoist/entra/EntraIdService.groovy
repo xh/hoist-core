@@ -55,9 +55,10 @@ import static java.util.Collections.emptyMap
  *   <li>`xhEntraClientSecret` - client secret for the app registration.</li>
  * </ul>
  *
- * <p>The tenant ID and client ID are standalone, client-visible configs so that other
- * subsystems (e.g. a client-side OAuth implementation) can share them, and so that they can be
- * overridden per environment via instance configs / environment variables.
+ * <p>The tenant ID and client ID are standalone configs so that other server-side subsystems
+ * can share them, and so that they can be overridden per environment via instance configs /
+ * environment variables. Apps whose clients need them pre-auth (e.g. for OAuth login) should
+ * relay them via their AuthenticationService's `getClientConfig()`.
  *
  * <p>Results are cached per query for `xhEntraIdConfig.cacheExpireSecs`. Queries run with
  * `strictMode = false` will log and absorb failures, meaning callers can receive partial

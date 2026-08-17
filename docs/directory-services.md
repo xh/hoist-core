@@ -145,15 +145,17 @@ Four soft-configs supply the connection:
 | `timeoutMs` | `10000` | Per-request timeout, applied to each page of a paged result |
 | `cacheExpireSecs` | `300` | Query result cache duration |
 
-- **`xhEntraTenantId`** (string, client-visible) - tenant ID (GUID) of the Entra ID tenant.
-- **`xhEntraClientId`** (string, client-visible) - client ID (GUID) of the app registration.
+- **`xhEntraTenantId`** (string) - tenant ID (GUID) of the Entra ID tenant.
+- **`xhEntraClientId`** (string) - client ID (GUID) of the app registration.
 - **`xhEntraClientSecret`** (pwd) - client secret for the app registration.
 
-The tenant ID and client ID are standalone, client-visible configs. Other subsystems - for
-example a client-side OAuth implementation - can share them, and deployments can override them
-per environment via instance configs / environment variables (e.g.
-`APP_MYAPP_XH_ENTRA_TENANT_ID`). See [`configuration.md`](./configuration.md) for the
-instance config override mechanism.
+The tenant ID and client ID are standalone configs. Other server-side subsystems can share
+them, and deployments can override them per environment via instance configs / environment
+variables (e.g. `APP_MYAPP_XH_ENTRA_TENANT_ID`). See
+[`configuration.md`](./configuration.md) for the instance config override mechanism. Apps
+whose clients need these values pre-auth (e.g. for OAuth login) should relay them via their
+`AuthenticationService.getClientConfig()` - see
+[`authentication.md`](./authentication.md).
 
 The service acquires a Graph access token at startup when enabled, so credential problems
 appear in the log immediately. A failure there does not block startup - queries retry token

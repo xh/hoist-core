@@ -238,17 +238,15 @@ class BootStrap implements LogSupport {
                 name: 'xhEntraTenantId',
                 valueType: 'string',
                 defaultValue: 'none',
-                clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Tenant ID (GUID) of the Microsoft Entra ID tenant for this application. Referenced by EntraIdService and available to client-side OAuth implementations. Commonly overridden per environment via an instance config / environment variable.'
+                note: 'Tenant ID (GUID) of the Microsoft Entra ID tenant for this application. Referenced by EntraIdService and any other subsystem that works with the tenant. Commonly overridden per environment via an instance config / environment variable. Relay to pre-auth clients (e.g. for OAuth login) via the app AuthenticationService.getClientConfig(), where needed.'
             ),
             new ConfigSpec(
                 name: 'xhEntraClientId',
                 valueType: 'string',
                 defaultValue: 'none',
-                clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Client ID (GUID) of the Entra ID app registration for this application. Referenced by EntraIdService and available to client-side OAuth implementations. Commonly overridden per environment via an instance config / environment variable.'
+                note: 'Client ID (GUID) of the Entra ID app registration for this application. Referenced by EntraIdService and any other subsystem that works with the registration. Commonly overridden per environment via an instance config / environment variable. Relay to pre-auth clients (e.g. for OAuth login) via the app AuthenticationService.getClientConfig(), where needed.'
             ),
             new ConfigSpec(
                 name: 'xhEntraClientSecret',
