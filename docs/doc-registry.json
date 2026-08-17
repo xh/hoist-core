@@ -46,7 +46,7 @@
             "mcpCategory": "concept",
             "viewerCategory": "core-framework",
             "description": "Authentication service contract and user identity.",
-            "keywords": ["BaseAuthenticationService", "BaseUserService", "HoistUser", "IdentityService", "impersonation"]
+            "keywords": ["BaseAuthenticationService", "BaseUserService", "HoistUser", "IdentityService", "HoistIdentity", "impersonation"]
         },
         {
             "id": "docs/authorization.md",
@@ -54,7 +54,15 @@
             "mcpCategory": "concept",
             "viewerCategory": "core-framework",
             "description": "Role-based access control and controller security annotations.",
-            "keywords": ["BaseRoleService", "DefaultRoleService", "Role", "RoleMember", "AccessRequiresRole", "AccessAll"]
+            "keywords": ["BaseRoleService", "DefaultRoleService", "Role", "RoleMember", "AccessRequiresRole", "AccessAll", "directory groups"]
+        },
+        {
+            "id": "docs/directory-services.md",
+            "title": "Directory Services (LDAP & Microsoft Entra ID)",
+            "mcpCategory": "package",
+            "viewerCategory": "core-framework",
+            "description": "Corporate directory integration for role resolution, username mapping, and LDAP-backed login.",
+            "keywords": ["DirectoryService", "LdapService", "EntraIdService", "Active Directory", "Microsoft Graph", "xhLdapConfig", "xhEntraIdConfig", "directoryGroupProvider", "usernameAttribute", "directory groups", "ErrorOr"]
         },
         {
             "id": "docs/configuration.md",

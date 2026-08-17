@@ -30,6 +30,8 @@ and conventions.
 | Trace an HTTP request through the framework | [`request-flow.md`](./request-flow.md) |
 | Implement authentication in your app | [`authentication.md`](./authentication.md) |
 | Set up roles and access control | [`authorization.md`](./authorization.md) |
+| Resolve role memberships from LDAP / Active Directory or Entra ID groups | [`directory-services.md`](./directory-services.md) |
+| Query a corporate directory for users or groups | [`directory-services.md`](./directory-services.md) |
 | Work with AppConfig (soft configuration) | [`configuration.md`](./configuration.md) |
 | Work with user preferences | [`preferences.md`](./preferences.md) |
 | Cache computed or fetched data in a service | [`caching.md`](./caching.md) |
@@ -65,6 +67,7 @@ Foundational patterns that everything else builds on.
 | [`request-flow.md`](./request-flow.md) | How an HTTP request flows through the Hoist framework | HoistCoreGrailsPlugin, HoistFilter, UrlMappings, HoistInterceptor, controller dispatch, JSON response |
 | [`authentication.md`](./authentication.md) | Authentication service contract and user identity | BaseAuthenticationService, BaseUserService, HoistUser, IdentityService, impersonation |
 | [`authorization.md`](./authorization.md) | Role-based access control and controller security annotations | BaseRoleService, DefaultRoleService, Role, RoleMember, `@AccessRequiresRole`, `@AccessAll`, built-in roles |
+| [`directory-services.md`](./directory-services.md) | Corporate directory integration for role resolution, username mapping, and LDAP-backed login | DirectoryService, LdapService, EntraIdService, Active Directory, Microsoft Graph, `xhLdapConfig`, `xhEntraIdConfig`, `directoryGroupProvider`, `usernameAttribute`, ErrorOr |
 
 ### Core Features
 
