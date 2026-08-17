@@ -6,8 +6,12 @@
  */
 package io.xh.hoist.ldap
 
+import grails.async.Promise
+import groovy.transform.CompileDynamic
+import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.cache.Cache
+import io.xh.hoist.config.ConfigService
 import io.xh.hoist.directory.DirectoryService
 import io.xh.hoist.util.ErrorOr
 import org.apache.directory.api.ldap.model.entry.Attribute
@@ -36,9 +40,10 @@ import static java.util.Collections.emptyMap
  * `xhLdapConfig.cacheExpireSecs`. Queries run with `strictMode = false` will log and skip any
  * server that fails to respond, meaning callers can receive partial results.
  */
+@CompileStatic
 class LdapService extends BaseService implements DirectoryService {
 
-    def configService
+    ConfigService configService
 
     private Cache<String, List<LdapObject>> cache = createCache(
         name: 'queryCache',
@@ -93,10 +98,10 @@ class LdapService extends BaseService implements DirectoryService {
      */
     Map<String, LdapGroup> lookupGroups(Set<String> dns, boolean strictMode = false) {
         withDebug(["Looking up groups", [dns: dns, strictMode: strictMode]]) {
-            dns.collectEntries { dn -> [dn, task { lookupGroupInternal(dn, strictMode) }] }
-                .collectEntries { [it.key, it.value.get()] } as Map<String, LdapGroup>
+            Map<String, Promise<LdapGroup>> tasks =
+                dns.collectEntries { String dn -> [dn, task { lookupGroupInternal(dn, strictMode) }] }
+            tasks.collectEntries { [it.key, it.value.get()] } as Map<String, LdapGroup>
         }
-
     }
 
     /**
@@ -107,8 +112,9 @@ class LdapService extends BaseService implements DirectoryService {
      */
     Map<String, List<LdapPerson>> lookupGroupMembers(Set<String> dns, boolean strictMode = false) {
         withDebug(["Looking up group members", [dns: dns, strictMode: strictMode]]) {
-            dns.collectEntries { dn -> [dn, task { lookupGroupMembersInternal(dn, strictMode) }] }
-                .collectEntries { [it.key, it.value.get()] } as Map<String, List<LdapPerson>>
+            Map<String, Promise<List<LdapPerson>>> tasks =
+                dns.collectEntries { String dn -> [dn, task { lookupGroupMembersInternal(dn, strictMode) }] }
+            tasks.collectEntries { [it.key, it.value.get()] } as Map<String, List<LdapPerson>>
         }
     }
 
@@ -279,6 +285,9 @@ class LdapService extends BaseService implements DirectoryService {
         return members
     }
 
+    // CompileDynamic to support the polymorphic static dispatch of objType.keys / objType.create,
+    // which resolves to the runtime Class - including app-defined LdapObject subclasses.
+    @CompileDynamic
     private <T extends LdapObject> List<T> doQuery(LdapConfig.LdapServerOptions server, String baseFilter, Class<T> objType, boolean strictMode) {
         ensureEnabled()
         if (queryUsername == 'none') throw new RuntimeException('LdapService enabled but query user not configured - check xhLdapUsername app config, or disable via xhLdapConfig.')
