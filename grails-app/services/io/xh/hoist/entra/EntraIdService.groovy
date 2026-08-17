@@ -413,7 +413,7 @@ class EntraIdService extends BaseService implements DirectoryService {
         keys.toList().collate(MAX_PARALLEL_LOOKUPS).each { batch ->
             Map<String, Promise<T>> tasks =
                 batch.collectEntries { String key -> [key, task { lookupFn(key) }] }
-            tasks.each { k, v -> ret[k] = v.get() }
+            tasks.each { k, v -> ret.put(k, v.get()) }
         }
         ret
     }

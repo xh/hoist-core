@@ -213,7 +213,7 @@ class LdapService extends BaseService implements DirectoryService {
             if (group) {
                 foundGroups << name
             } else {
-                ret[name] = ErrorOr.error('Directory Group not found')
+                ret.put(name, ErrorOr.error('Directory Group not found'))
             }
         }
 
@@ -222,7 +222,7 @@ class LdapService extends BaseService implements DirectoryService {
             Set<String> users = members.collect(new HashSet()) { it[userAttr]?.toString()?.toLowerCase() }
             // Exclude members without the username attribute (e.g. email-only contacts in a DL)
             users.remove(null)
-            ret[name] = ErrorOr.of(users)
+            ret.put(name, ErrorOr.of(users))
         }
 
         return ret
@@ -354,7 +354,7 @@ class LdapService extends BaseService implements DirectoryService {
         keys.toList().collate(MAX_PARALLEL_LOOKUPS).each { batch ->
             Map<String, Promise<T>> tasks =
                 batch.collectEntries { String key -> [key, task { lookupFn(key) }] }
-            tasks.each { k, v -> ret[k] = v.get() }
+            tasks.each { k, v -> ret.put(k, v.get()) }
         }
         ret
     }
