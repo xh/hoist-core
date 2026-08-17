@@ -45,6 +45,9 @@ class LdapService extends BaseService implements DirectoryService {
 
     ConfigService configService
 
+    /** Max lookups run concurrently by {@link #parallelLookup} - see that method for context. */
+    private static final int MAX_PARALLEL_LOOKUPS = 25
+
     private Cache<String, List<LdapObject>> cache = createCache(
         name: 'queryCache',
         expireTime: {config.cacheExpireSecs * SECONDS}
@@ -98,9 +101,7 @@ class LdapService extends BaseService implements DirectoryService {
      */
     Map<String, LdapGroup> lookupGroups(Set<String> dns, boolean strictMode = false) {
         withDebug(["Looking up groups", [dns: dns, strictMode: strictMode]]) {
-            Map<String, Promise<LdapGroup>> tasks =
-                dns.collectEntries { String dn -> [dn, task { lookupGroupInternal(dn, strictMode) }] }
-            tasks.collectEntries { [it.key, it.value.get()] } as Map<String, LdapGroup>
+            parallelLookup(dns) { String dn -> lookupGroupInternal(dn, strictMode) }
         }
     }
 
@@ -112,9 +113,7 @@ class LdapService extends BaseService implements DirectoryService {
      */
     Map<String, List<LdapPerson>> lookupGroupMembers(Set<String> dns, boolean strictMode = false) {
         withDebug(["Looking up group members", [dns: dns, strictMode: strictMode]]) {
-            Map<String, Promise<List<LdapPerson>>> tasks =
-                dns.collectEntries { String dn -> [dn, task { lookupGroupMembersInternal(dn, strictMode) }] }
-            tasks.collectEntries { [it.key, it.value.get()] } as Map<String, List<LdapPerson>>
+            parallelLookup(dns) { String dn -> lookupGroupMembersInternal(dn, strictMode) }
         }
     }
 
@@ -342,6 +341,22 @@ class LdapService extends BaseService implements DirectoryService {
         }
 
         return new LdapNetworkConnection(ret)
+    }
+
+    /**
+     * Run a per-key lookup with bounded parallelism - batches of up to MAX_PARALLEL_LOOKUPS
+     * keys run concurrently, with each batch awaited in full before the next begins. The bound
+     * is sized to run typical workloads in a single fully-parallel batch, while acting as a
+     * backstop against unbounded thread and connection fan-out from very large key sets.
+     */
+    private <T> Map<String, T> parallelLookup(Set<String> keys, Closure<T> lookupFn) {
+        Map<String, T> ret = [:]
+        keys.toList().collate(MAX_PARALLEL_LOOKUPS).each { batch ->
+            Map<String, Promise<T>> tasks =
+                batch.collectEntries { String key -> [key, task { lookupFn(key) }] }
+            tasks.each { k, v -> ret[k] = v.get() }
+        }
+        ret
     }
 
     private void ensureEnabled() {

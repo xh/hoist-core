@@ -73,6 +73,9 @@ class EntraIdService extends BaseService implements DirectoryService {
     private static final int MAX_RETRIES = 2
     private static final long RETRY_DELAY_MS = 2000
 
+    /** Max lookups run concurrently by {@link #parallelLookup} - see that method for context. */
+    private static final int MAX_PARALLEL_LOOKUPS = 25
+
     private Cache<String, Object> queryCache = createCache(
         name: 'queryCache',
         expireTime: { config.cacheExpireSecs * SECONDS }
@@ -148,9 +151,7 @@ class EntraIdService extends BaseService implements DirectoryService {
      */
     Map<String, EntraGroup> lookupGroups(Set<String> ids, boolean strictMode = false) {
         withDebug(["Looking up groups", [ids: ids, strictMode: strictMode]]) {
-            Map<String, Promise<EntraGroup>> tasks =
-                ids.collectEntries { String id -> [id, task { lookupGroupInternal(id, strictMode) }] }
-            tasks.collectEntries { [it.key, it.value.get()] } as Map<String, EntraGroup>
+            parallelLookup(ids) { String id -> lookupGroupInternal(id, strictMode) }
         }
     }
 
@@ -173,9 +174,7 @@ class EntraIdService extends BaseService implements DirectoryService {
      */
     Map<String, List<EntraUser>> lookupGroupMembers(Set<String> ids, boolean strictMode = false) {
         withDebug(["Looking up group members", [ids: ids, strictMode: strictMode]]) {
-            Map<String, Promise<List<EntraUser>>> tasks =
-                ids.collectEntries { String id -> [id, task { lookupGroupMembersInternal(id, strictMode) }] }
-            tasks.collectEntries { [it.key, it.value.get()] } as Map<String, List<EntraUser>>
+            parallelLookup(ids) { String id -> lookupGroupMembersInternal(id, strictMode) }
         }
     }
 
@@ -215,9 +214,7 @@ class EntraIdService extends BaseService implements DirectoryService {
             return groups.collectEntries { [it, ErrorOr.error(msg)] }
         }
 
-        Map<String, Promise<ErrorOr<Set<String>>>> tasks =
-            groups.collectEntries { String id -> [id, task { loadUsersForGroupInternal(id, userAttr, stripDomain, strictMode) }] }
-        tasks.collectEntries { [it.key, it.value.get()] } as Map<String, ErrorOr<Set<String>>>
+        parallelLookup(groups) { String id -> loadUsersForGroupInternal(id, userAttr, stripDomain, strictMode) }
     }
 
     Map<String, ErrorOr<Map>> describeDirectoryGroups(Set<String> groups) {
@@ -403,6 +400,22 @@ class EntraIdService extends BaseService implements DirectoryService {
 
     private synchronized JSONClient getJsonClient() {
         _jsonClient ?= new JSONClient()
+    }
+
+    /**
+     * Run a per-key lookup with bounded parallelism - batches of up to MAX_PARALLEL_LOOKUPS
+     * keys run concurrently, with each batch awaited in full before the next begins. The bound
+     * is sized to run typical workloads in a single fully-parallel batch, while acting as a
+     * backstop against unbounded thread and connection fan-out from very large key sets.
+     */
+    private <T> Map<String, T> parallelLookup(Set<String> keys, Closure<T> lookupFn) {
+        Map<String, T> ret = [:]
+        keys.toList().collate(MAX_PARALLEL_LOOKUPS).each { batch ->
+            Map<String, Promise<T>> tasks =
+                batch.collectEntries { String key -> [key, task { lookupFn(key) }] }
+            tasks.each { k, v -> ret[k] = v.get() }
+        }
+        ret
     }
 
     private void ensureEnabled() {
