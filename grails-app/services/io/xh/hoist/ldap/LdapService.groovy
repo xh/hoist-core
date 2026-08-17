@@ -63,13 +63,13 @@ class LdapService extends BaseService implements DirectoryService {
     }
 
     /**
-     * Lookup a single user by account name, returning the first match across all servers.
-     * @param sName sAMAccountName for user.
+     * Lookup a single user by username, returning the first match across all servers.
+     * @param username Hoist username, matched against `xhLdapConfig.usernameAttribute`.
      * @return matching user, or null if not found.
      */
-    LdapPerson lookupUser(String sName) {
-        withDebug(["Looking up user", [sAMAccountName: sName]]) {
-            searchOne("(sAMAccountName=$sName) ", LdapPerson, true)
+    LdapPerson lookupUser(String username) {
+        withDebug(["Looking up user", [username: username]]) {
+            searchOne("($usernameAttribute=$username)", LdapPerson, true)
         }
     }
 
@@ -154,7 +154,7 @@ class LdapService extends BaseService implements DirectoryService {
      * application - it is intended to support an alternate form-based login strategy as a backup
      * to primary OAuth/SSO authentication.
      *
-     * @param username sAMAccountName for user
+     * @param username Hoist username, matched against `xhLdapConfig.usernameAttribute`
      * @param password credentials for user
      * @return true if the password is valid and the test connection succeeds
      */
@@ -162,7 +162,7 @@ class LdapService extends BaseService implements DirectoryService {
         withDebug(["Attempting LDAP bind to authenticate user", [username: username]]) {
             for (server in config.servers) {
                 String host = server.host
-                List<LdapPerson> matches = doQuery(server, "(sAMAccountName=$username)", LdapPerson, true)
+                List<LdapPerson> matches = doQuery(server, "($usernameAttribute=$username)", LdapPerson, true)
                 if (matches) {
                     if (matches.size() > 1) throw new RuntimeException("Multiple user records found for $username")
                     LdapPerson user = matches.first()
@@ -361,6 +361,15 @@ class LdapService extends BaseService implements DirectoryService {
 
     private void ensureEnabled() {
         if (!enabled) throw new RuntimeException('LdapService not enabled - check xhLdapConfig app config.')
+    }
+
+    /** Validated `xhLdapConfig.usernameAttribute`, for username-based lookups that should fail fast. */
+    private String getUsernameAttribute() {
+        String ret = config.usernameAttribute
+        if (!(ret in LdapPerson.keys)) {
+            throw new RuntimeException("Invalid xhLdapConfig.usernameAttribute '$ret' - must be one of ${LdapPerson.keys}")
+        }
+        ret
     }
 
     private LdapConfig getConfig() {

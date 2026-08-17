@@ -37,6 +37,10 @@
   selection explicit when both services are enabled. Apps that use `LdapService` today do not
   need to change their configs or role data, but apps that override
   `doLoadUsersForDirectoryGroups` must make a small mechanical update - see Breaking Changes.
+* `LdapService` gained support for a new `usernameAttribute` key in `xhLdapConfig` (default
+  `samaccountname`) - the LDAP person attribute mapped to the Hoist username. It governs how
+  directory group members resolve to usernames for role management and is now also matched by
+  `lookupUser` and `authenticate`, which previously hardcoded `sAMAccountName`.
 * Added `ErrorOr` - a small generic holder for the result of an operation that can either succeed
   with a value or fail with a String error description, used within batch results where per-entry
   failures are reported as data alongside successful entries. Serializes to JSON as the bare

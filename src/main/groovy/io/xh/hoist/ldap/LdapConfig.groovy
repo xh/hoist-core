@@ -44,9 +44,10 @@ class LdapConfig extends TypedConfigMap {
     boolean skipTlsCertVerification = false
 
     /**
-     * LDAP person attribute mapped to the Hoist username when resolving group members for role
-     * management, e.g. `samaccountname` or `mail`. Values are lowercased. Members with no value
-     * for this attribute are excluded from results.
+     * LDAP person attribute mapped to the Hoist username, e.g. `samaccountname` or `mail`.
+     * Matched when resolving group members for role management and when looking up or
+     * authenticating users by username. Member values are lowercased when resolving groups,
+     * and members with no value for this attribute are excluded from those results.
      */
     String usernameAttribute = 'samaccountname'
 
