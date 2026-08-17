@@ -16,11 +16,16 @@
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - most apps require no changes)
 
+See [`docs/upgrade-notes/v41-upgrade-notes.md`](docs/upgrade-notes/v41-upgrade-notes.md) for
+detailed, step-by-step upgrade instructions with before/after code examples.
+
 * `DefaultRoleService.doLoadUsersForDirectoryGroups` now returns
   `Map<String, ErrorOr<Set<String>>>` rather than a `Map<String, Object>` holding either a `Set`
-  of usernames or a `String` error per group. Apps that do not override this method require no
-  changes. Apps that do override it must update their implementations to wrap returned values
-  with the new `ErrorOr.of(usernames)` / `ErrorOr.error(message)` factories.
+  of usernames or a `String` error per group. Apps that do not override or call this method
+  require no changes. Apps that override it must wrap returned values with the new
+  `ErrorOr.of(usernames)` / `ErrorOr.error(message)` factories, and any code that calls
+  `loadUsersForDirectoryGroups` and checks results with `instanceof Set` must read the new
+  `ErrorOr.success` / `value` / `error` properties instead.
 
 ### 🎁 New Features
 
@@ -51,6 +56,10 @@
   `roleAdmin/directoryGroupsInfo` and `roleAdmin/searchDirectoryGroups` endpoints. These let the
   Admin Console show a display name for each assigned directory group and search the directory by
   name - of particular value with Entra ID, where the stored group identifier is an opaque GUID.
+
+### 📚 Libraries
+
+* msal4j `added @ 1.25.1`
 
 ## 40.5.0 - 2026-08-13
 

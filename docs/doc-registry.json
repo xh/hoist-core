@@ -225,6 +225,14 @@
             "keywords": ["conventions", "coding standards", "style guide", "naming", "xh prefix", "LogSupport", "withInfo", "withDebug", "RoutineRuntimeException", "BaseService", "createCache", "createTimer", "clearCaches", "clearCachesConfigs", "ensureRequiredConfigsCreated", "configService", "AccessRequiresRole", "renderJSON", "parseRequestJSON", "ReadOnly", "Transactional", "N+1", "fetch join", "batchSize", "JSONFormat", "primaryOnly", "replicate", "JSONClient", "xhEmailOverride", "withNewSession", "pushToAllChannels", "pushToLocalChannels", "Groovy idioms", "commit messages", "no hard wrap"]
         },
         {
+            "id": "docs/upgrade-notes/v41-upgrade-notes.md",
+            "title": "v41 Upgrade Notes",
+            "mcpCategory": "devops",
+            "viewerCategory": "upgrade",
+            "description": "Upgrade guide from v40.x to v41. Low difficulty.",
+            "keywords": ["v41", "upgrade", "migration", "breaking changes", "v40"]
+        },
+        {
             "id": "docs/upgrade-notes/v40-upgrade-notes.md",
             "title": "v40 Upgrade Notes",
             "mcpCategory": "devops",
