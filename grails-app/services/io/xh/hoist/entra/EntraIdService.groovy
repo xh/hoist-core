@@ -10,8 +10,11 @@ import com.microsoft.aad.msal4j.ClientCredentialFactory
 import com.microsoft.aad.msal4j.ClientCredentialParameters
 import com.microsoft.aad.msal4j.ConfidentialClientApplication
 import com.microsoft.aad.msal4j.IConfidentialClientApplication
+import grails.async.Promise
+import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.cache.Cache
+import io.xh.hoist.config.ConfigService
 import io.xh.hoist.directory.DirectoryService
 import io.xh.hoist.exception.HttpException
 import io.xh.hoist.http.JSONClient
@@ -55,9 +58,10 @@ import static java.util.Collections.emptyMap
  * results. Graph throttling (HTTP 429) and server errors are retried a bounded number of times
  * before failing.
  */
+@CompileStatic
 class EntraIdService extends BaseService implements DirectoryService {
 
-    def configService
+    ConfigService configService
 
     static clearCachesConfigs = ['xhEntraIdConfig', 'xhEntraIdClientSecret']
 
@@ -144,8 +148,9 @@ class EntraIdService extends BaseService implements DirectoryService {
      */
     Map<String, EntraGroup> lookupGroups(Set<String> ids, boolean strictMode = false) {
         withDebug(["Looking up groups", [ids: ids, strictMode: strictMode]]) {
-            ids.collectEntries { id -> [id, task { lookupGroupInternal(id, strictMode) }] }
-                .collectEntries { [it.key, it.value.get()] } as Map<String, EntraGroup>
+            Map<String, Promise<EntraGroup>> tasks =
+                ids.collectEntries { String id -> [id, task { lookupGroupInternal(id, strictMode) }] }
+            tasks.collectEntries { [it.key, it.value.get()] } as Map<String, EntraGroup>
         }
     }
 
@@ -168,8 +173,9 @@ class EntraIdService extends BaseService implements DirectoryService {
      */
     Map<String, List<EntraUser>> lookupGroupMembers(Set<String> ids, boolean strictMode = false) {
         withDebug(["Looking up group members", [ids: ids, strictMode: strictMode]]) {
-            ids.collectEntries { id -> [id, task { lookupGroupMembersInternal(id, strictMode) }] }
-                .collectEntries { [it.key, it.value.get()] } as Map<String, List<EntraUser>>
+            Map<String, Promise<List<EntraUser>>> tasks =
+                ids.collectEntries { String id -> [id, task { lookupGroupMembersInternal(id, strictMode) }] }
+            tasks.collectEntries { [it.key, it.value.get()] } as Map<String, List<EntraUser>>
         }
     }
 
@@ -180,9 +186,9 @@ class EntraIdService extends BaseService implements DirectoryService {
         withDebug("Finding groups with name matching $namePart*") {
             // OData string literals escape embedded single quotes by doubling them.
             String escaped = namePart.replace("'", "''")
-            def raw = graphGetList('/groups', [
+            List<Map> raw = graphGetList('/groups', [
                 '$select': EntraGroup.keys.join(','),
-                '$filter': "startswith(displayName,'$escaped')"
+                '$filter': "startswith(displayName,'$escaped')".toString()
             ])
             raw.collect { EntraGroup.create(it) }
         }
@@ -209,8 +215,9 @@ class EntraIdService extends BaseService implements DirectoryService {
             return groups.collectEntries { [it, ErrorOr.error(msg)] }
         }
 
-        groups.collectEntries { id -> [id, task { loadUsersForGroupInternal(id, userAttr, stripDomain, strictMode) }] }
-            .collectEntries { [it.key, it.value.get()] } as Map<String, ErrorOr<Set<String>>>
+        Map<String, Promise<ErrorOr<Set<String>>>> tasks =
+            groups.collectEntries { String id -> [id, task { loadUsersForGroupInternal(id, userAttr, stripDomain, strictMode) }] }
+        tasks.collectEntries { [it.key, it.value.get()] } as Map<String, ErrorOr<Set<String>>>
     }
 
     Map<String, ErrorOr<Map>> describeDirectoryGroups(Set<String> groups) {
@@ -330,12 +337,12 @@ class EntraIdService extends BaseService implements DirectoryService {
 
     /** GET a Graph collection, following `@odata.nextLink` paging until exhausted. */
     private List<Map> graphGetList(String path, Map<String, String> params, Map<String, String> headers = [:]) {
-        def ret = []
+        List<Map> ret = []
         String url = buildUrl(path, params)
         while (url) {
             Map page = executeGraphGet(url, headers)
             def value = page.value
-            if (value instanceof List) ret.addAll(value)
+            if (value instanceof List) ret.addAll(value as List<Map>)
             url = page['@odata.nextLink']
         }
         return ret
