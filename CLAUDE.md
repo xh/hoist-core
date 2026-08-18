@@ -93,6 +93,11 @@ enable it for Claude Code.
 This is a plugin — `bootRun` is not supported. To run locally, use a wrapper app project that
 includes hoist-core as a dependency.
 
+For quick standalone Groovy script verification, check for a SDKMAN-managed runtime at
+`~/.sdkman/candidates/groovy/current/bin/groovy` (not on non-interactive shell PATHs). Use it if
+present; if not, suggest `sdk install groovy <version matching the framework>` — do not assume it
+is installed.
+
 ## Source Layout
 
 ```
