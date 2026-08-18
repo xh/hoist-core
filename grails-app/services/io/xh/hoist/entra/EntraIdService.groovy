@@ -188,16 +188,26 @@ class EntraIdService extends BaseService implements DirectoryService {
     }
 
     /**
-     * Find all groups with a display name starting with the given prefix.
+     * Find all groups with a display name matching the given term. Matching is tokenized - each
+     * word or separator-delimited segment of the display name matches by prefix, so e.g. 'admin'
+     * matches both 'toolbox-admin' and 'Admin Users'. Graph does not support mid-token
+     * (contains) matching.
      */
     List<EntraGroup> findGroups(String namePart) {
-        withDebug("Finding groups with name matching $namePart*") {
-            // OData string literals escape embedded single quotes by doubling them.
-            String escaped = namePart.replace("'", "''")
-            List<Map> raw = graphGetList('/groups', [
-                '$select': EntraGroup.keys.join(','),
-                '$filter': "startswith(displayName,'$escaped')".toString()
-            ])
+        withDebug("Finding groups with name matching $namePart") {
+            // $search is an "advanced query" - requires the ConsistencyLevel header, and reads
+            // an eventually-consistent index, so a just-created group may lag briefly.
+            // Embedded double quotes and backslashes escape with a backslash.
+            String escaped = namePart.replace('\\', '\\\\').replace('"', '\\"')
+            List<Map> raw = graphGetList(
+                '/groups',
+                [
+                    '$select': EntraGroup.keys.join(','),
+                    '$search': "\"displayName:$escaped\"".toString(),
+                    '$count' : 'true'
+                ],
+                ['ConsistencyLevel': 'eventual']
+            )
             raw.collect { EntraGroup.create(it) }
         }
     }
@@ -206,7 +216,7 @@ class EntraIdService extends BaseService implements DirectoryService {
     // DirectoryService
     //------------------------
     String getDirectoryGroupsDescription() {
-        'Specify the Entra ID object ID (GUID) of the directory group to be included.'
+        'Search by name, or enter a group object ID (GUID) directly.'
     }
 
     Map<String, ErrorOr<Set<String>>> loadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {

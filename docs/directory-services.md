@@ -47,7 +47,7 @@ Console UI require:
 | Method | Purpose |
 |--------|---------|
 | `getEnabled()` | True if the service is configured for use |
-| `getDirectoryGroupsDescription()` | Hint text for the Admin Console - describes the expected group identifier form |
+| `getDirectoryGroupsDescription()` | Hint text shown as placeholder in the Admin Console group picker |
 | `loadUsersForDirectoryGroups(groups, strictMode)` | Resolve group identifiers to member usernames, nested groups included |
 | `describeDirectoryGroups(groups)` | Display info (`displayName`) for groups already assigned to roles |
 | `searchDirectoryGroups(namePart)` | Search groups by partial name, for the Admin Console group picker |
@@ -203,7 +203,7 @@ application use. Consult the Groovydoc for signatures - highlights:
 
 - `lookupUser(username)`, `lookupGroups(dns)`, `lookupGroupMembers(dns)` - single and batch
   lookups. Nested group members are included.
-- `findGroups(sNamePart)` - search groups by partial account name.
+- `findGroups(sNamePart)` - search groups by partial account name or CN (substring match).
 - `searchOne(filter, objType, strictMode)` / `searchMany(...)` - general LDAP queries that
   return typed results. Pass `LdapPerson`, `LdapGroup`, or an application subclass. Subclass
   `LdapObject` types and override `getKeys()` to fetch additional attributes.
@@ -217,7 +217,8 @@ application use. Consult the Groovydoc for signatures - highlights:
 - `lookupUser(idOrUpn)` - accepts an object ID or a userPrincipalName.
 - `lookupGroup(id)`, `lookupGroups(ids)`, `lookupGroupMembers(id | ids)` - lookups by group
   object ID. Graph resolves nested memberships server-side.
-- `findGroups(namePart)` - search groups by display name prefix.
+- `findGroups(namePart)` - search groups by display name. Matching is tokenized - each word or
+  separator-delimited segment of the name matches by prefix.
 - Results return as typed `EntraUser` / `EntraGroup` objects with a fixed set of Graph
   fields. The service does not currently support custom subclasses - apps that need other
   Graph fields can query Graph directly.

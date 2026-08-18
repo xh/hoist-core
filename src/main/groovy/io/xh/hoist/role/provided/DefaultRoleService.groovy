@@ -181,8 +181,8 @@ class DefaultRoleService extends BaseRoleService {
     }
 
     /**
-     * Short description of the expected form of a directory group identifier, displayed as a
-     * hint (e.g. tooltip) within the Admin Console UI. Delegates to the selected
+     * Short hint on how to select or enter a directory group, displayed as placeholder text
+     * within the Admin Console's directory group picker. Delegates to the selected
      * {@link DirectoryService} - see {@link #getDirectoryService}.
      */
     String getDirectoryGroupsDescription() {

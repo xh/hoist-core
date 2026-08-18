@@ -84,12 +84,12 @@ class LdapService extends BaseService implements DirectoryService {
     }
 
     /**
-     * Find all groups with an account name containing the given substring.
-     * @param sNamePart partial sAMAccountName, matched with leading and trailing wildcards.
+     * Find all groups with an account name or CN containing the given substring.
+     * @param sNamePart partial sAMAccountName or CN, matched with leading and trailing wildcards.
      */
     List<LdapGroup> findGroups(String sNamePart) {
-        withDebug("Finding groups with name matching *$sNamePart") {
-            searchMany("(sAMAccountName=*$sNamePart*)", LdapGroup, true)
+        withDebug("Finding groups with name matching *$sNamePart*") {
+            searchMany("(|(sAMAccountName=*$sNamePart*)(cn=*$sNamePart*))", LdapGroup, true)
         }
     }
 
@@ -186,7 +186,7 @@ class LdapService extends BaseService implements DirectoryService {
     // DirectoryService
     //------------------------
     String getDirectoryGroupsDescription() {
-        'Specify the full LDAP Distinguished Name (DN) for the directory group to be included.'
+        'Search by name, or enter a full Distinguished Name (DN) directly.'
     }
 
     /**
