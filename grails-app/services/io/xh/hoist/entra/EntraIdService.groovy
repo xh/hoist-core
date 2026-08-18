@@ -85,6 +85,9 @@ class EntraIdService extends BaseService implements DirectoryService {
     /** Max lookups run concurrently by {@link #parallelLookup} - see that method for context. */
     private static final int MAX_PARALLEL_LOOKUPS = 25
 
+    /** Cached marker for a user lookup that found no match. */
+    private static final String NO_MATCH = 'NO_MATCH'
+
     private Cache<String, Object> queryCache = createCache(
         name: 'queryCache',
         expireTime: { config.cacheExpireSecs * SECONDS }
@@ -124,16 +127,71 @@ class EntraIdService extends BaseService implements DirectoryService {
      */
     EntraUser lookupUser(String idOrUpn) {
         withDebug(["Looking up user", [user: idOrUpn]]) {
-            String key = "user|$idOrUpn"
+            ensureEnabled()
+            String key = "user|${idOrUpn.toLowerCase()}"
             def cached = queryCache.get(key)
-            if (cached != null) return cached as EntraUser
+            if (cached != null) return cached.is(NO_MATCH) ? null : cached as EntraUser
 
             def data = graphGetObject(
                 "/users/${URLEncoder.encode(idOrUpn, 'UTF-8').replace('+', '%20')}",
                 ['$select': EntraUser.keys.join(',')]
             )
             def ret = data ? EntraUser.create(data) : null
-            if (ret) queryCache.put(key, ret)
+            if (ret) {
+                // Cache under both identifiers, so id- and UPN-based lookups share an entry.
+                String idKey = "user|${ret.id.toLowerCase()}",
+                    upnKey = ret.userPrincipalName ? "user|${ret.userPrincipalName.toLowerCase()}" : null
+                queryCache.put(idKey, ret)
+                if (upnKey) queryCache.put(upnKey, ret)
+            } else {
+                // Cache misses too - unmatched identifiers should not re-hit Graph per call.
+                queryCache.put(key, NO_MATCH)
+            }
+            return ret
+        }
+    }
+
+    /**
+     * Lookup multiple users by object ID or userPrincipalName, in parallel. Unmatched
+     * identifiers resolve as null.
+     */
+    Map<String, EntraUser> lookupUsers(Set<String> idsOrUpns) {
+        parallelLookup(idsOrUpns) { String idOrUpn -> lookupUser(idOrUpn) }
+    }
+
+    /**
+     * Find users with the given field exactly equal to the given value. Supports reverse
+     * lookups from identifiers other than the object ID / UPN - e.g. from an on-prem
+     * `onPremisesSamAccountName` or `onPremisesSecurityIdentifier` (SID).
+     *
+     * @param field Graph user field to match - must be one of `EntraUser.keys`.
+     * @param value value to match exactly (OData `eq`).
+     */
+    List<EntraUser> findUsers(String field, String value) {
+        withDebug(["Finding users", [field: field, value: value]]) {
+            ensureEnabled()
+            if (!(field in EntraUser.keys)) {
+                throw new RuntimeException("Invalid EntraUser field '$field' - must be one of ${EntraUser.keys}")
+            }
+            String key = "usersBy|$field|$value"
+            def cached = queryCache.get(key)
+            if (cached != null) return cached as List<EntraUser>
+
+            // Filters on onPremises* fields are "advanced queries" - as with $search in
+            // findGroups, they require the ConsistencyLevel header and $count param.
+            // OData string literals escape embedded single quotes by doubling them.
+            String escaped = value.replace("'", "''")
+            List<Map> raw = graphGetList(
+                '/users',
+                [
+                    '$select': EntraUser.keys.join(','),
+                    '$filter': "$field eq '$escaped'".toString(),
+                    '$count' : 'true'
+                ],
+                ['ConsistencyLevel': 'eventual']
+            )
+            def ret = raw.collect { EntraUser.create(it) }
+            queryCache.put(key, ret)
             return ret
         }
     }
@@ -195,6 +253,7 @@ class EntraIdService extends BaseService implements DirectoryService {
      */
     List<EntraGroup> findGroups(String namePart) {
         withDebug("Finding groups with name matching $namePart") {
+            ensureEnabled()
             // $search is an "advanced query" - requires the ConsistencyLevel header, and reads
             // an eventually-consistent index, so a just-created group may lag briefly.
             // Embedded double quotes and backslashes escape with a backslash.

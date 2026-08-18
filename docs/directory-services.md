@@ -214,7 +214,9 @@ application use. Consult the Groovydoc for signatures - highlights:
 
 **`EntraIdService`**
 
-- `lookupUser(idOrUpn)` - accepts an object ID or a userPrincipalName.
+- `lookupUser(idOrUpn)` / `lookupUsers(idsOrUpns)` - accepts object IDs or userPrincipalNames.
+- `findUsers(field, value)` - exact-match lookup on any `EntraUser` field, for reverse lookups
+  from other identifiers (e.g. an on-prem SID or sAMAccountName).
 - `lookupGroup(id)`, `lookupGroups(ids)`, `lookupGroupMembers(id | ids)` - lookups by group
   object ID. Graph resolves nested memberships server-side.
 - `findGroups(namePart)` - search groups by display name. Matching is tokenized - each word or
@@ -266,6 +268,14 @@ Graph rejects app-only queries when the required application permissions lack ad
 and token acquisition fails when the client secret expires. Both appear in the startup log -
 `EntraIdService` warms its token at startup for exactly this reason. Client secrets have a
 maximum lifetime of 24 months - track and rotate them.
+
+### Per-request directory lookups on the auth path
+
+Do not resolve directory identity from the live directory on every request. Look up what the
+app needs once per session and store it on the app's user object. The query caches soften
+repeated lookups, but a directory outage that outlasts `cacheExpireSecs` will then fail
+lookups - and an auth path that requires them fails with it. The framework's own role
+resolution is not exposed to this - it retains its last good result through an outage.
 
 ### Stale group memberships
 
