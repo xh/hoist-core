@@ -43,6 +43,15 @@ class LdapConfig extends TypedConfigMap {
      */
     boolean skipTlsCertVerification = false
 
+    /**
+     * LDAP person attribute mapped to the Hoist username - must be one of
+     * {@link LdapObject#getUsernameKeys} (`samaccountname` or `mail`).
+     * Matched when resolving group members for role management and when looking up or
+     * authenticating users by username. Member values are lowercased when resolving groups,
+     * and members with no value for this attribute are excluded from those results.
+     */
+    String usernameAttribute = 'samaccountname'
+
     /** One or more directory servers to be queried, in the order listed. */
     List<LdapServerOptions> servers = [new LdapServerOptions([:])]
 

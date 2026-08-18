@@ -14,6 +14,7 @@ import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ChangelogConfig
 import io.xh.hoist.config.ConfigSpec
 import io.xh.hoist.config.IdleConfig
+import io.xh.hoist.entra.EntraIdConfig
 import io.xh.hoist.environment.EnvPollConfig
 import io.xh.hoist.export.ExportConfig
 import io.xh.hoist.ldap.LdapConfig
@@ -224,6 +225,35 @@ class BootStrap implements LogSupport {
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'True to enable the monitor tab included with the Hoist Admin console and the associated server-side jobs'
+            ),
+            new ConfigSpec(
+                name: 'xhEntraIdConfig',
+                valueType: 'json',
+                defaultValue: [:],
+                typedClass: EntraIdConfig,
+                groupName: 'xh.io',
+                note: 'Supports querying Microsoft Entra ID (via Microsoft Graph) for users and groups.'
+            ),
+            new ConfigSpec(
+                name: 'xhEntraTenantId',
+                valueType: 'string',
+                defaultValue: 'none',
+                groupName: 'xh.io',
+                note: 'Tenant ID (GUID) of the Microsoft Entra ID tenant for this application. Referenced by EntraIdService and any other subsystem that works with the tenant. Commonly overridden per environment via an instance config / environment variable. Relay to pre-auth clients (e.g. for OAuth login) via the app AuthenticationService.getClientConfig(), where needed.'
+            ),
+            new ConfigSpec(
+                name: 'xhEntraClientId',
+                valueType: 'string',
+                defaultValue: 'none',
+                groupName: 'xh.io',
+                note: 'Client ID (GUID) of the Entra ID app registration for this application. Referenced by EntraIdService and any other subsystem that works with the registration. Commonly overridden per environment via an instance config / environment variable. Relay to pre-auth clients (e.g. for OAuth login) via the app AuthenticationService.getClientConfig(), where needed.'
+            ),
+            new ConfigSpec(
+                name: 'xhEntraClientSecret',
+                valueType: 'pwd',
+                defaultValue: 'none',
+                groupName: 'xh.io',
+                note: 'Client secret for the Entra ID app registration used by EntraIdService.'
             ),
             new ConfigSpec(
                 name: 'xhEnvPollConfig',

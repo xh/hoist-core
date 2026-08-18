@@ -2,27 +2,35 @@
 
 ## Overview
 
-Hoist's authentication system ensures that every request reaching application code has an identified,
-active user. Applications implement their own authentication scheme (SSO, OAuth, LDAP, form-based,
-etc.) by extending two abstract services:
+Hoist's authentication system makes sure that every request that reaches application code has
+an identified, active user. Applications implement their own authentication scheme (SSO,
+OAuth, form-based, etc.) by extending two abstract services:
 
-- **`AuthenticationService`** (extends `BaseAuthenticationService`) — Defines how users prove their
-  identity. Runs on every request via `HoistFilter`.
-- **`UserService`** (extends `BaseUserService`) — Defines how usernames resolve to `HoistUser`
-  objects. Provides user lists for impersonation and admin features.
+- **`AuthenticationService`** (extends `BaseAuthenticationService`) - defines how users prove
+  their identity. Runs on every request via `HoistFilter`.
+- **`UserService`** (extends `BaseUserService`) - defines how usernames resolve to `HoistUser`
+  objects. Supplies user lists for impersonation and admin features.
 
-The framework provides `IdentityService` for accessing the current user throughout a request,
-`HoistUser` as the user trait, and impersonation support for admin troubleshooting.
+The framework supplies `IdentityService` for access to the current user throughout a request,
+the `HoistUser` trait as the user contract, and impersonation support for admin
+troubleshooting.
+
+This system works in concert with [authorization](./authorization.md) - authentication
+establishes *who* the user is, authorization determines *what* they can do. Apps that back
+their users with a corporate directory can also use a
+[directory service](./directory-services.md) for user lookup, username mapping, and
+password validation.
 
 ## Source Files
 
 | File | Location | Role |
 |------|----------|------|
-| `BaseAuthenticationService` | `src/main/groovy/io/xh/hoist/security/` | Abstract auth service — app must extend |
-| `BaseUserService` | `src/main/groovy/io/xh/hoist/user/` | Abstract user service — app must extend |
+| `BaseAuthenticationService` | `src/main/groovy/io/xh/hoist/security/` | Abstract auth service - app must extend |
+| `BaseUserService` | `src/main/groovy/io/xh/hoist/user/` | Abstract user service - app must extend |
 | `HoistUser` | `src/main/groovy/io/xh/hoist/user/` | Trait defining core user properties |
 | `IdentityService` | `grails-app/services/io/xh/hoist/user/` | Current user access and impersonation |
-| `IdentitySupport` | `src/main/groovy/io/xh/hoist/user/` | Interface providing `getUser()`, `getUsername()`, `getAuthUser()`, `getAuthUsername()` convenience methods — implemented by `BaseService` and `BaseController` (which delegate to `IdentityService`) |
+| `HoistIdentity` | `src/main/groovy/io/xh/hoist/user/` | Immutable username + authUsername pair, stored on the session and per-thread |
+| `IdentitySupport` | `src/main/groovy/io/xh/hoist/user/` | Interface with `getUser()` / `getUsername()` / `getAuthUser()` / `getAuthUsername()` - implemented by `BaseService` and `BaseController`, which delegate to `IdentityService` |
 
 ## Architecture
 
@@ -40,51 +48,62 @@ Request arrives at HoistFilter
                    │
                    ├── Returns true but no user set ──→ 401 NotAuthenticatedException
                    │
-                   └── Returns false ──→ Response halted (e.g., OAuth redirect in progress)
+                   └── Returns false ──→ Response halted (e.g. OAuth redirect in progress)
 ```
 
-### Session Management
+### Identity Storage and Propagation
 
-Authentication state is stored in the HTTP session with two keys:
+The HTTP session is the durable source of truth for identity. It holds a single `xhIdentity`
+attribute - a `HoistIdentity` with the apparent username and the authenticated username. The
+two differ only during impersonation.
 
-- **`xhAuthUser`** — The authenticated username (verified by the auth scheme)
-- **`xhApparentUser`** — The "active" username (same as auth user unless impersonating)
+Identity accessors do not read the session directly. They read a per-thread `HoistIdentity`
+cache, which the framework installs at each thread entry point:
 
-A session is created only once — when `noteUserAuthenticated()` stores the verified user. All other
-session access in `IdentityService` uses `getSession(false)`, which returns `null` rather than
-creating a new session. This prevents denial-of-service attacks that could exhaust server memory by
-creating sessions on unauthenticated requests.
+- `HoistFilter` - at HTTP request entry, from the session.
+- `HoistWebSocketHandler` - on WebSocket lifecycle callbacks, from handshake-captured
+  attributes.
+- `HoistPromiseFactory` - propagates the caller's identity into Grails `task {}` workers.
+- `ClusterTask` - propagates identity across cluster boundaries for remote service calls.
+
+Mutating operations (`login`, `logout`, `impersonate`, `endImpersonate`,
+`noteUserAuthenticated`) update the session and the thread cache together.
+
+The framework creates a session only when `noteUserAuthenticated()` stores a verified user.
+All other session access uses `getSession(false)`, which returns `null` rather than create a
+new session. This prevents denial-of-service attacks that exhaust server memory with sessions for
+unauthenticated requests.
 
 ## Key Classes
 
 ### BaseAuthenticationService
 
-The abstract service that applications must extend to define their authentication scheme. The
-framework calls into this service on every request via `HoistFilter`.
+The abstract service that applications extend to define their authentication scheme. The
+framework calls `allowRequest()` on every request via `HoistFilter`. That method is not for
+override - it checks for an existing session user or a whitelisted URL, calls the app's
+`completeAuthentication()` when needed, and catches every exception. Failures are logged and
+returned to the client as an opaque HTTP status, with no detail for unverified callers.
 
-#### `allowRequest(request, response)` — Framework Entry Point
+The app-facing contract:
 
-Called on every request by `HoistFilter`. This method is **not intended for override** — it
-orchestrates the authentication check:
+| Method | Default | Override to... |
+|--------|---------|----------------|
+| `completeAuthentication(request, response)` | abstract | Implement the app's auth scheme - required |
+| `login(request, username, password)` | returns `false` | Support interactive form-based login |
+| `logout()` | returns `false` | Support explicit logout - clear app-specific auth state |
+| `getClientConfig()` | empty map | Send auth config to the client before authentication |
+| `isWhitelist(request)` | suffix match on `whitelistURIs` | Apply custom whitelist logic |
 
-1. Checks if a user is already stored in the session (via `identityService.findAuthUser()`) or if
-   the URL is whitelisted — if either is true, the request passes through.
-2. Otherwise, calls `completeAuthentication()` (the app's custom logic).
-3. If authentication completes but no user is set, throws `NotAuthenticatedException` internally.
-4. All of the above is wrapped in a try-catch: any exception (including `NotAuthenticatedException`)
-   is caught, logged, and translated into an opaque HTTP status code response. The method then
-   returns `false` — the caller (`HoistFilter`) never sees a thrown exception.
+#### `completeAuthentication()`
 
-#### `completeAuthentication(request, response)` — App Must Implement
-
-The core method applications override to implement their auth scheme:
+The core method to implement:
 
 ```groovy
 class AuthenticationService extends BaseAuthenticationService {
 
     protected boolean completeAuthentication(HttpServletRequest request,
                                              HttpServletResponse response) {
-        // Example: Read SSO header and look up user
+        // Example: read an SSO header and look up the user
         String ssoUsername = request.getHeader('X-SSO-User')
         if (ssoUsername) {
             def user = userService.find(ssoUsername)
@@ -93,28 +112,27 @@ class AuthenticationService extends BaseAuthenticationService {
                 return true
             }
         }
-        // No auth info available — redirect to SSO login
+        // No auth info available - redirect to SSO login
         response.sendRedirect('/sso/login')
         return false
     }
 }
 ```
 
-**Return values:**
-- `true` + `setUser()` called → Request continues with authenticated user.
-- `true` + no `setUser()` → Framework throws 401 (authentication failed).
-- `false` → Response is already handled (e.g., redirect). Framework takes no action.
+Return values:
 
-#### `setUser(request, hoistUser)` — Establish Session
+- `true` + `setUser()` called → request continues with the authenticated user.
+- `true` + no `setUser()` → framework throws a 401 (authentication failed).
+- `false` → the response is already handled (e.g. a redirect). Framework takes no action.
 
-Called by `completeAuthentication()` implementations when a user is verified. This method validates
-that the user is active (throwing `NotAuthorizedException` if not) and stores the user in the
-session via `IdentityService.noteUserAuthenticated()`.
+Call `setUser(request, hoistUser)` when a user is verified. It rejects inactive users with
+`NotAuthorizedException` and stores the user in the session via
+`IdentityService.noteUserAuthenticated()`.
 
-#### `login(request, username, password)` — Interactive Login
+#### Interactive login and logout
 
-For applications with form-based login. Default returns `false` (not supported). Override for
-interactive auth:
+Apps with form-based login override `login()`. A common pattern validates the password with
+an LDAP bind via [`LdapService.authenticate()`](./directory-services.md):
 
 ```groovy
 boolean login(HttpServletRequest request, String username, String password) {
@@ -129,43 +147,29 @@ boolean login(HttpServletRequest request, String username, String password) {
 }
 ```
 
-SSO-based applications leave the default implementation in place. Note that the framework's
-`/xh/login` endpoint calls this method via `IdentityService.login()`, which provides the current
-request automatically.
+SSO-based applications leave the `false` defaults in place. The framework's `/xh/login` and
+`/xh/logout` endpoints call these methods via `IdentityService`, which supplies the current
+request and clears the session identity after a confirmed logout.
 
-#### `logout()` — End Session
+#### Whitelisted URIs
 
-For applications supporting explicit logout. Default returns `false`. Override to return `true` after
-clearing any app-specific auth state. `IdentityService.logout()` wraps this call — when it returns
-`true`, `IdentityService` clears the session keys (`xhAuthUser` and `xhApparentUser`).
-
-#### Whitelist URIs
-
-`BaseAuthenticationService` maintains a list of URIs that bypass authentication:
-
-- `/ping`, `/xh/ping` — Health checks
-- `/xh/login`, `/xh/logout` — Auth flow endpoints
-- `/xh/version` — Version info
-- `/xh/authConfig` — Client auth configuration
-
-Subclasses can extend this list by mutating `whitelistURIs` in their constructor or `init()`. For
-more advanced logic, override the `isWhitelist(HttpServletRequest)` protected method — the default
-implementation checks if the request URI ends with any entry in the list.
-
-#### `getClientConfig()`
-
-Returns a map of auth configuration to send to the client before authentication. This is used by
-hoist-react's `XH.initAsync()` to configure the client auth flow. The data must be safe for public
-visibility.
+`whitelistURIs` lists URIs that bypass authentication: `/xh/ping` (and its legacy `/ping`
+alias), `/xh/login`, `/xh/logout`, `/xh/version`, and `/xh/authConfig`. Subclasses can add
+entries in their constructor or `init()`. The list deliberately excludes the client's
+`authStatus` check URI - SSO apps need that request to reach `completeAuthentication()` so
+they can install a user on the session.
 
 ### BaseUserService
 
-Abstract service that applications must extend to define user lookup and listing.
+Abstract service that applications extend to define user lookup and listing:
 
-#### `find(username)` — Must Implement
+| Method | Contract |
+|--------|----------|
+| `find(username)` | Resolve a username to a `HoistUser`, or null. Called multiple times per request - must be fast |
+| `list(activeOnly)` | Return all users, optionally active-only. Used by admin features and impersonation |
+| `impersonationTargetsForUser(authUser)` | Users that `authUser` can impersonate. Default filters for safety |
 
-Resolve a username to a `HoistUser` object. **This method is called multiple times per request**
-and must be fast — ideally backed by an in-memory cache.
+Because `find()` runs multiple times per request, back it with a cache:
 
 ```groovy
 class UserService extends BaseUserService {
@@ -187,147 +191,104 @@ class UserService extends BaseUserService {
 }
 ```
 
-#### `list(activeOnly)` — Must Implement
-
-Return all users, optionally filtered to active-only. Used by admin features and impersonation
-target lists.
-
-#### `impersonationTargetsForUser(authUser)`
-
-Returns the list of users that `authUser` can impersonate. The default implementation provides
-important security filtering:
-
-- Returns empty list if the user cannot impersonate.
-- Non-admins cannot impersonate users with `HOIST_ADMIN` role.
-- Admins can impersonate anyone, including other admins (and technically themselves, since
-  `list(true)` returns all active users without excluding the requesting user).
-
-**Strongly recommended** to call `super` if overriding — it prevents privilege escalation.
+The default `impersonationTargetsForUser()` returns an empty list for users who cannot
+impersonate and blocks non-admins from impersonating `HOIST_ADMIN` users. Overrides should
+call `super` first - it prevents privilege escalation.
 
 ### HoistUser
 
-A Groovy trait that defines the core properties and behaviors every user object must have.
-Application user classes implement this trait. `HoistUser` also implements `JSONFormat`, providing a
+A Groovy trait that defines the core properties and behaviors of every user object.
+Application user classes implement this trait. `HoistUser` implements `JSONFormat` with a
 default `formatForJSON()` that serializes `username`, `email`, `displayName`, and `active`.
 
-#### Required Properties (Abstract)
+Required (abstract) properties:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `username` | `String` | Unique identifier — must be lowercase, no spaces |
+| `username` | `String` | Unique identifier - must be lowercase, no spaces |
 | `email` | `String` | User's email address |
 | `isActive` | `boolean` | Whether the user is active |
 
-#### Provided Properties
+Provided properties and methods:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `displayName` | `String` | Human-readable name (defaults to `username`) |
-| `roles` | `Set<String>` | All assigned roles (from `RoleService`) |
-| `isHoistAdmin` | `boolean` | Has `HOIST_ADMIN` role |
-| `isHoistAdminReader` | `boolean` | Has `HOIST_ADMIN_READER` role |
-| `canImpersonate` | `boolean` | Has `HOIST_IMPERSONATOR` role |
+| Member | Description |
+|--------|-------------|
+| `displayName` | Human-readable name - defaults to `username` |
+| `roles` | All assigned roles, from `RoleService` |
+| `hasRole()` / `hasAnyRole()` / `hasAllRoles()` | Role checks - see [authorization](./authorization.md) |
+| `isHoistAdmin` / `isHoistAdminReader` / `canImpersonate` | Built-in role checks |
+| `hasGate(name)` | Lightweight feature gate, backed by soft-config |
 
-#### Role Checking Methods
+A gate is a `string`-type config that holds a comma-delimited list of usernames, or `*` for
+all users. `hasGate()` reads it via `ConfigService.getStringList()`. Gates restrict access to
+features under development without the overhead of a dedicated role.
 
-```groovy
-user.hasRole('APP_ADMIN')                      // single role
-user.hasAnyRole('APP_ADMIN', 'APP_READER')     // at least one
-user.hasAllRoles('REVIEWER', 'APPROVER')       // all required
-```
-
-#### Feature Gates
-
-`HoistUser` provides a lightweight feature gating mechanism via `hasGate()`:
-
-```groovy
-if (user.hasGate('newDashboard')) {
-    // Feature enabled for this user
-}
-```
-
-Gates are sourced from soft-configuration — the config value is a list of usernames (or `*` for
-all users).
-
-#### Username Validation
-
-`HoistUser.validateUsername()` enforces the convention that usernames must be lowercase with no
-spaces. This is checked during authentication.
+The static helper `HoistUser.validateUsername()` checks the username convention - lowercase,
+no spaces. The framework does not enforce this at authentication time. Apps must make sure
+their usernames satisfy it, as usernames key user preferences, tracking, and role
+assignments.
 
 ### IdentityService
 
-The framework-provided service for accessing the current user. Not intended for override.
-
-#### User Access
+The framework service for access to the current user. Not for override.
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `getUser()` | `HoistUser` | Current active user (impersonated if active) |
-| `getUsername()` | `String` | Current active username |
+| `getUser()` | `HoistUser` | Current apparent user (the impersonated user, if active) |
+| `getUsername()` | `String` | Current apparent username |
 | `getAuthUser()` | `HoistUser` | Authenticated user (ignores impersonation) |
 | `getAuthUsername()` | `String` | Authenticated username |
 | `isImpersonating()` | `boolean` | Whether impersonation is active |
 
-These methods return `null` in contexts with no session and no ThreadLocal identity — e.g., in a
-timer's background thread that wasn't initiated by a request. However, `IdentityService` also
-maintains `threadUsername` and `threadAuthUsername` ThreadLocals that serve as fallbacks when no
-session is available. These are used by `ClusterTask` to propagate user identity across cluster
-boundaries during remote service calls.
+These methods return `null` on threads with no installed identity - for example, a timer's
+background thread that no request initiated. See
+[Identity Storage and Propagation](#identity-storage-and-propagation) for where the framework
+installs identity automatically.
 
-#### `getClientConfig()`
+`getClientConfig()` returns identity information for the client. The shape depends on
+impersonation state:
 
-Returns identity information for the client. The response shape depends on whether impersonation is
-active:
-
-- **Normal:** `{user, roles}` — the authenticated user and their roles.
-- **Impersonating:** `{apparentUser, apparentUserRoles, authUser, authUserRoles}` — both the
-  impersonated user (with their roles) and the real authenticated user (with their roles), allowing
-  the client to display impersonation state.
+- **Normal:** `{user, roles}` - the authenticated user and their roles.
+- **Impersonating:** `{apparentUser, apparentUserRoles, authUser, authUserRoles}` - both
+  users, so the client can display impersonation state.
 
 ### Impersonation
 
-Impersonation allows administrators to "become" another user for troubleshooting — the impersonated
-user's roles, preferences, and identity are used for all subsequent requests.
+Impersonation lets administrators "become" another user for troubleshooting. The impersonated
+user's roles, preferences, and identity apply to all subsequent requests.
 
 ```groovy
 // Start impersonation (requires HOIST_IMPERSONATOR role)
 identityService.impersonate('jane.doe')
 
 // During impersonation:
-identityService.user          // → jane.doe's HoistUser
-identityService.authUser      // → original admin's HoistUser
+identityService.user               // → jane.doe's HoistUser
+identityService.authUser           // → original admin's HoistUser
 identityService.isImpersonating()  // → true
 
 // End impersonation
 identityService.endImpersonate()
 ```
 
-**Security controls:**
-- User must have `HOIST_IMPERSONATOR` role.
-- Impersonation must be enabled via the `xhEnableImpersonation` soft config (boolean).
-- Non-admins cannot impersonate users with `HOIST_ADMIN` role.
+Security controls:
+
+- The user must have the `HOIST_IMPERSONATOR` role.
+- Impersonation must be enabled via the `xhEnableImpersonation` soft-config (boolean).
+- Non-admins cannot impersonate users with the `HOIST_ADMIN` role.
 - All impersonation events are tracked via `TrackService` with `WARN` severity.
 
 ## Application Implementation
 
-Applications must create two concrete services:
-
-### `AuthenticationService`
+Applications must create two concrete services and a user class:
 
 ```groovy
-package com.myapp
-
-import io.xh.hoist.security.BaseAuthenticationService
-import jakarta.servlet.http.HttpServletRequest
-import jakarta.servlet.http.HttpServletResponse
-
+// grails-app/services/com/myapp/AuthenticationService.groovy
 class AuthenticationService extends BaseAuthenticationService {
 
     def userService
 
     protected boolean completeAuthentication(HttpServletRequest request,
                                              HttpServletResponse response) {
-        // App-specific auth logic here
         String username = extractUsernameFromSSOHeaders(request)
         if (username) {
             def user = userService.find(username)
@@ -336,19 +297,13 @@ class AuthenticationService extends BaseAuthenticationService {
                 return true
             }
         }
-        return true  // Let framework throw 401
+        return true  // Let the framework throw a 401
     }
 }
 ```
 
-### `UserService`
-
 ```groovy
-package com.myapp
-
-import io.xh.hoist.user.BaseUserService
-import io.xh.hoist.user.HoistUser
-
+// grails-app/services/com/myapp/UserService.groovy
 class UserService extends BaseUserService {
 
     HoistUser find(String username) {
@@ -361,13 +316,8 @@ class UserService extends BaseUserService {
 }
 ```
 
-### AppUser Domain Class
-
 ```groovy
-package com.myapp
-
-import io.xh.hoist.user.HoistUser
-
+// grails-app/domain/com/myapp/AppUser.groovy
 class AppUser implements HoistUser {
     String username
     String email
@@ -382,46 +332,46 @@ class AppUser implements HoistUser {
 
 The authentication system integrates with hoist-react's initialization flow:
 
-1. Client calls `/xh/authConfig` to get `BaseAuthenticationService.getClientConfig()`.
-2. Client attempts to access `/xh/authStatus` — if the user has a valid session, the server returns
+1. The client calls `/xh/authConfig` to get `BaseAuthenticationService.getClientConfig()`.
+2. The client calls `/xh/authStatus`. If the user has a valid session, the server returns
    identity info via `IdentityService.getClientConfig()`.
-3. If no session exists, the server's `completeAuthentication()` handles the auth flow (redirect,
-   challenge, etc.).
+3. If no session exists, the server's `completeAuthentication()` handles the auth flow
+   (redirect, challenge, etc.).
 4. Once authenticated, the client receives roles, user info, and impersonation state.
 
 ## Common Pitfalls
 
 ### Slow `find()` implementation
 
-`BaseUserService.find()` is called multiple times per request. A database query on every call will
+`BaseUserService.find()` runs multiple times per request. A database query on every call will
 severely impact performance. Always cache user lookups:
 
 ```groovy
-// ✅ Do: Cache user lookups
+// ✅ Do: cache user lookups
 HoistUser find(String username) {
     userCache.getOrCreate(username) { AppUser.findByUsername(username) }
 }
 
-// ❌ Don't: Query the database on every call
+// ❌ Don't: query the database on every call
 HoistUser find(String username) {
     AppUser.findByUsername(username)
 }
 ```
 
-### Inactive user not caught
+### Duplicating the active-user check
 
-`setUser()` checks that the user is active and throws `NotAuthorizedException` if not. Don't
-duplicate this check in `completeAuthentication()` — let the framework handle it.
+`setUser()` rejects inactive users with `NotAuthorizedException`. Do not repeat this check in
+`completeAuthentication()` - let the framework handle it.
 
 ### Leaking auth details to unauthenticated clients
 
-`allowRequest()` deliberately returns opaque errors (no stack traces or detailed messages) to
-clients that haven't been authenticated. Don't override this method — use `completeAuthentication()`
-for custom logic.
+`allowRequest()` deliberately returns opaque errors, with no stack traces or detailed
+messages, to clients that are not authenticated. Do not override this method - put custom
+logic in `completeAuthentication()`.
 
 ### Creating sessions on unauthenticated requests
 
 Outside of `noteUserAuthenticated()`, `IdentityService` only reads existing sessions via
-`getSession(false)`. Don't call `request.getSession(true)` in authentication code unless you've
-verified the user. This prevents memory exhaustion from bots or scanners hitting unauthenticated
-endpoints.
+`getSession(false)`. Do not call `request.getSession(true)` in authentication code before you
+verify the user. This prevents memory exhaustion from bots or scanners that hit
+unauthenticated endpoints.

@@ -6,8 +6,14 @@
  */
 package io.xh.hoist.ldap
 
+import grails.async.Promise
+import groovy.transform.CompileDynamic
+import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.cache.Cache
+import io.xh.hoist.config.ConfigService
+import io.xh.hoist.directory.DirectoryService
+import io.xh.hoist.util.ErrorOr
 import org.apache.directory.api.ldap.model.entry.Attribute
 import org.apache.directory.api.ldap.model.exception.LdapAuthenticationException
 import org.apache.directory.api.ldap.model.message.SearchScope
@@ -17,6 +23,7 @@ import org.apache.directory.ldap.client.api.NoVerificationTrustManager
 
 import static grails.async.Promises.task
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
+import static java.util.Collections.emptyMap
 
 /**
  * Service to query a set of LDAP servers for People, Groups, and Group memberships.
@@ -33,9 +40,13 @@ import static io.xh.hoist.util.DateTimeUtils.SECONDS
  * `xhLdapConfig.cacheExpireSecs`. Queries run with `strictMode = false` will log and skip any
  * server that fails to respond, meaning callers can receive partial results.
  */
-class LdapService extends BaseService {
+@CompileStatic
+class LdapService extends BaseService implements DirectoryService {
 
-    def configService
+    ConfigService configService
+
+    /** Max lookups run concurrently by {@link #parallelLookup} - see that method for context. */
+    private static final int MAX_PARALLEL_LOOKUPS = 25
 
     private Cache<String, List<LdapObject>> cache = createCache(
         name: 'queryCache',
@@ -52,19 +63,19 @@ class LdapService extends BaseService {
     }
 
     /**
-     * Lookup a single user by account name, returning the first match across all servers.
-     * @param sName - sAMAccountName for user.
+     * Lookup a single user by username, returning the first match across all servers.
+     * @param username Hoist username, matched against `xhLdapConfig.usernameAttribute`.
      * @return matching user, or null if not found.
      */
-    LdapPerson lookupUser(String sName) {
-        withDebug(["Looking up user", [sAMAccountName: sName]]) {
-            searchOne("(sAMAccountName=$sName) ", LdapPerson, true)
+    LdapPerson lookupUser(String username) {
+        withDebug(["Looking up user", [username: username]]) {
+            searchOne("($usernameAttribute=$username)", LdapPerson, true)
         }
     }
 
     /**
      * Lookup all members of a single group, including members of any nested groups.
-     * @param dn - distinguished name of the group.
+     * @param dn distinguished name of the group.
      */
     List<LdapPerson> lookupGroupMembers(String dn) {
         withDebug(["Looking up group members", [dn: dn]]) {
@@ -73,47 +84,44 @@ class LdapService extends BaseService {
     }
 
     /**
-     * Find all groups with an account name containing the given substring.
-     * @param sNamePart - partial sAMAccountName, matched with leading and trailing wildcards.
+     * Find all groups with an account name or CN containing the given substring.
+     * @param sNamePart partial sAMAccountName or CN, matched with leading and trailing wildcards.
      */
     List<LdapGroup> findGroups(String sNamePart) {
-        withDebug("Finding groups with name matching *$sNamePart") {
-            searchMany("(sAMAccountName=*$sNamePart*)", LdapGroup, true)
+        withDebug("Finding groups with name matching *$sNamePart*") {
+            searchMany("(|(sAMAccountName=*$sNamePart*)(cn=*$sNamePart*))", LdapGroup, true)
         }
     }
 
     /**
      * Lookup a number of groups in parallel.
-     * @param dns - set of distinguished names.
-     * @param strictMode - if true, this method will throw if any lookups fail,
+     * @param dns set of distinguished names.
+     * @param strictMode if true, this method will throw if any lookups fail,
      *      otherwise, failed lookups will be logged, and resolved as null.
      */
     Map<String, LdapGroup> lookupGroups(Set<String> dns, boolean strictMode = false) {
         withDebug(["Looking up groups", [dns: dns, strictMode: strictMode]]) {
-            dns.collectEntries { dn -> [dn, task { lookupGroupInternal(dn, strictMode) }] }
-                .collectEntries { [it.key, it.value.get()] } as Map<String, LdapGroup>
+            parallelLookup(dns) { String dn -> lookupGroupInternal(dn, strictMode) }
         }
-
     }
 
     /**
      * Lookup group members for a number of groups in parallel.
-     * @param dns - set of distinguished names.
-     * @param strictMode - if true, this method will throw if any lookups fail,
+     * @param dns set of distinguished names.
+     * @param strictMode if true, this method will throw if any lookups fail,
      *      otherwise, failed lookups will be logged, and resolved as an empty list.
      */
     Map<String, List<LdapPerson>> lookupGroupMembers(Set<String> dns, boolean strictMode = false) {
         withDebug(["Looking up group members", [dns: dns, strictMode: strictMode]]) {
-            dns.collectEntries { dn -> [dn, task { lookupGroupMembersInternal(dn, strictMode) }] }
-                .collectEntries { [it.key, it.value.get()] } as Map<String, List<LdapPerson>>
+            parallelLookup(dns) { String dn -> lookupGroupMembersInternal(dn, strictMode) }
         }
     }
 
     /**
      * Search for a single object, returning the first match found.
-     * @param baseFilter - an LDAP filter to be appended to the objectCategory filter.
-     * @param objType - type of Hoist-Core LdapObject to search for - must be or extend LdapObject, LdapPerson, or LdapGroup
-     * @param strictMode - if true, this method will throw if any lookups fail
+     * @param baseFilter an LDAP filter to be appended to the objectCategory filter.
+     * @param objType type of Hoist-Core LdapObject to search for - must be or extend LdapObject, LdapPerson, or LdapGroup
+     * @param strictMode if true, this method will throw if any lookups fail
      * @return first match found in the form of objType
      */
     <T extends LdapObject> T searchOne(String baseFilter, Class<T> objType, boolean strictMode) {
@@ -126,9 +134,9 @@ class LdapService extends BaseService {
 
     /**
      * Search for multiple objects, returning all matches found.
-     * @param baseFilter - an LDAP filter to be appended to the objectCategory filter.
-     * @param objType - type of Hoist-Core LdapObject to search for - must be or extend LdapObject, LdapPerson, or LdapGroup
-     * @param strictMode - if true, this method will throw if any lookups fail
+     * @param baseFilter an LDAP filter to be appended to the objectCategory filter.
+     * @param objType type of Hoist-Core LdapObject to search for - must be or extend LdapObject, LdapPerson, or LdapGroup
+     * @param strictMode if true, this method will throw if any lookups fail
      * @return list of all matches found in the form of objType
      */
     <T extends LdapObject> List<T> searchMany(String baseFilter, Class<T> objType, boolean strictMode) {
@@ -146,15 +154,15 @@ class LdapService extends BaseService {
      * application - it is intended to support an alternate form-based login strategy as a backup
      * to primary OAuth/SSO authentication.
      *
-     * @param username - sAMAccountName for user
-     * @param password - credentials for user
+     * @param username Hoist username, matched against `xhLdapConfig.usernameAttribute`
+     * @param password credentials for user
      * @return true if the password is valid and the test connection succeeds
      */
     boolean authenticate(String username, String password) {
         withDebug(["Attempting LDAP bind to authenticate user", [username: username]]) {
             for (server in config.servers) {
                 String host = server.host
-                List<LdapPerson> matches = doQuery(server, "(sAMAccountName=$username)", LdapPerson, true)
+                List<LdapPerson> matches = doQuery(server, "($usernameAttribute=$username)", LdapPerson, true)
                 if (matches) {
                     if (matches.size() > 1) throw new RuntimeException("Multiple user records found for $username")
                     LdapPerson user = matches.first()
@@ -171,6 +179,69 @@ class LdapService extends BaseService {
             }
             logDebug('Authentication failed, no user found', [username: username])
             return false
+        }
+    }
+
+    //------------------------
+    // DirectoryService
+    //------------------------
+    String getDirectoryGroupsDescription() {
+        'Search by name, or enter a full Distinguished Name (DN) directly.'
+    }
+
+    /**
+     * Usernames are the members' `xhLdapConfig.usernameAttribute` values, lowercased. The
+     * `samaccountname` default is the long-standing convention for LDAP-backed role resolution.
+     */
+    Map<String, ErrorOr<Set<String>>> loadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
+        ensureEnabled()
+        if (!groups) return emptyMap()
+
+        String userAttr = config.usernameAttribute
+        if (!(userAttr in LdapPerson.usernameKeys)) {
+            def msg = "Invalid xhLdapConfig.usernameAttribute '$userAttr' - must be one of ${LdapPerson.usernameKeys}"
+            if (strictMode) throw new RuntimeException(msg)
+            logError(msg)
+            return groups.collectEntries { [it, ErrorOr.error(msg)] }
+        }
+
+        Set<String> foundGroups = new HashSet()
+        Map<String, ErrorOr<Set<String>>> ret = [:]
+
+        // 1) Determine valid groups
+        lookupGroups(groups, strictMode).each { name, group ->
+            if (group) {
+                foundGroups << name
+            } else {
+                ret.put(name, ErrorOr.error('Directory Group not found'))
+            }
+        }
+
+        // 2) Search for members of valid groups
+        lookupGroupMembers(foundGroups, strictMode).each { name, members ->
+            Set<String> users = members.collect(new HashSet()) { it[userAttr]?.toString()?.toLowerCase() }
+            // Exclude members without the username attribute (e.g. email-only contacts in a DL)
+            users.remove(null)
+            ret.put(name, ErrorOr.of(users))
+        }
+
+        return ret
+    }
+
+    Map<String, ErrorOr<Map>> describeDirectoryGroups(Set<String> groups) {
+        ensureEnabled()
+        lookupGroups(groups, false).collectEntries { dn, group ->
+            [dn, group ?
+                ErrorOr.of([id: dn, displayName: group.cn ?: group.name ?: dn]) :
+                ErrorOr.error('Directory Group not found')
+            ]
+        } as Map<String, ErrorOr<Map>>
+    }
+
+    List<Map> searchDirectoryGroups(String namePart) {
+        ensureEnabled()
+        findGroups(namePart).collect {
+            [id: it.distinguishedname, displayName: it.cn ?: it.name ?: it.distinguishedname] as Map
         }
     }
 
@@ -213,9 +284,15 @@ class LdapService extends BaseService {
         return members
     }
 
+    // CompileDynamic to support the polymorphic static dispatch of objType.keys / objType.create,
+    // which resolves to the runtime Class - including app-defined LdapObject subclasses.
+    @CompileDynamic
     private <T extends LdapObject> List<T> doQuery(LdapConfig.LdapServerOptions server, String baseFilter, Class<T> objType, boolean strictMode) {
-        if (!enabled) throw new RuntimeException('LdapService not enabled - check xhLdapConfig app config.')
+        ensureEnabled()
         if (queryUsername == 'none') throw new RuntimeException('LdapService enabled but query user not configured - check xhLdapUsername app config, or disable via xhLdapConfig.')
+        // Never bind with the 'none' placeholder - repeated binds with a bad password can lock
+        // out the query account under an AD lockout policy.
+        if (!queryUserPwd || queryUserPwd == 'none') throw new RuntimeException('LdapService enabled but query user password not configured - check xhLdapPassword app config, or disable via xhLdapConfig.')
 
         boolean isPerson = LdapPerson.class.isAssignableFrom(objType)
         // Cache key MUST include `baseDn` alongside `host` and `filter`. Apps commonly
@@ -267,6 +344,35 @@ class LdapService extends BaseService {
         }
 
         return new LdapNetworkConnection(ret)
+    }
+
+    /**
+     * Run a per-key lookup with bounded parallelism - batches of up to MAX_PARALLEL_LOOKUPS
+     * keys run concurrently, with each batch awaited in full before the next begins. The bound
+     * is sized to run typical workloads in a single fully-parallel batch, while acting as a
+     * backstop against unbounded thread and connection fan-out from very large key sets.
+     */
+    private <T> Map<String, T> parallelLookup(Set<String> keys, Closure<T> lookupFn) {
+        Map<String, T> ret = [:]
+        keys.toList().collate(MAX_PARALLEL_LOOKUPS).each { batch ->
+            Map<String, Promise<T>> tasks =
+                batch.collectEntries { String key -> [key, task { lookupFn(key) }] }
+            tasks.each { k, v -> ret.put(k, v.get()) }
+        }
+        ret
+    }
+
+    private void ensureEnabled() {
+        if (!enabled) throw new RuntimeException('LdapService not enabled - check xhLdapConfig app config.')
+    }
+
+    /** Validated `xhLdapConfig.usernameAttribute`, for username-based lookups that should fail fast. */
+    private String getUsernameAttribute() {
+        String ret = config.usernameAttribute
+        if (!(ret in LdapPerson.usernameKeys)) {
+            throw new RuntimeException("Invalid xhLdapConfig.usernameAttribute '$ret' - must be one of ${LdapPerson.usernameKeys}")
+        }
+        ret
     }
 
     private LdapConfig getConfig() {

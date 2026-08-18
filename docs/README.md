@@ -30,6 +30,8 @@ and conventions.
 | Trace an HTTP request through the framework | [`request-flow.md`](./request-flow.md) |
 | Implement authentication in your app | [`authentication.md`](./authentication.md) |
 | Set up roles and access control | [`authorization.md`](./authorization.md) |
+| Resolve role memberships from LDAP / Active Directory or Entra ID groups | [`directory-services.md`](./directory-services.md) |
+| Query a corporate directory for users or groups | [`directory-services.md`](./directory-services.md) |
 | Work with AppConfig (soft configuration) | [`configuration.md`](./configuration.md) |
 | Work with user preferences | [`preferences.md`](./preferences.md) |
 | Cache computed or fetched data in a service | [`caching.md`](./caching.md) |
@@ -65,6 +67,7 @@ Foundational patterns that everything else builds on.
 | [`request-flow.md`](./request-flow.md) | How an HTTP request flows through the Hoist framework | HoistCoreGrailsPlugin, HoistFilter, UrlMappings, HoistInterceptor, controller dispatch, JSON response |
 | [`authentication.md`](./authentication.md) | Authentication service contract and user identity | BaseAuthenticationService, BaseUserService, HoistUser, IdentityService, impersonation |
 | [`authorization.md`](./authorization.md) | Role-based access control and controller security annotations | BaseRoleService, DefaultRoleService, Role, RoleMember, `@AccessRequiresRole`, `@AccessAll`, built-in roles |
+| [`directory-services.md`](./directory-services.md) | Corporate directory integration for role resolution, username mapping, and LDAP-backed login | DirectoryService, LdapService, EntraIdService, Active Directory, Microsoft Graph, `xhLdapConfig`, `xhEntraIdConfig`, `directoryGroupProvider`, `usernameAttribute`, ErrorOr |
 
 ### Core Features
 
@@ -132,6 +135,7 @@ breaking changes, before/after code examples, and verification checklists.
 
 | Version                                         | Key Changes |
 |-------------------------------------------------|-------------|
+| [v41.0.0](./upgrade-notes/v41-upgrade-notes.md) | `EntraIdService` + `DirectoryService` for Entra ID directory groups, typed `ErrorOr` results from `doLoadUsersForDirectoryGroups`, `xhLdapConfig.usernameAttribute` |
 | [v40.0.1](./upgrade-notes/v40-upgrade-notes.md) | Grails 7.1, `MetricsService` registration API, `BaseService.telemetryPrefix`, `ObservedRun` metrics by-name, `hoist.*` → `xh.*` built-in metric rename, client-side metrics endpoint |
 | [v39.0.0](./upgrade-notes/v39-upgrade-notes.md) | Typed `ConfigSpec` / `PreferenceSpec` / `RoleSpec`, optional `TypedConfigMap` opt-in, telemetry package restructuring, `alwaysSampleErrors` removed, JDK 25 toolchain |
 | [v38.0.0](./upgrade-notes/v38-upgrade-notes.md) | LogLevel schema additions, OTEL tag alignment, rule-based span sampling |

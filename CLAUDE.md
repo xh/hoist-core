@@ -93,6 +93,11 @@ enable it for Claude Code.
 This is a plugin — `bootRun` is not supported. To run locally, use a wrapper app project that
 includes hoist-core as a dependency.
 
+For quick standalone Groovy script verification, check for a SDKMAN-managed runtime at
+`~/.sdkman/candidates/groovy/current/bin/groovy` (not on non-interactive shell PATHs). Use it if
+present; if not, suggest `sdk install groovy <version matching the framework>` — do not assume it
+is installed.
+
 ## Source Layout
 
 ```
@@ -288,6 +293,10 @@ Controllers use `renderJSON()` and `parseRequestJSON()`. Custom serializers are 
 - **Prefer Groovy collection methods** — Use `.collect()`, `.findAll()`, `.find()`,
   `.groupBy()`, `.collectEntries()`, `.sum()` etc. for collection operations. These are
   null-safe on the elements and more expressive than manual loops.
+- **No dash between `@param`/`@throws` names and descriptions** — Write
+  `@param ids set of group object IDs`, not `@param ids - set of...`. Doc tools (IntelliJ
+  quick-doc, the Groovydoc/Javadoc doclet) render their own dash separator between the name
+  and description, so a dash in the source doubles up in rendered output.
 
 ## Git Workflow
 

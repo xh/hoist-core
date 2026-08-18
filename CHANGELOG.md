@@ -14,6 +14,53 @@
 
 ## 41.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - most apps require no changes)
+
+See [`docs/upgrade-notes/v41-upgrade-notes.md`](docs/upgrade-notes/v41-upgrade-notes.md) for
+detailed, step-by-step upgrade instructions with before/after code examples.
+
+* `DefaultRoleService.doLoadUsersForDirectoryGroups` now returns
+  `Map<String, ErrorOr<Set<String>>>` rather than a `Map<String, Object>` holding either a `Set`
+  of usernames or a `String` error per group. Apps that do not override or call this method
+  require no changes. Apps that override it must wrap returned values with the new
+  `ErrorOr.of(usernames)` / `ErrorOr.error(message)` factories, and any code that calls
+  `loadUsersForDirectoryGroups` and checks results with `instanceof Set` must read the new
+  `ErrorOr.success` / `value` / `error` properties instead.
+
+### 🎁 New Features
+
+* Added `EntraIdService` - a new service that queries a Microsoft Entra ID tenant for users,
+  groups, and group memberships via the Microsoft Graph API. The service uses app-only (client
+  credentials) auth and is an opt-in alternative to `LdapService` for applications whose corporate
+  directory lives in Entra ID. Requires the new `xhEntraIdConfig`, `xhEntraTenantId`,
+  `xhEntraClientId`, and `xhEntraClientSecret` configs, and an app registration with
+  admin-consented `GroupMember.Read.All` and `User.Read.All` application permissions. The tenant
+  and client IDs are standalone configs so that other subsystems can share them and deployments
+  can override them per environment via instance configs.
+* Added `DirectoryService` - a new interface that `LdapService` and `EntraIdService` both
+  implement. It models the resolution of "directory groups" to their member users for
+  `DefaultRoleService`, which now selects an enabled implementation to resolve directory-group
+  role memberships. The optional `directoryGroupProvider` key in `xhRoleModuleConfig` makes the
+  selection explicit when both services are enabled. Apps that use `LdapService` today do not
+  need to change their configs or role data, but apps that override
+  `doLoadUsersForDirectoryGroups` must make a small mechanical update - see Breaking Changes.
+* `LdapService` gained support for a new `usernameAttribute` key in `xhLdapConfig` (default
+  `samaccountname`) - the LDAP person attribute mapped to the Hoist username. It governs how
+  directory group members resolve to usernames for role management and is now also matched by
+  `lookupUser` and `authenticate`, which previously hardcoded `sAMAccountName`.
+* Added `ErrorOr` - a small generic holder for the result of an operation that can either succeed
+  with a value or fail with a String error description, used within batch results where per-entry
+  failures are reported as data alongside successful entries. Serializes to JSON as the bare
+  value or error String.
+* `DefaultRoleService` gained `describeDirectoryGroups` and `searchDirectoryGroups`, with matching
+  `roleAdmin/directoryGroupsInfo` and `roleAdmin/searchDirectoryGroups` endpoints. These let the
+  Admin Console show a display name for each assigned directory group and search the directory by
+  name - of particular value with Entra ID, where the stored group identifier is an opaque GUID.
+
+### 📚 Libraries
+
+* msal4j `added @ 1.25.1`
+
 ## 40.5.0 - 2026-08-13
 
 ### 🎁 New Features

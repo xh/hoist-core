@@ -85,6 +85,8 @@ dependencies {
     api 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
     api "com.jayway.jsonpath:json-path:2.9.0"
     api "commons-io:commons-io:2.22.0"
+    // Supports EntraIdService - Microsoft Graph token acquisition via client credentials.
+    api "com.microsoft.azure:msal4j:1.25.1"
     api "org.apache.directory.api:api-all:2.1.7"
     api "org.apache.httpcomponents.client5:httpclient5"
     api "org.apache.poi:poi-ooxml-full:5.5.1"
