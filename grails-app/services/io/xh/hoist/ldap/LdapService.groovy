@@ -290,6 +290,9 @@ class LdapService extends BaseService implements DirectoryService {
     private <T extends LdapObject> List<T> doQuery(LdapConfig.LdapServerOptions server, String baseFilter, Class<T> objType, boolean strictMode) {
         ensureEnabled()
         if (queryUsername == 'none') throw new RuntimeException('LdapService enabled but query user not configured - check xhLdapUsername app config, or disable via xhLdapConfig.')
+        // Never bind with the 'none' placeholder - repeated binds with a bad password can lock
+        // out the query account under an AD lockout policy.
+        if (!queryUserPwd || queryUserPwd == 'none') throw new RuntimeException('LdapService enabled but query user password not configured - check xhLdapPassword app config, or disable via xhLdapConfig.')
 
         boolean isPerson = LdapPerson.class.isAssignableFrom(objType)
         // Cache key MUST include `baseDn` alongside `host` and `filter`. Apps commonly
