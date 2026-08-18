@@ -33,11 +33,10 @@ import static java.util.Collections.emptyMap
  * Microsoft Graph API.
  *
  * <p>An optional alternative to {@link io.xh.hoist.ldap.LdapService} for applications whose
- * corporate directory lives in Entra ID (formerly Azure AD) - in particular, both services can
- * resolve directory-group-based role memberships for
- * {@link io.xh.hoist.role.provided.DefaultRoleService}, via the common {@link DirectoryService}
- * interface. Groups are identified by their Entra ID object ID (GUID), which is unique and
- * stable through group renames.
+ * corporate directory lives in Entra ID (formerly Azure AD). Both services can resolve
+ * directory-group role memberships for {@link io.xh.hoist.role.provided.DefaultRoleService},
+ * via the common {@link DirectoryService} interface. Groups are identified by their Entra ID
+ * object ID (GUID), which is unique and stable through group renames.
  *
  * <p>Queries use app-only (client credentials) auth. The backing Entra ID app registration must
  * hold the following Microsoft Graph <b>application</b> permissions, granted with admin consent:
@@ -56,14 +55,14 @@ import static java.util.Collections.emptyMap
  * </ul>
  *
  * <p>The tenant ID and client ID are standalone configs so that other server-side subsystems
- * can share them, and so that they can be overridden per environment via instance configs /
+ * can share them. Deployments can also override them per environment via instance configs /
  * environment variables. Apps whose clients need them pre-auth (e.g. for OAuth login) should
  * relay them via their AuthenticationService's `getClientConfig()`.
  *
  * <p>Results are cached per query for `xhEntraIdConfig.cacheExpireSecs`. Queries run with
- * `strictMode = false` will log and absorb failures, meaning callers can receive partial
- * results. Graph throttling (HTTP 429) and server errors are retried a bounded number of times
- * before failing.
+ * `strictMode = false` will log and absorb failures, so callers can receive partial results.
+ * Graph throttling (HTTP 429) and server errors are retried a bounded number of times before
+ * the query fails.
  */
 @CompileStatic
 class EntraIdService extends BaseService implements DirectoryService {
@@ -171,22 +170,19 @@ class EntraIdService extends BaseService implements DirectoryService {
 
     /**
      * Find users with the given field exactly equal to the given value. Supports reverse
-     * lookups from identifiers other than the object ID / UPN - e.g. from an on-prem
-     * `onPremisesSamAccountName` or `onPremisesSecurityIdentifier` (SID).
+     * lookups from identifiers other than the object ID / UPN - e.g. from a sAMAccountName or
+     * SID (`onPremisesSamAccountName` / `onPremisesSecurityIdentifier`).
      *
-     * @param field Graph user field to match - must be a String-typed field from
-     *      `EntraUser.keys`. Boolean fields (e.g. `accountEnabled`) are not supported - a
-     *      tenant-wide sweep on a flag is not a use this identifier-lookup API is meant for.
+     * @param field Graph user field to match - must be one of `EntraUser.queryKeys`. Boolean
+     *      fields (e.g. `accountEnabled`) are not supported - this identifier-lookup API does
+     *      not support tenant-wide sweeps on a flag.
      * @param value value to match exactly (OData `eq`).
      */
     List<EntraUser> findUsers(String field, String value) {
         withDebug(["Finding users", [field: field, value: value]]) {
             ensureEnabled()
-            List<String> validFields = EntraUser.keys.findAll {
-                EntraUser.getDeclaredField(it as String).type == String
-            }
-            if (!(field in validFields)) {
-                throw new RuntimeException("Invalid EntraUser field '$field' for findUsers - must be one of $validFields")
+            if (!(field in EntraUser.queryKeys)) {
+                throw new RuntimeException("Invalid EntraUser field '$field' for findUsers - must be one of ${EntraUser.queryKeys}")
             }
             String key = "usersBy|$field|$value"
             def cached = queryCache.get(key)
@@ -214,13 +210,13 @@ class EntraIdService extends BaseService implements DirectoryService {
     }
 
     /**
-     * Find the single user with the given field exactly equal to the given value, for identity
-     * work where the expected cardinality is exactly one - e.g. resolving a user from an
+     * Find the single user with the given field exactly equal to the given value. Intended for
+     * identity work where exactly one match is expected - e.g. resolving a user from an
      * on-prem SID.
      *
      * <p>Returns null when no user matches. Throws when multiple users match, rather than
-     * silently picking one - a multi-match indicates an ambiguous identity (e.g. colliding
-     * sAMAccountNames across synced domains) that callers must not bind to.
+     * silently pick one. A multi-match indicates an ambiguous identity that callers must not
+     * bind to - e.g. colliding sAMAccountNames across synced domains.
      *
      * @param field String-typed Graph user field to match - see {@link #findUsers}.
      * @param value value to match exactly (OData `eq`).
@@ -270,8 +266,8 @@ class EntraIdService extends BaseService implements DirectoryService {
     }
 
     /**
-     * Lookup group members for a number of groups, in parallel. Nested group memberships are
-     * resolved server-side by Graph and included.
+     * Lookup group members for a number of groups, in parallel. Graph resolves nested group
+     * memberships server-side and includes them.
      * @param ids set of group object IDs.
      * @param strictMode if true, this method will throw if any lookups fail, otherwise
      *      failed lookups will be logged and resolved as null.
@@ -531,8 +527,8 @@ class EntraIdService extends BaseService implements DirectoryService {
     /**
      * Run a per-key lookup with bounded parallelism - batches of up to MAX_PARALLEL_LOOKUPS
      * keys run concurrently, with each batch awaited in full before the next begins. The bound
-     * is sized to run typical workloads in a single fully-parallel batch, while acting as a
-     * backstop against unbounded thread and connection fan-out from very large key sets.
+     * is sized to run typical workloads in a single fully-parallel batch. It is also a backstop
+     * against unbounded thread and connection fan-out from very large key sets.
      */
     private <T> Map<String, T> parallelLookup(Set<String> keys, Closure<T> lookupFn) {
         Map<String, T> ret = [:]

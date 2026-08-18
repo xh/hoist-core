@@ -98,6 +98,18 @@ class EntraUser implements JSONFormat {
         ['userPrincipalName', 'mail', 'onPremisesSamAccountName']
     }
 
+    /**
+     * Graph fields suitable as the `field` argument to `EntraIdService.findUsers` - the
+     * String-typed subset of {@link #getKeys}, as `eq` filters emit quoted string literals.
+     */
+    static List<String> getQueryKeys() {
+        [
+            'id', 'userPrincipalName', 'displayName', 'givenName', 'surname', 'mail',
+            'department', 'jobTitle', 'officeLocation',
+            'onPremisesSamAccountName', 'onPremisesImmutableId', 'onPremisesSecurityIdentifier'
+        ]
+    }
+
     /** Graph field names requested via `$select` and mapped onto properties of this class. */
     static List<String> getKeys() {
         [
