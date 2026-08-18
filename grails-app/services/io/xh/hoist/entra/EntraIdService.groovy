@@ -130,7 +130,8 @@ class EntraIdService extends BaseService implements DirectoryService {
             ensureEnabled()
             String key = "user|${idOrUpn.toLowerCase()}"
             def cached = queryCache.get(key)
-            if (cached != null) return cached.is(NO_MATCH) ? null : cached as EntraUser
+            // Type check, not identity - a replicated cache would return deserialized copies.
+            if (cached != null) return cached instanceof String ? null : cached as EntraUser
 
             def data = graphGetObject(
                 "/users/${URLEncoder.encode(idOrUpn, 'UTF-8').replace('+', '%20')}",
@@ -138,11 +139,7 @@ class EntraIdService extends BaseService implements DirectoryService {
             )
             def ret = data ? EntraUser.create(data) : null
             if (ret) {
-                // Cache under both identifiers, so id- and UPN-based lookups share an entry.
-                String idKey = "user|${ret.id.toLowerCase()}",
-                    upnKey = ret.userPrincipalName ? "user|${ret.userPrincipalName.toLowerCase()}" : null
-                queryCache.put(idKey, ret)
-                if (upnKey) queryCache.put(upnKey, ret)
+                cacheUser(ret)
             } else {
                 // Cache misses too - unmatched identifiers should not re-hit Graph per call.
                 queryCache.put(key, NO_MATCH)
@@ -152,11 +149,24 @@ class EntraIdService extends BaseService implements DirectoryService {
     }
 
     /**
-     * Lookup multiple users by object ID or userPrincipalName, in parallel. Unmatched
-     * identifiers resolve as null.
+     * Lookup multiple users by object ID or userPrincipalName, in parallel.
+     * @param idsOrUpns set of user object IDs or userPrincipalNames.
+     * @param strictMode if true, this method will throw if any lookups fail, otherwise
+     *      failed lookups will be logged and resolved as null. Identifiers that do not match a
+     *      user resolve as null in either mode.
      */
-    Map<String, EntraUser> lookupUsers(Set<String> idsOrUpns) {
-        parallelLookup(idsOrUpns) { String idOrUpn -> lookupUser(idOrUpn) }
+    Map<String, EntraUser> lookupUsers(Set<String> idsOrUpns, boolean strictMode = false) {
+        withDebug(["Looking up users", [ids: idsOrUpns, strictMode: strictMode]]) {
+            parallelLookup(idsOrUpns) { String idOrUpn ->
+                try {
+                    lookupUser(idOrUpn)
+                } catch (Exception e) {
+                    if (strictMode) throw e
+                    logError('Failure looking up user', [user: idOrUpn], e)
+                    return null
+                }
+            }
+        }
     }
 
     /**
@@ -164,14 +174,19 @@ class EntraIdService extends BaseService implements DirectoryService {
      * lookups from identifiers other than the object ID / UPN - e.g. from an on-prem
      * `onPremisesSamAccountName` or `onPremisesSecurityIdentifier` (SID).
      *
-     * @param field Graph user field to match - must be one of `EntraUser.keys`.
+     * @param field Graph user field to match - must be a String-typed field from
+     *      `EntraUser.keys`. Boolean fields (e.g. `accountEnabled`) are not supported - a
+     *      tenant-wide sweep on a flag is not a use this identifier-lookup API is meant for.
      * @param value value to match exactly (OData `eq`).
      */
     List<EntraUser> findUsers(String field, String value) {
         withDebug(["Finding users", [field: field, value: value]]) {
             ensureEnabled()
-            if (!(field in EntraUser.keys)) {
-                throw new RuntimeException("Invalid EntraUser field '$field' - must be one of ${EntraUser.keys}")
+            List<String> validFields = EntraUser.keys.findAll {
+                EntraUser.getDeclaredField(it as String).type == String
+            }
+            if (!(field in validFields)) {
+                throw new RuntimeException("Invalid EntraUser field '$field' for findUsers - must be one of $validFields")
             }
             String key = "usersBy|$field|$value"
             def cached = queryCache.get(key)
@@ -192,8 +207,30 @@ class EntraIdService extends BaseService implements DirectoryService {
             )
             def ret = raw.collect { EntraUser.create(it) }
             queryCache.put(key, ret)
+            // Also seed the per-user entries, so a reverse lookup warms the forward cache.
+            ret.each { cacheUser(it) }
             return ret
         }
+    }
+
+    /**
+     * Find the single user with the given field exactly equal to the given value, for identity
+     * work where the expected cardinality is exactly one - e.g. resolving a user from an
+     * on-prem SID.
+     *
+     * <p>Returns null when no user matches. Throws when multiple users match, rather than
+     * silently picking one - a multi-match indicates an ambiguous identity (e.g. colliding
+     * sAMAccountNames across synced domains) that callers must not bind to.
+     *
+     * @param field String-typed Graph user field to match - see {@link #findUsers}.
+     * @param value value to match exactly (OData `eq`).
+     */
+    EntraUser findUser(String field, String value) {
+        List<EntraUser> matches = findUsers(field, value)
+        if (matches.size() > 1) {
+            throw new RuntimeException("Found ${matches.size()} users with $field = '$value' - refusing to resolve an ambiguous identity.")
+        }
+        matches ? matches.first() : null
     }
 
     //------------------------
@@ -285,8 +322,8 @@ class EntraIdService extends BaseService implements DirectoryService {
         def conf = config
         String userAttr = conf.usernameAttribute
         boolean stripDomain = conf.stripUsernameDomain
-        if (!(userAttr in EntraUser.keys)) {
-            def msg = "Invalid xhEntraIdConfig.usernameAttribute '$userAttr' - must be one of ${EntraUser.keys}"
+        if (!(userAttr in EntraUser.usernameKeys)) {
+            def msg = "Invalid xhEntraIdConfig.usernameAttribute '$userAttr' - must be one of ${EntraUser.usernameKeys}"
             if (strictMode) throw new RuntimeException(msg)
             logError(msg)
             return groups.collectEntries { [it, ErrorOr.error(msg)] }
@@ -505,6 +542,16 @@ class EntraIdService extends BaseService implements DirectoryService {
             tasks.each { k, v -> ret.put(k, v.get()) }
         }
         ret
+    }
+
+    /** Cache a fetched user under both its identifiers, so id- and UPN-based lookups share an entry. */
+    private void cacheUser(EntraUser user) {
+        String idKey = "user|${user.id.toLowerCase()}"
+        queryCache.put(idKey, user)
+        if (user.userPrincipalName) {
+            String upnKey = "user|${user.userPrincipalName.toLowerCase()}"
+            queryCache.put(upnKey, user)
+        }
     }
 
     private void ensureEnabled() {

@@ -23,9 +23,10 @@ class EntraIdConfig extends TypedConfigMap {
     boolean enabled = false
 
     /**
-     * Graph user attribute mapped to the Hoist username when resolving group members, e.g.
-     * `userPrincipalName`, `mail`, or `onPremisesSamAccountName`. Values are lowercased.
-     * Members with no value for this attribute are excluded from results.
+     * Graph user attribute mapped to the Hoist username when resolving group members - must be
+     * one of {@link EntraUser#getUsernameKeys} (`userPrincipalName`, `mail`, or
+     * `onPremisesSamAccountName`). Values are lowercased. Members with no value for this
+     * attribute are excluded from results.
      */
     String usernameAttribute = 'userPrincipalName'
 

@@ -38,8 +38,8 @@ class EntraUser implements JSONFormat {
     /**
      * Hybrid identity anchor linking a synced account to its on-prem AD object - the base64
      * form of the on-prem `ms-DS-ConsistencyGuid` / `objectGUID`. Populated only for accounts
-     * synced from on-prem AD. Note the value is case-sensitive base64 - do not use as a
-     * `usernameAttribute`, which lowercases its values. See {@link #getOnPremisesObjectGuid}
+     * synced from on-prem AD. The value is case-sensitive base64, so it is not a permitted
+     * `usernameAttribute` (which lowercases its values). See {@link #getOnPremisesObjectGuid}
      * for the decoded GUID string form.
      */
     String onPremisesImmutableId
@@ -60,8 +60,10 @@ class EntraUser implements JSONFormat {
     Boolean onPremisesSyncEnabled
 
     /**
-     * The {@link #onPremisesImmutableId} decoded to its GUID string form, matching the
-     * `objectGUID` displayed by on-prem AD tools - or null when unset or not a 16-byte value.
+     * The {@link #onPremisesImmutableId} decoded to its GUID string form - the on-prem sync
+     * anchor (`ms-DS-ConsistencyGuid` / `objectGUID`, whichever the tenant's Entra Connect
+     * config anchors on) in the display form used by on-prem AD tools. Null when unset or not
+     * a 16-byte value.
      *
      * <p>Windows GUIDs are mixed-endian: the first three groups are stored little-endian, so a
      * naive hex dump of the decoded bytes yields a well-formed but *wrong* GUID. This accessor
@@ -89,6 +91,11 @@ class EntraUser implements JSONFormat {
         def ret = new EntraUser()
         keys.each { ret[it] = data[it] }
         ret
+    }
+
+    /** Graph fields suitable for use as `xhEntraIdConfig.usernameAttribute`. */
+    static List<String> getUsernameKeys() {
+        ['userPrincipalName', 'mail', 'onPremisesSamAccountName']
     }
 
     /** Graph field names requested via `$select` and mapped onto properties of this class. */

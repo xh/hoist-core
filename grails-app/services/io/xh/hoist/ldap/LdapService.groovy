@@ -198,8 +198,8 @@ class LdapService extends BaseService implements DirectoryService {
         if (!groups) return emptyMap()
 
         String userAttr = config.usernameAttribute
-        if (!(userAttr in LdapPerson.keys)) {
-            def msg = "Invalid xhLdapConfig.usernameAttribute '$userAttr' - must be one of ${LdapPerson.keys}"
+        if (!(userAttr in LdapPerson.usernameKeys)) {
+            def msg = "Invalid xhLdapConfig.usernameAttribute '$userAttr' - must be one of ${LdapPerson.usernameKeys}"
             if (strictMode) throw new RuntimeException(msg)
             logError(msg)
             return groups.collectEntries { [it, ErrorOr.error(msg)] }
@@ -369,8 +369,8 @@ class LdapService extends BaseService implements DirectoryService {
     /** Validated `xhLdapConfig.usernameAttribute`, for username-based lookups that should fail fast. */
     private String getUsernameAttribute() {
         String ret = config.usernameAttribute
-        if (!(ret in LdapPerson.keys)) {
-            throw new RuntimeException("Invalid xhLdapConfig.usernameAttribute '$ret' - must be one of ${LdapPerson.keys}")
+        if (!(ret in LdapPerson.usernameKeys)) {
+            throw new RuntimeException("Invalid xhLdapConfig.usernameAttribute '$ret' - must be one of ${LdapPerson.usernameKeys}")
         }
         ret
     }

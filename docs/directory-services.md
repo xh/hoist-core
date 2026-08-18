@@ -215,8 +215,10 @@ application use. Consult the Groovydoc for signatures - highlights:
 **`EntraIdService`**
 
 - `lookupUser(idOrUpn)` / `lookupUsers(idsOrUpns)` - accepts object IDs or userPrincipalNames.
-- `findUsers(field, value)` - exact-match lookup on any `EntraUser` field, for reverse lookups
-  from other identifiers (e.g. an on-prem SID or sAMAccountName).
+- `findUsers(field, value)` - exact-match lookup on any String-typed `EntraUser` field, for
+  reverse lookups from other identifiers (e.g. an on-prem SID or sAMAccountName). The
+  `findUser` singular variant supports identity binding - it returns the one match or null,
+  and throws rather than pick from an ambiguous multi-match.
 - `lookupGroup(id)`, `lookupGroups(ids)`, `lookupGroupMembers(id | ids)` - lookups by group
   object ID. Graph resolves nested memberships server-side.
 - `findGroups(namePart)` - search groups by display name. Matching is tokenized - each word or
@@ -258,8 +260,10 @@ provider's identifier form.
 
 ### Invalid `usernameAttribute`
 
-The attribute must be one of the typed result-object keys (`LdapPerson.keys` /
-`EntraUser.keys`). Role resolution reports an invalid value as a per-group error description.
+The attribute must be one of the fields whitelisted for username use
+(`LdapObject.usernameKeys` / `EntraUser.usernameKeys`) - other fields, even valid query
+fields, are rejected. Role resolution reports an invalid value as a per-group error
+description.
 `LdapService.lookupUser()` and `authenticate()` throw on an invalid value.
 
 ### Missing admin consent or expired client secret (Entra ID)
