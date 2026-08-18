@@ -35,6 +35,56 @@ class EntraUser implements JSONFormat {
     /** Legacy on-prem AD sAMAccountName, populated only for accounts synced from on-prem AD. */
     String onPremisesSamAccountName
 
+    /**
+     * Hybrid identity anchor linking a synced account to its on-prem AD object - the base64
+     * form of the on-prem `ms-DS-ConsistencyGuid` / `objectGUID`. Populated only for accounts
+     * synced from on-prem AD. Note the value is case-sensitive base64 - do not use as a
+     * `usernameAttribute`, which lowercases its values. See {@link #getOnPremisesObjectGuid}
+     * for the decoded GUID string form.
+     */
+    String onPremisesImmutableId
+
+    /**
+     * On-prem AD security identifier (SID) in its string form (`S-1-5-21-...`), populated only
+     * for accounts synced from on-prem AD. Directly comparable to SIDs from token claims or
+     * on-prem sources - no decoding required.
+     */
+    String onPremisesSecurityIdentifier
+
+    /**
+     * True if the account currently syncs from on-prem AD, false if it synced previously but
+     * no longer does, null if it never has (cloud-only). Use to tell a legitimately cloud-only
+     * account from a synced account whose on-prem attributes unexpectedly failed to resolve -
+     * a null `onPremises*` value alone is ambiguous between the two.
+     */
+    Boolean onPremisesSyncEnabled
+
+    /**
+     * The {@link #onPremisesImmutableId} decoded to its GUID string form, matching the
+     * `objectGUID` displayed by on-prem AD tools - or null when unset or not a 16-byte value.
+     *
+     * <p>Windows GUIDs are mixed-endian: the first three groups are stored little-endian, so a
+     * naive hex dump of the decoded bytes yields a well-formed but *wrong* GUID. This accessor
+     * applies the required byte swaps. Derived on read - not a Graph field, and not serialized
+     * by {@link #formatForJSON}.
+     */
+    String getOnPremisesObjectGuid() {
+        if (!onPremisesImmutableId) return null
+        byte[] b
+        try {
+            b = Base64.decoder.decode(onPremisesImmutableId)
+        } catch (IllegalArgumentException ignored) {
+            return null
+        }
+        if (b.length != 16) return null
+        def hex = { int i -> String.format('%02x', b[i] & 0xFF) }
+        return hex(3) + hex(2) + hex(1) + hex(0) + '-' +
+            hex(5) + hex(4) + '-' +
+            hex(7) + hex(6) + '-' +
+            hex(8) + hex(9) + '-' +
+            hex(10) + hex(11) + hex(12) + hex(13) + hex(14) + hex(15)
+    }
+
     static EntraUser create(Map data) {
         def ret = new EntraUser()
         keys.each { ret[it] = data[it] }
@@ -46,7 +96,8 @@ class EntraUser implements JSONFormat {
         [
             'id', 'userPrincipalName', 'displayName', 'givenName', 'surname', 'mail',
             'department', 'jobTitle', 'officeLocation', 'accountEnabled',
-            'onPremisesSamAccountName'
+            'onPremisesSamAccountName', 'onPremisesImmutableId', 'onPremisesSecurityIdentifier',
+            'onPremisesSyncEnabled'
         ]
     }
 
