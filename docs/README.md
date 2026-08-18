@@ -151,6 +151,7 @@ breaking changes, before/after code examples, and verification checklists.
 - [`planning/docs-roadmap.md`](./planning/docs-roadmap.md) — Documentation coverage tracking,
   conventions, and guidelines
 - [`/CHANGELOG.md`](../CHANGELOG.md) — Version history and release notes
-- [`/README.md`](../README.md) — Project overview with feature tables and source code links
+- [`/README.md`](../README.md) — Project overview: what Hoist is, the role of the server, and how
+  a Hoist app is built and deployed
 - [hoist-react docs](https://github.com/xh/hoist-react/tree/develop/docs) — Client-side
   counterpart documentation

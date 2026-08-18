@@ -190,7 +190,7 @@
             "mcpCategory": "concept",
             "viewerCategory": "devops",
             "description": "Standard Hoist application repository layout — server and client structure, build configuration, deployment, JDK choice.",
-            "keywords": ["build.gradle", "gradle.properties", "grails-app/init", "client-app", "Bootstrap.ts", "AppModel", "Docker", "Nginx", "Tomcat", "JDK 17", "JDK 21", "JDK 25", "Java 25", "Gradle toolchain", "incompatible Java 25 and Gradle 8.x", "xh-tomcat"]
+            "keywords": ["build.gradle", "gradle.properties", "grails-app/init", "client-app", "Bootstrap.ts", "AppModel", "Docker", "Nginx", "Tomcat", "JDK 17", "JDK 21", "JDK 25", "Java 25", "Gradle toolchain", "incompatible Java 25 and Gradle 8.x", "xh-tomcat", "hot reload", "HotswapAgent", "enableHotSwap"]
         },
         {
             "id": "docs/build-and-publish.md",
