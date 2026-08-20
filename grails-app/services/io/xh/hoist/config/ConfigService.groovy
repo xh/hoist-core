@@ -70,6 +70,27 @@ class ConfigService extends BaseService {
     }
 
     /**
+     * Value of a string config, or null if its value has not been set.
+     *
+     * A string or pwd config that an app may legitimately leave unset is bootstrapped with the
+     * {@link AppConfig#NONE} placeholder value, as AppConfig validation requires a non-null,
+     * non-blank value. Use this in place of {@link #getString} to read such a config, and treat a
+     * null result as "not configured".
+     *
+     * Note the distinction between unset and absent - a config holding the placeholder returns
+     * null, while a config that does not exist throws. These are intended to read a bootstrapped
+     * config, and are not a way to probe whether one exists.
+     */
+    String getStringIfSet(String name) {
+        return valueIfSet(getString(name))
+    }
+
+    /** Value of a pwd config, or null if its value has not been set - see {@link #getStringIfSet}. */
+    String getPwdIfSet(String name) {
+        return valueIfSet(getPwd(name))
+    }
+
+    /**
      * Load a typed representation of a JSON soft config, with declared property defaults
      * applied for any keys missing from the stored value.
      *
@@ -329,6 +350,11 @@ class ConfigService extends BaseService {
                 "defaults should live on ${asTyped.simpleName} - pass defaultValue: [:] in the ConfigSpec"
             )
         }
+    }
+
+    /** Map the {@link AppConfig#NONE} placeholder to null - see {@link #getStringIfSet}. */
+    private String valueIfSet(String value) {
+        return value == AppConfig.NONE ? null : value
     }
 
     @ReadOnly

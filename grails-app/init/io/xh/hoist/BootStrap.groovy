@@ -11,6 +11,7 @@ import io.xh.hoist.admin.ConnPoolMonitoringConfig
 import io.xh.hoist.admin.MemoryMonitoringConfig
 import io.xh.hoist.alertbanner.AlertBannerConfig
 import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.config.AppConfig
 import io.xh.hoist.config.ChangelogConfig
 import io.xh.hoist.config.ConfigSpec
 import io.xh.hoist.config.IdleConfig
@@ -183,21 +184,21 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhEmailFilter',
                 valueType: 'string',
-                defaultValue: 'none',
+                defaultValue: AppConfig.NONE,
                 groupName: 'xh.io',
                 note: 'Comma-separated list of email addresses to which Hoist EmailService can send mail. For testing / dev purposes. If specified, emails to addresses not in this list will be quietly dropped. Value "none" does not filter recipients.'
             ),
             new ConfigSpec(
                 name: 'xhEmailOverride',
                 valueType: 'string',
-                defaultValue: 'none',
+                defaultValue: AppConfig.NONE,
                 groupName: 'xh.io',
                 note: 'Email address to which Hoist emailService should send all mail, regardless of specified recipient. For testing / dev purposes. Use to test actual sending of mails while still not mailing end-users. Value "none" disables any override.'
             ),
             new ConfigSpec(
                 name: 'xhEmailSupport',
                 valueType: 'string',
-                defaultValue: 'none',
+                defaultValue: AppConfig.NONE,
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Email address to which support and feedback submissions should be sent. Value "none" to disable support emails.'
@@ -237,21 +238,21 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhEntraTenantId',
                 valueType: 'string',
-                defaultValue: 'none',
+                defaultValue: AppConfig.NONE,
                 groupName: 'xh.io',
                 note: 'Tenant ID (GUID) of the Microsoft Entra ID tenant for this application. Referenced by EntraIdService and any other subsystem that works with the tenant. Commonly overridden per environment via an instance config / environment variable. Relay to pre-auth clients (e.g. for OAuth login) via the app AuthenticationService.getClientConfig(), where needed.'
             ),
             new ConfigSpec(
                 name: 'xhEntraClientId',
                 valueType: 'string',
-                defaultValue: 'none',
+                defaultValue: AppConfig.NONE,
                 groupName: 'xh.io',
                 note: 'Client ID (GUID) of the Entra ID app registration for this application. Referenced by EntraIdService and any other subsystem that works with the registration. Commonly overridden per environment via an instance config / environment variable. Relay to pre-auth clients (e.g. for OAuth login) via the app AuthenticationService.getClientConfig(), where needed.'
             ),
             new ConfigSpec(
                 name: 'xhEntraClientSecret',
                 valueType: 'pwd',
-                defaultValue: 'none',
+                defaultValue: AppConfig.NONE,
                 groupName: 'xh.io',
                 note: 'Client secret for the Entra ID app registration used by EntraIdService.'
             ),
@@ -312,13 +313,13 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhLdapUsername',
                 valueType: 'string',
-                defaultValue: 'none',
+                defaultValue: AppConfig.NONE,
                 groupName: 'xh.io'
             ),
             new ConfigSpec(
                 name: 'xhLdapPassword',
                 valueType: 'pwd',
-                defaultValue: 'none',
+                defaultValue: AppConfig.NONE,
                 groupName: 'xh.io'
             ),
             new ConfigSpec(
@@ -349,7 +350,7 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhMonitorEmailRecipients',
                 valueType: 'string',
-                defaultValue: 'none',
+                defaultValue: AppConfig.NONE,
                 groupName: 'xh.io',
                 note: 'Email address to which status monitor alerts should be sent. Value "none" disables emailed alerts.'
             ),

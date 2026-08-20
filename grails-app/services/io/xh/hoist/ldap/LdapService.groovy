@@ -289,10 +289,10 @@ class LdapService extends BaseService implements DirectoryService {
     @CompileDynamic
     private <T extends LdapObject> List<T> doQuery(LdapConfig.LdapServerOptions server, String baseFilter, Class<T> objType, boolean strictMode) {
         ensureEnabled()
-        if (queryUsername == 'none') throw new RuntimeException('LdapService enabled but query user not configured - check xhLdapUsername app config, or disable via xhLdapConfig.')
-        // Never bind with the 'none' placeholder - repeated binds with a bad password can lock
-        // out the query account under an AD lockout policy.
-        if (!queryUserPwd || queryUserPwd == 'none') throw new RuntimeException('LdapService enabled but query user password not configured - check xhLdapPassword app config, or disable via xhLdapConfig.')
+        if (!queryUsername) throw new RuntimeException('LdapService enabled but query user not configured - check xhLdapUsername app config, or disable via xhLdapConfig.')
+        // Never bind with an unset password - repeated binds with a bad password can lock out the
+        // query account under an AD lockout policy.
+        if (!queryUserPwd) throw new RuntimeException('LdapService enabled but query user password not configured - check xhLdapPassword app config, or disable via xhLdapConfig.')
 
         boolean isPerson = LdapPerson.class.isAssignableFrom(objType)
         // Cache key MUST include `baseDn` alongside `host` and `filter`. Apps commonly
@@ -380,11 +380,11 @@ class LdapService extends BaseService implements DirectoryService {
     }
 
     private String getQueryUsername() {
-        configService.getString('xhLdapUsername')
+        configService.getStringIfSet('xhLdapUsername')
     }
 
     private String getQueryUserPwd() {
-        configService.getPwd('xhLdapPassword')
+        configService.getPwdIfSet('xhLdapPassword')
     }
 
     void clearCaches() {
