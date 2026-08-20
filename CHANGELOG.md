@@ -26,6 +26,9 @@ detailed, step-by-step upgrade instructions with before/after code examples.
   `ErrorOr.of(usernames)` / `ErrorOr.error(message)` factories, and any code that calls
   `loadUsersForDirectoryGroups` and checks results with `instanceof Set` must read the new
   `ErrorOr.success` / `value` / `error` properties instead.
+* A blank instance config entry is now treated as unset, rather than resolving to an empty string.
+  Environment variables already behaved this way - file and YAML sources now match. Ignored keys are
+  logged at WARN during startup.
 
 ### 🎁 New Features
 
@@ -56,6 +59,11 @@ detailed, step-by-step upgrade instructions with before/after code examples.
   `roleAdmin/directoryGroupsInfo` and `roleAdmin/searchDirectoryGroups` endpoints. These let the
   Admin Console show a display name for each assigned directory group and search the directory by
   name - of particular value with Entra ID, where the stored group identifier is an opaque GUID.
+* Added `AppConfig.NONE` - the placeholder value a bootstrapped but unset config holds, as
+  validation requires a non-blank value. Previously a bare `'none'` string repeated across the
+  framework. Apps can now declare `defaultValue: AppConfig.NONE` rather than retyping the literal.
+* Added `ConfigService.getStringIfSet` and `getPwdIfSet` - both return null when a config holds that
+  placeholder, so a caller can test for "not configured" with a single null check.
 
 ### 📚 Libraries
 

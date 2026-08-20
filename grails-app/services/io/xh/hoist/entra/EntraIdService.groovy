@@ -494,12 +494,12 @@ class EntraIdService extends BaseService implements DirectoryService {
     private synchronized IConfidentialClientApplication getMsalClient() {
         if (!_msalClient) {
             String tenantId = getTenantId(),
-                clientId = configValue('xhEntraClientId')
+                clientId = configService.getStringIfSet('xhEntraClientId')
             if (!tenantId || !clientId) {
                 throw new RuntimeException('EntraIdService enabled but tenant/client not configured - check xhEntraTenantId and xhEntraClientId app configs.')
             }
-            def secret = configService.getPwd('xhEntraClientSecret')
-            if (!secret || secret == 'none') {
+            String secret = configService.getPwdIfSet('xhEntraClientSecret')
+            if (!secret) {
                 throw new RuntimeException('EntraIdService enabled but client secret not configured - check xhEntraClientSecret app config.')
             }
             _msalClient = ConfidentialClientApplication
@@ -511,13 +511,7 @@ class EntraIdService extends BaseService implements DirectoryService {
     }
 
     private String getTenantId() {
-        configValue('xhEntraTenantId')
-    }
-
-    /** Value of a standalone string config, with the 'none' placeholder mapped to null. */
-    private String configValue(String name) {
-        String ret = configService.getString(name)
-        ret == 'none' ? null : ret
+        configService.getStringIfSet('xhEntraTenantId')
     }
 
     private synchronized JSONClient getJsonClient() {

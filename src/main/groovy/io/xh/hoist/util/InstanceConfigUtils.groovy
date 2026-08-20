@@ -109,6 +109,17 @@ class InstanceConfigUtils {
             println "InstanceConfigUtils [ERROR] | InstanceConfig file found but could not be parsed | $configFilename | $t.message"
         }
 
+        // Drop blank entries, so a blank entry reads as no entry at all. Env vars already behave
+        // this way via the `?:` in getInstanceConfig - this brings the file and YAML sources into
+        // line. Both can yield a blank without meaning to: an empty file in a config directory, or
+        // a templated YAML that interpolates an unset variable as `key: ""`. Note the test is on a
+        // string view of the value only - retained values are returned exactly as loaded.
+        def blankKeys = ret.findAll { !it.value?.toString()?.trim() }.keySet()
+        if (blankKeys) {
+            println "InstanceConfigUtils [WARN] | Ignoring ${blankKeys.size()} blank InstanceConfig entries | ${blankKeys.join(', ')}"
+            ret = ret.findAll { !blankKeys.contains(it.key) }
+        }
+
         return ret
     }
 
