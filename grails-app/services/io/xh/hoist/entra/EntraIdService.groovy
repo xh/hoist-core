@@ -59,6 +59,15 @@ import static java.util.Collections.emptyMap
  * environment variables. Apps whose clients need them pre-auth (e.g. for OAuth login) should
  * relay them via their AuthenticationService's `getClientConfig()`.
  *
+ * <p>This service can instead authenticate as a dedicated "directory reader" app registration,
+ * for deployments that hold the Graph application permissions on their own registration rather
+ * than on each application's. Set the optional `xhEntraDirectoryClientId` and
+ * `xhEntraDirectoryClientSecret` configs to do so. The client ID and secret always resolve as a
+ * matched pair, so an app either authenticates wholly as itself or wholly as the directory
+ * reader. The tenant is deliberately not overridable - a directory in another tenant would
+ * return group IDs and usernames that do not line up with the tenant authenticating the app's
+ * own users.
+ *
  * <p>Results are cached per query for `xhEntraIdConfig.cacheExpireSecs`. Queries run with
  * `strictMode = false` will log and absorb failures, so callers can receive partial results.
  * Graph throttling (HTTP 429) and server errors are retried a bounded number of times before
@@ -70,7 +79,8 @@ class EntraIdService extends BaseService implements DirectoryService {
     ConfigService configService
 
     static clearCachesConfigs = [
-        'xhEntraIdConfig', 'xhEntraTenantId', 'xhEntraClientId', 'xhEntraClientSecret'
+        'xhEntraIdConfig', 'xhEntraTenantId', 'xhEntraClientId', 'xhEntraClientSecret',
+        'xhEntraDirectoryClientId', 'xhEntraDirectoryClientSecret'
     ]
 
     static final String GRAPH_BASE_URL = 'https://graph.microsoft.com/v1.0'
@@ -102,7 +112,11 @@ class EntraIdService extends BaseService implements DirectoryService {
         if (enabled) {
             try {
                 acquireAccessToken()
-                logInfo('Acquired Microsoft Graph access token', [tenantId: tenantId])
+                logInfo('Acquired Microsoft Graph access token', [
+                    tenantId: tenantId,
+                    clientId: serviceClientId,
+                    dedicatedDirectoryReader: directoryClientId != null
+                ])
             } catch (Exception e) {
                 logError('Failed to acquire Microsoft Graph access token on startup', e)
             }
@@ -344,8 +358,12 @@ class EntraIdService extends BaseService implements DirectoryService {
     // Admin stats
     //------------------------
     Map getAdminStats() {[
-        config: configForAdminStats('xhEntraIdConfig', 'xhEntraTenantId', 'xhEntraClientId'),
-        enabled: enabled
+        config: configForAdminStats(
+            'xhEntraIdConfig', 'xhEntraTenantId', 'xhEntraClientId', 'xhEntraDirectoryClientId'
+        ),
+        enabled: enabled,
+        // The registration actually in use - the app's own, or a dedicated directory reader.
+        clientId: serviceClientId
     ]}
 
     List<String> getComparableAdminStats() { ['enabled'] }
@@ -493,15 +511,25 @@ class EntraIdService extends BaseService implements DirectoryService {
 
     private synchronized IConfidentialClientApplication getMsalClient() {
         if (!_msalClient) {
+            boolean dedicated = directoryClientId != null
             String tenantId = getTenantId(),
-                clientId = configService.getStringIfSet('xhEntraClientId')
+                clientId = getServiceClientId(),
+                clientIdConfig = dedicated ? 'xhEntraDirectoryClientId' : 'xhEntraClientId',
+                secretConfig = dedicated ? 'xhEntraDirectoryClientSecret' : 'xhEntraClientSecret'
+
             if (!tenantId || !clientId) {
-                throw new RuntimeException('EntraIdService enabled but tenant/client not configured - check xhEntraTenantId and xhEntraClientId app configs.')
+                throw new RuntimeException("EntraIdService enabled but tenant/client not configured - check xhEntraTenantId and $clientIdConfig app configs.")
             }
-            String secret = configService.getPwdIfSet('xhEntraClientSecret')
+            if (!GUID_PATTERN.matcher(clientId).matches()) {
+                throw new RuntimeException("Invalid $clientIdConfig value '$clientId' - expected the app registration's client ID (GUID).")
+            }
+
+            // The secret pairs with the client ID resolved above - the two are never mixed.
+            String secret = configService.getPwdIfSet(secretConfig)
             if (!secret) {
-                throw new RuntimeException('EntraIdService enabled but client secret not configured - check xhEntraClientSecret app config.')
+                throw new RuntimeException("EntraIdService enabled but client secret not configured - check $secretConfig app config.")
             }
+
             _msalClient = ConfidentialClientApplication
                 .builder(clientId, ClientCredentialFactory.createFromSecret(secret))
                 .authority("https://login.microsoftonline.com/${tenantId}")
@@ -512,6 +540,19 @@ class EntraIdService extends BaseService implements DirectoryService {
 
     private String getTenantId() {
         configService.getStringIfSet('xhEntraTenantId')
+    }
+
+    /**
+     * Client ID this service authenticates to Graph as - the dedicated directory-reader
+     * registration when configured, otherwise the application's own shared registration.
+     */
+    private String getServiceClientId() {
+        directoryClientId ?: configService.getStringIfSet('xhEntraClientId')
+    }
+
+    /** Client ID of the dedicated directory-reader registration, or null if not configured. */
+    private String getDirectoryClientId() {
+        configService.getStringIfSet('xhEntraDirectoryClientId')
     }
 
     private synchronized JSONClient getJsonClient() {

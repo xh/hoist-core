@@ -254,7 +254,21 @@ class BootStrap implements LogSupport {
                 valueType: 'pwd',
                 defaultValue: AppConfig.NONE,
                 groupName: 'xh.io',
-                note: 'Client secret for the Entra ID app registration used by EntraIdService.'
+                note: 'Client secret for the app registration identified by xhEntraClientId. Used by EntraIdService to authenticate to Microsoft Graph, unless xhEntraDirectoryClientId is set.'
+            ),
+            new ConfigSpec(
+                name: 'xhEntraDirectoryClientId',
+                valueType: 'string',
+                defaultValue: AppConfig.NONE,
+                groupName: 'xh.io',
+                note: 'Optional client ID (GUID) of a dedicated directory-reader app registration for EntraIdService to use in place of the shared xhEntraClientId. Set this when the Graph application permissions are held by their own registration - e.g. one registration shared by several applications. Requires xhEntraDirectoryClientSecret. Leave unset to authenticate as the application itself.'
+            ),
+            new ConfigSpec(
+                name: 'xhEntraDirectoryClientSecret',
+                valueType: 'pwd',
+                defaultValue: AppConfig.NONE,
+                groupName: 'xh.io',
+                note: 'Client secret for the app registration identified by xhEntraDirectoryClientId. Required when that config is set, and ignored when it is not.'
             ),
             new ConfigSpec(
                 name: 'xhEnvPollConfig',
