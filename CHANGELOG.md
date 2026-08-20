@@ -40,6 +40,12 @@ detailed, step-by-step upgrade instructions with before/after code examples.
   admin-consented `GroupMember.Read.All` and `User.Read.All` application permissions. The tenant
   and client IDs are standalone configs so that other subsystems can share them and deployments
   can override them per environment via instance configs.
+    * The optional `xhEntraDirectoryClientId` and `xhEntraDirectoryClientSecret` configs point
+      `EntraIdService` at a dedicated directory-reader app registration, for deployments that hold
+      the Graph application permissions on one shared registration rather than on each
+      application's own. The client ID and secret resolve as a matched pair, so the service
+      authenticates either wholly as the application or wholly as the directory reader. The tenant
+      is not overridable. Leave both configs unset to authenticate as the application itself.
 * Added `DirectoryService` - a new interface that `LdapService` and `EntraIdService` both
   implement. It models the resolution of "directory groups" to their member users for
   `DefaultRoleService`, which now selects an enabled implementation to resolve directory-group

@@ -133,7 +133,7 @@ with admin consent:
 - `GroupMember.Read.All` - group lookups and transitive membership resolution.
 - `User.Read.All` - user lookups.
 
-Four soft-configs supply the connection:
+These soft-configs supply the connection:
 
 **`xhEntraIdConfig`** (json) - query settings and master switch. Key entries:
 
@@ -159,7 +159,35 @@ whose clients need these values pre-auth (e.g. for OAuth login) should relay the
 
 The service acquires a Graph access token at startup when enabled, so credential problems
 appear in the log immediately. A failure there does not block startup - queries retry token
-acquisition on demand.
+acquisition on demand. The log entry names the client ID in use, and the service's Admin
+Console stats report it as `clientId`.
+
+#### Dedicated Directory-Reader Registration
+
+By default the service authenticates as the application itself, using the shared
+`xhEntraClientId`. That requires a client secret and admin-consented Graph permissions on
+every application's own registration. Deployments that would rather hold those permissions on
+a single registration - shared across several applications - can point the service at it with
+two optional configs:
+
+- **`xhEntraDirectoryClientId`** (string) - client ID (GUID) of the directory-reader
+  registration.
+- **`xhEntraDirectoryClientSecret`** (pwd) - client secret for that registration.
+
+When `xhEntraDirectoryClientId` is set, the service uses it together with
+`xhEntraDirectoryClientSecret`. When it is not, the service uses `xhEntraClientId` with
+`xhEntraClientSecret`. The client ID and secret always resolve as a matched pair, so the
+service authenticates either wholly as the application or wholly as the directory reader.
+Both configs are standalone, so a deployment can enable the override in one environment only,
+via an instance config / environment variable.
+
+`xhEntraClientId` keeps its meaning either way - the application's own registration, shared
+with client-side OAuth. Only this service follows the override.
+
+The tenant is deliberately not overridable. A directory in a second tenant would return group
+object IDs and usernames that do not line up with the tenant that authenticates the
+application's own users, and cross-tenant app-only Graph access needs a multi-tenant
+registration consented into the target tenant.
 
 ## Username Mapping
 
