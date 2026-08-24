@@ -17,8 +17,6 @@ The most significant app-level impacts are:
   small mechanical update. Apps that do not can upgrade with no code changes.
 - **Entra ID directory groups** - apps whose corporate directory lives in Entra ID can now
   resolve role memberships from Entra ID groups, without LDAP connectivity.
-- **Blank instance config entries are ignored** - a second breaking change, with no expected app
-  impact. Only a deployment that sets an instance config to a blank value on purpose is affected.
 
 Apps that use `LdapService` today do not need to change their configs or role data.
 
@@ -104,15 +102,7 @@ lookup.each { group, result ->
 
 See Toolbox's `RoleService` for a complete, working override migrated to the new contract.
 
-### 3. Confirm no instance config is deliberately set to a blank value
-
-A blank instance config entry is now treated as unset - an empty file in an instance config
-directory, or `key: ""` in an instance config YAML. Environment variables already behaved this way.
-
-Blank entries are logged at WARN during startup, naming each ignored key. Most apps require no
-action.
-
-### 4. Optional - adopt `AppConfig.NONE` in config declarations
+### 3. Optional - adopt `AppConfig.NONE` in config declarations
 
 The placeholder value that Hoist bootstraps into a config an app may leave unset is now available
 as the `AppConfig.NONE` constant. The bare `'none'` string keeps working, so this step is a cleanup
@@ -170,7 +160,7 @@ if (!apiKey) throw new RuntimeException('myApiKey not configured')
 
 See [`configuration.md`](../configuration.md) for the full convention.
 
-### 5. Optional - resolve directory groups from Entra ID
+### 4. Optional - resolve directory groups from Entra ID
 
 Apps whose corporate directory lives in Entra ID can enable the new `EntraIdService` and
 retire their LDAP connectivity. This requires an Entra ID app registration with
@@ -188,7 +178,6 @@ After completing all steps:
 
 - [ ] `./gradlew compileGroovy` succeeds
 - [ ] Application starts without errors
-- [ ] No unexpected `Ignoring N blank InstanceConfig entries` WARN in the startup log
 - [ ] Users receive their expected roles, including directory-group-based memberships
 - [ ] The Roles tab in the Admin Console loads and shows effective members
 - [ ] For apps with a form-based login backup: `login()` still authenticates

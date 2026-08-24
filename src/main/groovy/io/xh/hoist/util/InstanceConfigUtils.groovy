@@ -109,15 +109,12 @@ class InstanceConfigUtils {
             println "InstanceConfigUtils [ERROR] | InstanceConfig file found but could not be parsed | $configFilename | $t.message"
         }
 
-        // Drop blank entries, so a blank entry reads as no entry at all. Env vars already behave
-        // this way via the `?:` in getInstanceConfig - this brings the file and YAML sources into
-        // line. Both can yield a blank without meaning to: an empty file in a config directory, or
-        // a templated YAML that interpolates an unset variable as `key: ""`. Note the test is on a
-        // string view of the value only - retained values are returned exactly as loaded.
-        def blankKeys = ret.findAll { !it.value?.toString()?.trim() }.keySet()
+        // A blank entry resolves as an empty string, distinct from an absent entry, which resolves
+        // as null. Log blanks at startup, as they can arrive unintentionally - e.g. an empty file
+        // in a config directory, or a templated YAML that interpolates an unset variable.
+        def blankKeys = ret.findAll { !it.value?.trim() }.keySet()
         if (blankKeys) {
-            println "InstanceConfigUtils [WARN] | Ignoring ${blankKeys.size()} blank InstanceConfig entries | ${blankKeys.join(', ')}"
-            ret = ret.findAll { !blankKeys.contains(it.key) }
+            println "InstanceConfigUtils [INFO] | Found ${blankKeys.size()} blank InstanceConfig entries | ${blankKeys.join(', ')}"
         }
 
         return ret
@@ -164,7 +161,10 @@ class InstanceConfigUtils {
     }
 
     private static Map<String, String> loadFromYaml(File configFile) {
-        def ret = new Yaml().loadAs(configFile.newInputStream(), Map)
+        // SnakeYAML parses unquoted scalars into native types - booleans, numbers - so normalize
+        // to Strings here, honoring this class's contract of String keys and values throughout.
+        Map loaded = new Yaml().loadAs(configFile.newInputStream(), Map)
+        def ret = loaded.collectEntries { k, v -> [k.toString(), v?.toString()] } as Map<String, String>
         logLoadCount(ret, configFile)
         return ret
     }

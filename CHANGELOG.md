@@ -26,9 +26,6 @@ detailed, step-by-step upgrade instructions with before/after code examples.
   `ErrorOr.of(usernames)` / `ErrorOr.error(message)` factories, and any code that calls
   `loadUsersForDirectoryGroups` and checks results with `instanceof Set` must read the new
   `ErrorOr.success` / `value` / `error` properties instead.
-* A blank instance config entry is now treated as unset, rather than resolving to an empty string.
-  Environment variables already behaved this way - file and YAML sources now match. Ignored keys are
-  logged at WARN during startup.
 
 ### 🎁 New Features
 
