@@ -123,6 +123,11 @@ individual files.
 If both an environment variable and a file-based entry exist for the same key, the environment
 variable wins.
 
+All values are read as Strings - a YAML boolean or number is converted on load, so `useH2: true`
+reads as `'true'`. A blank file or YAML entry resolves to an empty string, distinct from an absent
+key, which resolves to null. An empty environment variable reads as unset and falls through to any
+file-based entry for the same key. Blank entries are logged at INFO during startup.
+
 ### Common Instance Config Keys
 
 | Key | Purpose |
@@ -270,9 +275,6 @@ myApiEndpoint: https://staging-api.example.com
 
 Override values are not encrypted, even for `pwd` type configs — they are treated as plaintext.
 If an override value cannot be parsed to the declared type, it is silently ignored (logged at TRACE).
-
-A blank entry counts as no entry, so the config keeps its stored value. Ignored keys are logged at
-WARN during startup.
 
 #### ConfigService
 
