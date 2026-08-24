@@ -123,10 +123,15 @@ individual files.
 If both an environment variable and a file-based entry exist for the same key, the environment
 variable wins.
 
-All values are read as Strings - a YAML boolean or number is converted on load, so `useH2: true`
-reads as `'true'`. A blank file or YAML entry resolves to an empty string, distinct from an absent
-key, which resolves to null. An empty environment variable reads as unset and falls through to any
-file-based entry for the same key. Blank entries are logged at INFO during startup.
+All values are read as Strings. YAML scalars are converted on load, so `useH2: true` reads as
+`'true'` and `port: 8080` reads as `'8080'`. Quote any value that must be preserved verbatim, as
+unquoted dates parse to `Date` and stringify in the JVM's default timezone.
+
+Blank and absent entries are distinct. An explicitly empty entry resolves to an empty String,
+whether it comes from `key: ""` in YAML or an empty file in a config directory. An absent key
+resolves to null, as does a YAML key written with no value at all (`key:`). An empty environment
+variable reads as unset and falls through to any file-based entry for the same key. Blank entries
+are logged at INFO during startup, as they can arrive unintentionally.
 
 ### Common Instance Config Keys
 
