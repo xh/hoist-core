@@ -10,40 +10,56 @@ import io.xh.hoist.config.TypedConfigMap
 
 /**
  * Typed representation of the `xhLdapConfig` soft config, governing the optional
- * `LdapService` for user/group directory lookups.
+ * {@link LdapService} for user/group directory lookups.
+ *
+ * <p>Note that the credentials used to bind and query are held separately, in the `xhLdapUsername`
+ * and `xhLdapPassword` configs.
  */
 class LdapConfig extends TypedConfigMap {
 
-    /** Master switch — when false, LdapService returns no results and performs no binds. */
+    /** Master switch - when false, all LdapService query methods will throw. */
     boolean enabled = false
 
-    /** Network timeout (milliseconds) applied to each LDAP connection. */
+    /** Time (in milliseconds) to wait for any individual search to resolve. */
     Long timeoutMs = 60000L
 
-    /** TTL (seconds) for cached lookup results. */
+    /** Time (in seconds) to cache lookup results. Set to -1 to disable caching. */
     Integer cacheExpireSecs = 300
 
     /**
-     * When true, group-membership searches use the matching-rule-in-chain extension
-     * (`LDAP_MATCHING_RULE_IN_CHAIN`) to efficiently resolve nested groups on AD. Use with
-     * caution on non-AD directories that may not support the control.
+     * When true, group-membership searches use Microsoft Active Directory's proprietary
+     * "LDAP_MATCHING_RULE_IN_CHAIN" rule (the magic `1.2.840.113556.1.4.1941` OID) to resolve
+     * nested groups in a single query, instead of walking nested groups recursively.
+     *
+     * <p>This can be more efficient, but should be used with caution - it can trigger a large
+     * database walk with a significant performance impact, unnecessary when queries are not
+     * expected to return deeply nested groups. Not supported by non-AD directories.
      */
     boolean useMatchingRuleInChain = false
 
     /**
-     * When true, the LDAP binding skips TLS certificate verification. Intended for dev
-     * environments using self-signed certs — do not enable in production.
+     * When true, accept untrusted certificates when binding. Intended for dev environments
+     * using self-signed certs - do not enable in production.
      */
     boolean skipTlsCertVerification = false
 
-    /** One or more directory servers to consult, tried in order. */
+    /**
+     * LDAP person attribute mapped to the Hoist username - must be one of
+     * {@link LdapObject#getUsernameKeys} (`samaccountname` or `mail`).
+     * Matched when resolving group members for role management and when looking up or
+     * authenticating users by username. Member values are lowercased when resolving groups,
+     * and members with no value for this attribute are excluded from those results.
+     */
+    String usernameAttribute = 'samaccountname'
+
+    /** One or more directory servers to be queried, in the order listed. */
     List<LdapServerOptions> servers = [new LdapServerOptions([:])]
 
     LdapConfig(Map args) { init(args) }
 
-    /** Per-server connection and search-base settings. */
+    /** Per-server host and search-base settings. */
     static class LdapServerOptions extends TypedConfigMap {
-        /** LDAP server hostname (no protocol/port — port is the LDAP default). */
+        /** LDAP server hostname (no protocol or port - the LDAP default port is used). */
         String host = ''
         /** Base DN for user searches, e.g. `'ou=users,dc=example,dc=com'`. */
         String baseUserDn = ''

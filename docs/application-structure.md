@@ -489,6 +489,19 @@ cd client-app && yarn start    # or: npm start
 Starts webpack-dev-server with hot module replacement. API requests are proxied to the Grails
 backend.
 
+### Server-Side Hot Reload
+
+Set `enableHotSwap=true` in `gradle.properties` to reload changed server classes without a full
+restart. This uses [HotswapAgent](http://hotswapagent.org/), which needs additional local setup:
+
+- A HotswapAgent-enabled JVM (available for JDK 17 and JDK 21). See the
+  [HotswapAgent project](https://github.com/HotswapProjects/HotswapAgent) for installation.
+- The `groovyReset.jar` file, in the project or on its dependency path.
+- These JVM arguments on startup: `-XX:HotswapAgent=fatjar`,
+  `-XX:+AllowEnhancedClassRedefinition`, and `-javaagent:<absolute-path-to-groovyReset.jar>`.
+
+Toolbox has a working example of this setup.
+
 ### Inline Hoist Development
 
 For developing hoist-core or hoist-react alongside the app, check out the framework repos as
@@ -496,6 +509,9 @@ siblings and enable inline mode:
 
 - **hoist-core**: Set `runHoistInline=true` in `gradle.properties` (or `~/.gradle/gradle.properties`)
 - **hoist-react**: Run the `startWithHoist` script instead of `start`
+
+Note that hot reload does not apply to a Grails plugin built inline this way - changes to
+hoist-core source still require a server restart.
 
 ## Conventions Summary
 

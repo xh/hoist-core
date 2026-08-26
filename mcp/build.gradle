@@ -18,11 +18,18 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.modelcontextprotocol.sdk:mcp:1.1.0'
+    // Jackson 3 arrives transitively via mcp-json-jackson3, which pins 3.0.3 as of SDK 1.1.1.
+    // Import the BOM to align the whole tools.jackson family on a patched release.
+    // CVE-2026-54512, CVE-2026-54513, CVE-2026-29062 (high) + related - fixed in 3.1.5.
+    // Scoped to this subproject only. The hoist-core plugin uses Jackson 2
+    // (com.fasterxml.jackson), managed by the Grails BOM, and is unaffected.
+    implementation platform('tools.jackson:jackson-bom:3.1.5')
+
+    implementation 'io.modelcontextprotocol.sdk:mcp:1.1.1'
     implementation 'org.apache.groovy:groovy:4.0.30'
     implementation 'org.apache.groovy:groovy-json:4.0.30'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.+'
-    implementation 'org.apache.commons:commons-compress:1.27.1'
+    implementation 'org.apache.commons:commons-compress:1.28.0'
     implementation 'info.picocli:picocli:4.7.6'
 }
 

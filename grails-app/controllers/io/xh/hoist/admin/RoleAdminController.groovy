@@ -7,6 +7,7 @@
 package io.xh.hoist.admin
 
 import io.xh.hoist.BaseController
+import io.xh.hoist.exception.RoutineRuntimeException
 import io.xh.hoist.role.provided.DefaultRoleService
 import io.xh.hoist.role.provided.Role
 import io.xh.hoist.security.AccessRequiresRole
@@ -60,6 +61,16 @@ class RoleAdminController extends BaseController {
         renderJSON(data: roleService.loadUsersForDirectoryGroups(singleton(name), true)[name])
     }
 
+    @AccessRequiresRole('HOIST_ADMIN_READER')
+    def directoryGroupsInfo() {
+        Set<String> names = params.list('names').collect { it as String }.toSet()
+        renderJSON(data: defaultRoleService.describeDirectoryGroups(names))
+    }
+
+    def searchDirectoryGroups(String query) {
+        renderJSON(data: defaultRoleService.searchDirectoryGroups(query))
+    }
+
     def bulkCategoryUpdate() {
         ensureHoistRoleManager()
         Map body = parseRequestJSON()
@@ -71,6 +82,14 @@ class RoleAdminController extends BaseController {
     //-----------------------
     // Implementation
     //-----------------------
+    private DefaultRoleService getDefaultRoleService() {
+        def svc = roleService
+        if (!(svc instanceof DefaultRoleService)) {
+            throw new RoutineRuntimeException("Endpoint requires Hoist's DefaultRoleService.")
+        }
+        svc as DefaultRoleService
+    }
+
     private void ensureHoistRoleManager() {
         if (!authUser.hasRole('HOIST_ROLE_MANAGER')) {
             throw new RuntimeException("AuthUser $authUsername is not a 'HOIST_ROLE_MANAGER'")

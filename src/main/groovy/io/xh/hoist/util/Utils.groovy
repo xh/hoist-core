@@ -17,6 +17,7 @@ import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.entra.EntraIdService
 import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.json.JSONParser
@@ -31,7 +32,6 @@ import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.user.IdentityService
 import io.xh.hoist.telemetry.trace.TraceContextService
 import io.xh.hoist.telemetry.trace.TraceService
-import io.xh.hoist.telemetry.trace.impl.JdbcTraceService
 import io.xh.hoist.websocket.WebSocketService
 import org.grails.web.servlet.mvc.GrailsWebRequest
 
@@ -123,6 +123,10 @@ class Utils {
 
     static ConfigService getConfigService() {
         return (ConfigService) appContext.configService
+    }
+
+    static EntraIdService getEntraIdService() {
+        return (EntraIdService) appContext.entraIdService
     }
 
     static EnvironmentService getEnvironmentService() {

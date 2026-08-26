@@ -11,9 +11,12 @@ import grails.gorm.transactions.ReadOnly
 import io.xh.hoist.cachedvalue.CachedValue
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.config.ConfigSpec
+import io.xh.hoist.directory.DirectoryService
+import io.xh.hoist.entra.EntraIdService
 import io.xh.hoist.ldap.LdapService
 import io.xh.hoist.role.BaseRoleService
 import io.xh.hoist.user.HoistUser
+import io.xh.hoist.util.ErrorOr
 import io.xh.hoist.util.Timer
 
 import java.util.concurrent.ConcurrentHashMap
@@ -26,52 +29,52 @@ import static io.xh.hoist.util.Utils.isProduction
 import static java.util.Collections.*
 
 /**
- * Optional concrete implementation of BaseRoleService for applications that wish to leverage
- * Hoist's built-in, database-backed Role management and its associated Admin Console UI.
+ * Optional concrete implementation of {@link BaseRoleService} for applications that use Hoist's
+ * built-in, database-backed role management and its associated Admin Console UI.
  *
- * Applications using this default implementation must either:
+ * <p>Applications that opt in to this default implementation must either:
+ * <ol>
+ *   <li>Define a `RoleService` class that extends this class. The app can then override its
+ *       protected methods to customize behavior, including
+ *       {@link #doLoadUsersForDirectoryGroups} to resolve external directory group memberships
+ *       (see below).</li>
+ *   <li>Register this class directly as `roleService` via
+ *       `grails-app/conf/spring/resources.groovy`, if no customizations are required.</li>
+ * </ol>
  *
- *  1) Define a `RoleService` class that extends this class. Allows for overriding its protected
- *     methods to customize behavior, including the option to implement
- *     `doLoadUsersForDirectoryGroups` to resolve external directory group memberships (see below).
+ * <p>This service provides:
+ * <ul>
+ *   <li>A {@link Role} domain class to persist roles and their memberships to the app's primary
+ *       database. Role members can include directly-assigned users, other roles (for role
+ *       inheritance), and external directory groups (see below).</li>
+ *   <li>A fully-featured management UI within the hoist-react Admin Console, where admins with
+ *       the HOIST_ROLE_MANAGER role can create, view, and manage roles and their
+ *       memberships.</li>
+ *   <li>Preloaded and cached role assignments, including any resolved directory group
+ *       memberships, for efficient querying with a configurable refresh interval.</li>
+ * </ul>
  *
- *  2) Register this class directly as `roleService` via `grails-app/conf/spring/resources.groovy`,
- *     assuming neither directory group support nor any further customizations are required.
+ * <p><b>Directory groups.</b> In addition to (or instead of) assigning users directly as
+ * members, admins can assign "directory groups" to a role - pointers to groups maintained within
+ * a corporate directory such as LDAP / Active Directory or Microsoft Entra ID. Users within
+ * those groups then inherit membership in the role. Roles themselves are still created and
+ * managed in the local app database via the Admin Console. The default implementation resolves
+ * groups via an enabled {@link DirectoryService} implementation - {@link LdapService} or
+ * {@link EntraIdService} - see {@link #getDirectoryService} for selection details. Override
+ * {@link #doLoadUsersForDirectoryGroups} to resolve groups from different or additional external
+ * sources. If that method throws, this service logs an error and continues to use the result of
+ * the last successful lookup. A call to {@link #clearCaches} also clears that cached lookup.
  *
- * When opting-in to this service:
- *
- *  - Hoist provides a {@link Role} domain class to persist roles and their memberships to the
- *    app's primary database. Role members can include directly-assigned users, other roles (for
- *    role inheritance), and/or external directory groups (see below).
-
- *  - Admins with the HOIST_ROLE_MANAGER role can create, view and manage roles and their
- *  memberships via a fully-featured Hoist React Admin Console UI (requires hoist-react >= v60).
- *
- *  - Roles and their memberships, including any resolved directory group memberships, are preloaded
- *    and cached by this service for efficient querying, with a configurable refresh interval.
- *
- * This service can assign role memberships based on "directory groups" - pointers to groups
- * maintained within a corporate Active Directory, or other external system.  The default
- * implementation will support specifying an LDAP group, if there is an  enabled LdapService in the
- * application.  Roles themselves must still be created + managed in the local app database via the
- * Admin Console, but in addition to (or instead of) assigning users directly as members, admins can
- * assign  directory groups to roles. Users within those groups will then inherit membership in the
- * Role.
- *
- * Applications wishing to extend this feature should override doLoadUsersForDirectoryGroups().
- * If doLoadUsersForDirectoryGroups() throws an exception, this service will use the last successful
- * lookup result and log an error. Clearing this service's caches will also clear the cached lookup.
- *
- * Certain aspects of this service and its Admin Console UI are soft-configurable via a JSON
- * `xhRoleModuleConfig`. This service will create this config entry if not found on startup.
- *
- * The following config options are supported as keys in this map:
- *
- *  - refreshIntervalSecs: int - number of seconds between refreshes of the role membership cache.
- *    Changes made to roles via the Hoist Admin Console will trigger an immediate refresh of the
- *    cache. This setting primarily controls how quickly changes made to external directory groups
- *    will sync to effective role memberships.
- *
+ * <p>This service and its Admin Console UI are configurable via a JSON `xhRoleModuleConfig`
+ * soft-config, created by this service on startup if not found. Supported keys:
+ * <ul>
+ *   <li>`refreshIntervalSecs` - seconds between refreshes of the role membership cache. Changes
+ *       made via the Admin Console trigger an immediate refresh, so this setting primarily
+ *       controls how quickly changes made to external directory groups sync to effective role
+ *       memberships.</li>
+ *   <li>`directoryGroupProvider` - which directory service resolves directory groups: `ldap`,
+ *       `entraId`, or the default `auto`. See {@link #getDirectoryService}.</li>
+ * </ul>
  *
  * @see BaseRoleService for additional documentation on the core RoleService API and its usage.
  */
@@ -81,6 +84,7 @@ class DefaultRoleService extends BaseRoleService {
 
     ConfigService configService
     LdapService ldapService
+    EntraIdService entraIdService
     DefaultRoleUpdateService defaultRoleUpdateService
 
     private Timer timer
@@ -96,7 +100,7 @@ class DefaultRoleService extends BaseRoleService {
     protected ConcurrentMap<String, Set<String>> _roleAssignmentsByUser = new ConcurrentHashMap<>()
 
     // Local state for primary when computing role assignment
-    protected Map<String, Object> _usersForDirectoryGroups = emptyMap()
+    protected Map<String, Set<String>> _usersForDirectoryGroups = emptyMap()
 
     // Support granting key Hoist admin roles to an instance-configured user in local dev only,
     // for initial bootstrapping during development when databased roles not yet created.
@@ -160,86 +164,113 @@ class DefaultRoleService extends BaseRoleService {
     // Main entry points for override
     //---------------------------------
     /**
-     * Does this implementation support the specification of direct role assignment via usernames?
-     * Defaults to true.  Implementations that wish to prohibit this should return false.
-     * */
+     * True if this implementation supports the direct assignment of users to roles (the
+     * default). Override to return false to prohibit, here and within the Admin Console UI.
+     */
     boolean getUserAssignmentSupported() {
         return true
     }
 
     /**
-     * Does this implementation support the specification of role assignment via directory?
-     * Defaults to true. Implementations that wish to prohibit this should return false.
+     * True if this implementation supports the assignment of users to roles via directory
+     * groups (the default). Override to return false to prohibit, here and within the Admin
+     * Console UI.
      */
     boolean getDirectoryGroupsSupported() {
         return true
     }
 
     /**
-     * Description of appropriate form of directory groups.
-     * Short string for UI display (e.g. tooltip) in admin client.
+     * Short hint on how to select or enter a directory group, displayed as placeholder text
+     * within the Admin Console's directory group picker. Delegates to the selected
+     * {@link DirectoryService} - see {@link #getDirectoryService}.
      */
     String getDirectoryGroupsDescription() {
-        'Specify the full LDAP Distinguished Name (DN) for the directory group to be included.'
+        directoryService.directoryGroupsDescription
     }
 
     /**
-     *  Provide the users associated with directory group names.
+     * Resolve directory group identifiers to their member users.
      *
-     * The default implementation will support specifying an LDAP group, and will require an
-     * enabled LdapService in the application.  Override this method to customize directory-based
-     * lookup to attach to different, or additional external datasources.
+     * <p>The default implementation delegates to the selected {@link DirectoryService}
+     * implementation - see {@link #getDirectoryService}. Override this method to resolve groups
+     * from different, or additional, external sources.
      *
-     * If strictMode is true, implementations should throw on any partial failures.  Otherwise, they
-     * should log, and make a best-faith effort to return whatever groups they can load.
+     * <p>If strictMode is true, implementations must throw on any partial failure. Otherwise
+     * they log the failure and return whatever groups they can load.
      *
-     * Method Map of directory group names to either:
-     *  a) Set<String> of assigned users
-     *     OR
-     *  b) String describing lookup error.
+     * <p>If no directory service is enabled, the default implementation returns an error
+     * description for every group rather than throwing, keeping role resolution and the Admin
+     * Console UI functional (with inline warnings) in a misconfigured app.
+     *
+     * @return Map of directory group identifier to an {@link ErrorOr} holding either the Set of
+     *         assigned usernames (on success) or a description of the lookup error (on failure).
      */
-    protected Map<String, Object> doLoadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
+    protected Map<String, ErrorOr<Set<String>>> doLoadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
+        def svc = directoryService
         if (!groups) return emptyMap()
-        if (!ldapService.enabled) {
-            return groups.collectEntries { [it, 'LdapService not enabled in this application'] }
+        if (!svc.enabled) return notEnabledResult(groups)
+        svc.loadUsersForDirectoryGroups(groups, strictMode)
+    }
+
+    /**
+     * The {@link DirectoryService} implementation used to resolve directory groups and back
+     * related Admin Console UI features.
+     *
+     * <p>Selected via the optional `directoryGroupProvider` key in `xhRoleModuleConfig` -
+     * `'ldap'`, `'entraId'`, or the default `'auto'`, which resolves to whichever single
+     * implementation is enabled. When both are enabled under auto, this method logs an ERROR
+     * and returns the LDAP implementation, so that an app experimenting with Entra ID does not
+     * silently switch its role memberships to the new source.
+     */
+    protected DirectoryService getDirectoryService() {
+        String provider = config.directoryGroupProvider ?: 'auto'
+        switch (provider) {
+            case 'ldap': return ldapService
+            case 'entraId': return entraIdService
+            case 'auto': break
+            default:
+                logError("Unknown xhRoleModuleConfig.directoryGroupProvider '$provider'", "expected 'ldap', 'entraId', or 'auto'", 'falling back to auto selection')
         }
 
-        def foundGroups = new HashSet(),
-            ret = [:]
-
-        // 1) Determine valid groups
-        ldapService
-            .lookupGroups(groups, strictMode)
-            .each { name, group ->
-                if (group) {
-                    foundGroups << name
-                } else {
-                    ret[name] = 'Directory Group not found'
-                }
-            }
-
-        // 2) Search for members of valid groups
-        ldapService
-            .lookupGroupMembers(foundGroups, strictMode)
-            .each { name, members ->
-                ret[name] = members.collect(new HashSet()) { it.samaccountname?.toLowerCase() }
-                // Exclude members without a samaccountname (e.g. email-only contacts within a DL)
-                ret[name].remove(null)
-            }
-
-        return ret
+        if (ldapService.enabled && entraIdService.enabled) {
+            logError('Both LdapService and EntraIdService are enabled', "set xhRoleModuleConfig.directoryGroupProvider to select one", 'using LdapService')
+            return ldapService
+        }
+        return entraIdService.enabled ? entraIdService : ldapService
     }
 
     /**
-     * Ensure that the required soft-config entry for this service has been created, along with a
-     * minimal set of required Hoist roles. Called by init() on app startup.
+     * Resolve display information for directory groups already assigned to roles, for the
+     * Admin Console UI. Returns a Map of group identifier to an {@link ErrorOr} holding either
+     * a Map with a `displayName` key or a description of the lookup error.
+     */
+    Map<String, ErrorOr<Map>> describeDirectoryGroups(Set<String> groups) {
+        def svc = directoryService
+        if (!groups) return emptyMap()
+        if (!svc.enabled) return notEnabledResult(groups)
+        svc.describeDirectoryGroups(groups)
+    }
+
+    /**
+     * Search the directory for groups by partial name, for the Admin Console UI. Returns a
+     * List of Maps, each with `id` and `displayName` keys.
+     */
+    List<Map> searchDirectoryGroups(String namePart) {
+        def svc = directoryService
+        (namePart && svc.enabled) ? svc.searchDirectoryGroups(namePart) : []
+    }
+
+    /**
+     * Ensure that the required soft-config entry for this service and a minimal set of required
+     * Hoist roles have been created. Called by init() on app startup.
      *
-     * Override this method with an additional call to {@link #ensureRequiredRolesCreated} to
-     * create any roles required by the application on startup, ensuring that this super
-     * implementation is also called to confirm roles required by Hoist.
+     * <p>Override this method with an additional call to {@link #ensureRequiredRolesCreated} to
+     * create any further roles required by the application on startup. Call this super
+     * implementation as well, to create the roles required by Hoist.
      *
-     * (Note overriding is preferable to making a direct call to ensureRequiredRolesCreated within
-     * init(), as this superclass rebuilds its cache of role assignments within its init method.)
+     * <p>(Overriding is preferable to a direct call to ensureRequiredRolesCreated within init(),
+     * because this superclass rebuilds its cache of role assignments within its init method.)
      */
     protected void ensureRequiredConfigAndRolesCreated() {
         configService.ensureRequiredConfigsCreated([
@@ -247,7 +278,8 @@ class DefaultRoleService extends BaseRoleService {
                 name: 'xhRoleModuleConfig',
                 valueType: 'json',
                 defaultValue: [
-                    refreshIntervalSecs: 300
+                    refreshIntervalSecs: 300,
+                    directoryGroupProvider: 'auto'
                 ],
                 groupName: 'xh.io',
                 note: 'Configures built-in role management via DefaultRoleService.'
@@ -281,29 +313,27 @@ class DefaultRoleService extends BaseRoleService {
     }
 
     /**
-     * Check a list of core roles required for Hoist/application operation — ensuring that these
-     * roles are present. Will create missing roles with supplied default values if not found.
+     * Check a list of core roles required for Hoist or application operation, and create any
+     * that are missing with the supplied default values.
      *
-     * Note that roles that *do* exist will *not* be modified in any way — i.e. this method cannot
-     * be used to ensure or update the membership of existing roles, only to create new ones.
+     * <p>Note that this method does not modify roles that already exist. It cannot update the
+     * membership of an existing role. It can only create new roles.
      *
-     * @param roleSpecs - List of {@link RoleSpec} defining the required roles.
+     * @param roleSpecs List of {@link RoleSpec} defining the required roles.
      */
     void ensureRequiredRolesCreated(List<RoleSpec> roleSpecs) {
         defaultRoleUpdateService.ensureRequiredRolesCreated(roleSpecs)
     }
 
     /**
-     * Assign a role to a user.
+     * Assign a role to a user. No-op if the user already has the given role.
      *
-     * This method will be a no-op if the user already has the role provided.
-     *
-     * Typically called within Bootstrap code to ensure that a specific role is assigned to a
-     * dedicated admin user on startup. Must be called *after* service initialization has
-     * completed (e.g. after parallelInit in Bootstrap) — the role assignment cache must be
-     * populated before this method can check existing assignments. Do *not* call from within
-     * an implementation of ensureRequiredConfigAndRolesCreated(), as the cache is not yet
-     * available at that point in the lifecycle.
+     * <p>Typically called within Bootstrap code to ensure that a dedicated admin user has a
+     * specific role on startup. Call only <b>after</b> service initialization has completed
+     * (e.g. after parallelInit in Bootstrap), because this method checks the role assignment
+     * cache. Do <b>not</b> call from within an implementation of
+     * ensureRequiredConfigAndRolesCreated(), because the cache is not yet available at that
+     * point in the lifecycle.
      */
     void assignRole(HoistUser user, String roleName) {
         defaultRoleUpdateService.assignRole(user, roleName)
@@ -313,8 +343,19 @@ class DefaultRoleService extends BaseRoleService {
     //---------------------------
     // Implementation/Framework
     //---------------------------
-    final Map<String, Object> loadUsersForDirectoryGroups(Set<String> directoryGroups, boolean strictMode) {
+    /** Framework entry point for directory group resolution - apps override {@link #doLoadUsersForDirectoryGroups}. */
+    final Map<String, ErrorOr<Set<String>>> loadUsersForDirectoryGroups(Set<String> directoryGroups, boolean strictMode) {
         doLoadUsersForDirectoryGroups(directoryGroups, strictMode)
+    }
+
+    /**
+     * Per-group error results for when no enabled {@link DirectoryService} is available.
+     * DirectoryService methods throw when called while not enabled - this service instead
+     * degrades gracefully, reporting the problem as data that role resolution can log and the
+     * Admin Console UI can render as inline warnings.
+     */
+    private <T> Map<String, ErrorOr<T>> notEnabledResult(Set<String> groups) {
+        groups.collectEntries { [it, ErrorOr.error('No enabled directory service in this application')] }
     }
 
     void refreshRoleAssignments() {
@@ -335,12 +376,12 @@ class DefaultRoleService extends BaseRoleService {
             // if we do have results, never replace them with non-complete/imperfect set.
             boolean strictMode = _usersForDirectoryGroups as boolean
             try {
-                Map<String, Object> usersForDirectoryGroups = [:]
+                Map<String, Set<String>> usersForDirectoryGroups = [:]
                 loadUsersForDirectoryGroups(groups, strictMode).each { k, v ->
-                    if (v instanceof Set) {
-                        usersForDirectoryGroups[k] = v
+                    if (v.success) {
+                        usersForDirectoryGroups[k] = v.value
                     } else {
-                        logError("Error resolving users for directory group", k, v)
+                        logError("Error resolving users for directory group", k, v.error)
                     }
                 }
                 _usersForDirectoryGroups = usersForDirectoryGroups
@@ -402,7 +443,6 @@ class DefaultRoleService extends BaseRoleService {
         timer.forceRun()
         super.clearCaches()
     }
-
 
     Map getAdminStats() {
         [

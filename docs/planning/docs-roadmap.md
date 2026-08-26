@@ -30,6 +30,7 @@ Bread-and-butter features used by every Hoist application.
 |----------|-------------|-------------|--------|
 | [`configuration.md`](../configuration.md) | AppConfig, ConfigService, ConfigDiffService, ConfigAdminController | AppConfig domain (typed values: `string\|int\|long\|double\|bool\|json\|pwd`), ConfigService typed getters, `clientVisible` flag, `pwd` encryption via Jasypt, required configs, `xhConfigChanged` event, config diffing across environments | Done |
 | [`preferences.md`](../preferences.md) | Preference, UserPreference, PrefService, PrefDiffService, PreferenceAdminController | Preference definitions vs UserPreference values, PrefService lookups, required prefs, pref diffing across environments | Done |
+| [`caching.md`](../caching.md) | `cache/` package (Cache, CacheEntry, CacheEntryChanged, CacheEntryListener), `cachedvalue/` package (CachedValue, CachedValueEntry, CachedValueChanged) | `createCache()` / `createCachedValue()` full reference, expiry (`expireTime`, `expireFn`, `timestampFn`), lazy vs. cull-timer eviction, `onChange` handler threading contract (sync only for non-clustered Cache), `serializeOldValue` and `oldValue` availability, `ensureAvailable()`, replication backing (ReplicatedMap vs ReliableTopic), clearing/invalidation, admin stats and per-cache loggers, Cache vs CachedValue vs IMap selection | Done |
 | [`clustering.md`](../clustering.md) | ClusterService, ClusterConfig, Cache, CachedValue, IMap, ReplicatedMap, Topic, Timer | Hazelcast cluster lifecycle, distributed data structures (Cache, CachedValue, IMap, ReplicatedMap), pub/sub via Topic (`subscribeToTopic`), primary instance coordination, `primaryOnly` timers, naming convention `{ClassName}[{resourceName}]`, ClusterService admin stats | Done |
 | [`activity-tracking.md`](../activity-tracking.md) | TrackLog, TrackService, TrackLoggingService, ClientErrorEmailService, FeedbackEmailService | TrackLog domain, TrackService (`track()` endpoint, `xhTrackReceived` event), category/severity system, elapsed timing, client error email notifications, feedback email routing, `xhActivityTrackingConfig` | Done |
 | [`json-handling.md`](../json-handling.md) | JSONSerializer, JSONParser, JSONFormat, custom serializers, BaseController | Custom Jackson-based serialization (not Grails converters), `renderJSON()` / `parseRequestJSON()` in controllers, JSONFormat trait for domain/POGO classes, registering custom serializer modules via `JSONSerializer.registerModules()`, built-in serializers | Done |
@@ -67,7 +68,7 @@ Smaller or more specialized features. Important but lower priority for initial d
 | `data-filtering.md` | Filter, FieldFilter, CompoundFilter (in `data/filter/`) | Server-side filter system mirroring the client-side hoist-react Filter hierarchy, field-level and compound filters, JSON serialization for client-server roundtrip | Planned |
 | `utilities.md` | Timer, DateTimeUtils, StringUtils, Utils, InstanceConfigUtils, AsyncUtils | Timer (polling, `primaryOnly`, Hazelcast-backed), DateTimeUtils, StringUtils, general Utils, InstanceConfigUtils (external config loading), AsyncUtils | Planned |
 | `jsonblob.md` | JsonBlob, JsonBlobService, JsonBlobDiffService, XhController (blob endpoints) | JsonBlob domain (backing store for ViewManager and other client state), CRUD via XhController endpoints, token-based access, type/name/owner metadata, archival, diffing across environments | Planned |
-| `ldap.md` | LdapService, LdapPerson, LdapGroup, LdapObject | LdapService (Active Directory / LDAP integration), LdapPerson and LdapGroup lookups, connection configuration | Planned |
+| [`directory-services.md`](../directory-services.md) | DirectoryService, LdapService, LdapPerson, LdapGroup, LdapObject, EntraIdService, EntraUser, EntraGroup, ErrorOr | Corporate directory integration (supersedes planned `ldap.md`) - DirectoryService interface and provider selection, LdapService (Active Directory / LDAP), EntraIdService (Microsoft Graph), configuration, username mapping, role management integration, direct query APIs | Done |
 | `environment.md` | EnvironmentService, AppEnvironment, InstanceConfigUtils, Application, BootStrap | AppEnvironment enum, EnvironmentService (runtime environment info), InstanceConfigUtils (external config files), Grails environment vs Hoist environment distinction, environment polling for client | Planned |
 | `admin-endpoints.md` | XhController, admin controllers, AlertBannerService, ViewService, ServiceManagerService | XhController primary endpoints (auth, config, prefs, tracking, blobs, export, environment), admin controller catalog, AlertBannerService, ViewService, ServiceManagerService, connection pool and memory monitoring | Planned |
 
@@ -79,7 +80,7 @@ Guides to building, structuring, and deploying Hoist applications, plus CI/CD an
 |----------|-------------|-------------|--------|
 | [`application-structure.md`](../application-structure.md) | `build.gradle`, `gradle.properties`, `settings.gradle`, `.env.template`, `grails-app/init/`, `grails-app/conf/`, `client-app/`, `docker/` | Standard Hoist application repository layout — root directory structure, Gradle build configuration, server-side Grails conventions (init files, conf, controllers, services, domain), client-side React/TypeScript conventions (Bootstrap.ts, entry points, AppModel/AppComponent, shared code), Docker deployment (Nginx + Tomcat), local development workflow | Draft |
 | [`build-and-publish.md`](../build-and-publish.md) | `build.gradle`, `settings.gradle`, `gradle.properties`, `.github/workflows/*.yml` | Gradle build configuration, GitHub Actions CI/CD workflows (CI, snapshot, release), Maven Central publishing via Sonatype Central Portal, GPG artifact signing, `nexus-publish-plugin`, `maven-archive.xh.io` static archive for legacy `36.x`-and-earlier hoist-core releases (replaces `repo.xh.io`), version numbering, required GitHub secrets | Draft |
-| [`changelog-format.md`](../changelog-format.md) | `CHANGELOG.md` | Conventions for writing and reviewing CHANGELOG entries — section headers, emoji prefixes, voice/tense, difficulty ratings, breaking changes, libraries, application changelog differences | Done |
+| [`changelog-format.md`](../changelog-format.md) | `CHANGELOG.md` | Conventions for writing and reviewing CHANGELOG entries — section headers, emoji prefixes, voice/tense, Simplified Technical English, difficulty ratings, breaking changes, libraries, application changelog differences | Done |
 
 ## Conventions
 
@@ -193,51 +194,3 @@ Use consistent terminology with hoist-react documentation:
 When a feature-area document is completed, add a corresponding entry to the appropriate section
 in [`docs/README.md`](../README.md). Each entry should include a linked filename, a one-sentence
 description, and a comma-separated list of key classes and concepts covered.
-
-### Progress Tracking Convention
-
-Roadmap files use a two-file pattern to keep planning documents lean while preserving
-detailed history:
-
-- **Roadmap** (`docs-roadmap.md`): Lean reference document with status tables,
-  guidelines, and a thematic progress summary. This is the primary file agents should read.
-- **Progress Log** (`docs-roadmap-log.md`): Append-only chronological session notes
-  with full detail. Maintained as a historical record — consult only when investigating
-  specific past decisions or context.
-
-After a work session, append detailed notes to the log file. Update the roadmap's progress
-summary only when new conventions or significant milestones are reached.
-
-## Progress Summary
-
-_For detailed session-by-session notes, see [docs-roadmap-log.md](./docs-roadmap-log.md)._
-
-### Status Overview
-- **Priority 1 (Core Framework):** All 4 docs Done (base-classes, request-flow, authentication,
-  authorization)
-- **Priority 2 (Core Features):** All 5 docs Done (configuration, preferences, clustering,
-  activity-tracking, json-handling)
-- **Priority 3 (Infrastructure):** 7 Done (logging, metrics, tracing, email, websocket, monitoring,
-  http-client), 1 in Draft (exception-handling)
-- **Grails Platform:** gorm-domain-objects Done
-- **Development & Builds:** 2 in Draft (application-structure, build-and-publish)
-- **Conventions:** coding-conventions Done (consolidates CLAUDE.md/AGENTS.md guidance)
-- **Priority 4 (Supporting Features):** All 6 docs still Planned
-- **Documentation index** (`docs/README.md`) created and maintained alongside feature docs
-
-### Key Decisions
-Conventions established during the documentation effort and not already captured in the
-Documentation Guidelines above:
-
-- Created `docs/README.md` as the primary documentation index — `AGENTS.md` no longer hosts
-  documentation tables, instead pointing to the index with a compact directive
-- All docs live in `docs/` as flat files organized by feature area (not alongside source
-  like hoist-react), since features span multiple Grails convention directories
-- "Grails Platform" section created for non-Hoist-specific guides (GORM, etc.) — these sit
-  outside the priority tiers
-- Source-code-verified self-review applied to all drafts before committing — caught critical
-  errors in role inheritance direction and preference deletion behavior
-
-### Current Focus
-- Completing interactive reviews of remaining Draft docs (P2/P3)
-- Priority 4 docs remain Planned — will be drafted after P2–P3 reviews complete

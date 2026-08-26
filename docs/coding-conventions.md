@@ -385,6 +385,9 @@ void clearCaches() {
 `clearCaches()` does **not** clear `Cache`/`CachedValue` instances automatically. Each managed
 resource must be cleared explicitly.
 
+See [`caching.md`](./caching.md) for the full `Cache` / `CachedValue` reference, including expiry
+options, change-handler threading, and how the two classes differ.
+
 ### `clearCachesConfigs` for Soft-Config Reactivity
 
 Declare a static `clearCachesConfigs` list of `xh`-prefixed config names to have the service's
@@ -575,7 +578,7 @@ def update() {
 
 ### Don't Re-Check Roles in Action Code
 
-`AccessInterceptor` runs **before** the action method, so by the time controller code executes, the
+`HoistInterceptor` runs **before** the action method, so by the time controller code executes, the
 role check has already passed. Repeating it is dead code and a source of drift:
 
 ```groovy
@@ -968,6 +971,24 @@ This is especially important for **Hoist library code itself**, which is consume
 applications: the Groovydoc on a public type or method is effectively its contract, and should be
 written from the caller's perspective.
 
+### No Dash Between `@param`/`@throws` Names and Descriptions
+
+Write `@param ids set of group object IDs`, not `@param ids - set of...`. Doc tools (IntelliJ
+quick-doc, the Groovydoc/Javadoc doclet) render their own dash separator between the name and
+description, so a dash in the source doubles up in rendered output.
+
+```groovy
+// Do
+/**
+ * @param dns set of distinguished names.
+ * @param strictMode if true, this method will throw if any lookups fail.
+ */
+
+// Don't - renders as "dns - - set of distinguished names"
+/**
+ * @param dns - set of distinguished names.
+ */
+```
 
 ### Avoid Unicode in Code Comments
 

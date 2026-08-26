@@ -30,8 +30,12 @@ and conventions.
 | Trace an HTTP request through the framework | [`request-flow.md`](./request-flow.md) |
 | Implement authentication in your app | [`authentication.md`](./authentication.md) |
 | Set up roles and access control | [`authorization.md`](./authorization.md) |
+| Resolve role memberships from LDAP / Active Directory or Entra ID groups | [`directory-services.md`](./directory-services.md) |
+| Query a corporate directory for users or groups | [`directory-services.md`](./directory-services.md) |
 | Work with AppConfig (soft configuration) | [`configuration.md`](./configuration.md) |
 | Work with user preferences | [`preferences.md`](./preferences.md) |
+| Cache computed or fetched data in a service | [`caching.md`](./caching.md) |
+| Work out why a cache `onChange` handler fires when it does | [`caching.md`](./caching.md#change-handlers-onchange) |
 | Understand Hazelcast clustering and distributed resources | [`clustering.md`](./clustering.md) |
 | Add activity tracking or review track logs | [`activity-tracking.md`](./activity-tracking.md) |
 | Serialize or parse JSON | [`json-handling.md`](./json-handling.md) |
@@ -63,6 +67,7 @@ Foundational patterns that everything else builds on.
 | [`request-flow.md`](./request-flow.md) | How an HTTP request flows through the Hoist framework | HoistCoreGrailsPlugin, HoistFilter, UrlMappings, HoistInterceptor, controller dispatch, JSON response |
 | [`authentication.md`](./authentication.md) | Authentication service contract and user identity | BaseAuthenticationService, BaseUserService, HoistUser, IdentityService, impersonation |
 | [`authorization.md`](./authorization.md) | Role-based access control and controller security annotations | BaseRoleService, DefaultRoleService, Role, RoleMember, `@AccessRequiresRole`, `@AccessAll`, built-in roles |
+| [`directory-services.md`](./directory-services.md) | Corporate directory integration for role resolution, username mapping, and LDAP-backed login | DirectoryService, LdapService, EntraIdService, Active Directory, Microsoft Graph, `xhLdapConfig`, `xhEntraIdConfig`, `directoryGroupProvider`, `usernameAttribute`, ErrorOr |
 
 ### Core Features
 
@@ -72,6 +77,7 @@ Bread-and-butter features used by every Hoist application.
 |----------|-------------|------------|
 | [`configuration.md`](./configuration.md) | Database-backed soft configuration with typed values | AppConfig, ConfigService, `clientVisible`, `pwd` encryption, `xhConfigChanged`, required configs |
 | [`preferences.md`](./preferences.md) | User-specific settings and preference management | Preference, UserPreference, PrefService, `local` flag, required prefs |
+| [`caching.md`](./caching.md) | Managed in-memory caching with optional expiry and cluster replication | Cache, CachedValue, CacheEntry, `createCache`, `createCachedValue`, `expireTime`, `expireFn`, `replicate`, `onChange` handlers, `ensureAvailable`, culling |
 | [`clustering.md`](./clustering.md) | Hazelcast-based multi-instance coordination and distributed data structures | ClusterService, Cache, CachedValue, IMap, ReplicatedMap, Topic, `primaryOnly` timers |
 | [`activity-tracking.md`](./activity-tracking.md) | Usage and performance logging with email notifications | TrackLog, TrackService, categories, elapsed timing, client error emails, feedback emails |
 | [`json-handling.md`](./json-handling.md) | Jackson-based JSON serialization and parsing | JSONSerializer, JSONParser, JSONFormat, custom serializer modules, `renderJSON`, `parseRequestJSON` |
@@ -82,9 +88,9 @@ Features supporting production operations, integrations, and system health.
 
 | Document | Description | Key Topics |
 |----------|-------------|------------|
-| [`monitoring.md`](./monitoring.md) | Application health monitoring with configurable checks and email alerting | Monitor, MonitorResult, MonitoringService, MonitorDefinitionService, email alerts |
-| [`metrics.md`](./metrics.md) | Micrometer-based observable metrics with Prometheus and OTLP export | MetricsService, CompositeMeterRegistry, MonitorMetricsService, TrackMetricsService, Prometheus, OTLP, xhMetricsConfig |
-| [`tracing.md`](./tracing.md) | OpenTelemetry-based distributed tracing with OTLP export | TracingService, withSpan, traceparent, OTLP, Zipkin, xhTracingConfig, OpenTelemetry |
+| [`monitoring.md`](./monitoring.md) | Application health monitoring with configurable checks and email alerting | Monitor, MonitorResult, MonitorService, MonitorEvalService, MonitorReportService, MonitorDefinitionService, email alerts |
+| [`metrics.md`](./metrics.md) | Micrometer-based observable metrics with Prometheus and OTLP export | MetricsService, CompositeMeterRegistry, BuiltInMetricsService, MonitorMetricsService, TrackMetricsService, Prometheus, OTLP, xhMetricsConfig, xhMetricsPublished |
+| [`tracing.md`](./tracing.md) | OpenTelemetry-based distributed tracing with OTLP export | TraceService, withSpan, traceparent, OTLP, Zipkin, xhTraceConfig, OpenTelemetry |
 | [`websocket.md`](./websocket.md) | Cluster-aware server push to connected clients | WebSocketService, HoistWebSocketHandler, HoistWebSocketChannel, channel subscriptions |
 | [`http-client.md`](./http-client.md) | HTTP client for external API calls and request proxying | JSONClient, BaseProxyService, HttpUtils |
 | [`email.md`](./email.md) | Email sending with config-driven filtering and overrides | EmailService, `xhEmailFilter`, `xhEmailOverride`, support address config |
@@ -108,7 +114,7 @@ Guides to building, structuring, and deploying Hoist applications.
 | [`application-structure.md`](./application-structure.md) | Standard Hoist application repository layout — server and client structure, build configuration, deployment, JDK choice | `build.gradle`, `gradle.properties`, `grails-app/init/`, `client-app/`, `Bootstrap.ts`, `AppModel`, Docker, Nginx, Tomcat, JDK 17/21/25, Gradle toolchain |
 | [`build-and-publish.md`](./build-and-publish.md) | Gradle build, GitHub Actions CI, and Maven Central publishing | GitHub Actions, `deployRelease.yml`, `deploySnapshot.yml`, Sonatype, GPG signing, `nexus-publish-plugin`, `publishToSonatype`, `maven-archive.xh.io` (legacy `36.x`-and-earlier hoist-core releases) |
 | [`../mcp/README.md`](../mcp/README.md) | Hoist-core MCP server and CLI tools — architecture, app-side install snippet, tools reference, and maintenance checklist | `hoist-core-mcp`, `hoist-core-docs`, `hoist-core-symbols`, `installHoistCoreTools`, `BundledContentSource`, `ContentSource`, `bootstrap.sh`, `doc-registry.json` |
-| [`changelog-format.md`](./changelog-format.md) | Conventions for writing and reviewing hoist-core library CHANGELOG entries | Section headers, voice/tense, difficulty ratings, breaking changes, libraries, application changelogs |
+| [`changelog-format.md`](./changelog-format.md) | Conventions for writing and reviewing hoist-core library CHANGELOG entries | Section headers, voice/tense, Simplified Technical English, difficulty ratings, breaking changes, libraries, application changelogs |
 
 ### Conventions
 
@@ -129,9 +135,11 @@ breaking changes, before/after code examples, and verification checklists.
 
 | Version                                         | Key Changes |
 |-------------------------------------------------|-------------|
+| [v41.0.0](./upgrade-notes/v41-upgrade-notes.md) | `EntraIdService` + `DirectoryService` for Entra ID directory groups, typed `ErrorOr` results from `doLoadUsersForDirectoryGroups`, `xhLdapConfig.usernameAttribute` |
 | [v40.0.1](./upgrade-notes/v40-upgrade-notes.md) | Grails 7.1, `MetricsService` registration API, `BaseService.telemetryPrefix`, `ObservedRun` metrics by-name, `hoist.*` → `xh.*` built-in metric rename, client-side metrics endpoint |
 | [v39.0.0](./upgrade-notes/v39-upgrade-notes.md) | Typed `ConfigSpec` / `PreferenceSpec` / `RoleSpec`, optional `TypedConfigMap` opt-in, telemetry package restructuring, `alwaysSampleErrors` removed, JDK 25 toolchain |
 | [v38.0.0](./upgrade-notes/v38-upgrade-notes.md) | LogLevel schema additions, OTEL tag alignment, rule-based span sampling |
+| [v37.0.0](./upgrade-notes/v37-upgrade-notes.md) | OpenTelemetry distributed tracing (`TraceService`), MCP server for AI agents, `xhMetricsPublished` opt-in, `MetricsService` namespace prefixing removed |
 | [v36.0.0](./upgrade-notes/v36-upgrade-notes.md) | Cluster-aware WebSockets, new `@AccessRequiresXXX` annotations, `@Access` deprecated |
 | [v35.0.0](./upgrade-notes/v35-upgrade-notes.md) | CacheEntry generic key type, TrackLog `clientAppCode`, POI 5.x |
 | [v34.0.1](./upgrade-notes/v34-upgrade-notes.md) | Grails 7, Gradle 8, Tomcat 10, Jakarta EE |
@@ -143,6 +151,7 @@ breaking changes, before/after code examples, and verification checklists.
 - [`planning/docs-roadmap.md`](./planning/docs-roadmap.md) — Documentation coverage tracking,
   conventions, and guidelines
 - [`/CHANGELOG.md`](../CHANGELOG.md) — Version history and release notes
-- [`/README.md`](../README.md) — Project overview with feature tables and source code links
+- [`/README.md`](../README.md) — Project overview: what Hoist is, the role of the server, and how
+  a Hoist app is built and deployed
 - [hoist-react docs](https://github.com/xh/hoist-react/tree/develop/docs) — Client-side
   counterpart documentation

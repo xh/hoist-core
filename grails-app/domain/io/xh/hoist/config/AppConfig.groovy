@@ -25,6 +25,15 @@ class AppConfig implements JSONFormat, LogSupport {
 
     static List TYPES = ['string', 'int', 'long', 'double', 'bool', 'json', 'pwd']
 
+    /**
+     * Placeholder value for a config that has not been set. Validation requires a non-null,
+     * non-blank `value`, so a config that is bootstrapped but not yet configured holds this
+     * instead. Bootstrap a config that an app may leave unset with this as its `defaultValue`, and
+     * read it with {@link io.xh.hoist.config.ConfigService#getStringIfSet} / `getPwdIfSet`, which
+     * map it back to null.
+     */
+    static final String NONE = 'none'
+
     String name
     String value
     String valueType = 'string'
@@ -165,6 +174,8 @@ class AppConfig implements JSONFormat, LogSupport {
                 valueType    : valueType,
                 value        : parseValue(value, [digestPassword: true]),
                 overrideValue: overrideValue(digestPassword: true),
+                resolvedValue: Utils.configService.getResolvedConfigValue(this),
+                defaultValue : Utils.configService.getDefaultConfigValue(this),
                 clientVisible: clientVisible,
                 note         : note,
                 lastUpdatedBy: lastUpdatedBy,

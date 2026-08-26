@@ -30,39 +30,47 @@
             "mcpCategory": "package",
             "viewerCategory": "core-framework",
             "description": "Base classes for services and controllers — lifecycle, resource factories, CRUD patterns.",
-            "keywords": ["BaseService", "init", "destroy", "createCache", "createCachedValue", "createTimer", "createIMap", "BaseController", "renderJSON", "parseRequestJSON", "RestController", "doCreate", "doList", "doUpdate", "doDelete"]
+            "keywords": ["BaseService", "init", "destroy", "createCache", "createCachedValue", "createTimer", "createIMap", "createISet", "BaseController", "renderJSON", "parseRequestJSON", "RestController", "doCreate", "doList", "doUpdate", "doDelete"]
         },
         {
             "id": "docs/request-flow.md",
             "title": "Request Flow",
-            "mcpCategory": "concepts",
+            "mcpCategory": "concept",
             "viewerCategory": "core-framework",
             "description": "How an HTTP request flows through the Hoist framework.",
-            "keywords": ["HoistCoreGrailsPlugin", "HoistFilter", "UrlMappings", "AccessInterceptor", "controller dispatch", "JSON response"]
+            "keywords": ["HoistCoreGrailsPlugin", "HoistFilter", "UrlMappings", "HoistInterceptor", "controller dispatch", "JSON response"]
         },
         {
             "id": "docs/authentication.md",
             "title": "Authentication",
-            "mcpCategory": "concepts",
+            "mcpCategory": "concept",
             "viewerCategory": "core-framework",
             "description": "Authentication service contract and user identity.",
-            "keywords": ["BaseAuthenticationService", "BaseUserService", "HoistUser", "IdentityService", "impersonation"]
+            "keywords": ["BaseAuthenticationService", "BaseUserService", "HoistUser", "IdentityService", "HoistIdentity", "impersonation"]
         },
         {
             "id": "docs/authorization.md",
             "title": "Authorization",
-            "mcpCategory": "concepts",
+            "mcpCategory": "concept",
             "viewerCategory": "core-framework",
             "description": "Role-based access control and controller security annotations.",
-            "keywords": ["BaseRoleService", "DefaultRoleService", "Role", "RoleMember", "AccessRequiresRole", "AccessAll"]
+            "keywords": ["BaseRoleService", "DefaultRoleService", "Role", "RoleMember", "AccessRequiresRole", "AccessAll", "directory groups"]
+        },
+        {
+            "id": "docs/directory-services.md",
+            "title": "Directory Services (LDAP & Microsoft Entra ID)",
+            "mcpCategory": "package",
+            "viewerCategory": "core-framework",
+            "description": "Corporate directory integration for role resolution, username mapping, and LDAP-backed login.",
+            "keywords": ["DirectoryService", "LdapService", "EntraIdService", "Active Directory", "Microsoft Graph", "xhLdapConfig", "xhEntraIdConfig", "directoryGroupProvider", "usernameAttribute", "directory groups", "ErrorOr"]
         },
         {
             "id": "docs/configuration.md",
             "title": "Configuration",
-            "mcpCategory": "concepts",
+            "mcpCategory": "concept",
             "viewerCategory": "core-features",
             "description": "Database-backed soft configuration with typed values.",
-            "keywords": ["AppConfig", "ConfigService", "clientVisible", "pwd", "encryption", "xhConfigChanged", "TypedConfigMap", "getObject"]
+            "keywords": ["AppConfig", "ConfigService", "clientVisible", "pwd", "encryption", "xhConfigChanged", "TypedConfigMap", "getObject", "getStringIfSet"]
         },
         {
             "id": "docs/preferences.md",
@@ -73,17 +81,25 @@
             "keywords": ["Preference", "UserPreference", "PrefService", "local"]
         },
         {
+            "id": "docs/caching.md",
+            "title": "Caching",
+            "mcpCategory": "package",
+            "viewerCategory": "core-features",
+            "description": "Managed in-memory caching with optional expiry and cluster replication.",
+            "keywords": ["Cache", "CachedValue", "CacheEntry", "CacheEntryChanged", "createCache", "createCachedValue", "expireTime", "expireFn", "timestampFn", "replicate", "onChange", "addChangeHandler", "serializeOldValue", "ensureAvailable", "getOrCreate", "culling"]
+        },
+        {
             "id": "docs/clustering.md",
             "title": "Clustering",
             "mcpCategory": "package",
             "viewerCategory": "core-features",
             "description": "Hazelcast-based multi-instance coordination and distributed data structures.",
-            "keywords": ["ClusterService", "Cache", "CachedValue", "IMap", "ReplicatedMap", "Topic", "primaryOnly", "isHazelcastRunning", "instanceState", "liveness probe", "health"]
+            "keywords": ["ClusterService", "Cache", "CachedValue", "IMap", "ReplicatedMap", "Topic", "primaryOnly", "replicate", "onChange", "isHazelcastRunning", "instanceState", "liveness probe", "health"]
         },
         {
             "id": "docs/activity-tracking.md",
             "title": "Activity Tracking",
-            "mcpCategory": "concepts",
+            "mcpCategory": "concept",
             "viewerCategory": "core-features",
             "description": "Usage and performance logging with email notifications.",
             "keywords": ["TrackLog", "TrackService", "categories", "elapsed", "timing", "client error", "feedback"]
@@ -102,7 +118,7 @@
             "mcpCategory": "package",
             "viewerCategory": "infrastructure",
             "description": "Application health monitoring with configurable checks and email alerting.",
-            "keywords": ["Monitor", "MonitorResult", "MonitoringService", "MonitorDefinitionService", "email alerts"]
+            "keywords": ["Monitor", "MonitorResult", "MonitorService", "MonitorEvalService", "MonitorReportService", "MonitorDefinitionService", "email alerts"]
         },
         {
             "id": "docs/metrics.md",
@@ -110,7 +126,7 @@
             "mcpCategory": "package",
             "viewerCategory": "infrastructure",
             "description": "Micrometer-based observable metrics with Prometheus and OTLP export.",
-            "keywords": ["MetricsService", "CompositeMeterRegistry", "MonitorMetricsService", "TrackMetricsService", "Prometheus", "OTLP", "xhMetricsConfig"]
+            "keywords": ["MetricsService", "CompositeMeterRegistry", "BuiltInMetricsService", "MonitorMetricsService", "TrackMetricsService", "Prometheus", "OTLP", "xhMetricsConfig", "xhMetricsPublished", "telemetryPrefix"]
         },
         {
             "id": "docs/tracing.md",
@@ -118,7 +134,7 @@
             "mcpCategory": "package",
             "viewerCategory": "infrastructure",
             "description": "OpenTelemetry-based distributed tracing with OTLP export.",
-            "keywords": ["TraceService", "withSpan", "traceparent", "OTLP", "xhTraceConfig", "OpenTelemetry", "ClientTraceService", "ContextPropagatingPromiseFactory"]
+            "keywords": ["TraceService", "withSpan", "SpanRef", "setErrorStatus", "traceparent", "OTLP", "xhTraceConfig", "OpenTelemetry", "sampleRules", "ClientSpanData", "HoistPromiseFactory"]
         },
         {
             "id": "docs/websocket.md",
@@ -171,10 +187,10 @@
         {
             "id": "docs/application-structure.md",
             "title": "Application Structure",
-            "mcpCategory": "concepts",
+            "mcpCategory": "concept",
             "viewerCategory": "devops",
             "description": "Standard Hoist application repository layout — server and client structure, build configuration, deployment, JDK choice.",
-            "keywords": ["build.gradle", "gradle.properties", "grails-app/init", "client-app", "Bootstrap.ts", "AppModel", "Docker", "Nginx", "Tomcat", "JDK 17", "JDK 21", "JDK 25", "Java 25", "Gradle toolchain", "incompatible Java 25 and Gradle 8.x", "xh-tomcat"]
+            "keywords": ["build.gradle", "gradle.properties", "grails-app/init", "client-app", "Bootstrap.ts", "AppModel", "Docker", "Nginx", "Tomcat", "JDK 17", "JDK 21", "JDK 25", "Java 25", "Gradle toolchain", "incompatible Java 25 and Gradle 8.x", "xh-tomcat", "hot reload", "HotswapAgent", "enableHotSwap"]
         },
         {
             "id": "docs/build-and-publish.md",
@@ -197,8 +213,8 @@
             "title": "CHANGELOG Entry Format",
             "mcpCategory": "conventions",
             "viewerCategory": "devops",
-            "description": "Conventions for writing and reviewing CHANGELOG entries in the hoist-core library CHANGELOG — section headers, voice/tense, difficulty ratings, breaking changes, libraries.",
-            "keywords": ["CHANGELOG", "changelog", "release notes", "breaking changes", "difficulty rating", "entry format"]
+            "description": "Conventions for writing and reviewing CHANGELOG entries in the hoist-core library CHANGELOG - section headers, voice/tense, Simplified Technical English, difficulty ratings, breaking changes, libraries.",
+            "keywords": ["CHANGELOG", "changelog", "release notes", "breaking changes", "difficulty rating", "entry format", "Simplified Technical English", "STE", "ASD-STE100", "plain language", "verb-first", "symbol-first"]
         },
         {
             "id": "docs/coding-conventions.md",
@@ -207,6 +223,14 @@
             "viewerCategory": "overview",
             "description": "Authoritative coding conventions for hoist-core framework and applications — naming, logging, exceptions, services, controllers, GORM, clustering, HTTP/email, background work, code style, and commit/PR formatting.",
             "keywords": ["conventions", "coding standards", "style guide", "naming", "xh prefix", "LogSupport", "withInfo", "withDebug", "RoutineRuntimeException", "BaseService", "createCache", "createTimer", "clearCaches", "clearCachesConfigs", "ensureRequiredConfigsCreated", "configService", "AccessRequiresRole", "renderJSON", "parseRequestJSON", "ReadOnly", "Transactional", "N+1", "fetch join", "batchSize", "JSONFormat", "primaryOnly", "replicate", "JSONClient", "xhEmailOverride", "withNewSession", "pushToAllChannels", "pushToLocalChannels", "Groovy idioms", "commit messages", "no hard wrap"]
+        },
+        {
+            "id": "docs/upgrade-notes/v41-upgrade-notes.md",
+            "title": "v41 Upgrade Notes",
+            "mcpCategory": "devops",
+            "viewerCategory": "upgrade",
+            "description": "Upgrade guide from v40.x to v41. Low difficulty.",
+            "keywords": ["v41", "upgrade", "migration", "breaking changes", "v40"]
         },
         {
             "id": "docs/upgrade-notes/v40-upgrade-notes.md",

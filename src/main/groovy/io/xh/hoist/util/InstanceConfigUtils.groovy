@@ -109,6 +109,14 @@ class InstanceConfigUtils {
             println "InstanceConfigUtils [ERROR] | InstanceConfig file found but could not be parsed | $configFilename | $t.message"
         }
 
+        // A blank entry resolves as an empty string, distinct from an absent entry, which resolves
+        // as null. Log blanks at startup, as they can arrive unintentionally - e.g. an empty file
+        // in a config directory, or a templated YAML that interpolates an unset variable.
+        def blankKeys = ret.findAll { !it.value?.trim() }.keySet()
+        if (blankKeys) {
+            println "InstanceConfigUtils [INFO] | Found ${blankKeys.size()} blank InstanceConfig entries | ${blankKeys.join(', ')}"
+        }
+
         return ret
     }
 
@@ -153,7 +161,10 @@ class InstanceConfigUtils {
     }
 
     private static Map<String, String> loadFromYaml(File configFile) {
-        def ret = new Yaml().loadAs(configFile.newInputStream(), Map)
+        // SnakeYAML parses unquoted scalars into native types - booleans, numbers - so normalize
+        // to Strings here, honoring this class's contract of String keys and values throughout.
+        Map loaded = new Yaml().loadAs(configFile.newInputStream(), Map)
+        def ret = loaded.collectEntries { k, v -> [k.toString(), v?.toString()] } as Map<String, String>
         logLoadCount(ret, configFile)
         return ret
     }

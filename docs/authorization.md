@@ -3,12 +3,11 @@
 ## Overview
 
 Hoist's authorization system enforces role-based access control across all controller endpoints.
-Every request is checked by `HoistInterceptor` against annotations that declare which roles are
-required. Roles are managed by a `RoleService` that applications provide — either by using the
-built-in `DefaultRoleService` (database-backed with Admin Console UI) or by implementing a custom
-role assignment strategy.
+`HoistInterceptor` checks every request against annotations that declare which roles are required.
+Applications supply a `RoleService` to manage roles - either the built-in `DefaultRoleService`
+(database-backed with Admin Console UI) or a custom role assignment strategy.
 
-This system works in concert with [authentication](./authentication.md) — authentication
+This system works in concert with [authentication](./authentication.md) - authentication
 establishes *who* the user is, authorization determines *what* they can do.
 
 ## Source Files
@@ -21,8 +20,8 @@ establishes *who* the user is, authorization determines *what* they can do.
 | `DefaultRoleUpdateService` | `grails-app/services/io/xh/hoist/role/provided/` | Role mutations (CRUD, `ensureRequiredRolesCreated`, `assignRole`) |
 | `RoleAdminController` | `grails-app/controllers/io/xh/hoist/admin/` | Admin Console endpoints for role management |
 | `RoleSpec` | `src/main/groovy/io/xh/hoist/role/provided/` | Typed specification for required role definitions |
-| `Role` | `grails-app/domain/io/xh/hoist/role/provided/` | GORM domain — role definitions |
-| `RoleMember` | `grails-app/domain/io/xh/hoist/role/provided/` | GORM domain — role memberships |
+| `Role` | `grails-app/domain/io/xh/hoist/role/provided/` | GORM domain - role definitions |
+| `RoleMember` | `grails-app/domain/io/xh/hoist/role/provided/` | GORM domain - role memberships |
 | `HoistInterceptor` | `grails-app/controllers/io/xh/hoist/` | Grails interceptor enforcing annotations |
 | `@AccessRequiresRole` | `src/main/groovy/io/xh/hoist/security/` | Single role annotation |
 | `@AccessRequiresAnyRole` | `src/main/groovy/io/xh/hoist/security/` | Any-of-roles annotation |
@@ -37,7 +36,7 @@ establishes *who* the user is, authorization determines *what* they can do.
 When a request reaches the `HoistInterceptor` (after authentication in `HoistFilter`):
 
 1. The interceptor resolves the controller action to a Java `Method` object.
-2. It searches for an access annotation — first on the method, then on the controller class.
+2. It searches for an access annotation - first on the method, then on the controller class.
 3. The first annotation found is evaluated against the current user's roles.
 4. If the check passes, the request proceeds. If not, a `NotAuthorizedException` (403) is thrown.
 
@@ -130,29 +129,29 @@ contract for role assignment queries.
 | `getRolesForUser(username)` | `Set<String>` | All roles for a specific user |
 | `getUsersForRole(role)` | `Set<String>` | All users with a specific role |
 
-These methods are called frequently and should be fast — backed by caching if the underlying
+These methods are called frequently and should be fast - backed by caching if the underlying
 data source is expensive.
 
 ### DefaultRoleService
 
 A production-ready, self-contained implementation that stores roles and their memberships within the
-application's own database. Provides full Admin Console support, LDAP/directory group integration,
-and role inheritance. This is a strong default for applications that don't have an external,
+application's own database. Provides full Admin Console support, directory group integration,
+and role inheritance. This is a strong default for applications that do not have an external,
 customer-mandated source for role assignments.
 
 #### Features
 
-- **Database storage** — Roles stored as `Role` and `RoleMember` GORM domain objects.
-- **Admin Console UI** — Full CRUD for roles and memberships via the Hoist Admin Console.
-- **Role inheritance** — Roles can include other roles as members, enabling hierarchical structures.
-- **Directory group integration** — Roles can include LDAP/Active Directory groups, automatically
-  resolving group members.
-- **Cluster-safe caching** — Role assignments are cached in a replicated `CachedValue` and
+- **Database storage** - Roles stored as `Role` and `RoleMember` GORM domain objects.
+- **Admin Console UI** - Full CRUD for roles and memberships via the Hoist Admin Console.
+- **Role inheritance** - Roles can include other roles as members, enabling hierarchical structures.
+- **Directory group integration** - Roles can include groups from LDAP / Active Directory or
+  Microsoft Entra ID, with group members resolved automatically.
+- **Cluster-safe caching** - Role assignments are cached in a replicated `CachedValue` and
   refreshed on a configurable timer.
 
 #### Using DefaultRoleService
 
-The simplest approach — extend it as your app's `RoleService`:
+The simplest approach - extend it as your app's `RoleService`:
 
 ```groovy
 // In grails-app/services/com/myapp/RoleService.groovy
@@ -202,8 +201,11 @@ automatically receive `APP_USER` as well.
 
 #### Directory Group Integration
 
-Roles can include LDAP/Active Directory groups. `DefaultRoleService` resolves group membership
-via `LdapService`:
+Roles can include groups from an external corporate directory - LDAP / Active Directory or
+Microsoft Entra ID. `DefaultRoleService` resolves group membership through an enabled
+`DirectoryService` implementation. See [`directory-services.md`](./directory-services.md) for
+provider selection, configuration, and the group identifier forms (LDAP DNs vs. Entra ID
+object IDs):
 
 ```groovy
 ensureRequiredRolesCreated([
@@ -211,18 +213,20 @@ ensureRequiredRolesCreated([
 ])
 ```
 
-Override `doLoadUsersForDirectoryGroups()` to integrate with non-LDAP directory services.
+Override `doLoadUsersForDirectoryGroups()` to resolve groups from different, or additional,
+external sources. Return a `Map` of group identifier to an `ErrorOr` that holds either the
+`Set` of member usernames or a String error description.
 
 #### Customization Points
 
-`DefaultRoleService` provides several properties and methods that subclasses can override:
+`DefaultRoleService` has several properties and methods that subclasses can override:
 
 | Property / Method | Default | Description |
 |-------------------|---------|-------------|
 | `getUserAssignmentSupported()` | `true` | Set to `false` to disable direct user-to-role assignment |
 | `getDirectoryGroupsSupported()` | `true` | Set to `false` to disable directory group membership |
-| `getDirectoryGroupsDescription()` | LDAP DN instructions | Short string for Admin Console tooltip |
-| `doLoadUsersForDirectoryGroups()` | LDAP via `LdapService` | Override to resolve groups from non-LDAP sources |
+| `getDirectoryGroupsDescription()` | From the selected `DirectoryService` | Short string for Admin Console tooltip |
+| `doLoadUsersForDirectoryGroups()` | Selected `DirectoryService` | Override to resolve groups from other sources |
 
 #### Configuration
 
@@ -230,14 +234,19 @@ Override `doLoadUsersForDirectoryGroups()` to integrate with non-LDAP directory 
 
 ```json
 {
-  "refreshIntervalSecs": 300
+  "refreshIntervalSecs": 300,
+  "directoryGroupProvider": "auto"
 }
 ```
 
-This controls how often the role assignment cache is rebuilt from external sources such as directory
-groups. Changes to roles made via the Admin Console trigger an immediate cache rebuild, and the
-result is propagated to all cluster instances via the replicated `CachedValue`. The timer interval
-primarily governs how quickly changes to external directory group memberships are picked up.
+`refreshIntervalSecs` controls how often the role assignment cache is rebuilt from external sources
+such as directory groups. Changes to roles made via the Admin Console trigger an immediate cache
+rebuild, and the result is propagated to all cluster instances via the replicated `CachedValue`. The
+timer interval primarily governs how quickly changes to external directory group memberships are
+picked up.
+
+`directoryGroupProvider` selects which directory service resolves directory groups - `ldap`,
+`entraId`, or `auto`. See [`directory-services.md`](./directory-services.md#provider-selection).
 
 #### Bootstrap Admin User
 
@@ -279,7 +288,7 @@ Stored in table `xh_role`.
 | Property | Type | Description |
 |----------|------|-------------|
 | `type` | `enum` | `USER`, `DIRECTORY_GROUP`, or `ROLE` |
-| `name` | `String` | Username, directory group DN, or role name |
+| `name` | `String` | Username, directory group identifier, or role name |
 | `dateCreated` | `Date` | When the membership was created |
 | `createdBy` | `String` | Who created the membership |
 
@@ -298,8 +307,8 @@ Hoist defines four built-in roles that `DefaultRoleService` creates automaticall
 
 Note that `HOIST_ADMIN_READER` and `HOIST_IMPERSONATOR` both list `HOIST_ADMIN` in their `roles`
 field. This means all `HOIST_ADMIN` users automatically receive these less-privileged roles as well,
-ensuring admins have read-only access and impersonation capabilities. `HOIST_ROLE_MANAGER` is
-intentionally independent — `HOIST_ADMIN` does *not* automatically grant role management, so this
+so admins always have read-only access and impersonation capabilities. `HOIST_ROLE_MANAGER` is
+intentionally independent - `HOIST_ADMIN` does *not* automatically grant role management, so this
 capability must be explicitly assigned.
 
 The `RoleAdminController` enforces an additional impersonation guard on write operations: `create`,
@@ -310,22 +319,22 @@ has `HOIST_ROLE_MANAGER`. This prevents an admin from impersonating a role manag
 
 ### Using DefaultRoleService
 
-`DefaultRoleService` is a strong default — it's production-ready, self-contained within the app and
-its database, and provides a complete Admin Console UI for managing roles. Most applications should
+`DefaultRoleService` is a strong default - production-ready, self-contained within the app and
+its database, and complete with an Admin Console UI for managing roles. Most applications should
 extend it and create app-specific roles in `ensureRequiredConfigAndRolesCreated()`.
 
 The `ensureRequiredRolesCreated()` method accepts a `List<RoleSpec>` where each `RoleSpec` specifies
 the role's `name` and optional fields (`category`, `notes`, `users`, `directoryGroups`, `roles`).
-It creates any missing roles with the supplied defaults — existing roles are never modified. A
+It creates any missing roles with the supplied defaults - existing roles are never modified. A
 deprecated overload accepting `List<Map>` is still supported for backward compatibility but should
 be migrated to `RoleSpec`.
 
 ### Custom RoleService
 
 Hoist is deliberately flexible about where role assignments come from. Some applications or customer
-environments have an existing, preferred source of truth for roles — e.g., JWT claims from an OAuth
-provider, Microsoft Entra ID groups, or a customer-provided API. In these cases, extend
-`BaseRoleService` directly and implement the three abstract methods to query that external source:
+environments have an existing, preferred source of truth for roles - e.g. JWT claims from an OAuth
+provider or a customer-provided API. In these cases, extend `BaseRoleService` directly and implement
+the three abstract methods to query that external source:
 
 ```groovy
 class RoleService extends BaseRoleService {
@@ -380,7 +389,7 @@ class TradeService extends BaseService {
 
 ### Programmatic Role Assignment
 
-`DefaultRoleService` provides `assignRole()` for programmatic assignment:
+`DefaultRoleService` supports programmatic assignment via `assignRole()`:
 
 ```groovy
 class BootStrap {
@@ -394,9 +403,9 @@ class BootStrap {
 
 ### Soft-Config Gates
 
-`HoistUser` also provides a `hasGate(String)` method — a lighter-weight access mechanism backed by
-soft configuration rather than the role system. A gate is simply a `stringList`-type `AppConfig`
-containing usernames (or `*` for all users):
+`HoistUser` also has a `hasGate(String)` method - a lighter-weight access mechanism backed by
+soft configuration rather than the role system. A gate is a `string`-type `AppConfig` that holds a
+comma-delimited list of usernames, or `*` for all users:
 
 ```groovy
 // Check if the current user has access to a gated feature
@@ -407,11 +416,11 @@ if (user.hasGate('myNewFeatureGate')) {
 
 Gates are useful for restricting access to features that are under development or pending review,
 without the overhead of creating and managing a dedicated role. They are checked against the
-current user's username — if the config contains `*` or the user's username, the gate passes.
+current user's username - if the config contains `*` or the user's username, the gate passes.
 
 ## Client Integration
 
-Role assignments are sent to the hoist-react client as part of the identity response from
+The server sends role assignments to the hoist-react client as part of the identity response from
 `IdentityService.getClientConfig()`. The client receives a `roles` set (or `apparentUserRoles` /
 `authUserRoles` during impersonation) and can check roles via `XH.getUser().hasRole()`.
 
@@ -444,6 +453,6 @@ development, reduce the `refreshIntervalSecs` in `xhRoleModuleConfig`, or use th
 
 ### Not creating required roles in `ensureRequiredConfigAndRolesCreated()`
 
-If you reference roles in `@AccessRequiresRole` annotations but don't create them in
+If you reference roles in `@AccessRequiresRole` annotations but do not create them in
 `ensureRequiredConfigAndRolesCreated()`, the application will start but no users will have those
 roles. Always declare app-specific roles during service initialization.

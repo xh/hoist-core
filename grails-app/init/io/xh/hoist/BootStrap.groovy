@@ -11,9 +11,11 @@ import io.xh.hoist.admin.ConnPoolMonitoringConfig
 import io.xh.hoist.admin.MemoryMonitoringConfig
 import io.xh.hoist.alertbanner.AlertBannerConfig
 import io.xh.hoist.cluster.ClusterService
+import io.xh.hoist.config.AppConfig
 import io.xh.hoist.config.ChangelogConfig
 import io.xh.hoist.config.ConfigSpec
 import io.xh.hoist.config.IdleConfig
+import io.xh.hoist.entra.EntraIdConfig
 import io.xh.hoist.environment.EnvPollConfig
 import io.xh.hoist.export.ExportConfig
 import io.xh.hoist.ldap.LdapConfig
@@ -101,15 +103,7 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhActivityTrackingConfig',
                 valueType: 'json',
-                defaultValue: [
-                    clientHealthReport: [intervalMins: -1],
-                    enabled: true,
-                    levels: [[username: '*', category: '*', severity: 'INFO']],
-                    logData: false,
-                    maxDataLength: 2000,
-                    maxEntriesPerMin: 1000,
-                    maxRows: [default: 10000, limit: 25000, options: [1000, 5000, 10000, 25000]]
-                ],
+                defaultValue: [:],
                 typedClass: ActivityTrackingConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
@@ -118,7 +112,7 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhAlertBannerConfig',
                 valueType: 'json',
-                defaultValue: [enabled: true],
+                defaultValue: [:],
                 typedClass: AlertBannerConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
@@ -151,7 +145,7 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhChangelogConfig',
                 valueType: 'json',
-                defaultValue: [enabled: true, excludedVersions: [], excludedCategories: [], limitToRoles: []],
+                defaultValue: [:],
                 typedClass: ChangelogConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
@@ -160,7 +154,7 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhClientErrorConfig',
                 valueType: 'json',
-                defaultValue: [intervalMins: 2],
+                defaultValue: [:],
                 typedClass: ClientErrorConfig,
                 groupName: 'xh.io',
                 note: 'Configures handling of client error reports. Errors are queued when received and processed every [intervalMins].'
@@ -168,12 +162,7 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhConnPoolMonitoringConfig',
                 valueType: 'json',
-                defaultValue: [
-                    enabled: true,
-                    snapshotInterval: 60,
-                    maxSnapshots: 1440,
-                    writeToLog: false
-                ],
+                defaultValue: [:],
                 typedClass: ConnPoolMonitoringConfig,
                 groupName: 'xh.io',
                 note: 'Configures built-in JDBC connection pool monitoring.'
@@ -195,21 +184,21 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhEmailFilter',
                 valueType: 'string',
-                defaultValue: 'none',
+                defaultValue: AppConfig.NONE,
                 groupName: 'xh.io',
                 note: 'Comma-separated list of email addresses to which Hoist EmailService can send mail. For testing / dev purposes. If specified, emails to addresses not in this list will be quietly dropped. Value "none" does not filter recipients.'
             ),
             new ConfigSpec(
                 name: 'xhEmailOverride',
                 valueType: 'string',
-                defaultValue: 'none',
+                defaultValue: AppConfig.NONE,
                 groupName: 'xh.io',
                 note: 'Email address to which Hoist emailService should send all mail, regardless of specified recipient. For testing / dev purposes. Use to test actual sending of mails while still not mailing end-users. Value "none" disables any override.'
             ),
             new ConfigSpec(
                 name: 'xhEmailSupport',
                 valueType: 'string',
-                defaultValue: 'none',
+                defaultValue: AppConfig.NONE,
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Email address to which support and feedback submissions should be sent. Value "none" to disable support emails.'
@@ -239,12 +228,38 @@ class BootStrap implements LogSupport {
                 note: 'True to enable the monitor tab included with the Hoist Admin console and the associated server-side jobs'
             ),
             new ConfigSpec(
+                name: 'xhEntraIdConfig',
+                valueType: 'json',
+                defaultValue: [:],
+                typedClass: EntraIdConfig,
+                groupName: 'xh.io',
+                note: 'Supports querying Microsoft Entra ID (via Microsoft Graph) for users and groups.'
+            ),
+            new ConfigSpec(
+                name: 'xhEntraTenantId',
+                valueType: 'string',
+                defaultValue: AppConfig.NONE,
+                groupName: 'xh.io',
+                note: 'Tenant ID (GUID) of the Microsoft Entra ID tenant for this application. Referenced by EntraIdService and any other subsystem that works with the tenant. Commonly overridden per environment via an instance config / environment variable. Relay to pre-auth clients (e.g. for OAuth login) via the app AuthenticationService.getClientConfig(), where needed.'
+            ),
+            new ConfigSpec(
+                name: 'xhEntraClientId',
+                valueType: 'string',
+                defaultValue: AppConfig.NONE,
+                groupName: 'xh.io',
+                note: 'Client ID (GUID) of the Entra ID app registration for this application. Referenced by EntraIdService and any other subsystem that works with the registration. Commonly overridden per environment via an instance config / environment variable. Relay to pre-auth clients (e.g. for OAuth login) via the app AuthenticationService.getClientConfig(), where needed.'
+            ),
+            new ConfigSpec(
+                name: 'xhEntraClientSecret',
+                valueType: 'pwd',
+                defaultValue: AppConfig.NONE,
+                groupName: 'xh.io',
+                note: 'Client secret for the Entra ID app registration used by EntraIdService.'
+            ),
+            new ConfigSpec(
                 name: 'xhEnvPollConfig',
                 valueType: 'json',
-                defaultValue: [
-                    interval: 10,
-                    onVersionChange: configService.getMap('xhAppVersionCheck', [mode: 'promptReload']).get('mode')
-                ],
+                defaultValue: [:],
                 typedClass: EnvPollConfig,
                 groupName: 'xh.io',
                 note: "Controls client calls to server to poll for version, instance changes, or auth changes. Supports the following options:\n\n" +
@@ -264,10 +279,7 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhExportConfig',
                 valueType: 'json',
-                defaultValue: [
-                    streamingCellThreshold: 100000,
-                    toastCellThreshold: 3000
-                ],
+                defaultValue: [:],
                 typedClass: ExportConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
@@ -284,7 +296,7 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhIdleConfig',
                 valueType: 'json',
-                defaultValue: [timeout: 120, appTimeouts: [:]],
+                defaultValue: [:],
                 typedClass: IdleConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
@@ -293,20 +305,7 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhLdapConfig',
                 valueType: 'json',
-                defaultValue: [
-                    enabled: false,
-                    timeoutMs: 60000,
-                    cacheExpireSecs: 300,
-                    useMatchingRuleInChain: false,
-                    skipTlsCertVerification: false,
-                    servers: [
-                        [
-                            host: '',
-                            baseUserDn: '',
-                            baseGroupDn: '',
-                        ]
-                    ]
-                ],
+                defaultValue: [:],
                 typedClass: LdapConfig,
                 groupName: 'xh.io',
                 note: 'Supports connecting to LDAP servers.'
@@ -314,22 +313,19 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhLdapUsername',
                 valueType: 'string',
-                defaultValue: 'none',
+                defaultValue: AppConfig.NONE,
                 groupName: 'xh.io'
             ),
             new ConfigSpec(
                 name: 'xhLdapPassword',
                 valueType: 'pwd',
-                defaultValue: 'none',
+                defaultValue: AppConfig.NONE,
                 groupName: 'xh.io'
             ),
             new ConfigSpec(
                 name: 'xhLogArchiveConfig',
                 valueType: 'json',
-                defaultValue: [
-                    archiveAfterDays: 30,
-                    archiveFolder: 'archive'
-                ],
+                defaultValue: [:],
                 typedClass: LogArchiveConfig,
                 groupName: 'xh.io',
                 note: 'Configures automatic cleanup and archiving of log files. Files older than "archiveAfterDays" will be moved into zipped bundles within the specified "archiveFolder".'
@@ -337,15 +333,7 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhMemoryMonitoringConfig',
                 valueType: 'json',
-                defaultValue: [
-                    enabled: true,
-                    snapshotInterval: 60,
-                    maxSnapshots: 1440,
-                    heapDumpDir: null,
-                    preservePastInstances: true,
-                    maxPastInstances: 10,
-                    writeToLog: true
-                ],
+                defaultValue: [:],
                 typedClass: MemoryMonitoringConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
@@ -354,15 +342,7 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhMonitorConfig',
                 valueType: 'json',
-                defaultValue: [
-                    monitorRefreshMins: 10,
-                    failNotifyThreshold: 2,
-                    warnNotifyThreshold: 5,
-                    monitorStartupDelayMins: 1,
-                    monitorRepeatNotifyMins: 60,
-                    monitorTimeoutSecs: 15,
-                    writeToMonitorLog: true
-                ],
+                defaultValue: [:],
                 typedClass: MonitorConfig,
                 groupName: 'xh.io',
                 note: 'Configures server-side status monitoring and notifications. Note failNotifyThreshold and warnNotifyThreshold are the number of refresh cycles a monitor will need to be in said status to trigger "alertMode".'
@@ -370,19 +350,14 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhMonitorEmailRecipients',
                 valueType: 'string',
-                defaultValue: 'none',
+                defaultValue: AppConfig.NONE,
                 groupName: 'xh.io',
                 note: 'Email address to which status monitor alerts should be sent. Value "none" disables emailed alerts.'
             ),
             new ConfigSpec(
                 name: 'xhMetricsConfig',
                 valueType: 'json',
-                defaultValue: [
-                    prometheusEnabled: false,
-                    otlpEnabled: false,
-                    prometheusConfig: [:],
-                    otlpConfig: [:]
-                ],
+                defaultValue: [:],
                 typedClass: MetricsConfig,
                 groupName: 'xh.io',
                 note: 'Parameters for observable metric support'
@@ -390,14 +365,7 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhTraceConfig',
                 valueType: 'json',
-                defaultValue: [
-                    enabled: false,
-                    sampleRate: 1.0,
-                    sampleRules: [],
-                    jdbcTracingEnabled: false,
-                    otlpEnabled: false,
-                    otlpConfig: [:]
-                ],
+                defaultValue: [:],
                 typedClass: TraceConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
@@ -413,10 +381,7 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhWebSocketConfig',
                 valueType: 'json',
-                defaultValue: [
-                    sendTimeLimitMs: 1000,
-                    bufferSizeLimitBytes: 1000000
-                ],
+                defaultValue: [:],
                 typedClass: WebSocketConfig,
                 groupName: 'xh.io',
                 note: 'Parameters for the managed WebSocket sessions created by Hoist.'

@@ -123,6 +123,16 @@ individual files.
 If both an environment variable and a file-based entry exist for the same key, the environment
 variable wins.
 
+All values are read as Strings. YAML scalars are converted on load, so `useH2: true` reads as
+`'true'` and `port: 8080` reads as `'8080'`. Quote any value that must be preserved verbatim, as
+unquoted dates parse to `Date` and stringify in the JVM's default timezone.
+
+Blank and absent entries are distinct. An explicitly empty entry resolves to an empty String,
+whether it comes from `key: ""` in YAML or an empty file in a config directory. An absent key
+resolves to null, as does a YAML key written with no value at all (`key:`). An empty environment
+variable reads as unset and falls through to any file-based entry for the same key. Blank entries
+are logged at INFO during startup, as they can arrive unintentionally.
+
 ### Common Instance Config Keys
 
 | Key | Purpose |
@@ -291,6 +301,32 @@ String password  = configService.getPwd('apiSecret')          // returns decrypt
 All getters accept an optional `notFoundValue` parameter. If the config doesn't exist and no
 `notFoundValue` is provided, a `RuntimeException` is thrown. A `RuntimeException` is also thrown if
 the requested type doesn't match the config's `valueType`.
+
+##### Unset values and the `AppConfig.NONE` placeholder
+
+`AppConfig` validation requires a non-null, non-blank value, so a config that is bootstrapped but
+not yet set cannot simply hold an empty value. Hoist bootstraps such configs with the
+`AppConfig.NONE` placeholder instead - see the `defaultValue: AppConfig.NONE` entries in
+`BootStrap.ensureRequiredConfigsCreated` for the framework's own.
+
+Declare app-level configs that may be left unset the same way, and read them with
+`getStringIfSet` / `getPwdIfSet`, which return null when the config holds the placeholder:
+
+```groovy
+// In ensureRequiredConfigsCreated
+new ConfigSpec(name: 'myApiKey', valueType: 'pwd', defaultValue: AppConfig.NONE, ...)
+
+// At the point of use
+String apiKey = configService.getPwdIfSet('myApiKey')
+if (!apiKey) throw new RuntimeException('myApiKey not configured')
+```
+
+Use the constant rather than the bare string, so a typo cannot leave a config that reads as set
+when it is not.
+
+Note the distinction between unset and absent. A config holding the placeholder returns null,
+while a config that does not exist throws. These are intended to read a bootstrapped config, and
+are not a way to probe whether one exists.
 
 ##### Typed configs via `TypedConfigMap`
 

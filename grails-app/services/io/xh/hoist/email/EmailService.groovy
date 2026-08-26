@@ -7,6 +7,7 @@
 package io.xh.hoist.email
 
 import io.xh.hoist.BaseService
+import io.xh.hoist.config.AppConfig
 import io.xh.hoist.util.Utils
 
 
@@ -161,11 +162,11 @@ class EmailService extends BaseService {
      *  Parse a comma delimited list of email addresses into a list of trimmed, properly
      *  formatted addresses, appending the xhEmailDefaultDomain config to any unqualified address.
      *
-     *  Includes special support for returning null if given the string 'none', to allow for
+     *  Includes special support for returning null if given {@link AppConfig#NONE}, to allow for
      *  sourcing optional / potentially-empty addresses from string configs.
      */
     List<String> parseAddresses(String s) {
-        return s == 'none' ? null : formatAddresses(s)
+        return s == AppConfig.NONE ? null : formatAddresses(s)
     }
 
     Map getAdminStats() {
