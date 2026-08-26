@@ -225,6 +225,14 @@
             "keywords": ["conventions", "coding standards", "style guide", "naming", "xh prefix", "LogSupport", "withInfo", "withDebug", "RoutineRuntimeException", "BaseService", "createCache", "createTimer", "clearCaches", "clearCachesConfigs", "ensureRequiredConfigsCreated", "configService", "AccessRequiresRole", "renderJSON", "parseRequestJSON", "ReadOnly", "Transactional", "N+1", "fetch join", "batchSize", "JSONFormat", "primaryOnly", "replicate", "JSONClient", "xhEmailOverride", "withNewSession", "pushToAllChannels", "pushToLocalChannels", "Groovy idioms", "commit messages", "no hard wrap"]
         },
         {
+            "id": "docs/upgrade-notes/v42-upgrade-notes.md",
+            "title": "v42 Upgrade Notes",
+            "mcpCategory": "devops",
+            "viewerCategory": "upgrade",
+            "description": "Upgrade guide from v41.x to v42. Medium difficulty.",
+            "keywords": ["v42", "upgrade", "migration", "breaking changes", "v41", "Grails 8", "Groovy 5", "ReadOnlyPropertyException", "DELEGATE_ONLY"]
+        },
+        {
             "id": "docs/upgrade-notes/v41-upgrade-notes.md",
             "title": "v41 Upgrade Notes",
             "mcpCategory": "devops",

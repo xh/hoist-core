@@ -12,6 +12,42 @@
   3. Plain ASCII punctuation only. Use " - " for in-sentence breaks, never an em dash.
 -->
 
+## 42.0-SNAPSHOT - unreleased
+
+### 💥 Breaking Changes (upgrade difficulty: 🟠 MEDIUM - Grails 8 / Groovy 5 / Java 21 upgrade)
+
+See [`docs/upgrade-notes/v42-upgrade-notes.md`](docs/upgrade-notes/v42-upgrade-notes.md) for
+detailed, step-by-step upgrade instructions with before and after code examples.
+
+* Hoist Core now requires Java 21, up from Java 17.
+* Grails 8 requires the Gradle 9 wrapper.
+* Groovy 5 tightens closure and config resolution. This can break dynamic config and GORM DSL
+  blocks - for example, a `dataSource` pool `properties` block, or a bare reference to a domain
+  class's own constant inside `constraints`. These failures appear at startup, not at compile
+  time.
+* `grails-mail` and `grails-quartz` moved into grails-core. Update the coordinates and remove the
+  explicit versions.
+
+### ⚙️ Technical
+
+*  Renamed the framework message bundle to `grails-app/i18n/hoist-core.properties`. The previous
+  name let an application's own `messages.properties` shadow it.
+
+### 📚 Libraries
+
+* Grails `7.2 → 8.0`
+* Groovy `4.0 → 5.1`
+* Spring Boot `3.5 → 4.1`
+* Spring Framework `6.2 → 7.0`
+* Tomcat `10.1 → 11.0`
+* Gradle `8.14 → 9.6`
+* msal4j `1.25.1 → 1.26.0`
+* owasp-encoder `1.3.1 → 1.4.0`
+* opentelemetry `1.62.0 → 1.65.0`
+* opentelemetry-jdbc `2.27.0 → 2.31.1`
+* opentelemetry-proto `1.10.0 → 1.11.0`
+* mina-core `2.2.8 → 2.2.9`
+
 ## 41.0.0 - 2026-08-25
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - most apps require no changes)
@@ -136,17 +172,6 @@ detailed, step-by-step upgrade instructions with before/after code examples.
 * Preference client config now includes a per-pref `isSet` flag, and a new `xh/unsetPrefs` endpoint
   clears a user's explicit value. Supports hoist-react v86.4.0, and remains backward compatible for
   earlier hoist-react clients.
-
-### 💥 Breaking Changes (upgrade difficulty: 🟠 LOW - Grails 8 / Spring Boot 4 / Java 21 upgrade)
-
-* Now requires **Java 21+** (up from Java 17), as mandated by Grails 8 / Spring Boot 4.
-
-### 📚 Libraries
-
-* Grails `7.2.0 → 8.0.0-M2`
-* Spring Boot `3.5 → 4.1`,
-* Spring Framework `6 → 7`
-* Gradle `8.14.5 → 9.6.1`
 
 ## 40.2.0 - 2026-07-10
 

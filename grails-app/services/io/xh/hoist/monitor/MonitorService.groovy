@@ -119,13 +119,13 @@ class MonitorService extends BaseService {
         monitorReportService.noteResultsUpdated(results)
     }
 
-    private Integer getMonitorInterval() {
+    private Long getMonitorInterval() {
         return isDevelopmentMode() || !configService.getBool('xhEnableMonitoring')
             ? -1
             : config.monitorRefreshMins * MINUTES
     }
 
-    private Integer getStartupDelay() {
+    private Long getStartupDelay() {
         return config.monitorStartupDelayMins * MINUTES
     }
 
