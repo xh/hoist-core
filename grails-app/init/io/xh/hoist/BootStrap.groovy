@@ -254,7 +254,21 @@ class BootStrap implements LogSupport {
                 valueType: 'pwd',
                 defaultValue: AppConfig.NONE,
                 groupName: 'xh.io',
-                note: 'Client secret for the Entra ID app registration used by EntraIdService.'
+                note: 'Client secret for the Entra ID app registration used by EntraIdService. Fallback credential - not used when a certificate is configured via xhEntraClientPfx, which Microsoft recommends over secrets for production.'
+            ),
+            new ConfigSpec(
+                name: 'xhEntraClientPfx',
+                valueType: 'pwd',
+                defaultValue: AppConfig.NONE,
+                groupName: 'xh.io',
+                note: 'Base64-encoded PKCS#12 (.pfx/.p12) bundle holding the certificate uploaded to the Entra ID app registration used by EntraIdService, its chain (if any), and its private key. Configure to authenticate with a certificate instead of a client secret. Typically provisioned per environment via an instance config / environment variable from a secret manager. Convert PEM material with `openssl pkcs12 -export -in cert.pem -inkey key.pem | base64`.'
+            ),
+            new ConfigSpec(
+                name: 'xhEntraClientPfxPassword',
+                valueType: 'pwd',
+                defaultValue: AppConfig.NONE,
+                groupName: 'xh.io',
+                note: 'Password for the xhEntraClientPfx PKCS#12 bundle. Leave unset for a passwordless bundle.'
             ),
             new ConfigSpec(
                 name: 'xhEnvPollConfig',

@@ -6,9 +6,9 @@
  */
 package io.xh.hoist.entra
 
-import com.microsoft.aad.msal4j.ClientCredentialFactory
 import com.microsoft.aad.msal4j.ClientCredentialParameters
 import com.microsoft.aad.msal4j.ConfidentialClientApplication
+import com.microsoft.aad.msal4j.IClientCredential
 import com.microsoft.aad.msal4j.IConfidentialClientApplication
 import grails.async.Promise
 import groovy.transform.CompileStatic
@@ -22,6 +22,8 @@ import io.xh.hoist.util.ErrorOr
 import org.apache.hc.client5.http.classic.methods.HttpGet
 import org.apache.hc.core5.net.URIBuilder
 
+import java.security.MessageDigest
+import java.security.cert.X509Certificate
 import java.util.regex.Pattern
 
 import static grails.async.Promises.task
@@ -51,8 +53,18 @@ import static java.util.Collections.emptyMap
  *       all supported options and their defaults.</li>
  *   <li>`xhEntraTenantId` - tenant ID (GUID) of the Entra ID tenant.</li>
  *   <li>`xhEntraClientId` - client ID (GUID) of the app registration.</li>
- *   <li>`xhEntraClientSecret` - client secret for the app registration.</li>
  * </ul>
+ *
+ * <p>Plus one of two credentials for the app registration, either:
+ * <ul>
+ *   <li>`xhEntraClientPfx` (+ `xhEntraClientPfxPassword`) - a base64-encoded PKCS#12 (.pfx)
+ *       bundle holding the certificate uploaded to the app registration, its chain (if any),
+ *       and its private key. The recommended credential type for production - see
+ *       {@link EntraClientCredentials}.</li>
+ *   <li>`xhEntraClientSecret` - a client secret. Simpler to provision, but Microsoft
+ *       recommends against secrets for production use.</li>
+ * </ul>
+ * When both are configured, the certificate is used.
  *
  * <p>The tenant ID and client ID are standalone configs so that other server-side subsystems
  * can share them. Deployments can also override them per environment via instance configs /
@@ -70,7 +82,8 @@ class EntraIdService extends BaseService implements DirectoryService {
     ConfigService configService
 
     static clearCachesConfigs = [
-        'xhEntraIdConfig', 'xhEntraTenantId', 'xhEntraClientId', 'xhEntraClientSecret'
+        'xhEntraIdConfig', 'xhEntraTenantId', 'xhEntraClientId', 'xhEntraClientSecret',
+        'xhEntraClientPfx', 'xhEntraClientPfxPassword'
     ]
 
     static final String GRAPH_BASE_URL = 'https://graph.microsoft.com/v1.0'
@@ -102,7 +115,7 @@ class EntraIdService extends BaseService implements DirectoryService {
         if (enabled) {
             try {
                 acquireAccessToken()
-                logInfo('Acquired Microsoft Graph access token', [tenantId: tenantId])
+                logInfo('Acquired Microsoft Graph access token', [tenantId: tenantId, authMode: authMode])
             } catch (Exception e) {
                 logError('Failed to acquire Microsoft Graph access token on startup', e)
             }
@@ -345,10 +358,12 @@ class EntraIdService extends BaseService implements DirectoryService {
     //------------------------
     Map getAdminStats() {[
         config: configForAdminStats('xhEntraIdConfig', 'xhEntraTenantId', 'xhEntraClientId'),
-        enabled: enabled
+        enabled: enabled,
+        authMode: authMode,
+        certificate: certificateAdminStats
     ]}
 
-    List<String> getComparableAdminStats() { ['enabled'] }
+    List<String> getComparableAdminStats() { ['enabled', 'authMode'] }
 
     void clearCaches() {
         queryCache.clear()
@@ -498,16 +513,45 @@ class EntraIdService extends BaseService implements DirectoryService {
             if (!tenantId || !clientId) {
                 throw new RuntimeException('EntraIdService enabled but tenant/client not configured - check xhEntraTenantId and xhEntraClientId app configs.')
             }
-            String secret = configService.getPwdIfSet('xhEntraClientSecret')
-            if (!secret) {
-                throw new RuntimeException('EntraIdService enabled but client secret not configured - check xhEntraClientSecret app config.')
-            }
+            IClientCredential credential = EntraClientCredentials.create(
+                configService.getPwdIfSet('xhEntraClientPfx'),
+                configService.getPwdIfSet('xhEntraClientPfxPassword'),
+                configService.getPwdIfSet('xhEntraClientSecret')
+            )
             _msalClient = ConfidentialClientApplication
-                .builder(clientId, ClientCredentialFactory.createFromSecret(secret))
+                .builder(clientId, credential)
                 .authority("https://login.microsoftonline.com/${tenantId}")
                 .build()
         }
         return _msalClient
+    }
+
+    /** Credential type in use - `certificate` when one is configured, `clientSecret` otherwise. */
+    private String getAuthMode() {
+        configService.getPwdIfSet('xhEntraClientPfx') ? 'certificate' : 'clientSecret'
+    }
+
+    /**
+     * Identifying details of the configured certificate (public material only) for the Admin
+     * Console - most usefully its expiry date and its thumbprint, which matches the certificate
+     * list on the Entra ID app registration. Null when running on a client secret.
+     */
+    private Map getCertificateAdminStats() {
+        String pfx = configService.getPwdIfSet('xhEntraClientPfx')
+        if (!pfx) return null
+        try {
+            X509Certificate cert = EntraClientCredentials.parseCertificate(
+                pfx, configService.getPwdIfSet('xhEntraClientPfxPassword')
+            )
+            return [
+                subject: cert.subjectX500Principal.name,
+                // SHA-1 hex, matching the "Thumbprint" column shown in the Azure portal.
+                thumbprint: MessageDigest.getInstance('SHA-1').digest(cert.encoded).encodeHex().toString().toUpperCase(),
+                notAfter: cert.notAfter
+            ]
+        } catch (Exception e) {
+            return [error: e.message]
+        }
     }
 
     private String getTenantId() {
