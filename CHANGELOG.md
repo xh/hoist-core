@@ -14,6 +14,18 @@
 
 ## 42.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Added certificate-based authentication to `EntraIdService` as an alternative to a client
+  secret, via the new `xhEntraClientPfx` (base64-encoded PKCS#12 bundle holding the
+  certificate, its chain, and its private key) and `xhEntraClientPfxPassword` configs. When
+  configured, the certificate takes precedence over `xhEntraClientSecret`. Certificates are
+  Microsoft's recommended credential type for production - the private key never leaves the
+  server, and the bundle is typically provisioned per environment from a secret manager via
+  instance configs. Parsing is handled by MSAL and the JDK's built-in PKCS#12 support. The
+  service's admin stats now report the auth mode in use plus the configured certificate's
+  subject, thumbprint, and expiry.
+
 ## 41.0.0 - 2026-08-25
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - most apps require no changes)
