@@ -1,0 +1,3574 @@
+openapi: 3.0.3
+info:
+  title: Hoist Core API
+  description: |
+    Comprehensive API specification for hoist-core — the server-side Grails plugin component
+    of the Hoist web application development toolkit by Extremely Heavy Industries (xh.io).
+
+    ## Authentication
+    All endpoints require authentication unless noted as **whitelisted** (pre-auth).
+    Authentication is handled by `HoistFilter` via `BaseAuthenticationService.allowRequest()`.
+    Whitelisted endpoints: `/ping`, `/xh/ping`, `/xh/version`, `/xh/authConfig`, `/xh/login`, `/xh/logout`.
+
+    ## Authorization
+    Endpoints are secured via role annotations. Common roles:
+    - `HOIST_ADMIN` — Full admin access (read + write)
+    - `HOIST_ADMIN_READER` — Read-only admin access
+    - `HOIST_ROLE_MANAGER` — Role management access
+    - `HOIST_IMPERSONATOR` — Impersonation access
+
+    ## URL Routing
+    - Standard endpoints: `/{controller}/{action}`
+    - REST CRUD endpoints: `/rest/{controller}` with HTTP method dispatch
+    - Proxy endpoints: `/proxy/{name}/{url}`
+
+    ## Response Conventions
+    - Success responses return JSON via Hoist's Jackson-based `JSONSerializer`
+    - Empty success responses return HTTP 204 No Content
+    - Error responses return `{name, message, cause?, isRoutine?}` with appropriate HTTP status
+    - REST read responses wrap data in `{data: [...]}`
+    - REST create/update responses wrap data in `{data: {...}}`
+    - Cluster-delegated responses wrap results from specific instances
+  version: 36.x
+  contact:
+    name: Extremely Heavy Industries
+    url: https://xh.io
+    email: info@xh.io
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: /
+    description: Application context root
+
+tags:
+  # Core client-facing endpoints
+  - name: Auth
+    description: Authentication, identity, and impersonation (XhController)
+  - name: Config
+    description: Client-visible application configuration (XhController)
+  - name: Preferences
+    description: User preference management (XhController)
+  - name: JSON Blobs
+    description: Generic JSON storage for ViewManager and client state (XhController)
+  - name: Views
+    description: ViewManager state and saved views (XhViewController)
+  - name: Tracking
+    description: Client activity and usage tracking (XhController)
+  - name: Environment
+    description: Application environment and health checks (XhController)
+  - name: Export
+    description: Grid data export (XhController)
+  - name: Proxy
+    description: API proxy pass-through (ProxyImplController)
+
+  # Admin REST CRUD endpoints
+  - name: 'Admin: App Config'
+    description: CRUD management of AppConfig records (ConfigAdminController)
+  - name: 'Admin: Preferences'
+    description: CRUD management of Preference definitions (PreferenceAdminController)
+  - name: 'Admin: User Preferences'
+    description: CRUD management of per-user preference values (UserPreferenceAdminController)
+  - name: 'Admin: JSON Blobs'
+    description: CRUD management of JsonBlob records (JsonBlobAdminController)
+  - name: 'Admin: Monitors'
+    description: CRUD management of Monitor definitions (MonitorAdminController)
+  - name: 'Admin: Log Levels'
+    description: CRUD management of LogLevel overrides (LogLevelAdminController)
+
+  # Admin non-REST endpoints
+  - name: 'Admin: Alert Banners'
+    description: Alert banner management (AlertBannerAdminController)
+  - name: 'Admin: Clients'
+    description: Connected WebSocket client management (ClientAdminController)
+  - name: 'Admin: Roles'
+    description: Role management via DefaultRoleService (RoleAdminController)
+  - name: 'Admin: Users'
+    description: User listing and role lookups (UserAdminController)
+  - name: 'Admin: Track Logs'
+    description: Activity tracking log queries (TrackLogAdminController)
+  - name: 'Admin: Monitor Results'
+    description: Monitor execution results (MonitorResultsAdminController)
+  - name: 'Admin: Diff'
+    description: Cross-environment config/pref/blob diff and sync (ConfigDiff, PrefDiff, JsonBlobDiff)
+  - name: 'Admin: JSON Search'
+    description: JSONPath search across configs, blobs, and prefs (JsonSearchController)
+
+  # Admin cluster endpoints
+  - name: 'Admin: Cluster'
+    description: Cluster instance management (ClusterAdminController)
+  - name: 'Admin: Cluster Objects'
+    description: Cluster objects report and Hibernate cache management (ClusterObjectsAdminController)
+  - name: 'Admin: Services'
+    description: Service listing, stats, and cache clearing (ServiceManagerAdminController)
+  - name: 'Admin: Environment'
+    description: Per-instance environment properties (EnvAdminController)
+  - name: 'Admin: Logs'
+    description: Log file viewing, download, and management (LogViewerAdminController)
+  - name: 'Admin: Memory'
+    description: Memory monitoring and heap dumps (MemoryMonitorAdminController)
+  - name: 'Admin: Connection Pool'
+    description: Database connection pool monitoring (ConnectionPoolMonitorAdminController)
+  - name: 'Admin: WebSocket'
+    description: Per-instance WebSocket channel management (WebSocketAdminController)
+
+components:
+  schemas:
+    # ── Error response ──
+    Error:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Exception class name
+          example: NotFoundException
+        message:
+          type: string
+          description: Human-readable error message
+          example: Resource not found
+        cause:
+          type: string
+          description: Root cause message (omitted if null)
+        isRoutine:
+          type: boolean
+          description: Present and true for expected/routine errors (logged at DEBUG)
+
+    # ── Domain models ──
+    AppConfig:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        value:
+          type: string
+        valueType:
+          type: string
+          enum: [string, int, long, double, bool, json, pwd]
+        note:
+          type: string
+        clientVisible:
+          type: boolean
+        groupName:
+          type: string
+        lastUpdatedBy:
+          type: string
+        lastUpdated:
+          type: string
+          format: date-time
+
+    JsonBlob:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        token:
+          type: string
+          description: Unique access token (UUID-based)
+        type:
+          type: string
+        owner:
+          type: string
+        acl:
+          type: string
+        name:
+          type: string
+        value:
+          type: string
+          description: JSON string content
+        meta:
+          type: string
+        description:
+          type: string
+        dateCreated:
+          type: string
+          format: date-time
+        lastUpdated:
+          type: string
+          format: date-time
+        lastUpdatedBy:
+          type: string
+        archivedDate:
+          type: integer
+          format: int64
+          description: Epoch millis; 0 if not archived
+
+    JsonBlobClientFormat:
+      type: object
+      description: Client-facing format returned by JsonBlobService
+      properties:
+        token:
+          type: string
+        type:
+          type: string
+        owner:
+          type: string
+        name:
+          type: string
+        value:
+          type: string
+        meta:
+          type: string
+        description:
+          type: string
+        dateCreated:
+          type: string
+          format: date-time
+        lastUpdated:
+          type: string
+          format: date-time
+        lastUpdatedBy:
+          type: string
+        archived:
+          type: boolean
+
+    LogLevel:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          description: Logger name
+        level:
+          type: string
+          enum: [Trace, Debug, Info, Warn, Error, Inherit, 'Off']
+          nullable: true
+        lastUpdated:
+          type: string
+          format: date-time
+        lastUpdatedBy:
+          type: string
+
+    Monitor:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        code:
+          type: string
+        name:
+          type: string
+        metricType:
+          type: string
+        metricUnit:
+          type: string
+        warnThreshold:
+          type: integer
+        failThreshold:
+          type: integer
+        params:
+          type: string
+          description: JSON string of monitor parameters
+        notes:
+          type: string
+        sortOrder:
+          type: integer
+        active:
+          type: boolean
+        primaryOnly:
+          type: boolean
+        lastUpdatedBy:
+          type: string
+        lastUpdated:
+          type: string
+          format: date-time
+
+    Preference:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        type:
+          type: string
+          enum: [string, int, long, double, bool, json]
+        defaultValue:
+          type: string
+        notes:
+          type: string
+        groupName:
+          type: string
+        lastUpdatedBy:
+          type: string
+        lastUpdated:
+          type: string
+          format: date-time
+
+    UserPreference:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        userValue:
+          type: string
+        preference:
+          $ref: '#/components/schemas/Preference'
+        lastUpdatedBy:
+          type: string
+        lastUpdated:
+          type: string
+          format: date-time
+
+    TrackLog:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        impersonating:
+          type: string
+        dateCreated:
+          type: string
+          format: date-time
+        category:
+          type: string
+        msg:
+          type: string
+        data:
+          type: string
+        elapsed:
+          type: integer
+        severity:
+          type: string
+        correlationId:
+          type: string
+        loadId:
+          type: string
+        tabId:
+          type: string
+        instance:
+          type: string
+        clientAppCode:
+          type: string
+        browser:
+          type: string
+        device:
+          type: string
+        userAgent:
+          type: string
+        appVersion:
+          type: string
+        appEnvironment:
+          type: string
+        url:
+          type: string
+
+    # ── Reusable response wrappers ──
+    RestDataListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+
+    RestDataObjectResponse:
+      type: object
+      properties:
+        data:
+          type: object
+
+    BulkResultResponse:
+      type: object
+      properties:
+        success:
+          type: integer
+          description: Number of successfully processed records
+        fail:
+          type: integer
+          description: Number of failed records
+
+    ClusterResponse:
+      type: object
+      description: Response from a cluster-delegated operation
+      properties:
+        instance:
+          type: string
+        value:
+          type: object
+        exception:
+          type: string
+          nullable: true
+
+  parameters:
+    instanceParam:
+      name: instance
+      in: query
+      description: Target cluster instance name
+      required: true
+      schema:
+        type: string
+    optionalInstanceParam:
+      name: instance
+      in: query
+      description: Target cluster instance name (omit to target all instances)
+      required: false
+      schema:
+        type: string
+    clientUsernameParam:
+      name: clientUsername
+      in: query
+      description: Client-reported username for session match validation
+      required: true
+      schema:
+        type: string
+
+  responses:
+    NoContent:
+      description: Success (no content)
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Insufficient role/permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+      description: Session-based authentication managed by BaseAuthenticationService
+
+security:
+  - sessionAuth: []
+
+paths:
+
+  # ╔══════════════════════════════════════════════════════════════════╗
+  # ║  CORE ENDPOINTS — XhController (/xh/*)                         ║
+  # ║  Class-level: @AccessAll (any authenticated user)               ║
+  # ╚══════════════════════════════════════════════════════════════════╝
+
+  # ── Auth ──
+
+  /xh/authConfig:
+    get:
+      tags: [Auth]
+      summary: Get auth configuration for client bootstrap
+      description: |
+        **Whitelisted** (pre-auth) — returns authentication-related settings
+        needed by the client app during bootstrap (e.g. OAuth URLs, auth type).
+      security: []
+      operationId: xh.authConfig
+      responses:
+        '200':
+          description: Auth configuration object
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Auth config shape depends on app's BaseAuthenticationService implementation
+
+  /xh/authStatus:
+    get:
+      tags: [Auth]
+      summary: Get current authentication status
+      description: Returns whether the current session is authenticated and the user's identity.
+      operationId: xh.authStatus
+      responses:
+        '200':
+          description: Authentication status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authenticated:
+                    type: boolean
+                  identity:
+                    type: object
+                    nullable: true
+                    description: User identity from IdentityService (null if not authenticated)
+
+  /xh/getIdentity:
+    get:
+      tags: [Auth]
+      summary: Get current user identity
+      operationId: xh.getIdentity
+      responses:
+        '200':
+          description: User identity object from IdentityService
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /xh/login:
+    get:
+      tags: [Auth]
+      summary: Login with username and password
+      description: |
+        **Whitelisted** (pre-auth). Authenticates a user with credentials.
+        Returns success status and identity on successful login.
+      security: []
+      operationId: xh.login
+      parameters:
+        - name: username
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: password
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Login result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  identity:
+                    type: object
+                    nullable: true
+
+  /xh/logout:
+    get:
+      tags: [Auth]
+      summary: Logout current user
+      description: '**Whitelisted** (pre-auth). Ends the current user session.'
+      security: []
+      operationId: xh.logout
+      responses:
+        '200':
+          description: Logout result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /xh/impersonationTargets:
+    get:
+      tags: [Auth]
+      summary: List available impersonation targets
+      description: Returns users available for impersonation by the current auth user. Protected internally by IdentityService.
+      operationId: xh.impersonationTargets
+      responses:
+        '200':
+          description: List of impersonation targets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    username:
+                      type: string
+
+  /xh/impersonate:
+    get:
+      tags: [Auth]
+      summary: Start impersonating a user
+      description: Protected internally by IdentityService (requires HOIST_IMPERSONATOR role).
+      operationId: xh.impersonate
+      parameters:
+        - name: username
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /xh/endImpersonate:
+    get:
+      tags: [Auth]
+      summary: End impersonation session
+      operationId: xh.endImpersonate
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  # ── Config ──
+
+  /xh/getConfig:
+    get:
+      tags: [Config]
+      summary: Get client-visible configuration
+      description: Returns all AppConfig entries marked `clientVisible=true` as a key-value map.
+      operationId: xh.getConfig
+      responses:
+        '200':
+          description: Client config map
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  # ── Preferences ──
+
+  /xh/getPrefs:
+    get:
+      tags: [Preferences]
+      summary: Get user preferences
+      description: Returns all preference values for the current user.
+      operationId: xh.getPrefs
+      parameters:
+        - $ref: '#/components/parameters/clientUsernameParam'
+      responses:
+        '200':
+          description: User preferences map
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /xh/setPrefs:
+    post:
+      tags: [Preferences]
+      summary: Set user preferences
+      description: Sets one or more preference values for the current user. Returns updated preferences.
+      operationId: xh.setPrefs
+      parameters:
+        - $ref: '#/components/parameters/clientUsernameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              description: Key-value map of preference names to values
+      responses:
+        '200':
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  preferences:
+                    type: object
+                    additionalProperties: true
+
+  /xh/clearUserState:
+    post:
+      tags: [Preferences]
+      summary: Clear all user preferences and view state
+      description: Removes all user preferences and ViewManager state for the current user.
+      operationId: xh.clearUserState
+      parameters:
+        - $ref: '#/components/parameters/clientUsernameParam'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  # ── JSON Blobs ──
+
+  /xh/getJsonBlob:
+    get:
+      tags: [JSON Blobs]
+      summary: Get a JSON blob by token
+      operationId: xh.getJsonBlob
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: JSON blob in client format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonBlobClientFormat'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /xh/findJsonBlob:
+    get:
+      tags: [JSON Blobs]
+      summary: Find a JSON blob by type, name, and owner
+      operationId: xh.findJsonBlob
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: owner
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Matching JSON blob (or null)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonBlobClientFormat'
+
+  /xh/listJsonBlobs:
+    get:
+      tags: [JSON Blobs]
+      summary: List JSON blobs by type
+      operationId: xh.listJsonBlobs
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: includeValue
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: List of JSON blobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JsonBlobClientFormat'
+
+  /xh/createJsonBlob:
+    post:
+      tags: [JSON Blobs]
+      summary: Create a new JSON blob
+      operationId: xh.createJsonBlob
+      parameters:
+        - name: data
+          in: query
+          required: true
+          description: JSON-encoded string of blob properties
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Created JSON blob
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonBlobClientFormat'
+
+  /xh/updateJsonBlob:
+    post:
+      tags: [JSON Blobs]
+      summary: Update an existing JSON blob
+      operationId: xh.updateJsonBlob
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: update
+          in: query
+          required: true
+          description: JSON-encoded string of fields to update
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated JSON blob
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonBlobClientFormat'
+
+  /xh/createOrUpdateJsonBlob:
+    post:
+      tags: [JSON Blobs]
+      summary: Create or update a JSON blob by type and name
+      operationId: xh.createOrUpdateJsonBlob
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: update
+          in: query
+          required: true
+          description: JSON-encoded string of fields to set
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Created or updated JSON blob
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonBlobClientFormat'
+
+  /xh/archiveJsonBlob:
+    post:
+      tags: [JSON Blobs]
+      summary: Archive a JSON blob
+      operationId: xh.archiveJsonBlob
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Archived JSON blob
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonBlobClientFormat'
+
+  # ── Tracking ──
+
+  /xh/track:
+    post:
+      tags: [Tracking]
+      summary: Submit activity tracking entries
+      description: Submits one or more client-side tracking entries. Input is OWASP-encoded.
+      operationId: xh.track
+      parameters:
+        - $ref: '#/components/parameters/clientUsernameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entries]
+              properties:
+                entries:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      msg:
+                        type: string
+                      category:
+                        type: string
+                      data:
+                        type: object
+                      elapsed:
+                        type: integer
+                      severity:
+                        type: string
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  # ── Environment & Health ──
+
+  /xh/environment:
+    get:
+      tags: [Environment]
+      summary: Get application environment info
+      operationId: xh.environment
+      responses:
+        '200':
+          description: Environment details
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /xh/environmentPoll:
+    get:
+      tags: [Environment]
+      summary: Poll environment status
+      description: Lightweight polling endpoint for environment/session status updates.
+      operationId: xh.environmentPoll
+      responses:
+        '200':
+          description: Environment poll data
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /xh/ping:
+    get:
+      tags: [Environment]
+      summary: Health check ping
+      description: |
+        **Whitelisted** (pre-auth). Minimal health check returning app code and timestamp.
+        Also reachable via legacy `/ping` alias.
+      security: []
+      operationId: xh.ping
+      responses:
+        '200':
+          description: Ping response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appCode:
+                    type: string
+                  timestamp:
+                    type: integer
+                    format: int64
+                  success:
+                    type: boolean
+
+  /ping:
+    get:
+      tags: [Environment]
+      summary: Legacy health check alias
+      description: '**Whitelisted** (pre-auth). Legacy alias for `/xh/ping`.'
+      security: []
+      operationId: ping
+      responses:
+        '200':
+          description: Ping response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appCode:
+                    type: string
+                  timestamp:
+                    type: integer
+                    format: int64
+                  success:
+                    type: boolean
+
+  /xh/version:
+    get:
+      tags: [Environment]
+      summary: Get application version info
+      description: '**Whitelisted** (pre-auth). Returns app code, version, and build info.'
+      security: []
+      operationId: xh.version
+      responses:
+        '200':
+          description: Version info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appCode:
+                    type: string
+                  appVersion:
+                    type: string
+                  appBuild:
+                    type: string
+
+  /xh/getTimeZoneOffset:
+    get:
+      tags: [Environment]
+      summary: Get timezone offset
+      description: Returns the UTC offset in milliseconds for a given timezone ID.
+      operationId: xh.getTimeZoneOffset
+      parameters:
+        - name: timeZoneId
+          in: query
+          required: true
+          description: 'Fully qualified timezone ID (e.g. "America/New_York", "Europe/London")'
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Timezone offset
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  offset:
+                    type: integer
+                    description: Offset from UTC in milliseconds
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /xh/echoHeaders:
+    get:
+      tags: [Environment]
+      summary: Echo request headers
+      description: Returns all HTTP headers received on the request as key-value pairs. Useful for debugging ingress/load balancer header passthrough.
+      operationId: xh.echoHeaders
+      responses:
+        '200':
+          description: Map of header names to values
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+
+  # ── Export ──
+
+  /xh/export:
+    post:
+      tags: [Export]
+      summary: Export grid data
+      description: Accepts grid export parameters as multipart form data and returns the exported file (Excel, CSV, etc.).
+      operationId: xh.export
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                params:
+                  type: string
+                  format: binary
+                  description: JSON-encoded export parameters uploaded as a file part
+      responses:
+        '200':
+          description: Exported file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  # ╔══════════════════════════════════════════════════════════════════╗
+  # ║  VIEW ENDPOINTS — XhViewController (/xhView/*)                 ║
+  # ║  Class-level: @AccessAll                                        ║
+  # ╚══════════════════════════════════════════════════════════════════╝
+
+  /xhView/allData:
+    get:
+      tags: [Views]
+      summary: Get all ViewManager data for a type
+      operationId: xhView.allData
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: viewInstance
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: View data including global and user state
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /xhView/updateState:
+    post:
+      tags: [Views]
+      summary: Update ViewManager state
+      operationId: xhView.updateState
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: viewInstance
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: State update payload
+      responses:
+        '200':
+          description: Updated state
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /xhView/get:
+    get:
+      tags: [Views]
+      summary: Get a saved view by token
+      operationId: xhView.get
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Saved view
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /xhView/create:
+    post:
+      tags: [Views]
+      summary: Create a new saved view
+      operationId: xhView.create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: View definition
+      responses:
+        '200':
+          description: Created view
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /xhView/delete:
+    post:
+      tags: [Views]
+      summary: Delete saved views
+      operationId: xhView.delete
+      parameters:
+        - name: tokens
+          in: query
+          required: true
+          description: Comma-separated list of view tokens to delete
+          schema:
+            type: string
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  /xhView/updateInfo:
+    post:
+      tags: [Views]
+      summary: Update view metadata
+      operationId: xhView.updateInfo
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Updated metadata fields
+      responses:
+        '200':
+          description: Updated view
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /xhView/updateValue:
+    post:
+      tags: [Views]
+      summary: Update view value/content
+      operationId: xhView.updateValue
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Updated value content
+      responses:
+        '200':
+          description: Updated view
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # ╔══════════════════════════════════════════════════════════════════╗
+  # ║  PROXY — ProxyImplController (/proxy/*)                        ║
+  # ║  Class-level: @AccessAll                                        ║
+  # ╚══════════════════════════════════════════════════════════════════╝
+
+  /proxy/{name}/{url}:
+    get:
+      tags: [Proxy]
+      summary: Proxy a request to a named proxy service
+      description: |
+        Forwards requests to a `BaseProxyService` registered as `{name}Service`.
+        Supports all HTTP methods. The proxy service handles authentication
+        and request/response transformation.
+      operationId: proxy.forward
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Proxy service name (maps to `{name}Service` Spring bean)
+          schema:
+            type: string
+        - name: url
+          in: path
+          required: true
+          description: Target URL path to forward to
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proxied response (format depends on target service)
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ╔══════════════════════════════════════════════════════════════════╗
+  # ║  ADMIN REST CRUD — Controllers extending AdminRestController    ║
+  # ║  Class-level: @AccessRequiresRole('HOIST_ADMIN_READER')         ║
+  # ║  Write ops: @AccessRequiresRole('HOIST_ADMIN')                  ║
+  # ║  Mapped via: /rest/{controller}                                 ║
+  # ╚══════════════════════════════════════════════════════════════════╝
+
+  # ── ConfigAdmin (restTarget: AppConfig) ──
+
+  /rest/configAdmin:
+    get:
+      tags: ['Admin: App Config']
+      summary: List all AppConfig records
+      operationId: configAdmin.read
+      parameters:
+        - name: query
+          in: query
+          required: false
+          description: JSON-encoded query filter
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of config records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AppConfig'
+    post:
+      tags: ['Admin: App Config']
+      summary: Create an AppConfig record
+      operationId: configAdmin.create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/AppConfig'
+      responses:
+        '200':
+          description: Created config record
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AppConfig'
+    put:
+      tags: ['Admin: App Config']
+      summary: Update an AppConfig record
+      operationId: configAdmin.update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/AppConfig'
+      responses:
+        '200':
+          description: Updated config record
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AppConfig'
+
+  /rest/configAdmin/{id}:
+    get:
+      tags: ['Admin: App Config']
+      summary: Get a single AppConfig by ID
+      operationId: configAdmin.readOne
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Single config record
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AppConfig'
+    delete:
+      tags: ['Admin: App Config']
+      summary: Delete an AppConfig record
+      operationId: configAdmin.delete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  /rest/configAdmin/bulkUpdate:
+    post:
+      tags: ['Admin: App Config']
+      summary: Bulk update AppConfig records
+      operationId: configAdmin.bulkUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids, newParams]
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+                newParams:
+                  type: object
+      responses:
+        '200':
+          description: Bulk result counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResultResponse'
+
+  /rest/configAdmin/bulkDelete:
+    post:
+      tags: ['Admin: App Config']
+      summary: Bulk delete AppConfig records
+      operationId: configAdmin.bulkDelete
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: integer
+              format: int64
+      responses:
+        '200':
+          description: Bulk result counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResultResponse'
+
+  /rest/configAdmin/lookupData:
+    get:
+      tags: ['Admin: App Config']
+      summary: Get lookup data for config editor
+      operationId: configAdmin.lookupData
+      responses:
+        '200':
+          description: Lookup values
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valueTypes:
+                    type: array
+                    items:
+                      type: string
+                    example: [string, int, long, double, bool, json, pwd]
+                  groupNames:
+                    type: array
+                    items:
+                      type: string
+
+  # ── PreferenceAdmin (restTarget: Preference) ──
+
+  /rest/preferenceAdmin:
+    get:
+      tags: ['Admin: Preferences']
+      summary: List all Preference definitions
+      operationId: preferenceAdmin.read
+      parameters:
+        - name: query
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of preference definitions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Preference'
+    post:
+      tags: ['Admin: Preferences']
+      summary: Create a Preference definition
+      operationId: preferenceAdmin.create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/Preference'
+      responses:
+        '200':
+          description: Created preference
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Preference'
+    put:
+      tags: ['Admin: Preferences']
+      summary: Update a Preference definition
+      operationId: preferenceAdmin.update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/Preference'
+      responses:
+        '200':
+          description: Updated preference
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Preference'
+
+  /rest/preferenceAdmin/{id}:
+    get:
+      tags: ['Admin: Preferences']
+      summary: Get a single Preference by ID
+      operationId: preferenceAdmin.readOne
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Single preference record
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Preference'
+    delete:
+      tags: ['Admin: Preferences']
+      summary: Delete a Preference definition
+      operationId: preferenceAdmin.delete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  /rest/preferenceAdmin/bulkUpdate:
+    post:
+      tags: ['Admin: Preferences']
+      summary: Bulk update Preference records
+      operationId: preferenceAdmin.bulkUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids, newParams]
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+                newParams:
+                  type: object
+      responses:
+        '200':
+          description: Bulk result counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResultResponse'
+
+  /rest/preferenceAdmin/bulkDelete:
+    post:
+      tags: ['Admin: Preferences']
+      summary: Bulk delete Preference records
+      operationId: preferenceAdmin.bulkDelete
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: integer
+              format: int64
+      responses:
+        '200':
+          description: Bulk result counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResultResponse'
+
+  /rest/preferenceAdmin/lookupData:
+    get:
+      tags: ['Admin: Preferences']
+      summary: Get lookup data for preference editor
+      operationId: preferenceAdmin.lookupData
+      responses:
+        '200':
+          description: Lookup values
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  types:
+                    type: array
+                    items:
+                      type: string
+                    example: [string, int, long, double, bool, json]
+                  groupNames:
+                    type: array
+                    items:
+                      type: string
+
+  # ── UserPreferenceAdmin (restTarget: UserPreference) ──
+
+  /rest/userPreferenceAdmin:
+    get:
+      tags: ['Admin: User Preferences']
+      summary: List user preference values
+      description: Supports query filters on `name` (preference name) and `username`.
+      operationId: userPreferenceAdmin.read
+      parameters:
+        - name: query
+          in: query
+          required: false
+          description: 'JSON-encoded query with optional `name` and `username` filters'
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of user preferences
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserPreference'
+    post:
+      tags: ['Admin: User Preferences']
+      summary: Create a user preference value
+      operationId: userPreferenceAdmin.create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: Preference name (resolved to Preference object)
+                    username:
+                      type: string
+                    userValue:
+                      type: string
+      responses:
+        '200':
+          description: Created user preference
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserPreference'
+    put:
+      tags: ['Admin: User Preferences']
+      summary: Update a user preference value
+      operationId: userPreferenceAdmin.update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/UserPreference'
+      responses:
+        '200':
+          description: Updated user preference
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserPreference'
+
+  /rest/userPreferenceAdmin/{id}:
+    get:
+      tags: ['Admin: User Preferences']
+      summary: Get a single UserPreference by ID
+      operationId: userPreferenceAdmin.readOne
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Single user preference record
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserPreference'
+    delete:
+      tags: ['Admin: User Preferences']
+      summary: Delete a user preference value
+      operationId: userPreferenceAdmin.delete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  /rest/userPreferenceAdmin/bulkUpdate:
+    post:
+      tags: ['Admin: User Preferences']
+      summary: Bulk update user preferences
+      operationId: userPreferenceAdmin.bulkUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids, newParams]
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+                newParams:
+                  type: object
+      responses:
+        '200':
+          description: Bulk result counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResultResponse'
+
+  /rest/userPreferenceAdmin/bulkDelete:
+    post:
+      tags: ['Admin: User Preferences']
+      summary: Bulk delete user preferences
+      operationId: userPreferenceAdmin.bulkDelete
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: integer
+              format: int64
+      responses:
+        '200':
+          description: Bulk result counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResultResponse'
+
+  /rest/userPreferenceAdmin/lookupData:
+    get:
+      tags: ['Admin: User Preferences']
+      summary: Get lookup data for user preference editor
+      operationId: userPreferenceAdmin.lookupData
+      responses:
+        '200':
+          description: Lookup values
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  names:
+                    type: array
+                    items:
+                      type: string
+
+  # ── JsonBlobAdmin (restTarget: JsonBlob) ──
+
+  /rest/jsonBlobAdmin:
+    get:
+      tags: ['Admin: JSON Blobs']
+      summary: List all JsonBlob records
+      operationId: jsonBlobAdmin.read
+      parameters:
+        - name: query
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of JSON blob records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JsonBlob'
+    post:
+      tags: ['Admin: JSON Blobs']
+      summary: Create a JsonBlob record
+      operationId: jsonBlobAdmin.create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/JsonBlob'
+      responses:
+        '200':
+          description: Created JSON blob
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/JsonBlob'
+    put:
+      tags: ['Admin: JSON Blobs']
+      summary: Update a JsonBlob record
+      operationId: jsonBlobAdmin.update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/JsonBlob'
+      responses:
+        '200':
+          description: Updated JSON blob
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/JsonBlob'
+
+  /rest/jsonBlobAdmin/{id}:
+    get:
+      tags: ['Admin: JSON Blobs']
+      summary: Get a single JsonBlob by ID
+      operationId: jsonBlobAdmin.readOne
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Single JSON blob record
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JsonBlob'
+    delete:
+      tags: ['Admin: JSON Blobs']
+      summary: Delete a JsonBlob record
+      operationId: jsonBlobAdmin.delete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  /rest/jsonBlobAdmin/bulkUpdate:
+    post:
+      tags: ['Admin: JSON Blobs']
+      summary: Bulk update JsonBlob records
+      operationId: jsonBlobAdmin.bulkUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids, newParams]
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+                newParams:
+                  type: object
+      responses:
+        '200':
+          description: Bulk result counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResultResponse'
+
+  /rest/jsonBlobAdmin/bulkDelete:
+    post:
+      tags: ['Admin: JSON Blobs']
+      summary: Bulk delete JsonBlob records
+      operationId: jsonBlobAdmin.bulkDelete
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: integer
+              format: int64
+      responses:
+        '200':
+          description: Bulk result counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResultResponse'
+
+  /rest/jsonBlobAdmin/lookupData:
+    get:
+      tags: ['Admin: JSON Blobs']
+      summary: Get lookup data for JSON blob editor
+      operationId: jsonBlobAdmin.lookupData
+      responses:
+        '200':
+          description: Lookup values
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  types:
+                    type: array
+                    items:
+                      type: string
+
+  # ── MonitorAdmin (restTarget: Monitor) ──
+
+  /rest/monitorAdmin:
+    get:
+      tags: ['Admin: Monitors']
+      summary: List all Monitor definitions
+      operationId: monitorAdmin.read
+      parameters:
+        - name: query
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of monitor records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Monitor'
+    post:
+      tags: ['Admin: Monitors']
+      summary: Create a Monitor definition
+      operationId: monitorAdmin.create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/Monitor'
+      responses:
+        '200':
+          description: Created monitor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Monitor'
+    put:
+      tags: ['Admin: Monitors']
+      summary: Update a Monitor definition
+      operationId: monitorAdmin.update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/Monitor'
+      responses:
+        '200':
+          description: Updated monitor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Monitor'
+
+  /rest/monitorAdmin/{id}:
+    get:
+      tags: ['Admin: Monitors']
+      summary: Get a single Monitor by ID
+      operationId: monitorAdmin.readOne
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Single monitor record
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Monitor'
+    delete:
+      tags: ['Admin: Monitors']
+      summary: Delete a Monitor definition
+      operationId: monitorAdmin.delete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  /rest/monitorAdmin/bulkUpdate:
+    post:
+      tags: ['Admin: Monitors']
+      summary: Bulk update Monitor records
+      operationId: monitorAdmin.bulkUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids, newParams]
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+                newParams:
+                  type: object
+      responses:
+        '200':
+          description: Bulk result counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResultResponse'
+
+  /rest/monitorAdmin/bulkDelete:
+    post:
+      tags: ['Admin: Monitors']
+      summary: Bulk delete Monitor records
+      operationId: monitorAdmin.bulkDelete
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: integer
+              format: int64
+      responses:
+        '200':
+          description: Bulk result counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResultResponse'
+
+  /rest/monitorAdmin/lookupData:
+    get:
+      tags: ['Admin: Monitors']
+      summary: Get lookup data for monitor editor
+      operationId: monitorAdmin.lookupData
+      responses:
+        '200':
+          description: Lookup values
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metricTypes:
+                    type: array
+                    items:
+                      type: string
+
+  # ── LogLevelAdmin (restTarget: LogLevel) ──
+
+  /rest/logLevelAdmin:
+    get:
+      tags: ['Admin: Log Levels']
+      summary: List all LogLevel overrides
+      operationId: logLevelAdmin.read
+      parameters:
+        - name: query
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of log level records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LogLevel'
+    post:
+      tags: ['Admin: Log Levels']
+      summary: Create a LogLevel override
+      operationId: logLevelAdmin.create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/LogLevel'
+      responses:
+        '200':
+          description: Created log level
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/LogLevel'
+    put:
+      tags: ['Admin: Log Levels']
+      summary: Update a LogLevel override
+      operationId: logLevelAdmin.update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/LogLevel'
+      responses:
+        '200':
+          description: Updated log level
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/LogLevel'
+
+  /rest/logLevelAdmin/{id}:
+    get:
+      tags: ['Admin: Log Levels']
+      summary: Get a single LogLevel by ID
+      operationId: logLevelAdmin.readOne
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Single log level record
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LogLevel'
+    delete:
+      tags: ['Admin: Log Levels']
+      summary: Delete a LogLevel override
+      operationId: logLevelAdmin.delete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  /rest/logLevelAdmin/bulkUpdate:
+    post:
+      tags: ['Admin: Log Levels']
+      summary: Bulk update LogLevel records
+      operationId: logLevelAdmin.bulkUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids, newParams]
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+                newParams:
+                  type: object
+      responses:
+        '200':
+          description: Bulk result counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResultResponse'
+
+  /rest/logLevelAdmin/bulkDelete:
+    post:
+      tags: ['Admin: Log Levels']
+      summary: Bulk delete LogLevel records
+      operationId: logLevelAdmin.bulkDelete
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: integer
+              format: int64
+      responses:
+        '200':
+          description: Bulk result counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResultResponse'
+
+  /rest/logLevelAdmin/lookupData:
+    get:
+      tags: ['Admin: Log Levels']
+      summary: Get available log levels
+      operationId: logLevelAdmin.lookupData
+      responses:
+        '200':
+          description: Available levels
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  levels:
+                    type: array
+                    items:
+                      type: string
+                    example: [None, Trace, Debug, Info, Warn, Error, Inherit, 'Off']
+
+  # ╔══════════════════════════════════════════════════════════════════╗
+  # ║  ADMIN NON-REST ENDPOINTS                                       ║
+  # ╚══════════════════════════════════════════════════════════════════╝
+
+  # ── AlertBannerAdmin (/alertBannerAdmin/*) ──
+  # Class-level: @AccessRequiresRole('HOIST_ADMIN_READER')
+
+  /alertBannerAdmin/alertSpec:
+    get:
+      tags: ['Admin: Alert Banners']
+      summary: Get current alert banner spec
+      operationId: alertBannerAdmin.alertSpec
+      responses:
+        '200':
+          description: Current alert banner specification
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /alertBannerAdmin/alertPresets:
+    get:
+      tags: ['Admin: Alert Banners']
+      summary: Get alert banner presets
+      operationId: alertBannerAdmin.alertPresets
+      responses:
+        '200':
+          description: List of alert banner presets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /alertBannerAdmin/setAlertSpec:
+    post:
+      tags: ['Admin: Alert Banners']
+      summary: Set alert banner spec
+      description: Requires HOIST_ADMIN role.
+      operationId: alertBannerAdmin.setAlertSpec
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Alert banner specification
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  /alertBannerAdmin/setAlertPresets:
+    post:
+      tags: ['Admin: Alert Banners']
+      summary: Set alert banner presets
+      description: Requires HOIST_ADMIN role.
+      operationId: alertBannerAdmin.setAlertPresets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+              description: List of alert banner presets
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  # ── ClientAdmin (/clientAdmin/*) ──
+  # Class-level: @AccessRequiresRole('HOIST_ADMIN_READER')
+
+  /clientAdmin/allClients:
+    get:
+      tags: ['Admin: Clients']
+      summary: List all connected WebSocket clients
+      operationId: clientAdmin.allClients
+      responses:
+        '200':
+          description: All WebSocket channels across cluster
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /clientAdmin/pushToClient:
+    post:
+      tags: ['Admin: Clients']
+      summary: Push a message to a specific WebSocket client
+      description: Requires HOIST_ADMIN role.
+      operationId: clientAdmin.pushToClient
+      parameters:
+        - name: channelKey
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: topic
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: message
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  # ── RoleAdmin (/roleAdmin/*) ──
+  # Class-level: @AccessRequiresRole('HOIST_ROLE_MANAGER')
+
+  /roleAdmin/config:
+    get:
+      tags: ['Admin: Roles']
+      summary: Get role management configuration
+      description: Returns whether DefaultRoleService is enabled and its config. Requires HOIST_ADMIN_READER.
+      operationId: roleAdmin.config
+      responses:
+        '200':
+          description: Role config
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+
+  /roleAdmin/list:
+    get:
+      tags: ['Admin: Roles']
+      summary: List all roles
+      description: Requires HOIST_ADMIN_READER.
+      operationId: roleAdmin.list
+      responses:
+        '200':
+          description: List of roles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        category:
+                          type: string
+                        notes:
+                          type: string
+                        members:
+                          type: array
+                          items:
+                            type: object
+
+  /roleAdmin/create:
+    post:
+      tags: ['Admin: Roles']
+      summary: Create a role
+      description: Requires HOIST_ROLE_MANAGER role.
+      operationId: roleAdmin.create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Role specification
+              properties:
+                name:
+                  type: string
+                category:
+                  type: string
+                notes:
+                  type: string
+                members:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '200':
+          description: Created role
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+
+  /roleAdmin/update:
+    post:
+      tags: ['Admin: Roles']
+      summary: Update a role
+      description: Requires HOIST_ROLE_MANAGER role.
+      operationId: roleAdmin.update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Role specification with name identifying the role to update
+      responses:
+        '200':
+          description: Updated role
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+
+  /roleAdmin/delete:
+    post:
+      tags: ['Admin: Roles']
+      summary: Delete a role
+      description: Requires HOIST_ROLE_MANAGER role.
+      operationId: roleAdmin.delete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  /roleAdmin/usersForDirectoryGroup:
+    get:
+      tags: ['Admin: Roles']
+      summary: List users in a directory group
+      operationId: roleAdmin.usersForDirectoryGroup
+      parameters:
+        - name: name
+          in: query
+          required: true
+          description: Directory group name
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Users in the directory group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+
+  /roleAdmin/bulkCategoryUpdate:
+    post:
+      tags: ['Admin: Roles']
+      summary: Bulk update role categories
+      description: Requires HOIST_ROLE_MANAGER role.
+      operationId: roleAdmin.bulkCategoryUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [roles, category]
+              properties:
+                roles:
+                  type: array
+                  items:
+                    type: string
+                  description: List of role names
+                category:
+                  type: string
+      responses:
+        '200':
+          description: Updated roles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+
+  # ── UserAdmin (/userAdmin/*) ──
+  # Class-level: @AccessRequiresRole('HOIST_ADMIN_READER')
+
+  /userAdmin/users:
+    get:
+      tags: ['Admin: Users']
+      summary: List application users
+      operationId: userAdmin.users
+      parameters:
+        - name: activeOnly
+          in: query
+          required: true
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /userAdmin/roles:
+    get:
+      tags: ['Admin: Users']
+      summary: Get all role assignments
+      operationId: userAdmin.roles
+      responses:
+        '200':
+          description: All role assignments
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /userAdmin/rolesForUser:
+    get:
+      tags: ['Admin: Users']
+      summary: Get roles assigned to a user
+      operationId: userAdmin.rolesForUser
+      parameters:
+        - name: user
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User's roles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: string
+                  roles:
+                    type: array
+                    items:
+                      type: string
+
+  /userAdmin/usersForRole:
+    get:
+      tags: ['Admin: Users']
+      summary: Get users assigned to a role
+      operationId: userAdmin.usersForRole
+      parameters:
+        - name: role
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Users with role
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  role:
+                    type: string
+                  users:
+                    type: array
+                    items:
+                      type: string
+
+  # ── TrackLogAdmin (/trackLogAdmin/*) ──
+  # Class-level: @AccessRequiresRole('HOIST_ADMIN_READER')
+
+  /trackLogAdmin/index:
+    post:
+      tags: ['Admin: Track Logs']
+      summary: Query activity tracking logs
+      operationId: trackLogAdmin.index
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                startDay:
+                  type: string
+                  format: date
+                  description: Start date (defaults to 1970-01-01)
+                endDay:
+                  type: string
+                  format: date
+                  description: End date (defaults to today)
+                filters:
+                  description: Filter specification (Hoist Filter JSON)
+                  oneOf:
+                    - type: object
+                    - type: array
+                maxRows:
+                  type: integer
+                  description: Maximum rows to return
+      responses:
+        '200':
+          description: Track log query results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrackLog'
+
+  /trackLogAdmin/lookups:
+    get:
+      tags: ['Admin: Track Logs']
+      summary: Get lookup data for track log queries
+      operationId: trackLogAdmin.lookups
+      responses:
+        '200':
+          description: Lookup values (usernames, categories, browsers, etc.)
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # ── MonitorResultsAdmin (/monitorResultsAdmin/*) ──
+  # Class-level: @AccessRequiresRole('HOIST_ADMIN_READER')
+
+  /monitorResultsAdmin/results:
+    get:
+      tags: ['Admin: Monitor Results']
+      summary: Get current monitor results
+      operationId: monitorResultsAdmin.results
+      responses:
+        '200':
+          description: Monitor execution results
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /monitorResultsAdmin/forceRunAllMonitors:
+    post:
+      tags: ['Admin: Monitor Results']
+      summary: Force run all monitors
+      description: Requires HOIST_ADMIN role. Runs on the primary cluster instance.
+      operationId: monitorResultsAdmin.forceRunAllMonitors
+      responses:
+        '200':
+          description: Cluster response with monitor results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
+
+  # ── ConfigDiffAdmin (/configDiffAdmin/*) ──
+  # Class-level: @AccessRequiresRole('HOIST_ADMIN_READER')
+
+  /configDiffAdmin/configs:
+    get:
+      tags: ['Admin: Diff']
+      summary: List all AppConfig records for diff comparison
+      operationId: configDiffAdmin.configs
+      responses:
+        '200':
+          description: All config records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AppConfig'
+
+  /configDiffAdmin/applyRemoteValues:
+    post:
+      tags: ['Admin: Diff']
+      summary: Apply config values from a remote environment
+      description: Requires HOIST_ADMIN role.
+      operationId: configDiffAdmin.applyRemoteValues
+      parameters:
+        - name: records
+          in: query
+          required: true
+          description: JSON-encoded array of config records to apply
+          schema:
+            type: string
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  # ── PreferenceDiffAdmin (/preferenceDiffAdmin/*) ──
+
+  /preferenceDiffAdmin/preferences:
+    get:
+      tags: ['Admin: Diff']
+      summary: List all Preference definitions for diff comparison
+      operationId: preferenceDiffAdmin.preferences
+      responses:
+        '200':
+          description: All preference definitions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Preference'
+
+  /preferenceDiffAdmin/applyRemoteValues:
+    post:
+      tags: ['Admin: Diff']
+      summary: Apply preference values from a remote environment
+      description: Requires HOIST_ADMIN role.
+      operationId: preferenceDiffAdmin.applyRemoteValues
+      parameters:
+        - name: records
+          in: query
+          required: true
+          description: JSON-encoded array of preference records to apply
+          schema:
+            type: string
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  # ── JsonBlobDiffAdmin (/jsonBlobDiffAdmin/*) ──
+
+  /jsonBlobDiffAdmin/jsonBlobs:
+    get:
+      tags: ['Admin: Diff']
+      summary: List all JsonBlob records for diff comparison
+      operationId: jsonBlobDiffAdmin.jsonBlobs
+      responses:
+        '200':
+          description: All JSON blob records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JsonBlob'
+
+  /jsonBlobDiffAdmin/applyRemoteValues:
+    post:
+      tags: ['Admin: Diff']
+      summary: Apply JSON blob values from a remote environment
+      description: Requires HOIST_ADMIN role.
+      operationId: jsonBlobDiffAdmin.applyRemoteValues
+      parameters:
+        - name: records
+          in: query
+          required: true
+          description: JSON-encoded array of JSON blob records to apply
+          schema:
+            type: string
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  # ── JsonSearch (/jsonSearch/*) ──
+  # Class-level: @AccessRequiresRole('HOIST_ADMIN_READER')
+
+  /jsonSearch/searchBlobs:
+    get:
+      tags: ['Admin: JSON Search']
+      summary: Search JSON blobs by JSONPath
+      operationId: jsonSearch.searchBlobs
+      parameters:
+        - name: path
+          in: query
+          required: true
+          description: JSONPath expression
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /jsonSearch/searchConfigs:
+    get:
+      tags: ['Admin: JSON Search']
+      summary: Search AppConfigs by JSONPath
+      operationId: jsonSearch.searchConfigs
+      parameters:
+        - name: path
+          in: query
+          required: true
+          description: JSONPath expression
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /jsonSearch/searchUserPreferences:
+    get:
+      tags: ['Admin: JSON Search']
+      summary: Search user preferences by JSONPath
+      operationId: jsonSearch.searchUserPreferences
+      parameters:
+        - name: path
+          in: query
+          required: true
+          description: JSONPath expression
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /jsonSearch/getMatchingNodes:
+    get:
+      tags: ['Admin: JSON Search']
+      summary: Get matching nodes from a JSON string
+      operationId: jsonSearch.getMatchingNodes
+      parameters:
+        - name: json
+          in: query
+          required: true
+          description: JSON string to search
+          schema:
+            type: string
+        - name: path
+          in: query
+          required: true
+          description: JSONPath expression
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Matching nodes
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # ╔══════════════════════════════════════════════════════════════════╗
+  # ║  ADMIN CLUSTER ENDPOINTS                                        ║
+  # ║  All: @AccessRequiresRole('HOIST_ADMIN_READER') class-level     ║
+  # ║  Write ops: @AccessRequiresRole('HOIST_ADMIN')                  ║
+  # ╚══════════════════════════════════════════════════════════════════╝
+
+  # ── ClusterAdmin (/clusterAdmin/*) ──
+
+  /clusterAdmin/allInstances:
+    get:
+      tags: ['Admin: Cluster']
+      summary: List all cluster instances with stats
+      operationId: clusterAdmin.allInstances
+      responses:
+        '200':
+          description: All cluster instance stats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /clusterAdmin/shutdownInstance:
+    post:
+      tags: ['Admin: Cluster']
+      summary: Shutdown a cluster instance
+      description: Requires HOIST_ADMIN role. Tracked as a Cluster Admin audit event.
+      operationId: clusterAdmin.shutdownInstance
+      parameters:
+        - $ref: '#/components/parameters/instanceParam'
+      responses:
+        '200':
+          description: Cluster response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
+
+  # ── ClusterObjectsAdmin (/clusterObjectsAdmin/*) ──
+
+  /clusterObjectsAdmin/getClusterObjectsReport:
+    get:
+      tags: ['Admin: Cluster Objects']
+      summary: Get cluster objects report
+      description: Returns managed resources (caches, timers, cached values) and service stats across all instances.
+      operationId: clusterObjectsAdmin.getClusterObjectsReport
+      responses:
+        '200':
+          description: Cluster objects report
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /clusterObjectsAdmin/clearHibernateCaches:
+    post:
+      tags: ['Admin: Cluster Objects']
+      summary: Clear specific Hibernate second-level caches
+      description: Requires HOIST_ADMIN role.
+      operationId: clusterObjectsAdmin.clearHibernateCaches
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [names]
+              properties:
+                names:
+                  type: array
+                  items:
+                    type: string
+                  description: Cache region names to clear
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  /clusterObjectsAdmin/clearAllHibernateCaches:
+    post:
+      tags: ['Admin: Cluster Objects']
+      summary: Clear all Hibernate second-level caches
+      description: Requires HOIST_ADMIN role.
+      operationId: clusterObjectsAdmin.clearAllHibernateCaches
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+
+  # ── ServiceManagerAdmin (/serviceManagerAdmin/*) ──
+
+  /serviceManagerAdmin/listServices:
+    get:
+      tags: ['Admin: Services']
+      summary: List all services on a cluster instance
+      operationId: serviceManagerAdmin.listServices
+      parameters:
+        - $ref: '#/components/parameters/instanceParam'
+      responses:
+        '200':
+          description: Service list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
+
+  /serviceManagerAdmin/getStats:
+    get:
+      tags: ['Admin: Services']
+      summary: Get stats for a specific service
+      operationId: serviceManagerAdmin.getStats
+      parameters:
+        - $ref: '#/components/parameters/instanceParam'
+        - name: name
+          in: query
+          required: true
+          description: Service name
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Service stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
+
+  /serviceManagerAdmin/clearCaches:
+    post:
+      tags: ['Admin: Services']
+      summary: Clear caches for specified services
+      description: |
+        Requires HOIST_ADMIN role. If `instance` is provided, runs on that instance.
+        If omitted, runs on all cluster instances.
+      operationId: serviceManagerAdmin.clearCaches
+      parameters:
+        - $ref: '#/components/parameters/optionalInstanceParam'
+        - name: names
+          in: query
+          required: true
+          description: Service names whose caches to clear
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Cluster response (single or multi-instance)
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # ── EnvAdmin (/envAdmin/*) ──
+
+  /envAdmin/index:
+    get:
+      tags: ['Admin: Environment']
+      summary: Get environment properties for a cluster instance
+      operationId: envAdmin.index
+      parameters:
+        - $ref: '#/components/parameters/instanceParam'
+      responses:
+        '200':
+          description: Environment properties
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
+
+  # ── LogViewerAdmin (/logViewerAdmin/*) ──
+
+  /logViewerAdmin/listFiles:
+    get:
+      tags: ['Admin: Logs']
+      summary: List log files on a cluster instance
+      operationId: logViewerAdmin.listFiles
+      parameters:
+        - $ref: '#/components/parameters/instanceParam'
+      responses:
+        '200':
+          description: Log file list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
+
+  /logViewerAdmin/getFile:
+    get:
+      tags: ['Admin: Logs']
+      summary: Read contents of a log file
+      operationId: logViewerAdmin.getFile
+      parameters:
+        - name: filename
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: startLine
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: maxLines
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: pattern
+          in: query
+          required: false
+          description: Regex pattern to filter lines
+          schema:
+            type: string
+        - name: caseSensitive
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - $ref: '#/components/parameters/instanceParam'
+      responses:
+        '200':
+          description: Log file content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
+
+  /logViewerAdmin/download:
+    get:
+      tags: ['Admin: Logs']
+      summary: Download a log file
+      operationId: logViewerAdmin.download
+      parameters:
+        - name: filename
+          in: query
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/instanceParam'
+      responses:
+        '200':
+          description: Log file bytes
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /logViewerAdmin/deleteFiles:
+    post:
+      tags: ['Admin: Logs']
+      summary: Delete log files
+      description: Requires HOIST_ADMIN role.
+      operationId: logViewerAdmin.deleteFiles
+      parameters:
+        - $ref: '#/components/parameters/instanceParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+              description: Filenames to delete
+      responses:
+        '200':
+          description: Cluster response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
+
+  /logViewerAdmin/archiveLogs:
+    post:
+      tags: ['Admin: Logs']
+      summary: Archive old log files
+      description: Requires HOIST_ADMIN role.
+      operationId: logViewerAdmin.archiveLogs
+      parameters:
+        - name: daysThreshold
+          in: query
+          required: false
+          description: Minimum age in days of files to archive (null uses configured default)
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/instanceParam'
+      responses:
+        '200':
+          description: Cluster response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
+
+  # ── MemoryMonitorAdmin (/memoryMonitorAdmin/*) ──
+
+  /memoryMonitorAdmin/snapshots:
+    get:
+      tags: ['Admin: Memory']
+      summary: Get memory snapshots for a cluster instance
+      operationId: memoryMonitorAdmin.snapshots
+      parameters:
+        - $ref: '#/components/parameters/instanceParam'
+      responses:
+        '200':
+          description: Memory snapshots
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
+
+  /memoryMonitorAdmin/takeSnapshot:
+    post:
+      tags: ['Admin: Memory']
+      summary: Take a memory snapshot
+      description: Requires HOIST_ADMIN role.
+      operationId: memoryMonitorAdmin.takeSnapshot
+      parameters:
+        - $ref: '#/components/parameters/instanceParam'
+      responses:
+        '200':
+          description: Cluster response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
+
+  /memoryMonitorAdmin/requestGc:
+    post:
+      tags: ['Admin: Memory']
+      summary: Request garbage collection
+      description: Requires HOIST_ADMIN role.
+      operationId: memoryMonitorAdmin.requestGc
+      parameters:
+        - $ref: '#/components/parameters/instanceParam'
+      responses:
+        '200':
+          description: Cluster response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
+
+  /memoryMonitorAdmin/dumpHeap:
+    post:
+      tags: ['Admin: Memory']
+      summary: Generate a heap dump
+      description: Requires HOIST_ADMIN role.
+      operationId: memoryMonitorAdmin.dumpHeap
+      parameters:
+        - name: filename
+          in: query
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/instanceParam'
+      responses:
+        '200':
+          description: Cluster response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
+
+  /memoryMonitorAdmin/availablePastInstances:
+    get:
+      tags: ['Admin: Memory']
+      summary: List past instances with stored memory data
+      operationId: memoryMonitorAdmin.availablePastInstances
+      responses:
+        '200':
+          description: Past instance identifiers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /memoryMonitorAdmin/snapshotsForPastInstance:
+    get:
+      tags: ['Admin: Memory']
+      summary: Get memory snapshots for a past instance
+      operationId: memoryMonitorAdmin.snapshotsForPastInstance
+      parameters:
+        - name: instance
+          in: query
+          required: true
+          description: Past instance identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Memory snapshots for past instance
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  # ── ConnectionPoolMonitorAdmin (/connectionPoolMonitorAdmin/*) ──
+
+  /connectionPoolMonitorAdmin/snapshots:
+    get:
+      tags: ['Admin: Connection Pool']
+      summary: Get connection pool snapshots for a cluster instance
+      operationId: connectionPoolMonitorAdmin.snapshots
+      parameters:
+        - $ref: '#/components/parameters/instanceParam'
+      responses:
+        '200':
+          description: Connection pool snapshots
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
+
+  /connectionPoolMonitorAdmin/takeSnapshot:
+    post:
+      tags: ['Admin: Connection Pool']
+      summary: Take a connection pool snapshot
+      description: Requires HOIST_ADMIN role.
+      operationId: connectionPoolMonitorAdmin.takeSnapshot
+      parameters:
+        - $ref: '#/components/parameters/instanceParam'
+      responses:
+        '200':
+          description: Cluster response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
+
+  /connectionPoolMonitorAdmin/resetStats:
+    post:
+      tags: ['Admin: Connection Pool']
+      summary: Reset connection pool statistics
+      description: Requires HOIST_ADMIN role.
+      operationId: connectionPoolMonitorAdmin.resetStats
+      parameters:
+        - $ref: '#/components/parameters/instanceParam'
+      responses:
+        '200':
+          description: Cluster response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
+
+  # ── WebSocketAdmin (/webSocketAdmin/*) ──
+
+  /webSocketAdmin/allChannels:
+    get:
+      tags: ['Admin: WebSocket']
+      summary: List WebSocket channels on a cluster instance
+      operationId: webSocketAdmin.allChannels
+      parameters:
+        - $ref: '#/components/parameters/instanceParam'
+      responses:
+        '200':
+          description: Local WebSocket channels
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
+
+  /webSocketAdmin/pushToChannel:
+    post:
+      tags: ['Admin: WebSocket']
+      summary: Push a message to a WebSocket channel on a specific instance
+      description: Requires HOIST_ADMIN role.
+      operationId: webSocketAdmin.pushToChannel
+      parameters:
+        - name: channelKey
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: topic
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: message
+          in: query
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/instanceParam'
+      responses:
+        '200':
+          description: Cluster response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResponse'
