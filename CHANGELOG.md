@@ -14,6 +14,12 @@
 
 ## 42.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* `ConfigService.ensureRequiredConfigsCreated` now seeds a `ConfigSpec` that has a `typedClass` but
+  no `defaultValue` with an empty JSON object. Apps can omit `defaultValue` for typed configs. An
+  explicit `defaultValue: [:]` continues to work.
+
 ## 41.0.0 - 2026-08-25
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - most apps require no changes)
