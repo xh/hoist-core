@@ -282,7 +282,7 @@ class DefaultRoleService extends BaseRoleService {
                     directoryGroupProvider: 'auto'
                 ],
                 groupName: 'xh.io',
-                note: 'Configures built-in role management via DefaultRoleService.'
+                note: 'Configures built-in role management via `DefaultRoleService`, including how often the role membership cache refreshes and which directory service resolves directory groups.'
             )
         ])
 
