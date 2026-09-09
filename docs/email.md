@@ -30,9 +30,10 @@ No code changes or redeployments are needed to adjust email routing, filtering, 
 The central service for all outbound email. Application services and the built-in notification
 services (client errors, feedback, monitors) all route through `EmailService.sendEmail()`.
 
-#### `sendEmail(Map args)`
+#### `sendEmail(...)`
 
-The primary method. Accepts a map of arguments:
+The primary method. Arguments are declared as Groovy named parameters (via `@NamedVariant`), so
+they are passed as `key: value` pairs at the call site:
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
@@ -54,6 +55,23 @@ The primary method. Accepts a map of arguments:
 - `fileName` (`String`) — the file name
 - `contentType` (`String`) — MIME type
 - `contentSource` (`byte[]`, `File`, or `InputStreamSource`) — the content
+
+Because the arguments are declared rather than read from an untyped map, IDEs complete and document
+them inline, and callers compiled with `@CompileStatic` (or `@TypeChecked`) fail to compile on an
+unknown argument name, a wrong argument type, or a missing `to`:
+
+```groovy
+// Compile error under @CompileStatic: [Static type checking] - unexpected named arg: subjekt
+emailService.sendEmail(to: 'jsmith', subjekt: 'Typo', text: 'Hello')
+```
+
+> ⚠️ A dynamically compiled caller gets the same protection at **runtime** instead - an unknown
+> argument name throws an `AssertionError`. That check runs before `sendEmail` itself, so
+> `throwError: false` does not suppress it, and `AssertionError` is an `Error` rather than an
+> `Exception`, so a `catch (Exception)` around the call does not catch it either.
+
+A `Map` may also be passed positionally (`sendEmail(argsMap)`) for callers that build arguments
+dynamically, though no checking is possible in that form.
 
 #### Processing Pipeline
 
@@ -77,11 +95,19 @@ normalized `List<String>`. Used by both `EmailService` itself and the notificati
 (`ClientErrorEmailService`, `FeedbackEmailService`, `MonitorReportService`) to read their recipient
 lists from config.
 
+An empty or blank config yields an empty list. (Blank entries are never expanded into a bare
+`@domain` address - see `parseAddresses` below.)
+
 #### `parseAddresses(String s)`
 
 Parses a comma-delimited string of email addresses into a normalized list. Returns `null` for the
-special string `"none"`, which allows configs to explicitly disable email by setting their value to
-`none`.
+special string `"none"` (case-insensitive), which allows configs to explicitly disable email by
+setting their value to `none`.
+
+Blank and whitespace-only entries are discarded before the `xhEmailDefaultDomain` config is
+applied, so `''`, `'  '`, and `'a@b.com,,'` never produce a bare `@example.com` recipient. If
+`xhEmailDefaultDomain` is itself blank or `none`, unqualified addresses are left as-is, with no
+bare `@` suffix.
 
 #### Admin Stats
 
