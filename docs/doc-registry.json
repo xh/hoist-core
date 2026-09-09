@@ -158,7 +158,8 @@
             "mcpCategory": "package",
             "viewerCategory": "infrastructure",
             "description": "Email sending with config-driven filtering and overrides.",
-            "keywords": ["EmailService", "xhEmailFilter", "xhEmailOverride"]
+            "keywords": ["EmailService", "sendEmail", "parseMailConfig", "xhEmailFilter",
+                "xhEmailOverride", "xhEmailDefaultDomain", "xhEmailDefaultSender", "attachments"]
         },
         {
             "id": "docs/exception-handling.md",

@@ -14,6 +14,20 @@
 
 ## 42.0-SNAPSHOT - unreleased
 
+### 🐞 Bug Fixes
+
+* Hardened address parsing in `EmailService`. A blank entry no longer expands into an invalid
+  address such as `@example.com`, which a blank `xhEmailOverride` config applied to all mail. The
+  service also skips a blank or `none` `xhEmailDefaultDomain`, reads `none` in any letter case, and
+  throws a clear error when no sender address resolves.
+
+### ⚙️ Technical
+
+* `EmailService.sendEmail` now declares its arguments as named parameters. Existing calls need no
+  changes.
+    * ⚠️ A call that passes an unrecognized argument name now fails with an `AssertionError`. The
+      check runs before `sendEmail`, so the `throwError: false` default does not suppress it.
+
 ## 41.0.0 - 2026-08-25
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - most apps require no changes)
