@@ -244,23 +244,22 @@ Gradle dependency resolution -- no separate downloads, no shell scripts that fet
 GitHub. Add this snippet to the app's `build.gradle`:
 
 ```groovy
-// hoist-ai-snippet: hoist-core-install/v1 -- DO NOT REMOVE (drift marker, see hoist-core/mcp/README.md)
+// hoist-ai-snippet: hoist-core-install/v2 -- DO NOT REMOVE (drift marker, see hoist-core/mcp/README.md)
 configurations {
     hoistCoreCli
 }
 
-dependencies {
-    // Resolve the active hoist-core version lazily from the runtime classpath. Works whether
-    // hoist-core is declared directly, via gradle.properties, or pulled in transitively via a
-    // client plugin -- the install task stays aligned with whatever hoist-core version actually
-    // resolves at build time.
-    hoistCoreCli providers.provider {
-        def hc = configurations.runtimeClasspath.incoming.resolutionResult.allComponents
-            .find { it.moduleVersion?.group == 'io.xh' && it.moduleVersion?.name == 'hoist-core' }
-        if (!hc) throw new GradleException(
-            'hoist-core not found on the runtimeClasspath -- cannot install hoist-core tools.')
-        "io.xh:hoist-core-mcp:${hc.moduleVersion.version}:all@jar"
-    }
+// Resolve the active hoist-core version lazily from the runtime classpath, so the install task
+// stays aligned with whatever version actually resolves at build time. `withDependencies` defers
+// this to when `hoistCoreCli` is resolved (task execution), avoiding configuration-time resolution
+// of runtimeClasspath -- which under the Grails/Spring Boot plugin would lock `developmentOnly`
+// before its afterEvaluate hook can populate it.
+configurations.hoistCoreCli.withDependencies { deps ->
+    def hc = configurations.runtimeClasspath.incoming.resolutionResult.allComponents
+        .find { it.moduleVersion?.group == 'io.xh' && it.moduleVersion?.name == 'hoist-core' }
+    if (!hc) throw new GradleException(
+        'hoist-core not found on the runtimeClasspath -- cannot install hoist-core tools.')
+    deps.add(project.dependencies.create("io.xh:hoist-core-mcp:${hc.moduleVersion.version}:all@jar"))
 }
 
 tasks.register('installHoistCoreTools', Sync) {

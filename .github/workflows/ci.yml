@@ -13,9 +13,9 @@ on:
         branches: [ "develop" ]
 
 jobs:
-    # Matrix build: compile on JDK 25 (our toolchain), then also run the build/tests on JDK 17
-    # to guard the "hoist-core's published JAR runs on any JDK 17+" contract. Accidental use of
-    # Java 18+ APIs fails the 17 row.
+    # Matrix build: compile on JDK 25 (our toolchain), then also run the build/tests on JDK 21
+    # to guard the "hoist-core's published JAR runs on any JDK 21+" contract. Accidental use of
+    # Java 22+ APIs fails the 21 row.
     build:
 
         runs-on: ubuntu-latest
@@ -24,7 +24,7 @@ jobs:
 
         strategy:
             matrix:
-                java: [ '17', '25' ]
+                java: [ '21', '25' ]
 
         steps:
         - uses: actions/checkout@v7

@@ -30,7 +30,9 @@ trait HoistUser implements JSONFormat {
     /**
      * Username for the user. Used for authentication, logging, tracking, and as a key for data
      * storage of preferences and user state. Apps must ensure each username is a unique to the
-     * organization and that HoistUser.validateUsername(username) == true.
+     * organization and that validateUsername(username) == true. Note that Groovy 5 no longer
+     * resolves a trait's static methods through the trait name itself - call this via the
+     * implementing class (e.g. User.validateUsername(username)), not HoistUser.
      */
     abstract String getUsername()
 

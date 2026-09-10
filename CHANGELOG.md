@@ -14,11 +14,47 @@
 
 ## 42.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟠 MEDIUM - Grails 8 / Groovy 5 / Java 21 upgrade)
+
+See [`docs/upgrade-notes/v42-upgrade-notes.md`](docs/upgrade-notes/v42-upgrade-notes.md) for
+detailed, step-by-step upgrade instructions with before and after code examples.
+
+* Hoist Core now requires Java 21, up from Java 17.
+* Grails 8 requires the Gradle 9 wrapper.
+* Groovy 5 tightens closure and config resolution. This can break dynamic config and GORM DSL
+  blocks - for example, a `dataSource` pool `properties` block, or a bare reference to a domain
+  class's own constant inside `constraints`. These failures appear at startup, not at compile
+  time.
+* `grails-mail` and `grails-quartz` moved into grails-core. Update the coordinates and remove the
+  explicit versions.
+* Groovy 5 no longer resolves a trait's static methods through the trait name. Apps that call
+  `HoistUser.validateUsername(username)` must call it via their own implementing class instead -
+  for example `User.validateUsername(username)`. The old form now throws
+  `MissingMethodException` at runtime, not at compile time.
+
 ### ⚙️ Technical
 
+* Renamed the framework message bundle to `grails-app/i18n/hoist-core.properties`. The previous
+  name let an application's own `messages.properties` shadow it.
 * `ConfigService.ensureRequiredConfigsCreated` now seeds a `ConfigSpec` that has a `typedClass` but
   no `defaultValue` with an empty JSON object. Apps can omit `defaultValue` for typed configs. An
   explicit `defaultValue: [:]` continues to work.
+
+### 📚 Libraries
+
+* Grails `7.2 → 8.0`
+* Groovy `4.0 → 5.1`
+* Spring Boot `3.5 → 4.1`
+* Spring Framework `6.2 → 7.0`
+* Tomcat `10.1 → 11.0`
+* Gradle `8.14 → 9.6`
+* Jackson `2.21 → 2.22`
+* msal4j `1.25.1 → 1.26.0`
+* owasp-encoder `1.3.1 → 1.4.0`
+* opentelemetry `1.62.0 → 1.65.0`
+* opentelemetry-jdbc `2.27.0 → 2.31.1`
+* opentelemetry-proto `1.10.0 → 1.11.0`
+* mina-core `2.2.8 → 2.2.9`
 
 ## 41.0.0 - 2026-08-25
 

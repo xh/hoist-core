@@ -6,13 +6,13 @@ similar tools — when working with code in this repository.
 ## Project Overview
 
 Hoist-core is the server-side component of the Hoist web application development toolkit, built
-by Extremely Heavy Industries (xh.io). It is a **Grails 7 plugin** (not a standalone app)
+by Extremely Heavy Industries (xh.io). It is a **Grails 8 plugin** (not a standalone app)
 published as `io.xh:hoist-core` and consumed by Grails application projects. The client-side
 counterpart is [hoist-react](https://github.com/xh/hoist-react).
 
-- **Language**: Groovy 4 / Java 17
-- **Framework**: Grails 7.0 (Spring Boot 3.5, Hibernate 5, GORM)
-- **Clustering**: Hazelcast 5.6 for distributed caching, pub/sub, and multi-instance coordination
+- **Language**: Groovy 5 / Java 21
+- **Framework**: Grails 8.0 (Spring Boot 4.1, Hibernate 5, GORM)
+- **Clustering**: Hazelcast 5.7 for distributed caching, pub/sub, and multi-instance coordination
 - **Package root**: `io.xh.hoist`
 
 ## Hoist Developer Tools and Documentation
@@ -358,8 +358,8 @@ speak for themselves.
 
 ## Key Dependencies
 
-- **Grails 7** - Application framework (Spring Boot 3.5, GORM/Hibernate 5)
-- **Hazelcast 5.6** - Distributed caching, pub/sub, multi-instance coordination
+- **Grails 8** - Application framework (Spring Boot 4.1, GORM/Hibernate 5)
+- **Hazelcast 5.7** - Distributed caching, pub/sub, multi-instance coordination
 - **Jackson** - JSON serialization/parsing (via custom JSONSerializer/JSONParser wrappers)
 - **Apache HttpClient 5** - HTTP client for external API calls
 - **Apache POI 5** - Excel/spreadsheet generation

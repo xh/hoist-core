@@ -111,7 +111,7 @@ Guides to building, structuring, and deploying Hoist applications.
 
 | Document | Description | Key Topics |
 |----------|-------------|------------|
-| [`application-structure.md`](./application-structure.md) | Standard Hoist application repository layout — server and client structure, build configuration, deployment, JDK choice | `build.gradle`, `gradle.properties`, `grails-app/init/`, `client-app/`, `Bootstrap.ts`, `AppModel`, Docker, Nginx, Tomcat, JDK 17/21/25, Gradle toolchain |
+| [`application-structure.md`](./application-structure.md) | Standard Hoist application repository layout — server and client structure, build configuration, deployment, JDK choice | `build.gradle`, `gradle.properties`, `grails-app/init/`, `client-app/`, `Bootstrap.ts`, `AppModel`, Docker, Nginx, Tomcat, JDK 21/25, Gradle toolchain |
 | [`build-and-publish.md`](./build-and-publish.md) | Gradle build, GitHub Actions CI, and Maven Central publishing | GitHub Actions, `deployRelease.yml`, `deploySnapshot.yml`, Sonatype, GPG signing, `nexus-publish-plugin`, `publishToSonatype`, `hoist-core-mcp`, Toolbox `repository_dispatch`, XH Build Bot GitHub App, `maven-archive.xh.io` (legacy `36.x`-and-earlier hoist-core releases) |
 | [`../mcp/README.md`](../mcp/README.md) | Hoist-core MCP server and CLI tools — architecture, app-side install snippet, tools reference, and maintenance checklist | `hoist-core-mcp`, `hoist-core-docs`, `hoist-core-symbols`, `installHoistCoreTools`, `BundledContentSource`, `ContentSource`, `bootstrap.sh`, `doc-registry.json` |
 | [`changelog-format.md`](./changelog-format.md) | Conventions for writing and reviewing hoist-core library CHANGELOG entries | Section headers, voice/tense, Simplified Technical English, difficulty ratings, breaking changes, libraries, application changelogs |
@@ -135,6 +135,7 @@ breaking changes, before/after code examples, and verification checklists.
 
 | Version                                         | Key Changes |
 |-------------------------------------------------|-------------|
+| [v42.0.0](./upgrade-notes/v42-upgrade-notes.md) | Grails 8, Groovy 5, Spring Boot 4, Java 21 baseline, Gradle 9; `dataSource` pool `properties` block restructured, GORM `constraints` / `mapping` owner references must be qualified |
 | [v41.0.0](./upgrade-notes/v41-upgrade-notes.md) | `EntraIdService` + `DirectoryService` for Entra ID directory groups, typed `ErrorOr` results from `doLoadUsersForDirectoryGroups`, `xhLdapConfig.usernameAttribute` |
 | [v40.0.1](./upgrade-notes/v40-upgrade-notes.md) | Grails 7.1, `MetricsService` registration API, `BaseService.telemetryPrefix`, `ObservedRun` metrics by-name, `hoist.*` → `xh.*` built-in metric rename, client-side metrics endpoint |
 | [v39.0.0](./upgrade-notes/v39-upgrade-notes.md) | Typed `ConfigSpec` / `PreferenceSpec` / `RoleSpec`, optional `TypedConfigMap` opt-in, telemetry package restructuring, `alwaysSampleErrors` removed, JDK 25 toolchain |

@@ -190,7 +190,7 @@
             "mcpCategory": "concept",
             "viewerCategory": "devops",
             "description": "Standard Hoist application repository layout — server and client structure, build configuration, deployment, JDK choice.",
-            "keywords": ["build.gradle", "gradle.properties", "grails-app/init", "client-app", "Bootstrap.ts", "AppModel", "Docker", "Nginx", "Tomcat", "JDK 17", "JDK 21", "JDK 25", "Java 25", "Gradle toolchain", "incompatible Java 25 and Gradle 8.x", "xh-tomcat", "hot reload", "HotswapAgent", "enableHotSwap"]
+            "keywords": ["build.gradle", "gradle.properties", "grails-app/init", "client-app", "Bootstrap.ts", "AppModel", "Docker", "Nginx", "Tomcat", "JDK 21", "JDK 25", "Java 25", "Gradle toolchain", "Gradle 9", "xh-tomcat", "hot reload", "HotswapAgent", "enableHotSwap"]
         },
         {
             "id": "docs/build-and-publish.md",
@@ -223,6 +223,14 @@
             "viewerCategory": "overview",
             "description": "Authoritative coding conventions for hoist-core framework and applications — naming, logging, exceptions, services, controllers, GORM, clustering, HTTP/email, background work, code style, and commit/PR formatting.",
             "keywords": ["conventions", "coding standards", "style guide", "naming", "xh prefix", "LogSupport", "withInfo", "withDebug", "RoutineRuntimeException", "BaseService", "createCache", "createTimer", "clearCaches", "clearCachesConfigs", "ensureRequiredConfigsCreated", "configService", "AccessRequiresRole", "renderJSON", "parseRequestJSON", "ReadOnly", "Transactional", "N+1", "fetch join", "batchSize", "JSONFormat", "primaryOnly", "replicate", "JSONClient", "xhEmailOverride", "withNewSession", "pushToAllChannels", "pushToLocalChannels", "Groovy idioms", "commit messages", "no hard wrap"]
+        },
+        {
+            "id": "docs/upgrade-notes/v42-upgrade-notes.md",
+            "title": "v42 Upgrade Notes",
+            "mcpCategory": "devops",
+            "viewerCategory": "upgrade",
+            "description": "Upgrade guide from v41.x to v42. Medium difficulty.",
+            "keywords": ["v42", "upgrade", "migration", "breaking changes", "v41", "Grails 8", "Groovy 5", "ReadOnlyPropertyException", "DELEGATE_ONLY"]
         },
         {
             "id": "docs/upgrade-notes/v41-upgrade-notes.md",

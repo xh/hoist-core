@@ -36,6 +36,8 @@ class HoistCoreGrailsPlugin extends Plugin {
 
     Closure doWithSpring() {
         {->
+            Utils.grailsApplication = grailsApplication
+
             // Configure logging asap -- before this we rely on defaults in ApplicationConfig.groovy
             def logbackConfig = createCustomOrDefault(Utils.appPackage + '.LogbackConfig', LogbackConfig)
             logbackConfig.configure()
@@ -67,6 +69,8 @@ class HoistCoreGrailsPlugin extends Plugin {
     }
 
     void doWithApplicationContext() {
+        Utils.appContext = applicationContext
+
         Promises.promiseFactory = new HoistPromiseFactory(Promises.promiseFactory)
     }
 
