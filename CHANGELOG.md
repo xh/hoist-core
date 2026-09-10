@@ -30,8 +30,11 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 ### ⚙️ Technical
 
-*  Renamed the framework message bundle to `grails-app/i18n/hoist-core.properties`. The previous
+* Renamed the framework message bundle to `grails-app/i18n/hoist-core.properties`. The previous
   name let an application's own `messages.properties` shadow it.
+* `ConfigService.ensureRequiredConfigsCreated` now seeds a `ConfigSpec` that has a `typedClass` but
+  no `defaultValue` with an empty JSON object. Apps can omit `defaultValue` for typed configs. An
+  explicit `defaultValue: [:]` continues to work.
 
 ### 📚 Libraries
 
