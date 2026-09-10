@@ -103,7 +103,6 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhActivityTrackingConfig',
                 valueType: 'json',
-                defaultValue: [:],
                 typedClass: ActivityTrackingConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
@@ -112,7 +111,6 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhAlertBannerConfig',
                 valueType: 'json',
-                defaultValue: [:],
                 typedClass: AlertBannerConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
@@ -145,7 +143,6 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhChangelogConfig',
                 valueType: 'json',
-                defaultValue: [:],
                 typedClass: ChangelogConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
@@ -154,7 +151,6 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhClientErrorConfig',
                 valueType: 'json',
-                defaultValue: [:],
                 typedClass: ClientErrorConfig,
                 groupName: 'xh.io',
                 note: 'Configures handling of client error reports. Reports are queued as received and processed every `intervalMins`.'
@@ -162,7 +158,6 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhConnPoolMonitoringConfig',
                 valueType: 'json',
-                defaultValue: [:],
                 typedClass: ConnPoolMonitoringConfig,
                 groupName: 'xh.io',
                 note: 'Configures built-in monitoring of the JDBC connection pool, including how often to snapshot pool stats and how many snapshots to retain.'
@@ -230,7 +225,6 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhEntraIdConfig',
                 valueType: 'json',
-                defaultValue: [:],
                 typedClass: EntraIdConfig,
                 groupName: 'xh.io',
                 note: 'Configures `EntraIdService` for querying users and groups in Microsoft Entra ID via Microsoft Graph. Requires `xhEntraTenantId`, `xhEntraClientId`, and `xhEntraClientSecret`.'
@@ -259,7 +253,6 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhEnvPollConfig',
                 valueType: 'json',
-                defaultValue: [:],
                 typedClass: EnvPollConfig,
                 groupName: 'xh.io',
                 note: 'Configures how clients poll the server for version, instance, and auth changes.\n\n' +
@@ -279,7 +272,6 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhExportConfig',
                 valueType: 'json',
-                defaultValue: [:],
                 typedClass: ExportConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
@@ -296,7 +288,6 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhIdleConfig',
                 valueType: 'json',
-                defaultValue: [:],
                 typedClass: IdleConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
@@ -305,7 +296,6 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhLdapConfig',
                 valueType: 'json',
-                defaultValue: [:],
                 typedClass: LdapConfig,
                 groupName: 'xh.io',
                 note: 'Configures `LdapService` for querying users and groups from one or more LDAP servers. Requires `xhLdapUsername` and `xhLdapPassword` when enabled.'
@@ -327,7 +317,6 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhLogArchiveConfig',
                 valueType: 'json',
-                defaultValue: [:],
                 typedClass: LogArchiveConfig,
                 groupName: 'xh.io',
                 note: 'Configures automatic archiving of log files. Files older than `archiveAfterDays` are moved into zipped bundles within `archiveFolder`.'
@@ -335,7 +324,6 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhMemoryMonitoringConfig',
                 valueType: 'json',
-                defaultValue: [:],
                 typedClass: MemoryMonitoringConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
@@ -344,7 +332,6 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhMonitorConfig',
                 valueType: 'json',
-                defaultValue: [:],
                 typedClass: MonitorConfig,
                 groupName: 'xh.io',
                 note: 'Configures server-side status monitors and their notifications. `warnNotifyThreshold` and `failNotifyThreshold` are the number of consecutive refresh cycles a monitor must spend in that status before alerting.'
@@ -359,7 +346,6 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhMetricsConfig',
                 valueType: 'json',
-                defaultValue: [:],
                 typedClass: MetricsConfig,
                 groupName: 'xh.io',
                 note: 'Configures export of observable metrics to Prometheus and OTLP endpoints. Select the metrics to export with `xhMetricsPublished`.'
@@ -367,7 +353,6 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhTraceConfig',
                 valueType: 'json',
-                defaultValue: [:],
                 typedClass: TraceConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
@@ -383,7 +368,6 @@ class BootStrap implements LogSupport {
             new ConfigSpec(
                 name: 'xhWebSocketConfig',
                 valueType: 'json',
-                defaultValue: [:],
                 typedClass: WebSocketConfig,
                 groupName: 'xh.io',
                 note: 'Configures the WebSocket sessions Hoist manages for connected clients, including send time and buffer size limits.'
