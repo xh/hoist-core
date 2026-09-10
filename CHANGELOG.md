@@ -16,6 +16,9 @@
 
 ### ⚙️ Technical
 
+* `ApplicationConfig.defaultConfig` now sets `server.compression.mimeTypes`, adding
+  `application/x-ndjson` to Spring Boot's built-in list.  The result is that `BaseController.renderNDJSON`
+  responses are also compressed during development (as they already were when deployed behind xh-nginx.). 
 * `ConfigService.ensureRequiredConfigsCreated` now seeds a `ConfigSpec` that has a `typedClass` but
   no `defaultValue` with an empty JSON object. Apps can omit `defaultValue` for typed configs. An
   explicit `defaultValue: [:]` continues to work.
