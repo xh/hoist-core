@@ -3,7 +3,7 @@
 > **Status: DRAFT** — This document is awaiting review and may contain inaccuracies.
 
 This document describes the standard directory layout of a Hoist application repository. Hoist
-apps follow a consistent structure across projects, combining a Grails 7 server-side backend with a
+apps follow a consistent structure across projects, combining a Grails 8 server-side backend with a
 React/TypeScript client-side frontend in a single repository. Understanding this structure is
 essential for navigating any Hoist codebase — the patterns described here are uniform across
 XH-built applications.
@@ -11,7 +11,7 @@ XH-built applications.
 ## Overview
 
 A Hoist application is a **single Git repository** containing both server and client code. The
-server is a Grails 7 application that includes hoist-core as a plugin dependency. The client is a
+server is a Grails 8 application that includes hoist-core as a plugin dependency. The client is a
 React/TypeScript application that consumes hoist-react as an npm package. Both halves are built,
 tested, and deployed together, but run as separate processes during development and as separate
 containers in production.
@@ -114,39 +114,27 @@ app-specific dependencies (e.g. JWT libraries, cloud SDKs).
 
 ### JDK Choice
 
-We recommend **JDK 17** or **JDK 21** for client app builds. The published hoist-core JAR
-targets Java 17 bytecode and runs on any JDK 17+ runtime, so apps are not forced to track
-hoist-core's own build JDK.
+We recommend **JDK 21** or **JDK 25** for client app builds. The published hoist-core JAR
+targets Java 21 bytecode and runs on any JDK 21+ runtime, so apps are not forced to track
+hoist-core's own build JDK. Grails 8 sets the floor: JDK 17 is no longer supported.
 
 When building Docker images, use the matching xh-tomcat base image variant for your runtime
-JDK: `next-tc10-jdk17` or `next-tc10-jdk21`.
+JDK: `next-tc10-jdk21`.
 
-#### JDK 25 on a Grails 7 / Gradle 8.x App
+#### JDK 25 on a Grails 8 / Gradle 9.x App
 
-JDK 25 is fully supported for client app builds — it just requires running Gradle itself on a
-pre-JDK 25 JVM and using a Gradle toolchain to compile against JDK 25. Grails 7 relies on
-deprecated features that were removed in Gradle 9, so apps are pinned to Gradle 8.x — whose
-daemon does not support JDK 25 as its runtime JVM. Pointing Gradle directly at JDK 25 results in:
+Grails 8 requires the Gradle 9 wrapper, whose daemon runs on JDK 25 directly. Apps that want to
+build on JDK 25 can simply point the Gradle JVM at it - the split Gradle JVM / toolchain setup
+that Grails 7 and Gradle 8.x required is no longer needed.
 
-> Your build is currently configured to use incompatible Java 25 and Gradle 8.x. The maximum
-> compatible Gradle JVM version is 24.
+Declaring a compile toolchain is still the recommended way to pin the compile JDK independently
+of whatever JVM the daemon happens to run on:
 
-To build with JDK 25, run Gradle on **JDK 24** and target **JDK 25** via a toolchain:
-
-1. Install **BOTH JDK 24 AND JDK 25** locally (IntelliJ: *File → Project Structure → SDKs*). Set JDK 25
-   as the project SDK.
-2. Set the **Gradle JVM** to JDK 24 (IntelliJ: *Settings → Build, Execution, Deployment → Build
-   Tools → Gradle → Gradle JVM*).
-3. Declare the compile toolchain in `build.gradle`:
-   ```groovy
-   java {
-       toolchain { languageVersion = JavaLanguageVersion.of(25) }
-   }
-   ```
-
-Gradle will provision JDK 25 for compilation while the daemon itself runs on JDK 24. This will
-become unnecessary once the next Gradle major (compatible with JDK 25 as a daemon JVM) lands in
-a future Grails release.
+```groovy
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(25) }
+}
+```
 
 ### `.env.template` and `.env`
 
@@ -494,7 +482,7 @@ backend.
 Set `enableHotSwap=true` in `gradle.properties` to reload changed server classes without a full
 restart. This uses [HotswapAgent](http://hotswapagent.org/), which needs additional local setup:
 
-- A HotswapAgent-enabled JVM (available for JDK 17 and JDK 21). See the
+- A HotswapAgent-enabled JVM (available for JDK 21). See the
   [HotswapAgent project](https://github.com/HotswapProjects/HotswapAgent) for installation.
 - The `groovyReset.jar` file, in the project or on its dependency path.
 - These JVM arguments on startup: `-XX:HotswapAgent=fatjar`,

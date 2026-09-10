@@ -44,6 +44,7 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 * Spring Framework `6.2 → 7.0`
 * Tomcat `10.1 → 11.0`
 * Gradle `8.14 → 9.6`
+* Jackson `2.21 → 2.22`
 * msal4j `1.25.1 → 1.26.0`
 * owasp-encoder `1.3.1 → 1.4.0`
 * opentelemetry `1.62.0 → 1.65.0`
