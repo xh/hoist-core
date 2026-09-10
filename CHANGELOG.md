@@ -16,10 +16,11 @@
 
 ### ⚙️ Technical
 
-* Hoist now adds `application/x-ndjson` to the embedded container's compressible MIME types, so
-  `BaseController.renderNDJSON` responses are compressed in local development as they already are
-  behind xh-nginx. Apps must still enable compression via `server.compression.enabled`; any
-  app-level `server.compression.mimeTypes` list is appended to, not replaced.
+* `ApplicationConfig.defaultConfig` now sets `server.compression.mimeTypes`, adding
+  `application/x-ndjson` to Spring Boot's built-in list so that `BaseController.renderNDJSON`
+  responses are compressed by the embedded container as they already are behind xh-nginx. Apps
+  must still enable compression via `server.compression.enabled`, and can extend the list with
+  `server.compression.mimeTypes += 'foo/bar'`.
 * `ConfigService.ensureRequiredConfigsCreated` now seeds a `ConfigSpec` that has a `typedClass` but
   no `defaultValue` with an empty JSON object. Apps can omit `defaultValue` for typed configs. An
   explicit `defaultValue: [:]` continues to work.
