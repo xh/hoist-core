@@ -27,6 +27,10 @@ detailed, step-by-step upgrade instructions with before and after code examples.
   time.
 * `grails-mail` and `grails-quartz` moved into grails-core. Update the coordinates and remove the
   explicit versions.
+* Groovy 5 no longer resolves a trait's static methods through the trait name. Apps that call
+  `HoistUser.validateUsername(username)` must call it via their own implementing class instead -
+  for example `User.validateUsername(username)`. The old form now throws
+  `MissingMethodException` at runtime, not at compile time.
 
 ### ⚙️ Technical
 
