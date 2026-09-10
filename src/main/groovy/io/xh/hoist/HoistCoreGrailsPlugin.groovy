@@ -11,6 +11,7 @@ import grails.async.Promises
 import grails.plugins.Plugin
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.cluster.InstanceState
+import io.xh.hoist.configuration.NdjsonCompressionCustomizer
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.util.Timer
 import io.xh.hoist.util.Utils
@@ -51,6 +52,8 @@ class HoistCoreGrailsPlugin extends Plugin {
             if (config.getProperty('hoist.enableWebSockets', Boolean)) {
                 hoistWebSocketConfigurer(HoistWebSocketConfigurer)
             }
+
+            ndjsonCompressionCustomizer(NdjsonCompressionCustomizer)
 
             xhExceptionHandler(ExceptionHandler)
         }
