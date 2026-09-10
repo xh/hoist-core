@@ -107,7 +107,7 @@ class BootStrap implements LogSupport {
                 typedClass: ActivityTrackingConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Configures built-in Activity Tracking via TrackService.'
+                note: 'Configures built-in activity tracking via `TrackService`, including which users and categories are logged at each severity, limits on entry volume and data size, and client health reporting.'
             ),
             new ConfigSpec(
                 name: 'xhAlertBannerConfig',
@@ -116,7 +116,7 @@ class BootStrap implements LogSupport {
                 typedClass: AlertBannerConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Configures support for showing an app-wide alert banner.\n\nAdmins configure and activate alert banners from the Hoist Admin console. To generally enable this system, set "enabled" to true. The xhEnvPollConfig.interval config governs client polling for updates.'
+                note: 'Configures the app-wide alert banner. Set `enabled` to `true` to make the feature available, then compose and activate banners from the Admin Console. Clients pick up changes on the `xhEnvPollConfig.interval`.'
             ),
             new ConfigSpec(
                 name: 'xhAppInstances',
@@ -124,7 +124,7 @@ class BootStrap implements LogSupport {
                 defaultValue: [],
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'List of root URLs for running instances of this app across environments. Currently only used for as a convenience feature in the Admin config diff tool.'
+                note: 'List of root URLs for this app\'s deployments in other environments. Offered as remote targets by the Admin Console\'s "Compare w/ Remote" tools.'
             ),
             new ConfigSpec(
                 name: 'xhAppTimeZone',
@@ -132,7 +132,7 @@ class BootStrap implements LogSupport {
                 defaultValue: 'UTC',
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Official TimeZone for this application - e.g. the zone of the head office. Used to format/parse business related dates that need to be considered and displayed consistently at all locations. Set to a valid Java TimeZone ID.'
+                note: 'Official time zone of the application - typically that of the head office - as a Java TimeZone ID. Used to parse and format business dates that must read the same at every location.'
             ),
             new ConfigSpec(
                 name: 'xhAutoRefreshIntervals',
@@ -140,7 +140,7 @@ class BootStrap implements LogSupport {
                 defaultValue: [app: -1],
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Map of clientAppCodes to intervals (in seconds) on which the client-side AutoRefreshService should fire. Note the xhAutoRefreshEnabled preference must also be true for the client service to activate.'
+                note: 'Map of client app code to the interval, in seconds, on which that app\'s `AutoRefreshService` fires. Use `-1` to disable. Users must also have the `xhAutoRefreshEnabled` preference set to `true`.'
             ),
             new ConfigSpec(
                 name: 'xhChangelogConfig',
@@ -149,7 +149,7 @@ class BootStrap implements LogSupport {
                 typedClass: ChangelogConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Configures built-in application changelog (release notes), with options to disable the feature entirely, exclude particular releases or categories of changes from the log, and/or only show to users with selected roles.'
+                note: 'Configures the built-in changelog (release notes). Disable the feature entirely, exclude particular versions or categories of change, or limit visibility to users with selected roles.'
             ),
             new ConfigSpec(
                 name: 'xhClientErrorConfig',
@@ -157,7 +157,7 @@ class BootStrap implements LogSupport {
                 defaultValue: [:],
                 typedClass: ClientErrorConfig,
                 groupName: 'xh.io',
-                note: 'Configures handling of client error reports. Errors are queued when received and processed every [intervalMins].'
+                note: 'Configures handling of client error reports. Reports are queued as received and processed every `intervalMins`.'
             ),
             new ConfigSpec(
                 name: 'xhConnPoolMonitoringConfig',
@@ -165,35 +165,35 @@ class BootStrap implements LogSupport {
                 defaultValue: [:],
                 typedClass: ConnPoolMonitoringConfig,
                 groupName: 'xh.io',
-                note: 'Configures built-in JDBC connection pool monitoring.'
+                note: 'Configures built-in monitoring of the JDBC connection pool, including how often to snapshot pool stats and how many snapshots to retain.'
             ),
             new ConfigSpec(
                 name: 'xhEmailDefaultDomain',
                 valueType: 'string',
                 defaultValue: 'example.com',
                 groupName: 'xh.io',
-                note: 'Default domain name appended by Hoist EmailServices when unqualified usernames are passed to the service as email recipients/senders.'
+                note: 'Domain appended by `EmailService` when an unqualified username is given as a sender or recipient.'
             ),
             new ConfigSpec(
                 name: 'xhEmailDefaultSender',
                 valueType: 'string',
                 defaultValue: 'support@example.com',
                 groupName: 'xh.io',
-                note: 'Email address for Hoist EmailService to use as default sender address.'
+                note: 'Sender address used by `EmailService` when none is specified.'
             ),
             new ConfigSpec(
                 name: 'xhEmailFilter',
                 valueType: 'string',
                 defaultValue: AppConfig.NONE,
                 groupName: 'xh.io',
-                note: 'Comma-separated list of email addresses to which Hoist EmailService can send mail. For testing / dev purposes. If specified, emails to addresses not in this list will be quietly dropped. Value "none" does not filter recipients.'
+                note: 'Comma-separated list of the only addresses `EmailService` may send to, for dev and test environments. Mail to any other address is quietly dropped. Set to `none` to send to all recipients.'
             ),
             new ConfigSpec(
                 name: 'xhEmailOverride',
                 valueType: 'string',
                 defaultValue: AppConfig.NONE,
                 groupName: 'xh.io',
-                note: 'Email address to which Hoist emailService should send all mail, regardless of specified recipient. For testing / dev purposes. Use to test actual sending of mails while still not mailing end-users. Value "none" disables any override.'
+                note: 'Single address to which `EmailService` redirects all mail, regardless of the intended recipients. Use in dev and test environments to exercise real sending without reaching end users. Set to `none` to disable.'
             ),
             new ConfigSpec(
                 name: 'xhEmailSupport',
@@ -201,7 +201,7 @@ class BootStrap implements LogSupport {
                 defaultValue: AppConfig.NONE,
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Email address to which support and feedback submissions should be sent. Value "none" to disable support emails.'
+                note: 'Address that receives user feedback and client error reports, or `none` to disable those emails.'
             ),
             new ConfigSpec(
                 name: 'xhEnableImpersonation',
@@ -209,7 +209,7 @@ class BootStrap implements LogSupport {
                 defaultValue: false,
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'True to enable identity impersonation by authorized users.'
+                note: 'Enables identity impersonation by authorized users.'
             ),
             new ConfigSpec(
                 name: 'xhEnableLogViewer',
@@ -217,7 +217,7 @@ class BootStrap implements LogSupport {
                 defaultValue: true,
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'True to enable the log viewer included with the Hoist Admin console as well as the associated server-side endpoints.'
+                note: 'Enables the Admin Console log viewer and its server-side endpoints.'
             ),
             new ConfigSpec(
                 name: 'xhEnableMonitoring',
@@ -225,7 +225,7 @@ class BootStrap implements LogSupport {
                 defaultValue: true,
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'True to enable the monitor tab included with the Hoist Admin console and the associated server-side jobs'
+                note: 'Enables the Admin Console Monitors tab and the server-side jobs that run status monitors.'
             ),
             new ConfigSpec(
                 name: 'xhEntraIdConfig',
@@ -233,28 +233,28 @@ class BootStrap implements LogSupport {
                 defaultValue: [:],
                 typedClass: EntraIdConfig,
                 groupName: 'xh.io',
-                note: 'Supports querying Microsoft Entra ID (via Microsoft Graph) for users and groups.'
+                note: 'Configures `EntraIdService` for querying users and groups in Microsoft Entra ID via Microsoft Graph. Requires `xhEntraTenantId`, `xhEntraClientId`, and `xhEntraClientSecret`.'
             ),
             new ConfigSpec(
                 name: 'xhEntraTenantId',
                 valueType: 'string',
                 defaultValue: AppConfig.NONE,
                 groupName: 'xh.io',
-                note: 'Tenant ID (GUID) of the Microsoft Entra ID tenant for this application. Referenced by EntraIdService and any other subsystem that works with the tenant. Commonly overridden per environment via an instance config / environment variable. Relay to pre-auth clients (e.g. for OAuth login) via the app AuthenticationService.getClientConfig(), where needed.'
+                note: 'Tenant ID (GUID) of the app\'s Microsoft Entra ID tenant, used by `EntraIdService` and any other code that works with the tenant. Relay to pre-auth clients for OAuth login via `AuthenticationService.getClientConfig()` where needed.'
             ),
             new ConfigSpec(
                 name: 'xhEntraClientId',
                 valueType: 'string',
                 defaultValue: AppConfig.NONE,
                 groupName: 'xh.io',
-                note: 'Client ID (GUID) of the Entra ID app registration for this application. Referenced by EntraIdService and any other subsystem that works with the registration. Commonly overridden per environment via an instance config / environment variable. Relay to pre-auth clients (e.g. for OAuth login) via the app AuthenticationService.getClientConfig(), where needed.'
+                note: 'Client ID (GUID) of the app\'s Entra ID app registration, used by `EntraIdService` and any other code that works with the registration. Relay to pre-auth clients for OAuth login via `AuthenticationService.getClientConfig()` where needed.'
             ),
             new ConfigSpec(
                 name: 'xhEntraClientSecret',
                 valueType: 'pwd',
                 defaultValue: AppConfig.NONE,
                 groupName: 'xh.io',
-                note: 'Client secret for the Entra ID app registration used by EntraIdService.'
+                note: 'Client secret for the Entra ID app registration used by `EntraIdService`.'
             ),
             new ConfigSpec(
                 name: 'xhEnvPollConfig',
@@ -262,19 +262,19 @@ class BootStrap implements LogSupport {
                 defaultValue: [:],
                 typedClass: EnvPollConfig,
                 groupName: 'xh.io',
-                note: "Controls client calls to server to poll for version, instance changes, or auth changes. Supports the following options:\n\n" +
-                    "- interval: Frequency (in seconds) with which the status of the app server should be polled. Value of -1 disables checking.\n" +
-                    "- onVersionChange: Action taken by client upon a new version becoming available, one of:\n" +
-                    "\t+ 'forceReload': Force clients to refresh immediately. To be used when an updated server is known to be incompatible with a previously deployed client.\n" +
-                    "\t+ 'promptReload': Show an update prompt banner, allowing users to refresh when convenient.\n" +
-                    "\t+ 'silent': No action taken."
+                note: 'Configures how clients poll the server for version, instance, and auth changes.\n\n' +
+                    '- `interval`: Seconds between polls, or `-1` to disable.\n' +
+                    '- `onVersionChange`: Action taken when a new app version is available, one of:\n' +
+                    '    - `forceReload`: Reload immediately. Use when a new server is incompatible with the deployed client.\n' +
+                    '    - `promptReload`: Show a banner prompting users to reload when convenient.\n' +
+                    '    - `silent`: Take no action.'
             ),
             new ConfigSpec(
                 name: 'xhExpectedServerTimeZone',
                 valueType: 'string',
                 defaultValue: '*',
                 groupName: 'xh.io',
-                note: 'Expected time zone of the server-side JVM - set to a valid Java TimeZone ID. NOTE: this config is checked at startup to ensure the server is running in the expected zone and will throw a fatal exception if it is invalid or does not match the zone reported by Java.\n\nChanging this config has no effect on a running server, and will not itself change the default Zone of the JVM.\n\nIf you REALLY do not want this behavior, a value of "*" will suppress this check.'
+                note: 'Time zone the server JVM is expected to run in, as a Java TimeZone ID. Checked once at startup: the server fails to start if the value is invalid or does not match the JVM\'s zone. Changing it does not affect a running server or the JVM\'s default zone. Set to `*` to skip the check.'
             ),
             new ConfigSpec(
                 name: 'xhExportConfig',
@@ -283,7 +283,7 @@ class BootStrap implements LogSupport {
                 typedClass: ExportConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Configures exporting data to Excel.'
+                note: 'Configures Excel export, including the cell-count thresholds above which the server streams the workbook and the client warns that the export may take a while.'
             ),
             new ConfigSpec(
                 name: 'xhFlags',
@@ -291,7 +291,7 @@ class BootStrap implements LogSupport {
                 defaultValue: [:],
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Flags for experimental features.'
+                note: 'Map of flags for experimental features.'
             ),
             new ConfigSpec(
                 name: 'xhIdleConfig',
@@ -300,7 +300,7 @@ class BootStrap implements LogSupport {
                 typedClass: IdleConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Governs how client application will enter "sleep mode", suspending background requests and prompting the user to reload to resume.  Timeouts are in minutes of inactivity. -1 to disable.'
+                note: 'Configures when an idle client enters sleep mode, suspending background requests until the user reloads. `timeout` is minutes of inactivity, overridable per client app in `appTimeouts`. Use `-1` to disable.'
             ),
             new ConfigSpec(
                 name: 'xhLdapConfig',
@@ -308,19 +308,21 @@ class BootStrap implements LogSupport {
                 defaultValue: [:],
                 typedClass: LdapConfig,
                 groupName: 'xh.io',
-                note: 'Supports connecting to LDAP servers.'
+                note: 'Configures `LdapService` for querying users and groups from one or more LDAP servers. Requires `xhLdapUsername` and `xhLdapPassword` when enabled.'
             ),
             new ConfigSpec(
                 name: 'xhLdapUsername',
                 valueType: 'string',
                 defaultValue: AppConfig.NONE,
-                groupName: 'xh.io'
+                groupName: 'xh.io',
+                note: 'Distinguished name of the account `LdapService` binds as when querying, or `none` if LDAP is not in use.'
             ),
             new ConfigSpec(
                 name: 'xhLdapPassword',
                 valueType: 'pwd',
                 defaultValue: AppConfig.NONE,
-                groupName: 'xh.io'
+                groupName: 'xh.io',
+                note: 'Password for the `xhLdapUsername` account, or `none` if LDAP is not in use.'
             ),
             new ConfigSpec(
                 name: 'xhLogArchiveConfig',
@@ -328,7 +330,7 @@ class BootStrap implements LogSupport {
                 defaultValue: [:],
                 typedClass: LogArchiveConfig,
                 groupName: 'xh.io',
-                note: 'Configures automatic cleanup and archiving of log files. Files older than "archiveAfterDays" will be moved into zipped bundles within the specified "archiveFolder".'
+                note: 'Configures automatic archiving of log files. Files older than `archiveAfterDays` are moved into zipped bundles within `archiveFolder`.'
             ),
             new ConfigSpec(
                 name: 'xhMemoryMonitoringConfig',
@@ -337,7 +339,7 @@ class BootStrap implements LogSupport {
                 typedClass: MemoryMonitoringConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Configures built-in memory usage and GC monitoring.'
+                note: 'Configures built-in monitoring of JVM memory and garbage collection, including snapshot frequency, retention, and where to write heap dumps requested from the Admin Console.'
             ),
             new ConfigSpec(
                 name: 'xhMonitorConfig',
@@ -345,14 +347,14 @@ class BootStrap implements LogSupport {
                 defaultValue: [:],
                 typedClass: MonitorConfig,
                 groupName: 'xh.io',
-                note: 'Configures server-side status monitoring and notifications. Note failNotifyThreshold and warnNotifyThreshold are the number of refresh cycles a monitor will need to be in said status to trigger "alertMode".'
+                note: 'Configures server-side status monitors and their notifications. `warnNotifyThreshold` and `failNotifyThreshold` are the number of consecutive refresh cycles a monitor must spend in that status before alerting.'
             ),
             new ConfigSpec(
                 name: 'xhMonitorEmailRecipients',
                 valueType: 'string',
                 defaultValue: AppConfig.NONE,
                 groupName: 'xh.io',
-                note: 'Email address to which status monitor alerts should be sent. Value "none" disables emailed alerts.'
+                note: 'Comma-separated addresses that receive status monitor alerts, or `none` to disable emailed alerts.'
             ),
             new ConfigSpec(
                 name: 'xhMetricsConfig',
@@ -360,7 +362,7 @@ class BootStrap implements LogSupport {
                 defaultValue: [:],
                 typedClass: MetricsConfig,
                 groupName: 'xh.io',
-                note: 'Parameters for observable metric support'
+                note: 'Configures export of observable metrics to Prometheus and OTLP endpoints. Select the metrics to export with `xhMetricsPublished`.'
             ),
             new ConfigSpec(
                 name: 'xhTraceConfig',
@@ -369,14 +371,14 @@ class BootStrap implements LogSupport {
                 typedClass: TraceConfig,
                 clientVisible: true,
                 groupName: 'xh.io',
-                note: 'Parameters for distributed tracing support.'
+                note: 'Configures distributed tracing, including sampling rate and rules, OTLP export, and JDBC tracing.'
             ),
             new ConfigSpec(
                 name: 'xhMetricsPublished',
                 valueType: 'json',
                 defaultValue: [],
                 groupName: 'xh.io',
-                note: 'List of metric names to include in Prometheus, OTLP or other exports. Empty list = no metrics exported.'
+                note: 'List of metric names to include in Prometheus, OTLP, and other exports. An empty list exports nothing. Manage via the Publish and Unpublish actions on the Admin Console\'s Metrics tab rather than editing this list directly.'
             ),
             new ConfigSpec(
                 name: 'xhWebSocketConfig',
@@ -384,7 +386,7 @@ class BootStrap implements LogSupport {
                 defaultValue: [:],
                 typedClass: WebSocketConfig,
                 groupName: 'xh.io',
-                note: 'Parameters for the managed WebSocket sessions created by Hoist.'
+                note: 'Configures the WebSocket sessions Hoist manages for connected clients, including send time and buffer size limits.'
             )
         ])
     }
