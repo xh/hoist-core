@@ -65,12 +65,6 @@ abstract class BaseController implements LogSupport, IdentitySupport {
      * complete result. Successful streams are standard NDJSON, with every line
      * newline-terminated and no end delimiter.
      *
-     * Note that `application/x-ndjson` is not compressible by default in servlet containers.
-     * Hoist adds it to `server.compression.mimeTypes` in
-     * {@link io.xh.hoist.configuration.ApplicationConfig} to cover the embedded container used in
-     * local development, and xh-nginx covers deployed apps, but any other proxy fronting the app
-     * must be configured to compress it.
-     *
      * @param source - an Iterable or Iterator of elements to serialize, one per line.
      * @param contentType - defaults to 'application/x-ndjson'.
      */
