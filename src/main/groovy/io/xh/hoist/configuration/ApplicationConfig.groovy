@@ -54,6 +54,7 @@ class ApplicationConfig {
 
             server {
                 // Spring Boot's defaults, plus the NDJSON type served by `renderNDJSON`.
+                // Relevant to local development - deployed apps compress via xh-nginx instead.
                 compression.mimeTypes = [
                     'text/html', 'text/xml', 'text/plain', 'text/css', 'text/javascript',
                     'application/javascript', 'application/json', 'application/xml',
