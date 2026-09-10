@@ -53,15 +53,7 @@ class ApplicationConfig {
             }
 
             server {
-                // Spring Boot compresses only a built-in list of MIME types, which does not
-                // include the NDJSON type served by `BaseController.renderNDJSON`. Boot's
-                // defaults are class-level (`o.s.b.web.server.Compression`) and not visible as
-                // config, so the list is restated here in full. Apps can append to it with
-                // `server.compression.mimeTypes += 'foo/bar'` after calling `defaultConfig()`.
-                //
-                // Note this does not *enable* compression - apps opt in via
-                // `server.compression.enabled`, typically in local development only, as deployed
-                // apps compress at the xh-nginx layer instead.
+                // Spring Boot's defaults, plus the NDJSON type served by `renderNDJSON`.
                 compression.mimeTypes = [
                     'text/html', 'text/xml', 'text/plain', 'text/css', 'text/javascript',
                     'application/javascript', 'application/json', 'application/xml',
