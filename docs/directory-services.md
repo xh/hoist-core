@@ -86,7 +86,7 @@ its role memberships to the new source. Set `directoryGroupProvider` explicitly 
 the conflict.
 
 Applications with a different external source can override
-`DefaultRoleService.doLoadUsersForDirectoryGroups()` - see
+`DefaultRoleService.getDirectoryService()` to return their own `DirectoryService` - see
 [`authorization.md`](./authorization.md#directory-group-integration).
 
 ### Group Identifiers

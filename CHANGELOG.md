@@ -14,6 +14,22 @@
 
 ## 42.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟠 Minor)
+
+See [`docs/upgrade-notes/v42-upgrade-notes.md`](docs/upgrade-notes/v42-upgrade-notes.md) for
+detailed, step-by-step upgrade instructions with before and after code examples.
+
+* Removed `DefaultRoleService.doLoadUsersForDirectoryGroups`. Apps that resolve directory groups
+  from a custom source now override `getDirectoryService` to return their own `DirectoryService`
+  implementation. Apps that do not override the removed method require no changes.
+
+### 🐞 Bug Fixes
+
+* `DefaultRoleService.describeDirectoryGroups` and `searchDirectoryGroups` now resolve through the
+  overridable `getDirectoryService`, so an app with a custom directory group source no longer sees
+  "No enabled directory service in this application" reported for every group by the
+  `roleAdmin/directoryGroupsInfo` endpoint, or an empty group search in the Admin Console.
+
 ### ⚙️ Technical
 
 * `ApplicationConfig.defaultConfig` now sets `server.compression.mimeTypes`, adding
