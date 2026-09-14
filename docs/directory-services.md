@@ -176,6 +176,26 @@ Note MSAL sends the certificate (the `x5c` header) with each token request by de
 Subject Name + Issuer-based trust and thumbprint-free certificate rotation work without
 further configuration.
 
+The matching **public** certificate must also be uploaded to the app registration - Entra
+verifies the assertion signature against it. Do this in the Azure portal under
+**App registrations > Certificates & secrets > Certificates**, or with the Azure CLI:
+
+```bash
+az ad app credential reset --id <client-id> --cert @cert.pem --append \
+  --display-name "<name>" --years 2
+```
+
+> [!CAUTION]
+> Pass `--append`. Without it, `az ad app credential reset` clears every existing credential
+> on the registration, including the client secret any other consumer is authenticating with.
+
+To confirm the app is using the certificate you expect, compare the `thumbprint` reported by
+the service's Admin Console stats against the registration's certificate list - the portal's
+"Thumbprint" column, or `customKeyIdentifier` from
+`az ad app show --id <client-id> --query 'keyCredentials[].customKeyIdentifier'`. Both are the
+certificate's SHA-1 hash, so a match confirms the deployed bundle and the uploaded certificate
+are the same one.
+
 The tenant ID and client ID are standalone configs. Other server-side subsystems can share
 them, and deployments can override them per environment via instance configs / environment
 variables (e.g. `APP_MYAPP_XH_ENTRA_TENANT_ID`). See
