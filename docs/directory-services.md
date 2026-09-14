@@ -161,6 +161,24 @@ Plus one of two credentials for the app registration:
 - **`xhEntraClientSecret`** (pwd) - a client secret. Simpler to provision, but a shared
   password sent with every token request. Not used when a certificate is configured.
 
+#### Bundle requirements
+
+The value of `xhEntraClientPfx` must satisfy all of the following. How the bundle gets
+produced - enterprise PKI, ACME, `openssl`, a cloud KMS export - does not matter.
+
+| Requirement | Detail |
+|---|---|
+| **PKCS#12 container** | `.pfx`/`.p12`. Not JKS, not BCFKS, not bare PEM - the keystore type is fixed. |
+| **RSA key** | The client assertion is signed **RS256**. An EC/ECDSA key loads without complaint and then fails at token acquisition with `InvalidKeyException: No installed provider supports this key`. Use an RSA key. |
+| **Exactly one private key entry** | A bundle with two or more is rejected outright: `more than one certificate alias found in input stream`. Export a single identity, not a whole keystore. |
+| **Private key included** | A bundle holding only certificates fails with `certificate not loaded from input stream`. |
+| **Base64 of the raw bundle bytes** | Standard base64. Line wrapping and surrounding whitespace are tolerated, so a wrapped value from any encoder is safe to paste. |
+| **Password optional** | Set `xhEntraClientPfxPassword` to the bundle's password, or leave it unset for a passwordless bundle. |
+| **Chain optional** | Intermediates may be included but are not required - Entra validates against the uploaded certificate, not a trust path. |
+
+The corresponding **public** certificate must be registered on the app registration, and its
+SHA-1 thumbprint must match the bundle's - see [below](#verifying-the-deployed-certificate).
+
 PKCS#12 is the standard container for exactly this material in transit, and its base64 form
 travels safely through secret managers and environment variables as a single-line string.
 Parsing is handled by MSAL and the JDK's built-in PKCS#12 support - Hoist adds no certificate
@@ -188,6 +206,8 @@ az ad app credential reset --id <client-id> --cert @cert.pem --append \
 > [!CAUTION]
 > Pass `--append`. Without it, `az ad app credential reset` clears every existing credential
 > on the registration, including the client secret any other consumer is authenticating with.
+
+#### Verifying the deployed certificate
 
 To confirm the app is using the certificate you expect, compare the `thumbprint` reported by
 the service's Admin Console stats against the registration's certificate list - the portal's
@@ -322,6 +342,20 @@ secrets have a maximum lifetime of 24 months - track and rotate them. For certif
 service's Admin Console stats report the configured certificate's subject, thumbprint, and
 expiry date, and an app registration can hold multiple certificates at once - upload the new
 one before the old expires for zero-downtime rotation.
+
+### Rejected certificate bundle (Entra ID)
+
+A bundle that does not meet the [requirements above](#bundle-requirements) fails in one of two
+places, and the second is the confusing one:
+
+- **At startup, naming the config** - `Unable to load certificate credential from
+  xhEntraClientPfx`, wrapping the underlying cause. `more than one certificate alias found in
+  input stream` means the bundle carries multiple private key entries; `certificate not loaded
+  from input stream` means it carries none. A wrong `xhEntraClientPfxPassword` surfaces here too.
+- **At token acquisition, naming nothing useful** - `InvalidKeyException: No installed provider
+  supports this key: sun.security.ec.ECPrivateKeyImpl`. This is an EC/ECDSA key. It loads
+  cleanly and only fails when MSAL tries to sign the RS256 assertion, so the error points at the
+  JCA provider rather than at the real problem. Re-issue the certificate with an RSA key.
 
 ### Per-request directory lookups on the auth path
 
