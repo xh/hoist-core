@@ -208,8 +208,9 @@ class ConfigService extends BaseService {
      *  - Server code can load the config via {@link #getObject(Class)}.
      *  - The class's property-initializer defaults are applied at read time for any key missing
      *    from the stored map.
-     *  - Defaults should live solely on the typed class - specs should declare
-     *    `defaultValue: [:]`, and a `WARN` is logged at startup for any that do not.
+     *  - Defaults live solely on the typed class. Omit `defaultValue` from the spec - a missing
+     *    config is seeded with an empty JSON object. An explicit `[:]` is also accepted, but a
+     *    `WARN` is logged at startup for any spec that declares a non-empty default.
      *
      * @param configSpecs - List of {@link ConfigSpec} defining the required configs.
      */
@@ -225,6 +226,9 @@ class ConfigService extends BaseService {
         configSpecs.each { ConfigSpec spec ->
             def currConfig = currConfigs.find { it.name == spec.name },
                 defaultVal = spec.defaultValue
+
+            // Typed configs keep their defaults on the TypedConfigMap subclass - seed an empty object.
+            if (spec.typedClass && defaultVal == null) defaultVal = [:]
 
             if (!currConfig) {
                 if (spec.valueType == 'json') defaultVal = serializePretty(defaultVal)
@@ -347,7 +351,7 @@ class ConfigService extends BaseService {
         if (bootstrapDefault) {
             logWarn(
                 "Config '$confName' declares both a typedClass and a non-empty defaultValue",
-                "defaults should live on ${asTyped.simpleName} - pass defaultValue: [:] in the ConfigSpec"
+                "defaults should live on ${asTyped.simpleName} - omit defaultValue from the ConfigSpec"
             )
         }
     }

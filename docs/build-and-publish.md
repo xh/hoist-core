@@ -1,251 +1,138 @@
 # Build and Publish
 
-> **Status: DRAFT** — This document is awaiting review. It may contain inaccuracies or gaps.
+Hoist Core is built with Gradle and published to Maven Central through the Sonatype Central Portal
+as two artifacts under the `io.xh` group:
 
-## Overview
+- `hoist-core` — the Grails plugin consumed by Hoist applications.
+- `hoist-core-mcp` — a self-contained JAR providing the MCP server and CLI developer tools. See
+  [`mcp/README.md`](../mcp/README.md).
 
-Hoist-core is built with Gradle and published as the `io.xh:hoist-core` artifact. The project uses
-**GitHub Actions** for continuous integration and automated publishing, with **Maven Central** as
-the primary public artifact repository (via the Sonatype Central Portal).
+GitHub Actions handles CI and publishing. Workflow definitions live in `.github/workflows/`. Steps
+shared across XH repositories, such as version validation, tagging, and GitHub release creation,
+come from composite actions in [xh/hoist-dev-utils](https://github.com/xh/hoist-dev-utils).
 
-The build pipeline supports three GitHub Actions workflows:
+## Versioning
 
-- **CI** — Builds on every push and PR to `develop`
-- **Snapshot publishing** — Automatically publishes `-SNAPSHOT` builds to Sonatype on every push to
-  `develop`. Can also be triggered manually with an optional version override.
-- **Release publishing** — Manually triggered workflow that validates the version, builds, signs,
-  and publishes a release to Maven Central from the `master` branch, then tags the commit and
-  creates a GitHub release
+The `xhReleaseVersion` property in `gradle.properties` sets the version for both artifacts.
 
-> When code is pushed or merged to `develop`, both the CI and snapshot workflows run. CI validates
-> the build; the snapshot workflow additionally publishes the artifact.
+- On `develop`, the property always carries the `-SNAPSHOT` version of the next release line.
+  Snapshot builds publish it as-is. Maven snapshot repositories handle mutable versions, so no
+  timestamp is appended.
+- Release builds pass the release version to Gradle at build time. It is never committed, so a
+  release tag points at a commit whose `gradle.properties` still reads `-SNAPSHOT`. This is
+  deliberate: it avoids paired set/reset commits on every release.
+- After a release, bump `xhReleaseVersion` on `develop` to the next `-SNAPSHOT` so subsequent
+  snapshots publish under the new line.
 
-## How to Perform a Release
-
-1. Update `xhReleaseVersion` in `gradle.properties` on `develop` to the next snapshot version
-   (e.g. `38.0-SNAPSHOT`). Do this first so that subsequent snapshot builds can use this version.
-2. Merge `develop` into `master` when ready to release (CI passing, changelog updated)
-3. Navigate to **Actions → Deploy Release** in the GitHub repository
-4. Click **Run workflow**
-5. Enter the branch `master` and release version (e.g. `37.0.0`) — must be semver, must not duplicate an existing tag
-6. The workflow validates the version, builds, signs, publishes to Maven Central, tags the commit
-   (`vX.Y.Z`), and creates a GitHub release with auto-generated notes
-7. Verify the artifact appears on
-   [Maven Central](https://central.sonatype.com/artifact/io.xh/hoist-core) and the release
-   appears on the repository's [Releases](https://github.com/xh/hoist-core/releases) page
-
-## Source Files
-
-| File | Role |
-|------|------|
-| `build.gradle` | Gradle build config — plugins, dependencies, publishing, and signing |
-| `settings.gradle` | Sets `rootProject.name = 'hoist-core'` — ensures the correct artifact name regardless of the checkout directory. Replaces a TeamCity `%projectName%` placeholder that was written as a literal string in GitHub Actions |
-| `gradle.properties` | Default version (`xhReleaseVersion`), Grails version, Gradle JVM args |
-| `.github/workflows/ci.yml` | CI workflow — build + dependency submission |
-| `.github/workflows/deploySnapshot.yml` | Snapshot publishing workflow |
-| `.github/workflows/deployRelease.yml` | Release publishing workflow |
-| `.github/dependabot.yml` | Dependabot config — monitors workflow action versions weekly |
-
-## Version Numbering
-
-The project version is controlled by the `xhReleaseVersion` property in `gradle.properties`:
-
-```properties
-xhReleaseVersion=37.0-SNAPSHOT
-```
-
-- **Snapshot builds** use the version as-is from `gradle.properties` (e.g. `37.0-SNAPSHOT`).
-  The `-SNAPSHOT` suffix tells Gradle and Sonatype to treat the artifact as a mutable development
-  build.
-- **Release builds** override this property at build time via the workflow's `xhReleaseVersion`
-  input parameter (e.g. `37.0.0`). Release versions must **not** contain the `-SNAPSHOT` suffix.
-
-## JDK
-
-hoist-core compiles with a JDK 25 toolchain but targets Java 17 bytecode
-(`javac --release 17`, Groovy `targetCompatibility = '17'`), so the published JAR runs on any
-JDK 17+ runtime. Contributors must not use Java 18+ APIs in hoist-core source — CI runs the
-test suite on JDK 17 as well to catch accidental use of newer APIs (e.g. `List.reversed()`,
-`SequencedCollection`).
-
-Client-app JDK choice (including using JDK 25 in your own app build) is independent of this and
-covered in [`application-structure.md`](./application-structure.md#jdk-choice).
-
-## GitHub Actions Workflows
-
-All workflows run on `ubuntu-latest` with JDK 25 (Zulu), via the `gradle/actions/setup-gradle`
-action for Gradle caching and setup. The CI workflow additionally runs the build on JDK 17 in a
-matrix row to guard the Java-17 bytecode contract.
+## Workflows
 
 ### CI (`ci.yml`)
 
-**Trigger:** Push or PR to `develop`
+Runs on pushes and pull requests to `develop`.
 
-Runs two jobs:
+- **build** runs `./gradlew build` across a JDK matrix: the toolchain used for publishing, and the
+  oldest runtime the published JAR supports. The older row catches accidental use of newer Java
+  APIs. See the `java` block in `build.gradle` and
+  [`application-structure.md`](./application-structure.md#jdk-choice) for the current toolchain
+  and bytecode target.
+- **dependency-submission** submits the Gradle dependency graph to GitHub, enabling Dependabot
+  alerts for project dependencies.
 
-1. **build** — Runs `./gradlew build` (compilation and any configured checks)
-2. **dependency-submission** — Generates and submits a dependency graph to GitHub, enabling
-   **Dependabot Alerts** for all project dependencies
+CI uses no configured secrets.
 
-This workflow requires no secrets — it only builds and reports.
+### Deploy Snapshot (`deploySnapshot.yml`)
 
-### Snapshot Publishing (`deploySnapshot.yml`)
+Runs on every push to `develop`, or manually via `workflow_dispatch` with an optional `version`
+input that overrides `gradle.properties`. The `-SNAPSHOT` suffix is appended if missing.
 
-**Trigger:** Push to `develop`, or manual `workflow_dispatch`
+1. Runs `publishToSonatype`, uploading both artifacts directly to the Sonatype snapshot
+   repository. Snapshots are not signed and do not pass through staging.
+2. Fires a `repository_dispatch` (`hoist-core-snapshot`) to `xh/toolbox`, which rebuilds and
+   redeploys Toolbox against the new snapshot. The dispatch authenticates as the org-owned
+   **XH Build Bot** GitHub App via a short-lived installation token minted by
+   `actions/create-github-app-token`, scoped to the toolbox repo with Contents: write. Toolbox
+   runs triggered this way show `xh-build-bot[bot]` as the actor.
 
-The workflow can also be triggered manually via `workflow_dispatch` with an optional
-`xhSnapshotVersion` input to override the version in `gradle.properties`. If provided, the
-`-SNAPSHOT` suffix is automatically appended if not already present.
+Runs are debounced per branch: a newer push cancels an in-progress snapshot build.
 
-Publishes a snapshot build to the Sonatype Maven Central snapshot repository:
+Snapshot publishing must be enabled for the `io.xh` namespace on the Sonatype Central Portal.
 
-```
-./gradlew publishToSonatype --no-daemon
-```
+### Deploy Release (`deployRelease.yml`)
 
-Snapshots are published directly — they do **not** go through Sonatype's staging/release process
-and are not signed. They are available immediately at the Sonatype snapshot repository
-(`https://central.sonatype.com/repository/maven-snapshots/`).
+Manually triggered via `workflow_dispatch` with two inputs:
 
-> **Note:** Snapshot publishing must be enabled on the Sonatype Central Portal namespace
-> (Namespaces → dropdown → "Enable SNAPSHOTs") for this workflow to succeed.
+- `version` — the release version, e.g. `41.0.0`.
+- `is-hotfix` — check when releasing a fix to a line other than the latest.
 
-### Release Publishing (`deployRelease.yml`)
+A job-level guard requires standard releases to run from `master`, and hotfixes to run from a
+branch other than `master` or `develop`, such as a maintenance branch for an older major version.
 
-**Trigger:** Manual (`workflow_dispatch`) — the operator enters the release version string and
-optionally checks the `isHotfix` boolean input to flag a hotfix release.
+1. **Validate** — `version` must be semver with no leading zeros, must not already be tagged, and
+   must be exactly one major, minor, or patch increment from the latest tag. For hotfixes, the
+   base is the latest tag before the proposed version, which must not itself be the latest
+   release.
+2. **Publish** — runs `publishToSonatype closeAndReleaseSonatypeStagingRepository` with the
+   release version, signing both artifacts and releasing the staging repository to Maven Central.
+3. **Tag** — creates and pushes `vX.Y.Z`.
+4. **Release** — creates a GitHub release with notes generated from merged PRs since the previous
+   tag. Hotfix releases are not marked latest.
 
-A job-level branch guard ensures standard releases run from `master`, while hotfix releases must
-run from a branch other than `master` or `develop` (e.g. a maintenance branch for an older major
-version).
+Release runs are serialized and never cancelled by one another.
 
-The workflow performs the following steps in order:
+## Performing a Release
 
-1. **Validates** the version input — must be semver (`X.Y.Z`), must not duplicate an existing tag,
-   and must be a reasonable increment from the latest release (catches fat-finger errors like
-   `38.40.0` instead of `38.4.0`). When `isHotfix` is checked, the version is validated against
-   the relevant older major version's tags instead.
-2. **Builds and publishes** to Maven Central via Sonatype's staging API:
-   ```
-   ./gradlew -PxhReleaseVersion="$XH_RELEASE_VERSION" publishToSonatype closeAndReleaseSonatypeStagingRepository --no-daemon
-   ```
-3. **Tags** the commit as `vX.Y.Z` and pushes the tag to GitHub
-4. **Creates a GitHub release** with auto-generated notes from merged PRs since the previous tag.
-   Hotfix releases are created without the "latest" flag to avoid displacing the current release.
+1. Confirm CI is green on `develop` and the changelog is finalized.
+2. Merge `develop` into `master`.
+3. In GitHub, open **Actions → Deploy Release → Run workflow**. Select `master`, enter the
+   version, and leave `is-hotfix` unchecked.
+4. Confirm the artifacts appear on [Maven Central](https://central.sonatype.com/namespace/io.xh)
+   and the release on the repository's [Releases](https://github.com/xh/hoist-core/releases) page.
+5. Bump `xhReleaseVersion` on `develop` to the next `-SNAPSHOT`.
 
-Once released, the artifact is available on Maven Central as `io.xh:hoist-core:<version>`.
+For a hotfix, run the workflow from the maintenance branch with `is-hotfix` checked.
 
-## Gradle Build Configuration
+## Build Configuration
 
-### Plugins
+`build.gradle` is the reference for exact plugin versions, repository URLs, and publication
+metadata. In outline:
 
-The build uses three plugins for publishing:
+- **Publications** — the root project defines the `hoistCore` publication: compiled classes,
+  sources, POM, and the Grails plugin descriptor as a `plugin`-classified artifact. The `mcp`
+  subproject defines `mcpServer`, publishing its shadow JAR as `hoist-core-mcp`.
+- **Signing** — both publications sign with in-memory PGP keys, so no keyring is written to disk.
+  Signing is required for release versions and skipped for snapshots. Key material resolves from
+  the `signingKey` and `signingPassword` Gradle properties, falling back to the `SIGNING_KEY` and
+  `SIGNING_PASSWORD` environment variables.
+- **Sonatype** — the `nexusPublishing` block in the root project targets the Central Portal's
+  staging API for releases and its snapshot repository for snapshots. Credentials resolve from the
+  `sonatypeUsername` and `sonatypePassword` Gradle properties, falling back to `SONATYPE_USERNAME`
+  and `SONATYPE_PASSWORD`.
+- **Artifact name** — `settings.gradle` pins `rootProject.name` so the artifact id does not depend
+  on the checkout directory name.
 
-| Plugin | Purpose |
-|--------|---------|
-| `maven-publish` | Gradle's built-in Maven publishing support — defines publications and repositories |
-| `signing` | Gradle's built-in artifact signing — GPG signs JARs for Maven Central |
-| `io.github.gradle-nexus.publish-plugin` (v2.0.0) | Sonatype Nexus integration — staging, close, and release via the Central Portal API |
+## Required Secrets and Variables
 
-The Maven Central publishing configuration was written using:
-- [How to Publish a Grails Plugin to the Maven Central Repository](https://grails.apache.org/blog/2021-04-07-publish-grails-plugin-to-maven-central.html)
-- [Sample Grails plugin configured for Maven Central](https://github.com/puneetbehl/myplugin/blob/main/build.gradle)
+Configured in the repository's GitHub settings.
 
-### Publication: `hoistCore`
+| Name | Type | Used By | Purpose |
+|------|------|---------|---------|
+| `SONATYPE_USERNAME` | Secret | Snapshot, Release | Sonatype Central Portal credentials |
+| `SONATYPE_PASSWORD` | Secret | Snapshot, Release | Sonatype Central Portal credentials |
+| `SIGNING_KEY` | Secret | Release | ASCII-armored GPG private key for artifact signing |
+| `SIGNING_PASSWORD` | Secret | Release | Passphrase for the signing key |
+| `XH_BUILD_BOT_PRIVATE_KEY` | Secret | Snapshot | Private key for the XH Build Bot GitHub App |
+| `XH_BUILD_BOT_CLIENT_ID` | Variable | Snapshot | Client ID of the XH Build Bot GitHub App |
 
-The `hoistCore` Maven publication is configured in the `publishing` block and includes:
+The XH Build Bot app is registered under the xh GitHub org and installed org-wide. Its credentials
+are kept in the team 1Password vault under "GitHub App: XH Build Bot". To rotate, generate a new
+private key on the app's settings page, update the 1Password item and the
+`XH_BUILD_BOT_PRIVATE_KEY` secret here and in hoist-react, then revoke the old key.
 
-- **Coordinates:** `io.xh:hoist-core:<version>`
-- **Components:** The `java` component (compiled classes, sources JAR)
-- **Grails plugin descriptor:** An additional artifact (`grails-plugin.xml`) with classifier
-  `plugin` — required for Grails plugin resolution
-- **POM metadata:** Project name, description, Apache 2.0 license, organization, SCM URLs,
-  issue tracker, and developer info — all required by Maven Central
+The release workflow also uses the automatic `GITHUB_TOKEN` to push the tag and create the release.
 
-### Published Artifacts
+## Consuming the Artifacts
 
-Each publication produces:
-
-| Artifact | Description |
-|----------|-------------|
-| `hoist-core-<version>.jar` | Compiled classes |
-| `hoist-core-<version>-sources.jar` | Source code |
-| `hoist-core-<version>-plugin.xml` | Grails plugin descriptor |
-| `hoist-core-<version>.pom` | Maven POM with dependency metadata |
-
-For release builds, each artifact also gets a `.asc` GPG signature file.
-
-### Artifact Signing
-
-Release artifacts are signed with GPG to satisfy Maven Central requirements. The signing
-configuration uses **in-memory PGP keys** — no keyring file is written to disk:
-
-```groovy
-ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
-afterEvaluate {
-    signing {
-        required { isReleaseVersion && gradle.taskGraph.hasTask("publish") }
-        def signingKey = findProperty("signingKey") ?: System.getenv("SIGNING_KEY")
-        def signingPassword = findProperty("signingPassword") ?: System.getenv("SIGNING_PASSWORD")
-        if (signingKey) {
-            useInMemoryPgpKeys(signingKey, signingPassword)
-        }
-        sign publishing.publications.hoistCore
-    }
-}
-tasks.withType(Sign) {
-    onlyIf { isReleaseVersion }
-}
-```
-
-- Signing is **required** for release versions and **skipped** for snapshots
-  (the `isReleaseVersion` flag is `true` when the version does not end in `SNAPSHOT`)
-- The signing key and password are resolved from Gradle properties first (`signingKey`,
-  `signingPassword`), falling back to environment variables (`SIGNING_KEY`, `SIGNING_PASSWORD`)
-- The `if (signingKey)` guard prevents failures in environments where no signing key is available
-  (e.g. local development or snapshot CI runs) — without a key, in-memory PGP signing is simply
-  not configured
-- The `tasks.withType(Sign) { onlyIf { isReleaseVersion } }` block provides an additional
-  safeguard, ensuring sign tasks are skipped entirely for snapshot builds
-- The entire signing block is wrapped in `afterEvaluate` to ensure the publication is fully
-  configured before signing is applied
-- `SIGNING_KEY` must be the full ASCII-armored GPG private key
-
-### Nexus Publishing (Sonatype)
-
-The `nexusPublishing` block configures the connection to Sonatype's Central Portal:
-
-```groovy
-nexusPublishing {
-    repositories {
-        sonatype {
-            nexusUrl = uri "https://ossrh-staging-api.central.sonatype.com/service/local/"
-            snapshotRepositoryUrl = uri "https://central.sonatype.com/repository/maven-snapshots/"
-        }
-    }
-}
-```
-
-- **Releases** go through the OSSRH staging API — artifacts are uploaded to a staging repository,
-  then closed and released to trigger Maven Central sync
-- **Snapshots** go directly to the snapshot repository
-- Credentials are resolved from Gradle properties first (`sonatypeUsername`, `sonatypePassword`),
-  falling back to environment variables (`SONATYPE_USERNAME`, `SONATYPE_PASSWORD`)
-
-## Required GitHub Secrets
-
-The following secrets must be configured in the GitHub repository settings:
-
-| Secret | Used By | Description |
-|--------|---------|-------------|
-| `SONATYPE_USERNAME` | Snapshot + Release | Sonatype Central Portal username |
-| `SONATYPE_PASSWORD` | Snapshot + Release | Sonatype Central Portal password/token |
-| `SIGNING_KEY` | Release only | ASCII-armored GPG private key for artifact signing |
-| `SIGNING_PASSWORD` | Release only | Passphrase for the GPG signing key |
-
-## Consuming the Artifact
-
-Application projects that depend on hoist-core declare it in their `build.gradle`:
+Applications declare the dependency in `build.gradle`:
 
 ```groovy
 dependencies {
@@ -253,21 +140,21 @@ dependencies {
 }
 ```
 
-To resolve the artifact, the app's `repositories` block must include Maven Central (for releases)
-and/or the Sonatype snapshot repository (for snapshot builds):
+Releases resolve from Maven Central. Snapshot builds also require the Sonatype snapshot repository:
 
 ```groovy
 repositories {
     mavenCentral()
-    // For snapshot builds:
     maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
 }
 ```
 
-### Legacy versions: `maven-archive.xh.io`
+See [`mcp/README.md`](../mcp/README.md#app-side-distribution) for pulling `hoist-core-mcp` into an
+application.
 
-Hoist Core was published to a private Nexus-hosted Maven repository at `repo.xh.io` prior to its
-migration to Maven Central. **Release versions up to and including `36.2.0`** are preserved at a
+### Legacy releases
+
+Releases up to and including `36.2.0` predate the move to Maven Central and are served from a
 static, read-only archive:
 
 ```groovy
@@ -276,15 +163,5 @@ repositories {
 }
 ```
 
-This archive serves only `io.xh:hoist-core` release artifacts — JARs, sources, plugin descriptors,
-POMs, and the top-level `maven-metadata.xml` — for all 191 historical versions from `0.1.0`
-through `36.2.0`. Any other artifact coordinate returns 404 (the archive does not contain
-snapshots, other `io.xh.*` libraries, or third-party content).
-
-Current hoist-core releases (`37.x` and later) are published exclusively to
-[Maven Central](https://central.sonatype.com/artifact/io.xh/hoist-core); add the archive to a
-build's `repositories` block only when resolving historical `36.x` or earlier coordinates.
-
-The archive replaces the artifact-serving role of the original `repo.xh.io` host, an XH-hosted Nexus
-instance, which was retired in Q2 2026 as part of XH's broader sunset of that legacy infrastructure.
-
+The archive holds only `io.xh:hoist-core` release artifacts and their metadata. Add it only when
+resolving those historical versions.

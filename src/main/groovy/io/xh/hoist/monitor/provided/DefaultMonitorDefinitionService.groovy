@@ -158,7 +158,7 @@ class DefaultMonitorDefinitionService extends BaseService {
                     monitorRepeatNotifyMins: 60
                 ],
                 groupName: 'xh.io',
-                note: 'Configures server-side status monitoring and notifications.'
+                note: 'Configures server-side status monitors and their notifications. `warnNotifyThreshold` and `failNotifyThreshold` are the number of consecutive refresh cycles a monitor must spend in that status before alerting.'
             )
         ])
 

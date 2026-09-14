@@ -509,8 +509,9 @@ def endpoint = m.endpoint ?: 'https://prices.example.com'
 ```
 
 The class must extend `TypedConfigMap` and be registered with `typedClass:` on its
-`ensureRequiredConfigsCreated` entry. See [Configuration](configuration.md#typed-configs-via-typedconfigmap)
-for the full guide.
+`ensureRequiredConfigsCreated` entry. Omit `defaultValue` on that entry — the class is the single
+source of defaults, and a non-empty `defaultValue` logs a WARN at startup. See
+[Configuration](configuration.md#typed-configs-via-typedconfigmap) for the full guide.
 
 ## Controllers and Security
 

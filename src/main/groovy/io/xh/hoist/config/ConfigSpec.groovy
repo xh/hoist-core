@@ -22,6 +22,11 @@ import groovy.transform.MapConstructor
 class ConfigSpec {
     String name
     String valueType
+
+    /**
+     * Value seeded when the config does not yet exist. Omit for configs with a {@link #typedClass} -
+     * defaults live on the typed class, and the config is seeded with an empty JSON object.
+     */
     Object defaultValue
     boolean clientVisible = false
     String groupName = 'Default'
@@ -30,6 +35,9 @@ class ConfigSpec {
     /**
      * Optional {@link TypedConfigMap} subclass binding the shape of this config (JSON-type only).
      * Recommended for any structured config with a stable key set — see docs/configuration.md.
+     *
+     * When set, leave {@link #defaultValue} unspecified. The typed class's property initializers
+     * are the defaults, and a non-empty `defaultValue` logs a WARN at startup.
      */
     Class<? extends TypedConfigMap> typedClass
 }
