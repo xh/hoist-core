@@ -30,7 +30,7 @@
             "mcpCategory": "package",
             "viewerCategory": "core-framework",
             "description": "Base classes for services and controllers — lifecycle, resource factories, CRUD patterns.",
-            "keywords": ["BaseService", "init", "destroy", "createCache", "createCachedValue", "createTimer", "createIMap", "createISet", "BaseController", "renderJSON", "parseRequestJSON", "RestController", "doCreate", "doList", "doUpdate", "doDelete"]
+            "keywords": ["BaseService", "init", "destroy", "createCache", "createCachedValue", "createTimer", "createIMap", "createISet", "BaseController", "renderJSON", "parseRequestJSON", "RestController", "doCreate", "doList", "doUpdate", "doDelete", "getAdminStats", "AdminStats"]
         },
         {
             "id": "docs/request-flow.md",

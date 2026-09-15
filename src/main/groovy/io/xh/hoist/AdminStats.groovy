@@ -18,6 +18,13 @@ interface AdminStats {
 
     /**
      * Stats to report to the Hoist Admin client.
+     *
+     * Called on a cluster executor thread, which has neither a bound Hibernate session nor a
+     * request context. Return state the implementing object already holds in memory - do not query
+     * the database here. If a stat must be sourced from the database, annotate the implementation
+     * `@ReadOnly` and keep the query cheap, as stats are recomputed on every instance each time
+     * they are requested.
+     *
      * @returns a JSON serializable map.
      */
     Map getAdminStats()

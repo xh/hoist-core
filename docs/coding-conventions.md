@@ -860,11 +860,21 @@ xhEmailOverride: dev-team@example.com
 
 See [Email](email.md) for details.
 
-### Background Threads and GORM Sessions
+### Non-Request Threads and GORM Sessions
 
-Timers and other background threads do not have an automatic Hibernate session. Lazy-loading any
-GORM association from a timer throws `LazyInitializationException`. Either eagerly load all needed
-data inside a session, or wrap the work in `withNewSession`:
+Only servlet request threads receive an automatic Hibernate session. Code running anywhere else has
+none, and GORM fails there in one of two ways:
+
+| Symptom | Cause |
+|---------|-------|
+| `HibernateException: No Session found for current thread` | A query issued with no session bound |
+| `LazyInitializationException` | A lazy association traversed after its session closed |
+
+Non-request contexts include timer `runFn`s, `subscribe()` and `subscribeToTopic()` handlers,
+`Cache` and `CachedValue` `onChange` handlers, cluster tasks — including `getAdminStats()` — and any
+thread started by application code.
+
+Either eagerly load all needed data inside a session, or wrap the work in `withNewSession`:
 
 ```groovy
 // Do: open a session for the background work
@@ -880,6 +890,11 @@ createTimer(
     }
 )
 ```
+
+Calling an annotated service method works too: `@ReadOnly` and `@Transactional` are compile-time AST
+transforms woven into the method body rather than proxy-based advice, so they bind a session on
+whatever thread invokes them — including through self-invocation from an unannotated method on the
+same class.
 
 ### Pass `username` from Background Calls to `trackService.track()`
 
