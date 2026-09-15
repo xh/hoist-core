@@ -62,7 +62,7 @@
             "mcpCategory": "package",
             "viewerCategory": "core-framework",
             "description": "Corporate directory integration for role resolution, username mapping, and LDAP-backed login.",
-            "keywords": ["DirectoryService", "LdapService", "EntraIdService", "Active Directory", "Microsoft Graph", "xhLdapConfig", "xhEntraIdConfig", "directoryGroupProvider", "usernameAttribute", "directory groups", "ErrorOr"]
+            "keywords": ["DirectoryService", "LdapService", "EntraIdService", "Active Directory", "Microsoft Graph", "xhLdapConfig", "xhEntraIdConfig", "directoryGroupProvider", "usernameAttribute", "directory groups", "ErrorOr", "xhEntraClientPfx", "certificate auth", "PKCS12"]
         },
         {
             "id": "docs/configuration.md",

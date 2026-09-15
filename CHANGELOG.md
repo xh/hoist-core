@@ -23,6 +23,13 @@ detailed, step-by-step upgrade instructions with before and after code examples.
   from a custom source now override `getDirectoryService` to return their own `DirectoryService`
   implementation. Apps that do not override the removed method require no changes.
 
+### 🎁 New Features
+
+* Added certificate-based authentication to `EntraIdService` as an alternative to a client
+  secret, via the new `xhEntraClientPfx` (base64-encoded PKCS#12 bundle holding the
+  certificate, its chain, and its private key) and `xhEntraClientPfxPassword` configs. When
+  configured, the certificate takes precedence over `xhEntraClientSecret`.
+
 ### 🐞 Bug Fixes
 
 * `DefaultRoleService.describeDirectoryGroups` and `searchDirectoryGroups` now resolve through the
@@ -34,7 +41,7 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 * `ApplicationConfig.defaultConfig` now sets `server.compression.mimeTypes`, adding
   `application/x-ndjson` to Spring Boot's built-in list.  The result is that `BaseController.renderNDJSON`
-  responses are also compressed during development (as they already were when deployed behind xh-nginx.). 
+  responses are also compressed during development (as they already were when deployed behind xh-nginx.).
 * `ConfigService.ensureRequiredConfigsCreated` now seeds a `ConfigSpec` that has a `typedClass` but
   no `defaultValue` with an empty JSON object. Apps can omit `defaultValue` for typed configs. An
   explicit `defaultValue: [:]` continues to work.

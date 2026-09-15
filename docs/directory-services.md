@@ -133,7 +133,7 @@ with admin consent:
 - `GroupMember.Read.All` - group lookups and transitive membership resolution.
 - `User.Read.All` - user lookups.
 
-Four soft-configs supply the connection:
+These soft-configs supply the connection:
 
 **`xhEntraIdConfig`** (json) - query settings and master switch. Key entries:
 
@@ -147,7 +147,73 @@ Four soft-configs supply the connection:
 
 - **`xhEntraTenantId`** (string) - tenant ID (GUID) of the Entra ID tenant.
 - **`xhEntraClientId`** (string) - client ID (GUID) of the app registration.
-- **`xhEntraClientSecret`** (pwd) - client secret for the app registration.
+
+Plus one of two credentials for the app registration:
+
+- **`xhEntraClientPfx`** (pwd) + **`xhEntraClientPfxPassword`** (pwd) - a base64-encoded
+  PKCS#12 (`.pfx`/`.p12`) bundle holding the certificate uploaded to the app registration,
+  its chain (if any), and its private key, plus the bundle's password (unset for a
+  passwordless bundle). The recommended credential type -
+  [Microsoft's guidance](https://learn.microsoft.com/en-us/entra/identity-platform/how-to-add-credentials)
+  is to use certificates rather than client secrets in production. With a certificate, the
+  private key never leaves the server: MSAL signs a short-lived JWT client assertion with it,
+  and Entra verifies the signature against the uploaded certificate.
+- **`xhEntraClientSecret`** (pwd) - a client secret. Simpler to provision, but a shared
+  password sent with every token request. Not used when a certificate is configured.
+
+#### Bundle requirements
+
+The value of `xhEntraClientPfx` must satisfy all of the following. How the bundle gets
+produced - enterprise PKI, ACME, `openssl`, a cloud KMS export - does not matter.
+
+| Requirement | Detail |
+|---|---|
+| **PKCS#12 container** | `.pfx`/`.p12`. Not JKS, not BCFKS, not bare PEM - the keystore type is fixed. |
+| **RSA key** | The client assertion is signed **RS256**. An EC/ECDSA key loads without complaint and then fails at token acquisition with `InvalidKeyException: No installed provider supports this key`. Use an RSA key. |
+| **Exactly one private key entry** | A bundle with two or more is rejected outright: `more than one certificate alias found in input stream`. Export a single identity, not a whole keystore. |
+| **Private key included** | A bundle holding only certificates fails with `certificate not loaded from input stream`. |
+| **Base64 of the raw bundle bytes** | Standard base64. Line wrapping and surrounding whitespace are tolerated, so a wrapped value from any encoder is safe to paste. |
+| **Password optional** | Set `xhEntraClientPfxPassword` to the bundle's password, or leave it unset for a passwordless bundle. |
+| **Chain optional** | Intermediates may be included but are not required - Entra validates against the uploaded certificate, not a trust path. |
+
+PKCS#12 is the standard container for exactly this material in transit, and its base64 form
+travels safely through secret managers and environment variables as a single-line string.
+Parsing is handled by MSAL and the JDK's built-in PKCS#12 support - Hoist adds no certificate
+parsing of its own. Enterprise PKI teams commonly issue `.pfx` bundles directly; to build one
+from PEM material instead:
+
+```bash
+openssl pkcs12 -export -in cert.pem -inkey key.pem | base64   # value for xhEntraClientPfx
+```
+
+Note MSAL sends the certificate (the `x5c` header) with each token request by default, so
+Subject Name + Issuer-based trust and thumbprint-free certificate rotation work without
+further configuration.
+
+#### Uploading the certificate to the app registration
+
+The matching **public** certificate must also be uploaded to the app registration - Entra
+verifies the assertion signature against it, and its SHA-1 thumbprint must match the bundle's
+(see [below](#verifying-the-deployed-certificate)). Upload in the Azure portal under
+**App registrations > Certificates & secrets > Certificates**, or with the Azure CLI:
+
+```bash
+az ad app credential reset --id <client-id> --cert @cert.pem --append \
+  --display-name "<name>" --years 2
+```
+
+> [!CAUTION]
+> Pass `--append`. Without it, `az ad app credential reset` clears every existing credential
+> on the registration, including the client secret any other consumer is authenticating with.
+
+#### Verifying the deployed certificate
+
+To confirm the app is using the certificate you expect, compare the `thumbprint` reported by
+the service's Admin Console stats against the registration's certificate list - the portal's
+"Thumbprint" column, or `customKeyIdentifier` from
+`az ad app show --id <client-id> --query 'keyCredentials[].customKeyIdentifier'`. Both are the
+certificate's SHA-1 hash, so a match confirms the deployed bundle and the uploaded certificate
+are the same one.
 
 The tenant ID and client ID are standalone configs. Other server-side subsystems can share
 them, and deployments can override them per environment via instance configs / environment
@@ -266,12 +332,29 @@ fields, are rejected. Role resolution reports an invalid value as a per-group er
 description.
 `LdapService.lookupUser()` and `authenticate()` throw on an invalid value.
 
-### Missing admin consent or expired client secret (Entra ID)
+### Missing admin consent or expired credential (Entra ID)
 
 Graph rejects app-only queries when the required application permissions lack admin consent,
-and token acquisition fails when the client secret expires. Both appear in the startup log -
-`EntraIdService` warms its token at startup for exactly this reason. Client secrets have a
-maximum lifetime of 24 months - track and rotate them.
+and token acquisition fails when the client secret or certificate expires. Both appear in the
+startup log - `EntraIdService` warms its token at startup for exactly this reason. Client
+secrets have a maximum lifetime of 24 months - track and rotate them. For certificates, the
+service's Admin Console stats report the configured certificate's subject, thumbprint, and
+expiry date, and an app registration can hold multiple certificates at once - upload the new
+one before the old expires for zero-downtime rotation.
+
+### Rejected certificate bundle (Entra ID)
+
+A bundle that does not meet the [requirements above](#bundle-requirements) fails in one of two
+places, and the second is the confusing one:
+
+- **At startup, naming the config** - `Unable to load certificate credential from
+  xhEntraClientPfx`, wrapping the underlying cause. `more than one certificate alias found in
+  input stream` means the bundle carries multiple private key entries; `certificate not loaded
+  from input stream` means it carries none. A wrong `xhEntraClientPfxPassword` surfaces here too.
+- **At token acquisition, naming nothing useful** - `InvalidKeyException: No installed provider
+  supports this key: sun.security.ec.ECPrivateKeyImpl`. This is an EC/ECDSA key. It loads
+  cleanly and only fails when MSAL tries to sign the RS256 assertion, so the error points at the
+  JCA provider rather than at the real problem. Re-issue the certificate with an RSA key.
 
 ### Per-request directory lookups on the auth path
 
