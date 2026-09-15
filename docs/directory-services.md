@@ -176,9 +176,6 @@ produced - enterprise PKI, ACME, `openssl`, a cloud KMS export - does not matter
 | **Password optional** | Set `xhEntraClientPfxPassword` to the bundle's password, or leave it unset for a passwordless bundle. |
 | **Chain optional** | Intermediates may be included but are not required - Entra validates against the uploaded certificate, not a trust path. |
 
-The corresponding **public** certificate must be registered on the app registration, and its
-SHA-1 thumbprint must match the bundle's - see [below](#verifying-the-deployed-certificate).
-
 PKCS#12 is the standard container for exactly this material in transit, and its base64 form
 travels safely through secret managers and environment variables as a single-line string.
 Parsing is handled by MSAL and the JDK's built-in PKCS#12 support - Hoist adds no certificate
@@ -186,16 +183,18 @@ parsing of its own. Enterprise PKI teams commonly issue `.pfx` bundles directly;
 from PEM material instead:
 
 ```bash
-openssl pkcs12 -export -in cert.pem -inkey key.pem -out client.pfx
-base64 -i client.pfx   # value for xhEntraClientPfx
+openssl pkcs12 -export -in cert.pem -inkey key.pem | base64   # value for xhEntraClientPfx
 ```
 
 Note MSAL sends the certificate (the `x5c` header) with each token request by default, so
 Subject Name + Issuer-based trust and thumbprint-free certificate rotation work without
 further configuration.
 
+#### Uploading the certificate to the app registration
+
 The matching **public** certificate must also be uploaded to the app registration - Entra
-verifies the assertion signature against it. Do this in the Azure portal under
+verifies the assertion signature against it, and its SHA-1 thumbprint must match the bundle's
+(see [below](#verifying-the-deployed-certificate)). Upload in the Azure portal under
 **App registrations > Certificates & secrets > Certificates**, or with the Azure CLI:
 
 ```bash
