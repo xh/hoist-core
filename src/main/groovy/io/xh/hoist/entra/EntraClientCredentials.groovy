@@ -83,7 +83,8 @@ class EntraClientCredentials {
             subject: certificate.subjectX500Principal.name,
             // SHA-1 hex, matching the "Thumbprint" column shown in the Azure portal.
             thumbprint: MessageDigest.getInstance('SHA-1').digest(certificate.encoded).encodeHex().toString().toUpperCase(),
-            notAfter: certificate.notAfter
+            // `Time` suffix opts into the Admin Console's automatic timestamp formatting.
+            notAfterTime: certificate.notAfter
         ]
     }
 
