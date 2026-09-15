@@ -8,7 +8,6 @@ package io.xh.hoist.entra
 
 import com.microsoft.aad.msal4j.ClientCredentialParameters
 import com.microsoft.aad.msal4j.ConfidentialClientApplication
-import com.microsoft.aad.msal4j.IClientCredential
 import com.microsoft.aad.msal4j.IConfidentialClientApplication
 import grails.async.Promise
 import groovy.transform.CompileStatic
@@ -22,8 +21,6 @@ import io.xh.hoist.util.ErrorOr
 import org.apache.hc.client5.http.classic.methods.HttpGet
 import org.apache.hc.core5.net.URIBuilder
 
-import java.security.MessageDigest
-import java.security.cert.X509Certificate
 import java.util.regex.Pattern
 
 import static grails.async.Promises.task
@@ -106,6 +103,7 @@ class EntraIdService extends BaseService implements DirectoryService {
     )
 
     private IConfidentialClientApplication _msalClient
+    private EntraClientCredentials _credentials
     private JSONClient _jsonClient
 
     void init() {
@@ -115,7 +113,7 @@ class EntraIdService extends BaseService implements DirectoryService {
         if (enabled) {
             try {
                 acquireAccessToken()
-                logInfo('Acquired Microsoft Graph access token', [tenantId: tenantId, authMode: authMode])
+                logInfo('Acquired Microsoft Graph access token', [tenantId: tenantId, authMode: credentials.authMode])
             } catch (Exception e) {
                 logError('Failed to acquire Microsoft Graph access token on startup', e)
             }
@@ -359,18 +357,23 @@ class EntraIdService extends BaseService implements DirectoryService {
     Map getAdminStats() {[
         config: configForAdminStats('xhEntraIdConfig', 'xhEntraTenantId', 'xhEntraClientId'),
         enabled: enabled,
-        authMode: authMode,
-        certificate: certificateAdminStats
+        authMode: _credentials?.authMode,
+        certificate: _credentials?.certificateStats
     ]}
 
-    List<String> getComparableAdminStats() { ['enabled', 'authMode'] }
+    List<String> getComparableAdminStats() { ['enabled', 'authMode', 'certificate'] }
 
     void clearCaches() {
         queryCache.clear()
         synchronized (this) {
             _msalClient = null
+            _credentials = null
         }
         super.clearCaches()
+
+        // Reload eagerly, as init() does at startup - keeps the stats above populated and
+        // surfaces a bad credential now rather than on the next query.
+        if (enabled) getCredentials()
     }
 
     //------------------------
@@ -513,45 +516,25 @@ class EntraIdService extends BaseService implements DirectoryService {
             if (!tenantId || !clientId) {
                 throw new RuntimeException('EntraIdService enabled but tenant/client not configured - check xhEntraTenantId and xhEntraClientId app configs.')
             }
-            IClientCredential credential = EntraClientCredentials.create(
-                configService.getPwdIfSet('xhEntraClientPfx'),
-                configService.getPwdIfSet('xhEntraClientPfxPassword'),
-                configService.getPwdIfSet('xhEntraClientSecret')
-            )
             _msalClient = ConfidentialClientApplication
-                .builder(clientId, credential)
+                .builder(clientId, credentials.credential)
                 .authority("https://login.microsoftonline.com/${tenantId}")
                 .build()
         }
         return _msalClient
     }
 
-    /** Credential type in use - `certificate` when one is configured, `clientSecret` otherwise. */
-    private String getAuthMode() {
-        configService.getPwdIfSet('xhEntraClientPfx') ? 'certificate' : 'clientSecret'
-    }
-
     /**
-     * Identifying details of the configured certificate (public material only) for the Admin
-     * Console - most usefully its expiry date and its thumbprint, which matches the certificate
-     * list on the Entra ID app registration. Null when running on a client secret.
+     * Credential for the app registration - a certificate when one is configured, otherwise a
+     * client secret. Built once and held until {@link #clearCaches}, so the PKCS#12 bundle is
+     * parsed on first use rather than on every read of the admin stats below.
      */
-    private Map getCertificateAdminStats() {
-        String pfx = configService.getPwdIfSet('xhEntraClientPfx')
-        if (!pfx) return null
-        try {
-            X509Certificate cert = EntraClientCredentials.parseCertificate(
-                pfx, configService.getPwdIfSet('xhEntraClientPfxPassword')
-            )
-            return [
-                subject: cert.subjectX500Principal.name,
-                // SHA-1 hex, matching the "Thumbprint" column shown in the Azure portal.
-                thumbprint: MessageDigest.getInstance('SHA-1').digest(cert.encoded).encodeHex().toString().toUpperCase(),
-                notAfter: cert.notAfter
-            ]
-        } catch (Exception e) {
-            return [error: e.message]
-        }
+    private synchronized EntraClientCredentials getCredentials() {
+        _credentials ?= EntraClientCredentials.create(
+            configService.getPwdIfSet('xhEntraClientPfx'),
+            configService.getPwdIfSet('xhEntraClientPfxPassword'),
+            configService.getPwdIfSet('xhEntraClientSecret')
+        )
     }
 
     private String getTenantId() {
