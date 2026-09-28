@@ -100,7 +100,7 @@ Each document progresses through three statuses tracked in the tables above:
 
 1. **Planned** — Document is scoped but not yet written
 2. **Draft** — Initial draft is written and committed. The doc file itself includes a
-   `> **Status: DRAFT** — This document is awaiting review...` banner at the top
+   `> **Status: DRAFT** - This document is awaiting review...` banner at the top
 3. **Done** — Draft has been interactively reviewed, revisions applied, and the draft banner
    removed. The doc is considered complete and authoritative
 
