@@ -61,6 +61,8 @@ hoist-core bootstraps on startup with this default:
 
 `globalWriteRoles` is keyed by blob `type` - the `type` passed to `ViewManagerModel` on the
 client - with `*` as the fallback for types not listed. A user needs any one of the listed roles.
+A listed type's roles replace the fallback rather than adding to it, so repeat `HOIST_ADMIN` on a
+per-type entry if admins should keep access.
 
 Find the roles the app grants on the client today:
 
@@ -299,6 +301,7 @@ After completing all steps:
 
 ## Reference
 
+- [`jsonblob.md`](../jsonblob.md) - `JsonBlobService` access control and `xhJsonBlobConfig`
 - [`directory-services.md`](../directory-services.md) - `DirectoryService` contract and
   Entra ID configuration
 - [`email.md`](../email.md) - `sendEmail` parameter reference
