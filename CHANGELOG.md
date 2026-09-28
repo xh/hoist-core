@@ -14,12 +14,32 @@
 
 ## 42.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟠 Minor)
+
+See [`docs/upgrade-notes/v42-upgrade-notes.md`](docs/upgrade-notes/v42-upgrade-notes.md) for
+detailed, step-by-step upgrade instructions with before and after code examples.
+
+* Removed `DefaultRoleService.doLoadUsersForDirectoryGroups`. Apps that resolve directory groups
+  from a custom source now override `getDirectoryService` to return their own `DirectoryService`
+  implementation. Apps that do not override the removed method require no changes.
+
+### 🎁 New Features
+
+* Added certificate-based authentication to `EntraIdService` as an alternative to a client
+  secret, via the new `xhEntraClientPfx` (base64-encoded PKCS#12 bundle holding the
+  certificate, its chain, and its private key) and `xhEntraClientPfxPassword` configs. When
+  configured, the certificate takes precedence over `xhEntraClientSecret`.
+
 ### 🐞 Bug Fixes
 
 * Hardened address parsing in `EmailService`. A blank entry no longer expands into an invalid
   address such as `@example.com`, which a blank `xhEmailOverride` config applied to all mail. The
   service also skips a blank or `none` `xhEmailDefaultDomain`, reads `none` in any letter case, and
   throws a clear error when no sender address resolves.
+* `DefaultRoleService.describeDirectoryGroups` and `searchDirectoryGroups` now resolve through the
+  overridable `getDirectoryService`, so an app with a custom directory group source no longer sees
+  "No enabled directory service in this application" reported for every group by the
+  `roleAdmin/directoryGroupsInfo` endpoint, or an empty group search in the Admin Console.
 
 ### ⚙️ Technical
 
@@ -27,6 +47,12 @@
   changes.
     * ⚠️ A call that passes an unrecognized argument name now fails with an `AssertionError`. The
       check runs before `sendEmail`, so the `throwError: false` default does not suppress it.
+* `ApplicationConfig.defaultConfig` now sets `server.compression.mimeTypes`, adding
+  `application/x-ndjson` to Spring Boot's built-in list.  The result is that `BaseController.renderNDJSON`
+  responses are also compressed during development (as they already were when deployed behind xh-nginx.).
+* `ConfigService.ensureRequiredConfigsCreated` now seeds a `ConfigSpec` that has a `typedClass` but
+  no `defaultValue` with an empty JSON object. Apps can omit `defaultValue` for typed configs. An
+  explicit `defaultValue: [:]` continues to work.
 
 ## 41.0.0 - 2026-08-25
 

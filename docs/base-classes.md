@@ -289,6 +289,13 @@ Map getAdminStats() {
 Timer, Cache, and CachedValue resources are **automatically** reported — no need to include them
 in `getAdminStats()`.
 
+**Avoid:** querying the database in `getAdminStats()`. Stats are gathered on a cluster executor
+thread, which has neither a bound Hibernate session nor a request context — a GORM query throws
+`HibernateException: No Session found for current thread`, and the identity accessors return `null`.
+Report state the service already holds in memory. If a stat genuinely must come from the database,
+annotate the method `@ReadOnly` (or wrap its body in `withNewSession {}`) and keep the query cheap,
+since stats are recomputed on every instance each time they are requested.
+
 Override `getComparableAdminStats()` to declare which stats keys should be compared across cluster
 instances:
 
@@ -501,6 +508,26 @@ cache and a timer will throw a `RuntimeException` at startup.
 Pitfalls specific to `Cache` and `CachedValue` — synchronous vs. asynchronous `onChange` delivery,
 `replicate` silently changing handler timing, caching null, and inexact `size()` — are covered in
 [`caching.md`](./caching.md).
+
+### Querying the database in `getAdminStats()`
+
+Admin stats run on a cluster executor thread with no Hibernate session, so any GORM query fails
+there. Report what the service already holds:
+
+```groovy
+// ✅ Do: read in-memory state
+Map getAdminStats() {
+    [tradeCount: tradeCache.size(), lastRefresh: lastRefreshDate]
+}
+
+// ❌ Don't: query from the stats method
+Map getAdminStats() {
+    [tradeCount: Trade.count()]     // HibernateException: No Session found for current thread
+}
+```
+
+See [Non-Request Threads and GORM Sessions](coding-conventions.md#non-request-threads-and-gorm-sessions)
+for the general rule and the other contexts it covers.
 
 ### Using Grails `render` instead of `renderJSON`
 

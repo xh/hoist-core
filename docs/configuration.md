@@ -335,14 +335,16 @@ and wire it in via the `typedClass:` field on the config's `ConfigSpec` entry pa
 `ensureRequiredConfigsCreated`. This gives you:
 
 1. **One source of truth for shape + defaults.** Property initializers on the class are the
-   fallback values; when the stored map is missing a key, the declared default applies.
+   fallback values; when the stored map is missing a key, the declared default applies. Omit
+   `defaultValue` from the `ConfigSpec` — a missing config is seeded as an empty JSON object
+   (`{}`), and the typed class fills in every key at read time.
 2. **Typed server-side reads** via `configService.getObject(Class)`.
 3. **Populated client payloads** — for `clientVisible: true` configs, the map sent to the
    client via `getClientConfig()` is filled in through the typed class, so the same defaults
    reach browser code without duplicating them in TypeScript.
-4. **Startup drift detection** — a `WARN` is logged when a typed-class property default
-   disagrees with the BootStrap `defaultValue` for the same key, flagging stale declarations
-   on either side.
+4. **Startup guard against duplicated defaults** — a `WARN` is logged when a spec with a
+   `typedClass` also declares a non-empty `defaultValue`, since the two would otherwise drift.
+   An explicit `defaultValue: [:]` is accepted silently.
 5. **Unknown keys** are logged at WARN and ignored — stale or mistyped entries in soft config
    surface without breaking startup.
 
@@ -362,12 +364,12 @@ class PricingConfig extends TypedConfigMap {
     PricingConfig(Map args) { init(args) }
 }
 
-// 2. Register it in BootStrap alongside the other config metadata.
+// 2. Register it in BootStrap alongside the other config metadata. No defaultValue - the
+//    class above is the single source of defaults.
 configService.ensureRequiredConfigsCreated([
     new ConfigSpec(
         name: 'pricingSourceConfig',
         valueType: 'json',
-        defaultValue: [endpoint: 'https://prices.example.com', timeoutMs: 5000, fallbackEnabled: true],
         typedClass: PricingConfig,
         groupName: 'Pricing',
         note: '...'

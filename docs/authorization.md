@@ -213,9 +213,9 @@ ensureRequiredRolesCreated([
 ])
 ```
 
-Override `doLoadUsersForDirectoryGroups()` to resolve groups from different, or additional,
-external sources. Return a `Map` of group identifier to an `ErrorOr` that holds either the
-`Set` of member usernames or a String error description.
+Applications with a different external source can override `getDirectoryService()` to return
+their own implementation of the narrow `DirectoryService` interface. That single override backs
+membership resolution, Admin Console display names, and group search alike.
 
 #### Customization Points
 
@@ -226,7 +226,7 @@ external sources. Return a `Map` of group identifier to an `ErrorOr` that holds 
 | `getUserAssignmentSupported()` | `true` | Set to `false` to disable direct user-to-role assignment |
 | `getDirectoryGroupsSupported()` | `true` | Set to `false` to disable directory group membership |
 | `getDirectoryGroupsDescription()` | From the selected `DirectoryService` | Short string for Admin Console tooltip |
-| `doLoadUsersForDirectoryGroups()` | Selected `DirectoryService` | Override to resolve groups from other sources |
+| `getDirectoryService()` | `LdapService` or `EntraIdService`, per `directoryGroupProvider` | Override to resolve groups from another source |
 
 #### Configuration
 
