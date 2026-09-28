@@ -11,9 +11,12 @@ import grails.gorm.transactions.Transactional
 import grails.web.databinding.DataBinder
 import io.xh.hoist.BaseService
 import io.xh.hoist.exception.NotAuthorizedException
+import io.xh.hoist.user.HoistUser
 
 import static io.xh.hoist.json.JSONParser.parseObject
 import static io.xh.hoist.json.JSONSerializer.serialize
+import static io.xh.hoist.util.Utils.getConfigService
+import static io.xh.hoist.util.Utils.getUserService
 import static java.lang.System.currentTimeMillis
 
 /**
@@ -27,23 +30,29 @@ import static java.lang.System.currentTimeMillis
  * `meta` for application-specific metadata. `archive` soft-deletes by setting `archivedDate`, and
  * lookups here return active blobs only.
  *
- * Access is granted per blob: to its `owner`, or to all users when its `acl` is set to the wildcard
- * `*`. A null owner indicates a global blob, belonging to no single user.
+ * Read access is granted per blob: to its `owner`, or to all users when its `acl` is set to the
+ * wildcard `*`. Write access (update, archive, group rename) is limited to the `owner`. A null owner
+ * indicates a global blob, belonging to no single user - creating, modifying, or archiving global
+ * blobs requires the roles configured in `xhJsonBlobConfig.globalManagerRoles` (see
+ * {@link #canManageGlobal}).
  */
 class JsonBlobService extends BaseService implements DataBinder {
+
+    /** Fields settable via `create` and `update` - all others are managed by this service. */
+    private static final List<String> BINDABLE_FIELDS = ['type', 'name', 'description', 'value', 'meta', 'owner', 'acl']
 
     @ReadOnly
     JsonBlob get(String token, String username = username) {
         JsonBlob ret = JsonBlob.findByTokenAndArchivedDate(token, 0)
         if (!ret) throw new RuntimeException("Active JsonBlob not found with token '$token'")
-        ensureAccess(ret, username)
+        ensureReadable(ret, username)
         return ret
     }
 
     @ReadOnly
     JsonBlob find(String type, String name, String owner, String username = username) {
         def ret = JsonBlob.findByTypeAndNameAndOwnerAndArchivedDate(type, name, owner, 0)
-        if (ret) ensureAccess(ret, username)
+        if (ret) ensureReadable(ret, username)
         return ret
     }
 
@@ -71,6 +80,7 @@ class JsonBlobService extends BaseService implements DataBinder {
     @Transactional
     JsonBlob update(String token, Map data, String username = username) {
         JsonBlob blob = get(token, username)
+        ensureWritable(blob, username)
         return updateInternal(blob, data, username)
     }
 
@@ -90,8 +100,8 @@ class JsonBlobService extends BaseService implements DataBinder {
      * @param from - group path to rename. Required, and matched both exactly and as the parent of
      *      any paths nested beneath it.
      * @param to - replacement group path. Required.
-     * @param username - user on whose behalf the rename is made. Determines which blobs are
-     *      eligible per their ACL, and is recorded as `lastUpdatedBy` on each blob rewritten.
+     * @param username - user on whose behalf the rename is made. Must be `ownerName`, or permitted
+     *      to manage global blobs when `ownerName` is null. Recorded as `lastUpdatedBy` on each blob.
      * @return count of blobs whose group path was rewritten.
      */
     @Transactional
@@ -102,6 +112,7 @@ class JsonBlobService extends BaseService implements DataBinder {
         if (!from || !to) {
             throw new IllegalArgumentException("Group rename requires both 'from' and 'to' group paths")
         }
+        ensureOwnerWritable(type, ownerName, username)
 
         List<JsonBlob> candidates = JsonBlob.createCriteria().list {
             eq('type', type)
@@ -111,8 +122,6 @@ class JsonBlobService extends BaseService implements DataBinder {
 
         int count = 0
         candidates.each { JsonBlob blob ->
-            if (!passesAcl(blob, username)) return
-
             Map meta
             try {
                 meta = parseObject(blob.meta)
@@ -141,7 +150,8 @@ class JsonBlobService extends BaseService implements DataBinder {
 
     @Transactional
     JsonBlob create(Map data, String username = username) {
-        data = [owner: username, *: data, lastUpdatedBy: username]
+        data = [owner: username, *: data.findAll { it.key in BINDABLE_FIELDS }, lastUpdatedBy: username]
+        ensureOwnerWritable(data.type as String, data.owner as String, username)
 
         if (data.containsKey('value')) data.value = serialize(data.value)
         if (data.containsKey('meta')) data.meta = serialize(data.meta)
@@ -160,6 +170,7 @@ class JsonBlobService extends BaseService implements DataBinder {
     @Transactional
     JsonBlob archive(String token, String username = username) {
         def blob = get(token, username)
+        ensureWritable(blob, username)
         blob.archivedDate = currentTimeMillis()
         blob.lastUpdatedBy = authUsername
         blob.save()
@@ -171,9 +182,14 @@ class JsonBlobService extends BaseService implements DataBinder {
     //-------------------------
     private JsonBlob updateInternal(JsonBlob blob, Map data, String username) {
         if (data) {
-            data = [*: data, lastUpdatedBy: username]
+            data = [*: data.findAll { it.key in BINDABLE_FIELDS }, lastUpdatedBy: username]
             if (data.containsKey('value')) data.value = serialize(data.value)
             if (data.containsKey('meta')) data.meta = serialize(data.meta)
+
+            // Reassigning ownership is a write into the target namespace - e.g. promoting to global.
+            if (data.containsKey('owner') && data.owner != blob.owner) {
+                ensureOwnerWritable(blob.type, data.owner as String, username)
+            }
 
             bindData(blob, data)
             blob.save()
@@ -181,14 +197,52 @@ class JsonBlobService extends BaseService implements DataBinder {
         return blob
     }
 
+    //-------------------------
+    // Access control
+    //-------------------------
+    /**
+     * True if the user may create, modify, or archive global (null-owner) blobs of the given type.
+     *
+     * Consults `xhJsonBlobConfig.globalManagerRoles` by default. Apps needing code-level logic may
+     * subclass this service and override.
+     */
+    protected boolean canManageGlobal(String type, String username) {
+        Map<String, List<String>> roles = configService.getObject(JsonBlobConfig).globalManagerRoles
+        List<String> required = roles[type] ?: roles['*']
+        if (!required) return false
+        if (required.contains('*')) return true
 
-    private boolean passesAcl(JsonBlob blob, String username) {
+        HoistUser user = userService.find(username)
+        return user?.hasAnyRole(required as String[])
+    }
+
+    private boolean canRead(JsonBlob blob, String username) {
         return blob.acl == '*' || blob.owner == username
     }
 
-    private ensureAccess(JsonBlob blob, String username) {
-        if (!passesAcl(blob, username)) {
+    private boolean canWriteOwner(String type, String owner, String username) {
+        return owner == username || (owner == null && canManageGlobal(type, username))
+    }
+
+    private ensureReadable(JsonBlob blob, String username) {
+        if (!canRead(blob, username)) {
             throw new NotAuthorizedException("User '$username' does not have access to JsonBlob with token '${blob.token}'")
+        }
+    }
+
+    private ensureWritable(JsonBlob blob, String username) {
+        if (!canWriteOwner(blob.type, blob.owner, username)) {
+            throw new NotAuthorizedException("User '$username' does not have write access to JsonBlob with token '${blob.token}'")
+        }
+    }
+
+    private ensureOwnerWritable(String type, String owner, String username) {
+        if (!canWriteOwner(type, owner, username)) {
+            throw new NotAuthorizedException(
+                owner == null ?
+                    "User '$username' is not permitted to manage global JsonBlobs of type '$type'" :
+                    "User '$username' is not permitted to manage JsonBlobs owned by '$owner'"
+            )
         }
     }
 

@@ -214,7 +214,11 @@ class ViewService extends BaseService {
         }
 
         if (failures) {
-            throw new RuntimeException("Failed to delete ${failures.size()} view(s)", failures.first())
+            String msg = "Failed to delete ${failures.size()} view(s) - ${failures.first().message}"
+            // As in bulkUpdateInfo, preserve routine failures (e.g. access denied) as such.
+            throw failures.every { Utils.exceptionHandler.isRoutine(it) } ?
+                new RoutineRuntimeException(msg) :
+                new RuntimeException(msg, failures.first())
         }
     }
 
