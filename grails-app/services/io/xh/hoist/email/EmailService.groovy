@@ -240,7 +240,8 @@ class EmailService extends BaseService {
     /**
      * Normalize a String (comma-delimited) or Collection of addresses into a list of trimmed,
      * fully-qualified addresses. Blank entries are dropped, and the xhEmailDefaultDomain config is
-     * appended to any unqualified address (skipped if that config is itself unset or "none").
+     * appended to any unqualified address. Throws if an unqualified address is given but that
+     * config is itself unset or "none".
      */
     private List<String> formatAddresses(Object o) {
         if (!o) return []
@@ -252,8 +253,15 @@ class EmailService extends BaseService {
         List<String> ret = raw.collect { it?.trim() }.findAll { it } as List<String>
         if (!ret) return []
 
+        List<String> unqualified = ret.findAll { !it.contains('@') }
+        if (!unqualified) return ret
+
         String defaultDomain = configService.getString('xhEmailDefaultDomain')?.trim()
-        if (!defaultDomain || defaultDomain.equalsIgnoreCase(AppConfig.NONE)) return ret
+        if (!defaultDomain || defaultDomain.equalsIgnoreCase(AppConfig.NONE)) {
+            throw new RuntimeException(
+                "Unqualified address '${unqualified.first()}' requires a valid xhEmailDefaultDomain config."
+            )
+        }
         if (!defaultDomain.startsWith('@')) defaultDomain = '@' + defaultDomain
 
         return ret.collect { it.contains('@') ? it : it + defaultDomain }

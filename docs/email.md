@@ -106,8 +106,8 @@ setting their value to `none`.
 
 Blank and whitespace-only entries are discarded before the `xhEmailDefaultDomain` config is
 applied, so `''`, `'  '`, and `'a@b.com,,'` never produce a bare `@example.com` recipient. If
-`xhEmailDefaultDomain` is itself blank or `none`, unqualified addresses are left as-is, with no
-bare `@` suffix.
+`xhEmailDefaultDomain` is itself blank or `none`, an unqualified address throws a clear error
+rather than producing a bare `@` suffix.
 
 #### Admin Stats
 
