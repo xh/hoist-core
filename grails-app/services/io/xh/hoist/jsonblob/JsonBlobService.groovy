@@ -176,6 +176,20 @@ class JsonBlobService extends BaseService implements DataBinder {
         blob.save()
     }
 
+    /**
+     * True if the user may create, modify, or archive global (null-owner) blobs of the given type.
+     * Consults `xhJsonBlobConfig.globalWriteRoles`.
+     */
+    boolean canWriteGlobal(String type, String username) {
+        Map<String, List<String>> roles = configService.getObject(JsonBlobConfig).globalWriteRoles
+        List<String> required = roles[type] ?: roles['*']
+        if (!required) return false
+        if (required.contains('*')) return true
+
+        HoistUser user = userService.find(username)
+        return user?.hasAnyRole(required as String[])
+    }
+
 
     //-------------------------
     // Implementation
@@ -200,22 +214,6 @@ class JsonBlobService extends BaseService implements DataBinder {
     //-------------------------
     // Access control
     //-------------------------
-    /**
-     * True if the user may create, modify, or archive global (null-owner) blobs of the given type.
-     *
-     * Consults `xhJsonBlobConfig.globalWriteRoles` by default. Apps needing code-level logic may
-     * subclass this service and override.
-     */
-    boolean canWriteGlobal(String type, String username = username) {
-        Map<String, List<String>> roles = configService.getObject(JsonBlobConfig).globalWriteRoles
-        List<String> required = roles[type] ?: roles['*']
-        if (!required) return false
-        if (required.contains('*')) return true
-
-        HoistUser user = userService.find(username)
-        return user?.hasAnyRole(required as String[])
-    }
-
     private boolean canRead(JsonBlob blob, String username) {
         return blob.acl == '*' || blob.owner == username
     }
