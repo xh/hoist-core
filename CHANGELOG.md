@@ -20,16 +20,11 @@ See [`docs/upgrade-notes/v42-upgrade-notes.md`](docs/upgrade-notes/v42-upgrade-n
 detailed, step-by-step upgrade instructions with before and after code examples.
 
 * `JsonBlobService` now limits write access (update, archive, group rename) to a blob's `owner`.
-  Previously `acl: '*'` granted every user full write access to shared and global blobs - including
-  ViewManager global views - regardless of the client-side `manageGlobal` gate.
-  * Global (null-owner) blobs can be created, modified, or archived only by users with a role in
-    the new `xhJsonBlobConfig.globalWriteRoles` soft config, keyed by blob `type` with `*` as the
-    fallback. Default: `{"*": ["HOIST_ADMIN"]}`.
-  * Mirror any custom role passed as `manageGlobal` on the client into this config - e.g.
-    `{"*": ["HOIST_ADMIN"], "portfolioGrid": ["MANAGE_GRID_VIEWS"]}`. Include the role `*` to
-    restore the prior open behavior, or subclass `JsonBlobService` and override `canWriteGlobal`.
-  * `JsonBlobService.create` and `update` now ignore internally managed fields such as `token` and
-    `archivedDate` if supplied.
+  Previously `acl: '*'` granted every user write access to shared and global blobs, including
+  ViewManager global views.
+  * Global (null-owner) blobs require a role in the new `xhJsonBlobConfig.globalWriteRoles` config,
+    keyed by blob `type` with `*` as fallback. Default: `{"*": ["HOIST_ADMIN"]}`. Mirror any custom
+    `manageGlobal` role from the client here, or include the role `*` to restore prior behavior.
 * Removed `DefaultRoleService.doLoadUsersForDirectoryGroups`. Apps that resolve directory groups
   from a custom source now override `getDirectoryService` to return their own `DirectoryService`
   implementation. Apps that do not override the removed method require no changes.
