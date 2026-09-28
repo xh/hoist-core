@@ -15,7 +15,8 @@ class JsonBlobConfig extends TypedConfigMap {
 
     /**
      * Roles permitted to create, modify, and archive global (null-owner) blobs, keyed by blob
-     * `type`, with `*` as the fallback for types not listed. Include the role `*` to allow all users.
+     * `type`, with `*` as the fallback for types not listed. A listed type's roles replace the
+     * fallback rather than adding to it. Include the role `*` to allow all users.
      */
     Map<String, List<String>> globalWriteRoles = ['*': ['HOIST_ADMIN']]
 

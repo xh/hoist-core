@@ -28,6 +28,7 @@ detailed, step-by-step upgrade instructions with before and after code examples.
     Apps where only `HOIST_ADMIN` users manage global views need no changes.
   * `xhView/allData` now returns `manageGlobal`, so hoist-react v88+ derives `manageGlobal` from
     this config and apps need not specify the role on the client.
+  * `update` no longer changes a blob's `type`, which is now fixed at creation.
 * Removed `DefaultRoleService.doLoadUsersForDirectoryGroups`. Apps that resolve directory groups
   from a custom source now override `getDirectoryService` to return their own `DirectoryService`
   implementation. Apps that do not override the removed method require no changes.

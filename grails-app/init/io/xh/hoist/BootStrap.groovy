@@ -17,8 +17,8 @@ import io.xh.hoist.config.ConfigSpec
 import io.xh.hoist.config.IdleConfig
 import io.xh.hoist.entra.EntraIdConfig
 import io.xh.hoist.environment.EnvPollConfig
-import io.xh.hoist.jsonblob.JsonBlobConfig
 import io.xh.hoist.export.ExportConfig
+import io.xh.hoist.jsonblob.JsonBlobConfig
 import io.xh.hoist.ldap.LdapConfig
 import io.xh.hoist.log.LogArchiveConfig
 import io.xh.hoist.log.LogSupport

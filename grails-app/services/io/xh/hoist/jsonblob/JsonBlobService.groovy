@@ -38,8 +38,14 @@ import static java.lang.System.currentTimeMillis
  */
 class JsonBlobService extends BaseService implements DataBinder {
 
-    /** Fields settable via `create` and `update` - all others are managed by this service. */
-    private static final List<String> BINDABLE_FIELDS = ['type', 'name', 'description', 'value', 'meta', 'owner', 'acl']
+    /** Fields settable via `update` - all others are managed by this service. */
+    private static final List<String> UPDATABLE_FIELDS = ['name', 'description', 'value', 'meta', 'owner', 'acl']
+
+    /**
+     * Fields settable via `create`. Includes `type`, which is immutable once created - write access
+     * to global blobs is granted per type, so retyping would bypass that check.
+     */
+    private static final List<String> CREATABLE_FIELDS = ['type', *UPDATABLE_FIELDS]
 
     @ReadOnly
     JsonBlob get(String token, String username = username) {
@@ -150,7 +156,7 @@ class JsonBlobService extends BaseService implements DataBinder {
 
     @Transactional
     JsonBlob create(Map data, String username = username) {
-        data = [owner: username, *: data.findAll { it.key in BINDABLE_FIELDS }, lastUpdatedBy: username]
+        data = [owner: username, *: data.findAll { it.key in CREATABLE_FIELDS }, lastUpdatedBy: username]
         ensureWritable(data.type as String, data.owner as String, username)
 
         if (data.containsKey('value')) data.value = serialize(data.value)
@@ -178,11 +184,13 @@ class JsonBlobService extends BaseService implements DataBinder {
 
     /**
      * True if the user may create, modify, or archive global (null-owner) blobs of the given type.
-     * Consults `xhJsonBlobConfig.globalWriteRoles`.
+     * Consults `xhJsonBlobConfig.globalWriteRoles`, where any entry for the type - even an empty
+     * list - takes precedence over the `*` fallback. Roles are checked for the given (apparent)
+     * user, so an admin impersonating another user has that user's access.
      */
     boolean canWriteGlobal(String type, String username) {
         Map<String, List<String>> roles = configService.getObject(JsonBlobConfig).globalWriteRoles
-        List<String> required = roles[type] ?: roles['*']
+        List<String> required = roles.containsKey(type) ? roles[type] : roles['*']
         if (!required) return false
         if (required.contains('*')) return true
 
@@ -196,7 +204,7 @@ class JsonBlobService extends BaseService implements DataBinder {
     //-------------------------
     private JsonBlob updateInternal(JsonBlob blob, Map data, String username) {
         if (data) {
-            data = [*: data.findAll { it.key in BINDABLE_FIELDS }, lastUpdatedBy: username]
+            data = [*: data.findAll { it.key in UPDATABLE_FIELDS }, lastUpdatedBy: username]
             if (data.containsKey('value')) data.value = serialize(data.value)
             if (data.containsKey('meta')) data.meta = serialize(data.meta)
 

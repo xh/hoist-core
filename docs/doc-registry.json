@@ -81,6 +81,14 @@
             "keywords": ["Preference", "UserPreference", "PrefService", "local"]
         },
         {
+            "id": "docs/jsonblob.md",
+            "title": "JsonBlobs",
+            "mcpCategory": "package",
+            "viewerCategory": "core-features",
+            "description": "JSON document storage backing ViewManager views and other app state, with owner-based access control.",
+            "keywords": ["JsonBlob", "JsonBlobService", "ViewService", "xhJsonBlobConfig", "globalWriteRoles", "canWriteGlobal", "global views", "manageGlobal", "acl", "ViewManager"]
+        },
+        {
             "id": "docs/caching.md",
             "title": "Caching",
             "mcpCategory": "package",
