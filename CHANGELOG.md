@@ -25,6 +25,9 @@ detailed, step-by-step upgrade instructions with before and after code examples.
   * Global (null-owner) blobs require a role in the new `xhJsonBlobConfig.globalWriteRoles` config,
     keyed by blob `type` with `*` as fallback. Default: `{"*": ["HOIST_ADMIN"]}`. Mirror any custom
     `manageGlobal` role from the client here, or include the role `*` to restore prior behavior.
+    Apps where only `HOIST_ADMIN` users manage global views need no changes.
+  * `xhView/allData` now returns `canWriteGlobal`, so hoist-react v88+ derives `manageGlobal` from
+    this config and apps need not specify the role on the client.
 * Removed `DefaultRoleService.doLoadUsersForDirectoryGroups`. Apps that resolve directory groups
   from a custom source now override `getDirectoryService` to return their own `DirectoryService`
   implementation. Apps that do not override the removed method require no changes.

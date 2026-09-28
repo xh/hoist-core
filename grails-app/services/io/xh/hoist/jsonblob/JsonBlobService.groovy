@@ -206,7 +206,7 @@ class JsonBlobService extends BaseService implements DataBinder {
      * Consults `xhJsonBlobConfig.globalWriteRoles` by default. Apps needing code-level logic may
      * subclass this service and override.
      */
-    protected boolean canWriteGlobal(String type, String username) {
+    boolean canWriteGlobal(String type, String username = username) {
         Map<String, List<String>> roles = configService.getObject(JsonBlobConfig).globalWriteRoles
         List<String> required = roles[type] ?: roles['*']
         if (!required) return false

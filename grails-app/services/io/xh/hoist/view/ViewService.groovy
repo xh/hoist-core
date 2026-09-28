@@ -45,14 +45,18 @@ class ViewService extends BaseService {
     //----------------------------
     // ViewManager state + support
     //-----------------------------
-    /** Get all accessible views (without value) + user-specific state. */
+    /**
+     * Get all accessible views (without value) + user-specific state, along with whether the user
+     * may create and manage global views of this type.
+     */
     Map getAllData(String type, String viewInstance, String username = username) {
         def blobs = jsonBlobService.list(type, username).split { it.name == STATE_BLOB_NAME }
         def (rawState, views) = [blobs[0], blobs[1]]
 
         return [
-            state: getStateFromBlob(rawState ? rawState.first() : null, viewInstance),
-            views: views*.formatForClient(false)
+            state         : getStateFromBlob(rawState ? rawState.first() : null, viewInstance),
+            views         : views*.formatForClient(false),
+            canWriteGlobal: jsonBlobService.canWriteGlobal(type, username)
         ]
     }
 
