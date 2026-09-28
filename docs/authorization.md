@@ -435,7 +435,9 @@ See [`authentication.md`](./authentication.md) for the full identity response st
 
 Client-side role checks in hoist-react are for UI convenience only. The server's
 `HoistInterceptor` is the actual security enforcement. Always annotate controller endpoints
-regardless of client-side checks.
+regardless of client-side checks. Some `@AccessAll` framework endpoints enforce finer-grained rules
+in their services - for example, who may manage ViewManager global views is configured on the
+server via `xhJsonBlobConfig`. See [`jsonblob.md`](./jsonblob.md#access-control).
 
 ### Case sensitivity in usernames
 

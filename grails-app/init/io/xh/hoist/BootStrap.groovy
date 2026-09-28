@@ -18,6 +18,7 @@ import io.xh.hoist.config.IdleConfig
 import io.xh.hoist.entra.EntraIdConfig
 import io.xh.hoist.environment.EnvPollConfig
 import io.xh.hoist.export.ExportConfig
+import io.xh.hoist.jsonblob.JsonBlobConfig
 import io.xh.hoist.ldap.LdapConfig
 import io.xh.hoist.log.LogArchiveConfig
 import io.xh.hoist.log.LogSupport
@@ -306,6 +307,13 @@ class BootStrap implements LogSupport {
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Configures when an idle client enters sleep mode, suspending background requests until the user reloads. `timeout` is minutes of inactivity, overridable per client app in `appTimeouts`. Use `-1` to disable.'
+            ),
+            new ConfigSpec(
+                name: 'xhJsonBlobConfig',
+                valueType: 'json',
+                typedClass: JsonBlobConfig,
+                groupName: 'xh.io',
+                note: 'Configures `JsonBlobService`. `globalWriteRoles` maps blob type (or `*` as fallback) to the roles permitted to create, modify, and archive global blobs - e.g. ViewManager global views.'
             ),
             new ConfigSpec(
                 name: 'xhLdapConfig',

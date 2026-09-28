@@ -34,6 +34,7 @@ and conventions.
 | Query a corporate directory for users or groups | [`directory-services.md`](./directory-services.md) |
 | Work with AppConfig (soft configuration) | [`configuration.md`](./configuration.md) |
 | Work with user preferences | [`preferences.md`](./preferences.md) |
+| Store JSON state in JsonBlobs, or control who can manage global ViewManager views | [`jsonblob.md`](./jsonblob.md) |
 | Cache computed or fetched data in a service | [`caching.md`](./caching.md) |
 | Work out why a cache `onChange` handler fires when it does | [`caching.md`](./caching.md#change-handlers-onchange) |
 | Understand Hazelcast clustering and distributed resources | [`clustering.md`](./clustering.md) |
@@ -77,6 +78,7 @@ Bread-and-butter features used by every Hoist application.
 |----------|-------------|------------|
 | [`configuration.md`](./configuration.md) | Database-backed soft configuration with typed values | AppConfig, ConfigService, `clientVisible`, `pwd` encryption, `xhConfigChanged`, required configs |
 | [`preferences.md`](./preferences.md) | User-specific settings and preference management | Preference, UserPreference, PrefService, `local` flag, required prefs |
+| [`jsonblob.md`](./jsonblob.md) | JSON document storage backing ViewManager views and other app state, with owner-based access control | JsonBlob, JsonBlobService, ViewService, `xhJsonBlobConfig`, `globalWriteRoles`, global views, `manageGlobal` |
 | [`caching.md`](./caching.md) | Managed in-memory caching with optional expiry and cluster replication | Cache, CachedValue, CacheEntry, `createCache`, `createCachedValue`, `expireTime`, `expireFn`, `replicate`, `onChange` handlers, `ensureAvailable`, culling |
 | [`clustering.md`](./clustering.md) | Hazelcast-based multi-instance coordination and distributed data structures | ClusterService, Cache, CachedValue, IMap, ReplicatedMap, Topic, `primaryOnly` timers |
 | [`activity-tracking.md`](./activity-tracking.md) | Usage and performance logging with email notifications | TrackLog, TrackService, categories, elapsed timing, client error emails, feedback emails |

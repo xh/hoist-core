@@ -45,14 +45,18 @@ class ViewService extends BaseService {
     //----------------------------
     // ViewManager state + support
     //-----------------------------
-    /** Get all accessible views (without value) + user-specific state. */
+    /**
+     * Get all accessible views (without value) + user-specific state, along with whether the user
+     * may create and manage global views of this type.
+     */
     Map getAllData(String type, String viewInstance, String username = username) {
         def blobs = jsonBlobService.list(type, username).split { it.name == STATE_BLOB_NAME }
         def (rawState, views) = [blobs[0], blobs[1]]
 
         return [
-            state: getStateFromBlob(rawState ? rawState.first() : null, viewInstance),
-            views: views*.formatForClient(false)
+            state         : getStateFromBlob(rawState ? rawState.first() : null, viewInstance),
+            views         : views*.formatForClient(false),
+            manageGlobal  : jsonBlobService.canWriteGlobal(type, username)
         ]
     }
 
@@ -176,15 +180,11 @@ class ViewService extends BaseService {
         }
 
         if (failures) {
-            String detail = failures.collect { token, e -> "$token: ${e.message}" }.join('; '),
-                msg = "Failed to update ${failures.size()} of ${tokens.size()} view(s) - $detail"
-
-            // Preserve routine (expected) failures as such, so a name collision or access error
-            // does not get reported to the client as a 500 and logged as a server error.
-            ExceptionHandler exceptionHandler = Utils.exceptionHandler
-            throw failures.values().every { exceptionHandler.isRoutine(it) } ?
-                new RoutineRuntimeException(msg) :
-                new RuntimeException(msg, failures.values().first())
+            String detail = failures.collect { token, e -> "$token: ${e.message}" }.join('; ')
+            throw bulkFailure(
+                "Failed to update ${failures.size()} of ${tokens.size()} view(s) - $detail",
+                failures.values() as List<Exception>
+            )
         }
     }
 
@@ -214,7 +214,10 @@ class ViewService extends BaseService {
         }
 
         if (failures) {
-            throw new RuntimeException("Failed to delete ${failures.size()} view(s)", failures.first())
+            throw bulkFailure(
+                "Failed to delete ${failures.size()} view(s) - ${failures.first().message}",
+                failures
+            )
         }
     }
 
@@ -290,6 +293,18 @@ class ViewService extends BaseService {
 
         Map payload = [*: core, meta: meta]
         return jsonBlobService.update(token, payload, username)
+    }
+
+    /**
+     * Exception summarizing failures from a best-effort bulk operation. Routine (expected) failures
+     * such as a name collision or access error are preserved as such, so they are not reported to
+     * the client as a 500 or logged as a server error.
+     */
+    private Exception bulkFailure(String msg, List<Exception> failures) {
+        ExceptionHandler exceptionHandler = Utils.exceptionHandler
+        return failures.every { exceptionHandler.isRoutine(it) } ?
+            new RoutineRuntimeException(msg) :
+            new RuntimeException(msg, failures.first())
     }
 
     /** Record the user's explicit pinned state for one or more views of a single type. */
