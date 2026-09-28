@@ -12,9 +12,9 @@
   3. Plain ASCII punctuation only. Use " - " for in-sentence breaks, never an em dash.
 -->
 
-## 42.0-SNAPSHOT - unreleased
+## 42.0.0 - 2026-09-28
 
-### 💥 Breaking Changes (upgrade difficulty: 🟠 Minor)
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - review global view write roles; most apps require no changes)
 
 See [`docs/upgrade-notes/v42-upgrade-notes.md`](docs/upgrade-notes/v42-upgrade-notes.md) for
 detailed, step-by-step upgrade instructions with before and after code examples.
@@ -57,8 +57,8 @@ detailed, step-by-step upgrade instructions with before and after code examples.
     * ⚠️ An unrecognized argument name now throws an `AssertionError`, which `throwError: false`
       does not suppress.
 * `ApplicationConfig.defaultConfig` now sets `server.compression.mimeTypes`, adding
-  `application/x-ndjson` to Spring Boot's built-in list.  The result is that `BaseController.renderNDJSON`
-  responses are also compressed during development (as they already were when deployed behind xh-nginx.).
+  `application/x-ndjson` to Spring Boot's built-in list. The result is that `BaseController.renderNDJSON`
+  responses are also compressed during development (as they already were when deployed behind xh-nginx).
 * `ConfigService.ensureRequiredConfigsCreated` now seeds a `ConfigSpec` that has a `typedClass` but
   no `defaultValue` with an empty JSON object. Apps can omit `defaultValue` for typed configs. An
   explicit `defaultValue: [:]` continues to work.

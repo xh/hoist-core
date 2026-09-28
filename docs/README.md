@@ -137,6 +137,7 @@ breaking changes, before/after code examples, and verification checklists.
 
 | Version                                         | Key Changes |
 |-------------------------------------------------|-------------|
+| [v42.0.0](./upgrade-notes/v42-upgrade-notes.md) | `JsonBlobService` write access limited to owners, `xhJsonBlobConfig.globalWriteRoles` gates global views, `doLoadUsersForDirectoryGroups` replaced by `getDirectoryService`, `sendEmail` named parameters |
 | [v41.0.0](./upgrade-notes/v41-upgrade-notes.md) | `EntraIdService` + `DirectoryService` for Entra ID directory groups, typed `ErrorOr` results from `doLoadUsersForDirectoryGroups`, `xhLdapConfig.usernameAttribute` |
 | [v40.0.1](./upgrade-notes/v40-upgrade-notes.md) | Grails 7.1, `MetricsService` registration API, `BaseService.telemetryPrefix`, `ObservedRun` metrics by-name, `hoist.*` → `xh.*` built-in metric rename, client-side metrics endpoint |
 | [v39.0.0](./upgrade-notes/v39-upgrade-notes.md) | Typed `ConfigSpec` / `PreferenceSpec` / `RoleSpec`, optional `TypedConfigMap` opt-in, telemetry package restructuring, `alwaysSampleErrors` removed, JDK 25 toolchain |
