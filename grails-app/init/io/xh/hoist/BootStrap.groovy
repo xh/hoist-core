@@ -313,7 +313,7 @@ class BootStrap implements LogSupport {
                 valueType: 'json',
                 typedClass: JsonBlobConfig,
                 groupName: 'xh.io',
-                note: 'Configures `JsonBlobService`. `globalManagerRoles` maps blob type (or `*` as fallback) to the roles permitted to create, modify, and archive global blobs - e.g. ViewManager global views.'
+                note: 'Configures `JsonBlobService`. `globalWriteRoles` maps blob type (or `*` as fallback) to the roles permitted to create, modify, and archive global blobs - e.g. ViewManager global views.'
             ),
             new ConfigSpec(
                 name: 'xhLdapConfig',

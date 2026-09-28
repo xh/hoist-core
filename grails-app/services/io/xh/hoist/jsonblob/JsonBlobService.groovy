@@ -33,8 +33,8 @@ import static java.lang.System.currentTimeMillis
  * Read access is granted per blob: to its `owner`, or to all users when its `acl` is set to the
  * wildcard `*`. Write access (update, archive, group rename) is limited to the `owner`. A null owner
  * indicates a global blob, belonging to no single user - creating, modifying, or archiving global
- * blobs requires the roles configured in `xhJsonBlobConfig.globalManagerRoles` (see
- * {@link #canManageGlobal}).
+ * blobs requires the roles configured in `xhJsonBlobConfig.globalWriteRoles` (see
+ * {@link #canWriteGlobal}).
  */
 class JsonBlobService extends BaseService implements DataBinder {
 
@@ -101,7 +101,7 @@ class JsonBlobService extends BaseService implements DataBinder {
      *      any paths nested beneath it.
      * @param to - replacement group path. Required.
      * @param username - user on whose behalf the rename is made. Must be `ownerName`, or permitted
-     *      to manage global blobs when `ownerName` is null. Recorded as `lastUpdatedBy` on each blob.
+     *      to write global blobs when `ownerName` is null. Recorded as `lastUpdatedBy` on each blob.
      * @return count of blobs whose group path was rewritten.
      */
     @Transactional
@@ -203,11 +203,11 @@ class JsonBlobService extends BaseService implements DataBinder {
     /**
      * True if the user may create, modify, or archive global (null-owner) blobs of the given type.
      *
-     * Consults `xhJsonBlobConfig.globalManagerRoles` by default. Apps needing code-level logic may
+     * Consults `xhJsonBlobConfig.globalWriteRoles` by default. Apps needing code-level logic may
      * subclass this service and override.
      */
-    protected boolean canManageGlobal(String type, String username) {
-        Map<String, List<String>> roles = configService.getObject(JsonBlobConfig).globalManagerRoles
+    protected boolean canWriteGlobal(String type, String username) {
+        Map<String, List<String>> roles = configService.getObject(JsonBlobConfig).globalWriteRoles
         List<String> required = roles[type] ?: roles['*']
         if (!required) return false
         if (required.contains('*')) return true
@@ -221,7 +221,7 @@ class JsonBlobService extends BaseService implements DataBinder {
     }
 
     private boolean canWriteOwner(String type, String owner, String username) {
-        return owner == username || (owner == null && canManageGlobal(type, username))
+        return owner == username || (owner == null && canWriteGlobal(type, username))
     }
 
     private ensureReadable(JsonBlob blob, String username) {
@@ -240,8 +240,8 @@ class JsonBlobService extends BaseService implements DataBinder {
         if (!canWriteOwner(type, owner, username)) {
             throw new NotAuthorizedException(
                 owner == null ?
-                    "User '$username' is not permitted to manage global JsonBlobs of type '$type'" :
-                    "User '$username' is not permitted to manage JsonBlobs owned by '$owner'"
+                    "User '$username' does not have write access to global JsonBlobs of type '$type'" :
+                    "User '$username' does not have write access to JsonBlobs owned by '$owner'"
             )
         }
     }

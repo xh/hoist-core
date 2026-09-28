@@ -23,11 +23,11 @@ detailed, step-by-step upgrade instructions with before and after code examples.
   Previously `acl: '*'` granted every user full write access to shared and global blobs - including
   ViewManager global views - regardless of the client-side `manageGlobal` gate.
   * Global (null-owner) blobs can be created, modified, or archived only by users with a role in
-    the new `xhJsonBlobConfig.globalManagerRoles` soft config, keyed by blob `type` with `*` as the
+    the new `xhJsonBlobConfig.globalWriteRoles` soft config, keyed by blob `type` with `*` as the
     fallback. Default: `{"*": ["HOIST_ADMIN"]}`.
   * Mirror any custom role passed as `manageGlobal` on the client into this config - e.g.
     `{"*": ["HOIST_ADMIN"], "portfolioGrid": ["MANAGE_GRID_VIEWS"]}`. Include the role `*` to
-    restore the prior open behavior, or subclass `JsonBlobService` and override `canManageGlobal`.
+    restore the prior open behavior, or subclass `JsonBlobService` and override `canWriteGlobal`.
   * `JsonBlobService.create` and `update` now ignore internally managed fields such as `token` and
     `archivedDate` if supplied.
 * Removed `DefaultRoleService.doLoadUsersForDirectoryGroups`. Apps that resolve directory groups
