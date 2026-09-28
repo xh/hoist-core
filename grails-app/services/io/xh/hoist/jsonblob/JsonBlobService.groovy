@@ -6,9 +6,11 @@
  */
 package io.xh.hoist.jsonblob
 
+import grails.compiler.GrailsCompileStatic
 import grails.gorm.transactions.ReadOnly
 import grails.gorm.transactions.Transactional
 import grails.web.databinding.DataBinder
+import groovy.transform.CompileDynamic
 import io.xh.hoist.BaseService
 import io.xh.hoist.exception.NotAuthorizedException
 import io.xh.hoist.user.HoistUser
@@ -36,6 +38,7 @@ import static java.lang.System.currentTimeMillis
  * blobs requires the roles configured in `xhJsonBlobConfig.globalWriteRoles` (see
  * {@link #canWriteGlobal}).
  */
+@GrailsCompileStatic
 class JsonBlobService extends BaseService implements DataBinder {
 
     /** Fields settable via `update` - all others are managed by this service. */
@@ -195,7 +198,7 @@ class JsonBlobService extends BaseService implements DataBinder {
         if (required.contains('*')) return true
 
         HoistUser user = userService.find(username)
-        return user?.hasAnyRole(required as String[])
+        return user != null && user.hasAnyRole(required as String[])
     }
 
 
@@ -250,6 +253,8 @@ class JsonBlobService extends BaseService implements DataBinder {
         }
     }
 
+    // Dynamic for the criteria `projections` block, which static compilation cannot resolve.
+    @CompileDynamic
     private Object accessibleBlobs(String type, String username, String projection = null) {
         JsonBlob.createCriteria().list {
             eq('type', type)
