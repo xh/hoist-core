@@ -56,7 +56,7 @@ class ViewService extends BaseService {
         return [
             state         : getStateFromBlob(rawState ? rawState.first() : null, viewInstance),
             views         : views*.formatForClient(false),
-            canWriteGlobal: jsonBlobService.canWriteGlobal(type, username)
+            manageGlobal  : jsonBlobService.canWriteGlobal(type, username)
         ]
     }
 
