@@ -32,6 +32,9 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 ### 🐞 Bug Fixes
 
+* `EmailService` no longer expands blank address entries into bare `@domain` addresses (notably
+  from a blank `xhEmailOverride`), matches `none` case-insensitively, and throws a clear error
+  when no sender address resolves or an unqualified address has no `xhEmailDefaultDomain`.
 * `DefaultRoleService.describeDirectoryGroups` and `searchDirectoryGroups` now resolve through the
   overridable `getDirectoryService`, so an app with a custom directory group source no longer sees
   "No enabled directory service in this application" reported for every group by the
@@ -39,6 +42,10 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 ### ⚙️ Technical
 
+* `EmailService.sendEmail` now declares its arguments as named parameters. Existing calls need no
+  changes.
+    * ⚠️ An unrecognized argument name now throws an `AssertionError`, which `throwError: false`
+      does not suppress.
 * `ApplicationConfig.defaultConfig` now sets `server.compression.mimeTypes`, adding
   `application/x-ndjson` to Spring Boot's built-in list.  The result is that `BaseController.renderNDJSON`
   responses are also compressed during development (as they already were when deployed behind xh-nginx.).
