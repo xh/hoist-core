@@ -112,7 +112,7 @@ class JsonBlobService extends BaseService implements DataBinder {
         if (!from || !to) {
             throw new IllegalArgumentException("Group rename requires both 'from' and 'to' group paths")
         }
-        ensureOwnerWritable(type, ownerName, username)
+        ensureWritable(type, ownerName, username)
 
         List<JsonBlob> candidates = JsonBlob.createCriteria().list {
             eq('type', type)
@@ -151,7 +151,7 @@ class JsonBlobService extends BaseService implements DataBinder {
     @Transactional
     JsonBlob create(Map data, String username = username) {
         data = [owner: username, *: data.findAll { it.key in BINDABLE_FIELDS }, lastUpdatedBy: username]
-        ensureOwnerWritable(data.type as String, data.owner as String, username)
+        ensureWritable(data.type as String, data.owner as String, username)
 
         if (data.containsKey('value')) data.value = serialize(data.value)
         if (data.containsKey('meta')) data.meta = serialize(data.meta)
@@ -188,7 +188,7 @@ class JsonBlobService extends BaseService implements DataBinder {
 
             // Reassigning ownership is a write into the target namespace - e.g. promoting to global.
             if (data.containsKey('owner') && data.owner != blob.owner) {
-                ensureOwnerWritable(blob.type, data.owner as String, username)
+                ensureWritable(blob.type, data.owner as String, username)
             }
 
             bindData(blob, data)
@@ -231,12 +231,10 @@ class JsonBlobService extends BaseService implements DataBinder {
     }
 
     private ensureWritable(JsonBlob blob, String username) {
-        if (!canWriteOwner(blob.type, blob.owner, username)) {
-            throw new NotAuthorizedException("User '$username' does not have write access to JsonBlob with token '${blob.token}'")
-        }
+        ensureWritable(blob.type, blob.owner, username)
     }
 
-    private ensureOwnerWritable(String type, String owner, String username) {
+    private ensureWritable(String type, String owner, String username) {
         if (!canWriteOwner(type, owner, username)) {
             throw new NotAuthorizedException(
                 owner == null ?
