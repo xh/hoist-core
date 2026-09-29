@@ -48,8 +48,9 @@ hoistCoreVersion=42.0.0
 ### 2. Review global view write roles
 
 `JsonBlobService` now requires a role for any write to a global (null-owner) blob - create,
-update, archive, or group rename. Roles come from the new `xhJsonBlobConfig` soft config, which
-hoist-core bootstraps on startup with this default:
+update, archive, or group rename. Roles come from the new `xhJsonBlobConfig` soft config.
+hoist-core creates it on startup as an empty object `{}`, and applies this default in code for any
+key the config leaves out:
 
 ```json
 {
@@ -75,23 +76,22 @@ Then choose one of the following:
 **Only `HOIST_ADMIN` users manage global views** - no change required. The default applies.
 
 **A custom role manages global views** - mirror it in the config, per type or as the fallback.
-Edit `xhJsonBlobConfig` in the Admin Console, or seed it from the app's `BootStrap.groovy`:
+After upgrading, edit `xhJsonBlobConfig` in the Admin Console of each environment:
 
-```groovy
-new ConfigSpec(
-    name: 'xhJsonBlobConfig',
-    valueType: 'json',
-    defaultValue: [
-        globalWriteRoles: [
-            '*'             : ['HOIST_ADMIN'],
-            'portfolioGrid' : ['HOIST_ADMIN', 'PORTFOLIO_MANAGER']
-        ]
-    ],
-    groupName: 'xh.io'
-)
+```json
+{
+  "globalWriteRoles": {
+    "*": ["HOIST_ADMIN"],
+    "portfolioGrid": ["HOIST_ADMIN", "PORTFOLIO_MANAGER"]
+  }
+}
 ```
 
-**All users manage global views** (prior behavior) - include the role `*`:
+Do not seed it from the app's `BootStrap.groovy`. hoist-core has already created the config by the
+time app bootstrap runs, and seeding never overwrites an existing config.
+
+**All users manage global views** (prior behavior) - edit the config the same way to include the
+role `*`:
 
 ```json
 {
