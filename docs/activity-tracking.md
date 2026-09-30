@@ -92,7 +92,7 @@ Parameters:
 | `severity` | `Object` | `INFO` | `TrackSeverity` or string |
 | `elapsed` | `Long` | `null` | Duration in ms |
 | `data` | `Object` | `null` | Additional payload (serialized to JSON) |
-| `logData` | `Object` | `null` | Keys from data to include in log output, or `true` to log all |
+| `logData` | `Object` | `null` | Keys from data to include in log output, or `true` to log all. Nested maps log as dotted keys (see below) |
 | `correlationId` | `String` | `null` | Links related entries |
 | `timestamp` | `Long` | current time | Epoch ms when the event occurred |
 
@@ -106,6 +106,23 @@ thread to avoid delaying the calling request.
 
 Record multiple track entries in a single call. Used by the client-side tracking endpoint to batch
 multiple events.
+
+#### Logging Data
+
+By default, tracked `data` is persisted but not written to the log. Set `logData` on the call, or
+in `xhActivityTrackingConfig`, to include data values in the log line. This makes them available as
+queryable attributes in log aggregation tools. Nested maps are flattened to dotted keys, while
+lists and maps nested more than five levels deep are logged as JSON strings. Payloads larger than
+`maxDataLength` are not logged, and data keys never overwrite core fields such as user or category:
+
+```groovy
+trackService.track(
+    msg: 'Loaded app',
+    data: [timings: [authenticating: 120, total: 1450], roles: ['APP_READER']],
+    logData: ['timings']          // or `true` for all keys, or ['timings.total'] for one value
+)
+// Logs: ... | timings.authenticating=120 | timings.total=1450
+```
 
 #### Processing Pipeline
 
@@ -225,7 +242,7 @@ See [`metrics.md`](./metrics.md) for full documentation of the metrics infrastru
 | `clientHealthReport` | Config for client health report submissions. `intervalMins` controls frequency (`-1` to disable) |
 | `enabled` | `true` to enable tracking, `false` to disable completely |
 | `levels` | Severity filtering rules (see Severity Filtering above) |
-| `logData` | Default for whether to include data keys in log output |
+| `logData` | Default for whether to include data keys in log output - `true`, `false`, or a list of keys |
 | `maxDataLength` | Maximum size of JSON data payload (chars). Larger data is dropped |
 | `maxEntriesPerMin` | Rate limit threshold for persistence |
 | `maxRows` | Controls the maximum number of rows returned in admin activity queries. `default` is the initial row count, `limit` is the absolute maximum, and `options` provides selectable values |

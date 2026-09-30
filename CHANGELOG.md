@@ -14,6 +14,23 @@
 
 ## 43.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* `TrackService` now logs nested `data` values when `logData` is enabled. Nested maps are flattened
+  to dotted keys (e.g. `timings.authenticating=1250`) and lists are logged as JSON strings.
+  Previously these values were dropped. A `logData` list can name a top-level key to log all of its
+  nested values, or a dotted key to log a single value. Maps nested more than five levels deep are
+  logged as JSON strings.
+* `TrackService` log lines now include `browser` and `device` for entries made within a request.
+
+### 🐞 Bug Fixes
+
+* Fixed the `logData` option on `TrackService.track()` and client track calls being ignored. Only
+  the `xhActivityTrackingConfig.logData` default was applied.
+* `TrackService` no longer logs `data` payloads larger than `xhActivityTrackingConfig.maxDataLength`.
+  Previously these payloads were dropped from the database but written to the log in full.
+* `TrackService` no longer lets `data` keys overwrite core log fields such as user and category.
+
 ## 42.0.0 - 2026-09-29
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - review global view write roles; most apps require no changes)
