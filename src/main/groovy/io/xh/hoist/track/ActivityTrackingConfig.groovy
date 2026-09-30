@@ -29,6 +29,12 @@ class ActivityTrackingConfig extends TypedConfigMap {
     /** Maximum length (characters) of a serialized `data` payload persisted to the DB. */
     Integer maxDataLength = 2000
 
+    /**
+     * Maximum `elapsed` time (minutes) persisted for an entry. Longer times are dropped as
+     * implausible - e.g. from a hidden browser tab or a sleeping laptop. -1 to disable.
+     */
+    Integer maxElapsedMins = 5
+
     /** Maximum entries received per-instance per minute before rate limiting kicks in. */
     Long maxEntriesPerMin = 1000L
 

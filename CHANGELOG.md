@@ -14,6 +14,12 @@
 
 ## 43.0-SNAPSHOT - unreleased
 
+### 🐞 Bug Fixes
+
+* `TrackService` now drops any `elapsed` time over the new `xhActivityTrackingConfig.maxElapsedMins`
+  limit (default 5). These times come from hidden browser tabs or sleeping laptops, and they skew
+  activity stats and the `xh.client.load.*` metrics. hoist-react v88.1 applies the same limit.
+
 ## 42.0.0 - 2026-09-29
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - review global view write roles; most apps require no changes)
