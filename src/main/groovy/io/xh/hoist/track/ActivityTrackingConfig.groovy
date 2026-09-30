@@ -21,8 +21,10 @@ class ActivityTrackingConfig extends TypedConfigMap {
 
     /**
      * Whether to include entry `data` payloads in the server log in addition to the DB row.
-     * Accepts `true`/`false` or a `List<String>` of top-level keys to include (useful when
-     * most data is noisy but specific fields are worth logging).
+     * Accepts `true`/`false` or a `List<String>` of keys to include (useful when most data is
+     * noisy but specific fields are worth logging). Nested maps are logged as dotted keys - list a
+     * top-level key to log all of its nested values, or a dotted key to log a single value.
+     * Payloads larger than `maxDataLength` are not logged.
      */
     Object logData = false
 
