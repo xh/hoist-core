@@ -31,9 +31,16 @@ class ActivityTrackingConfig extends TypedConfigMap {
 
     /**
      * Maximum `elapsed` time (minutes) persisted for an entry. Longer times are dropped as
-     * implausible - e.g. from a hidden browser tab or a sleeping laptop. -1 to disable.
+     * implausible - e.g. from a sleeping laptop. -1 to disable.
      */
     Integer maxElapsedMins = 5
+
+    /**
+     * Per-category overrides of `maxElapsedMins`, keyed by `category` -> minutes. Free-form -
+     * keys are the arbitrary categories used by the app. Remains a plain Map rather than a
+     * typed section.
+     */
+    Map<String, Integer> maxElapsedMinsByCategory = [:]
 
     /** Maximum entries received per-instance per minute before rate limiting kicks in. */
     Long maxEntriesPerMin = 1000L

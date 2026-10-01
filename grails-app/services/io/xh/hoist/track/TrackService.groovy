@@ -285,9 +285,10 @@ class TrackService extends BaseService {
             entry.data = null
         }
 
-        // Drop implausibly long elapsed times - e.g. from a hidden tab or a sleeping laptop.
+        // Drop implausibly long elapsed times - e.g. from a sleeping laptop.
         Long elapsed = entry.elapsed as Long
-        def maxElapsedMins = conf.maxElapsedMins
+        Integer maxElapsedMins =
+            conf.maxElapsedMinsByCategory[entry.category as String] ?: conf.maxElapsedMins
         if (maxElapsedMins > 0 && elapsed > maxElapsedMins * MINUTES) {
             logTrace(
                 "Track log with message [$entry.msg] has elapsed of ${elapsed}ms",
