@@ -33,7 +33,7 @@ class ActivityTrackingConfig extends TypedConfigMap {
      * Maximum `elapsed` time (minutes) persisted for an entry. Longer times are dropped as
      * implausible - e.g. from a sleeping laptop. -1 to disable.
      */
-    Integer maxElapsedMins = 5
+    Integer maxElapsedMins = 2
 
     /**
      * Per-category overrides of `maxElapsedMins`, keyed by `category` -> minutes. Free-form -

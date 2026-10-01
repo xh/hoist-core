@@ -17,7 +17,7 @@
 ### 🐞 Bug Fixes
 
 * `TrackService` now drops any `elapsed` time over the new `xhActivityTrackingConfig.maxElapsedMins`
-  limit (default 5, overridable per category via `maxElapsedMinsByCategory`). These times come from
+  limit (default 2, overridable per category via `maxElapsedMinsByCategory`). These times come from
   sleeping laptops or hidden browser tabs, and they skew activity stats and the `xh.client.load.*`
   metrics.
 

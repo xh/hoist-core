@@ -219,7 +219,7 @@ See [`metrics.md`](./metrics.md) for full documentation of the metrics infrastru
   ],
   "logData": false,
   "maxDataLength": 2000,
-  "maxElapsedMins": 5,
+  "maxElapsedMins": 2,
   "maxElapsedMinsByCategory": {},
   "maxEntriesPerMin": 1000,
   "maxRows": {"default": 10000, "limit": 25000, "options": [1000, 5000, 10000, 25000]}
@@ -372,7 +372,7 @@ User feedback submitted through the built-in feedback dialog is sent as a track 
 
 - **`data`** — Payloads exceeding `maxDataLength` (default 2000 chars) are **dropped entirely**
   (set to `null`). A trace-level log message is emitted, but no error is raised.
-- **`elapsed`** - Times over `maxElapsedMins` (default 5 minutes, overridable per category via
+- **`elapsed`** - Times over `maxElapsedMins` (default 2 minutes, overridable per category via
   `maxElapsedMinsByCategory`) are dropped (set to `null`). These usually come from a sleeping
   laptop or a hidden browser tab.
 - **`msg`** — Truncated to 255 characters.
