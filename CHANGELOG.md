@@ -14,6 +14,13 @@
 
 ## 43.0-SNAPSHOT - unreleased
 
+### 🐞 Bug Fixes
+
+* `TrackService` now drops any `elapsed` time over the new `xhActivityTrackingConfig.maxElapsedMins`
+  limit (default 2, overridable per category via `maxElapsedMinsByCategory`). These times come from
+  sleeping laptops or hidden browser tabs, and they skew activity stats and the `xh.client.load.*`
+  metrics.
+
 ## 42.0.0 - 2026-09-29
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - review global view write roles; most apps require no changes)
