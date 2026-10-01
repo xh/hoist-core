@@ -196,8 +196,8 @@ to distinguish activity from different client applications.
 | `xh.client.load.authTime` | Timer | Authentication phase duration |
 
 The load timers record only entries with an `elapsed` value. hoist-react omits `elapsed` when the
-page was hidden at load start (e.g. opened in a background tab), and reports `hiddenAtLoad: true`
-in the entry data.
+page was hidden at any point during load (e.g. opened in a background tab, or switched away from
+while loading), and reports `hiddenDuringLoad: true` in the entry data.
 
 See [`metrics.md`](./metrics.md) for full documentation of the metrics infrastructure.
 
