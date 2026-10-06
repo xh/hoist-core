@@ -14,6 +14,13 @@
 
 ## 43.0-SNAPSHOT - unreleased
 
+### 🐞 Bug Fixes
+
+* `FieldFilter` negated operators (`!=`, `not like`, `not begins`, `not ends`) now pass blank
+  values as Hibernate criteria, as they do in memory and in hoist-react. SQL's null handling
+  dropped them before. The text operators also excluded blanks in memory, unlike `!=` and
+  `excludes`.
+
 ## 42.1.0 - 2026-10-01
 
 ### 🐞 Bug Fixes

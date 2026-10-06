@@ -9,6 +9,7 @@ package io.xh.hoist.data.filter
 
 import io.xh.hoist.json.JSONFormat
 import org.hibernate.criterion.Criterion
+import org.hibernate.criterion.MatchMode
 import org.hibernate.criterion.Restrictions
 
 import static org.hibernate.criterion.MatchMode.ANYWHERE
@@ -83,10 +84,11 @@ class FieldFilter extends Filter implements JSONFormat {
                     return or([Restrictions.isNull(field), c])
                 return c
             case '!=':
-                Criterion c =  and(vals.findAll { it != null }.collect { ne(field, it) })
-                if (vals.contains(null))
-                    return and([Restrictions.isNotNull(field), c])
-                return c
+                Criterion c = and(vals.findAll { it != null }.collect { ne(field, it) })
+                // Blanks pass unless excluded explicitly - SQL would otherwise drop them.
+                return vals.contains(null) ?
+                    and([Restrictions.isNotNull(field), c]) :
+                    or([Restrictions.isNull(field), c])
             case '>':
                 return gt(field, value)
             case '>=':
@@ -98,15 +100,15 @@ class FieldFilter extends Filter implements JSONFormat {
             case 'like':
                 return or(vals.collect { ilike(field, it as String, ANYWHERE) })
             case 'not like':
-                return and(vals.collect { not(ilike(field, it as String, ANYWHERE)) })
+                return notIlike(vals, ANYWHERE)
             case 'begins':
                 return or(vals.collect { ilike(field, it as String, START) })
             case 'not begins':
-                return and(vals.collect { not(ilike(field, it as String, START)) })
+                return notIlike(vals, START)
             case 'ends':
                 return or(vals.collect { ilike(field, it as String, END) })
             case 'not ends':
-                return and(vals.collect { not(ilike(field, it as String, END)) })
+                return notIlike(vals, END)
             case 'includes':
             case 'excludes':
                 throw new RuntimeException('Unsupported operator for Criteria Filter')
@@ -164,7 +166,7 @@ class FieldFilter extends Filter implements JSONFormat {
                 def regExps = vals.collect { v -> ~/(?i)$v/ }
                 return {
                     def v = it[field]
-                    return v != null && !regExps.any { re -> re.matcher(v).find() }
+                    return v == null || !regExps.any { re -> re.matcher(v).find() }
                 }
             case 'begins':
                 def regExps = vals.collect { v -> ~/(?i)^$v/ }
@@ -176,7 +178,7 @@ class FieldFilter extends Filter implements JSONFormat {
                 def regExps = vals.collect { v -> ~/(?i)^$v/ }
                 return {
                     def v = it[field]
-                    return v != null && !regExps.any { re -> re.matcher(v).find() }
+                    return v == null || !regExps.any { re -> re.matcher(v).find() }
                 }
             case 'ends':
                 def regExps = vals.collect { v -> ~/(?i)$v$/ }
@@ -188,7 +190,7 @@ class FieldFilter extends Filter implements JSONFormat {
                 def regExps = vals.collect { v -> ~/(?i)$v$/ }
                 return {
                     def v = it[field]
-                    return v != null && !regExps.any { re -> re.matcher(v).find() }
+                    return v == null || !regExps.any { re -> re.matcher(v).find() }
                 }
             case 'includes':
                 return {
@@ -217,5 +219,16 @@ class FieldFilter extends Filter implements JSONFormat {
                 other.op == op &&
                 other.value == value
         )
+    }
+
+    //------------------------
+    // Implementation
+    //------------------------
+    // Blanks pass a negated text operator, as they do in memory - SQL would otherwise drop them.
+    private Criterion notIlike(List vals, MatchMode mode) {
+        return or([
+            Restrictions.isNull(field),
+            and(vals.collect { not(ilike(field, it as String, mode)) })
+        ])
     }
 }
