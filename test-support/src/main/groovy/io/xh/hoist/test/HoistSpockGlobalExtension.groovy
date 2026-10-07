@@ -20,6 +20,8 @@ import org.spockframework.runtime.model.SpecInfo
  *    adding `hoist-core-test` to an app's test classpath is sufficient to configure the Hoist
  *    system properties. Apps that prefer to be explicit can set the equivalent properties in
  *    their Gradle `test { systemProperty ... }` block instead - existing values are never replaced.
+ *  - calls {@link HoistTestLogging#configure}, so test output is quiet and Hoist log messages
+ *    render.
  *  - for specs implementing {@link HoistUnitTest}, registers and resets the Hoist framework beans
  *    before each feature, and clears the thread identity after it - in the same way Grails' own
  *    testing support extension wires `GrailsUnitTest` specs.
@@ -43,6 +45,7 @@ class HoistSpockGlobalExtension implements IGlobalExtension {
     @Override
     void start() {
         HoistTestEnvironment.ensureInitialized()
+        HoistTestLogging.configure()
     }
 
     @Override

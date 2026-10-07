@@ -35,22 +35,16 @@ tasks.withType(Test).configureEach {
 `hoist-core-test` brings in `spock-core`, Grails testing support (`grails-testing-support-web`
 and `-datamapping`, for `ControllerUnitTest`, `ServiceUnitTest` and `DataTest`), and the
 byte-buddy and objenesis libraries Spock needs to mock concrete classes. Versions are aligned with
-the Grails BOM used by hoist-core.
+the Grails BOM used by hoist-core. The harness does not select a JDK - specs run on whatever JDK
+the app's `test` task uses, so an app's suite exercises Hoist on the runtime the app ships with.
+Apps that include a local hoist-core checkout as a composite build (Toolbox's `runHoistInline`)
+get the local harness substituted automatically, as the Gradle project is named `hoist-core-test`.
 
-Add a `src/test/resources/logback-test.xml` to keep test output quiet - hoist-core-test
-deliberately ships no logging config, so it never overrides an app's own. Register Hoist's
-`LogSupportConverter` for the message conversion word, or `logInfo` / `logWarn` output renders as
-`null` (the message travels on a Marker):
-
-```xml
-<configuration>
-    <conversionRule conversionWord="msg" converterClass="io.xh.hoist.log.LogSupportConverter"/>
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder><pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern></encoder>
-    </appender>
-    <root level="WARN"><appender-ref ref="CONSOLE"/></root>
-</configuration>
-```
+Logging needs no setup. The harness configures Logback for the test JVM - console output at
+WARN, with Hoist's `LogSupportConverter` registered so `logInfo` / `logWarn` messages render
+rather than printing `null`. To see more from one logger while working on a spec, set its level
+in the spec, e.g. `(LoggerFactory.getLogger(MyService) as Logger).level = Level.DEBUG`, and
+restore it in `cleanup()`.
 
 ### Why Hoist needs more than the Grails test context
 
@@ -134,6 +128,7 @@ framework services are in `io.xh.hoist.test.fakes`.
 |---|---|
 | `HoistUnitTest` | Grails unit-test trait. Registers the beans below before each feature unless the spec defined its own in `doWithSpring()`; resets config, users, tracked entries, sent emails and primary status before each feature and clears identity after. Adds `testConfigService`, `testUserService`, `testClusterService`, `testTrackService`, `testEmailService`, `identityService`, `defineService`, `loginAs`, `impersonate`, `logout`, `withUser` and `useAppTimeZone`. |
 | `HoistSpec` | Abstract `Specification` implementing `HoistUnitTest`. |
+| `HoistTestLogging` | Logback setup for the test JVM: console at WARN, Hoist message converter registered. |
 | `TestConfigService` | `configService` bean. Map-backed `ConfigService` - seed with `set` / `setAll`. All typed getters (`getString`, `getInt`, `getMap`, ...) follow `ConfigService` semantics, including throwing for a missing config without a default. `registerTypedConfig` supports `getObject` for `TypedConfigMap` subclasses. |
 | `TestUserService` | `userService` bean. In-memory `BaseUserService`: `add`, `find`, `list`, `clear`. |
 | `TestClusterService` | `clusterService` bean. Reports `isPrimary` from `primaryInstance` (default `true`), so `primaryOnly` timers run. |
@@ -212,7 +207,6 @@ def 'all #controller.simpleName actions are secured'() {
 ./gradlew test                          # root project specs (+ JaCoCo report)
 ./gradlew check                         # all projects, incl. shadowing guard
 ./gradlew :test --tests 'io.xh.hoist.data.filter.*'
-./gradlew test -PtestJavaVersion=17     # run tests on JDK 17 (compile stays on the JDK 25 toolchain)
 ```
 
 Reports: `build/reports/tests/test/index.html` and `build/reports/jacoco/test/html/index.html`
@@ -220,8 +214,7 @@ Reports: `build/reports/tests/test/index.html` and `build/reports/jacoco/test/ht
 
 ### CI
 
-The CI workflow runs `./gradlew build` on a JDK 17 and JDK 25 matrix, passing `-PtestJavaVersion`
-so each row really runs tests on that JDK - the 17 row guards the published bytecode target. Each
-row publishes a test summary and failure annotations to the job summary, the JDK 25 row adds a
-coverage summary, and test reports are uploaded as an artifact on failure. Coverage is report-only
-for now - no minimum threshold is enforced. See [`build-and-publish.md`](./build-and-publish.md).
+The CI workflow runs `./gradlew build` on the JDK 25 toolchain and publishes a test summary,
+failure annotations and a coverage summary to the job page, with test reports uploaded as an
+artifact on failure. Coverage is report-only for now - no minimum threshold is enforced. See
+[`build-and-publish.md`](./build-and-publish.md).

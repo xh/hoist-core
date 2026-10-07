@@ -32,16 +32,12 @@ The `xhReleaseVersion` property in `gradle.properties` sets the version for all 
 
 Runs on pushes and pull requests to `develop`.
 
-- **build** runs `./gradlew build` across a JDK matrix: the toolchain used for publishing, and the
-  oldest runtime the published JAR supports. Every row compiles with the JDK 25 toolchain and
-  passes `-PtestJavaVersion` so the test suite runs on the matrix JDK - the older row catches
-  accidental use of newer Java APIs or a wrong bytecode target. See the `java` block in
-  `build.gradle` and [`application-structure.md`](./application-structure.md#jdk-choice) for the
-  current toolchain and bytecode target.
-  - Each row writes a test summary with failure annotations to the job summary
-    (`mikepenz/action-junit-report`, in `annotate_only` mode so no extra permissions are needed),
-    and uploads test reports as an artifact on failure. The JDK 25 row adds a JaCoCo coverage
-    summary. See [`testing.md`](./testing.md).
+- **build** runs `./gradlew build` on the JDK 25 toolchain used for publishing. The published JAR
+  targets Java 17 bytecode - see the `java` block in `build.gradle` and
+  [`application-structure.md`](./application-structure.md#jdk-choice).
+  - The job writes a test summary with failure annotations and a JaCoCo coverage summary to the
+    job page (`mikepenz/action-junit-report`, in `annotate_only` mode so no extra permissions are
+    needed), and uploads test reports as an artifact on failure. See [`testing.md`](./testing.md).
 - **dependency-submission** submits the Gradle dependency graph to GitHub, enabling Dependabot
   alerts for project dependencies.
 

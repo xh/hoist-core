@@ -9,18 +9,8 @@ jacoco {
     toolVersion = '0.8.15'
 }
 
-// CI passes -PtestJavaVersion=<n> so each matrix row runs tests on that JDK, while compilation
-// stays on the JDK 25 toolchain (release 17). Without it, tests run on the compile toolchain.
-def testJavaVersion = providers.gradleProperty('testJavaVersion')
-
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
-
-    if (testJavaVersion.present) {
-        javaLauncher = javaToolchains.launcherFor {
-            languageVersion = JavaLanguageVersion.of(testJavaVersion.get() as int)
-        }
-    }
 
     testLogging {
         events 'failed', 'skipped'

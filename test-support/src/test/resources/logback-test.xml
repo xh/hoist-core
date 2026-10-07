@@ -1,8 +1,0 @@
-<configuration>
-    <!-- Render Hoist LogSupport messages (carried on a Marker) rather than the raw "null" message. -->
-    <conversionRule conversionWord="msg" converterClass="io.xh.hoist.log.LogSupportConverter"/>
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder><pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern></encoder>
-    </appender>
-    <root level="WARN"><appender-ref ref="CONSOLE"/></root>
-</configuration>

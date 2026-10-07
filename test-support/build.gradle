@@ -50,6 +50,8 @@ dependencies {
     api project(':')
 
     api 'org.spockframework:spock-core'
+    // For the default test logging setup in HoistTestLogging.
+    implementation 'ch.qos.logback:logback-classic'
     api 'org.apache.grails:grails-testing-support-web'
     api 'org.apache.grails:grails-testing-support-datamapping'
 
