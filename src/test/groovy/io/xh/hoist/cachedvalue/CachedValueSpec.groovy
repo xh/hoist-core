@@ -24,7 +24,7 @@ class CachedValueSpec extends HoistSpec {
     PlainService svc
 
     def setup() {
-        svc = createService(PlainService)
+        svc = defineService(PlainService)
     }
 
     def 'starts empty with a zero timestamp'() {

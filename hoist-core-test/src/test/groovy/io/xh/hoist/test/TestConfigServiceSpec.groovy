@@ -9,13 +9,12 @@ package io.xh.hoist.test
 
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.config.TypedConfigMap
-import spock.lang.Specification
 
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
-@HoistTest   // TypedConfigMap and others log via LogSupport, which needs a test context
-class TestConfigServiceSpec extends Specification {
+// TypedConfigMap and others log via LogSupport, which needs the Hoist test context.
+class TestConfigServiceSpec extends HoistSpec {
 
     static class MyConfig extends TypedConfigMap {
         boolean enabled = false
@@ -23,94 +22,94 @@ class TestConfigServiceSpec extends Specification {
         MyConfig(Map args) { init(args) }
     }
 
-    def config = new TestConfigService()
+    def svc = new TestConfigService()
 
     def 'typed getters return values coerced to the requested type'() {
         given:
-        config.setAll(s: 'str', i: 5, l: 6, d: 1.5, b: true, p: 'secret')
+        svc.setAll(s: 'str', i: 5, l: 6, d: 1.5, b: true, p: 'secret')
 
         expect:
-        config.getString('s') == 'str'
-        config.getInt('i') == 5
-        config.getLong('i') == 5L
-        config.getLong('l') == 6L
-        config.getDouble('d') == 1.5d
-        config.getDouble('i') == 5d
-        config.getBool('b')
-        config.getPwd('p') == 'secret'
+        svc.getString('s') == 'str'
+        svc.getInt('i') == 5
+        svc.getLong('i') == 5L
+        svc.getLong('l') == 6L
+        svc.getDouble('d') == 1.5d
+        svc.getDouble('i') == 5d
+        svc.getBool('b')
+        svc.getPwd('p') == 'secret'
     }
 
     def 'string values are parsed for numeric and boolean getters'() {
         given:
-        config.setAll(i: '7', d: '2.5', b: 'false')
+        svc.setAll(i: '7', d: '2.5', b: 'false')
 
         expect:
-        config.getInt('i') == 7
-        config.getDouble('d') == 2.5d
-        config.getBool('b') == false
+        svc.getInt('i') == 7
+        svc.getDouble('d') == 2.5d
+        svc.getBool('b') == false
     }
 
     def 'maps and lists can be supplied as objects or JSON strings'() {
         given:
-        config.setAll(m: [a: 1], mJson: '{"a": 1}', l: [1, 2], lJson: '[1, 2]')
+        svc.setAll(m: [a: 1], mJson: '{"a": 1}', l: [1, 2], lJson: '[1, 2]')
 
         expect:
-        config.getMap('m') == [a: 1]
-        config.getMap('mJson') == [a: 1]
-        config.getList('l') == [1, 2]
-        config.getList('lJson') == [1, 2]
+        svc.getMap('m') == [a: 1]
+        svc.getMap('mJson') == [a: 1]
+        svc.getList('l') == [1, 2]
+        svc.getList('lJson') == [1, 2]
     }
 
     def 'missing config throws unless a not-found value is supplied'() {
         when:
-        config.getString('missing')
+        svc.getString('missing')
 
         then:
         def e = thrown(RuntimeException)
         e.message == 'No config found with name: [missing]'
 
         expect:
-        config.getString('missing', 'dflt') == 'dflt'
-        config.getInt('missing', 3) == 3
-        config.getBool('missing', false) == false
-        config.getMap('missing', [:]) == [:]
+        svc.getString('missing', 'dflt') == 'dflt'
+        svc.getInt('missing', 3) == 3
+        svc.getBool('missing', false) == false
+        svc.getMap('missing', [:]) == [:]
     }
 
     def 'hasConfig, remove, and null values'() {
         when:
-        config.set('a', 'x')
+        svc.set('a', 'x')
 
         then:
-        config.hasConfig('a')
-        !config.hasConfig('b')
+        svc.hasConfig('a')
+        !svc.hasConfig('b')
 
         when:
-        config.set('a', null)
+        svc.set('a', null)
 
         then:
-        !config.hasConfig('a')
+        !svc.hasConfig('a')
 
         when:
-        config.set('a', 'y').remove('a')
+        svc.set('a', 'y').remove('a')
 
         then:
-        !config.hasConfig('a')
+        !svc.hasConfig('a')
     }
 
     def 'inherited derived getters work via the overridden getters'() {
         given:
-        config.setAll(users: 'alice, bob', group: '[users], carol', none: 'none')
+        svc.setAll(users: 'alice, bob', group: '[users], carol', none: 'none')
 
         expect:
-        config.getStringList('users') == ['alice', 'bob']
-        config.getStringList('group') == ['alice', 'bob', 'carol']
-        config.getStringIfSet('users') == 'alice, bob'
-        config.getStringIfSet('none') == null
+        svc.getStringList('users') == ['alice', 'bob']
+        svc.getStringList('group') == ['alice', 'bob', 'carol']
+        svc.getStringIfSet('users') == 'alice, bob'
+        svc.getStringIfSet('none') == null
     }
 
     def 'hasGate resolves from soft config'() {
         given:
-        HoistTestContext.current.configService.setAll(gateA: 'alice', gateAll: '*')
+        testConfigService.setAll(gateA: 'alice', gateAll: '*')
 
         expect:
         new TestUser('alice').hasGate('gateA')
@@ -120,20 +119,20 @@ class TestConfigServiceSpec extends Specification {
 
     def 'typed configs load via getObject once registered'() {
         given:
-        config.registerTypedConfig('myConfig', MyConfig).set('myConfig', [enabled: true])
+        svc.registerTypedConfig('myConfig', MyConfig).set('myConfig', [enabled: true])
 
         when:
-        def obj = config.getObject(MyConfig)
+        def obj = svc.getObject(MyConfig)
 
         then:
         obj.enabled
         obj.endpoint == 'default'
-        config.getTypedClass('myConfig') == MyConfig
+        svc.getTypedClass('myConfig') == MyConfig
     }
 
     def 'getObject of an unregistered class throws'() {
         when:
-        config.getObject(MyConfig)
+        svc.getObject(MyConfig)
 
         then:
         thrown(RuntimeException)
@@ -141,14 +140,14 @@ class TestConfigServiceSpec extends Specification {
 
     def 'admin stats, client config, and change events are inert'() {
         given:
-        config.set('a', 1)
+        svc.set('a', 1)
 
         expect:
-        config.getForAdminStats('a', 'b') == [a: 1, b: null]
-        config.getClientConfig() == [:]
+        svc.getForAdminStats('a', 'b') == [a: 1, b: null]
+        svc.getClientConfig() == [:]
 
         when:
-        config.fireConfigChanged(null)
+        svc.fireConfigChanged(null)
 
         then:
         noExceptionThrown()
@@ -156,10 +155,10 @@ class TestConfigServiceSpec extends Specification {
 
     def 'clear removes all values'() {
         when:
-        config.set('a', 1).clear()
+        svc.set('a', 1).clear()
 
         then:
-        !config.hasConfig('a')
+        !svc.hasConfig('a')
     }
 
     //------------------------------------------------------------------------------------------

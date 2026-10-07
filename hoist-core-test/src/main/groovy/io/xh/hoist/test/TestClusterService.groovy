@@ -11,7 +11,7 @@ import io.xh.hoist.cluster.ClusterService
 
 /**
  * {@link ClusterService} for tests that reports a configurable primary/secondary status without
- * any Hazelcast cluster membership. Registered by {@link HoistTestContext} as the application's
+ * any Hazelcast cluster membership. Registered by {@link HoistUnitTest} as the application's
  * `clusterService` bean, where it is the primary instance by default - so that `primaryOnly`
  * timers and `isPrimary` checks in services under test behave as they would on a single instance.
  */
