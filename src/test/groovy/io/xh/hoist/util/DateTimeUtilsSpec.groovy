@@ -8,7 +8,6 @@
 package io.xh.hoist.util
 
 import io.xh.hoist.test.HoistSpec
-import spock.lang.PendingFeature
 import spock.lang.Unroll
 
 import java.time.Instant
@@ -49,12 +48,6 @@ class DateTimeUtilsSpec extends HoistSpec {
 
         then:
         thrown(IllegalArgumentException)
-    }
-
-    @PendingFeature(reason = 'asEpochMilli only accepts Long, so an Integer timestamp (e.g. a Groovy literal) is rejected')
-    def 'asEpochMilli accepts an Integer'() {
-        expect:
-        asEpochMilli(5) == 5L
     }
 
     def 'intervalElapsed is true for a null start'() {

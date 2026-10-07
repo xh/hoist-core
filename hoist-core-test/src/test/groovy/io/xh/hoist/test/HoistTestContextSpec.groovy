@@ -11,6 +11,7 @@ import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
+import grails.util.Holders
 import io.xh.hoist.BaseService
 import io.xh.hoist.cache.Cache
 import io.xh.hoist.config.ConfigService
@@ -19,6 +20,7 @@ import io.xh.hoist.log.LogSupportMarker
 import io.xh.hoist.util.DateTimeUtils
 import io.xh.hoist.util.Utils
 import org.slf4j.LoggerFactory
+import spock.util.concurrent.PollingConditions
 
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -270,7 +272,9 @@ class HoistTestContextSpec extends HoistSpec {
 
         then:
         svc.isPrimaryInstance()
-        sleepUntil { svc.timerRuns.get() >= 1 }
+        new PollingConditions(timeout: 5).eventually {
+            assert svc.timerRuns.get() >= 1
+        }
     }
 
     def 'primary status can be simulated'() {
@@ -306,6 +310,10 @@ class HoistTestContextSpec extends HoistSpec {
         def ctx = hoist
         def svc = createService(SampleService)
         svc.init()
+        // Let the timer's first run complete, so it can't race context teardown on its own thread.
+        new PollingConditions(timeout: 5).eventually {
+            assert svc.timerRuns.get() >= 1
+        }
 
         when:
         ctx.close()
@@ -319,6 +327,15 @@ class HoistTestContextSpec extends HoistSpec {
 
         then:
         noExceptionThrown()
+    }
+
+    def 'install re-registers with Holders after Holders.clear()'() {
+        when: 'Grails testing support cleanup clears all discovery strategies'
+        Holders.clear()
+        def ctx = HoistTestContext.install()
+
+        then:
+        Utils.configService.is(ctx.configService)
     }
 
     def 'install replaces and closes any previous context'() {
@@ -337,14 +354,5 @@ class HoistTestContextSpec extends HoistSpec {
     def 'HoistAssertions use the context exception handler'() {
         expect:
         HoistAssertions.httpStatusFor(new NotAuthorizedException()) == 403
-    }
-
-    private static boolean sleepUntil(Closure<Boolean> condition, long timeoutMs = 5000) {
-        def deadline = System.currentTimeMillis() + timeoutMs
-        while (System.currentTimeMillis() < deadline) {
-            if (condition()) return true
-            Thread.sleep(25)
-        }
-        condition()
     }
 }

@@ -39,8 +39,9 @@ tasks.withType(GroovyCompile).configureEach {
     targetCompatibility = '17'
     groovyOptions.parameters = true
 }
-tasks.withType(Javadoc).configureEach {
-    options.addStringOption('Xdoclint:none', '-quiet')
+// Sources are Groovy-only, so fill the published javadoc jar from Groovydoc.
+tasks.named('javadocJar', Jar) {
+    from tasks.named('groovydoc')
 }
 
 dependencies {

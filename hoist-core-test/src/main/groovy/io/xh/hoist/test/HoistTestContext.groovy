@@ -71,8 +71,6 @@ import java.lang.reflect.Modifier
 class HoistTestContext implements AutoCloseable {
 
     private static HoistTestContext current
-    private static boolean strategyRegistered = false
-
     /** Soft config for this context - set values here. */
     final TestConfigService configService
 
@@ -117,10 +115,10 @@ class HoistTestContext implements AutoCloseable {
         def ret = new HoistTestContext()
         current = ret
 
-        // Register a single delegating strategy for the JVM. Re-register if Holders was cleared.
-        if (!strategyRegistered || Holders.findApplicationContext() == null) {
+        // Register a delegating strategy unless lookups already resolve here. Re-checked on every
+        // install, as Holders.clear() (e.g. from Grails testing support cleanup) drops strategies.
+        if (!Holders.findApplicationContext().is(ret.context)) {
             Holders.addApplicationDiscoveryStrategy(new CurrentContextStrategy())
-            strategyRegistered = true
         }
         ret
     }

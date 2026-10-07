@@ -135,6 +135,10 @@ def 'all #controller.simpleName actions are secured'() {
 - No Hazelcast instance is started. `createIMap`, `createReplicatedMap`, `getTopic` and
   `subscribeToTopic` are not available; `replicate: true` caches and cached values behave as local.
 - Async work run via Grails `task {}` does not inherit the test identity.
+- Grails `Holders` resolves the first running context registered with it. When a spec combines
+  `@HoistTest` with a Grails testing trait (`ControllerUnitTest`, `ServiceUnitTest`), the Grails
+  test context is registered first and wins `Utils` lookups - register the beans you need there
+  (e.g. via `defineBeans`) instead.
 - Environment variables named `APP_<APPCODE>_*` still take precedence over instance config.
 - GORM-backed code needs Grails `DataTest` / `DomainUnitTest` (included) or integration tests;
   `HoistTestContext` does not provide a datastore.

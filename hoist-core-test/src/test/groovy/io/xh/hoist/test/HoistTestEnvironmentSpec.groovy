@@ -30,12 +30,19 @@ class HoistTestEnvironmentSpec extends Specification {
     }
 
     def 'ensureInitialized is idempotent and does not replace existing values'() {
+        given:
+        def configFile = HoistTestEnvironment.instanceConfigFile
+        def configFileProp = System.getProperty('io.xh.hoist.instanceConfigFile')
+        def appCode = System.getProperty('info.xh.appCode')
+
         when:
         HoistTestEnvironment.ensureInitialized()
         HoistTestEnvironment.ensureInitialized()
 
         then:
         System.getProperty('io.xh.hoist.environment') == 'Test'
-        HoistTestEnvironment.instanceConfigFile.is(HoistTestEnvironment.instanceConfigFile)
+        HoistTestEnvironment.instanceConfigFile.is(configFile)
+        System.getProperty('io.xh.hoist.instanceConfigFile') == configFileProp
+        System.getProperty('info.xh.appCode') == appCode
     }
 }

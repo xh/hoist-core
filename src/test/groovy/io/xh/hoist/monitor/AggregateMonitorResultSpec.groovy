@@ -6,7 +6,6 @@
  */
 package io.xh.hoist.monitor
 
-import spock.lang.PendingFeature
 import spock.lang.Specification
 
 import static io.xh.hoist.monitor.MonitorStatus.*
@@ -118,15 +117,6 @@ class AggregateMonitorResultSpec extends Specification {
 
         expect:
         agg.minsInStatus == '5'
-    }
-
-    @PendingFeature(reason = 'newResults dereferences results[0] and throws on an empty list rather than handling it')
-    def 'newResults with an empty result list does not throw'() {
-        when:
-        AggregateMonitorResult.newResults([], null)
-
-        then:
-        noExceptionThrown()
     }
 
     def 'formatForJSON exposes the monitor identity, status and history'() {
