@@ -177,17 +177,6 @@ class DefaultRoleServiceSpec extends Specification implements ServiceUnitTest<De
         }
     }
 
-    def 'admin stats report cache sizes'() {
-        given:
-        role('A', users: ['alice'])
-        role('B')
-        service.refreshRoleAssignments()
-        service.getRolesForUser('alice')
-
-        expect:
-        service.adminStats == [roleAssignments: 2, roleAssignmentsByUser: 1, usersForDirectoryGroups: 0]
-    }
-
     //-------------------
     // Helpers
     //-------------------

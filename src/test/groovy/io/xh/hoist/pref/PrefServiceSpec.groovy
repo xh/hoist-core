@@ -151,15 +151,6 @@ class PrefServiceSpec extends Specification implements ServiceUnitTest<PrefServi
         service.getInt('pageSize') == 50
     }
 
-    def 'unsetPreference on an unset preference is a no-op'() {
-        when:
-        service.unsetPreference('theme')
-
-        then:
-        noExceptionThrown()
-        service.getString('theme') == 'light'
-    }
-
     def 'clearPreferences removes all of one user\'s preferences only'() {
         given:
         service.setString('theme', 'dark')

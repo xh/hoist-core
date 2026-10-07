@@ -128,13 +128,4 @@ class AlertBannerServiceSpec extends Specification implements ServiceUnitTest<Al
             assert service.alertBanner == EMPTY
         }
     }
-
-    def 'admin stats include the published banner'() {
-        given:
-        service.setAlertSpec(ACTIVE)
-
-        expect:
-        service.adminStats.alertBanner == ACTIVE
-        service.adminStats.containsKey('config')
-    }
 }

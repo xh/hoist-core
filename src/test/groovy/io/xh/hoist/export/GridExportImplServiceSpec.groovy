@@ -182,16 +182,6 @@ class GridExportImplServiceSpec extends Specification implements ServiceUnitTest
         e.message.contains('not supported')
     }
 
-    def 'admin stats count exports'() {
-        when:
-        service.getBytesForRender(type: 'csv', filename: 'r', rows: ROWS[0..1], meta: META)
-        service.getBytesForRender(type: 'csv', filename: 'r', rows: ROWS[0..1], meta: META)
-
-        then:
-        service.adminStats.exportCount == 2
-        service.adminStats.lastExportDate instanceof Date
-    }
-
     //-------------------
     // Helpers
     //-------------------

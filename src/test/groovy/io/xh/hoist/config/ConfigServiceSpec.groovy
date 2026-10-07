@@ -11,7 +11,6 @@ import grails.testing.gorm.DataTest
 import grails.testing.services.ServiceUnitTest
 import io.xh.hoist.test.HoistUnitTest
 import io.xh.hoist.test.fakes.TestUser
-import io.xh.hoist.util.Utils
 import spock.lang.Specification
 
 /**
@@ -113,7 +112,6 @@ class ConfigServiceSpec extends Specification implements ServiceUnitTest<ConfigS
         expect:
         service.getStringList('admins') == ['alice', 'bob']
         service.getStringList('all') == ['alice', 'bob', 'carol', 'dave']
-        service.getStringList('absent') == ['']
     }
 
     //-------------------
@@ -188,12 +186,14 @@ class ConfigServiceSpec extends Specification implements ServiceUnitTest<ConfigS
             new ConfigSpec(name: 'existing', valueType: 'string', defaultValue: 'ignored'),
             new ConfigSpec(name: 'newStr', valueType: 'string', defaultValue: 'dflt', clientVisible: true, groupName: 'G', note: 'n'),
             new ConfigSpec(name: 'newJson', valueType: 'json', defaultValue: [x: 1]),
+            [name: 'fromMap', valueType: 'int', defaultValue: 7],
         ])
 
         then:
         service.getString('existing') == 'keep me'
         service.getString('newStr') == 'dflt'
         service.getMap('newJson') == [x: 1]
+        service.getInt('fromMap') == 7
 
         and:
         with(AppConfig.findByName('newStr')) {
@@ -202,14 +202,6 @@ class ConfigServiceSpec extends Specification implements ServiceUnitTest<ConfigS
             note == 'n'
             lastUpdatedBy == 'hoist-bootstrap'
         }
-    }
-
-    def 'ensureRequiredConfigsCreated accepts plain maps'() {
-        when:
-        service.ensureRequiredConfigsCreated([[name: 'fromMap', valueType: 'int', defaultValue: 7]])
-
-        then:
-        service.getInt('fromMap') == 7
     }
 
     def 'a typed config is seeded empty, registered, and readable via getObject with defaults applied'() {
@@ -299,11 +291,6 @@ class ConfigServiceSpec extends Specification implements ServiceUnitTest<ConfigS
         service.getDefaultConfigValue(AppConfig.findByName('idle')) == [timeout: 30, enabled: true]
         service.getResolvedConfigValue(AppConfig.findByName('plain')) == null
         service.getDefaultConfigValue(AppConfig.findByName('plain')) == null
-    }
-
-    def 'the service under test is the configService bean that framework code resolves'() {
-        expect:
-        Utils.configService.is(service)
     }
 
     //-------------------

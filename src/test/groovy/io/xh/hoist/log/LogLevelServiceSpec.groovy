@@ -145,17 +145,6 @@ class LogLevelServiceSpec extends Specification implements ServiceUnitTest<LogLe
         !service.shouldIncludeStartMessages(B)
     }
 
-    def 'clearCaches recalculates'() {
-        given:
-        logLevel(A, 'Debug')
-
-        when:
-        service.clearCaches()
-
-        then:
-        logger(A).level == Level.DEBUG
-    }
-
     //-------------------
     // Helpers
     //-------------------

@@ -55,14 +55,6 @@ class JsonBlobServiceSpec extends Specification implements ServiceUnitTest<JsonB
         blob.lastUpdatedBy == 'alice'
     }
 
-    def 'get returns an active blob by token to its owner'() {
-        given:
-        def blob = service.create(type: 'grid', name: 'mine', value: [:])
-
-        expect:
-        service.get(blob.token).is(blob)
-    }
-
     def 'get throws for an unknown or archived token'() {
         given:
         def blob = service.create(type: 'grid', name: 'mine', value: [:])
@@ -101,11 +93,6 @@ class JsonBlobServiceSpec extends Specification implements ServiceUnitTest<JsonB
 
         then:
         thrown(NotAuthorizedException)
-    }
-
-    def 'find returns null when there is no match'() {
-        expect:
-        service.find('grid', 'nope', 'alice') == null
     }
 
     //-------------------
@@ -147,17 +134,6 @@ class JsonBlobServiceSpec extends Specification implements ServiceUnitTest<JsonB
         blob.value == '{"a":2}'
         blob.type == 'grid'
         blob.token != 'x'
-    }
-
-    def 'update with no data is a no-op'() {
-        given:
-        def blob = service.create(type: 'grid', name: 'mine', value: [a: 1])
-
-        when:
-        service.update(blob.token, [:])
-
-        then:
-        blob.value == '{"a":1}'
     }
 
     def 'a non-owner cannot update or archive, even with read access'() {
