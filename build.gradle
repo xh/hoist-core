@@ -135,8 +135,8 @@ tasks.bootRun.doFirst {
 //
 // hoist-core compiles with a JDK 25 toolchain but targets Java 17 bytecode so the published JAR
 // still runs on any JDK 17+ runtime. Contributors must not use Java 18+ APIs in hoist-core
-// source — CI compiles with the JDK 25 toolchain on every matrix row, then runs the test suite on
-// the matrix JDK (-PtestJavaVersion), so the JDK 17 row catches accidental use of Java 18+ APIs.
+// source. `release = 17` enforces this for Java sources; Groovy sources are not checked, as the
+// Groovy compiler resolves against the toolchain JDK, so take care with newer JDK APIs there.
 //-------------------
 java {
     toolchain {

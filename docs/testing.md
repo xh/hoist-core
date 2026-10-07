@@ -35,10 +35,16 @@ tasks.withType(Test).configureEach {
 `hoist-core-test` brings in `spock-core`, Grails testing support (`grails-testing-support-web`
 and `-datamapping`, for `ControllerUnitTest`, `ServiceUnitTest` and `DataTest`), and the
 byte-buddy and objenesis libraries Spock needs to mock concrete classes. Versions are aligned with
-the Grails BOM used by hoist-core.
+the Grails BOM used by hoist-core. The harness does not select a JDK - specs run on whatever JDK
+the app's `test` task uses, so an app's suite exercises Hoist on the runtime the app ships with.
+Apps that include a local hoist-core checkout as a composite build (Toolbox's `runHoistInline`)
+get the local harness substituted automatically, as the Gradle project is named `hoist-core-test`.
 
-Add a `src/test/resources/logback-test.xml` to keep test output quiet - hoist-core-test
-deliberately ships no logging config, so it never overrides an app's own.
+Logging needs no setup. The harness configures Logback for the test JVM - console output at
+WARN, with Hoist's `LogSupportConverter` registered so `logInfo` / `logWarn` messages render
+rather than printing `null`. To see more from one logger while working on a spec, set its level
+in the spec, e.g. `(LoggerFactory.getLogger(MyService) as Logger).level = Level.DEBUG`, and
+restore it in `cleanup()`.
 
 ### Why Hoist needs more than the Grails test context
 
@@ -73,7 +79,7 @@ Implement the standard Grails trait for the artefact under test, plus `HoistUnit
 ```groovy
 import grails.testing.services.ServiceUnitTest
 import io.xh.hoist.test.HoistUnitTest
-import io.xh.hoist.test.TestUser
+import io.xh.hoist.test.fakes.TestUser
 import spock.lang.Specification
 
 class WeatherServiceSpec extends Specification implements ServiceUnitTest<WeatherService>, HoistUnitTest {
@@ -115,15 +121,19 @@ HoistUnitTest`.
 
 ### Harness API
 
-All classes are in package `io.xh.hoist.test`.
+The trait, base spec and helpers are in package `io.xh.hoist.test`. The in-memory stand-ins for
+framework services are in `io.xh.hoist.test.fakes`.
 
 | Class | Purpose |
 |---|---|
-| `HoistUnitTest` | Grails unit-test trait. Registers the beans below before each feature unless the spec defined its own in `doWithSpring()`; resets config, users and primary status before each feature and clears identity after. Adds `testConfigService`, `testUserService`, `testClusterService`, `identityService`, `defineService`, `loginAs`, `impersonate`, `logout`, `withUser` and `useAppTimeZone`. |
+| `HoistUnitTest` | Grails unit-test trait. Registers the beans below before each feature unless the spec defined its own in `doWithSpring()`; resets config, users, tracked entries, sent emails and primary status before each feature and clears identity after. Adds `testConfigService`, `testUserService`, `testClusterService`, `testTrackService`, `testEmailService`, `identityService`, `defineService`, `loginAs`, `impersonate`, `logout`, `withUser` and `useAppTimeZone`. |
 | `HoistSpec` | Abstract `Specification` implementing `HoistUnitTest`. |
+| `HoistTestLogging` | Logback setup for the test JVM: console at WARN, Hoist message converter registered. |
 | `TestConfigService` | `configService` bean. Map-backed `ConfigService` - seed with `set` / `setAll`. All typed getters (`getString`, `getInt`, `getMap`, ...) follow `ConfigService` semantics, including throwing for a missing config without a default. `registerTypedConfig` supports `getObject` for `TypedConfigMap` subclasses. |
 | `TestUserService` | `userService` bean. In-memory `BaseUserService`: `add`, `find`, `list`, `clear`. |
 | `TestClusterService` | `clusterService` bean. Reports `isPrimary` from `primaryInstance` (default `true`), so `primaryOnly` timers run. |
+| `TestTrackService` | `trackService` bean. Records `track()` entries in `tracked` / `lastTracked` instead of persisting them. |
+| `TestEmailService` | `emailService` bean. Records `sendEmail()` calls in `sent` / `lastSent` instead of delivering them. |
 | `TestUser` | `HoistUser` with an explicit role set - no role service required. |
 | `HoistJson` | Serialize and round-trip with Hoist's own Jackson `JSONSerializer` / `JSONParser`, to assert the real wire format of `JSONFormat` objects. |
 | `HoistAssertions` | `httpStatusFor(Throwable)` and `isRoutine(Throwable)` mirror `ExceptionHandler`; `findUnsecuredActions` / `assertAllActionsSecured` check that every controller action has a Hoist access annotation. |
@@ -151,6 +161,22 @@ def 'all #controller.simpleName actions are secured'() {
   `defineBeans`) persist into later features - remove them in `cleanup()` if needed.
 - Thread identity is per thread, so features must not run in parallel within a JVM (Spock runs
   sequentially by default), and async work run via Grails `task {}` does not inherit it.
+- Grails creates the artefact under test lazily, on first access to `service` / `controller`, by
+  redefining its bean. Spring then destroys and recreates any bean autowired with it. This only
+  matters when the artefact is itself one of the framework beans above, e.g. a spec of
+  `ConfigService`, where it would discard an identity set by `loginAs()` - so `HoistUnitTest`
+  creates those up front. Other artefacts are created lazily, as Grails does by default.
+- A GORM save that fails validation leaves the rejected value on the entity cached in the
+  feature's session, so a subsequent `findByName` returns the dirty instance. Assert on `errors`
+  rather than re-reading the value.
+- The in-memory `DataTest` datastore evaluates criteria `like` as a regex after translating `%`,
+  so a pattern with other regex metacharacters behaves differently than in SQL - `like('acl', '*')`
+  matches nothing, where SQL matches a literal `*`. Cover such queries in an integration test.
+- That datastore also has no identity map and no orphan removal. An instance loaded by a query
+  is not the same object as the one in a parent's collection, so `removeFrom*` with it does not
+  remove anything, and static GORM event closures (as opposed to `def beforeInsert()` methods)
+  are not invoked. Assert such effects through what the code records or returns, or cover them
+  in an integration test.
 - No Hazelcast instance is started. `createIMap`, `createReplicatedMap`, `getTopic` and
   `subscribeToTopic` are not available; `replicate: true` caches and cached values behave as local.
 - Environment variables named `APP_<APPCODE>_*` still take precedence over instance config.
@@ -160,7 +186,7 @@ def 'all #controller.simpleName actions are secured'() {
 ### Layout and conventions
 
 - Specs live in `src/test/groovy`, in the same package as the class under test, named
-  `<ClassName>Spec`. Specs for the harness itself live in `hoist-core-test/src/test/groovy`.
+  `<ClassName>Spec`. Specs for the harness itself live in `test-support/src/test/groovy`.
 - Several **main** classes already end in `Spec` (`ConfigSpec`, `PreferenceSpec`, `MonitorSpec`,
   `RoleSpec`, `CounterSpec`, `TimerSpec`). Where the conventional spec name would collide, use
   `<ClassName>UnitSpec`. The `checkTestClassShadowing` task, part of `check`, fails the build if a
@@ -181,16 +207,14 @@ def 'all #controller.simpleName actions are secured'() {
 ./gradlew test                          # root project specs (+ JaCoCo report)
 ./gradlew check                         # all projects, incl. shadowing guard
 ./gradlew :test --tests 'io.xh.hoist.data.filter.*'
-./gradlew test -PtestJavaVersion=17     # run tests on JDK 17 (compile stays on the JDK 25 toolchain)
 ```
 
 Reports: `build/reports/tests/test/index.html` and `build/reports/jacoco/test/html/index.html`
-(and the same under `hoist-core-test/build`).
+(and the same under `test-support/build`).
 
 ### CI
 
-The CI workflow runs `./gradlew build` on a JDK 17 and JDK 25 matrix, passing `-PtestJavaVersion`
-so each row really runs tests on that JDK - the 17 row guards the published bytecode target. Each
-row publishes a test summary and failure annotations to the job summary, the JDK 25 row adds a
-coverage summary, and test reports are uploaded as an artifact on failure. Coverage is report-only
-for now - no minimum threshold is enforced. See [`build-and-publish.md`](./build-and-publish.md).
+The CI workflow runs `./gradlew build` on the JDK 25 toolchain and publishes a test summary,
+failure annotations and a coverage summary to the job page, with test reports uploaded as an
+artifact on failure. Coverage is report-only for now - no minimum threshold is enforced. See
+[`build-and-publish.md`](./build-and-publish.md).

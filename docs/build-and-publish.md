@@ -32,16 +32,12 @@ The `xhReleaseVersion` property in `gradle.properties` sets the version for all 
 
 Runs on pushes and pull requests to `develop`.
 
-- **build** runs `./gradlew build` across a JDK matrix: the toolchain used for publishing, and the
-  oldest runtime the published JAR supports. Every row compiles with the JDK 25 toolchain and
-  passes `-PtestJavaVersion` so the test suite runs on the matrix JDK - the older row catches
-  accidental use of newer Java APIs or a wrong bytecode target. See the `java` block in
-  `build.gradle` and [`application-structure.md`](./application-structure.md#jdk-choice) for the
-  current toolchain and bytecode target.
-  - Each row writes a test summary with failure annotations to the job summary
-    (`mikepenz/action-junit-report`, in `annotate_only` mode so no extra permissions are needed),
-    and uploads test reports as an artifact on failure. The JDK 25 row adds a JaCoCo coverage
-    summary. See [`testing.md`](./testing.md).
+- **build** runs `./gradlew build` on the JDK 25 toolchain used for publishing. The published JAR
+  targets Java 17 bytecode - see the `java` block in `build.gradle` and
+  [`application-structure.md`](./application-structure.md#jdk-choice).
+  - The job writes a test summary with failure annotations and a JaCoCo coverage summary to the
+    job page (`mikepenz/action-junit-report`, in `annotate_only` mode so no extra permissions are
+    needed), and uploads test reports as an artifact on failure. See [`testing.md`](./testing.md).
 - **dependency-submission** submits the Gradle dependency graph to GitHub, enabling Dependabot
   alerts for project dependencies.
 
@@ -105,11 +101,11 @@ metadata. In outline:
 
 - **Publications** — the root project defines the `hoistCore` publication: compiled classes,
   sources, POM, and the Grails plugin descriptor as a `plugin`-classified artifact. The `mcp`
-  subproject defines `mcpServer`, publishing its shadow JAR as `hoist-core-mcp`. The
-  `hoist-core-test` subproject defines `hoistCoreTest`, publishing its JAR, sources and POM with
-  resolved dependency versions.
+  subproject defines `mcpServer`, publishing its shadow JAR as `hoist-core-mcp`. The `test-support`
+  subproject defines `hoistCoreTest`, publishing its JAR, sources and POM as `hoist-core-test`,
+  with resolved dependency versions.
 - **Testing** — `gradle/test-conventions.gradle` configures Spock on the JUnit Platform, JaCoCo,
-  and the `checkTestClassShadowing` guard for both the root project and `hoist-core-test`.
+  and the `checkTestClassShadowing` guard for both the root project and `test-support`.
 - **Signing** — all publications sign with in-memory PGP keys, so no keyring is written to disk.
   Signing is required for release versions and skipped for snapshots. Key material resolves from
   the `signingKey` and `signingPassword` Gradle properties, falling back to the `SIGNING_KEY` and

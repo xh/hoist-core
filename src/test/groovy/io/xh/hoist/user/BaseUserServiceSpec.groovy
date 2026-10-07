@@ -6,7 +6,7 @@
  */
 package io.xh.hoist.user
 
-import io.xh.hoist.test.TestUser
+import io.xh.hoist.test.fakes.TestUser
 import spock.lang.Specification
 import spock.lang.Subject
 

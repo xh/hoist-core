@@ -59,8 +59,8 @@
 
 ### ⚙️ Technical
 
-* Added a Spock unit test suite to hoist-core, with JaCoCo coverage reports. CI now runs the tests
-  on JDK 17 as well as JDK 25 and reports results in the job summary.
+* Added a Spock unit test suite to hoist-core, with JaCoCo coverage reports. CI runs the tests on
+  JDK 25 and reports results and coverage in the job summary.
 
 ## 42.1.0 - 2026-10-01
 
