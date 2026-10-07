@@ -30,6 +30,10 @@
 * `TrackService` no longer logs `data` payloads larger than `xhActivityTrackingConfig.maxDataLength`.
   Previously these payloads were dropped from the database but written to the log in full.
 * `TrackService` no longer lets `data` keys overwrite core log fields such as user and category.
+* `FieldFilter` negated operators (`!=`, `not like`, `not begins`, `not ends`) now pass blank
+  values as Hibernate criteria, as they do in memory and in hoist-react. SQL's null handling
+  dropped them before. The text operators also excluded blanks in memory, unlike `!=` and
+  `excludes`.
 
 ## 42.1.0 - 2026-10-01
 
