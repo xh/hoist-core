@@ -31,6 +31,16 @@ detailed, step-by-step upgrade instructions with before and after code examples.
   `HoistUser.validateUsername(username)` must call it via their own implementing class instead -
   for example `User.validateUsername(username)`. The old form now throws
   `MissingMethodException` at runtime, not at compile time.
+* Hoist Core now uses Jackson 3 for `JSONSerializer` and `JSONParser`. JSON output and parsing are
+  unchanged. Apps with custom Jackson serializers or modules must port them:
+  * Packages move from `com.fasterxml.jackson` to `tools.jackson`. Annotations stay in
+    `com.fasterxml.jackson.annotation`.
+  * `JSONSerializer.registerModules()` now takes a Jackson 3 `JacksonModule`.
+  * `StdSerializer.serialize()` takes a `SerializationContext` instead of a `SerializerProvider`.
+    `JsonGenerator` renames methods such as `writeObject` to `writePOJO` and `writeStringField`
+    to `writeStringProperty`.
+  * Jackson exceptions are now unchecked. `JSONSerializer` and `JSONParser` methods no longer
+    declare `JsonProcessingException` or `IOException`.
 * Grails 8 no longer supports `grails.controllers.upload` and fails at startup if it is set.
   Hoist now sets its 20MB upload limits via `spring.servlet.multipart.maxFileSize` and
   `maxRequestSize`. Apps that override these limits in `application.groovy` must move them to the
@@ -69,7 +79,7 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 * Spring Framework `6.2 → 7.0`
 * Tomcat `10.1 → 11.0`
 * Gradle `8.14 → 9.8`
-* Jackson `2.21 → 2.22`
+* Jackson `2.21 → 3.1` (Jackson 2.22 remains on the classpath for third-party libraries)
 * msal4j `1.25.1 → 1.26.0`
 * owasp-encoder `1.3.1 → 1.4.0`
 * opentelemetry `1.62.0 → 1.65.0`
