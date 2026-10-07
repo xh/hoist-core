@@ -13,15 +13,29 @@ import io.opentelemetry.api.trace.Span
 import io.opentelemetry.api.trace.SpanContext
 import io.opentelemetry.api.trace.TraceFlags
 import io.opentelemetry.api.trace.TraceState
+import io.xh.hoist.log.LogLevelService
 import io.xh.hoist.test.HoistSpec
+import org.grails.spring.beans.factory.InstanceFactoryBean
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import org.slf4j.helpers.BasicMarkerFactory
+import org.springframework.beans.factory.support.BeanDefinitionRegistry
 import spock.lang.PendingFeature
 import spock.lang.Subject
 
 class LogSupportConverterSpec extends HoistSpec {
+
+    // The Grails test context is shared by all features in a spec, so remove the per-feature stub.
+    def cleanup() {
+        if (applicationContext.containsBeanDefinition('logLevelService')) {
+            ((BeanDefinitionRegistry) applicationContext).removeBeanDefinition('logLevelService')
+        }
+    }
+
+    private void stubLogLevelService(LogLevelService stub) {
+        defineBeans { logLevelService(InstanceFactoryBean, stub, LogLevelService) }
+    }
 
     static final String TRACE_ID = '0af7651916cd43dd8448eb211c80319c'
     static final String SPAN_ID = 'b7ad6b7169203331'
@@ -93,7 +107,7 @@ class LogSupportConverterSpec extends HoistSpec {
 
     def 'the stack trace is suppressed when the log level service says so'() {
         given:
-        hoist.registerBean('logLevelService', Stub(io.xh.hoist.log.LogLevelService) {
+        stubLogLevelService(Stub(LogLevelService) {
             shouldSuppressStackTrace('io.xh.hoist.test.converter') >> true
         })
 
@@ -107,7 +121,7 @@ class LogSupportConverterSpec extends HoistSpec {
 
     def 'the stack trace is retained when the log level service throws'() {
         given:
-        hoist.registerBean('logLevelService', Stub(io.xh.hoist.log.LogLevelService) {
+        stubLogLevelService(Stub(LogLevelService) {
             shouldSuppressStackTrace(_) >> { throw new IllegalStateException('no service') }
         })
 

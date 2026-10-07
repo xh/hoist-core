@@ -93,7 +93,7 @@ class DateTimeUtilsSpec extends HoistSpec {
     //------------------------------------------
     def 'app day is calculated in the app time zone'() {
         given:
-        hoist.setAppTimeZone('America/New_York')
+        useAppTimeZone('America/New_York')
         def date = Date.from(Instant.parse('2024-01-05T03:00:00Z'))
 
         expect:
@@ -103,7 +103,7 @@ class DateTimeUtilsSpec extends HoistSpec {
 
     def 'server day is calculated in the server time zone'() {
         given:
-        hoist.setAppTimeZone('America/New_York')
+        useAppTimeZone('America/New_York')
         def date = Date.from(Instant.parse('2024-01-05T03:00:00Z'))
 
         expect:
@@ -112,7 +112,7 @@ class DateTimeUtilsSpec extends HoistSpec {
 
     def 'appStartOfDay and appEndOfDay bound the day in the app time zone'() {
         given:
-        hoist.setAppTimeZone('America/New_York')
+        useAppTimeZone('America/New_York')
         def day = LocalDate.of(2024, 1, 5)
 
         expect:
@@ -122,7 +122,7 @@ class DateTimeUtilsSpec extends HoistSpec {
 
     def 'appStartOfDay handles the daylight saving start day'() {
         given:
-        hoist.setAppTimeZone('America/New_York')
+        useAppTimeZone('America/New_York')
 
         expect:
         // 2024-03-10 begins at UTC-5 and ends at UTC-4, so the day is only 23 hours long

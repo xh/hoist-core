@@ -23,10 +23,11 @@
   logged as JSON strings.
 * `TrackService` log lines now include `browser` and `device` for entries made within a request.
 * Added `io.xh:hoist-core-test`, a new published artifact for unit testing Hoist apps with Spock.
-  Its `HoistSpec` base class installs a lightweight test context, so services that log, create
-  caches or timers, read soft config, or check the current user can be tested without starting
-  Grails. It also provides `TestConfigService`, `TestUser`, `HoistJson` and `HoistAssertions`. See
-  `docs/testing.md`.
+  Its `HoistUnitTest` trait combines with the standard Grails testing traits (`ServiceUnitTest`,
+  `ControllerUnitTest`) to register test versions of the Hoist framework services. Services and
+  controllers that log, create caches or timers, read soft config, or check the current user can
+  then be unit tested. It also provides `TestConfigService`, `TestUser`, `HoistJson` and
+  `HoistAssertions`. See `docs/testing.md`.
 
 ### 🐞 Bug Fixes
 

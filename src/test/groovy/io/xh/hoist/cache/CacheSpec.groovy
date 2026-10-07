@@ -23,7 +23,7 @@ class CacheSpec extends HoistSpec {
     PlainService svc
 
     def setup() {
-        svc = createService(PlainService)
+        svc = defineService(PlainService)
     }
 
     //-------------------

@@ -4,8 +4,9 @@
 
 Hoist Core uses [Spock](https://spockframework.org/) (2.3, Groovy 4) on the JUnit Platform for unit
 tests, with JaCoCo for coverage. The same framework is published for applications as
-`io.xh:hoist-core-test`, a test-support library that lets app code built on `BaseService`,
-`ConfigService`, identity and logging be unit tested without starting a Grails application.
+`io.xh:hoist-core-test`, a test-support library that builds on the standard Grails unit-test
+traits (`ServiceUnitTest`, `ControllerUnitTest`) so that app code built on `BaseService`,
+`ConfigService`, identity and logging can be unit tested.
 
 There are two audiences for this doc:
 
@@ -39,18 +40,21 @@ the Grails BOM used by hoist-core.
 Add a `src/test/resources/logback-test.xml` to keep test output quiet - hoist-core-test
 deliberately ships no logging config, so it never overrides an app's own.
 
-### Why a harness is needed
+### Why Hoist needs more than the Grails test context
 
-Hoist services can't simply be instantiated in a plain Spock spec:
+Hoist apps test with the standard Grails testing traits - `ServiceUnitTest`, `ControllerUnitTest`,
+`DataTest` and so on - which build a lightweight Grails application and Spring context per spec
+and register it with Grails `Holders`. Hoist code needs two things on top of that:
 
-- Every `logInfo` / `logWarn` call resolves the current user via `Utils.identityService`, which
-  requires a running Spring `ApplicationContext` (registered with Grails `Holders`).
-- `createCache`, `createCachedValue` and `createTimer` consult `ClusterService`, whose cluster
-  config requires an app code, and `Utils.appEnvironment` requires a resolvable Hoist environment.
-- Static `Utils` accessors are called from `@CompileStatic` code, so metaclass stubbing can't
-  intercept them.
+- **Framework beans.** Every `logInfo` / `logWarn` call resolves the current user via
+  `Utils.identityService`, and services read `configService` and `clusterService`. These are
+  static `Utils` lookups against the Spring context, called from `@CompileStatic` code, so they
+  can't be stubbed with metaclass tricks - the beans must exist.
+- **Hoist environment settings.** `createCache`, `createCachedValue` and `createTimer` consult
+  `ClusterService`, whose cluster config requires an app code, and `Utils.appEnvironment` requires
+  a resolvable Hoist environment.
 
-`hoist-core-test` solves these through public APIs only:
+`hoist-core-test` provides both:
 
 - `HoistSpockGlobalExtension` (auto-registered) calls `HoistTestEnvironment.ensureInitialized()`
   before any spec runs. It sets the `io.xh.hoist.environment` (`Test`),
@@ -58,36 +62,36 @@ Hoist services can't simply be instantiated in a plain Spock spec:
   `info.xh.appCode` (`hoist-test`) and `info.app.version` system properties - each only if not
   already set. Caches and timers are therefore always local, and a developer's
   `/etc/hoist/conf` file is never read.
-- `HoistTestContext` installs a lightweight Spring context with test implementations of the core
-  services, registered with `Holders` so the static `Utils` accessors work.
+- The `HoistUnitTest` trait extends Grails' `GrailsUnitTest`. Before each feature it registers
+  test implementations of the framework services in the Grails test context, autowired by name,
+  and resets their state.
 
-### Writing a service spec
+### Writing a service or controller spec
 
-Extend `HoistSpec` (or annotate any `Specification` with `@HoistTest`). A fresh `HoistTestContext`
-is installed before each feature and closed after it, so features are isolated.
+Implement the standard Grails trait for the artefact under test, plus `HoistUnitTest`:
 
 ```groovy
-import io.xh.hoist.test.HoistSpec
+import grails.testing.services.ServiceUnitTest
+import io.xh.hoist.test.HoistUnitTest
 import io.xh.hoist.test.TestUser
+import spock.lang.Specification
 
-class WeatherServiceSpec extends HoistSpec {
+class WeatherServiceSpec extends Specification implements ServiceUnitTest<WeatherService>, HoistUnitTest {
 
     def 'builds the request URL from soft config'() {
         given:
-        hoist.configService.set('weatherApiKey', 'abc')
-        def svc = createService(WeatherService)
+        testConfigService.set('weatherApiKey', 'abc')
 
         expect:
-        svc.buildUrl('NYC').contains('key=abc')
+        service.buildUrl('NYC').contains('key=abc')
     }
 
     def 'admin-only action is rejected for a regular user'() {
         given:
-        def svc = createService(WeatherService)
         loginAs(new TestUser('bob'))
 
         when:
-        svc.resetAll()
+        service.resetAll()
 
         then:
         thrown(NotAuthorizedException)
@@ -95,11 +99,19 @@ class WeatherServiceSpec extends HoistSpec {
 }
 ```
 
-`createService(Class, props)` instantiates the service, injects beans by name (e.g. a
-`ConfigService configService` property gets the `TestConfigService`), applies any extra `props`
-(useful for passing Spock mocks of app collaborators), registers the service as a bean for later
-services, and destroys it when the context closes. Field-initialized `createCache(...)` calls work.
-Call `svc.init()` directly if the code under test sets up resources there.
+Controllers work the same way, with `ControllerUnitTest<MyController>` and its `controller`,
+`request` and `response`. Use `HoistJson.parse(response.text)` to check output from
+`renderJSON`, since it uses Hoist's own serializer.
+
+`service` is created per feature by Grails, with field-initialized `createCache(...)` calls run and
+beans injected by name. Call `service.init()` directly if the code under test sets up resources
+there. For collaborators, use `defineService(OtherService)`, or the standard Grails `defineBeans`
+/ `doWithSpring()` - e.g. `defineBeans { otherService(InstanceFactoryBean, Mock(OtherService),
+OtherService) }` for a Spock mock (`org.grails.spring.beans.factory.InstanceFactoryBean`).
+
+For code that is not a single Grails artefact - utilities or value objects that log or read soft
+config - extend `HoistSpec`, which is shorthand for `extends Specification implements
+HoistUnitTest`.
 
 ### Harness API
 
@@ -107,14 +119,18 @@ All classes are in package `io.xh.hoist.test`.
 
 | Class | Purpose |
 |---|---|
-| `HoistSpec` / `@HoistTest` | Install and tear down a `HoistTestContext` around each feature. `HoistSpec` adds `hoist`, `createService` and `loginAs` shortcuts. |
-| `HoistTestContext` | The installed context: `configService`, `userService`, `identityService`, `clusterService`; `registerBean`, `getBean`, `autowire`, `createService`; identity via `loginAs`, `impersonate`, `logout`, `withUser`; `setAppTimeZone`. |
-| `TestConfigService` | Map-backed `ConfigService`. Seed with `set` / `setAll`; all typed getters (`getString`, `getInt`, `getMap`, ...) follow `ConfigService` semantics, including throwing for a missing config without a default. `registerTypedConfig` supports `getObject` for `TypedConfigMap` subclasses. |
+| `HoistUnitTest` | Grails unit-test trait. Registers the beans below before each feature unless the spec defined its own in `doWithSpring()`; resets config, users and primary status before each feature and clears identity after. Adds `testConfigService`, `testUserService`, `testClusterService`, `identityService`, `defineService`, `loginAs`, `impersonate`, `logout`, `withUser` and `useAppTimeZone`. |
+| `HoistSpec` | Abstract `Specification` implementing `HoistUnitTest`. |
+| `TestConfigService` | `configService` bean. Map-backed `ConfigService` - seed with `set` / `setAll`. All typed getters (`getString`, `getInt`, `getMap`, ...) follow `ConfigService` semantics, including throwing for a missing config without a default. `registerTypedConfig` supports `getObject` for `TypedConfigMap` subclasses. |
+| `TestUserService` | `userService` bean. In-memory `BaseUserService`: `add`, `find`, `list`, `clear`. |
+| `TestClusterService` | `clusterService` bean. Reports `isPrimary` from `primaryInstance` (default `true`), so `primaryOnly` timers run. |
 | `TestUser` | `HoistUser` with an explicit role set - no role service required. |
-| `TestUserService` | In-memory `BaseUserService`: `add`, `find`, `list`, `clear`. |
-| `TestClusterService` | `ClusterService` reporting `isPrimary` from `primaryInstance` (default `true`), so `primaryOnly` timers run. |
 | `HoistJson` | Serialize and round-trip with Hoist's own Jackson `JSONSerializer` / `JSONParser`, to assert the real wire format of `JSONFormat` objects. |
 | `HoistAssertions` | `httpStatusFor(Throwable)` and `isRoutine(Throwable)` mirror `ExceptionHandler`; `findUnsecuredActions` / `assertAllActionsSecured` check that every controller action has a Hoist access annotation. |
+
+The real `IdentityService` is registered as `identityService`, and an `ExceptionHandler` as
+`xhExceptionHandler`. To substitute any of these beans - e.g. an app-specific config service -
+define a bean of the same name in `doWithSpring()`.
 
 A useful one-line spec for any app:
 
@@ -130,18 +146,14 @@ def 'all #controller.simpleName actions are secured'() {
 
 ### Limitations
 
-- The context and thread identity are static, so features using the harness must not run in
-  parallel (Spock runs sequentially by default).
+- The Grails test context is built once per spec class and shared by its features. `HoistUnitTest`
+  resets its own beans before each feature, but beans a feature defines itself (e.g. via
+  `defineBeans`) persist into later features - remove them in `cleanup()` if needed.
+- Thread identity is per thread, so features must not run in parallel within a JVM (Spock runs
+  sequentially by default), and async work run via Grails `task {}` does not inherit it.
 - No Hazelcast instance is started. `createIMap`, `createReplicatedMap`, `getTopic` and
   `subscribeToTopic` are not available; `replicate: true` caches and cached values behave as local.
-- Async work run via Grails `task {}` does not inherit the test identity.
-- Grails `Holders` resolves the first running context registered with it. When a spec combines
-  `@HoistTest` with a Grails testing trait (`ControllerUnitTest`, `ServiceUnitTest`), the Grails
-  test context is registered first and wins `Utils` lookups - register the beans you need there
-  (e.g. via `defineBeans`) instead.
 - Environment variables named `APP_<APPCODE>_*` still take precedence over instance config.
-- GORM-backed code needs Grails `DataTest` / `DomainUnitTest` (included) or integration tests;
-  `HoistTestContext` does not provide a datastore.
 
 ## Testing hoist-core
 
@@ -154,8 +166,8 @@ def 'all #controller.simpleName actions are secured'() {
   `<ClassName>UnitSpec`. The `checkTestClassShadowing` task, part of `check`, fails the build if a
   test class has the same fully-qualified name as a main class.
 - hoist-core's own tests depend on `hoist-core-test`, so every harness feature is exercised by the
-  library's own build. Extend `HoistSpec` for code that logs at WARN or above, or reaches `Utils`
-  service accessors.
+  library's own build. Use `HoistUnitTest` (or `HoistSpec`) for code that logs at WARN or above,
+  or reaches `Utils` service accessors.
 - Use data-driven `where:` tables for edge cases, `thrown()` for exceptions, and
   `PollingConditions` (never `Thread.sleep`) for asynchronous behavior. Restore any global state in
   `cleanup()`. Don't call `JSONSerializer.registerModules()` - it mutates global, append-only state.

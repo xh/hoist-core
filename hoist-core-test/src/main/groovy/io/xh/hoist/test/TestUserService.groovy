@@ -15,7 +15,7 @@ import io.xh.hoist.user.HoistUser
  * In-memory {@link BaseUserService} for tests, holding whichever users have been added to it.
  *
  * Inherits the framework's real `impersonationTargetsForUser` logic. Registered by
- * {@link HoistTestContext} as the application's `userService` bean.
+ * {@link HoistUnitTest} as the application's `userService` bean.
  */
 @CompileStatic
 class TestUserService extends BaseUserService {

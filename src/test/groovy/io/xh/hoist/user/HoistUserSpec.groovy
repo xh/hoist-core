@@ -58,7 +58,7 @@ class HoistUserSpec extends HoistSpec {
 
     def 'hasGate checks the configured users, with wildcard'() {
         given:
-        hoist.configService.set('gate', gateUsers)
+        testConfigService.set('gate', gateUsers)
 
         expect:
         new TestUser(username).hasGate('gate') == expected

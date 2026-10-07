@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap
  * than read from the `AppConfig` database table.
  *
  * <pre>
- * hoist.configService.set('maxRows', 100).set('endpoints', [a: 'http://a'])
+ * testConfigService.set('maxRows', 100).set('endpoints', [a: 'http://a'])
  * </pre>
  *
  * Mirrors the missing-value contract of the real service: reading an unset config throws, unless
