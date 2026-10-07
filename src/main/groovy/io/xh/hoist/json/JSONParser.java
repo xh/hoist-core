@@ -7,14 +7,12 @@
 
 package io.xh.hoist.json;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS;
-import static com.fasterxml.jackson.databind.DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import static tools.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS;
+import static tools.jackson.databind.cfg.DateTimeFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
@@ -29,22 +27,21 @@ public class JSONParser {
     private static ObjectMapper validateMapper;
 
     static {
-        SimpleModule javaTimeModule = new JavaTimeModule();
-
-        mapper = new ObjectMapper()
-                .registerModule(javaTimeModule)
-                .disable(READ_DATE_TIMESTAMPS_AS_NANOSECONDS);
-
-        validateMapper = new ObjectMapper()
-                .registerModule(javaTimeModule)
+        // Jackson 2 defaults preserve Hoist's parsing behavior - e.g. lenient trailing tokens.
+        mapper = JsonMapper.builderWithJackson2Defaults()
                 .disable(READ_DATE_TIMESTAMPS_AS_NANOSECONDS)
-                .enable(FAIL_ON_TRAILING_TOKENS);
+                .build();
+
+        validateMapper = JsonMapper.builderWithJackson2Defaults()
+                .disable(READ_DATE_TIMESTAMPS_AS_NANOSECONDS)
+                .enable(FAIL_ON_TRAILING_TOKENS)
+                .build();
     }
 
     /**
      * Parse a String representing a JSON Object to a java representation.
      */
-    public static Map parseObject(String s) throws IOException {
+    public static Map parseObject(String s) {
         if (s == null || s.isEmpty()) return null;
         return mapper.readValue(s, new TypeReference<Map<String, Object>>() {});
     }
@@ -52,7 +49,7 @@ public class JSONParser {
     /**
      * Parse an InputStream representing a JSON Object to a java representation.
      */
-    public static Map parseObject(InputStream s) throws IOException {
+    public static Map parseObject(InputStream s) {
         if (s == null) return null;
         return mapper.readValue(s, new TypeReference<Map<String, Object>>() {});
     }
@@ -60,7 +57,7 @@ public class JSONParser {
     /**
      * Parse a String representing a JSON Array to a java representation.
      */
-    public static List parseArray(String s) throws IOException {
+    public static List parseArray(String s) {
         if (s == null || s.isEmpty()) return null;
         return mapper.readValue(s, new TypeReference<List>() {});
     }
@@ -68,7 +65,7 @@ public class JSONParser {
     /**
      * Parse an InputStream representing a JSON Array to a java representation.
      */
-    public static List parseArray(InputStream s) throws IOException {
+    public static List parseArray(InputStream s) {
         if (s == null) return null;
         return mapper.readValue(s, new TypeReference<List>() {});
     }
@@ -76,7 +73,7 @@ public class JSONParser {
     /**
      * Parse a string representing either a JSON Array or a JSON Object to a java representation.
      */
-    public static Object parseObjectOrArray(String s) throws IOException {
+    public static Object parseObjectOrArray(String s) {
         if (s == null || s.isEmpty()) return null;
         s = s.trim();
         return s.startsWith("[") ? parseArray(s) : parseObject(s);
