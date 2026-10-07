@@ -1,0 +1,69 @@
+//------------------------
+// Shared test + coverage conventions, applied by hoist-core and hoist-core-test.
+// Keep free of project-specific source or dependency config.
+//------------------------
+apply plugin: 'jacoco'
+
+jacoco {
+    // Gradle 8.14 bundles JaCoCo 0.8.13, which cannot instrument classes on a JDK 25 test JVM.
+    toolVersion = '0.8.15'
+}
+
+// CI passes -PtestJavaVersion=<n> so each matrix row runs tests on that JDK, while compilation
+// stays on the JDK 25 toolchain (release 17). Without it, tests run on the compile toolchain.
+def testJavaVersion = providers.gradleProperty('testJavaVersion')
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+
+    if (testJavaVersion.present) {
+        javaLauncher = javaToolchains.launcherFor {
+            languageVersion = JavaLanguageVersion.of(testJavaVersion.get() as int)
+        }
+    }
+
+    testLogging {
+        events 'failed', 'skipped'
+        exceptionFormat = 'full'
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+    }
+
+    reports {
+        junitXml.required = true
+        html.required = true
+    }
+}
+
+tasks.named('test') {
+    finalizedBy 'jacocoTestReport'
+}
+
+tasks.named('jacocoTestReport', JacocoReport) {
+    dependsOn tasks.named('test')
+    reports {
+        xml.required = true
+        csv.required = true
+        html.required = true
+    }
+}
+
+// Fail the build if a test class has the same fully-qualified name as a main class - it would
+// silently shadow it on the test runtime classpath. (Several main classes already end in `Spec`.)
+def checkTestClassShadowing = tasks.register('checkTestClassShadowing') {
+    def mainDirs = sourceSets.main.output.classesDirs
+    def testDirs = sourceSets.test.output.classesDirs
+    inputs.files(mainDirs, testDirs)
+    dependsOn 'classes', 'testClasses'
+    doLast {
+        def relPaths = { FileCollection dirs ->
+            dirs.files.findAll { it.exists() }.collectMany { dir ->
+                fileTree(dir).include('**/*.class').files.collect { dir.toPath().relativize(it.toPath()).toString() }
+            } as Set
+        }
+        def clashes = relPaths(mainDirs).intersect(relPaths(testDirs))
+        if (clashes) throw new GradleException("Test classes shadow main classes: ${clashes.sort()}")
+    }
+}
+tasks.named('check') { dependsOn checkTestClassShadowing }

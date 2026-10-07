@@ -13,9 +13,9 @@ on:
         branches: [ "develop" ]
 
 jobs:
-    # Matrix build: compile on JDK 25 (our toolchain), then also run the build/tests on JDK 17
-    # to guard the "hoist-core's published JAR runs on any JDK 17+" contract. Accidental use of
-    # Java 18+ APIs fails the 17 row.
+    # Matrix build: compile on JDK 25 (our toolchain) on every row, then run the test suite on the
+    # matrix JDK via -PtestJavaVersion. The 17 row guards the "hoist-core's published JAR runs on any
+    # JDK 17+" contract - accidental use of Java 18+ APIs fails it at test runtime.
     build:
 
         runs-on: ubuntu-latest
@@ -23,16 +23,22 @@ jobs:
             contents: read
 
         strategy:
+            fail-fast: false
             matrix:
                 java: [ '17', '25' ]
 
         steps:
         - uses: actions/checkout@v7
-        - name: Setup JDK ${{ matrix.java }}
+
+        # Install the JDK 25 compile toolchain plus the matrix JDK. The last version listed becomes
+        # JAVA_HOME and runs Gradle.
+        - name: Setup JDK ${{ matrix.java }} (+ JDK 25 toolchain)
           uses: actions/setup-java@v6.0.1
           with:
-              java-version: ${{ matrix.java }}
               distribution: 'temurin'
+              java-version: |
+                  25
+                  ${{ matrix.java }}
 
         - name: Setup Gradle
           uses: gradle/actions/setup-gradle@v6
@@ -41,8 +47,49 @@ jobs:
               build-scan-terms-of-use-url: 'https://gradle.com/terms-of-service'
               build-scan-terms-of-use-agree: 'yes'
 
-        - name: Build with Gradle Wrapper
-          run: ./gradlew build
+        - name: Build and test
+          run: ./gradlew build --continue -PtestJavaVersion=${{ matrix.java }}
+
+        # Job summary + inline failure annotations. annotate_only creates no check run, so no
+        # `checks: write` permission is needed and fork PRs work.
+        - name: Test report
+          if: ${{ !cancelled() }}
+          uses: mikepenz/action-junit-report@v6
+          with:
+              report_paths: '**/build/test-results/test/TEST-*.xml'
+              annotate_only: true
+              job_summary: true
+              job_summary_text: 'Unit tests on JDK ${{ matrix.java }}'
+              detailed_summary: true
+              include_passed: false
+              require_tests: true
+              fail_on_failure: false
+
+        - name: Coverage summary
+          if: ${{ !cancelled() && matrix.java == '25' }}
+          run: |
+              f=build/reports/jacoco/test/jacocoTestReport.csv
+              [ -f "$f" ] || { echo "No JaCoCo CSV found"; exit 0; }
+              # CSV cols: GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,...
+              awk -F, 'NR>1 {im+=$4; ic+=$5; bm+=$6; bc+=$7; lm+=$8; lc+=$9} END {
+                  printf "### hoist-core unit test coverage\n\n| Metric | Covered | Total | %% |\n|---|---:|---:|---:|\n";
+                  printf "| Lines | %d | %d | %.1f%% |\n", lc, lc+lm, (lc+lm) ? 100*lc/(lc+lm) : 0;
+                  printf "| Branches | %d | %d | %.1f%% |\n", bc, bc+bm, (bc+bm) ? 100*bc/(bc+bm) : 0;
+                  printf "| Instructions | %d | %d | %.1f%% |\n", ic, ic+im, (ic+im) ? 100*ic/(ic+im) : 0;
+              }' "$f" >> "$GITHUB_STEP_SUMMARY"
+
+        - name: Upload test reports
+          if: failure()
+          uses: actions/upload-artifact@v7
+          with:
+              name: test-reports-jdk${{ matrix.java }}
+              path: |
+                  build/test-results/
+                  build/reports/tests/
+                  hoist-core-test/build/test-results/
+                  hoist-core-test/build/reports/tests/
+              retention-days: 14
+              if-no-files-found: ignore
 
     dependency-submission:
 

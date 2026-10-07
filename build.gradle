@@ -15,7 +15,6 @@ buildscript {
 plugins {
     id "war"
     id "idea"
-    id "jacoco"
     id "java-library"
     id 'maven-publish'
     id 'signing'
@@ -109,9 +108,9 @@ dependencies {
     api "io.opentelemetry.proto:opentelemetry-proto:1.10.0-alpha"
 
     //--------------------
-    // Testing
+    // Testing - see docs/testing.md
     //--------------------
-    testImplementation "org.spockframework:spock-core"
+    testImplementation project(':hoist-core-test')
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
@@ -122,9 +121,10 @@ tasks.withType(GroovyCompile) {
 }
 bootJar.enabled = false
 
-tasks.withType(Test).configureEach {
-    useJUnitPlatform()
-}
+//--------------------
+// Testing - Spock on JUnit Platform with JaCoCo coverage. See docs/testing.md.
+//--------------------
+apply from: 'gradle/test-conventions.gradle'
 
 tasks.bootRun.doFirst {
     throw new RuntimeException('The bootRun task is not supported in hoist-core. If running in a "wrapper" config, ensure you run the task from your app, not the top-level wrapper.')
@@ -135,7 +135,8 @@ tasks.bootRun.doFirst {
 //
 // hoist-core compiles with a JDK 25 toolchain but targets Java 17 bytecode so the published JAR
 // still runs on any JDK 17+ runtime. Contributors must not use Java 18+ APIs in hoist-core
-// source — the CI build enforces this by also running the test suite on JDK 17.
+// source — CI compiles with the JDK 25 toolchain on every matrix row, then runs the test suite on
+// the matrix JDK (-PtestJavaVersion), so the JDK 17 row catches accidental use of Java 18+ APIs.
 //-------------------
 java {
     toolchain {
