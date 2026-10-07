@@ -5,7 +5,7 @@
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.test
+package io.xh.hoist.test.fakes
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.user.BaseUserService
@@ -15,7 +15,7 @@ import io.xh.hoist.user.HoistUser
  * In-memory {@link BaseUserService} for tests, holding whichever users have been added to it.
  *
  * Inherits the framework's real `impersonationTargetsForUser` logic. Registered by
- * {@link HoistUnitTest} as the application's `userService` bean.
+ * {@link io.xh.hoist.test.HoistUnitTest} as the application's `userService` bean.
  */
 @CompileStatic
 class TestUserService extends BaseUserService {

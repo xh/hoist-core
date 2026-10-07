@@ -129,7 +129,7 @@ src/main/groovy/io/xh/hoist/   # Core library code (non-Grails-artifact classes)
   websocket/                    # WebSocket support (cluster-aware push)
 
 src/test/groovy/io/xh/hoist/   # Spock specs for hoist-core — see docs/testing.md
-test-support/                  # Subproject publishing io.xh:hoist-core-test (HoistUnitTest, TestConfigService, etc.)
+test-support/                  # Subproject publishing io.xh:hoist-core-test (HoistUnitTest trait; fakes/ holds TestConfigService etc.)
 mcp/                           # Subproject publishing io.xh:hoist-core-mcp (docs/symbol MCP server)
 ```
 

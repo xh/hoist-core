@@ -7,6 +7,7 @@
 
 package io.xh.hoist.test
 
+import io.xh.hoist.test.fakes.*
 import spock.lang.FailsWith
 import spock.lang.Shared
 import spock.lang.Stepwise
@@ -42,6 +43,8 @@ class HoistUnitTestLifecycleSpec extends LifecycleBaseSpec {
         loginAs('alice')
         testConfigService.set('leak', 'x')
         testClusterService.primaryInstance = false
+        testTrackService.track(msg: 'leak')
+        testEmailService.sendEmail(to: 'leak@example.com', text: 'leak')
 
         then:
         identityService.username == 'alice'
@@ -54,6 +57,8 @@ class HoistUnitTestLifecycleSpec extends LifecycleBaseSpec {
         testUserService.list(false).isEmpty()
         identityService.username == null
         testClusterService.primaryInstance
+        testTrackService.tracked.isEmpty()
+        testEmailService.sent.isEmpty()
     }
 
     @FailsWith(org.spockframework.runtime.ConditionNotSatisfiedError)

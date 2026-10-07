@@ -12,6 +12,7 @@ import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
 import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.exception.ExceptionHandler
+import io.xh.hoist.test.fakes.*
 import io.xh.hoist.user.HoistIdentity
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
@@ -33,12 +34,14 @@ import org.grails.testing.ParameterizedGrailsUnitTest
  * |---|---|
  * | `configService` | {@link TestConfigService} |
  * | `userService` | {@link TestUserService} |
- * | `identityService` | `IdentityService` (the real framework service) |
+ * | `identityService` | `IdentityService` |
  * | `clusterService` | {@link TestClusterService} |
+ * | `trackService` | {@link TestTrackService} |
+ * | `emailService` | {@link TestEmailService} |
  * | `xhExceptionHandler` | `ExceptionHandler` |
  *
- * Before each feature, config values and users are cleared and the instance is set back to
- * primary. After each feature, the thread identity is cleared.
+ * Before each feature, config values, users, tracked entries and sent emails are cleared and
+ * the instance is set back to primary. After each feature, the thread identity is cleared.
  *
  * Combine with the standard Grails traits to test an artefact:
  *
@@ -84,6 +87,16 @@ trait HoistUnitTest extends GrailsUnitTest {
     /** The framework identity service, which resolves the current user from the thread identity. */
     IdentityService getIdentityService() {
         applicationContext.getBean('identityService', IdentityService)
+    }
+
+    /** The activity tracking service - assert on `tracked` / `lastTracked` here. */
+    TestTrackService getTestTrackService() {
+        applicationContext.getBean('trackService', TestTrackService)
+    }
+
+    /** The email service - assert on `sent` / `lastSent` here. */
+    TestEmailService getTestEmailService() {
+        applicationContext.getBean('emailService', TestEmailService)
     }
 
     /**
@@ -144,7 +157,7 @@ trait HoistUnitTest extends GrailsUnitTest {
     //------------------
     /**
      * Set the application time zone, as read by `DateTimeUtils.appTimeZone` and related methods.
-     * Registers the real `EnvironmentService` if needed and sets its `xhAppTimeZone` soft config.
+     * Registers an `EnvironmentService` if none exists and sets its `xhAppTimeZone` soft config.
      */
     void useAppTimeZone(String zoneId) {
         testConfigService.set('xhAppTimeZone', zoneId)
@@ -167,7 +180,7 @@ trait HoistUnitTest extends GrailsUnitTest {
         // in hoist-core's own specs), Grails redefines that bean on first access to `service`, and
         // Spring's dependent-bean cascade then destroys and recreates every bean autowired with it -
         // including identityService, losing any identity set via loginAs(). Create it up front so the
-        // beans a feature sees are the ones it keeps. Other artefacts stay lazy, as in plain Grails.
+        // beans a feature sees are the ones it keeps. Other artefacts are created lazily, as Grails does by default.
         if (this instanceof ParameterizedGrailsUnitTest) {
             def parameterized = (ParameterizedGrailsUnitTest) this
             if (FRAMEWORK_BEANS.containsKey(GrailsNameUtils.getPropertyName(parameterized.typeUnderTest))) {
@@ -181,6 +194,10 @@ trait HoistUnitTest extends GrailsUnitTest {
         if (userService instanceof TestUserService) userService.clear()
         def clusterService = applicationContext.getBean('clusterService')
         if (clusterService instanceof TestClusterService) clusterService.primaryInstance = true
+        def trackService = applicationContext.getBean('trackService')
+        if (trackService instanceof TestTrackService) trackService.clear()
+        def emailService = applicationContext.getBean('emailService')
+        if (emailService instanceof TestEmailService) emailService.clear()
         identityService.installThreadIdentity(null)
     }
 
@@ -196,6 +213,8 @@ trait HoistUnitTest extends GrailsUnitTest {
         userService       : TestUserService,
         identityService   : IdentityService,
         clusterService    : TestClusterService,
+        trackService      : TestTrackService,
+        emailService      : TestEmailService,
         xhExceptionHandler: ExceptionHandler
     ] as Map<String, Class>
 

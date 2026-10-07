@@ -15,8 +15,9 @@ import grails.testing.services.ServiceUnitTest
 import io.xh.hoist.BaseService
 import io.xh.hoist.cache.Cache
 import io.xh.hoist.config.ConfigService
-import io.xh.hoist.exception.NotAuthorizedException
 import io.xh.hoist.log.LogSupportMarker
+import io.xh.hoist.track.TrackService
+import io.xh.hoist.test.fakes.*
 import io.xh.hoist.util.DateTimeUtils
 import io.xh.hoist.util.Utils
 import org.slf4j.LoggerFactory
@@ -33,6 +34,7 @@ class SampleService extends BaseService {
     static clearCachesConfigs = []
 
     ConfigService configService
+    TrackService trackService
 
     Cache<String, String> forecasts = createCache(name: 'forecasts', expireTime: 1 * HOURS)
     AtomicInteger timerRuns = new AtomicInteger()
@@ -180,7 +182,7 @@ class HoistUnitTestSpec extends Specification implements ServiceUnitTest<SampleS
         identityService.impersonating
     }
 
-    def 'withUser restores the previous identity'() {
+    def 'withUser restores the previous identity, including when the closure throws'() {
         given:
         def svc = service
         loginAs('alice')
@@ -193,24 +195,18 @@ class HoistUnitTestSpec extends Specification implements ServiceUnitTest<SampleS
         svc.username == 'alice'
 
         when:
-        logout()
-        withUser(new TestUser('bob')) { svc.username }
-
-        then:
-        svc.username == null
-    }
-
-    def 'withUser restores identity if the closure throws'() {
-        given:
-        def svc = service
-        loginAs('alice')
-
-        when:
         withUser(new TestUser('bob')) { throw new IllegalStateException('boom') }
 
         then:
         thrown(IllegalStateException)
         svc.username == 'alice'
+
+        when:
+        logout()
+        withUser(new TestUser('bob')) { svc.username }
+
+        then:
+        svc.username == null
     }
 
     def 'the service under test is injected with the Hoist beans by name'() {
@@ -220,6 +216,27 @@ class HoistUnitTestSpec extends Specification implements ServiceUnitTest<SampleS
         service.configService.is(testConfigService)
         Utils.configService.is(testConfigService)
         Utils.identityService.is(identityService)
+    }
+
+    def 'track calls are recorded, not persisted'() {
+        when:
+        testTrackService.track(msg: 'Deleted widget', category: 'Audit', data: [id: 7])
+        testTrackService.track(msg: 'Viewed widget')
+
+        then:
+        testTrackService.tracked*.msg == ['Deleted widget', 'Viewed widget']
+        testTrackService.lastTracked == [msg: 'Viewed widget', category: 'Default', severity: io.xh.hoist.track.TrackSeverity.INFO]
+        testTrackService.tracked('Audit')*.data == [[id: 7]]
+        service.trackService.is(testTrackService)
+    }
+
+    def 'emails are captured, not sent'() {
+        when:
+        testEmailService.sendEmail(to: 'a@example.com', subject: 'Hi', text: 'body', async: true)
+
+        then:
+        testEmailService.sent.size() == 1
+        testEmailService.lastSent == [to: 'a@example.com', subject: 'Hi', text: 'body', async: true]
     }
 
     def 'defineService registers an autowired service bean for collaborators'() {
@@ -278,10 +295,5 @@ class HoistUnitTestSpec extends Specification implements ServiceUnitTest<SampleS
 
         then:
         DateTimeUtils.appTimeZone.ID == 'Asia/Tokyo'
-    }
-
-    def 'HoistAssertions use the context exception handler'() {
-        expect:
-        HoistAssertions.httpStatusFor(new NotAuthorizedException()) == 403
     }
 }

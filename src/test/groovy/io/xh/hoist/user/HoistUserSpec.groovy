@@ -7,7 +7,7 @@
 package io.xh.hoist.user
 
 import io.xh.hoist.test.HoistSpec
-import io.xh.hoist.test.TestUser
+import io.xh.hoist.test.fakes.TestUser
 
 class HoistUserSpec extends HoistSpec {
 

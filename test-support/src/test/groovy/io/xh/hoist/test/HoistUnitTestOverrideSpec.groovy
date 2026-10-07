@@ -7,6 +7,7 @@
 
 package io.xh.hoist.test
 
+import io.xh.hoist.test.fakes.*
 import io.xh.hoist.util.Utils
 
 /** An app-specific config service, e.g. with extra helper methods. */

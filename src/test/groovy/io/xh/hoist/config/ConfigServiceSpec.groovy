@@ -10,12 +10,12 @@ package io.xh.hoist.config
 import grails.testing.gorm.DataTest
 import grails.testing.services.ServiceUnitTest
 import io.xh.hoist.test.HoistUnitTest
-import io.xh.hoist.test.TestUser
+import io.xh.hoist.test.fakes.TestUser
 import io.xh.hoist.util.Utils
 import spock.lang.Specification
 
 /**
- * Tests the real, GORM-backed {@link ConfigService} against an in-memory {@link AppConfig} table,
+ * Tests {@link ConfigService} against an in-memory {@link AppConfig} table,
  * via the standard Grails `ServiceUnitTest` + `DataTest` traits combined with `HoistUnitTest`.
  */
 class ConfigServiceSpec extends Specification implements ServiceUnitTest<ConfigService>, DataTest, HoistUnitTest {
@@ -88,7 +88,7 @@ class ConfigServiceSpec extends Specification implements ServiceUnitTest<ConfigS
         service.getStringIfSet('setStr') == 'x'
         service.getPwdIfSet('unsetPwd') == null
 
-        when: 'an absent config is still an error'
+        when: 'an absent config throws'
         service.getStringIfSet('absent')
 
         then:

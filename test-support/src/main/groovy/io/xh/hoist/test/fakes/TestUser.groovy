@@ -5,7 +5,7 @@
  * Copyright © 2026 Extremely Heavy Industries Inc.
  */
 
-package io.xh.hoist.test
+package io.xh.hoist.test.fakes
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.user.HoistUser

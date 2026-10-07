@@ -85,7 +85,7 @@ Implement the standard Grails trait for the artefact under test, plus `HoistUnit
 ```groovy
 import grails.testing.services.ServiceUnitTest
 import io.xh.hoist.test.HoistUnitTest
-import io.xh.hoist.test.TestUser
+import io.xh.hoist.test.fakes.TestUser
 import spock.lang.Specification
 
 class WeatherServiceSpec extends Specification implements ServiceUnitTest<WeatherService>, HoistUnitTest {
@@ -127,15 +127,18 @@ HoistUnitTest`.
 
 ### Harness API
 
-All classes are in package `io.xh.hoist.test`.
+The trait, base spec and helpers are in package `io.xh.hoist.test`. The in-memory stand-ins for
+framework services are in `io.xh.hoist.test.fakes`.
 
 | Class | Purpose |
 |---|---|
-| `HoistUnitTest` | Grails unit-test trait. Registers the beans below before each feature unless the spec defined its own in `doWithSpring()`; resets config, users and primary status before each feature and clears identity after. Adds `testConfigService`, `testUserService`, `testClusterService`, `identityService`, `defineService`, `loginAs`, `impersonate`, `logout`, `withUser` and `useAppTimeZone`. |
+| `HoistUnitTest` | Grails unit-test trait. Registers the beans below before each feature unless the spec defined its own in `doWithSpring()`; resets config, users, tracked entries, sent emails and primary status before each feature and clears identity after. Adds `testConfigService`, `testUserService`, `testClusterService`, `testTrackService`, `testEmailService`, `identityService`, `defineService`, `loginAs`, `impersonate`, `logout`, `withUser` and `useAppTimeZone`. |
 | `HoistSpec` | Abstract `Specification` implementing `HoistUnitTest`. |
 | `TestConfigService` | `configService` bean. Map-backed `ConfigService` - seed with `set` / `setAll`. All typed getters (`getString`, `getInt`, `getMap`, ...) follow `ConfigService` semantics, including throwing for a missing config without a default. `registerTypedConfig` supports `getObject` for `TypedConfigMap` subclasses. |
 | `TestUserService` | `userService` bean. In-memory `BaseUserService`: `add`, `find`, `list`, `clear`. |
 | `TestClusterService` | `clusterService` bean. Reports `isPrimary` from `primaryInstance` (default `true`), so `primaryOnly` timers run. |
+| `TestTrackService` | `trackService` bean. Records `track()` entries in `tracked` / `lastTracked` instead of persisting them. |
+| `TestEmailService` | `emailService` bean. Records `sendEmail()` calls in `sent` / `lastSent` instead of delivering them. |
 | `TestUser` | `HoistUser` with an explicit role set - no role service required. |
 | `HoistJson` | Serialize and round-trip with Hoist's own Jackson `JSONSerializer` / `JSONParser`, to assert the real wire format of `JSONFormat` objects. |
 | `HoistAssertions` | `httpStatusFor(Throwable)` and `isRoutine(Throwable)` mirror `ExceptionHandler`; `findUnsecuredActions` / `assertAllActionsSecured` check that every controller action has a Hoist access annotation. |
@@ -165,12 +168,20 @@ def 'all #controller.simpleName actions are secured'() {
   sequentially by default), and async work run via Grails `task {}` does not inherit it.
 - Grails creates the artefact under test lazily, on first access to `service` / `controller`, by
   redefining its bean. Spring then destroys and recreates any bean autowired with it. This only
-  matters when the artefact is itself one of the framework beans above (hoist-core's own
-  `ConfigServiceSpec`, say), where it would discard an identity set by `loginAs()` - so
-  `HoistUnitTest` creates those up front. Other artefacts stay lazy, as in plain Grails.
+  matters when the artefact is itself one of the framework beans above, e.g. a spec of
+  `ConfigService`, where it would discard an identity set by `loginAs()` - so `HoistUnitTest`
+  creates those up front. Other artefacts are created lazily, as Grails does by default.
 - A GORM save that fails validation leaves the rejected value on the entity cached in the
   feature's session, so a subsequent `findByName` returns the dirty instance. Assert on `errors`
   rather than re-reading the value.
+- The in-memory `DataTest` datastore evaluates criteria `like` as a regex after translating `%`,
+  so a pattern with other regex metacharacters behaves differently than in SQL - `like('acl', '*')`
+  matches nothing, where SQL matches a literal `*`. Cover such queries in an integration test.
+- That datastore also has no identity map and no orphan removal. An instance loaded by a query
+  is not the same object as the one in a parent's collection, so `removeFrom*` with it does not
+  remove anything, and static GORM event closures (as opposed to `def beforeInsert()` methods)
+  are not invoked. Assert such effects through what the code records or returns, or cover them
+  in an integration test.
 - No Hazelcast instance is started. `createIMap`, `createReplicatedMap`, `getTopic` and
   `subscribeToTopic` are not available; `replicate: true` caches and cached values behave as local.
 - Environment variables named `APP_<APPCODE>_*` still take precedence over instance config.

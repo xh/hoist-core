@@ -215,7 +215,7 @@
             "mcpCategory": "devops",
             "viewerCategory": "devops",
             "description": "Spock unit testing for hoist-core and Hoist apps - the io.xh:hoist-core-test harness, spec conventions, running tests and coverage, CI.",
-            "keywords": ["Spock", "unit test", "hoist-core-test", "HoistUnitTest", "HoistSpec", "GrailsUnitTest", "TestConfigService", "TestUserService", "TestUser", "HoistJson", "HoistAssertions", "PendingFeature", "JaCoCo", "testJavaVersion", "ControllerUnitTest", "ServiceUnitTest"]
+            "keywords": ["Spock", "unit test", "hoist-core-test", "HoistUnitTest", "HoistSpec", "GrailsUnitTest", "TestConfigService", "TestUserService", "TestTrackService", "TestEmailService", "TestUser", "HoistJson", "HoistAssertions", "PendingFeature", "JaCoCo", "testJavaVersion", "ControllerUnitTest", "ServiceUnitTest"]
         },
         {
             "id": "mcp/README.md",
