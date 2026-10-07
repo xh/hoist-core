@@ -15,6 +15,7 @@ buildscript {
 plugins {
     id "war"
     id "idea"
+    id "jacoco"
     id "java-library"
     id 'maven-publish'
     id 'signing'
@@ -107,6 +108,11 @@ dependencies {
     // Workaround needed by micrometer-registry-otlp at compile time
     api "io.opentelemetry.proto:opentelemetry-proto:1.10.0-alpha"
 
+    //--------------------
+    // Testing
+    //--------------------
+    testImplementation "org.spockframework:spock-core"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
 tasks.withType(GroovyCompile) {
@@ -115,6 +121,10 @@ tasks.withType(GroovyCompile) {
     }
 }
 bootJar.enabled = false
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
 
 tasks.bootRun.doFirst {
     throw new RuntimeException('The bootRun task is not supported in hoist-core. If running in a "wrapper" config, ensure you run the task from your app, not the top-level wrapper.')

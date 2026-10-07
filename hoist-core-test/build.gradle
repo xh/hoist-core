@@ -1,0 +1,19 @@
+plugins {
+    id 'groovy'
+    id 'java-library'
+}
+group = 'io.xh'
+version = rootProject.ext.xhReleaseVersion
+repositories {
+    mavenCentral()
+    maven { url = 'https://repo.grails.org/grails/restricted' }
+}
+java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }
+tasks.withType(GroovyCompile).configureEach { options.release = 17 }
+dependencies {
+    api project(':')
+    api platform("org.apache.grails:grails-bom:$grailsVersion")
+    api 'org.spockframework:spock-core'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+tasks.withType(Test).configureEach { useJUnitPlatform() }

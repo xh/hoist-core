@@ -1,2 +1,3 @@
 rootProject.name = 'hoist-core'
 include 'mcp'
+include 'hoist-core-test'
