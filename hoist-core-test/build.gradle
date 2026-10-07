@@ -35,6 +35,8 @@ tasks.withType(JavaCompile).configureEach {
 }
 tasks.withType(GroovyCompile).configureEach {
     options.release = 17
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
     groovyOptions.parameters = true
 }
 tasks.withType(Javadoc).configureEach {

@@ -184,14 +184,14 @@ class CachedValueSpec extends HoistSpec {
         CachedValue cv = newValue(onChange: { CachedValueChanged c -> values << c.value })
         def value = [x: 1]
 
-        when: 'a trailing sentinel set is used to know the earlier handlers have run'
+        when: 'handlers run concurrently, so wait for both the first and a trailing sentinel handler'
         cv.set(value)
         cv.set(value)
         cv.set('sentinel')
 
         then:
         new PollingConditions(timeout: 5).eventually {
-            assert values.contains('sentinel')
+            assert values.contains('sentinel') && values.any { it.is(value) }
         }
         values.count { it.is(value) } == 1
     }
@@ -209,7 +209,7 @@ class CachedValueSpec extends HoistSpec {
 
         then:
         new PollingConditions(timeout: 5).eventually {
-            assert values.contains('sentinel')
+            assert values.contains('sentinel') && values.contains('v')
         }
         values.count { it == 'v' } == 1
     }
