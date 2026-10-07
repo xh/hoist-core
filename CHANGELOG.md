@@ -56,6 +56,8 @@
 * `LogSupportConverter` no longer throws when formatting a `LogSupport` call with no messages.
 * `ExceptionHandler.getHttpStatus()` now returns 500 for an `HttpException` with a null status code,
   rather than throwing.
+* `DefaultRoleUpdateService.bulkCategoryUpdate()` now returns the updated roles in the order given,
+  rather than reversed.
 
 ### ⚙️ Technical
 
