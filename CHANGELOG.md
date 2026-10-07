@@ -31,6 +31,15 @@
   Previously these payloads were dropped from the database but written to the log in full.
 * `TrackService` no longer lets `data` keys overwrite core log fields such as user and category.
 
+## 42.1.0 - 2026-10-01
+
+### 🐞 Bug Fixes
+
+* `TrackService` now drops any `elapsed` time over the new `xhActivityTrackingConfig.maxElapsedMins`
+  limit (default 2, overridable per category via `maxElapsedMinsByCategory`). These times come from
+  sleeping laptops or hidden browser tabs, and they skew activity stats and the `xh.client.load.*`
+  metrics.
+
 ## 42.0.0 - 2026-09-29
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - review global view write roles; most apps require no changes)

@@ -212,6 +212,10 @@ to distinguish activity from different client applications.
 | `xh.client.load.totalTime` | Timer | Total app load elapsed time |
 | `xh.client.load.authTime` | Timer | Authentication phase duration |
 
+The load timers record only entries with an `elapsed` value. hoist-react omits `elapsed` when the
+page was hidden at any point during load (e.g. opened in a background tab, or switched away from
+while loading), and reports `hiddenDuringLoad: true` in the entry data.
+
 See [`metrics.md`](./metrics.md) for full documentation of the metrics infrastructure.
 
 ## Configuration
@@ -232,6 +236,8 @@ See [`metrics.md`](./metrics.md) for full documentation of the metrics infrastru
   ],
   "logData": false,
   "maxDataLength": 2000,
+  "maxElapsedMins": 2,
+  "maxElapsedMinsByCategory": {},
   "maxEntriesPerMin": 1000,
   "maxRows": {"default": 10000, "limit": 25000, "options": [1000, 5000, 10000, 25000]}
 }
@@ -244,6 +250,8 @@ See [`metrics.md`](./metrics.md) for full documentation of the metrics infrastru
 | `levels` | Severity filtering rules (see Severity Filtering above) |
 | `logData` | Default for whether to include data keys in log output - `true`, `false`, or a list of keys |
 | `maxDataLength` | Maximum size of JSON data payload (chars). Larger data is dropped |
+| `maxElapsedMins` | Maximum `elapsed` time (minutes). Longer times are dropped as implausible. `-1` to disable |
+| `maxElapsedMinsByCategory` | Per-category overrides of `maxElapsedMins`, keyed by `category` |
 | `maxEntriesPerMin` | Rate limit threshold for persistence |
 | `maxRows` | Controls the maximum number of rows returned in admin activity queries. `default` is the initial row count, `limit` is the absolute maximum, and `options` provides selectable values |
 
@@ -381,6 +389,9 @@ User feedback submitted through the built-in feedback dialog is sent as a track 
 
 - **`data`** — Payloads exceeding `maxDataLength` (default 2000 chars) are **dropped entirely**
   (set to `null`). A trace-level log message is emitted, but no error is raised.
+- **`elapsed`** - Times over `maxElapsedMins` (default 2 minutes, overridable per category via
+  `maxElapsedMinsByCategory`) are dropped (set to `null`). These usually come from a sleeping
+  laptop or a hidden browser tab.
 - **`msg`** — Truncated to 255 characters.
 - **`url`** — Truncated to 500 characters.
 
