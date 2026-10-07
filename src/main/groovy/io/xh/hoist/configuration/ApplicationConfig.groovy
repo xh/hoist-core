@@ -36,6 +36,9 @@ class ApplicationConfig {
                 main.'allow-circular-references' = true
                 groovy.template.'check-template-location' = false
                 devtools.restart.exclude = ['grails-app/conf/**']
+                // Increase limits to 20mb to support large grid exports, other file uploads.
+                servlet.multipart.maxFileSize = '20MB'
+                servlet.multipart.maxRequestSize = '20MB'
                 // disable Spring's auto-configured equivalents to avoid duplicate
                 autoconfigure.exclude = [
 
@@ -95,14 +98,6 @@ class ApplicationConfig {
                         xml          : ['text/xml', 'application/xml'],
                         excel        : 'application/vnd.ms-excel'
                     ]
-                }
-
-                controllers {
-                    // Increase limits to 20mb to support large grid exports, other file uploads.
-                    upload {
-                        maxFileSize = 20971520
-                        maxRequestSize = 20971520
-                    }
                 }
 
                 web.disable.multipart = false

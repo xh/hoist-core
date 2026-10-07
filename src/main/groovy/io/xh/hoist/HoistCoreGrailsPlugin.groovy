@@ -16,6 +16,7 @@ import io.xh.hoist.util.Timer
 import io.xh.hoist.util.Utils
 import io.xh.hoist.websocket.HoistWebSocketConfigurer
 import jakarta.servlet.DispatcherType
+import org.grails.async.factory.future.CompletableFuturePromiseFactory
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.core.Ordered
 
@@ -71,7 +72,10 @@ class HoistCoreGrailsPlugin extends Plugin {
     void doWithApplicationContext() {
         Utils.appContext = applicationContext
 
-        Promises.promiseFactory = new HoistPromiseFactory(Promises.promiseFactory)
+        // Back `task {}` with an unbounded cached thread pool, as in Grails 7. Grails 8 defaults to
+        // Spring's `applicationTaskExecutor` (8 threads, unbounded queue), which deadlocks nested
+        // blocking tasks such as `BaseService.parallelInit()` -> `initialize()`.
+        Promises.promiseFactory = new HoistPromiseFactory(new CompletableFuturePromiseFactory())
     }
 
     void onConfigChange(Map<String, Object> event) {}

@@ -31,6 +31,10 @@ detailed, step-by-step upgrade instructions with before and after code examples.
   `HoistUser.validateUsername(username)` must call it via their own implementing class instead -
   for example `User.validateUsername(username)`. The old form now throws
   `MissingMethodException` at runtime, not at compile time.
+* Grails 8 no longer supports `grails.controllers.upload` and fails at startup if it is set.
+  Hoist now sets its 20MB upload limits via `spring.servlet.multipart.maxFileSize` and
+  `maxRequestSize`. Apps that override these limits in `application.groovy` must move them to the
+  `spring.servlet.multipart` keys.
 
 ### 🎁 New Features
 
@@ -53,6 +57,9 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 * Renamed the framework message bundle to `grails-app/i18n/hoist-core.properties`. The previous
   name let an application's own `messages.properties` shadow it.
+* Grails `task {}` promises now run on an unbounded thread pool, as in Grails 7. Grails 8 defaults
+  to Spring's `applicationTaskExecutor`, which is capped at 8 threads and deadlocks nested blocking
+  tasks such as `BaseService.parallelInit()`.
 
 ### 📚 Libraries
 
