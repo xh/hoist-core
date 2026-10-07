@@ -18,7 +18,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import org.slf4j.helpers.BasicMarkerFactory
-import spock.lang.PendingFeature
 import spock.lang.Subject
 
 class LogSupportConverterSpec extends HoistSpec {
@@ -159,7 +158,6 @@ class LogSupportConverterSpec extends HoistSpec {
         convert([[k: null]]) == 'k=null'
     }
 
-    @PendingFeature(reason = 'messages.last() throws NoSuchElementException for a marker with no messages, e.g. logInfo() with no args')
     def 'an empty message list renders as an empty string'() {
         expect:
         convert([]) == ''

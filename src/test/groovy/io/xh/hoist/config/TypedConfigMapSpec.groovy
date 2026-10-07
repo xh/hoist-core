@@ -19,7 +19,6 @@ import io.xh.hoist.test.HoistSpec
 import io.xh.hoist.track.ActivityTrackingConfig
 import io.xh.hoist.track.ClientErrorConfig
 import io.xh.hoist.websocket.WebSocketConfig
-import spock.lang.PendingFeature
 import spock.lang.Unroll
 
 class TypedConfigMapSpec extends HoistSpec {
@@ -103,11 +102,11 @@ class TypedConfigMapSpec extends HoistSpec {
         expect:
         new IdleConfig([timeout: 5L]).timeout == 5
         new IdleConfig([timeout: 5L]).timeout instanceof Integer
+        new IdleConfig([timeout: 5.0d]).timeout == 5
         new IdleConfig([timeout: null]).timeout == null
         new NestingConfig([count: null]).count == null
     }
 
-    @PendingFeature(reason = 'checkAssignable allows any Number into any Number field, so a fractional Double is silently truncated rather than rejected')
     def 'fractional value is rejected for an Integer field'() {
         when:
         new IdleConfig([timeout: 2.7d])
@@ -116,7 +115,6 @@ class TypedConfigMapSpec extends HoistSpec {
         thrown(IllegalArgumentException)
     }
 
-    @PendingFeature(reason = 'Long outside the Integer range silently wraps when assigned to an Integer field')
     def 'out of range Long is rejected for an Integer field'() {
         when:
         new IdleConfig([timeout: 3_000_000_000L])

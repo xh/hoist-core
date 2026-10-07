@@ -12,6 +12,8 @@ import org.hibernate.criterion.Criterion
 import org.hibernate.criterion.MatchMode
 import org.hibernate.criterion.Restrictions
 
+import java.util.regex.Pattern
+
 import static org.hibernate.criterion.MatchMode.ANYWHERE
 import static org.hibernate.criterion.MatchMode.END
 import static org.hibernate.criterion.MatchMode.START
@@ -80,12 +82,12 @@ class FieldFilter extends Filter implements JSONFormat {
         switch (op) {
             case '=':
                 Criterion c = Restrictions.in(field, vals.findAll { it != null })
-                if (vals.contains(null))
+                if (vals.any { isBlank(it) })
                     return or([Restrictions.isNull(field), c])
                 return c
             case '!=':
                 Criterion c = and(vals.findAll { it != null }.collect { ne(field, it) })
-                return vals.contains(null) ?
+                return vals.any { isBlank(it) } ?
                     and([Restrictions.isNotNull(field), c]) :
                     or([Restrictions.isNull(field), c])
             case '>':
@@ -124,16 +126,18 @@ class FieldFilter extends Filter implements JSONFormat {
 
         switch (op) {
             case '=':
+                def eqVals = vals.collect { isBlank(it) ? null : it }
                 return {
                     def v = it[field]
                     if (v == '') v = null
-                    return vals.any { it == v }
+                    return eqVals.any { it == v }
                 }
             case '!=':
+                def neVals = vals.collect { isBlank(it) ? null : it }
                 return {
                     def v = it[field]
                     if (v == '') v = null
-                    return vals.every { it != v }
+                    return neVals.every { it != v }
                 }
             case '>':
                 return {
@@ -156,41 +160,17 @@ class FieldFilter extends Filter implements JSONFormat {
                     return v != null && v <= value
                 }
             case 'like':
-                def regExps = vals.collect { v -> ~/(?i)$v/ }
-                return {
-                    def v = it[field]
-                    return v != null && regExps.any { re -> re.matcher(v).find() }
-                }
+                return textTestFn(vals, ANYWHERE, false)
             case 'not like':
-                def regExps = vals.collect { v -> ~/(?i)$v/ }
-                return {
-                    def v = it[field]
-                    return v == null || !regExps.any { re -> re.matcher(v).find() }
-                }
+                return textTestFn(vals, ANYWHERE, true)
             case 'begins':
-                def regExps = vals.collect { v -> ~/(?i)^$v/ }
-                return {
-                    def v = it[field]
-                    return v != null && regExps.any { re -> re.matcher(v).find() }
-                }
+                return textTestFn(vals, START, false)
             case 'not begins':
-                def regExps = vals.collect { v -> ~/(?i)^$v/ }
-                return {
-                    def v = it[field]
-                    return v == null || !regExps.any { re -> re.matcher(v).find() }
-                }
+                return textTestFn(vals, START, true)
             case 'ends':
-                def regExps = vals.collect { v -> ~/(?i)$v$/ }
-                return {
-                    def v = it[field]
-                    return v != null && regExps.any { re -> re.matcher(v).find() }
-                }
+                return textTestFn(vals, END, false)
             case 'not ends':
-                def regExps = vals.collect { v -> ~/(?i)$v$/ }
-                return {
-                    def v = it[field]
-                    return v == null || !regExps.any { re -> re.matcher(v).find() }
-                }
+                return textTestFn(vals, END, true)
             case 'includes':
                 return {
                     def v = it[field]
@@ -220,9 +200,36 @@ class FieldFilter extends Filter implements JSONFormat {
         )
     }
 
+    // Excludes value, which is compared with Groovy equality (e.g. 1 == 1.0) - hashing it could
+    // give equal filters different hash codes.
+    int hashCode() {
+        return Objects.hash(field, op)
+    }
+
     //------------------------
     // Implementation
     //------------------------
+    private static boolean isBlank(Object v) {
+        return v == null || v == ''
+    }
+
+    // Matches each value literally and case-insensitively, as SQL `ilike` does. Blanks pass a
+    // negated operator.
+    private Closure<Boolean> textTestFn(List vals, MatchMode mode, boolean negated) {
+        List<Pattern> patterns = vals.collect { val ->
+            String regex = Pattern.quote("$val")
+            if (mode == START) regex = '^' + regex
+            if (mode == END) regex += '$'
+            Pattern.compile(regex, Pattern.CASE_INSENSITIVE)
+        }
+        return {
+            def v = it[field]
+            if (v == null) return negated
+            def str = v.toString()
+            return negated != patterns.any { it.matcher(str).find() }
+        }
+    }
+
     // Blanks pass a negated text operator, as they do in memory - SQL would otherwise drop them.
     private Criterion notIlike(List vals, MatchMode mode) {
         return or([

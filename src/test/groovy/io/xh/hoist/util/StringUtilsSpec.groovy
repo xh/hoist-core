@@ -7,7 +7,6 @@
 
 package io.xh.hoist.util
 
-import spock.lang.PendingFeature
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -26,11 +25,10 @@ class StringUtilsSpec extends Specification {
         'hello world foo'      | 12  | 'hello...'
         'Hello, world!'        | 9   | 'Hello,...'
         'supercalifragilistic' | 10  | '...'
-        'ab'                   | 2   | '...'
+        'ab'                   | 2   | 'ab'
         'abcd'                 | 3   | '...'
     }
 
-    @PendingFeature(reason = 'A string whose length equals len fits, but elide uses size() < len and elides it anyway')
     def 'string exactly len characters long is returned unchanged'() {
         expect:
         StringUtils.elide('hello', 5) == 'hello'

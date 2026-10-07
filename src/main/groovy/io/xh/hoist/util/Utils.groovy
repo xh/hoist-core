@@ -301,12 +301,13 @@ class Utils {
 
     private static Map deepSanitizeMap(Map map) {
         map.collectEntries {key, val ->
-            if (isSensitiveParamName(key.toString())) {
-                val = '******'
-            } else if (val instanceof Map) {
-                val = deepSanitizeMap(val)
-            }
-            return [key, val]
+            return [key, isSensitiveParamName(key.toString()) ? '******' : deepSanitizeValue(val)]
         }
+    }
+
+    private static Object deepSanitizeValue(Object val) {
+        if (val instanceof Map) return deepSanitizeMap(val)
+        if (val instanceof Collection) return val.collect { deepSanitizeValue(it) }
+        return val
     }
 }

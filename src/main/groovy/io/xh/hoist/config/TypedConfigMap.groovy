@@ -54,6 +54,13 @@ abstract class TypedConfigMap implements LogSupport, JSONFormat {
         (float): Float, (short): Short, (byte): Byte, (char): Character
     ]
 
+    private static final Map<Class, List<Long>> INTEGRAL_RANGES = [
+        (Integer): [Integer.MIN_VALUE, Integer.MAX_VALUE],
+        (Long)   : [Long.MIN_VALUE, Long.MAX_VALUE],
+        (Short)  : [Short.MIN_VALUE, Short.MAX_VALUE],
+        (Byte)   : [Byte.MIN_VALUE, Byte.MAX_VALUE]
+    ] as Map<Class, List<Long>>
+
     /**
      * Assign values from `args` onto matching declared properties. Nested `TypedConfigMap`
      * properties (including in `List<Foo>` and `Map<String, Foo>` shapes) are constructed
@@ -114,15 +121,28 @@ abstract class TypedConfigMap implements LogSupport, JSONFormat {
     }
 
     // Strict type guard — Groovy's setter would silently coerce wrong-type values into
-    // `boolean`/`String` fields. Number-to-Number widening is allowed.
+    // `boolean`/`String` fields. Number-to-Number conversion is allowed only when lossless - a
+    // fractional or out-of-range value for an integral field would otherwise be truncated or wrap.
     private static void checkAssignable(String typeName, String key, Class propType, Object v) {
         if (v == null) return
         Class boxed = PRIMITIVE_BOXED[propType] ?: propType
         if (boxed.isInstance(v)) return
-        if (Number.isAssignableFrom(boxed) && v instanceof Number) return
+        if (Number.isAssignableFrom(boxed) && v instanceof Number && fitsIntegralRange(boxed, v)) return
         throw new IllegalArgumentException(
             "Field '$key' on $typeName expects ${boxed.simpleName} but got ${v.getClass().simpleName}"
         )
+    }
+
+    private static boolean fitsIntegralRange(Class boxed, Number v) {
+        List<Long> range = INTEGRAL_RANGES[boxed]
+        if (!range) return true
+        BigDecimal dec
+        try {
+            dec = v as BigDecimal
+        } catch (NumberFormatException ignored) {
+            return false  // NaN or Infinity
+        }
+        return dec.stripTrailingZeros().scale() <= 0 && dec >= range[0] && dec <= range[1]
     }
 
     Map formatForJSON() {

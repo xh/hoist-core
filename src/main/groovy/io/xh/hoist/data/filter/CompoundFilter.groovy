@@ -59,4 +59,8 @@ class CompoundFilter extends Filter implements JSONFormat {
                 other.filters == filters
         )
     }
+
+    int hashCode() {
+        return Objects.hash(op, filters)
+    }
 }
