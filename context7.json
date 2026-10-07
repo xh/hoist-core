@@ -1,4 +1,56 @@
 {
+    "$schema": "https://context7.com/schema/context7.json",
+    "projectTitle": "Hoist Core",
+    "description": "Server half of XH's Hoist toolkit: a Grails 7 plugin with BaseService and BaseController, managed caches and timers, Hazelcast clustering, config, prefs, roles, monitoring. Pairs with hoist-react.",
+    "branch": "master",
+    "excludeFolders": [
+        "docs/planning",
+        ".github",
+        ".claude",
+        "build",
+        "gradle"
+    ],
+    "excludeFiles": [
+        "CHANGELOG.md",
+        "LICENSE.md",
+        "SECURITY.md",
+        "CLAUDE.local.md",
+        "CODE_OF_CONDUCT.md"
+    ],
+    "rules": [
+        "Every Grails service extends io.xh.hoist.BaseService and every controller extends BaseController (or RestController for CRUD). Bare Grails services and controllers miss lifecycle, logging, identity, and admin integration.",
+        "Create caches, cached values, timers, and Hazelcast structures through the BaseService factories (createCache, createCachedValue, createTimer), never directly. In clearCaches() overrides call super.clearCaches() first, then clear each resource.",
+        "Read config through configService typed getters (getString, getInt, getBool, getMap, getList, getObject(Class)); never query AppConfig directly. Declare required configs, prefs, and roles with ConfigSpec, PreferenceSpec, and RoleSpec at bootstrap.",
+        "Every controller action needs an access annotation (@AccessRequiresRole, @AccessRequiresAnyRole, @AccessRequiresAllRoles, or @AccessAll) on the method or the class. Do not re-check roles inside the action.",
+        "Render responses with renderJSON() and read request bodies with parseRequestJSON(); do not use Grails render() or request.JSON. Let exceptions propagate from controller actions instead of wrapping them in try/catch.",
+        "Log through the LogSupport methods (logInfo, logDebug, withInfo, withDebug) with varargs and maps, not a raw SLF4J logger. Throw RoutineRuntimeException for expected user-facing errors.",
+        "Annotate service methods that touch the database: @ReadOnly for queries and @Transactional for mutations. Avoid N+1 queries.",
+        "The xh prefix marks framework-owned configs, preferences, roles, and services; do not use it for application-owned identifiers.",
+        "The develop branch documents the unreleased next major. Match the app's hoistCoreVersion: pick that version in Context7, and read docs/upgrade-notes when crossing majors. hoist-react docs/version-compatibility.md lists the paired versions."
+    ],
+    "previousVersions": [
+        {
+            "branch": "develop"
+        },
+        {
+            "tag": "v42.1.0"
+        },
+        {
+            "tag": "v41.0.0"
+        },
+        {
+            "tag": "v40.5.0"
+        },
+        {
+            "tag": "v39.1.0"
+        },
+        {
+            "tag": "v38.0.0"
+        },
+        {
+            "tag": "v37.0.2"
+        }
+    ],
     "url": "https://context7.com/xh/hoist-core",
     "public_key": "pk_NBMk3j2oYSSVg1aFVwXFT"
 }

@@ -12,11 +12,11 @@
   3. Plain ASCII punctuation only. Use " - " for in-sentence breaks, never an em dash.
 -->
 
-## 42.0-SNAPSHOT - unreleased
+## 43.0-SNAPSHOT - unreleased
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟠 MEDIUM - Grails 8 / Groovy 5 / Java 21 upgrade)
 
-See [`docs/upgrade-notes/v42-upgrade-notes.md`](docs/upgrade-notes/v42-upgrade-notes.md) for
+See [`docs/upgrade-notes/v43-upgrade-notes.md`](docs/upgrade-notes/v43-upgrade-notes.md) for
 detailed, step-by-step upgrade instructions with before and after code examples.
 
 * Hoist Core now requires Java 21, up from Java 17.
@@ -32,13 +32,27 @@ detailed, step-by-step upgrade instructions with before and after code examples.
   for example `User.validateUsername(username)`. The old form now throws
   `MissingMethodException` at runtime, not at compile time.
 
+### 🎁 New Features
+
+* `TrackService` now logs nested `data` values when `logData` is enabled. Nested maps are flattened
+  to dotted keys (e.g. `timings.authenticating=1250`) and lists are logged as JSON strings.
+  Previously these values were dropped. A `logData` list can name a top-level key to log all of its
+  nested values, or a dotted key to log a single value. Maps nested more than five levels deep are
+  logged as JSON strings.
+* `TrackService` log lines now include `browser` and `device` for entries made within a request.
+
+### 🐞 Bug Fixes
+
+* Fixed the `logData` option on `TrackService.track()` and client track calls being ignored. Only
+  the `xhActivityTrackingConfig.logData` default was applied.
+* `TrackService` no longer logs `data` payloads larger than `xhActivityTrackingConfig.maxDataLength`.
+  Previously these payloads were dropped from the database but written to the log in full.
+* `TrackService` no longer lets `data` keys overwrite core log fields such as user and category.
+
 ### ⚙️ Technical
 
 * Renamed the framework message bundle to `grails-app/i18n/hoist-core.properties`. The previous
   name let an application's own `messages.properties` shadow it.
-* `ConfigService.ensureRequiredConfigsCreated` now seeds a `ConfigSpec` that has a `typedClass` but
-  no `defaultValue` with an empty JSON object. Apps can omit `defaultValue` for typed configs. An
-  explicit `defaultValue: [:]` continues to work.
 
 ### 📚 Libraries
 
@@ -55,6 +69,66 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 * opentelemetry-jdbc `2.27.0 → 2.31.1`
 * opentelemetry-proto `1.10.0 → 1.11.0`
 * mina-core `2.2.8 → 2.2.9`
+
+## 42.1.0 - 2026-10-01
+
+### 🐞 Bug Fixes
+
+* `TrackService` now drops any `elapsed` time over the new `xhActivityTrackingConfig.maxElapsedMins`
+  limit (default 2, overridable per category via `maxElapsedMinsByCategory`). These times come from
+  sleeping laptops or hidden browser tabs, and they skew activity stats and the `xh.client.load.*`
+  metrics.
+
+## 42.0.0 - 2026-09-29
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - review global view write roles; most apps require no changes)
+
+See [`docs/upgrade-notes/v42-upgrade-notes.md`](docs/upgrade-notes/v42-upgrade-notes.md) for
+detailed, step-by-step upgrade instructions with before and after code examples.
+
+* `JsonBlobService` now limits write access (update, archive, group rename) to a blob's `owner`.
+  Previously `acl: '*'` granted every user write access to shared and global blobs, including
+  ViewManager global views.
+  * Global (null-owner) blobs require a role in the new `xhJsonBlobConfig.globalWriteRoles` config,
+    keyed by blob `type` with `*` as fallback. Default: `{"*": ["HOIST_ADMIN"]}`. Mirror any custom
+    `manageGlobal` role from the client here, or include the role `*` to restore prior behavior.
+    Apps where only `HOIST_ADMIN` users manage global views need no changes.
+  * `xhView/allData` now returns `manageGlobal`, so hoist-react v88+ derives `manageGlobal` from
+    this config and apps need not specify the role on the client.
+  * `update` no longer changes a blob's `type`, which is now fixed at creation.
+* Removed `DefaultRoleService.doLoadUsersForDirectoryGroups`. Apps that resolve directory groups
+  from a custom source now override `getDirectoryService` to return their own `DirectoryService`
+  implementation. Apps that do not override the removed method require no changes.
+
+### 🎁 New Features
+
+* Added certificate-based authentication to `EntraIdService` as an alternative to a client
+  secret, via the new `xhEntraClientPfx` (base64-encoded PKCS#12 bundle holding the
+  certificate, its chain, and its private key) and `xhEntraClientPfxPassword` configs. When
+  configured, the certificate takes precedence over `xhEntraClientSecret`.
+
+### 🐞 Bug Fixes
+
+* `EmailService` no longer expands blank address entries into bare `@domain` addresses (notably
+  from a blank `xhEmailOverride`), matches `none` case-insensitively, and throws a clear error
+  when no sender address resolves or an unqualified address has no `xhEmailDefaultDomain`.
+* `DefaultRoleService.describeDirectoryGroups` and `searchDirectoryGroups` now resolve through the
+  overridable `getDirectoryService`, so an app with a custom directory group source no longer sees
+  "No enabled directory service in this application" reported for every group by the
+  `roleAdmin/directoryGroupsInfo` endpoint, or an empty group search in the Admin Console.
+
+### ⚙️ Technical
+
+* `EmailService.sendEmail` now declares its arguments as named parameters. Existing calls need no
+  changes.
+    * ⚠️ An unrecognized argument name now throws an `AssertionError`, which `throwError: false`
+      does not suppress.
+* `ApplicationConfig.defaultConfig` now sets `server.compression.mimeTypes`, adding
+  `application/x-ndjson` to Spring Boot's built-in list. The result is that `BaseController.renderNDJSON`
+  responses are also compressed during development (as they already were when deployed behind xh-nginx).
+* `ConfigService.ensureRequiredConfigsCreated` now seeds a `ConfigSpec` that has a `typedClass` but
+  no `defaultValue` with an empty JSON object. Apps can omit `defaultValue` for typed configs. An
+  explicit `defaultValue: [:]` continues to work.
 
 ## 41.0.0 - 2026-08-25
 

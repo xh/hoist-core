@@ -18,6 +18,7 @@ import io.xh.hoist.config.IdleConfig
 import io.xh.hoist.entra.EntraIdConfig
 import io.xh.hoist.environment.EnvPollConfig
 import io.xh.hoist.export.ExportConfig
+import io.xh.hoist.jsonblob.JsonBlobConfig
 import io.xh.hoist.ldap.LdapConfig
 import io.xh.hoist.log.LogArchiveConfig
 import io.xh.hoist.log.LogSupport
@@ -251,6 +252,20 @@ class BootStrap implements LogSupport {
                 note: 'Client secret for the Entra ID app registration used by `EntraIdService`.'
             ),
             new ConfigSpec(
+                name: 'xhEntraClientPfx',
+                valueType: 'pwd',
+                defaultValue: AppConfig.NONE,
+                groupName: 'xh.io',
+                note: 'Base64-encoded PKCS#12 (.pfx/.p12) bundle holding the certificate uploaded to the Entra ID app registration used by EntraIdService, its chain (if any), and its private key. Configure to authenticate with a certificate instead of a client secret. Typically provisioned per environment via an instance config / environment variable from a secret manager. Convert PEM material with `openssl pkcs12 -export -in cert.pem -inkey key.pem | base64`.'
+            ),
+            new ConfigSpec(
+                name: 'xhEntraClientPfxPassword',
+                valueType: 'pwd',
+                defaultValue: AppConfig.NONE,
+                groupName: 'xh.io',
+                note: 'Password for the xhEntraClientPfx PKCS#12 bundle. Leave unset for a passwordless bundle.'
+            ),
+            new ConfigSpec(
                 name: 'xhEnvPollConfig',
                 valueType: 'json',
                 typedClass: EnvPollConfig,
@@ -292,6 +307,13 @@ class BootStrap implements LogSupport {
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Configures when an idle client enters sleep mode, suspending background requests until the user reloads. `timeout` is minutes of inactivity, overridable per client app in `appTimeouts`. Use `-1` to disable.'
+            ),
+            new ConfigSpec(
+                name: 'xhJsonBlobConfig',
+                valueType: 'json',
+                typedClass: JsonBlobConfig,
+                groupName: 'xh.io',
+                note: 'Configures `JsonBlobService`. `globalWriteRoles` maps blob type (or `*` as fallback) to the roles permitted to create, modify, and archive global blobs - e.g. ViewManager global views.'
             ),
             new ConfigSpec(
                 name: 'xhLdapConfig',

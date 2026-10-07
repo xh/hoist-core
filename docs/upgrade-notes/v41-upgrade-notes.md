@@ -1,6 +1,6 @@
 # Hoist Core v41 Upgrade Notes
 
-> **From:** v40.x → v41.0.0 | **Released:** unreleased | **Difficulty:** 🟢 LOW
+> **From:** v40.x → v41.0.0 | **Released:** 2026-08-25 | **Difficulty:** 🟢 LOW
 
 ## Overview
 

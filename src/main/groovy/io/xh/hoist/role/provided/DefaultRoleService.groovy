@@ -35,9 +35,8 @@ import static java.util.Collections.*
  * <p>Applications that opt in to this default implementation must either:
  * <ol>
  *   <li>Define a `RoleService` class that extends this class. The app can then override its
- *       protected methods to customize behavior, including
- *       {@link #doLoadUsersForDirectoryGroups} to resolve external directory group memberships
- *       (see below).</li>
+ *       protected methods to customize behavior, including {@link #getDirectoryService} to
+ *       resolve external directory group memberships (see below).</li>
  *   <li>Register this class directly as `roleService` via
  *       `grails-app/conf/spring/resources.groovy`, if no customizations are required.</li>
  * </ol>
@@ -60,10 +59,10 @@ import static java.util.Collections.*
  * those groups then inherit membership in the role. Roles themselves are still created and
  * managed in the local app database via the Admin Console. The default implementation resolves
  * groups via an enabled {@link DirectoryService} implementation - {@link LdapService} or
- * {@link EntraIdService} - see {@link #getDirectoryService} for selection details. Override
- * {@link #doLoadUsersForDirectoryGroups} to resolve groups from different or additional external
- * sources. If that method throws, this service logs an error and continues to use the result of
- * the last successful lookup. A call to {@link #clearCaches} also clears that cached lookup.
+ * {@link EntraIdService} - see {@link #getDirectoryService} for selection details. Override that
+ * method to supply a custom {@link DirectoryService} and resolve groups from a different source.
+ * If group resolution throws, this service logs an error and continues to use the result of the
+ * last successful lookup. A call to {@link #clearCaches} also clears that cached lookup.
  *
  * <p>This service and its Admin Console UI are configurable via a JSON `xhRoleModuleConfig`
  * soft-config, created by this service on startup if not found. Supported keys:
@@ -190,54 +189,20 @@ class DefaultRoleService extends BaseRoleService {
     }
 
     /**
-     * Resolve directory group identifiers to their member users.
+     * Resolve directory group identifiers to their member users, delegating to the selected
+     * {@link DirectoryService} - see {@link #getDirectoryService}.
      *
-     * <p>The default implementation delegates to the selected {@link DirectoryService}
-     * implementation - see {@link #getDirectoryService}. Override this method to resolve groups
-     * from different, or additional, external sources.
-     *
-     * <p>If strictMode is true, implementations must throw on any partial failure. Otherwise
-     * they log the failure and return whatever groups they can load.
-     *
-     * <p>If no directory service is enabled, the default implementation returns an error
-     * description for every group rather than throwing, keeping role resolution and the Admin
-     * Console UI functional (with inline warnings) in a misconfigured app.
+     * <p>If strictMode is true, the lookup throws on any partial failure. Otherwise it logs the
+     * failure and returns whatever groups it can load.
      *
      * @return Map of directory group identifier to an {@link ErrorOr} holding either the Set of
      *         assigned usernames (on success) or a description of the lookup error (on failure).
      */
-    protected Map<String, ErrorOr<Set<String>>> doLoadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
+    Map<String, ErrorOr<Set<String>>> loadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
         def svc = directoryService
         if (!groups) return emptyMap()
         if (!svc.enabled) return notEnabledResult(groups)
         svc.loadUsersForDirectoryGroups(groups, strictMode)
-    }
-
-    /**
-     * The {@link DirectoryService} implementation used to resolve directory groups and back
-     * related Admin Console UI features.
-     *
-     * <p>Selected via the optional `directoryGroupProvider` key in `xhRoleModuleConfig` -
-     * `'ldap'`, `'entraId'`, or the default `'auto'`, which resolves to whichever single
-     * implementation is enabled. When both are enabled under auto, this method logs an ERROR
-     * and returns the LDAP implementation, so that an app experimenting with Entra ID does not
-     * silently switch its role memberships to the new source.
-     */
-    protected DirectoryService getDirectoryService() {
-        String provider = config.directoryGroupProvider ?: 'auto'
-        switch (provider) {
-            case 'ldap': return ldapService
-            case 'entraId': return entraIdService
-            case 'auto': break
-            default:
-                logError("Unknown xhRoleModuleConfig.directoryGroupProvider '$provider'", "expected 'ldap', 'entraId', or 'auto'", 'falling back to auto selection')
-        }
-
-        if (ldapService.enabled && entraIdService.enabled) {
-            logError('Both LdapService and EntraIdService are enabled', "set xhRoleModuleConfig.directoryGroupProvider to select one", 'using LdapService')
-            return ldapService
-        }
-        return entraIdService.enabled ? entraIdService : ldapService
     }
 
     /**
@@ -259,6 +224,36 @@ class DefaultRoleService extends BaseRoleService {
     List<Map> searchDirectoryGroups(String namePart) {
         def svc = directoryService
         (namePart && svc.enabled) ? svc.searchDirectoryGroups(namePart) : []
+    }
+
+    /**
+     * The {@link DirectoryService} implementation used to resolve directory groups and back
+     * related Admin Console UI features.
+     *
+     * <p>Selected via the optional `directoryGroupProvider` key in `xhRoleModuleConfig` -
+     * `'ldap'`, `'entraId'`, or the default `'auto'`, which resolves to whichever single
+     * implementation is enabled. When both are enabled under auto, this method logs an ERROR
+     * and returns the LDAP implementation, so that an app experimenting with Entra ID does not
+     * silently switch its role memberships to the new source.
+     *
+     * <p>Override to resolve groups from a source other than LDAP or Entra ID, returning a
+     * custom implementation of the {@link DirectoryService} interface.
+     */
+    protected DirectoryService getDirectoryService() {
+        String provider = config.directoryGroupProvider ?: 'auto'
+        switch (provider) {
+            case 'ldap': return ldapService
+            case 'entraId': return entraIdService
+            case 'auto': break
+            default:
+                logError("Unknown xhRoleModuleConfig.directoryGroupProvider '$provider'", "expected 'ldap', 'entraId', or 'auto'", 'falling back to auto selection')
+        }
+
+        if (ldapService.enabled && entraIdService.enabled) {
+            logError('Both LdapService and EntraIdService are enabled', "set xhRoleModuleConfig.directoryGroupProvider to select one", 'using LdapService')
+            return ldapService
+        }
+        return entraIdService.enabled ? entraIdService : ldapService
     }
 
     /**
@@ -343,11 +338,6 @@ class DefaultRoleService extends BaseRoleService {
     //---------------------------
     // Implementation/Framework
     //---------------------------
-    /** Framework entry point for directory group resolution - apps override {@link #doLoadUsersForDirectoryGroups}. */
-    final Map<String, ErrorOr<Set<String>>> loadUsersForDirectoryGroups(Set<String> directoryGroups, boolean strictMode) {
-        doLoadUsersForDirectoryGroups(directoryGroups, strictMode)
-    }
-
     /**
      * Per-group error results for when no enabled {@link DirectoryService} is available.
      * DirectoryService methods throw when called while not enabled - this service instead

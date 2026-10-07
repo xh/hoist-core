@@ -30,7 +30,7 @@
             "mcpCategory": "package",
             "viewerCategory": "core-framework",
             "description": "Base classes for services and controllers — lifecycle, resource factories, CRUD patterns.",
-            "keywords": ["BaseService", "init", "destroy", "createCache", "createCachedValue", "createTimer", "createIMap", "createISet", "BaseController", "renderJSON", "parseRequestJSON", "RestController", "doCreate", "doList", "doUpdate", "doDelete"]
+            "keywords": ["BaseService", "init", "destroy", "createCache", "createCachedValue", "createTimer", "createIMap", "createISet", "BaseController", "renderJSON", "parseRequestJSON", "RestController", "doCreate", "doList", "doUpdate", "doDelete", "getAdminStats", "AdminStats"]
         },
         {
             "id": "docs/request-flow.md",
@@ -62,7 +62,7 @@
             "mcpCategory": "package",
             "viewerCategory": "core-framework",
             "description": "Corporate directory integration for role resolution, username mapping, and LDAP-backed login.",
-            "keywords": ["DirectoryService", "LdapService", "EntraIdService", "Active Directory", "Microsoft Graph", "xhLdapConfig", "xhEntraIdConfig", "directoryGroupProvider", "usernameAttribute", "directory groups", "ErrorOr"]
+            "keywords": ["DirectoryService", "LdapService", "EntraIdService", "Active Directory", "Microsoft Graph", "xhLdapConfig", "xhEntraIdConfig", "directoryGroupProvider", "usernameAttribute", "directory groups", "ErrorOr", "xhEntraClientPfx", "certificate auth", "PKCS12"]
         },
         {
             "id": "docs/configuration.md",
@@ -79,6 +79,14 @@
             "viewerCategory": "core-features",
             "description": "User-specific settings and preference management.",
             "keywords": ["Preference", "UserPreference", "PrefService", "local"]
+        },
+        {
+            "id": "docs/jsonblob.md",
+            "title": "JsonBlobs",
+            "mcpCategory": "package",
+            "viewerCategory": "core-features",
+            "description": "JSON document storage backing ViewManager views and other app state, with owner-based access control.",
+            "keywords": ["JsonBlob", "JsonBlobService", "ViewService", "xhJsonBlobConfig", "globalWriteRoles", "canWriteGlobal", "global views", "manageGlobal", "acl", "ViewManager"]
         },
         {
             "id": "docs/caching.md",
@@ -158,7 +166,8 @@
             "mcpCategory": "package",
             "viewerCategory": "infrastructure",
             "description": "Email sending with config-driven filtering and overrides.",
-            "keywords": ["EmailService", "xhEmailFilter", "xhEmailOverride"]
+            "keywords": ["EmailService", "sendEmail", "parseMailConfig", "xhEmailFilter",
+                "xhEmailOverride", "xhEmailDefaultDomain", "xhEmailDefaultSender", "attachments"]
         },
         {
             "id": "docs/exception-handling.md",
@@ -190,7 +199,7 @@
             "mcpCategory": "concept",
             "viewerCategory": "devops",
             "description": "Standard Hoist application repository layout — server and client structure, build configuration, deployment, JDK choice.",
-            "keywords": ["build.gradle", "gradle.properties", "grails-app/init", "client-app", "Bootstrap.ts", "AppModel", "Docker", "Nginx", "Tomcat", "JDK 21", "JDK 25", "Java 25", "Gradle toolchain", "Gradle 9", "xh-tomcat", "hot reload", "HotswapAgent", "enableHotSwap"]
+            "keywords": ["build.gradle", "gradle.properties", "grails-app/init", "client-app", "Bootstrap.ts", "AppModel", "Docker", "Nginx", "Tomcat", "JDK 17", "JDK 21", "JDK 25", "Java 25", "Gradle toolchain", "incompatible Java 25 and Gradle 8.x", "xh-tomcat", "hot reload", "HotswapAgent", "enableHotSwap"]
         },
         {
             "id": "docs/build-and-publish.md",
@@ -229,8 +238,8 @@
             "title": "v42 Upgrade Notes",
             "mcpCategory": "devops",
             "viewerCategory": "upgrade",
-            "description": "Upgrade guide from v41.x to v42. Medium difficulty.",
-            "keywords": ["v42", "upgrade", "migration", "breaking changes", "v41", "Grails 8", "Groovy 5", "ReadOnlyPropertyException", "DELEGATE_ONLY"]
+            "description": "Upgrade guide from v41.x to v42. Low difficulty.",
+            "keywords": ["v42", "upgrade", "migration", "breaking changes", "v41", "doLoadUsersForDirectoryGroups"]
         },
         {
             "id": "docs/upgrade-notes/v41-upgrade-notes.md",

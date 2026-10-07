@@ -213,9 +213,9 @@ ensureRequiredRolesCreated([
 ])
 ```
 
-Override `doLoadUsersForDirectoryGroups()` to resolve groups from different, or additional,
-external sources. Return a `Map` of group identifier to an `ErrorOr` that holds either the
-`Set` of member usernames or a String error description.
+Applications with a different external source can override `getDirectoryService()` to return
+their own implementation of the narrow `DirectoryService` interface. That single override backs
+membership resolution, Admin Console display names, and group search alike.
 
 #### Customization Points
 
@@ -226,7 +226,7 @@ external sources. Return a `Map` of group identifier to an `ErrorOr` that holds 
 | `getUserAssignmentSupported()` | `true` | Set to `false` to disable direct user-to-role assignment |
 | `getDirectoryGroupsSupported()` | `true` | Set to `false` to disable directory group membership |
 | `getDirectoryGroupsDescription()` | From the selected `DirectoryService` | Short string for Admin Console tooltip |
-| `doLoadUsersForDirectoryGroups()` | Selected `DirectoryService` | Override to resolve groups from other sources |
+| `getDirectoryService()` | `LdapService` or `EntraIdService`, per `directoryGroupProvider` | Override to resolve groups from another source |
 
 #### Configuration
 
@@ -435,7 +435,9 @@ See [`authentication.md`](./authentication.md) for the full identity response st
 
 Client-side role checks in hoist-react are for UI convenience only. The server's
 `HoistInterceptor` is the actual security enforcement. Always annotate controller endpoints
-regardless of client-side checks.
+regardless of client-side checks. Some `@AccessAll` framework endpoints enforce finer-grained rules
+in their services - for example, who may manage ViewManager global views is configured on the
+server via `xhJsonBlobConfig`. See [`jsonblob.md`](./jsonblob.md#access-control).
 
 ### Case sensitivity in usernames
 
