@@ -86,8 +86,8 @@ jobs:
               path: |
                   build/test-results/
                   build/reports/tests/
-                  testing/build/test-results/
-                  testing/build/reports/tests/
+                  test-support/build/test-results/
+                  test-support/build/reports/tests/
               retention-days: 14
               if-no-files-found: ignore
 

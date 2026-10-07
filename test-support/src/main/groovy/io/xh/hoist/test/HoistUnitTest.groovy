@@ -16,6 +16,7 @@ import io.xh.hoist.user.HoistIdentity
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
 import org.grails.testing.GrailsUnitTest
+import org.grails.testing.ParameterizedGrailsUnitTest
 
 /**
  * Grails unit-test trait that adds the Hoist framework services that Hoist code expects to find
@@ -159,14 +160,20 @@ trait HoistUnitTest extends GrailsUnitTest {
     //------------------
     /** Register any missing framework beans and reset their state. Called before each feature. */
     void setupHoistUnitTest() {
-        Map<String, Class> missing = [
-            configService     : TestConfigService,
-            userService       : TestUserService,
-            identityService   : IdentityService,
-            clusterService    : TestClusterService,
-            xhExceptionHandler: ExceptionHandler
-        ].findAll { name, clazz -> !applicationContext.containsBean(name) } as Map<String, Class>
+        Map<String, Class> missing = FRAMEWORK_BEANS.findAll { name, clazz -> !applicationContext.containsBean(name) }
         if (missing) defineAutowiredBeans(missing)
+
+        // When the artefact under test *is* one of the framework beans (e.g. `ServiceUnitTest<ConfigService>`
+        // in hoist-core's own specs), Grails redefines that bean on first access to `service`, and
+        // Spring's dependent-bean cascade then destroys and recreates every bean autowired with it -
+        // including identityService, losing any identity set via loginAs(). Create it up front so the
+        // beans a feature sees are the ones it keeps. Other artefacts stay lazy, as in plain Grails.
+        if (this instanceof ParameterizedGrailsUnitTest) {
+            def parameterized = (ParameterizedGrailsUnitTest) this
+            if (FRAMEWORK_BEANS.containsKey(GrailsNameUtils.getPropertyName(parameterized.typeUnderTest))) {
+                parameterized.artefactInstance
+            }
+        }
 
         def configService = applicationContext.getBean('configService')
         if (configService instanceof TestConfigService) configService.clear()
@@ -183,6 +190,14 @@ trait HoistUnitTest extends GrailsUnitTest {
             identityService.installThreadIdentity(null)
         }
     }
+
+    private static final Map<String, Class> FRAMEWORK_BEANS = [
+        configService     : TestConfigService,
+        userService       : TestUserService,
+        identityService   : IdentityService,
+        clusterService    : TestClusterService,
+        xhExceptionHandler: ExceptionHandler
+    ] as Map<String, Class>
 
     // Call the BeanBuilder explicitly - a bare `"$name"(clazz)` in the DSL closure would resolve to
     // this trait's own same-named getters (e.g. getIdentityService()) first.

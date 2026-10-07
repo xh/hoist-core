@@ -38,7 +38,19 @@ byte-buddy and objenesis libraries Spock needs to mock concrete classes. Version
 the Grails BOM used by hoist-core.
 
 Add a `src/test/resources/logback-test.xml` to keep test output quiet - hoist-core-test
-deliberately ships no logging config, so it never overrides an app's own.
+deliberately ships no logging config, so it never overrides an app's own. Register Hoist's
+`LogSupportConverter` for the message conversion word, or `logInfo` / `logWarn` output renders as
+`null` (the message travels on a Marker):
+
+```xml
+<configuration>
+    <conversionRule conversionWord="msg" converterClass="io.xh.hoist.log.LogSupportConverter"/>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder><pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern></encoder>
+    </appender>
+    <root level="WARN"><appender-ref ref="CONSOLE"/></root>
+</configuration>
+```
 
 ### Why Hoist needs more than the Grails test context
 
@@ -151,6 +163,14 @@ def 'all #controller.simpleName actions are secured'() {
   `defineBeans`) persist into later features - remove them in `cleanup()` if needed.
 - Thread identity is per thread, so features must not run in parallel within a JVM (Spock runs
   sequentially by default), and async work run via Grails `task {}` does not inherit it.
+- Grails creates the artefact under test lazily, on first access to `service` / `controller`, by
+  redefining its bean. Spring then destroys and recreates any bean autowired with it. This only
+  matters when the artefact is itself one of the framework beans above (hoist-core's own
+  `ConfigServiceSpec`, say), where it would discard an identity set by `loginAs()` - so
+  `HoistUnitTest` creates those up front. Other artefacts stay lazy, as in plain Grails.
+- A GORM save that fails validation leaves the rejected value on the entity cached in the
+  feature's session, so a subsequent `findByName` returns the dirty instance. Assert on `errors`
+  rather than re-reading the value.
 - No Hazelcast instance is started. `createIMap`, `createReplicatedMap`, `getTopic` and
   `subscribeToTopic` are not available; `replicate: true` caches and cached values behave as local.
 - Environment variables named `APP_<APPCODE>_*` still take precedence over instance config.
@@ -160,7 +180,7 @@ def 'all #controller.simpleName actions are secured'() {
 ### Layout and conventions
 
 - Specs live in `src/test/groovy`, in the same package as the class under test, named
-  `<ClassName>Spec`. Specs for the harness itself live in `testing/src/test/groovy`.
+  `<ClassName>Spec`. Specs for the harness itself live in `test-support/src/test/groovy`.
 - Several **main** classes already end in `Spec` (`ConfigSpec`, `PreferenceSpec`, `MonitorSpec`,
   `RoleSpec`, `CounterSpec`, `TimerSpec`). Where the conventional spec name would collide, use
   `<ClassName>UnitSpec`. The `checkTestClassShadowing` task, part of `check`, fails the build if a
@@ -185,7 +205,7 @@ def 'all #controller.simpleName actions are secured'() {
 ```
 
 Reports: `build/reports/tests/test/index.html` and `build/reports/jacoco/test/html/index.html`
-(and the same under `testing/build`).
+(and the same under `test-support/build`).
 
 ### CI
 

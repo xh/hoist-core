@@ -8,7 +8,7 @@ similar tools — when working with code in this repository.
 Hoist-core is the server-side component of the Hoist web application development toolkit, built
 by Extremely Heavy Industries (xh.io). Its primary product is a **Grails 7 plugin** (not a
 standalone app) published as `io.xh:hoist-core` and consumed by Grails application projects. The
-repo also publishes two companion artifacts at the same version: `hoist-core-test` (the `testing/`
+repo also publishes two companion artifacts at the same version: `hoist-core-test` (the `test-support/`
 subproject, Spock test support for apps) and `hoist-core-mcp` (the `mcp/` subproject, an MCP
 server for AI agents). The client-side counterpart is
 [hoist-react](https://github.com/xh/hoist-react).
@@ -129,7 +129,7 @@ src/main/groovy/io/xh/hoist/   # Core library code (non-Grails-artifact classes)
   websocket/                    # WebSocket support (cluster-aware push)
 
 src/test/groovy/io/xh/hoist/   # Spock specs for hoist-core — see docs/testing.md
-testing/                       # Subproject publishing io.xh:hoist-core-test (HoistUnitTest, TestConfigService, etc.)
+test-support/                  # Subproject publishing io.xh:hoist-core-test (HoistUnitTest, TestConfigService, etc.)
 mcp/                           # Subproject publishing io.xh:hoist-core-mcp (docs/symbol MCP server)
 ```
 

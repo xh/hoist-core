@@ -1,5 +1,5 @@
 //------------------------
-// testing/ (published as hoist-core-test): Spock-based unit testing support for applications built on hoist-core.
+// test-support/ (published as hoist-core-test): Spock-based unit testing support for applications built on hoist-core.
 // Published as io.xh:hoist-core-test alongside hoist-core, at the same version. Apps add it as a
 // single testImplementation dependency. See docs/testing.md.
 //------------------------
