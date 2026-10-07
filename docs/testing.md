@@ -174,9 +174,9 @@ def 'all #controller.simpleName actions are secured'() {
   matches nothing, where SQL matches a literal `*`. Cover such queries in an integration test.
 - That datastore also has no identity map and no orphan removal. An instance loaded by a query
   is not the same object as the one in a parent's collection, so `removeFrom*` with it does not
-  remove anything, and static GORM event closures (as opposed to `def beforeInsert()` methods)
-  are not invoked. Assert such effects through what the code records or returns, or cover them
-  in an integration test.
+  remove anything. It also does not invoke GORM event handlers declared as static closures
+  (`static beforeInsert = { ... }`, as on `Role`), which Hibernate does invoke. Assert such effects
+  through what the code records or returns, or cover them in an integration test.
 - No Hazelcast instance is started. `createIMap`, `createReplicatedMap`, `getTopic` and
   `subscribeToTopic` are not available; `replicate: true` caches and cached values behave as local.
 - Environment variables named `APP_<APPCODE>_*` still take precedence over instance config.
