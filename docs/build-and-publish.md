@@ -105,11 +105,11 @@ metadata. In outline:
 
 - **Publications** — the root project defines the `hoistCore` publication: compiled classes,
   sources, POM, and the Grails plugin descriptor as a `plugin`-classified artifact. The `mcp`
-  subproject defines `mcpServer`, publishing its shadow JAR as `hoist-core-mcp`. The
-  `hoist-core-test` subproject defines `hoistCoreTest`, publishing its JAR, sources and POM with
-  resolved dependency versions.
+  subproject defines `mcpServer`, publishing its shadow JAR as `hoist-core-mcp`. The `testing`
+  subproject defines `hoistCoreTest`, publishing its JAR, sources and POM as `hoist-core-test`,
+  with resolved dependency versions.
 - **Testing** — `gradle/test-conventions.gradle` configures Spock on the JUnit Platform, JaCoCo,
-  and the `checkTestClassShadowing` guard for both the root project and `hoist-core-test`.
+  and the `checkTestClassShadowing` guard for both the root project and `testing`.
 - **Signing** — all publications sign with in-memory PGP keys, so no keyring is written to disk.
   Signing is required for release versions and skipped for snapshots. Key material resolves from
   the `signingKey` and `signingPassword` Gradle properties, falling back to the `SIGNING_KEY` and

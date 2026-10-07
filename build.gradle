@@ -110,7 +110,7 @@ dependencies {
     //--------------------
     // Testing - see docs/testing.md
     //--------------------
-    testImplementation project(':hoist-core-test')
+    testImplementation project(':testing')
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 

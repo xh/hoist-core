@@ -160,7 +160,7 @@ def 'all #controller.simpleName actions are secured'() {
 ### Layout and conventions
 
 - Specs live in `src/test/groovy`, in the same package as the class under test, named
-  `<ClassName>Spec`. Specs for the harness itself live in `hoist-core-test/src/test/groovy`.
+  `<ClassName>Spec`. Specs for the harness itself live in `testing/src/test/groovy`.
 - Several **main** classes already end in `Spec` (`ConfigSpec`, `PreferenceSpec`, `MonitorSpec`,
   `RoleSpec`, `CounterSpec`, `TimerSpec`). Where the conventional spec name would collide, use
   `<ClassName>UnitSpec`. The `checkTestClassShadowing` task, part of `check`, fails the build if a
@@ -185,7 +185,7 @@ def 'all #controller.simpleName actions are secured'() {
 ```
 
 Reports: `build/reports/tests/test/index.html` and `build/reports/jacoco/test/html/index.html`
-(and the same under `hoist-core-test/build`).
+(and the same under `testing/build`).
 
 ### CI
 

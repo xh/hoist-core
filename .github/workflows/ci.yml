@@ -86,8 +86,8 @@ jobs:
               path: |
                   build/test-results/
                   build/reports/tests/
-                  hoist-core-test/build/test-results/
-                  hoist-core-test/build/reports/tests/
+                  testing/build/test-results/
+                  testing/build/reports/tests/
               retention-days: 14
               if-no-files-found: ignore
 
