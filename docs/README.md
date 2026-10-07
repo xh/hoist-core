@@ -49,6 +49,8 @@ and conventions.
 | Understand the exception hierarchy | [`exception-handling.md`](./exception-handling.md) |
 | Configure logging or read logs | [`logging.md`](./logging.md) |
 | Work with GORM domain objects and Hibernate | [`gorm-domain-objects.md`](./gorm-domain-objects.md) |
+| Write Spock unit tests for an app service or controller | [`testing.md`](./testing.md) |
+| Add or run unit tests in hoist-core itself | [`testing.md`](./testing.md#testing-hoist-core) |
 | Understand the build pipeline and GitHub Actions | [`build-and-publish.md`](./build-and-publish.md) |
 | Publish a release to Maven Central | [`build-and-publish.md`](./build-and-publish.md) |
 | Write or review a hoist-core library CHANGELOG entry | [`changelog-format.md`](./changelog-format.md) |
@@ -114,7 +116,8 @@ Guides to building, structuring, and deploying Hoist applications.
 | Document | Description | Key Topics |
 |----------|-------------|------------|
 | [`application-structure.md`](./application-structure.md) | Standard Hoist application repository layout — server and client structure, build configuration, deployment, JDK choice | `build.gradle`, `gradle.properties`, `grails-app/init/`, `client-app/`, `Bootstrap.ts`, `AppModel`, Docker, Nginx, Tomcat, JDK 17/21/25, Gradle toolchain |
-| [`build-and-publish.md`](./build-and-publish.md) | Gradle build, GitHub Actions CI, and Maven Central publishing | GitHub Actions, `deployRelease.yml`, `deploySnapshot.yml`, Sonatype, GPG signing, `nexus-publish-plugin`, `publishToSonatype`, `hoist-core-mcp`, Toolbox `repository_dispatch`, XH Build Bot GitHub App, `maven-archive.xh.io` (legacy `36.x`-and-earlier hoist-core releases) |
+| [`build-and-publish.md`](./build-and-publish.md) | Gradle build, GitHub Actions CI, and Maven Central publishing | GitHub Actions, `deployRelease.yml`, `deploySnapshot.yml`, Sonatype, GPG signing, `nexus-publish-plugin`, `publishToSonatype`, `hoist-core-mcp`, `hoist-core-test`, Toolbox `repository_dispatch`, XH Build Bot GitHub App, `maven-archive.xh.io` (legacy `36.x`-and-earlier hoist-core releases) |
+| [`testing.md`](./testing.md) | Spock unit testing for hoist-core and apps - the `io.xh:hoist-core-test` harness, conventions, CI | Spock, `hoist-core-test`, `HoistSpec`, `@HoistTest`, `HoistTestContext`, `TestConfigService`, `TestUser`, `HoistJson`, `HoistAssertions`, `@PendingFeature`, JaCoCo, `-PtestJavaVersion` |
 | [`../mcp/README.md`](../mcp/README.md) | Hoist-core MCP server and CLI tools — architecture, app-side install snippet, tools reference, and maintenance checklist | `hoist-core-mcp`, `hoist-core-docs`, `hoist-core-symbols`, `installHoistCoreTools`, `BundledContentSource`, `ContentSource`, `bootstrap.sh`, `doc-registry.json` |
 | [`changelog-format.md`](./changelog-format.md) | Conventions for writing and reviewing hoist-core library CHANGELOG entries | Section headers, voice/tense, Simplified Technical English, difficulty ratings, breaking changes, libraries, application changelogs |
 

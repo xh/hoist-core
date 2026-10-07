@@ -22,6 +22,11 @@
   nested values, or a dotted key to log a single value. Maps nested more than five levels deep are
   logged as JSON strings.
 * `TrackService` log lines now include `browser` and `device` for entries made within a request.
+* Added `io.xh:hoist-core-test`, a new published artifact for unit testing Hoist apps with Spock.
+  Its `HoistSpec` base class installs a lightweight test context, so services that log, create
+  caches or timers, read soft config, or check the current user can be tested without starting
+  Grails. It also provides `TestConfigService`, `TestUser`, `HoistJson` and `HoistAssertions`. See
+  `docs/testing.md`.
 
 ### 🐞 Bug Fixes
 
@@ -34,6 +39,11 @@
   values as Hibernate criteria, as they do in memory and in hoist-react. SQL's null handling
   dropped them before. The text operators also excluded blanks in memory, unlike `!=` and
   `excludes`.
+
+### ⚙️ Technical
+
+* Added a Spock unit test suite to hoist-core, with JaCoCo coverage reports. CI now runs the tests
+  on JDK 17 as well as JDK 25 and reports results in the job summary.
 
 ## 42.1.0 - 2026-10-01
 

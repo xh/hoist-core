@@ -54,6 +54,7 @@ shadowJar {
         include 'grails-app/init/**/*.groovy'
         include 'src/main/groovy/**/*.groovy'
         include 'src/main/groovy/**/*.java'
+        include 'hoist-core-test/src/main/groovy/**/*.groovy'
         into 'hoist-core-content'
     }
 

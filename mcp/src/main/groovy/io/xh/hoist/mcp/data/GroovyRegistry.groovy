@@ -33,6 +33,7 @@ class GroovyRegistry {
         [dir: 'grails-app/services',    category: 'services'],
         [dir: 'grails-app/init',        category: 'init'],
         [dir: 'src/main/groovy',        category: 'core'],
+        [dir: 'hoist-core-test/src/main/groovy', category: 'test-support'],
     ]
 
     /** Classes whose members are indexed for search. */
