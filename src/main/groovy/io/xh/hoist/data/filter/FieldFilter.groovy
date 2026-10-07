@@ -85,7 +85,6 @@ class FieldFilter extends Filter implements JSONFormat {
                 return c
             case '!=':
                 Criterion c = and(vals.findAll { it != null }.collect { ne(field, it) })
-                // Blanks pass unless excluded explicitly - SQL would otherwise drop them.
                 return vals.contains(null) ?
                     and([Restrictions.isNotNull(field), c]) :
                     or([Restrictions.isNull(field), c])
