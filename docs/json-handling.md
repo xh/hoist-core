@@ -91,13 +91,10 @@ A static utility class wrapping a Jackson `ObjectMapper` configured with Hoist-s
 | `LocalDateSerializer` | `LocalDate` | Formats as ISO date string (e.g., `"2024-01-15"`) |
 | `ThrowableSerializer` | `Throwable` | Serializes exceptions as `{name, message, cause, isRoutine}` maps (null/false values filtered out). If the `Throwable` implements `JSONFormat`, delegates to `formatForJSON()` instead. (Groovy) |
 
-Hoist uses Jackson 3, which supports Java 8+ date/time types (JSR 310) without a separate module.
+Hoist uses Jackson 3, which supports Java 8+ date/time types (JSR 310).
 Nanosecond timestamps are disabled. Both `JSONSerializer` and `JSONParser` build their mappers with
-Jackson's `JsonMapper.builderWithJackson2Defaults()`, so the wire format is unchanged from Jackson 2 -
-e.g. `Date` and `Instant` values serialize as epoch milliseconds.
-
-Jackson 3 exceptions are unchecked (`tools.jackson.core.JacksonException`), so `serialize()` and the
-`JSONParser` methods no longer declare checked exceptions.
+Jackson's `JsonMapper.builderWithJackson2Defaults()` - this means that `Date` and `Instant` values
+serialize as epoch milliseconds.
 
 #### Registering Custom Modules
 

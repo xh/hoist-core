@@ -32,15 +32,9 @@ detailed, step-by-step upgrade instructions with before and after code examples.
   for example `User.validateUsername(username)`. The old form now throws
   `MissingMethodException` at runtime, not at compile time.
 * Hoist Core now uses Jackson 3 for `JSONSerializer` and `JSONParser`. JSON output and parsing are
-  unchanged. Apps with custom Jackson serializers or modules must port them:
-  * Packages move from `com.fasterxml.jackson` to `tools.jackson`. Annotations stay in
-    `com.fasterxml.jackson.annotation`.
-  * `JSONSerializer.registerModules()` now takes a Jackson 3 `JacksonModule`.
-  * `StdSerializer.serialize()` takes a `SerializationContext` instead of a `SerializerProvider`.
-    `JsonGenerator` renames methods such as `writeObject` to `writePOJO` and `writeStringField`
-    to `writeStringProperty`.
-  * Jackson exceptions are now unchecked. `JSONSerializer` and `JSONParser` methods no longer
-    declare `JsonProcessingException` or `IOException`.
+  unchanged. Apps with custom Jackson serializers or modules may require small API changes - see
+  Hoist's own serializers (e.g. [`LocalDateSerializer`](src/main/groovy/io/xh/hoist/json/serializer/LocalDateSerializer.java))
+  or the [Jackson 3 migration guide](https://github.com/FasterXML/jackson/blob/main/jackson3/MIGRATING_TO_JACKSON_3.md).
 * Grails 8 no longer supports `grails.controllers.upload` and fails at startup if it is set.
   Hoist now sets its 20MB upload limits via `spring.servlet.multipart.maxFileSize` and
   `maxRequestSize`. Apps that override these limits in `application.groovy` must move them to the
