@@ -35,6 +35,8 @@ jobs:
     refresh:
         if: github.event_name != 'schedule'
         runs-on: ubuntu-latest
+        # Calls Context7 with its own API key - GITHUB_TOKEN is not used.
+        permissions: {}
         steps:
             - name: Trigger Context7 refresh
               env:
@@ -61,11 +63,17 @@ jobs:
     sync-versions:
         if: github.event_name != 'push'
         runs-on: ubuntu-latest
+        # GITHUB_TOKEN only reads the repo - the push and PR use the XH Build Bot token below.
+        permissions:
+            contents: read
         steps:
             - uses: actions/checkout@v7
               with:
                   fetch-depth: 0
                   fetch-tags: true
+                  # Keep the read-only GITHUB_TOKEN out of git config so the push below
+                  # authenticates with the bot token.
+                  persist-credentials: false
 
             - name: Update previousVersions from release tags
               id: sync
