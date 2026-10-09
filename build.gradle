@@ -107,6 +107,11 @@ dependencies {
     // Workaround needed by micrometer-registry-otlp at compile time
     api "io.opentelemetry.proto:opentelemetry-proto:1.10.0-alpha"
 
+    //--------------------
+    // Testing - see docs/testing.md
+    //--------------------
+    testImplementation project(':hoist-core-test')
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
 tasks.withType(GroovyCompile) {
@@ -115,6 +120,11 @@ tasks.withType(GroovyCompile) {
     }
 }
 bootJar.enabled = false
+
+//--------------------
+// Testing - Spock on JUnit Platform with JaCoCo coverage. See docs/testing.md.
+//--------------------
+apply from: 'gradle/test-conventions.gradle'
 
 tasks.bootRun.doFirst {
     throw new RuntimeException('The bootRun task is not supported in hoist-core. If running in a "wrapper" config, ensure you run the task from your app, not the top-level wrapper.')
@@ -125,7 +135,8 @@ tasks.bootRun.doFirst {
 //
 // hoist-core compiles with a JDK 25 toolchain but targets Java 17 bytecode so the published JAR
 // still runs on any JDK 17+ runtime. Contributors must not use Java 18+ APIs in hoist-core
-// source — the CI build enforces this by also running the test suite on JDK 17.
+// source. `release = 17` enforces this for Java sources; Groovy sources are not checked, as the
+// Groovy compiler resolves against the toolchain JDK, so take care with newer JDK APIs there.
 //-------------------
 java {
     toolchain {
