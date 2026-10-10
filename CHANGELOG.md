@@ -40,6 +40,21 @@
   values as Hibernate criteria, as they do in memory and in hoist-react. SQL's null handling
   dropped them before. The text operators also excluded blanks in memory, unlike `!=` and
   `excludes`.
+* `FieldFilter` text operators (`like`, `begins`, `ends` and their negations) now match values
+  literally in memory, as SQL `ilike` does. Before, values were used as regular expressions, so
+  `.` matched any character and a value such as `(` threw. These operators also no longer fail on
+  non-String record values.
+* `Filter` classes now implement `equals(Object)` and `hashCode()`. Before, only `equals(Filter)`
+  was defined, so equal filters were distinct in sets and map keys.
+* `StringUtils.elide()` no longer elides a string whose length equals `len`.
+* `Utils.asSanitizedJSON()` now redacts sensitive keys in maps nested within lists.
+* `TypedConfigMap` now rejects a fractional number for an integral field. Before, the value was
+  silently truncated, e.g. `2.7` became `2`.
+* `LogSupport` logging methods no longer throw when called with no messages, e.g. `logInfo()`.
+* `ExceptionHandler.getHttpStatus()` now returns 500 for an `HttpException` with a null status code,
+  rather than throwing.
+* `DefaultRoleUpdateService.bulkCategoryUpdate()` now returns the updated roles in the order given,
+  rather than reversed.
 
 ### ⚙️ Technical
 

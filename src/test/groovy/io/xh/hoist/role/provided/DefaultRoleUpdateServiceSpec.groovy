@@ -151,7 +151,7 @@ class DefaultRoleUpdateServiceSpec extends Specification implements ServiceUnitT
         def updated = service.bulkCategoryUpdate(['A', 'B'], 'New')
 
         then:
-        updated*.name.toSet() == ['A', 'B'] as Set
+        updated*.name == ['A', 'B']
         Role.get('A').category == 'New'
         Role.get('B').category == 'New'
         Role.get('C').category == 'Old'

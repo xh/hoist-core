@@ -12,7 +12,6 @@ import io.xh.hoist.log.LogSupport
 import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.Logger
 import org.springframework.validation.BeanPropertyBindingResult
-import spock.lang.PendingFeature
 import spock.lang.Specification
 import spock.lang.Subject
 
@@ -42,7 +41,6 @@ class ExceptionHandlerSpec extends Specification {
         new RuntimeException('x')                 | 500
     }
 
-    @PendingFeature(reason = 'getHttpStatus unboxes a null statusCode on a plain HttpException and throws NPE instead of falling back to 500')
     def 'httpStatus falls back to 500 for HttpException with null status'() {
         expect:
         handler.getHttpStatus(new HttpException('x', null, null)) == 500

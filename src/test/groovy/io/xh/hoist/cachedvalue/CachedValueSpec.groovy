@@ -10,7 +10,6 @@ package io.xh.hoist.cachedvalue
 import io.xh.hoist.BaseService
 import io.xh.hoist.cache.Cache
 import io.xh.hoist.test.HoistSpec
-import spock.lang.PendingFeature
 import spock.util.concurrent.PollingConditions
 
 import java.util.concurrent.TimeoutException
@@ -214,7 +213,6 @@ class CachedValueSpec extends HoistSpec {
         values.count { it == 'v' } == 1
     }
 
-    @PendingFeature(reason = 'CachedValue.entry field initializer runs before the constructor assigns loggerName, so the initial entry has a null loggerName')
     def 'the initial uninitialized entry carries the logger name'() {
         given:
         CachedValue cv = newValue(name: 'named')

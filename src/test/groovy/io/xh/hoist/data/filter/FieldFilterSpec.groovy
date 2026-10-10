@@ -13,7 +13,6 @@ import io.xh.hoist.test.HoistSpec
 import org.hibernate.criterion.Conjunction
 import org.hibernate.criterion.Disjunction
 import org.hibernate.criterion.InExpression
-import spock.lang.PendingFeature
 import spock.lang.Unroll
 
 import java.time.LocalDate
@@ -103,15 +102,6 @@ class FieldFilterSpec extends HoistSpec {
         [null, 1] | [f: '']   | true
     }
 
-    @PendingFeature(reason = 'Blank record values are normalized to null but a blank filter value is not, so "=" with "" matches nothing')
-    def 'equals filter with blank value matches blank records'() {
-        expect:
-        new FieldFilter('f', '=', '').testFn.call(record)
-
-        where:
-        record << [[f: ''], [f: null]]
-    }
-
     @Unroll
     def 'not-equals test fn: #record vs #value -> #expected'() {
         expect:
@@ -188,22 +178,34 @@ class FieldFilterSpec extends HoistSpec {
         'not ends'   | 'o'         | null   | true
     }
 
-    @PendingFeature(reason = 'In-memory text operators build a regex from the raw value, so "." acts as a wildcard (SQL ilike treats it literally)')
     def 'like operator treats value literally'() {
         expect:
         !new FieldFilter('f', 'like', 'a.c').testFn.call([f: 'abc'])
     }
 
-    @PendingFeature(reason = 'Regex metacharacters in the value are not escaped, so building the test fn throws PatternSyntaxException')
     def 'like operator tolerates regex metacharacters'() {
         expect:
         new FieldFilter('f', 'like', '(').testFn.call([f: 'a(b'])
     }
 
-    @PendingFeature(reason = 'Text operators call Pattern.matcher on the raw record value and fail for non-String values')
     def 'like operator on a non-string record value'() {
         expect:
         new FieldFilter('f', 'like', '2').testFn.call([f: 123])
+    }
+
+    @Unroll
+    def 'text operator #op matches #value literally against #record -> #expected'() {
+        expect:
+        new FieldFilter('f', op, value).testFn.call([f: record]) == expected
+
+        where:
+        op           | value | record  | expected
+        'begins'     | '.b'  | 'ab'    | false
+        'begins'     | '(a'  | '(abc'  | true
+        'ends'       | 'c$'  | 'abc$'  | true
+        'ends'       | 'b.'  | 'abc'   | false
+        'not like'   | 'a.c' | 'abc'   | true
+        'not begins' | '['   | '[x'    | false
     }
 
     @Unroll
@@ -317,11 +319,22 @@ class FieldFilterSpec extends HoistSpec {
         base.equals((Filter) base)
     }
 
-    @PendingFeature(reason = 'Only equals(Filter) is overloaded; equals(Object) and hashCode are not, so equal filters are not equal under == or in sets')
     def 'equal filters are equal as objects'() {
         given:
         def a = new FieldFilter('f', '=', 1)
         def b = new FieldFilter('f', '=', 1)
+
+        expect:
+        a == b
+        new HashSet([a, b]).size() == 1
+        a != new FieldFilter('f', '=', 2)
+        a != 'not a filter'
+    }
+
+    def 'equal compound filters are equal as objects'() {
+        given:
+        def a = new CompoundFilter([[field: 'f', op: '=', value: 1], [field: 'g', op: '>', value: 2]], 'OR')
+        def b = new CompoundFilter([[field: 'f', op: '=', value: 1], [field: 'g', op: '>', value: 2]], 'or')
 
         expect:
         a == b

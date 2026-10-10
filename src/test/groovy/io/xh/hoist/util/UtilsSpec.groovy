@@ -8,7 +8,6 @@
 package io.xh.hoist.util
 
 import io.xh.hoist.test.HoistSpec
-import spock.lang.PendingFeature
 import spock.lang.Unroll
 
 class UtilsSpec extends HoistSpec {
@@ -115,7 +114,6 @@ class UtilsSpec extends HoistSpec {
         ret == [user: 'bob', password: '******', nested: [apiToken: '******', ok: 1]]
     }
 
-    @PendingFeature(reason = 'deepSanitizeMap only recurses into Map values, so maps nested inside lists leak sensitive values')
     def 'asSanitizedJSON redacts sensitive keys inside lists'() {
         given:
         Utils.terms = ['password']
