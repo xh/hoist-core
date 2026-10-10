@@ -242,6 +242,14 @@
             "keywords": ["conventions", "coding standards", "style guide", "naming", "xh prefix", "LogSupport", "withInfo", "withDebug", "RoutineRuntimeException", "BaseService", "createCache", "createTimer", "clearCaches", "clearCachesConfigs", "ensureRequiredConfigsCreated", "configService", "AccessRequiresRole", "renderJSON", "parseRequestJSON", "ReadOnly", "Transactional", "N+1", "fetch join", "batchSize", "JSONFormat", "primaryOnly", "replicate", "JSONClient", "xhEmailOverride", "withNewSession", "pushToAllChannels", "pushToLocalChannels", "Groovy idioms", "commit messages", "no hard wrap"]
         },
         {
+            "id": "docs/upgrade-notes/v43-upgrade-notes.md",
+            "title": "v43 Upgrade Notes",
+            "mcpCategory": "devops",
+            "viewerCategory": "upgrade",
+            "description": "Upgrade guide from v42.x to v43. Medium difficulty.",
+            "keywords": ["v43", "upgrade", "migration", "breaking changes", "v42", "grails.controllers.upload", "hoist-core-install/v1"]
+        },
+        {
             "id": "docs/upgrade-notes/v42-upgrade-notes.md",
             "title": "v42 Upgrade Notes",
             "mcpCategory": "devops",

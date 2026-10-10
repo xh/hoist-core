@@ -8,6 +8,7 @@
 package io.xh.hoist.util
 
 import grails.config.Config
+import grails.core.GrailsApplication
 import grails.util.Environment
 import grails.util.Holders
 import grails.util.Metadata
@@ -165,14 +166,59 @@ class Utils {
     //------------------
     // Other Singletons
     //------------------
+    /**
+     * Hoist's own holders for the core Grails/Spring singletons.
+     *
+     * Grails populates its own `Holders` late in the boot sequence - both `Holders.grailsApplication`
+     * and `Holders.applicationContext` throw during `doWithSpring`, which is where Hoist initializes
+     * Hazelcast (and therefore needs to walk domain/service classes). HoistCoreGrailsPlugin installs
+     * each of these as soon as it becomes available, and they are the single source of truth
+     * thereafter - `Holders` is deliberately not consulted as a fallback, so a missing holder fails
+     * loudly here rather than surfacing as a confusing error from deeper in Grails.
+     */
+    private static GrailsApplication _grailsApplication
+    private static ApplicationContext _appContext
+
+    /**
+     * Set by HoistCoreGrailsPlugin.doWithSpring() - the earliest point a GrailsApplication exists.
+     * @internal
+     */
+    static void setGrailsApplication(GrailsApplication grailsApplication) {
+        _grailsApplication = grailsApplication
+    }
+
+    /** Get the grails application. */
+    static GrailsApplication getGrailsApplication() {
+        if (!_grailsApplication) {
+            throw new IllegalStateException(
+                'Utils.grailsApplication not yet available - it is installed by HoistCoreGrailsPlugin.doWithSpring().'
+            )
+        }
+        return _grailsApplication
+    }
+
+    /**
+     * Set by HoistCoreGrailsPlugin.doWithApplicationContext() - the ApplicationContext does not yet
+     * exist during doWithSpring(), so this necessarily lands one phase later than the above.
+     * @internal
+     */
+    static void setAppContext(ApplicationContext appContext) {
+        _appContext = appContext
+    }
+
     /** Get the grails application context.  */
     static ApplicationContext getAppContext() {
-        return Holders.applicationContext
+        if (!_appContext) {
+            throw new IllegalStateException(
+                'Utils.appContext not yet available - it is installed by HoistCoreGrailsPlugin.doWithApplicationContext(), one phase after doWithSpring().'
+            )
+        }
+        return _appContext
     }
 
     /** Get the grails application config.  */
     static Config getGrailsConfig() {
-        Holders.grailsApplication.config
+        grailsApplication.config
     }
 
     /** Primary JDBC datasource, default backing DB for app Domain objects. */

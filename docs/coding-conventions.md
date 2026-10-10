@@ -63,7 +63,7 @@ prefer that over Java-style ceremony.
 
 ### Prefer Groovy Idioms
 
-This is a Groovy 4 codebase. Embrace Groovy's expressive features rather than writing Java with
+This is a Groovy 5 codebase. Embrace Groovy's expressive features rather than writing Java with
 `.groovy` extensions:
 
 - Map and list literals: `[a: 1, b: 2]`, `[1, 2, 3]`

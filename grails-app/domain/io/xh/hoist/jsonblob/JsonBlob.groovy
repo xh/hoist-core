@@ -42,7 +42,7 @@ class JsonBlob implements JSONFormat {
         owner maxSize: 50, nullable: true, blank: false
         acl nullable: true
         name maxSize: 255, blank: false, validator: { val, obj ->
-            isNameUnique(val, obj) ?: 'default.not.unique.message'
+            JsonBlob.isNameUnique(val, obj) ?: 'default.not.unique.message'
         }
         value validator: {Utils.isJSON(it) ?: 'default.invalid.json.message'}
         meta nullable: true, validator: {Utils.isJSON(it) ?: 'default.invalid.json.message'}

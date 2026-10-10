@@ -21,7 +21,7 @@ repositories {
 }
 
 //--------------------
-// JDK - same contract as hoist-core: JDK 25 toolchain, Java 17 bytecode.
+// JDK - same contract as hoist-core: JDK 25 toolchain, Java 21 bytecode.
 //--------------------
 java {
     toolchain {
@@ -31,12 +31,12 @@ java {
     withJavadocJar()
 }
 tasks.withType(JavaCompile).configureEach {
-    options.release = 17
+    options.release = 21
 }
 tasks.withType(GroovyCompile).configureEach {
-    options.release = 17
-    sourceCompatibility = '17'
-    targetCompatibility = '17'
+    options.release = 21
+    sourceCompatibility = '21'
+    targetCompatibility = '21'
     groovyOptions.parameters = true
 }
 // Sources are Groovy-only, so fill the published javadoc jar from Groovydoc.

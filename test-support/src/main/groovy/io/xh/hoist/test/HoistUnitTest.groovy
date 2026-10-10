@@ -16,6 +16,7 @@ import io.xh.hoist.test.fakes.*
 import io.xh.hoist.user.HoistIdentity
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
+import io.xh.hoist.util.Utils
 import org.grails.testing.GrailsUnitTest
 import org.grails.testing.ParameterizedGrailsUnitTest
 
@@ -173,6 +174,10 @@ trait HoistUnitTest extends GrailsUnitTest {
     //------------------
     /** Register any missing framework beans and reset their state. Called before each feature. */
     void setupHoistUnitTest() {
+        // Stand in for HoistCoreGrailsPlugin, which installs these in a running app.
+        Utils.setGrailsApplication(grailsApplication)
+        Utils.setAppContext(applicationContext)
+
         Map<String, Class> missing = FRAMEWORK_BEANS.findAll { name, clazz -> !applicationContext.containsBean(name) }
         if (missing) defineAutowiredBeans(missing)
 
