@@ -4,10 +4,6 @@ buildscript {
         maven {
             url = 'https://repo.grails.org/grails/restricted'
         }
-        maven {
-            url = 'https://repository.apache.org/content/repositories/snapshots'
-            mavenContent { snapshotsOnly() }
-        }
     }
     dependencies { // Not Published to Gradle Plugin Portal
         classpath platform("org.apache.grails:grails-bom:$grailsVersion")
@@ -36,10 +32,6 @@ repositories {
     mavenCentral()
     maven {
         url = 'https://repo.grails.org/grails/restricted'
-    }
-    maven {
-        url = 'https://repository.apache.org/content/repositories/snapshots'
-        mavenContent { snapshotsOnly() }
     }
 }
 

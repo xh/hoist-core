@@ -17,28 +17,33 @@
 ### 💥 Breaking Changes (upgrade difficulty: 🟠 MEDIUM - Grails 8 / Groovy 5 / Java 21 upgrade)
 
 See [`docs/upgrade-notes/v43-upgrade-notes.md`](docs/upgrade-notes/v43-upgrade-notes.md) for
-detailed, step-by-step upgrade instructions with before and after code examples.
+detailed, step-by-step upgrade instructions with before and after code examples, and the
+[Grails 8 upgrade guide](https://grails.apache.org/docs/8.0.0/guide/upgrading.html) for general
+Grails 7 to 8 changes.
 
 * Hoist Core now requires Java 21, up from Java 17.
+* Grails 8 requires Tomcat 11. Apps deployed with `xhio/xh-tomcat` must move to a `tc11` image.
 * Grails 8 requires the Gradle 9 wrapper.
 * Groovy 5 tightens closure and config resolution. This can break dynamic config and GORM DSL
   blocks - for example, a `dataSource` pool `properties` block, or a bare reference to a domain
   class's own constant inside `constraints`. These failures appear at startup, not at compile
   time.
-* `grails-mail` and `grails-quartz` moved into grails-core. Update the coordinates and remove the
-  explicit versions.
-* Groovy 5 no longer resolves a trait's static methods through the trait name. Apps that call
-  `HoistUser.validateUsername(username)` must call it via their own implementing class instead -
-  for example `User.validateUsername(username)`. The old form now throws
-  `MissingMethodException` at runtime, not at compile time.
+* `grails-mail` and `grails-quartz` moved into grails-core. Hoist Core declares both, so apps can
+  remove their own declarations, or update the coordinates and remove the explicit versions.
+* Groovy 5 no longer resolves `HoistUser.validateUsername()` through the trait name, or unqualified
+  within a domain class's `constraints`. Call it via the implementing class instead - for example
+  `User.validateUsername(username)`. The old forms fail at runtime, not at compile time.
 * Hoist Core now uses Jackson 3 for `JSONSerializer` and `JSONParser`. JSON output and parsing are
   unchanged. Apps with custom Jackson serializers or modules may require small API changes - see
   Hoist's own serializers (e.g. [`LocalDateSerializer`](src/main/groovy/io/xh/hoist/json/serializer/LocalDateSerializer.java))
   or the [Jackson 3 migration guide](https://github.com/FasterXML/jackson/blob/main/jackson3/MIGRATING_TO_JACKSON_3.md).
+  `JSONParser` and `JSONSerializer` also no longer throw checked exceptions.
 * Grails 8 no longer supports `grails.controllers.upload` and fails at startup if it is set.
   Hoist now sets its 20MB upload limits via `spring.servlet.multipart.maxFileSize` and
   `maxRequestSize`. Apps that override these limits in `application.groovy` must move them to the
   `spring.servlet.multipart` keys.
+* Apps with the hoist-core MCP install snippet in `build.gradle` must update it to the current
+  version (`hoist-core-install/v2`), as the previous version fails under Grails 8.
 
 ### 🎁 New Features
 
@@ -88,6 +93,8 @@ detailed, step-by-step upgrade instructions with before and after code examples.
   JDK 25 and reports results and coverage in the job summary.
 * Renamed the framework message bundle to `grails-app/i18n/hoist-core.properties`. The previous
   name let an application's own `messages.properties` shadow it.
+* Hoist Core sets `grails.gorm.default.nullable = false`, so domain properties stay required unless
+  declared nullable, as in Grails 7.
 * Grails `task {}` promises now run on an unbounded thread pool, as in Grails 7. Grails 8 defaults
   to Spring's `applicationTaskExecutor`, which is capped at 8 threads and deadlocks nested blocking
   tasks such as `BaseService.parallelInit()`.

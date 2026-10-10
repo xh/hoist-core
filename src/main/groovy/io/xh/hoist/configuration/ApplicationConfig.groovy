@@ -104,6 +104,8 @@ class ApplicationConfig {
                 gorm {
                     failOnError = true
                 }
+                // Keep domain properties required unless declared nullable, as before Grails 8.
+                gorm.'default'.nullable = false
             }
 
             hazelcast {
