@@ -13,7 +13,10 @@ import io.xh.hoist.test.HoistUnitTest
 import io.xh.hoist.util.ErrorOr
 import spock.lang.Specification
 
+import java.util.concurrent.CountDownLatch
+
 import static io.xh.hoist.role.provided.RoleMember.Type.*
+import static java.util.concurrent.TimeUnit.SECONDS
 
 /**
  * Tests role assignment resolution in {@link DefaultRoleService} against in-memory {@link Role}
@@ -133,20 +136,19 @@ class DefaultRoleServiceSpec extends Specification implements ServiceUnitTest<De
 
     def 'per-user lookups are cached and invalidated on refresh'() {
         given:
-        def reader = role('READER', users: ['alice'])
-        service.refreshRoleAssignments()
+        role('READER', users: ['alice'])
+        refreshAndAwaitInvalidation()
 
         expect:
         service.getRolesForUser('alice') == ['READER'] as Set
         service.getRolesForUser('alice').is(service.getRolesForUser('alice'))
 
         when:
-        reader.addToMembers(type: USER, name: 'bob', createdBy: 'test')
-        reader.save(flush: true, failOnError: true)
-        service.refreshRoleAssignments()
+        role('EDITOR', users: ['alice'])
+        refreshAndAwaitInvalidation()
 
         then:
-        service.getRolesForUser('bob') == ['READER'] as Set
+        service.getRolesForUser('alice') == ['READER', 'EDITOR'] as Set
     }
 
     //-------------------
@@ -180,6 +182,15 @@ class DefaultRoleServiceSpec extends Specification implements ServiceUnitTest<De
     //-------------------
     // Helpers
     //-------------------
+    // The per-user cache is cleared by an async change handler - wait for it, so a lookup cannot
+    // race the clear. Handlers run in the order added, so ours runs after the service's.
+    private void refreshAndAwaitInvalidation() {
+        def handled = new CountDownLatch(1)
+        service._allRoleAssignments.addChangeHandler { handled.countDown() }
+        service.refreshRoleAssignments()
+        assert handled.await(5, SECONDS)
+    }
+
     private Role role(Map members = [:], String name) {
         def role = new Role(name: name, lastUpdatedBy: 'test')
         members.users?.each { role.addToMembers(type: USER, name: it, createdBy: 'test') }
