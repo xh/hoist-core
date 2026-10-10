@@ -5,9 +5,12 @@ Hoist is a full-stack web application development toolkit built by
 together to build data-dense enterprise applications, from a single sophisticated interface up to a
 complete app.
 
-This repository is *hoist-core*, the server side of Hoist. It is a Grails plugin, published as
-`io.xh:hoist-core`, and is designed for use with [hoist-react](https://github.com/xh/hoist-react),
-our client-side toolkit. See that repository for client-side features and conventions.
+This repository is *hoist-core*, the server side of Hoist. Its primary product is a Grails plugin,
+published as `io.xh:hoist-core`, designed for use with [hoist-react](https://github.com/xh/hoist-react),
+our client-side toolkit. See that repository for client-side features and conventions. It also
+publishes two companion artifacts at the same version: `hoist-core-test`, Spock test support for
+Hoist apps (see [`docs/testing.md`](docs/testing.md)), and `hoist-core-mcp`, an MCP server for AI
+coding agents (see [`mcp/README.md`](mcp/README.md)).
 
 The core technologies are Java and its more dynamic cousin [Groovy](http://groovy-lang.org/) on the
 server, via the mature [Grails framework](https://grails.org/), and TypeScript on the client, via
@@ -21,9 +24,6 @@ build and release process, and the standard layout of a Hoist application.
 
 Start there for anything specific. This README covers the project as a whole - what Hoist is for,
 what the server does, and how a Hoist app is built and deployed.
-
-Hoist Core also ships an MCP server that gives AI coding agents structured access to these docs and
-to Groovy/Java symbol information. See [`mcp/README.md`](mcp/README.md).
 
 This README does not introduce Grails, Java, or the other core technologies. It assumes general
 familiarity with enterprise web application development.

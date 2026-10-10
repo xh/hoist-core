@@ -9,7 +9,10 @@ package io.xh.hoist.data.filter
 
 import io.xh.hoist.json.JSONFormat
 import org.hibernate.criterion.Criterion
+import org.hibernate.criterion.MatchMode
 import org.hibernate.criterion.Restrictions
+
+import java.util.regex.Pattern
 
 import static org.hibernate.criterion.MatchMode.ANYWHERE
 import static org.hibernate.criterion.MatchMode.END
@@ -83,10 +86,10 @@ class FieldFilter extends Filter implements JSONFormat {
                     return or([Restrictions.isNull(field), c])
                 return c
             case '!=':
-                Criterion c =  and(vals.findAll { it != null }.collect { ne(field, it) })
-                if (vals.contains(null))
-                    return and([Restrictions.isNotNull(field), c])
-                return c
+                Criterion c = and(vals.findAll { it != null }.collect { ne(field, it) })
+                return vals.contains(null) ?
+                    and([Restrictions.isNotNull(field), c]) :
+                    or([Restrictions.isNull(field), c])
             case '>':
                 return gt(field, value)
             case '>=':
@@ -98,15 +101,15 @@ class FieldFilter extends Filter implements JSONFormat {
             case 'like':
                 return or(vals.collect { ilike(field, it as String, ANYWHERE) })
             case 'not like':
-                return and(vals.collect { not(ilike(field, it as String, ANYWHERE)) })
+                return notIlike(vals, ANYWHERE)
             case 'begins':
                 return or(vals.collect { ilike(field, it as String, START) })
             case 'not begins':
-                return and(vals.collect { not(ilike(field, it as String, START)) })
+                return notIlike(vals, START)
             case 'ends':
                 return or(vals.collect { ilike(field, it as String, END) })
             case 'not ends':
-                return and(vals.collect { not(ilike(field, it as String, END)) })
+                return notIlike(vals, END)
             case 'includes':
             case 'excludes':
                 throw new RuntimeException('Unsupported operator for Criteria Filter')
@@ -155,41 +158,17 @@ class FieldFilter extends Filter implements JSONFormat {
                     return v != null && v <= value
                 }
             case 'like':
-                def regExps = vals.collect { v -> ~/(?i)$v/ }
-                return {
-                    def v = it[field]
-                    return v != null && regExps.any { re -> re.matcher(v).find() }
-                }
+                return textTestFn(vals, ANYWHERE, false)
             case 'not like':
-                def regExps = vals.collect { v -> ~/(?i)$v/ }
-                return {
-                    def v = it[field]
-                    return v != null && !regExps.any { re -> re.matcher(v).find() }
-                }
+                return textTestFn(vals, ANYWHERE, true)
             case 'begins':
-                def regExps = vals.collect { v -> ~/(?i)^$v/ }
-                return {
-                    def v = it[field]
-                    return v != null && regExps.any { re -> re.matcher(v).find() }
-                }
+                return textTestFn(vals, START, false)
             case 'not begins':
-                def regExps = vals.collect { v -> ~/(?i)^$v/ }
-                return {
-                    def v = it[field]
-                    return v != null && !regExps.any { re -> re.matcher(v).find() }
-                }
+                return textTestFn(vals, START, true)
             case 'ends':
-                def regExps = vals.collect { v -> ~/(?i)$v$/ }
-                return {
-                    def v = it[field]
-                    return v != null && regExps.any { re -> re.matcher(v).find() }
-                }
+                return textTestFn(vals, END, false)
             case 'not ends':
-                def regExps = vals.collect { v -> ~/(?i)$v$/ }
-                return {
-                    def v = it[field]
-                    return v != null && !regExps.any { re -> re.matcher(v).find() }
-                }
+                return textTestFn(vals, END, true)
             case 'includes':
                 return {
                     def v = it[field]
@@ -217,5 +196,39 @@ class FieldFilter extends Filter implements JSONFormat {
                 other.op == op &&
                 other.value == value
         )
+    }
+
+    // Excludes value, which is compared with Groovy equality (e.g. 1 == 1.0) - hashing it could
+    // give equal filters different hash codes.
+    int hashCode() {
+        return Objects.hash(field, op)
+    }
+
+    //------------------------
+    // Implementation
+    //------------------------
+    // Matches each value literally and case-insensitively, as SQL `ilike` does. Blanks pass a
+    // negated operator.
+    private Closure<Boolean> textTestFn(List vals, MatchMode mode, boolean negated) {
+        List<Pattern> patterns = vals.collect { val ->
+            String regex = Pattern.quote("$val")
+            if (mode == START) regex = '^' + regex
+            if (mode == END) regex += '$'
+            Pattern.compile(regex, Pattern.CASE_INSENSITIVE)
+        }
+        return {
+            def v = it[field]
+            if (v == null) return negated
+            def str = v.toString()
+            return negated != patterns.any { it.matcher(str).find() }
+        }
+    }
+
+    // Blanks pass a negated text operator, as they do in memory - SQL would otherwise drop them.
+    private Criterion notIlike(List vals, MatchMode mode) {
+        return or([
+            Restrictions.isNull(field),
+            and(vals.collect { not(ilike(field, it as String, mode)) })
+        ])
     }
 }

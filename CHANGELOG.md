@@ -48,6 +48,12 @@ detailed, step-by-step upgrade instructions with before and after code examples.
   nested values, or a dotted key to log a single value. Maps nested more than five levels deep are
   logged as JSON strings.
 * `TrackService` log lines now include `browser` and `device` for entries made within a request.
+* Added `io.xh:hoist-core-test`, a new published artifact for unit testing Hoist apps with Spock.
+  Its `HoistUnitTest` trait combines with the standard Grails testing traits (`ServiceUnitTest`,
+  `ControllerUnitTest`) to register test versions of the Hoist framework services. Services and
+  controllers that log, create caches or timers, read soft config, or check the current user can
+  then be unit tested. It also provides `TestConfigService`, `TestUser`, `HoistJson` and
+  `HoistAssertions`. See `docs/testing.md`.
 
 ### 🐞 Bug Fixes
 
@@ -56,9 +62,30 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 * `TrackService` no longer logs `data` payloads larger than `xhActivityTrackingConfig.maxDataLength`.
   Previously these payloads were dropped from the database but written to the log in full.
 * `TrackService` no longer lets `data` keys overwrite core log fields such as user and category.
+* `FieldFilter` negated operators (`!=`, `not like`, `not begins`, `not ends`) now pass blank
+  values as Hibernate criteria, as they do in memory and in hoist-react. SQL's null handling
+  dropped them before. The text operators also excluded blanks in memory, unlike `!=` and
+  `excludes`.
+* `FieldFilter` text operators (`like`, `begins`, `ends` and their negations) now match values
+  literally in memory, as SQL `ilike` does. Before, values were used as regular expressions, so
+  `.` matched any character and a value such as `(` threw. These operators also no longer fail on
+  non-String record values.
+* `Filter` classes now implement `equals(Object)` and `hashCode()`. Before, only `equals(Filter)`
+  was defined, so equal filters were distinct in sets and map keys.
+* `StringUtils.elide()` no longer elides a string whose length equals `len`.
+* `Utils.asSanitizedJSON()` now redacts sensitive keys in maps nested within lists.
+* `TypedConfigMap` now rejects a fractional number for an integral field. Before, the value was
+  silently truncated, e.g. `2.7` became `2`.
+* `LogSupport` logging methods no longer throw when called with no messages, e.g. `logInfo()`.
+* `ExceptionHandler.getHttpStatus()` now returns 500 for an `HttpException` with a null status code,
+  rather than throwing.
+* `DefaultRoleUpdateService.bulkCategoryUpdate()` now returns the updated roles in the order given,
+  rather than reversed.
 
 ### ⚙️ Technical
 
+* Added a Spock unit test suite to hoist-core, with JaCoCo coverage reports. CI runs the tests on
+  JDK 25 and reports results and coverage in the job summary.
 * Renamed the framework message bundle to `grails-app/i18n/hoist-core.properties`. The previous
   name let an application's own `messages.properties` shadow it.
 * Grails `task {}` promises now run on an unbounded thread pool, as in Grails 7. Grails 8 defaults

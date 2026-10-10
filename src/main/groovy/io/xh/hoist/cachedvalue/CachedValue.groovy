@@ -77,7 +77,7 @@ class CachedValue<V> implements LogSupport, AdminStats {
 
     private final String loggerName
     private final ITopic<CachedValueEntry<V>> topic
-    private CachedValueEntry<V> entry = CachedValueEntry.createUninitializedCachedValueEntry(loggerName)
+    private CachedValueEntry<V> entry
 
     /** @internal - do not construct directly - use {@link BaseService#createCachedValue}. */
     @NamedVariant
@@ -100,6 +100,7 @@ class CachedValue<V> implements LogSupport, AdminStats {
 
         // Allow fine grain logging for this within namespace of owning service
         loggerName = "${svc.instanceLog.name}.CachedValue[$name]"
+        entry = CachedValueEntry.createUninitializedCachedValueEntry(loggerName)
 
         topic = useCluster ? createUpdateTopic() : null
         if (onChange) {

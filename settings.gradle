@@ -1,2 +1,6 @@
 rootProject.name = 'hoist-core'
 include 'mcp'
+include 'test-support'
+// Name the project for the artifact it publishes, so composite builds that include hoist-core
+// (apps running with `runHoistInline`) substitute `io.xh:hoist-core-test` automatically.
+project(':test-support').name = 'hoist-core-test'
