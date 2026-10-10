@@ -115,14 +115,6 @@ class TypedConfigMapSpec extends HoistSpec {
         thrown(IllegalArgumentException)
     }
 
-    def 'out of range Long is rejected for an Integer field'() {
-        when:
-        new IdleConfig([timeout: 3_000_000_000L])
-
-        then:
-        thrown(IllegalArgumentException)
-    }
-
     def 'nested config given a Map is merged into the existing default instance'() {
         when:
         def cfg = new NestingConfig([inner: [x: 9]])

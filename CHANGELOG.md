@@ -48,8 +48,8 @@
   was defined, so equal filters were distinct in sets and map keys.
 * `StringUtils.elide()` no longer elides a string whose length equals `len`.
 * `Utils.asSanitizedJSON()` now redacts sensitive keys in maps nested within lists.
-* `TypedConfigMap` now rejects a fractional or out-of-range number for an integral field. Before,
-  the value was silently truncated or wrapped, e.g. `2.7` became `2`.
+* `TypedConfigMap` now rejects a fractional number for an integral field. Before, the value was
+  silently truncated, e.g. `2.7` became `2`.
 * `LogSupportConverter` no longer throws when formatting a `LogSupport` call with no messages.
 * `ExceptionHandler.getHttpStatus()` now returns 500 for an `HttpException` with a null status code,
   rather than throwing.
