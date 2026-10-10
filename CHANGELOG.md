@@ -50,7 +50,7 @@
 * `Utils.asSanitizedJSON()` now redacts sensitive keys in maps nested within lists.
 * `TypedConfigMap` now rejects a fractional number for an integral field. Before, the value was
   silently truncated, e.g. `2.7` became `2`.
-* `LogSupportConverter` no longer throws when formatting a `LogSupport` call with no messages.
+* `LogSupport` logging methods no longer throw when called with no messages, e.g. `logInfo()`.
 * `ExceptionHandler.getHttpStatus()` now returns 500 for an `HttpException` with a null status code,
   rather than throwing.
 * `DefaultRoleUpdateService.bulkCategoryUpdate()` now returns the updated roles in the order given,
