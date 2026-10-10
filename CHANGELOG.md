@@ -44,9 +44,6 @@
   literally in memory, as SQL `ilike` does. Before, values were used as regular expressions, so
   `.` matched any character and a value such as `(` threw. These operators also no longer fail on
   non-String record values.
-* `FieldFilter` now treats a blank (`''`) filter value as null for `=` and `!=`, both in memory and
-  as Hibernate criteria. Before, `= ''` matched no records in memory, since blank record values are
-  already treated as null.
 * `Filter` classes now implement `equals(Object)` and `hashCode()`. Before, only `equals(Filter)`
   was defined, so equal filters were distinct in sets and map keys.
 * `StringUtils.elide()` no longer elides a string whose length equals `len`.

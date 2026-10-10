@@ -102,14 +102,6 @@ class FieldFilterSpec extends HoistSpec {
         [null, 1] | [f: '']   | true
     }
 
-    def 'equals filter with blank value matches blank records'() {
-        expect:
-        new FieldFilter('f', '=', '').testFn.call(record)
-
-        where:
-        record << [[f: ''], [f: null]]
-    }
-
     @Unroll
     def 'not-equals test fn: #record vs #value -> #expected'() {
         expect:
@@ -125,9 +117,6 @@ class FieldFilterSpec extends HoistSpec {
         [null, 'a'] | [f: '']   | false
         [null, 'a'] | [f: 'a']  | false
         [null, 'a'] | [f: 'b']  | true
-        ''          | [f: '']   | false
-        ''          | [f: null] | false
-        ''          | [f: 'a']  | true
     }
 
     @Unroll
@@ -262,18 +251,6 @@ class FieldFilterSpec extends HoistSpec {
         c.toString().contains('f is null')
         c.toString().contains('f<>1')
         c.toString().contains('f<>2')
-    }
-
-    def 'criterion for = and != treats a blank value as null'() {
-        when:
-        def eq = new FieldFilter('f', '=', '').criterion
-        def ne = new FieldFilter('f', '!=', '').criterion
-
-        then:
-        eq instanceof Disjunction
-        eq.toString().contains('f is null')
-        ne instanceof Conjunction
-        ne.toString().contains('f is not null')
     }
 
     def 'criterion for != including null requires not-null'() {

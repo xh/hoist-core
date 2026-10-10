@@ -82,12 +82,12 @@ class FieldFilter extends Filter implements JSONFormat {
         switch (op) {
             case '=':
                 Criterion c = Restrictions.in(field, vals.findAll { it != null })
-                if (vals.any { isBlank(it) })
+                if (vals.contains(null))
                     return or([Restrictions.isNull(field), c])
                 return c
             case '!=':
                 Criterion c = and(vals.findAll { it != null }.collect { ne(field, it) })
-                return vals.any { isBlank(it) } ?
+                return vals.contains(null) ?
                     and([Restrictions.isNotNull(field), c]) :
                     or([Restrictions.isNull(field), c])
             case '>':
@@ -126,18 +126,16 @@ class FieldFilter extends Filter implements JSONFormat {
 
         switch (op) {
             case '=':
-                def eqVals = vals.collect { isBlank(it) ? null : it }
                 return {
                     def v = it[field]
                     if (v == '') v = null
-                    return eqVals.any { it == v }
+                    return vals.any { it == v }
                 }
             case '!=':
-                def neVals = vals.collect { isBlank(it) ? null : it }
                 return {
                     def v = it[field]
                     if (v == '') v = null
-                    return neVals.every { it != v }
+                    return vals.every { it != v }
                 }
             case '>':
                 return {
@@ -209,10 +207,6 @@ class FieldFilter extends Filter implements JSONFormat {
     //------------------------
     // Implementation
     //------------------------
-    private static boolean isBlank(Object v) {
-        return v == null || v == ''
-    }
-
     // Matches each value literally and case-insensitively, as SQL `ilike` does. Blanks pass a
     // negated operator.
     private Closure<Boolean> textTestFn(List vals, MatchMode mode, boolean negated) {
