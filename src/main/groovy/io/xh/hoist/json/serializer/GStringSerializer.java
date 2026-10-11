@@ -7,12 +7,11 @@
 
 package io.xh.hoist.json.serializer;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ser.std.StdSerializer;
 import groovy.lang.GString;
 
-import java.io.IOException;
 
 public class GStringSerializer extends StdSerializer<GString> {
 
@@ -25,7 +24,7 @@ public class GStringSerializer extends StdSerializer<GString> {
     }
 
     @Override
-    public void serialize(GString value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+    public void serialize(GString value, JsonGenerator jgen, SerializationContext context) {
         jgen.writeString(value.toString());
     }
 }

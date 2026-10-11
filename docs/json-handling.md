@@ -75,7 +75,7 @@ A static utility class wrapping a Jackson `ObjectMapper` configured with Hoist-s
 |--------|-------------|
 | `serialize(Object)` | Serialize an object to a JSON string |
 | `serializePretty(Object)` | Serialize with pretty-printing (indented) |
-| `registerModules(Module...)` | Register custom Jackson modules |
+| `registerModules(JacksonModule...)` | Register custom Jackson modules |
 
 #### Built-in Serializers
 
@@ -91,8 +91,10 @@ A static utility class wrapping a Jackson `ObjectMapper` configured with Hoist-s
 | `LocalDateSerializer` | `LocalDate` | Formats as ISO date string (e.g., `"2024-01-15"`) |
 | `ThrowableSerializer` | `Throwable` | Serializes exceptions as `{name, message, cause, isRoutine}` maps (null/false values filtered out). If the `Throwable` implements `JSONFormat`, delegates to `formatForJSON()` instead. (Groovy) |
 
-The `JavaTimeModule` (JSR 310) is also registered for Java 8+ date/time types, with nanosecond
-timestamps disabled.
+Hoist uses Jackson 3, which supports Java 8+ date/time types (JSR 310).
+Nanosecond timestamps are disabled. Both `JSONSerializer` and `JSONParser` build their mappers with
+Jackson's `JsonMapper.builderWithJackson2Defaults()` - this means that `Date` and `Instant` values
+serialize as epoch milliseconds.
 
 #### Registering Custom Modules
 
@@ -284,17 +286,19 @@ class Fund implements JSONFormat {
 
 ### Custom Serializer for External Types
 
-For third-party classes you can't modify:
+For third-party classes you can't modify. Jackson 3 classes live under `tools.jackson` (e.g.
+`tools.jackson.databind.ser.std.StdSerializer`) - only the annotations remain in
+`com.fasterxml.jackson.annotation`.
 
 ```groovy
 class MoneySerializer extends StdSerializer<Money> {
 
     MoneySerializer() { super(Money) }
 
-    void serialize(Money value, JsonGenerator jgen, SerializerProvider provider) {
+    void serialize(Money value, JsonGenerator jgen, SerializationContext context) {
         jgen.writeStartObject()
-        jgen.writeNumberField('amount', value.amount)
-        jgen.writeStringField('currency', value.currency.code)
+        jgen.writeNumberProperty('amount', value.amount)
+        jgen.writeStringProperty('currency', value.currency.code)
         jgen.writeEndObject()
     }
 }

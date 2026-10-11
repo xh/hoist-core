@@ -9,8 +9,8 @@ package io.xh.hoist.util
 import groovy.transform.CompileStatic
 import groovy.transform.Memoized
 
-import static com.fasterxml.jackson.databind.PropertyNamingStrategies.UpperSnakeCaseStrategy
-import static com.fasterxml.jackson.databind.PropertyNamingStrategies.UPPER_SNAKE_CASE
+import static tools.jackson.databind.PropertyNamingStrategies.UpperSnakeCaseStrategy
+import static tools.jackson.databind.PropertyNamingStrategies.UPPER_SNAKE_CASE
 import io.xh.hoist.AppEnvironment
 import org.yaml.snakeyaml.Yaml
 
@@ -186,6 +186,7 @@ class InstanceConfigUtils {
     }
 
     private static String toSnakeCase(String s) {
-        return ((UpperSnakeCaseStrategy) UPPER_SNAKE_CASE).translate(s).replace('-', '_')
+        // `translate()` is protected in Jackson 3 - `nameForField()` delegates to it.
+        return ((UpperSnakeCaseStrategy) UPPER_SNAKE_CASE).nameForField(null, null, s).replace('-', '_')
     }
 }

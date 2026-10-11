@@ -18,7 +18,7 @@ import io.xh.hoist.kryo.KryoSupport
 import static io.xh.hoist.util.InstanceConfigUtils.appEnvironment
 import static io.xh.hoist.util.InstanceConfigUtils.getInstanceConfig
 
-import static grails.util.Holders.grailsApplication
+import static io.xh.hoist.util.Utils.grailsApplication
 import static io.xh.hoist.util.Utils.appBuild
 import static io.xh.hoist.util.Utils.appCode
 import static io.xh.hoist.util.Utils.appVersion

@@ -1,7 +1,7 @@
 {
     "$schema": "https://context7.com/schema/context7.json",
     "projectTitle": "Hoist Core",
-    "description": "Server half of XH's Hoist toolkit: a Grails 7 plugin with BaseService and BaseController, managed caches and timers, Hazelcast clustering, config, prefs, roles, monitoring. Pairs with hoist-react.",
+    "description": "Server half of XH's Hoist toolkit: a Grails plugin with BaseService and BaseController, managed caches and timers, Hazelcast clustering, config, prefs, roles, monitoring. Pairs with hoist-react.",
     "branch": "master",
     "excludeFolders": [
         "docs/planning",

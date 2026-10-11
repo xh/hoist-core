@@ -7,8 +7,6 @@
 
 package io.xh.hoist.json;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-
 /**
  * Superclass to provide support for cached JSON serialization. Consider for classes that:
  *
@@ -29,7 +27,7 @@ abstract public class JSONFormatCached {
 
     abstract protected Object formatForJSON();
 
-    public String getCachedJSON() throws JsonProcessingException {
+    public String getCachedJSON() {
         // Efficient double-checked locking -- lock on cold path only.
         String ret = _cache;
         if (ret == null) {

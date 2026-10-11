@@ -7,7 +7,7 @@
 
 package io.xh.hoist.json
 
-import com.fasterxml.jackson.databind.exc.MismatchedInputException
+import tools.jackson.databind.exc.MismatchedInputException
 import spock.lang.Specification
 
 class JSONParserSpec extends Specification {
