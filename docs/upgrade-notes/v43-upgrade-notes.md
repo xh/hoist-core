@@ -1,6 +1,6 @@
 # Hoist Core v43 Upgrade Notes
 
-> **From:** v42.x → v43.0.0 | **Released:** unreleased | **Difficulty:** 🟠 MEDIUM
+> **From:** v42.x → v43.0.0 | **Released:** 2026-10-13 | **Difficulty:** 🟠 MEDIUM
 
 ## Overview
 
