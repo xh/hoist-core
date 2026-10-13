@@ -56,7 +56,7 @@ JDK 21 and 25 only. Use the `next-tc11-*` tags until an `xh-tomcat` release adds
 ### 2. Update Gradle Wrapper
 
 Grails 8 requires Gradle 9. Regenerate the wrapper **before** the other build changes, while the
-build still configures on Grails 7:
+build still configures on Grails 7. Run it on your current JDK - Gradle 8 cannot run on JDK 25:
 
 ```bash
 ./gradlew wrapper --gradle-version 9.8.0
@@ -107,21 +107,29 @@ versions itself. `opentelemetry.version` must move to hoist-core's `1.65.0`.
 
 `majorJavaVersion` sets the Gradle Java toolchain in Toolbox-style builds - use `25` to build on
 Java 25. Gradle needs a matching JDK installed locally and in CI. Update the JDK in your CI
-workflows to match:
+workflows to match `majorJavaVersion`, including any step labels:
 
 ```bash
-grep -rn "java-version" .github/workflows/
+grep -rn "java-version\|Setup JDK" .github/workflows/
 ```
 
 Before:
 ```yaml
-java-version: '21'
+- name: Setup JDK 17
+  uses: actions/setup-java@v5
+  with:
+      java-version: '17'
 ```
 
 After:
 ```yaml
-java-version: '25'
+- name: Setup JDK 21
+  uses: actions/setup-java@v5
+  with:
+      java-version: '21'
 ```
+
+Use `'25'` instead if you set `majorJavaVersion=25`, as Toolbox does.
 
 ### 4. Update build.gradle
 
@@ -279,20 +287,30 @@ within `constraints`. To find candidates, look for upper-case constants and vali
 grep -rn -A25 "static constraints" grails-app/domain/ | grep -E "\b[A-Z][A-Z0-9_]{2,}\b|validator"
 ```
 
+Review each hit manually - the grep is a candidate finder and may pick up lines from an adjacent
+`mapping` block.
 
 Before:
 ```groovy
-static constraints = {
-    msg(maxSize: MAX_MSG_LENGTH)
-    name(validator: { val, obj -> isNameUnique(val, obj) ?: 'default.not.unique.message' })
+class Message {
+    static int MAX_MSG_LENGTH = 1000
+
+    static constraints = {
+        msg(maxSize: MAX_MSG_LENGTH)
+        name(validator: { val, obj -> isNameUnique(val, obj) ?: 'default.not.unique.message' })
+    }
 }
 ```
 
 After:
 ```groovy
-static constraints = {
-    msg(maxSize: TrackLog.MAX_MSG_LENGTH)
-    name(validator: { val, obj -> JsonBlob.isNameUnique(val, obj) ?: 'default.not.unique.message' })
+class Message {
+    static int MAX_MSG_LENGTH = 1000
+
+    static constraints = {
+        msg(maxSize: Message.MAX_MSG_LENGTH)
+        name(validator: { val, obj -> Message.isNameUnique(val, obj) ?: 'default.not.unique.message' })
+    }
 }
 ```
 
@@ -305,7 +323,7 @@ them on `dataSource.properties` directly.
 
 **Find affected files:**
 ```bash
-grep -rn "properties {" grails-app/conf/ src/main/groovy/
+grep -rnE "properties\s*\{" grails-app/conf/ src/main/groovy/
 ```
 
 Before (e.g. in `src/main/groovy/com/example/myapp/DBConfig.groovy`):
@@ -410,7 +428,7 @@ nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cr
 
 Hoist apps typically serve their client from nginx and proxy API calls to Tomcat, so these
 headers appear only on proxied API responses, which are not framed. Where nginx also sets the same
-headers (as the `xh-nginx` image does for `X-Frame-Options`), proxied responses carry duplicates
+headers (as the `xh-nginx` image does for `X-Frame-Options`, and app nginx configs often do for `Referrer-Policy`), proxied responses carry duplicates
 with identical values, which browsers accept. No change is needed in that setup.
 
 Review this if your app serves HTML directly from Grails and must be framed by another origin, or
