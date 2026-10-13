@@ -12,7 +12,7 @@
   3. Plain ASCII punctuation only. Use " - " for in-sentence breaks, never an em dash.
 -->
 
-## 43.0-SNAPSHOT - unreleased
+## 43.0.0 - 2026-10-13
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟠 MEDIUM - Grails 8 / Groovy 5 / Java 21 upgrade)
 
