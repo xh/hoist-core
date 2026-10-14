@@ -22,6 +22,11 @@ import static org.hibernate.criterion.Order.desc
 import static org.hibernate.criterion.Restrictions.between
 
 class TrackLogAdminService extends BaseService {
+
+    // App load entries, as tracked by hoist-react on each client app startup.
+    private static final String LOAD_CATEGORY = 'App'
+    private static final String LOAD_MSG_PATTERN = 'Loaded%'
+
     ConfigService configService
     SessionFactory sessionFactory
 
@@ -96,7 +101,7 @@ class TrackLogAdminService extends BaseService {
             distinctUsersLast7d : countDistinctUsers(new Date(now.time - 7 * DAYS)),
             distinctUsersLast1d : countDistinctUsers(new Date(now.time - DAYS)),
             lastActivity        : totals[2],
-            appLoads            : countEntries(since, 'App', 'Loaded%'),
+            appLoads            : countEntries(since, LOAD_CATEGORY, LOAD_MSG_PATTERN),
             clientErrors        : countEntries(since, 'Client Error'),
             feedback            : countEntries(since, 'Feedback'),
             byClientApp         : breakdown(since, 'clientAppCode'),
@@ -106,9 +111,68 @@ class TrackLogAdminService extends BaseService {
         ]
     }
 
+    /**
+     * Client builds observed loading over a trailing window of days, as reported in the `client`
+     * section of the inventory report built by `EnvironmentService`.
+     *
+     * Groups app load entries by client app and client version, most recently loaded first, with
+     * distinct users, load count, and last load for each. Each also carries the `libraries` -
+     * versions of key client-side libraries such as hoist-react - reported by the most recent
+     * loads of that build, via a `clientLibraries` map in the load entry's data. Builds from
+     * hoist-react versions that do not yet report this map have null `libraries`.
+     */
+    @ReadOnly
+    List<Map> getClientBuildSummary(int days, int maxBuilds = 25) {
+        def since = new Date(System.currentTimeMillis() - days * DAYS),
+            rows = TrackLog.createCriteria().list {
+                ge('dateCreated', since)
+                eq('category', LOAD_CATEGORY)
+                like('msg', LOAD_MSG_PATTERN)
+                projections {
+                    groupProperty('clientAppCode')
+                    groupProperty('appVersion')
+                    countDistinct('username')
+                    rowCount()
+                    max('dateCreated')
+                }
+            } as List<List>
+
+        return rows
+            .sort { -(it[4] as Date).time }
+            .take(maxBuilds)
+            .collect { row ->
+                def (clientAppCode, appVersion) = [row[0] as String, row[1] as String]
+                [
+                    clientAppCode: clientAppCode,
+                    appVersion   : appVersion,
+                    distinctUsers: row[2],
+                    loads        : row[3],
+                    lastLoad     : row[4],
+                    libraries    : findClientLibraries(since, clientAppCode, appVersion)
+                ]
+            }
+    }
+
     //------------------------
     // Implementation
     //------------------------
+    // Read from the latest few loads, as a load's data is dropped by the client if over-length.
+    private Map findClientLibraries(Date since, String clientAppCode, String appVersion) {
+        def loads = TrackLog.createCriteria().list(max: 5) {
+            ge('dateCreated', since)
+            eq('category', LOAD_CATEGORY)
+            like('msg', LOAD_MSG_PATTERN)
+            clientAppCode != null ? eq('clientAppCode', clientAppCode) : isNull('clientAppCode')
+            appVersion != null ? eq('appVersion', appVersion) : isNull('appVersion')
+            order('dateCreated', 'desc')
+        } as List<TrackLog>
+
+        return loads.findResult {
+            def libs = it.dataAsObject?.clientLibraries
+            libs instanceof Map ? libs : null
+        } as Map
+    }
+
     private Long countDistinctUsers(Date since) {
         TrackLog.createCriteria().get {
             ge('dateCreated', since)

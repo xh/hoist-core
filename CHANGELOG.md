@@ -27,10 +27,16 @@
       read the report without a token.
     * Apps can add their own data to the report by implementing the new `InventoryContributor`
       interface on any service.
+    * The `client` section reports client-side library versions, including hoist-react. It lists
+      client builds observed loading, with the library versions each reports at runtime (requires
+      a hoist-react version that sends them), plus versions declared in build metadata. Apps can
+      also supply all declared client dependencies via the optional `info.xh.clientDependencies`
+      build metadata.
     * `EnvironmentService.getInventory()` returns the report for programmatic use, e.g. to push it
       to a central collector.
 * Added `TrackLogAdminService.getUsageSummary()`, which summarizes tracked activity over a
-  trailing window as counts only.
+  trailing window as counts only, and `getClientBuildSummary()`, which lists client builds
+  observed loading.
 
 ### ⚙️ Technical
 

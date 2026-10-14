@@ -11,6 +11,7 @@ import io.xh.hoist.BaseService
 import io.xh.hoist.exception.NotAuthenticatedException
 import io.xh.hoist.exception.NotFoundException
 import io.xh.hoist.test.HoistUnitTest
+import io.xh.hoist.track.TrackLogAdminService
 import io.xh.hoist.test.fakes.TestUser
 import org.springframework.mock.web.MockHttpServletRequest
 import spock.lang.Specification
@@ -134,6 +135,58 @@ class EnvironmentServiceSpec extends Specification implements ServiceUnitTest<En
 
         then:
         report.usage.error
+    }
+
+    def 'client section reports declared versions even when observed builds are unavailable'() {
+        given: 'no TrackLogAdminService, and optional clientDependencies build metadata'
+        enable(excludeSections: EnvironmentService.INVENTORY_SECTIONS - ['client'])
+        System.setProperty('info.xh.hoistReactVersion', '76.0.0')
+        System.setProperty('info.xh.clientDependencies', '{"@xh/hoist": "^76.0.0", "react": "~19.2.0"}')
+
+        when:
+        def client = service.inventory.client
+
+        then:
+        client.declared == [hoistReact: '76.0.0', dependencies: ['@xh/hoist': '^76.0.0', react: '~19.2.0']]
+        client.observedHoistReact == null
+        client.builds.error
+
+        cleanup:
+        System.clearProperty('info.xh.hoistReactVersion')
+        System.clearProperty('info.xh.clientDependencies')
+    }
+
+    def 'client section degrades to nulls without build metadata, and ignores invalid metadata'() {
+        given:
+        enable(excludeSections: EnvironmentService.INVENTORY_SECTIONS - ['client'])
+        if (raw) System.setProperty('info.xh.clientDependencies', raw)
+
+        expect:
+        service.inventory.client.declared == [hoistReact: null, dependencies: null]
+
+        cleanup:
+        System.clearProperty('info.xh.clientDependencies')
+
+        where:
+        raw << [null, 'not json']
+    }
+
+    def 'client section summarizes observed hoist-react versions, most recent first'() {
+        given:
+        enable(excludeSections: EnvironmentService.INVENTORY_SECTIONS - ['client'])
+        def trackLogAdmin = Mock(TrackLogAdminService) {
+            getClientBuildSummary(30) >> [
+                [clientAppCode: 'app', appVersion: '2.1', libraries: [hoistReact: '77.0.0']],
+                [clientAppCode: 'admin', appVersion: '2.1', libraries: [hoistReact: '77.0.0']],
+                [clientAppCode: 'app', appVersion: '2.0', libraries: null],
+                [clientAppCode: 'app', appVersion: '1.9', libraries: [hoistReact: '76.3.1']]
+            ]
+        }
+        service.trackLogAdminService = trackLogAdmin
+
+        expect:
+        service.inventory.client.observedHoistReact == ['77.0.0', '76.3.1']
+        service.inventory.client.builds.size() == 4
     }
 
     def 'custom section collects data from InventoryContributors'() {

@@ -109,6 +109,7 @@ Every report starts with metadata, then includes each section not listed in `exc
 | `app` | `appCode`, `appName`, `appPackage`, `appVersion`, `appBuild`, `appEnvironment`, `isProduction`, `hoistCoreVersion`, `hoistReactVersion`. |
 | `runtime` | Java version, vendor, and VM; OS name, version, and arch; servlet container (e.g. `Apache Tomcat/11.0.x`); `kubernetes` flag; server and app time zones. Read from the instance that built the report. |
 | `dependencies` | Versions of key frameworks: `java`, `groovy`, `grails`, `hoistCore`, `hoistReact`, `springBoot`, `spring`, `hibernate`, `hazelcast`, `jackson`, `tomcat`, `micrometer`, `openTelemetry`, `logback`. Flat strings, for easy tabulation. |
+| `client` | Client-side library versions - `declared` at server build time, and `builds` observed loading in browsers with the versions each reported. See [Client-Side Libraries](#client-side-libraries). |
 | `cluster` | `clusterName`, `multiInstanceEnabled`, `primaryName`, `instanceCount`, and an `instances` list gathered from every member: name, primary flag, state, startup time, uptime, host name, PID, processors, heap used and max, WebSocket channel count. |
 | `database` | Product name and version, JDBC driver name and version, `dbCreate`, and optionally `url`. |
 | `features` | Class names of the app's `AuthenticationService`, `UserService`, and `RoleService`, plus whether LDAP, Entra ID, impersonation, activity tracking, monitoring, WebSockets, tracing, Prometheus and OTLP metrics, alert banners, and `xhEmailOverride` are active. |
@@ -135,6 +136,63 @@ dependency JARs in local development. For each JAR:
 - Unversioned file names (e.g. `ojdbc11.jar`) fall back to the manifest version, if any.
 
 The scan runs once per JVM, on first request, and is held for the life of the instance.
+
+## Client-Side Libraries
+
+The server cannot inspect the client bundle: in a standard Hoist deployment the client is built in a
+separate CI job and served by its own nginx container, and snapshot builds may update client
+packages past the committed lockfile. The `client` section therefore combines two sources, each
+optional, so the report degrades gracefully when an app has upgraded hoist-core but nothing else:
+
+```json
+"client": {
+  "declared": {"hoistReact": "76.0.0", "dependencies": null},
+  "observedHoistReact": ["76.3.1", "76.2.0"],
+  "builds": [
+    {"clientAppCode": "app", "appVersion": "4.2.0", "distinctUsers": 41, "loads": 380,
+     "lastLoad": 1791990000000,
+     "libraries": {"hoistReact": "76.3.1", "react": "19.2.0", "agGrid": "34.1.0", "mobx": "6.13.0", "blueprintCore": "6.2.0"}},
+    {"clientAppCode": "app", "appVersion": "4.1.0", "distinctUsers": 3, "loads": 9,
+     "lastLoad": 1791800000000, "libraries": null}
+  ]
+}
+```
+
+### Observed builds - the source of truth
+
+`builds` lists client builds that loaded within `usageDays`, from hoist-react's app load tracking
+(category `App`, message `Loaded ...`), grouped by client app and client version and ordered by
+most recent load. `libraries` is read from a `clientLibraries` map in the data of that build's
+latest loads - the versions actually bundled and running in users' browsers. `observedHoistReact`
+lists the distinct hoist-react versions across those builds, most recently loaded first.
+
+`clientLibraries` is sent by hoist-react versions that include this support. Builds from earlier
+versions still appear, with their user and load counts, but with `libraries: null`. `builds` is
+also empty if activity tracking is disabled or the app sets `trackAppLoad: false`. Note that the
+client drops a track entry's entire `data` when it exceeds `xhActivityTrackingConfig.maxDataLength`,
+so the server reads the latest few loads of each build to find one that carries the map.
+
+### Declared versions - available today
+
+`declared.hoistReact` is the `info.xh.hoistReactVersion` build metadata that Hoist app builds
+already set from `client-app/package.json`. It is the *declared* version with any `^` or `~`
+stripped, so it can trail the resolved version, or read as a tag such as `next`.
+
+`declared.dependencies` is null unless the app build opts in to supplying
+`info.xh.clientDependencies` - a JSON object of package name to version. To add it, extend the
+metadata map in the app's `build.gradle`:
+
+```groovy
+def clientPkg = new groovy.json.JsonSlurper().parse(file('client-app/package.json'))
+
+Map hoistMetaData = [
+    // ... existing info.xh.* entries ...
+    'info.xh.clientDependencies': groovy.json.JsonOutput.toJson(clientPkg.dependencies ?: [:])
+]
+```
+
+These are declared ranges, not resolved versions, but cover every direct client dependency and
+need no hoist-react upgrade. Invalid JSON is logged at WARN and reported as null.
 
 ## Adding App-Specific Data
 
@@ -207,6 +265,11 @@ returns a login redirect or 401 for a valid token, check this first.
 The `usage` section runs several aggregate queries over the track log, and `cluster` fans out to
 every instance. These are cached for `cacheMins` on each instance, but a sweep behind a load
 balancer may hit a different instance each time. Daily or hourly sweeps are the intended use.
+
+### Treating `declared` client versions as deployed versions
+
+`client.declared` reflects `package.json` at server build time. Use `client.builds` and
+`observedHoistReact` to answer what users actually run - and to spot users still on stale builds.
 
 ### Expecting per-user detail
 

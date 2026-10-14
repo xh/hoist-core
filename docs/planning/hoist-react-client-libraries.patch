@@ -1,0 +1,51 @@
+diff --git a/appcontainer/AppStateModel.ts b/appcontainer/AppStateModel.ts
+index c78a0c4..e7d30e8 100644
+--- a/appcontainer/AppStateModel.ts
++++ b/appcontainer/AppStateModel.ts
+@@ -92,6 +92,9 @@ export class AppStateModel extends HoistModel {
+                     // Hidden pages may be throttled, elapsed time is misleading
+                     elapsed: hiddenDuringLoad ? null : Date.now() - loadStarted - loginTime,
+                     data: {
++                        // Read by Hoist Core's inventory report - keep compact, as the client
++                        // drops all `data` exceeding `xhActivityTrackingConfig.maxDataLength`.
++                        clientLibraries: XH.environmentService.clientLibraries,
+                         timings: mapKeys(timings, (v, k) => camelCase(k)),
+                         hiddenDuringLoad,
+                         clientHealth: XH.clientHealthService.getReport(),
+diff --git a/svc/EnvironmentService.ts b/svc/EnvironmentService.ts
+index 182fde7..0405fd0 100644
+--- a/svc/EnvironmentService.ts
++++ b/svc/EnvironmentService.ts
+@@ -12,7 +12,7 @@ import hoistPkg from '@xh/hoist/package.json';
+ import {Timer} from '@xh/hoist/utils/async';
+ import {MINUTES, SECONDS} from '@xh/hoist/utils/datetime';
+ import {checkMinVersion, deepFreeze, throwIf} from '@xh/hoist/utils/js';
+-import {defaults, isFinite} from 'lodash';
++import {defaults, isFinite, isNil, omitBy} from 'lodash';
+ import mobxPkg from 'mobx/package.json';
+ import {version as reactVersion} from 'react';
+ import {MIN_HOIST_CORE_VERSION} from '../core/XH';
+@@ -98,6 +98,23 @@ export class EnvironmentService extends HoistService {
+         return this.data[key];
+     }
+ 
++    /**
++     * Versions of key libraries bundled into this client build, keyed by short name. Reported to
++     * the server with app load tracking, for Hoist Core's deployment inventory report.
++     */
++    get clientLibraries(): Record<string, string> {
++        return omitBy(
++            {
++                hoistReact: this.get('hoistReactVersion'),
++                react: this.get('reactVersion'),
++                agGrid: this.get('agGridVersion'),
++                mobx: this.get('mobxVersion'),
++                blueprintCore: this.get('blueprintCoreVersion')
++            },
++            isNil
++        );
++    }
++
+     get appEnvironment(): AppEnvironment {
+         return this.get('appEnvironment');
+     }

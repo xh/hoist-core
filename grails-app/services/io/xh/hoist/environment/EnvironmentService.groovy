@@ -9,6 +9,7 @@ package io.xh.hoist.environment
 
 import grails.util.GrailsUtil
 import grails.util.Holders
+import grails.util.Metadata
 import io.xh.hoist.BaseService
 import io.xh.hoist.alertbanner.AlertBannerConfig
 import io.xh.hoist.alertbanner.AlertBannerService
@@ -17,6 +18,7 @@ import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.exception.NotAuthenticatedException
 import io.xh.hoist.exception.NotFoundException
+import io.xh.hoist.json.JSONParser
 import io.xh.hoist.monitor.MonitorService
 import io.xh.hoist.telemetry.metric.MetricsConfig
 import io.xh.hoist.track.TrackLogAdminService
@@ -51,8 +53,8 @@ class EnvironmentService extends BaseService {
 
     /** Sections of the inventory report, in output order. Omit any via `excludeSections`. */
     static final List<String> INVENTORY_SECTIONS = [
-        'app', 'runtime', 'dependencies', 'cluster', 'database', 'features', 'monitors', 'usage',
-        'libraries', 'custom'
+        'app', 'runtime', 'dependencies', 'client', 'cluster', 'database', 'features', 'monitors',
+        'usage', 'libraries', 'custom'
     ]
 
     /** Version of the inventory report format - incremented on any incompatible change. */
@@ -241,6 +243,7 @@ class EnvironmentService extends BaseService {
             case 'app':          return appInventory
             case 'runtime':      return runtimeInventory
             case 'dependencies': return dependencyInventory
+            case 'client':       return getClientInventory(conf.usageDays ?: 30)
             case 'cluster':      return clusterInventory
             case 'database':     return getDatabaseInventory(conf.includeDatabaseUrl)
             case 'features':     return featureInventory
@@ -290,6 +293,41 @@ class EnvironmentService extends BaseService {
             hoistReact: Utils.hoistReactVersion,
             *         : LibraryInventory.frameworkVersions
         ]
+    }
+
+    /**
+     * Client-side library versions, from two sources that apps may have either, both, or neither of:
+     *  - `declared` - versions baked into the server build's metadata. Reflects what the client
+     *    `package.json` declared, which may differ from what was resolved and deployed.
+     *  - `builds` - client builds observed loading, with the library versions each reported at
+     *    runtime. The source of truth for what users run, but requires a hoist-react version that
+     *    reports `clientLibraries` with its app load tracking.
+     */
+    private Map getClientInventory(int days) {
+        def builds = safely('client.builds') { trackLogAdminService.getClientBuildSummary(days) }
+        return [
+            declared          : [
+                hoistReact  : Utils.hoistReactVersion,
+                dependencies: declaredClientDependencies
+            ],
+            observedHoistReact: builds instanceof List ?
+                builds.collect { it.libraries?.hoistReact }.findAll().unique() :
+                null,
+            builds            : builds
+        ]
+    }
+
+    // Optional `info.xh.clientDependencies` build metadata - a JSON object of client package name
+    // to version, for app builds that opt to supply it. Null if not supplied or invalid.
+    private Map getDeclaredClientDependencies() {
+        def raw = Metadata.current.getProperty('info.xh.clientDependencies', String, null)
+        if (!raw) return null
+        try {
+            return JSONParser.parseObject(raw)
+        } catch (Exception e) {
+            logWarn('Ignoring invalid info.xh.clientDependencies build metadata', e.message)
+            return null
+        }
     }
 
     private Map getClusterInventory() {

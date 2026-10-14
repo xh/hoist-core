@@ -149,8 +149,8 @@
             "title": "Deployment Inventory",
             "mcpCategory": "package",
             "viewerCategory": "infrastructure",
-            "description": "Opt-in, token-protected deployment inventory report for automated cross-app sweeps of versions, libraries, runtime, features, and usage.",
-            "keywords": ["EnvironmentService", "getInventory", "/xh/inventory", "xhInventoryConfig", "xhInventoryToken", "InventoryContributor", "LibraryInventory", "getUsageSummary", "library versions", "CVE sweep"]
+            "description": "Opt-in, token-protected deployment inventory report for automated cross-app sweeps of server and client versions, libraries, runtime, features, and usage.",
+            "keywords": ["EnvironmentService", "getInventory", "/xh/inventory", "xhInventoryConfig", "xhInventoryToken", "InventoryContributor", "LibraryInventory", "getUsageSummary", "getClientBuildSummary", "clientLibraries", "info.xh.clientDependencies", "library versions", "CVE sweep"]
         },
         {
             "id": "docs/websocket.md",

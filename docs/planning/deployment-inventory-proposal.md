@@ -91,6 +91,39 @@ WebSocket counts are not. `cluster.instances` gathers them from every member via
 build". The queries use criteria with `groupProperty`, which the `DataTest` in-memory datastore
 does not support, so the spec runs on `HibernateSpec` over H2 (now a test-only dependency).
 
+### Client libraries: observed at runtime, declared at build time
+
+The obvious approach - bake client versions into the server build - is weak in practice. In
+Toolbox's CI (representative of XH apps), the server WAR and client bundle are built in separate
+jobs and ship as separate images, so the server build never sees `node_modules` or a resolved
+lockfile. Snapshot builds also run `pnpm update --no-save`, so even the lockfile can differ from
+what deployed. The server build can only see declared ranges in `package.json`.
+
+The client, by contrast, knows exactly what it bundled: hoist-react's `EnvironmentService` already
+holds `hoistReactVersion`, `reactVersion`, `agGridVersion`, `mobxVersion`, and
+`blueprintCoreVersion` from the bundled `package.json` files. So the `client` section has two
+tiers:
+
+1. **Declared (works now).** The existing `info.xh.hoistReactVersion` build metadata, plus an
+   optional `info.xh.clientDependencies` JSON key apps can add with two lines of Gradle.
+2. **Observed (needs a hoist-react release).** hoist-react adds a compact `clientLibraries` map to
+   the data of its existing app load track entry. hoist-core groups recent loads by client app and
+   version and reads the map from the latest few. No new endpoint, schema, or storage; history
+   persists across restarts; and stale clients show up, which is often the more useful finding.
+
+The ready-to-apply hoist-react change is in
+[`hoist-react-client-libraries.patch`](./hoist-react-client-libraries.patch). The map is keyed by
+short name and treated opaquely by hoist-core, so hoist-react can add libraries later without a
+server change.
+
+Alternatives considered: a dedicated client endpoint storing versions in a replicated cache (no
+dependency on activity tracking, but no history, and empty after every restart until users
+reload), and a separate track entry per load (avoids the `maxDataLength` risk but doubles load
+rows). The load-entry approach was the best trade-off. The `maxDataLength` risk is real: the client
+drops all of an entry's `data` past 2000 characters, so apps with large custom client health
+sources could lose the map. The server reads the latest few loads per build to soften this.
+hoist-react could go further by trimming `clientHealth` before dropping everything.
+
 ### Extension via `InventoryContributor`
 
 Apps know things Hoist cannot: upstream system versions, entitlement counts, feature flags. A
@@ -131,9 +164,9 @@ Roughly in priority order:
 3. **SBOM output.** Optionally emit the `libraries` section as CycloneDX JSON
    (`/xh/inventory?format=cyclonedx`), so existing scanners (Dependency-Track, Grype) can consume it
    directly. The current name, version, and module data is close to sufficient.
-4. **Client library versions.** The server knows `hoistReactVersion` from build metadata but not
-   the client's npm dependencies. A build step could embed a client dependency manifest the server
-   reports alongside the JARs.
+4. **Ship the hoist-react patch** so `client.builds` carries runtime library versions. Later, the
+   client could report a fuller list (all bundled packages) on a less frequent track entry, giving
+   a client-side counterpart to `libraries` for CVE sweeps.
 5. **Push mode.** For networks that allow outbound but not inbound traffic, a built-in, opt-in
    `primaryOnly` timer that POSTs the report to a configured collector URL. The doc shows the
    app-level pattern; promote it to Hoist if demand appears.
