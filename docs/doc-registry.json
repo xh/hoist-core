@@ -145,6 +145,14 @@
             "keywords": ["TraceService", "withSpan", "SpanRef", "setErrorStatus", "traceparent", "OTLP", "xhTraceConfig", "OpenTelemetry", "sampleRules", "ClientSpanData", "HoistPromiseFactory"]
         },
         {
+            "id": "docs/inventory.md",
+            "title": "Deployment Inventory",
+            "mcpCategory": "package",
+            "viewerCategory": "infrastructure",
+            "description": "Opt-in, token-protected deployment inventory report for automated cross-app sweeps of versions, libraries, runtime, features, and usage.",
+            "keywords": ["EnvironmentService", "getInventory", "/xh/inventory", "xhInventoryConfig", "xhInventoryToken", "InventoryContributor", "LibraryInventory", "getUsageSummary", "library versions", "CVE sweep"]
+        },
+        {
             "id": "docs/websocket.md",
             "title": "WebSocket",
             "mcpCategory": "package",

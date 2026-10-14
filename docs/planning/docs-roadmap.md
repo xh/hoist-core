@@ -49,6 +49,7 @@ Features that support production operations, integrations, and system health.
 | [`logging.md`](../logging.md) | LogSupport, LogLevelService, LogReaderService, LogArchiveService, LogbackConfig | LogSupport trait (`logDebug`, `logInfo`, `logWarn`, `logError` with `withDebug`/`withInfo` timed blocks), dynamic log level configuration via LogLevelService, log viewing via LogReaderService, Logback configuration | Done |
 | [`metrics.md`](../metrics.md) | MetricsService, MonitorMetricsService, TrackMetricsService, CompositeMeterRegistry | Micrometer-based observable metrics with Prometheus and OTLP export, monitor and track metric bridges, `xhMetricsConfig` | Done |
 | [`tracing.md`](../tracing.md) | TraceService, TraceConfig | OpenTelemetry-based distributed tracing with OTLP export, `withSpan` API, W3C context propagation, client span relay, thread context propagation, log correlation, `xhTraceConfig` | Done |
+| [`inventory.md`](../inventory.md) | EnvironmentService, InventoryConfig, InventoryContributor, LibraryInventory, TrackLogAdminService, XhController | Opt-in deployment inventory report at whitelisted `/xh/inventory` - `xhInventoryConfig` / `xhInventoryToken`, access model, report sections, classpath library scan, usage summary, `InventoryContributor` extension, push alternative | Draft |
 
 ## Grails Platform
 

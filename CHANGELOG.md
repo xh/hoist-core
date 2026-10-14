@@ -14,6 +14,31 @@
 
 ## 44.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Added an opt-in deployment inventory report, served from the whitelisted `/xh/inventory`
+  endpoint, for automated sweeps that catalog Hoist apps across an organization. The report covers
+  app, Hoist, and framework versions, every library on the classpath, runtime and per-instance
+  details, database version, Hoist features in use, monitor status, and aggregate activity counts.
+  See [`docs/inventory.md`](docs/inventory.md).
+    * The new `xhInventoryConfig` soft config enables the report (disabled by default) and sets
+      options. Callers must present the new `xhInventoryToken` pwd config via an
+      `X-XH-Inventory-Token` or `Authorization: Bearer` header. Users with `HOIST_ADMIN_READER` can
+      read the report without a token.
+    * Apps can add their own data to the report by implementing the new `InventoryContributor`
+      interface on any service.
+    * `EnvironmentService.getInventory()` returns the report for programmatic use, e.g. to push it
+      to a central collector.
+* Added `TrackLogAdminService.getUsageSummary()`, which summarizes tracked activity over a
+  trailing window as counts only.
+
+### ⚙️ Technical
+
+* `BaseAuthenticationService.whitelistURIs` now includes `/xh/inventory`. The endpoint returns 404
+  unless `xhInventoryConfig.enabled` is `true`.
+* Added H2 as a test-only dependency, so hoist-core specs can run real GORM queries via
+  `HibernateSpec`.
+
 ## 43.0.0 - 2026-10-13
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟠 MEDIUM - Grails 8 / Groovy 5 / Java 21 upgrade)

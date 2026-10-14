@@ -1,0 +1,10 @@
+# Test-only config, loaded by HibernateSpec specs (e.g. TrackLogAdminServiceSpec) that exercise
+# real GORM queries against an in-memory H2 database.
+dataSource:
+    url: jdbc:h2:mem:hoistTestDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
+    driverClassName: org.h2.Driver
+    dbCreate: create-drop
+hibernate:
+    cache:
+        use_second_level_cache: false
+        use_query_cache: false

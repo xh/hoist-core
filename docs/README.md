@@ -42,7 +42,9 @@ and conventions.
 | Serialize or parse JSON | [`json-handling.md`](./json-handling.md) |
 | Set up application monitors | [`monitoring.md`](./monitoring.md) |
 | Publish observable metrics (Prometheus, OTLP) | [`metrics.md`](./metrics.md) |
+| Inventory deployments - versions, libraries, usage - across apps | [`inventory.md`](./inventory.md) |
 | Add distributed tracing to your app | [`tracing.md`](./tracing.md) |
+| [`inventory.md`](./inventory.md) | Opt-in, token-protected deployment inventory report for cross-app sweeps | EnvironmentService, `/xh/inventory`, xhInventoryConfig, xhInventoryToken, InventoryContributor, LibraryInventory |
 | Push messages to clients via WebSocket | [`websocket.md`](./websocket.md) |
 | Make HTTP calls to external services | [`http-client.md`](./http-client.md) |
 | Send emails from your app | [`email.md`](./email.md) |

@@ -108,7 +108,7 @@ The filter performs three critical functions:
 2. **Authentication gating** — `authenticationService.allowRequest()` first checks if the request
    already has an authenticated user (`identityService.findAuthUser(request)`) **or** if the
    request URI is whitelisted (`isWhitelist(request)`). Whitelisted endpoints — including `/ping`,
-   `/xh/login`, `/xh/logout`, `/xh/ping`, `/xh/version`, and `/xh/authConfig` — are allowed
+   `/xh/login`, `/xh/logout`, `/xh/ping`, `/xh/version`, `/xh/authConfig`, and `/xh/inventory` — are allowed
    through without authentication. If neither condition is met, the filter calls
    `completeAuthentication()` to attempt authentication. If `allowRequest()` returns `false`, the
    request is halted (e.g., during an OAuth redirect). See [`authentication.md`](./authentication.md)

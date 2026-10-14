@@ -166,7 +166,8 @@ abstract class BaseAuthenticationService extends BaseService {
         '/xh/logout',
         '/xh/ping',
         '/xh/version',
-        '/xh/authConfig'
+        '/xh/authConfig',
+        '/xh/inventory'   // opt-in and token-protected - see EnvironmentService.ensureInventoryAccess
     ]
 
     @Override

@@ -17,6 +17,7 @@ import io.xh.hoist.config.ConfigSpec
 import io.xh.hoist.config.IdleConfig
 import io.xh.hoist.entra.EntraIdConfig
 import io.xh.hoist.environment.EnvPollConfig
+import io.xh.hoist.environment.InventoryConfig
 import io.xh.hoist.export.ExportConfig
 import io.xh.hoist.jsonblob.JsonBlobConfig
 import io.xh.hoist.ldap.LdapConfig
@@ -307,6 +308,20 @@ class BootStrap implements LogSupport {
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Configures when an idle client enters sleep mode, suspending background requests until the user reloads. `timeout` is minutes of inactivity, overridable per client app in `appTimeouts`. Use `-1` to disable.'
+            ),
+            new ConfigSpec(
+                name: 'xhInventoryConfig',
+                valueType: 'json',
+                typedClass: InventoryConfig,
+                groupName: 'xh.io',
+                note: 'Configures the opt-in inventory report served by the whitelisted `/xh/inventory` endpoint, for automated sweeps that catalog Hoist deployments. Set `enabled` to `true` to serve the report, and set `xhInventoryToken` for callers to present. `excludeSections` omits report sections, `tags` adds free-form metadata such as the owning team.'
+            ),
+            new ConfigSpec(
+                name: 'xhInventoryToken',
+                valueType: 'pwd',
+                defaultValue: AppConfig.NONE,
+                groupName: 'xh.io',
+                note: 'Shared secret that callers of `/xh/inventory` must present via an `X-XH-Inventory-Token` or `Authorization: Bearer` header, unless `xhInventoryConfig.requireToken` is `false`. Leave as `none` to reject all token-based requests.'
             ),
             new ConfigSpec(
                 name: 'xhJsonBlobConfig',

@@ -259,6 +259,16 @@ class XhController extends BaseController {
         renderJSON(environmentService.environmentPoll())
     }
 
+    /**
+     * Whitelisted (pre-auth) endpoint with an inventory report describing this deployment, for
+     * automated cross-app inventory sweeps. Opt-in via `xhInventoryConfig` and token-protected -
+     * see `EnvironmentService.ensureInventoryAccess()`.
+     */
+    def inventory() {
+        environmentService.ensureInventoryAccess(request)
+        renderJSON(environmentService.inventory)
+    }
+
 
     //-----------------------
     // Misc

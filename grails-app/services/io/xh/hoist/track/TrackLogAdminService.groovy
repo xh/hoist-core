@@ -15,6 +15,7 @@ import org.hibernate.Criteria
 import org.hibernate.SessionFactory
 import java.time.LocalDate;
 
+import static io.xh.hoist.util.DateTimeUtils.DAYS
 import static io.xh.hoist.util.DateTimeUtils.appEndOfDay
 import static io.xh.hoist.util.DateTimeUtils.appStartOfDay
 import static org.hibernate.criterion.Order.desc
@@ -64,9 +65,82 @@ class TrackLogAdminService extends BaseService {
         }
     }
 
+    /**
+     * Aggregate summary of tracked activity over a trailing window of days, as reported in the
+     * `usage` section of the inventory report built by `EnvironmentService`.
+     *
+     * Reports counts only - never usernames or other per-user detail. Breakdowns by client app,
+     * client version, browser, and device list distinct users, entry count, and last activity for
+     * each value, ordered by distinct users. The client version breakdown in particular surfaces
+     * users still running a stale client build.
+     */
+    @ReadOnly
+    Map getUsageSummary(int days) {
+        def now = new Date(),
+            since = new Date(now.time - days * DAYS),
+            totals = TrackLog.createCriteria().get {
+                ge('dateCreated', since)
+                projections {
+                    rowCount()
+                    countDistinct('username')
+                    max('dateCreated')
+                }
+            } as List
+
+        return [
+            trackingEnabled     : enabled,
+            windowDays          : days,
+            since               : since,
+            entries             : totals[0] ?: 0,
+            distinctUsers       : totals[1] ?: 0,
+            distinctUsersLast7d : countDistinctUsers(new Date(now.time - 7 * DAYS)),
+            distinctUsersLast1d : countDistinctUsers(new Date(now.time - DAYS)),
+            lastActivity        : totals[2],
+            appLoads            : countEntries(since, 'App', 'Loaded%'),
+            clientErrors        : countEntries(since, 'Client Error'),
+            feedback            : countEntries(since, 'Feedback'),
+            byClientApp         : breakdown(since, 'clientAppCode'),
+            byClientVersion     : breakdown(since, 'appVersion'),
+            byBrowser           : breakdown(since, 'browser'),
+            byDevice            : breakdown(since, 'device')
+        ]
+    }
+
     //------------------------
     // Implementation
     //------------------------
+    private Long countDistinctUsers(Date since) {
+        TrackLog.createCriteria().get {
+            ge('dateCreated', since)
+            projections { countDistinct('username') }
+        } as Long ?: 0
+    }
+
+    private Long countEntries(Date since, String category, String msgPattern = null) {
+        TrackLog.createCriteria().get {
+            ge('dateCreated', since)
+            eq('category', category)
+            if (msgPattern) like('msg', msgPattern)
+            projections { rowCount() }
+        } as Long ?: 0
+    }
+
+    private List<Map> breakdown(Date since, String property) {
+        def rows = TrackLog.createCriteria().list {
+            ge('dateCreated', since)
+            projections {
+                groupProperty(property)
+                countDistinct('username')
+                rowCount()
+                max('dateCreated')
+            }
+        } as List<List>
+
+        return rows
+            .collect { [value: it[0], distinctUsers: it[1], entries: it[2], lastActivity: it[3]] }
+            .sort { -(it.distinctUsers as Long) }
+    }
+
     private List distinctVals(String property) {
         TrackLog.createCriteria().list {
             projections { distinct(property) }

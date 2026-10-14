@@ -154,8 +154,9 @@ request and clears the session identity after a confirmed logout.
 #### Whitelisted URIs
 
 `whitelistURIs` lists URIs that bypass authentication: `/xh/ping` (and its legacy `/ping`
-alias), `/xh/login`, `/xh/logout`, `/xh/version`, and `/xh/authConfig`. Subclasses can add
-entries in their constructor or `init()`. The list deliberately excludes the client's
+alias), `/xh/login`, `/xh/logout`, `/xh/version`, `/xh/authConfig`, and `/xh/inventory` (opt-in
+and token-protected - see [`inventory.md`](./inventory.md)). Subclasses can add entries in their
+constructor or `init()`. The list deliberately excludes the client's
 `authStatus` check URI - SSO apps need that request to reach `completeAuthentication()` so
 they can install a user on the session.
 
