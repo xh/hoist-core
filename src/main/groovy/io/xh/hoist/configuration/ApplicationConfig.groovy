@@ -47,11 +47,12 @@ class ApplicationConfig {
                     'org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration',
                     'org.springframework.boot.autoconfigure.web.client.RestTemplateAutoConfiguration',
 
-                    // Hoist manages its own MeterRegistry, export sinks, and HTTP metrics
-                    'org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration',
-                    'org.springframework.boot.actuate.autoconfigure.metrics.CompositeMeterRegistryAutoConfiguration',
-                    'org.springframework.boot.actuate.autoconfigure.metrics.export.otlp.OtlpMetricsExportAutoConfiguration',
-                    'org.springframework.boot.actuate.autoconfigure.observation.web.servlet.WebMvcObservationAutoConfiguration'
+                    // Hoist manages its own MeterRegistry, export sinks, HTTP metrics, and tracing
+                    'org.springframework.boot.micrometer.metrics.autoconfigure.MetricsAutoConfiguration',
+                    'org.springframework.boot.micrometer.metrics.autoconfigure.CompositeMeterRegistryAutoConfiguration',
+                    'org.springframework.boot.micrometer.metrics.autoconfigure.export.otlp.OtlpMetricsExportAutoConfiguration',
+                    'org.springframework.boot.webmvc.autoconfigure.WebMvcObservationAutoConfiguration',
+                    'org.springframework.boot.micrometer.observation.autoconfigure.ObservationAutoConfiguration'
                 ]
             }
 

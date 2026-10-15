@@ -69,7 +69,6 @@ xhAppVersion=3.0-SNAPSHOT
 grailsVersion=7.0.5
 hoistCoreVersion=36.1.0
 dotEnvGradlePluginVersion=4.0.0
-hazelcast.version=5.6.0
 
 runHoistInline=false
 enableHotSwap=false
@@ -119,7 +118,7 @@ targets Java 21 bytecode and runs on any JDK 21+ runtime, so apps are not forced
 hoist-core's own build JDK. Grails 8 sets the floor: JDK 17 is no longer supported.
 
 When building Docker images, use the matching xh-tomcat base image variant for your runtime
-JDK: `next-tc10-jdk21`.
+JDK - for example `next-tc11-jdk21` or `next-tc11-jdk25`.
 
 #### JDK 25 on a Grails 8 / Gradle 9.x App
 
@@ -429,7 +428,7 @@ docker/
 │   ├── Dockerfile            # FROM xhio/xh-nginx:<version>
 │   └── app.conf              # Nginx site configuration
 └── tomcat/
-    ├── Dockerfile            # FROM xhio/xh-tomcat:next-tc10-jdk17
+    ├── Dockerfile            # FROM xhio/xh-tomcat:next-tc11-jdk25
     └── setenv.sh             # JVM options (heap size, instance config path)
 ```
 

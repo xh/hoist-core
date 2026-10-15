@@ -19,6 +19,7 @@ import jakarta.servlet.DispatcherType
 import org.grails.async.factory.future.CompletableFuturePromiseFactory
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.core.Ordered
+import org.springframework.web.context.WebApplicationContext
 
 import static io.xh.hoist.util.Utils.createCustomOrDefault
 
@@ -70,12 +71,23 @@ class HoistCoreGrailsPlugin extends Plugin {
     }
 
     void doWithApplicationContext() {
+        ensureServletVersion()
         Utils.appContext = applicationContext
 
         // Back `task {}` with an unbounded cached thread pool, as in Grails 7. Grails 8 defaults to
-        // Spring's `applicationTaskExecutor` (8 threads, unbounded queue), which deadlocks nested
-        // blocking tasks such as `BaseService.parallelInit()` -> `initialize()`.
+        // Spring's `applicationTaskExecutor` which deadlocks the nested blocking tasks we use
         Promises.promiseFactory = new HoistPromiseFactory(new CompletableFuturePromiseFactory())
+    }
+
+    // Grails 8 requires Servlet 6.1 (Tomcat 11).
+    private void ensureServletVersion() {
+        def ctx = (applicationContext as WebApplicationContext).servletContext
+        int major = ctx.majorVersion, minor = ctx.minorVersion
+        if (major < 6 || (major == 6 && minor < 1)) {
+            throw new IllegalStateException(
+                "Hoist requires Servlet 6.1+ (Tomcat 11+), but ${ctx.serverInfo} provides Servlet ${major}.${minor}."
+            )
+        }
     }
 
     void onConfigChange(Map<String, Object> event) {}
