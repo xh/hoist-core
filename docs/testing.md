@@ -2,8 +2,8 @@
 
 ## Overview
 
-Hoist Core uses [Spock](https://spockframework.org/) (2.3, Groovy 4) on the JUnit Platform for unit
-tests, with JaCoCo for coverage. The same framework is published for applications as
+Hoist Core uses [Spock](https://spockframework.org/) on the JUnit Platform for unit tests, with
+JaCoCo for coverage. The same framework is published for applications as
 `io.xh:hoist-core-test`, a test-support library that builds on the standard Grails unit-test
 traits (`ServiceUnitTest`, `ControllerUnitTest`) so that app code built on `BaseService`,
 `ConfigService`, identity and logging can be unit tested.
@@ -180,6 +180,9 @@ def 'all #controller.simpleName actions are secured'() {
 - No Hazelcast instance is started. `createIMap`, `createReplicatedMap`, `getTopic` and
   `subscribeToTopic` are not available; `replicate: true` caches and cached values behave as local.
 - Environment variables named `APP_<APPCODE>_*` still take precedence over instance config.
+- The test context loads the app's `runtime.groovy`. If it throws when instance configs such as
+  database credentials are missing, every spec fails before its first feature. Fall back to
+  `RuntimeConfig.h2Config(this)` when `Environment.current == Environment.TEST`.
 
 ## Testing hoist-core
 

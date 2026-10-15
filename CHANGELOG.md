@@ -14,6 +14,20 @@
 
 ## 44.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🎉 TRIVIAL)
+
+* Removed the unused `json-patch` dependency. Apps that use it must declare it directly.
+* Hoist Core now supplies its Hazelcast and OpenTelemetry versions. Remove `hazelcast.version` and
+  `opentelemetry.version` from app `gradle.properties` - a stale value overrides hoist-core's.
+
+### 🐞 Bug Fixes
+
+* Fixed Spring Boot metrics auto-configuration excludes to use Spring Boot 4 class names.
+
+### 📚 Libraries
+
+* Jackson `3.1.6 → 3.1.7` (security fixes)
+
 ## 43.0.0 - 2026-10-13
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟠 MEDIUM - Grails 8 / Groovy 5 / Java 21 upgrade)

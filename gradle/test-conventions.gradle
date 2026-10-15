@@ -4,11 +4,6 @@
 //------------------------
 apply plugin: 'jacoco'
 
-jacoco {
-    // Gradle 8.14 bundles JaCoCo 0.8.13, which cannot instrument classes on a JDK 25 test JVM.
-    toolVersion = '0.8.15'
-}
-
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
 

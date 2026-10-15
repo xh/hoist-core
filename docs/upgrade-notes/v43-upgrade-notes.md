@@ -30,8 +30,7 @@ Before starting, ensure:
 
 ### 1. Update Docker Base Image
 
-Grails 8 (Spring Boot 4) requires Servlet 6.1, which means Tomcat 11. The WAR will not start on
-the Tomcat 10 images.
+Grails 8 (Spring Boot 4) requires Servlet 6.1, which means Tomcat 11.
 
 **File:** `docker/tomcat/Dockerfile`
 
@@ -51,7 +50,7 @@ JDK 21 and 25 only. Use the `next-tc11-*` tags until an `xh-tomcat` release adds
 `latest-tc11-*` and `<version>-tc11-*` tags.
 
 > **Custom base images:** If your Dockerfile uses a custom base image, you will need a Tomcat 11
-> version of that image. A Tomcat 10 image will **not** work with Grails 8.
+> version of that image.
 
 ### 2. Update Gradle Wrapper
 
@@ -101,9 +100,8 @@ hazelcast.version=5.7.0
 opentelemetry.version=1.65.0
 ```
 
-Keep both version overrides. The Grails 8 BOM manages older versions (OpenTelemetry `1.62.0`,
-Hazelcast `5.5.0`) than hoist-core is built against, and hoist-core does not publish these
-versions itself. `opentelemetry.version` must move to hoist-core's `1.65.0`.
+Keep both properties equal to hoist-core's values. An app's own value overrides hoist-core's, so
+`opentelemetry.version` must move to `1.65.0`.
 
 `majorJavaVersion` sets the Gradle Java toolchain in Toolbox-style builds - use `25` to build on
 Java 25. Gradle needs a matching JDK installed locally and in CI. Update the JDK in your CI
@@ -450,6 +448,10 @@ for this.
 To find renamed or removed Spring Boot configuration keys, temporarily add
 `runtimeOnly 'org.springframework.boot:spring-boot-properties-migrator'` to `build.gradle` and
 check the startup log for warnings.
+
+Spring Boot 4 moved most auto-configuration classes and silently ignores an exclude naming a class
+that no longer exists. Check any `spring.autoconfigure.exclude` entries in app config against the
+Spring Boot 4 class names.
 
 ## Verification Checklist
 

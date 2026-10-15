@@ -47,7 +47,7 @@ class BootStrap implements LogSupport {
         traceService,
         prefService
 
-    def init = {servletContext ->
+    def init = {
         def initStart = Instant.now()
         logStartupMsg()
 
