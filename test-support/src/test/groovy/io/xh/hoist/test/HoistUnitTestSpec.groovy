@@ -12,10 +12,12 @@ import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
 import grails.testing.services.ServiceUnitTest
+import io.opentelemetry.sdk.trace.export.SpanExporter
 import io.xh.hoist.BaseService
 import io.xh.hoist.cache.Cache
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.log.LogSupportMarker
+import io.xh.hoist.telemetry.trace.SpanRef
 import io.xh.hoist.track.TrackService
 import io.xh.hoist.test.fakes.*
 import io.xh.hoist.util.DateTimeUtils
@@ -54,6 +56,18 @@ class SampleService extends BaseService {
 
     boolean isPrimaryInstance() {
         isPrimary
+    }
+
+    String traced(String source) {
+        span(name: 'loadPrices', tags: [source: source]).run { 'loaded' }
+    }
+
+    void observed(boolean fail) {
+        observe()
+            .span(name: 'refreshPrices')
+            .timer(name: 'priceRefreshTime')
+            .counter(name: 'priceRefreshes', tags: [source: 'vendor'])
+            .run { if (fail) throw new RuntimeException('boom') }
     }
 
     // Not final - exposed for spec assertions only.
@@ -237,6 +251,59 @@ class HoistUnitTestSpec extends Specification implements ServiceUnitTest<SampleS
         then:
         testEmailService.sent.size() == 1
         testEmailService.lastSent == [to: 'a@example.com', subject: 'Hi', text: 'body', async: true]
+    }
+
+    def 'spans run their closure and are recorded'() {
+        when:
+        def result = service.traced('vendor')
+
+        then:
+        result == 'loaded'
+        testTraceService.spans*.name == ['loadPrices']
+        testTraceService.lastSpan.tags == [source: 'vendor']
+        testTraceService.spans('loadPrices').size() == 1
+        !testTraceService.enabled
+        service.traceService.is(testTraceService)
+    }
+
+    def 'observed runs record spans, timers and counts, including on failure'() {
+        when:
+        service.observed(false)
+        service.observed(true)
+
+        then:
+        thrown(RuntimeException)
+        testTraceService.spans('refreshPrices').size() == 2
+        testMetricsService.timers('priceRefreshTime')*.tags*.get('xh.outcome') == ['success', 'failure']
+        testMetricsService.counts('priceRefreshes')*.tags == [
+            [source: 'vendor', 'xh.outcome': 'success'],
+            [source: 'vendor', 'xh.outcome': 'failure']
+        ]
+        testMetricsService.counts*.value == [1d, 1d]
+        testMetricsService.lastTimer.name == 'priceRefreshTime'
+        testMetricsService.lastCount.tags['xh.outcome'] == 'failure'
+    }
+
+    def 'spans opened without tags record an empty tag map'() {
+        when:
+        testTraceService.withSpan(name: 'plain') { SpanRef span -> span.setTag('rows', 3) }
+
+        then:
+        testTraceService.lastSpan == [name: 'plain', tags: [:]]
+    }
+
+    def 'trace and metrics lifecycle methods do not read soft config'() {
+        when:
+        testTraceService.init()
+        testTraceService.addExporter(Mock(SpanExporter))
+        testTraceService.clearCaches()
+        testMetricsService.init()
+        testMetricsService.clearCaches()
+
+        then:
+        noExceptionThrown()
+        !testTraceService.enabled
+        testTraceService.otelSdk == null
     }
 
     def 'defineService registers an autowired service bean for collaborators'() {

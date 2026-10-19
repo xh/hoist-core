@@ -126,7 +126,7 @@ framework services are in `io.xh.hoist.test.fakes`.
 
 | Class | Purpose |
 |---|---|
-| `HoistUnitTest` | Grails unit-test trait. Registers the beans below before each feature unless the spec defined its own in `doWithSpring()`; resets config, users, tracked entries, sent emails and primary status before each feature and clears identity after. Adds `testConfigService`, `testUserService`, `testClusterService`, `testTrackService`, `testEmailService`, `identityService`, `defineService`, `loginAs`, `impersonate`, `logout`, `withUser` and `useAppTimeZone`. |
+| `HoistUnitTest` | Grails unit-test trait. Registers the beans below before each feature unless the spec defined its own in `doWithSpring()`; resets config, users, tracked entries, sent emails, spans, metrics and primary status before each feature and clears identity after. Adds `testConfigService`, `testUserService`, `testClusterService`, `testTrackService`, `testEmailService`, `testTraceService`, `testMetricsService`, `identityService`, `defineService`, `loginAs`, `impersonate`, `logout`, `withUser` and `useAppTimeZone`. |
 | `HoistSpec` | Abstract `Specification` implementing `HoistUnitTest`. |
 | `HoistTestLogging` | Logback setup for the test JVM: console at WARN, Hoist message converter registered. |
 | `TestConfigService` | `configService` bean. Map-backed `ConfigService` - seed with `set` / `setAll`. All typed getters (`getString`, `getInt`, `getMap`, ...) follow `ConfigService` semantics, including throwing for a missing config without a default. `registerTypedConfig` supports `getObject` for `TypedConfigMap` subclasses. |
@@ -134,6 +134,8 @@ framework services are in `io.xh.hoist.test.fakes`.
 | `TestClusterService` | `clusterService` bean. Reports `isPrimary` from `primaryInstance` (default `true`), so `primaryOnly` timers run. |
 | `TestTrackService` | `trackService` bean. Records `track()` entries in `tracked` / `lastTracked` instead of persisting them. |
 | `TestEmailService` | `emailService` bean. Records `sendEmail()` calls in `sent` / `lastSent` instead of delivering them. |
+| `TestTraceService` | `traceService` bean. Runs `withSpan()` closures - including `span()` and `observe().span()` - with a no-op span and records each in `spans` / `lastSpan`, with tags as passed. Tracing is never enabled and `xhTraceConfig` is never read. |
+| `TestMetricsService` | `metricsService` bean. Records `recordTimer()` / `recordCount()` calls - including `observe()` timers and counters - in `timers` / `lastTimer` and `counts` / `lastCount` instead of publishing them. Meters from `register*()` methods are not recorded. |
 | `TestUser` | `HoistUser` with an explicit role set - no role service required. |
 | `HoistJson` | Serialize and round-trip with Hoist's own Jackson `JSONSerializer` / `JSONParser`, to assert the real wire format of `JSONFormat` objects. |
 | `HoistAssertions` | `httpStatusFor(Throwable)` and `isRoutine(Throwable)` mirror `ExceptionHandler`; `findUnsecuredActions` / `assertAllActionsSecured` check that every controller action has a Hoist access annotation. |

@@ -14,6 +14,12 @@
 
 ## 44.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Added `TestTraceService` and `TestMetricsService` to `hoist-core-test`. `HoistUnitTest` now
+  registers them as `traceService` and `metricsService`, so specs of code that calls `span()` or
+  `observe()` no longer need a stub. Both record calls for assertions.
+
 ## 43.0.1 - 2026-10-15
 
 ### 💥 Breaking Changes (upgrade difficulty: 🎉 TRIVIAL)

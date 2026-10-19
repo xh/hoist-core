@@ -39,10 +39,12 @@ import org.grails.testing.ParameterizedGrailsUnitTest
  * | `clusterService` | {@link TestClusterService} |
  * | `trackService` | {@link TestTrackService} |
  * | `emailService` | {@link TestEmailService} |
+ * | `traceService` | {@link TestTraceService} |
+ * | `metricsService` | {@link TestMetricsService} |
  * | `xhExceptionHandler` | `ExceptionHandler` |
  *
- * Before each feature, config values, users, tracked entries and sent emails are cleared and
- * the instance is set back to primary. After each feature, the thread identity is cleared.
+ * Before each feature, config values, users, tracked entries, sent emails, spans and metrics
+ * are cleared and the instance is set back to primary. After each feature, the thread identity is cleared.
  *
  * Combine with the standard Grails traits to test an artefact:
  *
@@ -98,6 +100,16 @@ trait HoistUnitTest extends GrailsUnitTest {
     /** The email service - assert on `sent` / `lastSent` here. */
     TestEmailService getTestEmailService() {
         applicationContext.getBean('emailService', TestEmailService)
+    }
+
+    /** The trace service - assert on `spans` / `lastSpan` here. */
+    TestTraceService getTestTraceService() {
+        applicationContext.getBean('traceService', TestTraceService)
+    }
+
+    /** The metrics service - assert on `timers` / `counts` here. */
+    TestMetricsService getTestMetricsService() {
+        applicationContext.getBean('metricsService', TestMetricsService)
     }
 
     /**
@@ -203,6 +215,10 @@ trait HoistUnitTest extends GrailsUnitTest {
         if (trackService instanceof TestTrackService) trackService.clear()
         def emailService = applicationContext.getBean('emailService')
         if (emailService instanceof TestEmailService) emailService.clear()
+        def traceService = applicationContext.getBean('traceService')
+        if (traceService instanceof TestTraceService) traceService.clear()
+        def metricsService = applicationContext.getBean('metricsService')
+        if (metricsService instanceof TestMetricsService) metricsService.clear()
         identityService.installThreadIdentity(null)
     }
 
@@ -220,6 +236,8 @@ trait HoistUnitTest extends GrailsUnitTest {
         clusterService    : TestClusterService,
         trackService      : TestTrackService,
         emailService      : TestEmailService,
+        traceService      : TestTraceService,
+        metricsService    : TestMetricsService,
         xhExceptionHandler: ExceptionHandler
     ] as Map<String, Class>
 
