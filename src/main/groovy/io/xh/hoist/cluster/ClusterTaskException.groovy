@@ -9,9 +9,6 @@ package io.xh.hoist.cluster
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.json.JSONSerializer
 
-import static io.xh.hoist.util.Utils.getExceptionHandler
-import static io.xh.hoist.util.Utils.isAppContextReady
-
 /**
  * DTO object used for transferring an exception during a ClusterTask. We serialize the cause as
  * Json, to ensure it  can be safely serialized, but also because that is ultimately the form we
@@ -28,8 +25,6 @@ class ClusterTaskException extends RuntimeException {
         causeClassName = cause.class.name
         causeMessage = cause.message
         causeAsJson = JSONSerializer.serialize(cause)
-        // Fall back to a default handler if called before the app context is installed - note
-        // this bypasses any app-customized xhExceptionHandler during that startup window.
-        causeStatusCode = (appContextReady ? exceptionHandler : new ExceptionHandler()).getHttpStatus(cause)
+        causeStatusCode = ExceptionHandler.getHttpStatus(cause)
     }
 }

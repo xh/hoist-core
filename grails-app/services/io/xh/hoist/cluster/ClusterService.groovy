@@ -62,9 +62,6 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
     static final Date startupTime = new Date()
     static InstanceState instanceState = STARTING
 
-    /** Message for requests or tasks received while this instance is still starting up. */
-    static final String INITIALIZING_MESSAGE = 'Server may be initializing. Please try again shortly.'
-
     private static ClusterConfig clusterConfig
     private IExecutorService taskExecutor
 
@@ -277,12 +274,12 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         }
     }
 
-    void ensureRunning() {
+    static void ensureRunning() {
         switch (instanceState) {
             case STOPPING:
                 throw new InstanceNotAvailableException('Server shutting down.')
             case STARTING:
-                throw new InstanceNotAvailableException(INITIALIZING_MESSAGE)
+                throw new InstanceNotAvailableException('Server may be initializing. Please try again shortly.')
         }
     }
 

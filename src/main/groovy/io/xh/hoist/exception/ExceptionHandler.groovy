@@ -83,7 +83,7 @@ class ExceptionHandler {
     }
 
     /** The {@link org.apache.hc.core5.http.HttpStatus} code for this exception. */
-    int getHttpStatus(Throwable t) {
+    static int getHttpStatus(Throwable t) {
         if (t instanceof HttpException && !(t instanceof ExternalHttpException)) {
             return ((HttpException) t).statusCode ?: SC_INTERNAL_SERVER_ERROR
         }

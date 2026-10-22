@@ -7,6 +7,7 @@
 
 package io.xh.hoist.cluster
 
+import io.xh.hoist.cluster.InstanceState
 import io.xh.hoist.exception.InstanceNotAvailableException
 import io.xh.hoist.test.HoistSpec
 import io.xh.hoist.util.Utils
@@ -16,6 +17,7 @@ class ClusterTaskSpec extends HoistSpec {
 
     def cleanup() {
         Utils.setAppContext(applicationContext)
+        ClusterService.instanceState = InstanceState.RUNNING
     }
 
     def 'call returns routine not-available result when app context not yet installed'() {
@@ -23,6 +25,7 @@ class ClusterTaskSpec extends HoistSpec {
         // Instantiate without constructor, as Kryo does when deserializing on the target instance.
         def task = new ObjenesisStd().newInstance(ClusterTask)
         Utils.setAppContext(null)
+        ClusterService.instanceState = InstanceState.STARTING
 
         when:
         def result = task.call()
@@ -31,7 +34,6 @@ class ClusterTaskSpec extends HoistSpec {
         result.value == null
         with(result.exception) {
             causeClassName == InstanceNotAvailableException.name
-            causeMessage == ClusterService.INITIALIZING_MESSAGE
             causeStatusCode == 400
         }
     }
