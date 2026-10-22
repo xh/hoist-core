@@ -7,6 +7,7 @@
 package io.xh.hoist.cluster
 
 import io.xh.hoist.BaseService
+import io.xh.hoist.exception.InstanceNotAvailableException
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistIdentity
 import io.xh.hoist.util.Utils
@@ -16,6 +17,7 @@ import static io.xh.hoist.util.Utils.getIdentityService
 import static io.xh.hoist.util.Utils.getClusterService
 import static io.xh.hoist.util.Utils.getTraceContextService
 import static io.xh.hoist.util.Utils.getAppContext
+import static io.xh.hoist.util.Utils.isAppContextReady
 import static io.xh.hoist.json.JSONSerializer.serialize
 
 /**
@@ -46,6 +48,12 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
     }
 
     ClusterResult call() {
+        // Instance may have joined the cluster before its Spring context is fully installed.
+        if (!appContextReady) {
+            def e = new InstanceNotAvailableException(ClusterService.INITIALIZING_MESSAGE)
+            return new ClusterResult(exception: new ClusterTaskException(e))
+        }
+
         identityService.installThreadIdentity(new HoistIdentity(username, authUsername))
 
         try (def traceScope = traceContextService.restoreContextFromTraceparent(traceparent)) {

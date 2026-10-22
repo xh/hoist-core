@@ -216,6 +216,14 @@ class Utils {
         return _appContext
     }
 
+    /**
+     * True once the application context has been installed. Use to guard code that may run
+     * before startup completes - e.g. cluster tasks sent to an instance that is still starting.
+     */
+    static boolean isAppContextReady() {
+        _appContext != null
+    }
+
     /** Get the grails application config.  */
     static Config getGrailsConfig() {
         grailsApplication.config

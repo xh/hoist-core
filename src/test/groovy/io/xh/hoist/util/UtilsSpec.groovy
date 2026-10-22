@@ -17,6 +17,20 @@ class UtilsSpec extends HoistSpec {
         Utils.terms = null
     }
 
+    def 'isAppContextReady reflects whether app context is installed'() {
+        expect:
+        Utils.appContextReady
+
+        when:
+        Utils.setAppContext(null)
+
+        then:
+        !Utils.appContextReady
+
+        cleanup:
+        Utils.setAppContext(applicationContext)
+    }
+
     @Unroll
     def 'parseBooleanStrict(#input) -> #expected'() {
         expect:
