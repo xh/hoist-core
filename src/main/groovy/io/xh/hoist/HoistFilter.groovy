@@ -8,6 +8,7 @@
 package io.xh.hoist
 
 import groovy.transform.CompileStatic
+import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.exception.HttpException
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.telemetry.trace.SpanRef
@@ -23,7 +24,6 @@ import static io.xh.hoist.util.Utils.authenticationService
 import static io.xh.hoist.util.Utils.identityService
 import static io.xh.hoist.util.Utils.traceService
 import static io.xh.hoist.util.Utils.traceContextService
-import static io.xh.hoist.util.Utils.getClusterService
 
 /**
  * Main Filter for all requests in Hoist.
@@ -68,7 +68,7 @@ class HoistFilter implements Filter, LogSupport {
     // Implementation
     //--------------------------
     private handleRequest(HttpServletRequest req, HttpServletResponse res, FilterChain chain) {
-        clusterService.ensureRunning()
+        ClusterService.ensureRunning()
         if (authenticationService.allowRequest(req, res)) {
             chain.doFilter(req, res)
         }

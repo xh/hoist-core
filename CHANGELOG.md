@@ -14,6 +14,12 @@
 
 ## 44.0-SNAPSHOT - unreleased
 
+### 🐞 Bug Fixes
+
+* Fixed `ClusterTask` failing with an `IllegalStateException` and logging an ERROR on the calling
+  instance when sent to an instance still starting up. Such instances now return a routine
+  `InstanceNotAvailableException` result.
+
 ## 43.0.1 - 2026-10-15
 
 ### 💥 Breaking Changes (upgrade difficulty: 🎉 TRIVIAL)
