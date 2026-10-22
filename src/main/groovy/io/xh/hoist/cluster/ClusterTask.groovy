@@ -13,7 +13,6 @@ import io.xh.hoist.util.Utils
 import java.util.concurrent.Callable
 
 import static io.xh.hoist.util.Utils.getIdentityService
-import static io.xh.hoist.util.Utils.getClusterService
 import static io.xh.hoist.util.Utils.getTraceContextService
 import static io.xh.hoist.util.Utils.getAppContext
 import static io.xh.hoist.json.JSONSerializer.serialize
@@ -46,10 +45,15 @@ class ClusterTask implements Callable<ClusterResult>, LogSupport {
     }
 
     ClusterResult call() {
+        try {
+            ClusterService.ensureRunning()
+        } catch (Throwable t) {
+            return new ClusterResult(exception: new ClusterTaskException(t))
+        }
+
         identityService.installThreadIdentity(new HoistIdentity(username, authUsername))
 
         try (def traceScope = traceContextService.restoreContextFromTraceparent(traceparent)) {
-            clusterService.ensureRunning()
             def clazz = Class.forName(svc),
                 service = appContext.getBean(clazz),
                 value = service.invokeMethod(method, args.toArray()),

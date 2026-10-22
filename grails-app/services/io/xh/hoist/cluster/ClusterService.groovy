@@ -274,7 +274,7 @@ class ClusterService extends BaseService implements ApplicationListener<Applicat
         }
     }
 
-    void ensureRunning() {
+    static void ensureRunning() {
         switch (instanceState) {
             case STOPPING:
                 throw new InstanceNotAvailableException('Server shutting down.')
