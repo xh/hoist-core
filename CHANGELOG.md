@@ -25,6 +25,8 @@
 * Fixed `ClusterTask` failing with an `IllegalStateException` and logging an ERROR on the calling
   instance when sent to an instance still starting up. Such instances now return a routine
   `InstanceNotAvailableException` result.
+* Hardened `ViewService` against concurrent updates to a user's ViewManager state, which could
+  previously be silently lost when overlapping.
 
 ## 43.0.1 - 2026-10-15
 

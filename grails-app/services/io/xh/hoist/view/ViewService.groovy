@@ -7,6 +7,7 @@
 
 package io.xh.hoist.view
 
+import grails.gorm.transactions.Transactional
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
 import io.xh.hoist.exception.ExceptionHandler
@@ -68,7 +69,11 @@ class ViewService extends BaseService {
      *
      * These user preferences are stored alongside and loaded/refreshed with views to keep them in
      * sync with the views themselves.
+     *
+     * Updates are partial merges, read and written in one transaction so that overlapping updates
+     * for the same user and type fail on the version check rather than overwriting one another.
      */
+    @Transactional
     Map updateState(String type, String viewInstance, Map update, String username = username) {
         def currBlob = jsonBlobService.find(type, STATE_BLOB_NAME, username, username),
             currValue = parseObject(currBlob?.value),
@@ -105,7 +110,8 @@ class ViewService extends BaseService {
         jsonBlobService.get(token, username).formatForClient(true)
     }
 
-    /** Create a new view. */
+    /** Create a new view.    */
+    @Transactional
     Map create(Map data, String username = username) {
         def isShared = data.isShared,
             isGlobal = data.isGlobal,
@@ -137,6 +143,7 @@ class ViewService extends BaseService {
      * "Reports/Sales/Monthly"); this moves the single view in question into the given group. See
      * {@link #renameGroup} to rename or re-parent a group across all of the views within it.
      */
+    @Transactional
     Map updateInfo(String token, Map data, String username = username) {
         JsonBlob ret = doUpdateInfo(token, data, username)
 
@@ -261,7 +268,11 @@ class ViewService extends BaseService {
      *
      * Note that any `isPinned` change is *not* applied here - that state lives in a per-type
      * sidecar blob and is updated once per call by `updateInfo` / `bulkUpdateInfo`.
+     *
+     * Transactional so that the `meta` merge is read and written in one session, including when
+     * called per view from the non-transactional `bulkUpdateInfo`.
      */
+    @Transactional
     private JsonBlob doUpdateInfo(String token, Map data, String username) {
         JsonBlob existing = jsonBlobService.get(token, username)
         Map meta = parseObject(existing.meta) ?: [:],
