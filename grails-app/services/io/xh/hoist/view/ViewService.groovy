@@ -70,12 +70,12 @@ class ViewService extends BaseService {
      * These user preferences are stored alongside and loaded/refreshed with views to keep them in
      * sync with the views themselves.
      *
-     * Updates are partial merges, so the blob is read under a row lock to serialize overlapping
-     * updates for the same user and type.
+     * Updates are partial merges, read and written in one transaction so that overlapping updates
+     * for the same user and type fail on the version check rather than overwriting one another.
      */
     @Transactional
     Map updateState(String type, String viewInstance, Map update, String username = username) {
-        def currBlob = jsonBlobService.findForUpdate(type, STATE_BLOB_NAME, username),
+        def currBlob = jsonBlobService.find(type, STATE_BLOB_NAME, username, username),
             currValue = parseObject(currBlob?.value),
             newValue = [
                 currentView: currValue?.currentView ?: [:],

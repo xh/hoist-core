@@ -65,16 +65,6 @@ class JsonBlobService extends BaseService implements DataBinder {
         return ret
     }
 
-    /**
-     * Find a user's own active blob with a pessimistic row lock (`SELECT ... FOR UPDATE`), held
-     * until the calling transaction completes. Other callers for the same blob block until then.
-     * For `@Transactional` read-modify-write cycles that must not overlap.
-     */
-    @Transactional
-    JsonBlob findForUpdate(String type, String name, String username = username) {
-        JsonBlob.findByTypeAndNameAndOwnerAndArchivedDate(type, name, username, 0, [lock: true])
-    }
-
     /** List all active blobs of a given type available to a user. */
     @ReadOnly
     List<JsonBlob> list(String type, String username = username) {
@@ -180,7 +170,7 @@ class JsonBlobService extends BaseService implements DataBinder {
 
     @Transactional
     JsonBlob createOrUpdate(String type, String name, Map data, String username = username) {
-        def blob = findForUpdate(type, name, username)
+        def blob = find(type, name, username, username)
         return blob ?
             updateInternal(blob, data, username) :
             create([*: data, type: type, name: name], username)
