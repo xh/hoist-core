@@ -10,95 +10,66 @@ import groovy.transform.CompileStatic
 
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
-import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
-import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 import java.security.SecureRandom
 
+import static java.nio.charset.StandardCharsets.UTF_8
+
 /**
- * Symmetric AES-256-GCM text encryption with a PBKDF2-derived key. AES-256-GCM is authenticated,
- * so tampering with the ciphertext is detected on decrypt. Output carries the
- * {@link #FORMAT_PREFIX} marker so callers can distinguish it from legacy values decryptable via
- * {@link LegacyJasyptDecrypter}.
+ * Symmetric AES-256-GCM text encryption. GCM is authenticated, so tampered ciphertext fails on
+ * decrypt. Output is {@link #FORMAT_PREFIX} + Base64([iv][ciphertext+tag]) with a fresh random IV
+ * per call. The marker lets {@link io.xh.hoist.config.AppConfig} distinguish these values from
+ * pre-v44 jasypt values, which it reads via {@link LegacyJasyptDecrypter}.
  *
- * <p>Used internally by {@link io.xh.hoist.config.AppConfig} to encrypt `pwd`-typed config
- * values at rest. The strength of this primitive is exactly the strength of the key its caller
- * supplies — high-entropy keys sourced from a secrets manager (or equivalent) deliver real
- * confidentiality; low-entropy or hardcoded keys deliver only obfuscation. Choose accordingly.
+ * <p>The AES key is the SHA-256 of the supplied key string, derived once at construction.
  */
 @CompileStatic
 final class AesTextCipher {
 
-    /** Marker prefix on output ciphertext — identifies hoist-core v1 AES-GCM format. */
+    /** Marker prefix on output ciphertext. `$` cannot appear in Base64, so legacy values never collide. */
     static final String FORMAT_PREFIX = '$hoist-aes1$'
 
-    private static final String KEY_ALGORITHM = 'PBKDF2WithHmacSHA256'
     private static final String CIPHER_ALGORITHM = 'AES/GCM/NoPadding'
-    private static final int KEY_LENGTH_BITS = 256
-    private static final int PBKDF2_ITERATIONS = 65_536
-    private static final int SALT_LENGTH_BYTES = 16
     private static final int IV_LENGTH_BYTES = 12
     private static final int GCM_TAG_LENGTH_BITS = 128
 
-    private final char[] password
+    private final SecretKey key
     private final SecureRandom random = new SecureRandom()
 
-    AesTextCipher(String password) {
-        if (!password) throw new IllegalArgumentException('password must be non-empty')
-        this.password = password.toCharArray()
+    AesTextCipher(String key) {
+        if (!key) throw new IllegalArgumentException('key must be non-empty')
+        byte[] keyBytes = MessageDigest.getInstance('SHA-256').digest(key.getBytes(UTF_8))
+        this.key = new SecretKeySpec(keyBytes, 'AES')
     }
 
-    /** Encrypt to a self-contained Base64 string with a freshly-random salt and IV per call. */
+    /** Encrypt to a self-contained string with a freshly-random IV per call. */
     String encrypt(String plaintext) {
         if (plaintext == null) throw new IllegalArgumentException('plaintext must not be null')
 
-        byte[] salt = new byte[SALT_LENGTH_BYTES]
-        random.nextBytes(salt)
         byte[] iv = new byte[IV_LENGTH_BYTES]
         random.nextBytes(iv)
+        byte[] ct = cipher(Cipher.ENCRYPT_MODE, iv).doFinal(plaintext.getBytes(UTF_8))
 
-        SecretKey key = deriveKey(salt)
-        Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM)
-        cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
-        byte[] ct = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8))
-
-        // Layout: [salt(16)][iv(12)][ciphertext+gcm_tag(variable)]
-        byte[] packed = new byte[salt.length + iv.length + ct.length]
-        System.arraycopy(salt, 0, packed, 0, salt.length)
-        System.arraycopy(iv, 0, packed, salt.length, iv.length)
-        System.arraycopy(ct, 0, packed, salt.length + iv.length, ct.length)
-
+        byte[] packed = new byte[iv.length + ct.length]
+        System.arraycopy(iv, 0, packed, 0, iv.length)
+        System.arraycopy(ct, 0, packed, iv.length, ct.length)
         return FORMAT_PREFIX + Base64.encoder.encodeToString(packed)
     }
 
     /** Decrypt a value produced by {@link #encrypt}; throws if the format prefix is missing. */
     String decrypt(String ciphertext) {
-        if (ciphertext == null) throw new IllegalArgumentException('ciphertext must not be null')
         if (!isHoistFormat(ciphertext)) {
-            throw new IllegalArgumentException(
-                "Ciphertext does not carry the expected '$FORMAT_PREFIX' prefix"
-            )
+            throw new IllegalArgumentException("Ciphertext does not carry the expected '$FORMAT_PREFIX' prefix")
         }
 
         byte[] packed = Base64.decoder.decode(ciphertext.substring(FORMAT_PREFIX.length()))
-        if (packed.length < SALT_LENGTH_BYTES + IV_LENGTH_BYTES + 1) {
-            throw new IllegalArgumentException('Ciphertext payload is too short')
-        }
+        if (packed.length <= IV_LENGTH_BYTES) throw new IllegalArgumentException('Ciphertext payload is too short')
 
-        byte[] salt = new byte[SALT_LENGTH_BYTES]
-        byte[] iv = new byte[IV_LENGTH_BYTES]
-        byte[] ct = new byte[packed.length - SALT_LENGTH_BYTES - IV_LENGTH_BYTES]
-        System.arraycopy(packed, 0, salt, 0, SALT_LENGTH_BYTES)
-        System.arraycopy(packed, SALT_LENGTH_BYTES, iv, 0, IV_LENGTH_BYTES)
-        System.arraycopy(packed, SALT_LENGTH_BYTES + IV_LENGTH_BYTES, ct, 0, ct.length)
-
-        SecretKey key = deriveKey(salt)
-        Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM)
-        cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
-        byte[] pt = cipher.doFinal(ct)
-        return new String(pt, StandardCharsets.UTF_8)
+        byte[] iv = Arrays.copyOfRange(packed, 0, IV_LENGTH_BYTES)
+        byte[] ct = Arrays.copyOfRange(packed, IV_LENGTH_BYTES, packed.length)
+        return new String(cipher(Cipher.DECRYPT_MODE, iv).doFinal(ct), UTF_8)
     }
 
     /** True if the given value carries this cipher's format marker. */
@@ -106,13 +77,9 @@ final class AesTextCipher {
         return value != null && value.startsWith(FORMAT_PREFIX)
     }
 
-    private SecretKey deriveKey(byte[] salt) {
-        PBEKeySpec spec = new PBEKeySpec(password, salt, PBKDF2_ITERATIONS, KEY_LENGTH_BITS)
-        try {
-            byte[] keyBytes = SecretKeyFactory.getInstance(KEY_ALGORITHM).generateSecret(spec).encoded
-            return new SecretKeySpec(keyBytes, 'AES')
-        } finally {
-            spec.clearPassword()
-        }
+    private Cipher cipher(int mode, byte[] iv) {
+        Cipher ret = Cipher.getInstance(CIPHER_ALGORITHM)
+        ret.init(mode, key, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
+        return ret
     }
 }

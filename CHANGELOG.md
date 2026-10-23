@@ -14,20 +14,15 @@
 
 ## 44.0-SNAPSHOT - unreleased
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW for most apps; 🟡 MEDIUM if you store local user passwords or write `pwd`-typed `AppConfig` values)
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - ~5 LoC if your app stores local user passwords)
 
 See [`docs/upgrade-notes/v44-upgrade-notes.md`](docs/upgrade-notes/v44-upgrade-notes.md) for
 detailed, step-by-step upgrade instructions with before and after code examples.
 
-* Removed the `org.jasypt:jasypt:1.9.3` dependency. Apps importing `org.jasypt.*` (typically
-  `BasicPasswordEncryptor` in a `User` domain class) must switch to
+* Removed the `org.jasypt:jasypt:1.9.3` dependency, unmaintained since 2014. Apps importing
+  `org.jasypt.*` (typically `BasicPasswordEncryptor` in a `User` domain class) must switch to
   `io.xh.hoist.security.HoistPasswordEncoder`. Legacy user-password hashes continue to verify
-  transparently.
-* `pwd`-typed `AppConfig` values now require an app-supplied encryption key set via instance config
-  `appConfigCryptoKey` (env var `APP_<appCode>_APP_CONFIG_CRYPTO_KEY` or YAML). Pre-v44 values
-  continue to decrypt for read via a one-release `LegacyJasyptDecrypter` shim, but writes fail
-  closed until the key is configured. The pre-v44 hardcoded obfuscation key is no longer used for
-  any new content.
+  transparently, so no password resets are needed.
 
 ### 🎁 New Features
 
@@ -45,11 +40,11 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 ### ⚙️ Technical
 
-* Replaced jasypt's internal use in `AppConfig` with pure-JDK AES-256-GCM (PBKDF2 key) for
-  `pwd`-value encryption and a deterministic SHA-256 of plaintext for the admin Config Diff
-  fingerprint. New ciphertexts carry a `$hoist-aes1$` marker and are encrypted under the
-  app-supplied `appConfigCryptoKey`. Re-saving a `pwd` config promotes it to the new format under
-  the configured key. No DB migration is required.
+* `pwd`-typed `AppConfig` values are now encrypted with pure-JDK AES-256-GCM instead of jasypt's
+  PBE-MD5-DES, under the same key as before. New ciphertexts carry a `$hoist-aes1$` marker;
+  pre-v44 values still decrypt via `LegacyJasyptDecrypter` and upgrade in place when re-saved. No
+  DB migration or configuration is required. The admin Config Diff fingerprint for `pwd` values is
+  now an unsalted SHA-256 digest.
 * Added `io.xh.hoist.security.HoistPasswordEncoder`, a thin BCrypt wrapper for app `User` domain
   classes. Verifies both new BCrypt hashes and legacy jasypt-default hashes; `isLegacyHash()`
   supports opportunistic re-encoding on login.

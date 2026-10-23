@@ -24,7 +24,7 @@ class AesTextCipherSpec extends Specification {
                   'café é résumé', '🚀 emoji 🎉', 'ABCD' * 200]
     }
 
-    def 'encrypt produces fresh output on every call (random IV/salt)'() {
+    def 'encrypt produces fresh output on every call (random IV)'() {
         given:
         def cipher = new AesTextCipher(PWD)
 
