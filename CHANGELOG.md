@@ -36,10 +36,9 @@
 
 ### ⚙️ Technical
 
-* Removed the redundant direct declarations of `spring-boot-autoconfigure`,
+* Removed redundant direct declarations of `spring-boot-autoconfigure`,
   `spring-boot-starter-validation`, `commons-io`, `opentelemetry-exporter-common` and
-  `opentelemetry-context`. All remain on the classpath as transitive dependencies of libraries
-  Hoist Core still uses, so apps referencing them are unaffected.
+  `opentelemetry-context`. All remain on the classpath transitively.
 
 ## 43.0.1 - 2026-10-15
 
