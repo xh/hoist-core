@@ -39,6 +39,8 @@ import org.grails.testing.ParameterizedGrailsUnitTest
  * | `clusterService` | {@link TestClusterService} |
  * | `trackService` | {@link TestTrackService} |
  * | `emailService` | {@link TestEmailService} |
+ * | `traceService` | {@link TestTraceService} |
+ * | `metricsService` | {@link TestMetricsService} |
  * | `xhExceptionHandler` | `ExceptionHandler` |
  *
  * Before each feature, config values, users, tracked entries and sent emails are cleared and
@@ -220,6 +222,8 @@ trait HoistUnitTest extends GrailsUnitTest {
         clusterService    : TestClusterService,
         trackService      : TestTrackService,
         emailService      : TestEmailService,
+        traceService      : TestTraceService,
+        metricsService    : TestMetricsService,
         xhExceptionHandler: ExceptionHandler
     ] as Map<String, Class>
 

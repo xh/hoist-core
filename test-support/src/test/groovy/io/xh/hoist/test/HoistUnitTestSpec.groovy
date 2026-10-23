@@ -56,6 +56,18 @@ class SampleService extends BaseService {
         isPrimary
     }
 
+    String traced(String source) {
+        span(name: 'loadPrices', tags: [source: source]).run { 'loaded' }
+    }
+
+    void observed(boolean fail) {
+        observe()
+            .span(name: 'refreshPrices')
+            .timer(name: 'priceRefreshTime')
+            .counter(name: 'priceRefreshes', tags: [source: 'vendor'])
+            .run { if (fail) throw new RuntimeException('boom') }
+    }
+
     // Not final - exposed for spec assertions only.
     def timers() { resources.values().findAll { it instanceof io.xh.hoist.util.Timer } }
 }
@@ -237,6 +249,21 @@ class HoistUnitTestSpec extends Specification implements ServiceUnitTest<SampleS
         then:
         testEmailService.sent.size() == 1
         testEmailService.lastSent == [to: 'a@example.com', subject: 'Hi', text: 'body', async: true]
+    }
+
+    def 'spans and observed runs execute without tracing or metrics config'() {
+        expect:
+        service.traceService instanceof TestTraceService
+        applicationContext.getBean('metricsService') instanceof TestMetricsService
+        !service.traceService.enabled
+        service.traced('vendor') == 'loaded'
+
+        when:
+        service.observed(false)
+        service.observed(true)
+
+        then:
+        thrown(RuntimeException)
     }
 
     def 'defineService registers an autowired service bean for collaborators'() {

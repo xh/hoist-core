@@ -134,6 +134,8 @@ framework services are in `io.xh.hoist.test.fakes`.
 | `TestClusterService` | `clusterService` bean. Reports `isPrimary` from `primaryInstance` (default `true`), so `primaryOnly` timers run. |
 | `TestTrackService` | `trackService` bean. Records `track()` entries in `tracked` / `lastTracked` instead of persisting them. |
 | `TestEmailService` | `emailService` bean. Records `sendEmail()` calls in `sent` / `lastSent` instead of delivering them. |
+| `TestTraceService` | `traceService` bean. Tracing is never enabled and `xhTraceConfig` is never read - `span()` and `observe().span()` run their closures with a no-op span. |
+| `TestMetricsService` | `metricsService` bean. No publishing registries and `xhMetricsConfig` is never read - `recordTimer()`, `recordCount()` and `observe()` timers and counters run without effect. |
 | `TestUser` | `HoistUser` with an explicit role set - no role service required. |
 | `HoistJson` | Serialize and round-trip with Hoist's own Jackson `JSONSerializer` / `JSONParser`, to assert the real wire format of `JSONFormat` objects. |
 | `HoistAssertions` | `httpStatusFor(Throwable)` and `isRoutine(Throwable)` mirror `ExceptionHandler`; `findUnsecuredActions` / `assertAllActionsSecured` check that every controller action has a Hoist access annotation. |
