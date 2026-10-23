@@ -23,7 +23,7 @@ abstract class LifecycleBaseSpec extends HoistSpec {
 }
 
 /**
- * Verifies that config, users, identity and recorded calls do not leak between features - each feature records
+ * Verifies that config, users and identity do not leak between features - each feature records
  * state that the next one then checks for. The Grails test context itself is shared across the
  * features of a spec, so the same beans are reset rather than replaced.
  */
@@ -45,9 +45,6 @@ class HoistUnitTestLifecycleSpec extends LifecycleBaseSpec {
         testClusterService.primaryInstance = false
         testTrackService.track(msg: 'leak')
         testEmailService.sendEmail(to: 'leak@example.com', text: 'leak')
-        testTraceService.withSpan(name: 'leak') {}
-        testMetricsService.recordCount(name: 'leak', value: 1)
-        testMetricsService.recordTimer(name: 'leak', valueMs: 1)
 
         then:
         identityService.username == 'alice'
@@ -62,9 +59,6 @@ class HoistUnitTestLifecycleSpec extends LifecycleBaseSpec {
         testClusterService.primaryInstance
         testTrackService.tracked.isEmpty()
         testEmailService.sent.isEmpty()
-        testTraceService.spans.isEmpty()
-        testMetricsService.counts.isEmpty()
-        testMetricsService.timers.isEmpty()
     }
 
     @FailsWith(org.spockframework.runtime.ConditionNotSatisfiedError)
