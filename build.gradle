@@ -54,18 +54,15 @@ dependencies {
     api "org.apache.grails:grails-data-hibernate5"
     api "org.apache.grails:grails-databinding"
     api "org.apache.grails:grails-events"
-    api "org.apache.grails:grails-gsp"
     api "org.apache.grails:grails-interceptors"
     api "org.apache.grails:grails-logging"
+    api "org.apache.grails:grails-gsp"
     api "org.apache.grails:grails-mail"
-    api "org.apache.grails:grails-quartz"
     api "org.apache.grails:grails-services"
     api "org.apache.grails:grails-url-mappings"
     api "org.apache.grails:grails-web-boot"
-    api "org.springframework.boot:spring-boot-autoconfigure"
     api "org.springframework.boot:spring-boot-starter-logging"
     api "org.springframework.boot:spring-boot-starter-tomcat"
-    api "org.springframework.boot:spring-boot-starter-validation"
     api "org.springframework.boot:spring-boot-starter-actuator"
 
     //--------------------
@@ -84,7 +81,6 @@ dependencies {
     // Pinned above grails-bom for security fixes - remove version once grails-bom is >= 3.1.7.
     api 'tools.jackson.core:jackson-databind:3.1.7'
     api "com.jayway.jsonpath:json-path:2.9.0"
-    api "commons-io:commons-io:2.22.0"
     // Supports EntraIdService - Microsoft Graph token acquisition via client credentials.
     api "com.microsoft.azure:msal4j:1.26.0"
     api "org.apache.directory.api:api-all:2.1.7"
@@ -101,8 +97,6 @@ dependencies {
     api platform("io.opentelemetry:opentelemetry-bom:1.65.0")
     api "io.opentelemetry:opentelemetry-sdk"
     api "io.opentelemetry:opentelemetry-exporter-otlp"
-    api "io.opentelemetry:opentelemetry-exporter-common"
-    api "io.opentelemetry:opentelemetry-context"
     api "io.opentelemetry.instrumentation:opentelemetry-jdbc:2.31.1-alpha"
     // opentelemetry-jdbc 2.31.x demotes this to runtime scope, but static Groovy compilation
     // needs SqlCommenter on the compile classpath to resolve JdbcTelemetryBuilder signatures.

@@ -28,6 +28,18 @@
 * Hardened `ViewService` against concurrent updates to a user's ViewManager state, which could
   previously be silently lost when overlapping.
 
+### 💥 Breaking Changes (upgrade difficulty: 🎉 TRIVIAL)
+
+* Removed the unused `grails-quartz` plugin dependency. Hoist Core schedules work with its own
+  `Timer`. Apps that use the Quartz plugin directly must now declare
+  `org.apache.grails:grails-quartz` themselves (the version is managed by the Grails BOM).
+
+### ⚙️ Technical
+
+* Removed redundant direct declarations of `spring-boot-autoconfigure`,
+  `spring-boot-starter-validation`, `commons-io`, `opentelemetry-exporter-common` and
+  `opentelemetry-context`. All remain on the classpath transitively.
+
 ## 43.0.1 - 2026-10-15
 
 ### 💥 Breaking Changes (upgrade difficulty: 🎉 TRIVIAL)
