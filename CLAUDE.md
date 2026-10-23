@@ -91,6 +91,8 @@ enable it for Claude Code.
 ```bash
 ./gradlew assemble               # Compile all sources (Groovy + Java) and build the JAR
 ./gradlew clean assemble         # Clean rebuild
+./gradlew test                   # Run Spock unit tests under src/test/groovy
+./gradlew clean build            # Full build incl. test
 ```
 
 This is a plugin — `bootRun` is not supported. To run locally, use a wrapper app project that
@@ -190,7 +192,11 @@ handles primary-only tasks (e.g., timers with `primaryOnly: true`). Distributed 
 
 `AppConfig` domain objects store typed config values (`string|int|long|double|bool|json|pwd`)
 in the database. `ConfigService` provides typed getters. Configs can be marked `clientVisible`
-for the JS client. The `pwd` type stores values encrypted via Jasypt.
+for the JS client. The `pwd` type stores values encrypted at rest via AES-256-GCM
+(`io.xh.hoist.security.crypto.AesTextCipher`) under a key the app supplies through instance
+config (`appConfigCryptoKey`); writes fail closed if the key isn't configured. Pre-v41 values
+written under the old hardcoded key still decrypt for read via `LegacyJasyptDecrypter` and
+upgrade in place on next save.
 
 ### JSON Handling
 
@@ -372,7 +378,8 @@ speak for themselves.
 - **Apache POI 5** - Excel/spreadsheet generation
 - **Micrometer** - Observable metrics with Prometheus and OTLP export
 - **Kryo 5** - Fast serialization for Hazelcast distributed structures
-- **Jasypt** - Encryption for `pwd`-type soft configuration values
+- **Spring Security Crypto** - BCrypt password hashing (via `HoistPasswordEncoder`) and JDK-backed
+  symmetric encryption for `pwd`-type soft config values
 - **Apache Directory API** - LDAP/Active Directory integration
 
 ## Reference Implementation: Toolbox

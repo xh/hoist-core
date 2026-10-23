@@ -14,6 +14,21 @@
 
 ## 44.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW for most apps; 🟡 MEDIUM if you store local user passwords or write `pwd`-typed `AppConfig` values)
+
+See [`docs/upgrade-notes/v44-upgrade-notes.md`](docs/upgrade-notes/v44-upgrade-notes.md) for
+detailed, step-by-step upgrade instructions with before and after code examples.
+
+* Removed the `org.jasypt:jasypt:1.9.3` dependency. Apps importing `org.jasypt.*` (typically
+  `BasicPasswordEncryptor` in a `User` domain class) must switch to
+  `io.xh.hoist.security.HoistPasswordEncoder`. Legacy user-password hashes continue to verify
+  transparently.
+* `pwd`-typed `AppConfig` values now require an app-supplied encryption key set via instance config
+  `appConfigCryptoKey` (env var `APP_<appCode>_APP_CONFIG_CRYPTO_KEY` or YAML). Pre-v44 values
+  continue to decrypt for read via a one-release `LegacyJasyptDecrypter` shim, but writes fail
+  closed until the key is configured. The pre-v44 hardcoded obfuscation key is no longer used for
+  any new content.
+
 ### 🎁 New Features
 
 * Added `TestTraceService` and `TestMetricsService` to `hoist-core-test`. `HoistUnitTest` now
@@ -27,6 +42,19 @@
   `InstanceNotAvailableException` result.
 * Hardened `ViewService` against concurrent updates to a user's ViewManager state, which could
   previously be silently lost when overlapping.
+
+### ⚙️ Technical
+
+* Replaced jasypt's internal use in `AppConfig` with pure-JDK AES-256-GCM (PBKDF2 key) for
+  `pwd`-value encryption and a deterministic SHA-256 of plaintext for the admin Config Diff
+  fingerprint. New ciphertexts carry a `$hoist-aes1$` marker and are encrypted under the
+  app-supplied `appConfigCryptoKey`. Re-saving a `pwd` config promotes it to the new format under
+  the configured key. No DB migration is required.
+* Added `io.xh.hoist.security.HoistPasswordEncoder`, a thin BCrypt wrapper for app `User` domain
+  classes. Verifies both new BCrypt hashes and legacy jasypt-default hashes; `isLegacyHash()`
+  supports opportunistic re-encoding on login.
+* Added `org.springframework.security:spring-security-crypto` (crypto module only). Version
+  managed by the Spring Boot BOM.
 
 ## 43.0.1 - 2026-10-15
 
