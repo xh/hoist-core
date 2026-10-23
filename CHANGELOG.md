@@ -30,10 +30,9 @@
 
 ### 💥 Breaking Changes (upgrade difficulty: 🎉 TRIVIAL)
 
-* Removed the unused `grails-quartz` and `grails-gsp` plugin dependencies. Hoist Core schedules
-  work with its own `Timer` and renders no GSP views. Apps that use the Quartz plugin or GSP
-  directly must now declare `org.apache.grails:grails-quartz` or `org.apache.grails:grails-gsp`
-  themselves (versions are managed by the Grails BOM).
+* Removed the unused `grails-quartz` plugin dependency. Hoist Core schedules work with its own
+  `Timer`. Apps that use the Quartz plugin directly must now declare
+  `org.apache.grails:grails-quartz` themselves (the version is managed by the Grails BOM).
 
 ### ⚙️ Technical
 
