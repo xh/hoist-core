@@ -25,6 +25,9 @@
 * Fixed `ClusterTask` failing with an `IllegalStateException` and logging an ERROR on the calling
   instance when sent to an instance still starting up. Such instances now return a routine
   `InstanceNotAvailableException` result.
+* Hardened `ViewService` against concurrent updates to a user's ViewManager state, which could
+  previously be lost or fail when overlapping. Added `JsonBlobService.findForUpdate()`, which uses
+  a pessimistic row lock to serialize read-modify-write cycles on a blob.
 
 ## 43.0.1 - 2026-10-15
 
