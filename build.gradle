@@ -56,8 +56,6 @@ dependencies {
     api "org.apache.grails:grails-events"
     api "org.apache.grails:grails-interceptors"
     api "org.apache.grails:grails-logging"
-    // grails-gsp is not used by Hoist Core directly, but grails-mail's autoconfiguration requires
-    // the GroovyPagesTemplateEngine bean it registers - the app fails to start without it.
     api "org.apache.grails:grails-gsp"
     api "org.apache.grails:grails-mail"
     api "org.apache.grails:grails-services"
