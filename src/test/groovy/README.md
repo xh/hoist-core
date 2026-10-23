@@ -1,6 +1,6 @@
 # hoist-core unit tests
 
-Spock-based unit tests for pure-JDK classes in hoist-core. First introduced alongside the v41
+Spock-based unit tests for pure-JDK classes in hoist-core. First introduced alongside the v44
 jasypt removal to cover the new `io.xh.hoist.security.*` crypto utilities.
 
 ## Running

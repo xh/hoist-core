@@ -180,7 +180,7 @@ trait LogSupport {
     private LogSupportMarker createMarker(Logger log, Object messages, Map meta = getMeta()) {
         List msgs = Arrays.asList(messages).flatten()
         if (meta) {
-            if (msgs.last() instanceof Throwable) {
+            if (msgs && msgs.last() instanceof Throwable) {
                 msgs.add(msgs.size() - 1, meta)
             } else {
                 msgs.add(meta)

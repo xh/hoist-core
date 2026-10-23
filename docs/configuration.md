@@ -123,6 +123,16 @@ individual files.
 If both an environment variable and a file-based entry exist for the same key, the environment
 variable wins.
 
+All values are read as Strings. YAML scalars are converted on load, so `useH2: true` reads as
+`'true'` and `port: 8080` reads as `'8080'`. Quote any value that must be preserved verbatim, as
+unquoted dates parse to `Date` and stringify in the JVM's default timezone.
+
+Blank and absent entries are distinct. An explicitly empty entry resolves to an empty String,
+whether it comes from `key: ""` in YAML or an empty file in a config directory. An absent key
+resolves to null, as does a YAML key written with no value at all (`key:`). An empty environment
+variable reads as unset and falls through to any file-based entry for the same key. Blank entries
+are logged at INFO during startup, as they can arrive unintentionally.
+
 ### Common Instance Config Keys
 
 | Key | Purpose |
@@ -292,6 +302,32 @@ All getters accept an optional `notFoundValue` parameter. If the config doesn't 
 `notFoundValue` is provided, a `RuntimeException` is thrown. A `RuntimeException` is also thrown if
 the requested type doesn't match the config's `valueType`.
 
+##### Unset values and the `AppConfig.NONE` placeholder
+
+`AppConfig` validation requires a non-null, non-blank value, so a config that is bootstrapped but
+not yet set cannot simply hold an empty value. Hoist bootstraps such configs with the
+`AppConfig.NONE` placeholder instead - see the `defaultValue: AppConfig.NONE` entries in
+`BootStrap.ensureRequiredConfigsCreated` for the framework's own.
+
+Declare app-level configs that may be left unset the same way, and read them with
+`getStringIfSet` / `getPwdIfSet`, which return null when the config holds the placeholder:
+
+```groovy
+// In ensureRequiredConfigsCreated
+new ConfigSpec(name: 'myApiKey', valueType: 'pwd', defaultValue: AppConfig.NONE, ...)
+
+// At the point of use
+String apiKey = configService.getPwdIfSet('myApiKey')
+if (!apiKey) throw new RuntimeException('myApiKey not configured')
+```
+
+Use the constant rather than the bare string, so a typo cannot leave a config that reads as set
+when it is not.
+
+Note the distinction between unset and absent. A config holding the placeholder returns null,
+while a config that does not exist throws. These are intended to read a bootstrapped config, and
+are not a way to probe whether one exists.
+
 ##### Typed configs via `TypedConfigMap`
 
 For structured JSON configs with a stable, known key set, declare a `TypedConfigMap` subclass
@@ -299,14 +335,16 @@ and wire it in via the `typedClass:` field on the config's `ConfigSpec` entry pa
 `ensureRequiredConfigsCreated`. This gives you:
 
 1. **One source of truth for shape + defaults.** Property initializers on the class are the
-   fallback values; when the stored map is missing a key, the declared default applies.
+   fallback values; when the stored map is missing a key, the declared default applies. Omit
+   `defaultValue` from the `ConfigSpec` — a missing config is seeded as an empty JSON object
+   (`{}`), and the typed class fills in every key at read time.
 2. **Typed server-side reads** via `configService.getObject(Class)`.
 3. **Populated client payloads** — for `clientVisible: true` configs, the map sent to the
    client via `getClientConfig()` is filled in through the typed class, so the same defaults
    reach browser code without duplicating them in TypeScript.
-4. **Startup drift detection** — a `WARN` is logged when a typed-class property default
-   disagrees with the BootStrap `defaultValue` for the same key, flagging stale declarations
-   on either side.
+4. **Startup guard against duplicated defaults** — a `WARN` is logged when a spec with a
+   `typedClass` also declares a non-empty `defaultValue`, since the two would otherwise drift.
+   An explicit `defaultValue: [:]` is accepted silently.
 5. **Unknown keys** are logged at WARN and ignored — stale or mistyped entries in soft config
    surface without breaking startup.
 
@@ -326,12 +364,12 @@ class PricingConfig extends TypedConfigMap {
     PricingConfig(Map args) { init(args) }
 }
 
-// 2. Register it in BootStrap alongside the other config metadata.
+// 2. Register it in BootStrap alongside the other config metadata. No defaultValue - the
+//    class above is the single source of defaults.
 configService.ensureRequiredConfigsCreated([
     new ConfigSpec(
         name: 'pricingSourceConfig',
         valueType: 'json',
-        defaultValue: [endpoint: 'https://prices.example.com', timeoutMs: 5000, fallbackEnabled: true],
         typedClass: PricingConfig,
         groupName: 'Pricing',
         note: '...'

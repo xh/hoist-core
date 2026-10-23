@@ -25,12 +25,12 @@ import java.text.Normalizer
  * organically (re-saving a `pwd` config, logging in as a local user, etc.).
  *
  * <h3>Intended scope — migration shim only</h3>
- * The sole purpose of this class is reading pre-v41 `pwd` AppConfig ciphertexts and verifying
+ * The sole purpose of this class is reading pre-v44 `pwd` AppConfig ciphertexts and verifying
  * legacy local-user password hashes long enough for them to be re-written in modern formats
  * (via {@link AesTextCipher} for `pwd` values; BCrypt via
  * {@link io.xh.hoist.security.HoistPasswordEncoder} for user passwords). The algorithms
  * reproduced here (PBE-MD5-DES, MD5+8-byte-salt) are obsolete by modern standards and offer
- * no meaningful security. The pre-v41 `pwd` AppConfig case additionally used a fixed
+ * no meaningful security. The pre-v44 `pwd` AppConfig case additionally used a fixed
  * source-visible key — pre-upgrade `pwd` ciphertexts must be treated as if they were stored
  * in plaintext. Do not adopt this class for any new use case.
  *

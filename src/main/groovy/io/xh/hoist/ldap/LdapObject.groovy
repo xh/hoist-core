@@ -38,4 +38,9 @@ class LdapObject {
     static List<String> getKeys() {
         [ 'cn', 'displayname', 'distinguishedname', 'mail', 'memberof', 'name', 'samaccountname']
     }
+
+    /** Person attributes suitable for use as `xhLdapConfig.usernameAttribute`. */
+    static List<String> getUsernameKeys() {
+        ['samaccountname', 'mail']
+    }
 }

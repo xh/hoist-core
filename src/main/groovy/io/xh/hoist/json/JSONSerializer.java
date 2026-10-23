@@ -7,12 +7,11 @@
 
 package io.xh.hoist.json;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.Module;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import static com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS;
+import tools.jackson.databind.JacksonModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.module.SimpleModule;
+import static tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS;
 
 import groovy.lang.GString;
 import io.xh.hoist.json.serializer.*;
@@ -38,12 +37,9 @@ import static java.util.Arrays.asList;
 public class JSONSerializer {
 
     private static ObjectMapper mapper;
-    private static List<Module> registeredModules = new ArrayList<>();
+    private static List<JacksonModule> registeredModules = new ArrayList<>();
 
     static {
-        // JSR 310 standard
-        SimpleModule javaTimeModule = new JavaTimeModule();
-
         // Hoist Conventional JSON Formats
         SimpleModule hoistModule = new SimpleModule();
         hoistModule.addSerializer(GString.class, new GStringSerializer())
@@ -52,23 +48,23 @@ public class JSONSerializer {
                 .addSerializer(Double.class, new DoubleSerializer())
                 .addSerializer(Float.class, new FloatSerializer())
                 .addSerializer(Throwable.class, new ThrowableSerializer());
-        // ... plus one overwrite of JSR 310 standard
+        // ... plus one overwrite of Jackson's built-in java.time support
         hoistModule.addSerializer(LocalDate.class, new LocalDateSerializer());
 
-        registerModules(javaTimeModule, hoistModule);
+        registerModules(hoistModule);
     }
 
     /**
      * Serialize an Object to JSON.  Main entry point.
      */
-    public static String serialize(Object obj) throws JsonProcessingException {
+    public static String serialize(Object obj) {
         return mapper.writeValueAsString(obj);
     }
 
     /**
      * Serialize an Object to JSON with PrettyPrinting.
      */
-    public static String serializePretty(Object obj) throws JsonProcessingException {
+    public static String serializePretty(Object obj) {
         return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
     }
 
@@ -79,11 +75,12 @@ public class JSONSerializer {
      * Applications should use this method to add custom serializers or otherwise customize
      * the default JSON serialization.
      */
-    public static void registerModules(Module  ...modules) {
+    public static void registerModules(JacksonModule ...modules) {
         registeredModules.addAll(asList(modules));
-        ObjectMapper newMapper = new ObjectMapper();
-        newMapper.disable(WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS);
-        newMapper.registerModules(registeredModules);
-        mapper = newMapper;
+        // Jackson 2 defaults preserve Hoist's wire format - e.g. dates as epoch millis.
+        mapper = JsonMapper.builderWithJackson2Defaults()
+                .disable(WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS)
+                .addModules(registeredModules)
+                .build();
     }
 }

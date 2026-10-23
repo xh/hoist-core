@@ -25,10 +25,10 @@ import spock.lang.Specification
  */
 class AppConfigEncryptionRoutingSpec extends Specification {
 
-    // Pre-v41 source-visible obfuscation key — used ONLY to read legacy ciphertexts.
+    // Pre-v44 source-visible obfuscation key — used ONLY to read legacy ciphertexts.
     private static final String LEGACY_KEY = 'dsd899s_*)jsk9dsl2fd223hpdj32))I@333'
 
-    // High-entropy app-supplied key — what a v41+ deployment would inject via instance config.
+    // High-entropy app-supplied key — what a v44+ deployment would inject via instance config.
     private static final String APP_KEY = 'simulated-secrets-manager-value-with-real-entropy'
 
     private final LegacyJasyptDecrypter legacy = new LegacyJasyptDecrypter(LEGACY_KEY)

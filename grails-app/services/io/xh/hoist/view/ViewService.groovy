@@ -7,11 +7,15 @@
 
 package io.xh.hoist.view
 
+import grails.gorm.transactions.Transactional
 import groovy.transform.CompileStatic
 import io.xh.hoist.BaseService
+import io.xh.hoist.exception.ExceptionHandler
+import io.xh.hoist.exception.RoutineRuntimeException
 import io.xh.hoist.jsonblob.JsonBlob
 import io.xh.hoist.jsonblob.JsonBlobService
 import io.xh.hoist.track.TrackService
+import io.xh.hoist.util.Utils
 
 import static io.xh.hoist.json.JSONParser.parseObject
 
@@ -42,14 +46,18 @@ class ViewService extends BaseService {
     //----------------------------
     // ViewManager state + support
     //-----------------------------
-    /** Get all accessible views (without value) + user-specific state. */
+    /**
+     * Get all accessible views (without value) + user-specific state, along with whether the user
+     * may create and manage global views of this type.
+     */
     Map getAllData(String type, String viewInstance, String username = username) {
         def blobs = jsonBlobService.list(type, username).split { it.name == STATE_BLOB_NAME }
         def (rawState, views) = [blobs[0], blobs[1]]
 
         return [
-            state: getStateFromBlob(rawState ? rawState.first() : null, viewInstance),
-            views: views*.formatForClient(false)
+            state         : getStateFromBlob(rawState ? rawState.first() : null, viewInstance),
+            views         : views*.formatForClient(false),
+            manageGlobal  : jsonBlobService.canWriteGlobal(type, username)
         ]
     }
 
@@ -61,7 +69,11 @@ class ViewService extends BaseService {
      *
      * These user preferences are stored alongside and loaded/refreshed with views to keep them in
      * sync with the views themselves.
+     *
+     * Updates are partial merges, read and written in one transaction so that overlapping updates
+     * for the same user and type fail on the version check rather than overwriting one another.
      */
+    @Transactional
     Map updateState(String type, String viewInstance, Map update, String username = username) {
         def currBlob = jsonBlobService.find(type, STATE_BLOB_NAME, username, username),
             currValue = parseObject(currBlob?.value),
@@ -98,7 +110,8 @@ class ViewService extends BaseService {
         jsonBlobService.get(token, username).formatForClient(true)
     }
 
-    /** Create a new view. */
+    /** Create a new view.    */
+    @Transactional
     Map create(Map data, String username = username) {
         def isShared = data.isShared,
             isGlobal = data.isGlobal,
@@ -115,62 +128,71 @@ class ViewService extends BaseService {
             ], username)
 
         if (data.containsKey('isPinned')) {
-            updateState(
-                data.type as String,
-                'default',
-                [userPinned: [(ret.token): data.isPinned]],
-                username
-            )
+            updatePinned(ret.type, [ret.token], data.isPinned, username)
         }
 
         trackChange('Created View', ret)
         ret.formatForClient(true)
     }
 
-    /** Update a view's metadata */
+    /**
+     * Update a view's metadata.
+     *
+     * Supported keys in `data` include `name`, `description`, `group`, `isGlobal`, `isShared` and
+     * `isPinned`. Groups are slash-delimited paths supporting unlimited nesting (e.g.
+     * "Reports/Sales/Monthly"); this moves the single view in question into the given group. See
+     * {@link #renameGroup} to rename or re-parent a group across all of the views within it.
+     */
+    @Transactional
     Map updateInfo(String token, Map data, String username = username) {
-        def existing = jsonBlobService.get(token, username),
-            meta = parseObject(existing.meta) ?: [:],
-            core = [:]
-
-        data.each { k, v ->
-            if (['name', 'description'].contains(k)) {
-                core[k] = v
-            } else if (['group'].contains(k)) {
-                meta[k] = v
-            }
-        }
-
-        if (data.containsKey('isGlobal') || data.containsKey('isShared')) {
-            if (data.isGlobal) {
-                meta = meta.findAll { it.key != 'isShared' }
-                core.owner = null
-                core.acl = '*'
-            } else if (data.isShared) {
-                meta.isShared = data.isShared
-                core.owner = username
-                core.acl = '*'
-            } else {
-                meta.isShared = false
-                core.owner = existing.owner ?: username
-                core.acl = null
-            }
-        }
-
-        def ret = jsonBlobService.update(token, [*: core, meta: meta], username)
+        JsonBlob ret = doUpdateInfo(token, data, username)
 
         if (data.containsKey('isPinned')) {
-            updateState(
-                data.type as String,
-                'default',
-                [userPinned: [(ret.token): data.isPinned]],
-                username
-            )
+            updatePinned(ret.type, [ret.token], data.isPinned, username)
         }
-
 
         trackChange('Updated View Info', ret)
         ret.formatForClient(true)
+    }
+
+    /**
+     * Bulk update view metadata - applies the same updates to each of the given views.
+     * Supports the same keys in `data` as {@link #updateInfo}. Any `isPinned` change is applied to
+     * all successfully updated views, in one state update per view type.
+     *
+     * Updates are applied best-effort: failures on individual views are logged and reported via
+     * a single exception, thrown after all views have been attempted and reporting the token and
+     * reason for each view that could not be updated.
+     */
+    void bulkUpdateInfo(List<String> tokens, Map data, String username = username) {
+        Map<String, Exception> failures = [:]
+        List<JsonBlob> updated = []
+        tokens.each { String token ->
+            try {
+                updated << doUpdateInfo(token, data, username)
+            } catch (Exception e) {
+                failures[token] = e
+                logError('Failed to update View info', [token: token], e)
+            }
+        }
+
+        if (updated) {
+            // Pinned state is stored per view type, so update each type's state blob just once.
+            if (data.containsKey('isPinned')) {
+                updated.groupBy { it.type }.each { String type, List<JsonBlob> blobs ->
+                    updatePinned(type, blobs*.token, data.isPinned, username)
+                }
+            }
+            trackChange('Bulk Updated View Info', [count: updated.size()])
+        }
+
+        if (failures) {
+            String detail = failures.collect { token, e -> "$token: ${e.message}" }.join('; ')
+            throw bulkFailure(
+                "Failed to update ${failures.size()} of ${tokens.size()} view(s) - $detail",
+                failures.values() as List<Exception>
+            )
+        }
     }
 
     /** Update a view's value */
@@ -199,14 +221,113 @@ class ViewService extends BaseService {
         }
 
         if (failures) {
-            throw new RuntimeException("Failed to delete ${failures.size()} view(s)", failures.first())
+            throw bulkFailure(
+                "Failed to delete ${failures.size()} view(s) - ${failures.first().message}",
+                failures
+            )
         }
+    }
+
+
+    //------------------
+    // Group management
+    //------------------
+    /**
+     * Rename a view group, cascading to every view at or nested under the renamed path.
+     *
+     * Groups are slash-delimited paths, so this both renames a group in place and re-parents it
+     * along with its entire subtree - e.g. renaming "Reports/Sales" to "Archive/Sales" also takes
+     * "Reports/Sales/Monthly" with it.
+     *
+     * The scope of the rename is explicit and limited to a single group namespace: either the
+     * global views, or the views owned by the requesting user (including any they have shared with
+     * others). Groups are namespaced per owner, so the same path can exist independently in each
+     * and renaming one never affects the other.
+     *
+     * @return count of views whose group path was rewritten, as `count`.
+     */
+    Map renameGroup(String type, String from, String to, boolean isGlobal, String username = username) {
+        int count = jsonBlobService.renameGroup(type, isGlobal ? null : username, from, to, username)
+
+        trackChange('Renamed View Group', [
+            type    : type,
+            from    : from,
+            to      : to,
+            isGlobal: isGlobal,
+            count   : count
+        ])
+        return [count: count]
     }
 
 
     //--------------------
     // Implementation
     //---------------------
+    /**
+     * Apply metadata updates to a single view, returning the updated blob.
+     *
+     * Note that any `isPinned` change is *not* applied here - that state lives in a per-type
+     * sidecar blob and is updated once per call by `updateInfo` / `bulkUpdateInfo`.
+     *
+     * Transactional so that the `meta` merge is read and written in one session, including when
+     * called per view from the non-transactional `bulkUpdateInfo`.
+     */
+    @Transactional
+    private JsonBlob doUpdateInfo(String token, Map data, String username) {
+        JsonBlob existing = jsonBlobService.get(token, username)
+        Map meta = parseObject(existing.meta) ?: [:],
+            core = [:]
+
+        data.each { k, v ->
+            if (['name', 'description'].contains(k)) {
+                core[k] = v
+            } else if (['group'].contains(k)) {
+                meta[k] = v
+            }
+        }
+
+        if (data.containsKey('isGlobal') || data.containsKey('isShared')) {
+            if (data.isGlobal) {
+                meta = meta.findAll { it.key != 'isShared' }
+                core.owner = null
+                core.acl = '*'
+            } else if (data.isShared) {
+                meta.isShared = data.isShared
+                core.owner = username
+                core.acl = '*'
+            } else {
+                meta.isShared = false
+                core.owner = existing.owner ?: username
+                core.acl = null
+            }
+        }
+
+        Map payload = [*: core, meta: meta]
+        return jsonBlobService.update(token, payload, username)
+    }
+
+    /**
+     * Exception summarizing failures from a best-effort bulk operation. Routine (expected) failures
+     * such as a name collision or access error are preserved as such, so they are not reported to
+     * the client as a 500 or logged as a server error.
+     */
+    private Exception bulkFailure(String msg, List<Exception> failures) {
+        ExceptionHandler exceptionHandler = Utils.exceptionHandler
+        return failures.every { exceptionHandler.isRoutine(it) } ?
+            new RoutineRuntimeException(msg) :
+            new RuntimeException(msg, failures.first())
+    }
+
+    /** Record the user's explicit pinned state for one or more views of a single type. */
+    private void updatePinned(String type, List<String> tokens, Object isPinned, String username) {
+        updateState(
+            type,
+            'default',
+            [userPinned: tokens.collectEntries { [(it): isPinned] }],
+            username
+        )
+    }
+
     private trackChange(String msg, Object data) {
         trackService.track(
             msg: msg,

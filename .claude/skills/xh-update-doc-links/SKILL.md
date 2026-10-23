@@ -62,8 +62,6 @@ For each feature-area doc on disk:
 - **Status updates:** Change `Planned` → `Draft` if the file exists and contains a DRAFT
   banner. Change `Draft` → `Done` if the file exists and the DRAFT banner has been removed.
 - **Missing entries:** Add entries for docs not yet on the roadmap.
-- **Progress notes:** Append a progress note entry for the current date to
-  `docs/planning/docs-roadmap-log.md`. Follow the existing chronological format.
 
 ## Step 4: Validate Inter-Doc Links
 
@@ -133,8 +131,7 @@ the single source of truth for both the MCP server and the toolbox documentation
 Output a summary organized into these sections:
 
 1. **Index Updates** — `docs/README.md` entries added, updated, or removed.
-2. **Roadmap Updates** — Status changes and new entries in `docs-roadmap.md`, progress notes
-   appended to `docs-roadmap-log.md`.
+2. **Roadmap Updates** — Status changes and new entries in `docs-roadmap.md`.
 3. **Broken Links Fixed** — Source file, broken target, and fix applied.
 4. **New Cross-Links Added** — Source file, target doc, and surrounding context.
 5. **Registry Updates** — Entries added, removed, or updated in `docs/doc-registry.json`, with

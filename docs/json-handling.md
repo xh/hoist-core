@@ -75,7 +75,7 @@ A static utility class wrapping a Jackson `ObjectMapper` configured with Hoist-s
 |--------|-------------|
 | `serialize(Object)` | Serialize an object to a JSON string |
 | `serializePretty(Object)` | Serialize with pretty-printing (indented) |
-| `registerModules(Module...)` | Register custom Jackson modules |
+| `registerModules(JacksonModule...)` | Register custom Jackson modules |
 
 #### Built-in Serializers
 
@@ -91,8 +91,10 @@ A static utility class wrapping a Jackson `ObjectMapper` configured with Hoist-s
 | `LocalDateSerializer` | `LocalDate` | Formats as ISO date string (e.g., `"2024-01-15"`) |
 | `ThrowableSerializer` | `Throwable` | Serializes exceptions as `{name, message, cause, isRoutine}` maps (null/false values filtered out). If the `Throwable` implements `JSONFormat`, delegates to `formatForJSON()` instead. (Groovy) |
 
-The `JavaTimeModule` (JSR 310) is also registered for Java 8+ date/time types, with nanosecond
-timestamps disabled.
+Hoist uses Jackson 3, which supports Java 8+ date/time types (JSR 310).
+Nanosecond timestamps are disabled. Both `JSONSerializer` and `JSONParser` build their mappers with
+Jackson's `JsonMapper.builderWithJackson2Defaults()` - this means that `Date` and `Instant` values
+serialize as epoch milliseconds.
 
 #### Registering Custom Modules
 
@@ -181,6 +183,11 @@ class LargeDataPoint extends JSONFormatCached {
 The first time a `JSONFormatCached` object is serialized, its `formatForJSON()` is called and the
 resulting JSON string is cached. Subsequent serializations write the cached string directly,
 avoiding repeated map creation and serialization.
+
+The cached string is held in a `transient` field, so it is never shipped along with the object into
+Hazelcast structures (a replicated `Cache`/`CachedValue`, an `IMap`, a Topic) or across a
+cross-instance service call — sending derived JSON alongside the fields it came from would inflate
+cluster traffic and per-instance heap. Each instance builds its own copy lazily on first render.
 
 **Use this when:**
 - Objects are serialized in bulk (e.g., large lists rendered to the client)
@@ -279,17 +286,19 @@ class Fund implements JSONFormat {
 
 ### Custom Serializer for External Types
 
-For third-party classes you can't modify:
+For third-party classes you can't modify. Jackson 3 classes live under `tools.jackson` (e.g.
+`tools.jackson.databind.ser.std.StdSerializer`) - only the annotations remain in
+`com.fasterxml.jackson.annotation`.
 
 ```groovy
 class MoneySerializer extends StdSerializer<Money> {
 
     MoneySerializer() { super(Money) }
 
-    void serialize(Money value, JsonGenerator jgen, SerializerProvider provider) {
+    void serialize(Money value, JsonGenerator jgen, SerializationContext context) {
         jgen.writeStartObject()
-        jgen.writeNumberField('amount', value.amount)
-        jgen.writeStringField('currency', value.currency.code)
+        jgen.writeNumberProperty('amount', value.amount)
+        jgen.writeStringProperty('currency', value.currency.code)
         jgen.writeEndObject()
     }
 }

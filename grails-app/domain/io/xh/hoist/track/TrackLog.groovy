@@ -73,7 +73,7 @@ class TrackLog implements JSONFormat {
         impersonating(nullable: true, maxSize: 50)
 
         category(maxSize: 100)
-        msg(maxSize: MAX_MSG_LENGTH)
+        msg(maxSize: TrackLog.MAX_MSG_LENGTH)
         data(nullable: true, validator: { Utils.isJSON(it) ?: 'default.invalid.json.message' })
         elapsed(nullable: true)
 
@@ -89,7 +89,7 @@ class TrackLog implements JSONFormat {
 
         appVersion(nullable: true, maxSize: 100)
         appEnvironment(nullable: true, maxSize: 100)
-        url(nullable: true, maxSize: MAX_URL_LENGTH)
+        url(nullable: true, maxSize: TrackLog.MAX_URL_LENGTH)
     }
 
     /** Get the parsed `data`, or null. */

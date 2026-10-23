@@ -39,22 +39,16 @@ class RuntimeConfig {
     static void h2Config(Script script) {
         withDelegate(script) {
             dataSource {
+                // `value` is a reserved word in H2 v2.x but used by Hoist AppConfig.
+                // We can workaround with NON_KEYWORDS=VALUE in the JDBC URL below.
+                url = "jdbc:h2:mem:devDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE;NON_KEYWORDS=VALUE"
                 pooled = true
                 jmxExport = true
                 driverClassName = "org.h2.Driver"
                 dialect = H2Dialect
+                dbCreate = "create-drop"
                 username = "sa"
                 password = ""
-            }
-            environments {
-                development {
-                    dataSource {
-                        dbCreate = "create-drop"
-                        // `value` is a reserved word in H2 v2.x but used by Hoist AppConfig.
-                        // We can workaround with NON_KEYWORDS=VALUE in the JDBC URL below.
-                        url = "jdbc:h2:mem:devDb;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE;NON_KEYWORDS=VALUE"
-                    }
-                }
             }
         }
     }

@@ -113,7 +113,7 @@ class XhController extends BaseController {
     //------------------------
     def track() {
         ensureClientUsernameMatchesSession()
-        def payload = parseRequestJSON([safeEncode: true]),
+        def payload = parseRequestJSON(safeEncode: true),
             entries =  payload.entries as List
         trackService.trackAll(entries)
         renderSuccess()
@@ -162,6 +162,17 @@ class XhController extends BaseController {
         }
 
         def ret = prefService.getLimitedClientConfig(prefs.keySet() as List)
+
+        renderJSON(preferences: ret)
+    }
+
+    def unsetPrefs() {
+        ensureClientUsernameMatchesSession()
+
+        def keys = parseRequestJSONArray().collect { it.toString() }
+        keys.each { prefService.unsetPreference(it) }
+
+        def ret = prefService.getLimitedClientConfig(keys)
 
         renderJSON(preferences: ret)
     }

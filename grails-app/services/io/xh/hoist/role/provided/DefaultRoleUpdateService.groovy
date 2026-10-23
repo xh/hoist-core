@@ -124,7 +124,7 @@ class DefaultRoleUpdateService extends BaseService {
             Role role = Role.get(roleName)
             role.category = category
             role.save(flush: true)
-            updatedRoles.push(role)
+            updatedRoles << role
         }
         trackService.track(
             msg: "Updated ${roles.size()} roles.",

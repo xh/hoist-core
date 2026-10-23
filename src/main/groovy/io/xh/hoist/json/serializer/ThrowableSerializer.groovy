@@ -7,9 +7,9 @@
 
 package io.xh.hoist.json.serializer;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.SerializerProvider
-import com.fasterxml.jackson.databind.ser.std.StdSerializer
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext
+import tools.jackson.databind.ser.std.StdSerializer
 import groovy.transform.CompileStatic
 import io.opentelemetry.api.trace.Span
 import io.xh.hoist.exception.RoutineException
@@ -27,7 +27,7 @@ class ThrowableSerializer extends StdSerializer<Throwable> {
     }
 
     @Override
-    void serialize(Throwable t, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+    void serialize(Throwable t, JsonGenerator jgen, SerializationContext context) {
         def ret = t instanceof JSONFormat ?
             t.formatForJSON() :
             [
@@ -38,7 +38,7 @@ class ThrowableSerializer extends StdSerializer<Throwable> {
                 traceId  : activeTraceId
             ].findAll { it.value }
 
-        jgen.writeObject(ret)
+        jgen.writePOJO(ret)
     }
 
     private static String getActiveTraceId() {

@@ -8,6 +8,7 @@
 package io.xh.hoist.util
 
 import grails.config.Config
+import grails.core.GrailsApplication
 import grails.util.Environment
 import grails.util.Holders
 import grails.util.Metadata
@@ -17,6 +18,7 @@ import io.xh.hoist.AppEnvironment
 import io.xh.hoist.BaseService
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.ConfigService
+import io.xh.hoist.entra.EntraIdService
 import io.xh.hoist.environment.EnvironmentService
 import io.xh.hoist.exception.ExceptionHandler
 import io.xh.hoist.json.JSONParser
@@ -31,7 +33,6 @@ import io.xh.hoist.user.BaseUserService
 import io.xh.hoist.user.IdentityService
 import io.xh.hoist.telemetry.trace.TraceContextService
 import io.xh.hoist.telemetry.trace.TraceService
-import io.xh.hoist.telemetry.trace.impl.JdbcTraceService
 import io.xh.hoist.websocket.WebSocketService
 import org.grails.web.servlet.mvc.GrailsWebRequest
 
@@ -125,6 +126,10 @@ class Utils {
         return (ConfigService) appContext.configService
     }
 
+    static EntraIdService getEntraIdService() {
+        return (EntraIdService) appContext.entraIdService
+    }
+
     static EnvironmentService getEnvironmentService() {
         return (EnvironmentService) appContext.environmentService
     }
@@ -161,14 +166,59 @@ class Utils {
     //------------------
     // Other Singletons
     //------------------
+    /**
+     * Hoist's own holders for the core Grails/Spring singletons.
+     *
+     * Grails populates its own `Holders` late in the boot sequence - both `Holders.grailsApplication`
+     * and `Holders.applicationContext` throw during `doWithSpring`, which is where Hoist initializes
+     * Hazelcast (and therefore needs to walk domain/service classes). HoistCoreGrailsPlugin installs
+     * each of these as soon as it becomes available, and they are the single source of truth
+     * thereafter - `Holders` is deliberately not consulted as a fallback, so a missing holder fails
+     * loudly here rather than surfacing as a confusing error from deeper in Grails.
+     */
+    private static GrailsApplication _grailsApplication
+    private static ApplicationContext _appContext
+
+    /**
+     * Set by HoistCoreGrailsPlugin.doWithSpring() - the earliest point a GrailsApplication exists.
+     * @internal
+     */
+    static void setGrailsApplication(GrailsApplication grailsApplication) {
+        _grailsApplication = grailsApplication
+    }
+
+    /** Get the grails application. */
+    static GrailsApplication getGrailsApplication() {
+        if (!_grailsApplication) {
+            throw new IllegalStateException(
+                'Utils.grailsApplication not yet available - it is installed by HoistCoreGrailsPlugin.doWithSpring().'
+            )
+        }
+        return _grailsApplication
+    }
+
+    /**
+     * Set by HoistCoreGrailsPlugin.doWithApplicationContext() - the ApplicationContext does not yet
+     * exist during doWithSpring(), so this necessarily lands one phase later than the above.
+     * @internal
+     */
+    static void setAppContext(ApplicationContext appContext) {
+        _appContext = appContext
+    }
+
     /** Get the grails application context.  */
     static ApplicationContext getAppContext() {
-        return Holders.applicationContext
+        if (!_appContext) {
+            throw new IllegalStateException(
+                'Utils.appContext not yet available - it is installed by HoistCoreGrailsPlugin.doWithApplicationContext(), one phase after doWithSpring().'
+            )
+        }
+        return _appContext
     }
 
     /** Get the grails application config.  */
     static Config getGrailsConfig() {
-        Holders.grailsApplication.config
+        grailsApplication.config
     }
 
     /** Primary JDBC datasource, default backing DB for app Domain objects. */
@@ -297,12 +347,13 @@ class Utils {
 
     private static Map deepSanitizeMap(Map map) {
         map.collectEntries {key, val ->
-            if (isSensitiveParamName(key.toString())) {
-                val = '******'
-            } else if (val instanceof Map) {
-                val = deepSanitizeMap(val)
-            }
-            return [key, val]
+            return [key, isSensitiveParamName(key.toString()) ? '******' : deepSanitizeValue(val)]
         }
+    }
+
+    private static Object deepSanitizeValue(Object val) {
+        if (val instanceof Map) return deepSanitizeMap(val)
+        if (val instanceof Collection) return val.collect { deepSanitizeValue(it) }
+        return val
     }
 }

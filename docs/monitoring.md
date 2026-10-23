@@ -556,19 +556,29 @@ Wire up custom alerting by subscribing to the Hazelcast topic published by `Moni
 class SlackAlertService extends BaseService {
 
     void init() {
-        subscribeToTopic('xhMonitorStatusReport', this.&onMonitorReport)
+        subscribeToTopic(
+            topic: 'xhMonitorStatusReport',
+            onMessage: this.&onMonitorReport,
+            primaryOnly: true  // deliver once per cluster, not once per instance
+        )
     }
 
     private void onMonitorReport(MonitorStatusReport report) {
-        if (report.status >= MonitorStatus.WARN) {
-            slackClient.postMessage(
-                channel: '#ops-alerts',
-                text: report.title + '\n' + report.toHtml()
-            )
-        }
+        // Forward to your chat system - e.g. POST report.title and a plain-text
+        // summary to a Slack/Teams webhook. See the reference implementation below.
+        postToChat(report)
     }
 }
 ```
+
+> **Reference implementation:** XH's Toolbox demo app
+> [includes a `SlackAlertService` that fleshes out this pattern](https://github.com/xh/toolbox/blob/develop/grails-app/services/io/xh/toolbox/SlackAlertService.groovy) -
+> it subscribes to `xhMonitorStatusReport` (`primaryOnly: true`) and posts a formatted Block Kit
+> message to a Slack channel via the Slack Web API, gated behind a typed, per-event-type config. The
+> same service also forwards client errors and user feedback from the `xhTrackReceived` topic (see
+> [activity tracking](./activity-tracking.md)), so a single config-gated service routes all three
+> event streams to a realtime chat system - a useful starting point for any app considering
+> topic-based custom alerting.
 
 ---
 

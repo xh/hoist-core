@@ -16,17 +16,20 @@ import io.xh.hoist.exception.RoutineException
 import static io.xh.hoist.util.Utils.exceptionHandler
 
 /**
- * An active span and its associated scope, returned by {@link TraceService#createSpan}.
- *
- * The caller is responsible for closing this when done — typically in a finally block:
+ * An active span and its associated scope, passed to closures run by
+ * {@link TraceService#withSpan} and {@link io.xh.hoist.telemetry.ObservedRun#run}. Use it to enrich
+ * a span in flight with tags, a revised name, or the outcome of the work:
  * <pre>
- * def spanRef = traceService.createSpan(name: 'myOp', kind: SpanKind.SERVER)
- * try {
- *     // ... do work, span is current context ...
- * } finally {
- *     spanRef?.close()
+ * traceService.withSpan(name: 'fetchData', kind: SpanKind.CLIENT) { SpanRef span ->
+ *     def result = doWork()
+ *     span.setTag('resultCount', result.size())
+ *     result
  * }
  * </pre>
+ *
+ * Those entry points close the span for the caller. Spans with a manually managed lifecycle come
+ * from {@code TraceService.createSpan}, which is framework-internal — that caller is responsible
+ * for calling {@link #close}, typically in a finally block.
  */
 @CompileStatic
 class SpanRef implements Closeable {
@@ -70,18 +73,51 @@ class SpanRef implements Closeable {
     }
 
     /**
-     * Set the HTTP response status code and mark the span as ERROR when appropriate.
-     * SERVER spans use >= 500 (server fault), CLIENT spans use >= 400 (request failed).
+     * Mark the span status as ERROR, with an optional short description of the failure.
+     *
+     * For failures that are neither an exception nor an HTTP response — e.g. a validation
+     * rejection, a well-formed but unusable payload from a dependency, or a batch completing
+     * with unrecoverable records. Prefer {@link #recordExceptionAndErrorStatus} when an actual
+     * Throwable is in hand, and {@link #setHttpStatusAndErrorStatus} for HTTP outcomes —
+     * do not synthesize a Throwable purely to flag a span.
+     *
+     * Note this applies the status unconditionally — unlike the recordException methods, it
+     * does not skip {@link RoutineException} cases, as the caller is explicitly asking for it.
      */
-    void setHttpStatusAndErrorStatus(int statusCode) {
-        setTag('http.response.status_code', statusCode)
-        def errorThreshold = kind == SpanKind.CLIENT ? 400 : 500
-        if (statusCode >= errorThreshold) span.setStatus(StatusCode.ERROR)
+    void setErrorStatus(String description = null) {
+        if (description) {
+            span.setStatus(StatusCode.ERROR, description)
+        } else {
+            span.setStatus(StatusCode.ERROR)
+        }
+    }
+
+    /**
+     * Record an exception as an event on the span, leaving the span's status untouched.
+     * No-op for {@link RoutineException}.
+     *
+     * Narrow variant, for handled exceptions on a span whose status is determined separately -
+     * notably a SERVER span, where {@link #setHttpStatusAndErrorStatus} derives status from the
+     * response code actually rendered to the client, and a handled 4xx should carry the exception
+     * event without failing the span.
+     *
+     * If nothing else is going to set the status, use {@link #recordExceptionAndErrorStatus}
+     * instead. Note that a throwable escaping {@link TraceService#withSpan} or
+     * {@link io.xh.hoist.telemetry.ObservedRun#run} is already recorded with an ERROR status by
+     * those entry points, so there is no need to record it again within the closure.
+     */
+    void recordException(Throwable t) {
+        // Skip routine exceptions -- Datadog's OTLP intake maps any exception event onto error.* tags.
+        if (t instanceof RoutineException) return
+        span.recordException(t)
     }
 
     /**
      * Record an exception as an event on the span and mark the span status as ERROR
      * with a summary description derived from the throwable. No-op for {@link RoutineException}.
+     *
+     * The default for a throwable that failed the traced work. Prefer the narrower
+     * {@link #recordException} only when the span's status is owned elsewhere.
      */
     void recordExceptionAndErrorStatus(Throwable t) {
         // Skip routine exceptions -- Datadog's OTLP intake maps any exception event onto error.* tags.
@@ -90,11 +126,14 @@ class SpanRef implements Closeable {
         span.setStatus(StatusCode.ERROR, exceptionHandler.summaryTextForThrowable(t))
     }
 
-    /** Record an exception as an event on the span. Does not change span status.*/
-    void recordException(Throwable t) {
-        // Skip routine exceptions -- Datadog's OTLP intake maps any exception event onto error.* tags.
-        if (t instanceof RoutineException) return
-        span.recordException(t)
+    /**
+     * Set the HTTP response status code and mark the span as ERROR when appropriate.
+     * SERVER spans use >= 500 (server fault), CLIENT spans use >= 400 (request failed).
+     */
+    void setHttpStatusAndErrorStatus(int statusCode) {
+        setTag('http.response.status_code', statusCode)
+        def errorThreshold = kind == SpanKind.CLIENT ? 400 : 500
+        if (statusCode >= errorThreshold) span.setStatus(StatusCode.ERROR)
     }
 
     /** Close the scope and end the span. */

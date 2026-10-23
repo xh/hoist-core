@@ -57,8 +57,9 @@ class LogSupportConverter extends ClassicConverter {
         def ret = parts.join(delimiter)
 
         // 3) Potentially append stack trace for errors with throwables.
-        if (messages.last() instanceof Throwable && !shouldSuppressStackTrace(marker.logger.name)) {
-            ret += formatStacktrace(messages.last() as Throwable)
+        def last = messages ? messages.last() : null
+        if (last instanceof Throwable && !shouldSuppressStackTrace(marker.logger.name)) {
+            ret += formatStacktrace(last as Throwable)
         }
 
         return ret

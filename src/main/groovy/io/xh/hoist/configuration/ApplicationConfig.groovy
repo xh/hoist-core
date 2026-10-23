@@ -36,13 +36,33 @@ class ApplicationConfig {
                 main.'allow-circular-references' = true
                 groovy.template.'check-template-location' = false
                 devtools.restart.exclude = ['grails-app/conf/**']
-                // Hoist manages its own MeterRegistry, export sinks, and HTTP metrics
+                // Increase limits to 20mb to support large grid exports, other file uploads.
+                servlet.multipart.maxFileSize = '20MB'
+                servlet.multipart.maxRequestSize = '20MB'
                 // disable Spring's auto-configured equivalents to avoid duplicate
                 autoconfigure.exclude = [
-                    'org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration',
-                    'org.springframework.boot.actuate.autoconfigure.metrics.CompositeMeterRegistryAutoConfiguration',
-                    'org.springframework.boot.actuate.autoconfigure.metrics.export.otlp.OtlpMetricsExportAutoConfiguration',
-                    'org.springframework.boot.actuate.autoconfigure.observation.web.servlet.WebMvcObservationAutoConfiguration'
+
+                    // Unused by Hoist, and would couple us to a specific Apache HttpClient version.
+                    'org.springframework.boot.autoconfigure.http.client.HttpClientAutoConfiguration',
+                    'org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration',
+                    'org.springframework.boot.autoconfigure.web.client.RestTemplateAutoConfiguration',
+
+                    // Hoist manages its own MeterRegistry, export sinks, HTTP metrics, and tracing
+                    'org.springframework.boot.micrometer.metrics.autoconfigure.MetricsAutoConfiguration',
+                    'org.springframework.boot.micrometer.metrics.autoconfigure.CompositeMeterRegistryAutoConfiguration',
+                    'org.springframework.boot.micrometer.metrics.autoconfigure.export.otlp.OtlpMetricsExportAutoConfiguration',
+                    'org.springframework.boot.webmvc.autoconfigure.WebMvcObservationAutoConfiguration',
+                    'org.springframework.boot.micrometer.observation.autoconfigure.ObservationAutoConfiguration'
+                ]
+            }
+
+            server {
+                // Spring Boot's defaults, plus the NDJSON type served by `renderNDJSON`.
+                // Relevant to local development - deployed apps compress via xh-nginx instead.
+                compression.mimeTypes = [
+                    'text/html', 'text/xml', 'text/plain', 'text/css', 'text/javascript',
+                    'application/javascript', 'application/json', 'application/xml',
+                    'application/x-ndjson'
                 ]
             }
 
@@ -81,18 +101,12 @@ class ApplicationConfig {
                     ]
                 }
 
-                controllers {
-                    // Increase limits to 20mb to support large grid exports, other file uploads.
-                    upload {
-                        maxFileSize = 20971520
-                        maxRequestSize = 20971520
-                    }
-                }
-
                 web.disable.multipart = false
                 gorm {
                     failOnError = true
                 }
+                // Keep domain properties required unless declared nullable, as before Grails 8.
+                gorm.'default'.nullable = false
             }
 
             hazelcast {

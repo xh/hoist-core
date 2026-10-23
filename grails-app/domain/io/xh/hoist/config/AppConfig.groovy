@@ -23,13 +23,13 @@ class AppConfig implements JSONFormat, LogSupport {
     // Active encryption for `pwd`-typed config values uses an app-supplied key sourced from
     // instance config (env var `APP_{appCode}_APP_CONFIG_CRYPTO_KEY` or YAML). Apps that use
     // `pwd` configs must configure this key; without it, `pwd` reads still work (legacy values
-    // are unaffected) but `pwd` writes fail closed. See v41 upgrade notes.
+    // are unaffected) but `pwd` writes fail closed. See v44 upgrade notes.
     private static final AesTextCipher activeCipher = createActiveCipher()
 
-    // Pre-v41 jasypt obfuscation key. Public-by-design: appeared in this open-source file's
+    // Pre-v44 jasypt obfuscation key. Public-by-design: appeared in this open-source file's
     // source for years, kept verbatim solely so `LegacyJasyptDecrypter` can read pre-upgrade
     // `pwd` values for the one-release migration window. NEVER used to encrypt new content —
-    // {@link #activeCipher} (configured with an app-supplied key) handles all v41+ writes.
+    // {@link #activeCipher} (configured with an app-supplied key) handles all v44+ writes.
     // gitleaks:allow pragma: allowlist secret
     private static final String LEGACY_OBFUSCATION_KEY = 'dsd899s_*)jsk9dsl2fd223hpdj32))I@333'
     private static final LegacyJasyptDecrypter legacyDecrypter = new LegacyJasyptDecrypter(LEGACY_OBFUSCATION_KEY)
@@ -42,6 +42,15 @@ class AppConfig implements JSONFormat, LogSupport {
     }
 
     static List TYPES = ['string', 'int', 'long', 'double', 'bool', 'json', 'pwd']
+
+    /**
+     * Placeholder value for a config that has not been set. Validation requires a non-null,
+     * non-blank `value`, so a config that is bootstrapped but not yet configured holds this
+     * instead. Bootstrap a config that an app may leave unset with this as its `defaultValue`, and
+     * read it with {@link io.xh.hoist.config.ConfigService#getStringIfSet} / `getPwdIfSet`, which
+     * map it back to null.
+     */
+    static final String NONE = 'none'
 
     String name
     String value
@@ -123,7 +132,7 @@ class AppConfig implements JSONFormat, LogSupport {
                     "Cannot save pwd-typed AppConfig '$name': no encryption key configured. " +
                     "Set instance config 'appConfigCryptoKey' (typically via env var " +
                     "APP_<appCode>_APP_CONFIG_CRYPTO_KEY) to a high-entropy value held in your " +
-                    "secrets manager, then restart. See v41 upgrade notes."
+                    "secrets manager, then restart. See v44 upgrade notes."
                 )
             }
             value = activeCipher.encrypt(value)
@@ -177,7 +186,7 @@ class AppConfig implements JSONFormat, LogSupport {
                     "Cannot decrypt pwd-typed AppConfig value: value was written under an " +
                     "app-supplied encryption key but no key is currently configured. Set " +
                     "instance config 'appConfigCryptoKey' to the same value that wrote this " +
-                    "row, or restore from a pre-encryption backup. See v41 upgrade notes."
+                    "row, or restore from a pre-encryption backup. See v44 upgrade notes."
                 )
             }
             return activeCipher.decrypt(value)
@@ -193,6 +202,8 @@ class AppConfig implements JSONFormat, LogSupport {
                 valueType    : valueType,
                 value        : parseValue(value, [digestPassword: true]),
                 overrideValue: overrideValue(digestPassword: true),
+                resolvedValue: Utils.configService.getResolvedConfigValue(this),
+                defaultValue : Utils.configService.getDefaultConfigValue(this),
                 clientVisible: clientVisible,
                 note         : note,
                 lastUpdatedBy: lastUpdatedBy,

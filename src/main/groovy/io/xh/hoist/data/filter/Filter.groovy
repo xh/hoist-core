@@ -25,6 +25,11 @@ abstract class Filter {
     /** True if the provided other Filter is equivalent to this instance.*/
     abstract boolean equals(Filter other)
 
+    /** True if the provided object is a Filter equivalent to this instance. */
+    boolean equals(Object other) {
+        return other instanceof Filter && equals((Filter) other)
+    }
+
     /** Return a Hibernate Criterion representing this filter. */
     abstract Criterion getCriterion()
 

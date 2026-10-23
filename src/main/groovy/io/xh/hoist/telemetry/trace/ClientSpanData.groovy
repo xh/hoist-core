@@ -97,10 +97,11 @@ class ClientSpanData implements SpanData, ReadableSpan {
             )
         }
 
-        // Status
+        // Status -- per OTel spec, the description is only meaningful for ERROR and is ignored
+        // for ok/unset, so it is read on that branch alone.
         switch (span.status as String) {
             case 'ok':    _status = StatusData.ok(); break
-            case 'error': _status = StatusData.create(StatusCode.ERROR, ''); break
+            case 'error': _status = StatusData.create(StatusCode.ERROR, span.statusDescription as String ?: ''); break
             default:      _status = StatusData.unset()
         }
     }

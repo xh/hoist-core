@@ -330,9 +330,14 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     protected void init() {}
 
     /**
-     * Clear or reset any service state. Can include but is not limited to clearing Cache objects - could also handle
-     * resetting other stateful service objects such as HttpClients. The Hoist admin client provides a UI to call
-     * this method on all BaseServices within a running application as an operational / troubleshooting tool.
+     * Clear or reset any service state. The Hoist admin client provides a UI to call this method on all
+     * BaseServices within a running application as an operational / troubleshooting tool.
+     *
+     * IMPORTANT: Despite its name, this base implementation does *not* clear any of the Cache or CachedValue
+     * objects created by the service via {@link #createCache} / {@link #createCachedValue} - it only records
+     * the time of the call. Clearing those managed objects, along with resetting any other stateful service
+     * resources (e.g. HttpClients), is left to the service developer: override this method to explicitly clear
+     * whatever state should be reset, and call `super.clearCaches()` to preserve the timestamp bookkeeping.
      */
     void clearCaches() {
         lastCachesCleared = new Date()

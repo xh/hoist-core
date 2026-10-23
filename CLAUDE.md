@@ -6,13 +6,16 @@ similar tools — when working with code in this repository.
 ## Project Overview
 
 Hoist-core is the server-side component of the Hoist web application development toolkit, built
-by Extremely Heavy Industries (xh.io). It is a **Grails 7 plugin** (not a standalone app)
-published as `io.xh:hoist-core` and consumed by Grails application projects. The client-side
-counterpart is [hoist-react](https://github.com/xh/hoist-react).
+by Extremely Heavy Industries (xh.io). Its primary product is a **Grails 8 plugin** (not a
+standalone app) published as `io.xh:hoist-core` and consumed by Grails application projects. The
+repo also publishes two companion artifacts at the same version: `hoist-core-test` (the `test-support/`
+subproject, Spock test support for apps) and `hoist-core-mcp` (the `mcp/` subproject, an MCP
+server for AI agents). The client-side counterpart is
+[hoist-react](https://github.com/xh/hoist-react).
 
-- **Language**: Groovy 4 / Java 17
-- **Framework**: Grails 7.0 (Spring Boot 3.5, Hibernate 5, GORM)
-- **Clustering**: Hazelcast 5.6 for distributed caching, pub/sub, and multi-instance coordination
+- **Language**: Groovy 5 / Java 21
+- **Framework**: Grails 8.0 (Spring Boot 4.1, Hibernate 5, GORM)
+- **Clustering**: Hazelcast 5.7 for distributed caching, pub/sub, and multi-instance coordination
 - **Package root**: `io.xh.hoist`
 
 ## Hoist Developer Tools and Documentation
@@ -95,12 +98,10 @@ enable it for Claude Code.
 This is a plugin — `bootRun` is not supported. To run locally, use a wrapper app project that
 includes hoist-core as a dependency.
 
-## Tests
-
-Spock-based unit tests live under `src/test/groovy/io/xh/hoist/` and target pure-JDK code only —
-no Grails context, no DB, no clustering. See
-[`src/test/groovy/README.md`](src/test/groovy/README.md) for conventions, how to add specs, and
-notes on the jasypt-1.9.3 legacy fixture data used by the `io.xh.hoist.security.*` specs.
+For quick standalone Groovy script verification, check for a SDKMAN-managed runtime at
+`~/.sdkman/candidates/groovy/current/bin/groovy` (not on non-interactive shell PATHs). Use it if
+present; if not, suggest `sdk install groovy <version matching the framework>` — do not assume it
+is installed.
 
 ## Source Layout
 
@@ -128,6 +129,10 @@ src/main/groovy/io/xh/hoist/   # Core library code (non-Grails-artifact classes)
   user/                         # HoistUser trait, BaseUserService
   util/                         # Utils, Timer, DateTimeUtils, InstanceConfigUtils
   websocket/                    # WebSocket support (cluster-aware push)
+
+src/test/groovy/io/xh/hoist/   # Spock specs for hoist-core — see docs/testing.md
+test-support/                  # Subproject publishing io.xh:hoist-core-test (HoistUnitTest trait; fakes/ holds TestConfigService etc.)
+mcp/                           # Subproject publishing io.xh:hoist-core-mcp (docs/symbol MCP server)
 ```
 
 ## Architecture
@@ -301,6 +306,10 @@ Controllers use `renderJSON()` and `parseRequestJSON()`. Custom serializers are 
 - **Prefer Groovy collection methods** — Use `.collect()`, `.findAll()`, `.find()`,
   `.groupBy()`, `.collectEntries()`, `.sum()` etc. for collection operations. These are
   null-safe on the elements and more expressive than manual loops.
+- **No dash between `@param`/`@throws` names and descriptions** — Write
+  `@param ids set of group object IDs`, not `@param ids - set of...`. Doc tools (IntelliJ
+  quick-doc, the Groovydoc/Javadoc doclet) render their own dash separator between the name
+  and description, so a dash in the source doubles up in rendered output.
 
 ## Git Workflow
 
@@ -362,8 +371,8 @@ speak for themselves.
 
 ## Key Dependencies
 
-- **Grails 7** - Application framework (Spring Boot 3.5, GORM/Hibernate 5)
-- **Hazelcast 5.6** - Distributed caching, pub/sub, multi-instance coordination
+- **Grails 8** - Application framework (Spring Boot 4.1, GORM/Hibernate 5)
+- **Hazelcast 5.7** - Distributed caching, pub/sub, multi-instance coordination
 - **Jackson** - JSON serialization/parsing (via custom JSONSerializer/JSONParser wrappers)
 - **Apache HttpClient 5** - HTTP client for external API calls
 - **Apache POI 5** - Excel/spreadsheet generation

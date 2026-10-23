@@ -16,14 +16,16 @@ import io.xh.hoist.util.Timer
 import io.xh.hoist.util.Utils
 import io.xh.hoist.websocket.HoistWebSocketConfigurer
 import jakarta.servlet.DispatcherType
+import org.grails.async.factory.future.CompletableFuturePromiseFactory
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.core.Ordered
+import org.springframework.web.context.WebApplicationContext
 
 import static io.xh.hoist.util.Utils.createCustomOrDefault
 
 class HoistCoreGrailsPlugin extends Plugin {
 
-    def grailsVersion = '7.0.5 > *'
+    def grailsVersion = '8.0.0 > *'
     def title = 'hoist-core'
     def author = 'Extremely Heavy'
     def authorEmail = 'info@xh.io'
@@ -36,6 +38,8 @@ class HoistCoreGrailsPlugin extends Plugin {
 
     Closure doWithSpring() {
         {->
+            Utils.grailsApplication = grailsApplication
+
             // Configure logging asap -- before this we rely on defaults in ApplicationConfig.groovy
             def logbackConfig = createCustomOrDefault(Utils.appPackage + '.LogbackConfig', LogbackConfig)
             logbackConfig.configure()
@@ -67,7 +71,23 @@ class HoistCoreGrailsPlugin extends Plugin {
     }
 
     void doWithApplicationContext() {
-        Promises.promiseFactory = new HoistPromiseFactory(Promises.promiseFactory)
+        ensureServletVersion()
+        Utils.appContext = applicationContext
+
+        // Back `task {}` with an unbounded cached thread pool, as in Grails 7. Grails 8 defaults to
+        // Spring's `applicationTaskExecutor` which deadlocks the nested blocking tasks we use
+        Promises.promiseFactory = new HoistPromiseFactory(new CompletableFuturePromiseFactory())
+    }
+
+    // Grails 8 requires Servlet 6.1 (Tomcat 11).
+    private void ensureServletVersion() {
+        def ctx = (applicationContext as WebApplicationContext).servletContext
+        int major = ctx.majorVersion, minor = ctx.minorVersion
+        if (major < 6 || (major == 6 && minor < 1)) {
+            throw new IllegalStateException(
+                "Hoist requires Servlet 6.1+ (Tomcat 11+), but ${ctx.serverInfo} provides Servlet ${major}.${minor}."
+            )
+        }
     }
 
     void onConfigChange(Map<String, Object> event) {}

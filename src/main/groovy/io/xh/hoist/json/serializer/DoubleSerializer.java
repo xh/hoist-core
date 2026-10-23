@@ -7,11 +7,10 @@
 
 package io.xh.hoist.json.serializer;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ser.std.StdSerializer;
 
-import java.io.IOException;
 
 public class DoubleSerializer extends StdSerializer<Double> {
 
@@ -24,7 +23,7 @@ public class DoubleSerializer extends StdSerializer<Double> {
     }
 
     @Override
-    public void serialize(Double value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+    public void serialize(Double value, JsonGenerator jgen, SerializationContext context) {
         if (Double.isFinite(value)) {
             jgen.writeNumber(value);
         } else {

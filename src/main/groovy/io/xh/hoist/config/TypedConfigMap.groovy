@@ -114,12 +114,14 @@ abstract class TypedConfigMap implements LogSupport, JSONFormat {
     }
 
     // Strict type guard — Groovy's setter would silently coerce wrong-type values into
-    // `boolean`/`String` fields. Number-to-Number widening is allowed.
+    // `boolean`/`String` fields. Number-to-Number conversion is allowed, except a fractional
+    // value for an integral field, which would be truncated.
     private static void checkAssignable(String typeName, String key, Class propType, Object v) {
         if (v == null) return
         Class boxed = PRIMITIVE_BOXED[propType] ?: propType
         if (boxed.isInstance(v)) return
-        if (Number.isAssignableFrom(boxed) && v instanceof Number) return
+        if (Number.isAssignableFrom(boxed) && v instanceof Number &&
+            (!(boxed in [Integer, Long, Short, Byte]) || v == v.longValue())) return
         throw new IllegalArgumentException(
             "Field '$key' on $typeName expects ${boxed.simpleName} but got ${v.getClass().simpleName}"
         )

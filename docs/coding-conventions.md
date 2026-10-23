@@ -63,7 +63,7 @@ prefer that over Java-style ceremony.
 
 ### Prefer Groovy Idioms
 
-This is a Groovy 4 codebase. Embrace Groovy's expressive features rather than writing Java with
+This is a Groovy 5 codebase. Embrace Groovy's expressive features rather than writing Java with
 `.groovy` extensions:
 
 - Map and list literals: `[a: 1, b: 2]`, `[1, 2, 3]`
@@ -385,6 +385,9 @@ void clearCaches() {
 `clearCaches()` does **not** clear `Cache`/`CachedValue` instances automatically. Each managed
 resource must be cleared explicitly.
 
+See [`caching.md`](./caching.md) for the full `Cache` / `CachedValue` reference, including expiry
+options, change-handler threading, and how the two classes differ.
+
 ### `clearCachesConfigs` for Soft-Config Reactivity
 
 Declare a static `clearCachesConfigs` list of `xh`-prefixed config names to have the service's
@@ -506,8 +509,9 @@ def endpoint = m.endpoint ?: 'https://prices.example.com'
 ```
 
 The class must extend `TypedConfigMap` and be registered with `typedClass:` on its
-`ensureRequiredConfigsCreated` entry. See [Configuration](configuration.md#typed-configs-via-typedconfigmap)
-for the full guide.
+`ensureRequiredConfigsCreated` entry. Omit `defaultValue` on that entry — the class is the single
+source of defaults, and a non-empty `defaultValue` logs a WARN at startup. See
+[Configuration](configuration.md#typed-configs-via-typedconfigmap) for the full guide.
 
 ## Controllers and Security
 
@@ -575,7 +579,7 @@ def update() {
 
 ### Don't Re-Check Roles in Action Code
 
-`AccessInterceptor` runs **before** the action method, so by the time controller code executes, the
+`HoistInterceptor` runs **before** the action method, so by the time controller code executes, the
 role check has already passed. Repeating it is dead code and a source of drift:
 
 ```groovy
@@ -856,11 +860,21 @@ xhEmailOverride: dev-team@example.com
 
 See [Email](email.md) for details.
 
-### Background Threads and GORM Sessions
+### Non-Request Threads and GORM Sessions
 
-Timers and other background threads do not have an automatic Hibernate session. Lazy-loading any
-GORM association from a timer throws `LazyInitializationException`. Either eagerly load all needed
-data inside a session, or wrap the work in `withNewSession`:
+Only servlet request threads receive an automatic Hibernate session. Code running anywhere else has
+none, and GORM fails there in one of two ways:
+
+| Symptom | Cause |
+|---------|-------|
+| `HibernateException: No Session found for current thread` | A query issued with no session bound |
+| `LazyInitializationException` | A lazy association traversed after its session closed |
+
+Non-request contexts include timer `runFn`s, `subscribe()` and `subscribeToTopic()` handlers,
+`Cache` and `CachedValue` `onChange` handlers, cluster tasks — including `getAdminStats()` — and any
+thread started by application code.
+
+Either eagerly load all needed data inside a session, or wrap the work in `withNewSession`:
 
 ```groovy
 // Do: open a session for the background work
@@ -876,6 +890,11 @@ createTimer(
     }
 )
 ```
+
+Calling an annotated service method works too: `@ReadOnly` and `@Transactional` are compile-time AST
+transforms woven into the method body rather than proxy-based advice, so they bind a session on
+whatever thread invokes them — including through self-invocation from an unannotated method on the
+same class.
 
 ### Pass `username` from Background Calls to `trackService.track()`
 
@@ -968,6 +987,24 @@ This is especially important for **Hoist library code itself**, which is consume
 applications: the Groovydoc on a public type or method is effectively its contract, and should be
 written from the caller's perspective.
 
+### No Dash Between `@param`/`@throws` Names and Descriptions
+
+Write `@param ids set of group object IDs`, not `@param ids - set of...`. Doc tools (IntelliJ
+quick-doc, the Groovydoc/Javadoc doclet) render their own dash separator between the name and
+description, so a dash in the source doubles up in rendered output.
+
+```groovy
+// Do
+/**
+ * @param dns set of distinguished names.
+ * @param strictMode if true, this method will throw if any lookups fail.
+ */
+
+// Don't - renders as "dns - - set of distinguished names"
+/**
+ * @param dns - set of distinguished names.
+ */
+```
 
 ### Avoid Unicode in Code Comments
 

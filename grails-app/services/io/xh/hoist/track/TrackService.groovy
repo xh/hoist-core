@@ -60,6 +60,8 @@ import static io.xh.hoist.util.DateTimeUtils.MINUTES
 @CompileStatic
 class TrackService extends BaseService {
 
+    private static final int MAX_LOG_DATA_DEPTH = 5
+
     static clearCachesConfigs = ['xhActivityTrackingConfig']
     ConfigService configService
     TrackLoggingService trackLoggingService
@@ -88,7 +90,11 @@ class TrackService extends BaseService {
         @NamedParam Object severity = TrackSeverity.INFO,
         /** Additional data payload to store with the track log (will be serialized as JSON). */
         @NamedParam Object data = null,
-        /** A list of keys from the data object to log, `true` to log all key/values. Default false. */
+        /**
+         * A list of keys from the data object to log, `true` to log all key/values. Default false.
+         * Nested maps are logged as dotted keys (e.g. `timings.authenticating`) - list either a
+         * top-level key to log all of its nested values, or a dotted key to log a single value.
+         */
         @NamedParam Object logData = null,
         /** Optional Correlation Id */
         @NamedParam String correlationId = null,
@@ -221,6 +227,7 @@ class TrackService extends BaseService {
             severity      : TrackSeverity.parse(entry.severity as String),
             data          : entry.data ? serialize(entry.data) : null,
             rawData       : entry.data,
+            logData       : entry.logData,
             url           : entry.url?.toString()?.take(500),
             appVersion    : entry.appVersion ?: Utils.appVersion,
             loadId        : entry.loadId,
@@ -284,6 +291,20 @@ class TrackService extends BaseService {
             )
             entry.data = null
         }
+
+        // Drop implausibly long elapsed times - e.g. from a sleeping laptop.
+        Long elapsed = entry.elapsed as Long
+        Integer maxElapsedMins =
+            conf.maxElapsedMinsByCategory[entry.category as String] ?: conf.maxElapsedMins
+        if (maxElapsedMins > 0 && elapsed > maxElapsedMins * MINUTES) {
+            logTrace(
+                "Track log with message [$entry.msg] has elapsed of ${elapsed}ms",
+                "exceeds limit of ${maxElapsedMins}m",
+                "elapsed will not be persisted"
+            )
+            entry.elapsed = null
+        }
+
         entry.msg = elide(entry.msg as String, TrackLog.MAX_MSG_LENGTH)
         entry.url = elide(entry.url as String, TrackLog.MAX_URL_LENGTH)
 
@@ -306,21 +327,28 @@ class TrackService extends BaseService {
             _correlationId: entry.correlationId,
             _timestamp    : dateCreated.format('HH:mm:ss.SSS'),
             _elapsedMs    : entry.elapsed,
+            browser       : entry.browser,
+            device        : entry.device
         ].findAll { it.value != null } as Map<String, Object>
 
-        // Log app data, if requested/configured.
+        // Log app data, if requested/configured. Nested maps are flattened to dotted keys.
+        // Skip oversized payloads, and never let data keys overwrite core keys above.
         def data = entry.rawData,
             logData = entry.logData
         if (data && (data instanceof Map)) {
             logData = logData != null ? logData : conf.logData
 
             if (logData) {
-                Map<String, Object> dataParts = data as Map<String, Object>
-                dataParts = dataParts.findAll { k, v ->
-                    (logData === true || (logData as List).contains(k)) &&
-                        !(v instanceof Map || v instanceof List)
+                if ((entry.data as String)?.size() > conf.maxDataLength) {
+                    message._dataOmitted = 'data exceeds maxDataLength'
+                } else {
+                    List<String> logKeys = logData === true ? null : (logData as List)*.toString()
+                    flattenData(data as Map).each { k, v ->
+                        if (logKeys == null || logKeys.any { k == it || k.startsWith(it + '.') }) {
+                            message.putIfAbsent(k, v)
+                        }
+                    }
                 }
-                message.putAll(dataParts)
             }
         }
         return new TimestampedLogEntry(
@@ -328,6 +356,23 @@ class TrackService extends BaseService {
             message: message,
             timestamp: dateCreated
         )
+    }
+
+    // Flatten nested maps into dotted keys (e.g. `timings.authenticating`). Collections, arrays,
+    // and maps nested beyond MAX_LOG_DATA_DEPTH are logged as JSON strings. Nulls are skipped.
+    private Map<String, Object> flattenData(Map data, String prefix = '', int depth = 1) {
+        Map<String, Object> ret = [:]
+        data.each { k, v ->
+            String key = prefix + k
+            if (v instanceof Map && depth < MAX_LOG_DATA_DEPTH) {
+                ret.putAll(flattenData(v as Map, key + '.', depth + 1))
+            } else if (v instanceof Map || v instanceof Collection || v?.class?.isArray()) {
+                ret[key] = serialize(v)
+            } else if (v != null) {
+                ret[key] = v
+            }
+        }
+        return ret
     }
 
     private boolean isSeverityActive(TrackLog tl) {

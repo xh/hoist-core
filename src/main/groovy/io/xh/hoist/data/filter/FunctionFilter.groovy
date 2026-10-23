@@ -42,4 +42,8 @@ class FunctionFilter extends Filter {
                 other._testFn == this._testFn
         )
     }
+
+    int hashCode() {
+        return Objects.hashCode(_testFn)
+    }
 }

@@ -14,7 +14,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
  * Centralized BCrypt password hashing for consuming apps' local user accounts. Wraps Spring
  * Security's {@code BCryptPasswordEncoder} so app `User` domain classes don't take a direct
  * dependency on a specific crypto library. Replaces the historical pattern of importing jasypt's
- * {@code BasicPasswordEncryptor} (removed in hoist-core v41 — see the v41 upgrade notes).
+ * {@code BasicPasswordEncryptor} (removed in hoist-core v44 — see the v44 upgrade notes).
  *
  * <p>{@link #matches(String, String)} transparently verifies both new BCrypt hashes and legacy
  * jasypt-default hashes, so pre-upgrade users keep authenticating. Apps can detect legacy hashes
