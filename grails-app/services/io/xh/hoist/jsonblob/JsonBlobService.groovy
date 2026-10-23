@@ -66,8 +66,9 @@ class JsonBlobService extends BaseService implements DataBinder {
     }
 
     /**
-     * Find a user's own active blob, holding a row lock on it until the calling transaction
-     * completes. For `@Transactional` read-modify-write cycles that must not overlap.
+     * Find a user's own active blob with a pessimistic row lock (`SELECT ... FOR UPDATE`), held
+     * until the calling transaction completes. Other callers for the same blob block until then.
+     * For `@Transactional` read-modify-write cycles that must not overlap.
      */
     @Transactional
     JsonBlob findForUpdate(String type, String name, String username = username) {
