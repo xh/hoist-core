@@ -7,50 +7,84 @@
 package io.xh.hoist.security
 
 import groovy.transform.CompileStatic
-import io.xh.hoist.security.crypto.LegacyJasyptDecrypter
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 
+import java.security.MessageDigest
+import java.text.Normalizer
+
+import static java.nio.charset.StandardCharsets.UTF_8
+
 /**
- * Centralized BCrypt password hashing for consuming apps' local user accounts. Wraps Spring
- * Security's {@code BCryptPasswordEncoder} so app `User` domain classes don't take a direct
- * dependency on a specific crypto library. Replaces the historical pattern of importing jasypt's
- * {@code BasicPasswordEncryptor} (removed in hoist-core v44 — see the v44 upgrade notes).
+ * BCrypt password hashing for app `User` domain classes that store local user passwords.
  *
- * <p>{@link #matches(String, String)} transparently verifies both new BCrypt hashes and legacy
- * jasypt-default hashes, so pre-upgrade users keep authenticating. Apps can detect legacy hashes
- * via {@link #isLegacyHash(String)} and re-encode post-login to gradually migrate them.
+ * Drop-in replacement for jasypt's {@code BasicPasswordEncryptor}.
+ *
+ * {@link #checkPassword} verifies both BCrypt hashes written by this class and hashes written by
+ * jasypt's {@code BasicPasswordEncryptor}, so fully backward compatible with pre v44 passwords
+ * encoded via jasypt.
  */
 @CompileStatic
-final class HoistPasswordEncoder {
+class HoistPasswordEncoder {
 
-    private static final BCryptPasswordEncoder ENCODER = new BCryptPasswordEncoder()
+    private static final BCryptPasswordEncoder bcrypt = new BCryptPasswordEncoder()
 
-    /** Hash a plaintext password using BCrypt. Returns null for null/empty input. */
-    static String encode(String rawPassword) {
-        return rawPassword ? ENCODER.encode(rawPassword) : null
+    /** Hash a plaintext password with BCrypt. Returns null for null or empty input. */
+    String encryptPassword(String plain) {
+        plain ? bcrypt.encode(plain) : null
     }
 
-    /** Verify a plaintext against a BCrypt or legacy jasypt hash. False for null/empty inputs. */
-    static boolean matches(String rawPassword, String encodedPassword) {
-        if (!rawPassword || !encodedPassword) return false
-        if (looksLikeBCrypt(encodedPassword)) {
+    /** Verify a plaintext against a BCrypt or legacy jasypt hash. False for null or empty input. */
+    boolean checkPassword(String plain, String encrypted) {
+        if (!plain || !encrypted) return false
+        if (isBCrypt(encrypted)) {
             try {
-                return ENCODER.matches(rawPassword, encodedPassword)
+                return bcrypt.matches(plain, encrypted)
             } catch (IllegalArgumentException ignored) {
                 return false
             }
         }
-        return LegacyJasyptDecrypter.matchesLegacyPasswordHash(rawPassword, encodedPassword)
+        return checkLegacyPassword(plain, encrypted)
     }
 
-    /** True if the hash is in the legacy jasypt format and could be re-encoded post-login. */
-    static boolean isLegacyHash(String encodedPassword) {
-        if (!encodedPassword) return false
-        return !looksLikeBCrypt(encodedPassword) &&
-            LegacyJasyptDecrypter.looksLikeLegacyPasswordHash(encodedPassword)
+    //------------------------
+    // Implementation
+    //------------------------
+    private static boolean isBCrypt(String value) {
+        value.length() == 60 && value.startsWith('$2')
     }
 
-    private static boolean looksLikeBCrypt(String value) {
-        return value.length() == 60 && value.startsWith('$2')
+    //------------------------------------------------------------------------------------------
+    // Legacy verification. Reproduces jasypt 1.9.3's default BasicPasswordEncryptor digest: MD5
+    // over (8-byte random salt + NFC-normalized UTF-8 plaintext), re-digested 1000 times in total
+    // without re-applying the salt, stored as Base64 of (salt + digest). Never used for new hashes.
+    //------------------------------------------------------------------------------------------
+    private static final int LEGACY_SALT_BYTES = 8
+    private static final int LEGACY_DIGEST_BYTES = 16
+    private static final int LEGACY_ITERATIONS = 1000
+
+    private static boolean checkLegacyPassword(String plain, String encrypted) {
+        byte[] packed = decodeBase64(encrypted)
+        if (packed == null || packed.length != LEGACY_SALT_BYTES + LEGACY_DIGEST_BYTES) return false
+
+        byte[] salt = packed[0..<LEGACY_SALT_BYTES] as byte[]
+        byte[] expected = packed[LEGACY_SALT_BYTES..-1] as byte[]
+        byte[] msg = Normalizer.normalize(plain, Normalizer.Form.NFC).getBytes(UTF_8)
+
+        MessageDigest md = MessageDigest.getInstance('MD5')
+        md.update(salt)
+        byte[] digest = md.digest(msg)
+        for (int i = 1; i < LEGACY_ITERATIONS; i++) {
+            md.reset()
+            digest = md.digest(digest)
+        }
+        return MessageDigest.isEqual(expected, digest)
+    }
+
+    private static byte[] decodeBase64(String value) {
+        try {
+            return Base64.decoder.decode(value)
+        } catch (IllegalArgumentException ignored) {
+            return null
+        }
     }
 }

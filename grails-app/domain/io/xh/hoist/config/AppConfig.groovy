@@ -10,27 +10,17 @@ package io.xh.hoist.config
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.log.LogSupport
-import io.xh.hoist.security.crypto.AesTextCipher
-import io.xh.hoist.security.crypto.LegacyJasyptDecrypter
+import io.xh.hoist.security.HoistTextEncryptor
 import io.xh.hoist.util.InstanceConfigUtils
 import io.xh.hoist.util.Utils
 
-import java.security.MessageDigest
-
 import static grails.async.Promises.task
-import static java.nio.charset.StandardCharsets.UTF_8
 
 class AppConfig implements JSONFormat, LogSupport {
 
-    // Key for `pwd`-typed config values. Fixed and visible in this open-source file, so it masks
-    // values in the Admin Console and DB dumps but does not protect them from anyone with
-    // database access. See https://github.com/xh/hoist-core/issues/627 for app-supplied keys.
-    // gitleaks:allow pragma: allowlist secret
-    private static final String CRYPTO_KEY = 'dsd899s_*)jsk9dsl2fd223hpdj32))I@333'
-    private static final AesTextCipher cipher = new AesTextCipher(CRYPTO_KEY)
-
-    // Reads pre-v44 jasypt-format values, which upgrade in place the next time they are saved.
-    private static final LegacyJasyptDecrypter legacyDecrypter = new LegacyJasyptDecrypter(CRYPTO_KEY)
+    private static final HoistTextEncryptor encryptor = new HoistTextEncryptor(
+        'dsd899s_*)jsk9dsl2fd223hpdj32))I@333'
+    )
 
     static List TYPES = ['string', 'int', 'long', 'double', 'bool', 'json', 'pwd']
 
@@ -118,7 +108,7 @@ class AppConfig implements JSONFormat, LogSupport {
 
     private encryptIfPwd(boolean isInsert) {
         if (valueType == 'pwd' && (hasChanged('value') || isInsert)) {
-            value = cipher.encrypt(value)
+            value = encryptor.encrypt(value)
         }
     }
 
@@ -148,22 +138,10 @@ class AppConfig implements JSONFormat, LogSupport {
             case 'pwd' :
                 if (opts.obscurePassword)       return '*********';
                 // Override values will not be encrypted by our local encryptor - treat as already-plaintext.
-                if (opts.digestPassword)        return digestPassword(value, !isOverride)
-                if (opts.decryptPassword)       return !isOverride ? decryptPassword(value) : value
+                if (opts.digestPassword)        return encryptor.digest(value, !isOverride)
+                if (opts.decryptPassword)       return !isOverride ? encryptor.decrypt(value) : value
             default:        return value
         }
-    }
-
-    // Allow pwd values to be compared in the admin config differ, without exposing the actual value.
-    // Unsalted so that digests compare across environments; visible to admins only.
-    private static String digestPassword(String value, boolean isEncrypted) {
-        String plain = isEncrypted ? decryptPassword(value) : value
-        if (plain == null) return null
-        return Base64.encoder.encodeToString(MessageDigest.getInstance('SHA-256').digest(plain.getBytes(UTF_8)))
-    }
-
-    private static String decryptPassword(String value) {
-        AesTextCipher.isHoistFormat(value) ? cipher.decrypt(value) : legacyDecrypter.decrypt(value)
     }
 
     Map formatForJSON() {

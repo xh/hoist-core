@@ -192,10 +192,8 @@ handles primary-only tasks (e.g., timers with `primaryOnly: true`). Distributed 
 
 `AppConfig` domain objects store typed config values (`string|int|long|double|bool|json|pwd`)
 in the database. `ConfigService` provides typed getters. Configs can be marked `clientVisible`
-for the JS client. The `pwd` type stores values encrypted at rest via AES-256-GCM
-(`io.xh.hoist.security.crypto.AesTextCipher`) under a fixed key in `AppConfig`, which masks
-values but is not true confidentiality (app-supplied keys are tracked in issue #627). Pre-v44
-jasypt-format values still decrypt via `LegacyJasyptDecrypter` and upgrade in place on next save.
+for the JS client. The `pwd` type stores values encrypted at rest via `HoistTextEncryptor` under
+a fixed key in `AppConfig`.
 
 ### JSON Handling
 

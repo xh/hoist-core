@@ -1,7 +1,7 @@
 # Hoist Core v44 Upgrade Notes
 
 > **From:** v43.x → v44.0 | **Released:** TBD | **Difficulty:** 🟢 LOW - no changes for most
-> apps; ~5 LoC per `User` domain class if your app stores local user passwords
+> apps; a one-line import swap if your app stores local user passwords
 
 ## Overview
 
@@ -13,12 +13,13 @@ new JDK. Hoist-core used it for two things, both now handled by JDK or Spring Se
    historically imported `org.jasypt.util.password.BasicPasswordEncryptor` directly in their
    `User` (or `AppUser`) domain class, which worked because hoist-core re-exported jasypt via
    `api` scope. That transitive dependency is gone. Apps must switch to the new
-   `io.xh.hoist.security.HoistPasswordEncoder` (see below). Existing hashes continue to verify, so
-   no user needs to reset a password.
-2. **Internal - `pwd`-typed `AppConfig` values:** Now encrypted with AES-256-GCM instead of
-   jasypt's PBE-MD5-DES, under the same key as before. Pre-v44 values still decrypt and upgrade in
-   place when re-saved. No configuration or DB migration is required, and apps that don't store
-   local user passwords need no code changes at all.
+   `io.xh.hoist.security.HoistPasswordEncoder`, which has the same constructor and methods, so
+   only the import changes (see below). Existing hashes continue to verify, so no user needs to
+   reset a password.
+2. **Internal - `pwd`-typed `AppConfig` values:** Now encrypted by hoist-core's own
+   `HoistTextEncryptor`, which reads and writes the same format jasypt did under the same key.
+   Existing values are unaffected, no configuration or DB migration is required, and apps that
+   don't store local user passwords need no code changes at all.
 
 There are no database schema changes in this release.
 
@@ -34,88 +35,29 @@ hoistCoreVersion=44.0
 `org.jasypt.*` in your app will fail to compile. Run `grep -r org.jasypt` over your app source to
 find them. The next step covers the common case.
 
-### 2. Update your `User` (or `AppUser`) domain class to use `HoistPasswordEncoder`
+### 2. Swap the import in your `User` (or `AppUser`) domain class
 
-If your app has a domain class that stores hashed local-user passwords, it typically contains a
-static jasypt `BasicPasswordEncryptor` instance:
-
-**Before:**
+If your app has a domain class that stores hashed local-user passwords, it typically holds a
+static jasypt `BasicPasswordEncryptor` and calls `encryptPassword` and `checkPassword` on it.
+`HoistPasswordEncoder` has the same constructor and the same two methods, so replace the import
+and leave the rest of the class as it is:
 
 ```groovy
+// Before
 import org.jasypt.util.password.BasicPasswordEncryptor
+private static encryptor = new BasicPasswordEncryptor()
 
-class User {
-    String username
-    String password
-    // ...
-
-    private static encryptor = new BasicPasswordEncryptor()
-
-    boolean checkPassword(String plain) {
-        password ? encryptor.checkPassword(plain, password) : false
-    }
-
-    def beforeInsert() { encodePassword() }
-    def beforeUpdate() { if (isDirty('password')) encodePassword() }
-
-    private void encodePassword() {
-        password = password ? encryptor.encryptPassword(password) : null
-    }
-}
-```
-
-**After:**
-
-```groovy
+// After
 import io.xh.hoist.security.HoistPasswordEncoder
-
-class User {
-    String username
-    String password
-    // ...
-
-    boolean checkPassword(String plain) {
-        HoistPasswordEncoder.matches(plain, password)
-    }
-
-    def beforeInsert() { encodePassword() }
-    def beforeUpdate() { if (isDirty('password')) encodePassword() }
-
-    private void encodePassword() {
-        password = HoistPasswordEncoder.encode(password)
-    }
-}
+private static encryptor = new HoistPasswordEncoder()
 ```
 
-`HoistPasswordEncoder.matches()` verifies both new BCrypt hashes (written by
-`HoistPasswordEncoder.encode`) and legacy jasypt-format hashes (written by older versions of your
-app), so existing user records continue to authenticate without intervention.
+`checkPassword` verifies both new BCrypt hashes (written by `encryptPassword`) and legacy
+jasypt-format hashes (written by older versions of your app), so existing user records continue to
+authenticate without intervention.
 
-### 3. (Optional) Migrate legacy user hashes on login
-
-Existing users will keep authenticating via the legacy verification path indefinitely. To
-gradually re-hash them with BCrypt as they log in, re-encode after a successful check wherever
-`User.checkPassword` is called:
-
-```groovy
-boolean authenticate(String username, String plain) {
-    def user = User.findByUsername(username)
-    if (!user?.checkPassword(plain)) return false
-
-    // Opportunistically re-encode legacy hashes once we know the plaintext.
-    if (HoistPasswordEncoder.isLegacyHash(user.password)) {
-        user.password = plain  // beforeUpdate will hash via HoistPasswordEncoder
-        user.save(flush: true)
-    }
-    return true
-}
-```
-
-This moves stored hashes from jasypt's default MD5 with an 8-byte salt to BCrypt. It is
-encouraged but not required for the upgrade.
-
-### 4. Verify
+### 3. Verify
 
 Your build should compile with no remaining `import org.jasypt.*` references. Existing local-user
-logins continue to work; new user records are written as BCrypt hashes, and `pwd` configs are
-re-encrypted in the new format the next time they are saved from the Admin Console.
+logins continue to work, new user records are written as BCrypt hashes, and `pwd` configs read
+and write exactly as before.

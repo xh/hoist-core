@@ -248,7 +248,7 @@ A GORM domain class representing a single configuration entry. Stored in the `xh
 | `double` | Double string | `Double` | Validated on save |
 | `bool` | `"true"` or `"false"` | `Boolean` | Case-sensitive string |
 | `json` | JSON string | `Map` or `List` | Validated as parseable JSON |
-| `pwd` | Encrypted string | `String` (decrypted) | Encrypted at rest via AES-256-GCM (`AesTextCipher`) |
+| `pwd` | Encrypted string | `String` (decrypted) | Encrypted at rest via `HoistTextEncryptor` |
 
 ##### Change Events
 

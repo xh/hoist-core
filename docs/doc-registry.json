@@ -247,7 +247,7 @@
             "mcpCategory": "devops",
             "viewerCategory": "upgrade",
             "description": "Upgrade guide from v43.x to v44. Low difficulty.",
-            "keywords": ["v44", "upgrade", "migration", "breaking changes", "v43", "jasypt", "HoistPasswordEncoder", "BasicPasswordEncryptor", "BCrypt", "AesTextCipher", "pwd"]
+            "keywords": ["v44", "upgrade", "migration", "breaking changes", "v43", "jasypt", "HoistPasswordEncoder", "BasicPasswordEncryptor", "BCrypt", "HoistTextEncryptor", "pwd"]
         },
         {
             "id": "docs/upgrade-notes/v43-upgrade-notes.md",

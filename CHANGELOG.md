@@ -14,17 +14,15 @@
 
 ## 44.0-SNAPSHOT - unreleased
 
-### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - ~5 LoC if your app stores local user passwords)
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
 
 See [`docs/upgrade-notes/v44-upgrade-notes.md`](docs/upgrade-notes/v44-upgrade-notes.md) for
 detailed, step-by-step upgrade instructions with before and after code examples.
 
-* Removed the unmaintained `jasypt` dependency. Apps that import `BasicPasswordEncryptor` in a
-  `User` domain class must switch to the new `HoistPasswordEncoder`. Existing password hashes
-  continue to verify.
-* Removed the unused `grails-quartz` plugin dependency. Hoist Core schedules work with its own
-  `Timer`. Apps that use the Quartz plugin directly must now declare
-  `org.apache.grails:grails-quartz` themselves (the version is managed by the Grails BOM).
+* Removed the obsolete `jasypt` dependency. Apps that import its `BasicPasswordEncryptor` should
+  switch to the new JDK based `HoistPasswordEncoder`, a drop-in replacement.
+* Removed the unused `grails-quartz` plugin dependency.  Apps that use the Quartz plugin directly
+  must now declare `org.apache.grails:grails-quartz` themselves.
 
 ### 🎁 New Features
 
@@ -42,9 +40,6 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 ### ⚙️ Technical
 
-* `pwd`-typed `AppConfig` values are now encrypted with AES-256-GCM. Existing values still read
-  and are re-encrypted when next saved. No migration is required.
-* Added `HoistPasswordEncoder`, a BCrypt-based password encoder for app `User` domain classes.
 * Removed redundant direct declarations of `spring-boot-autoconfigure`,
   `spring-boot-starter-validation`, `commons-io`, `opentelemetry-exporter-common` and
   `opentelemetry-context`. All remain on the classpath transitively.
