@@ -89,7 +89,6 @@ dependencies {
     api "org.apache.poi:poi-ooxml:5.5.1"
     api "org.apache.poi:poi:5.5.1"
     api "org.owasp.encoder:encoder:1.4.0"
-    // BCrypt for HoistPasswordEncoder. Crypto module only; version managed by the Spring Boot BOM.
     api "org.springframework.security:spring-security-crypto"
     api "org.springframework:spring-websocket"
     api "io.micrometer:micrometer-registry-prometheus"

@@ -19,10 +19,9 @@
 See [`docs/upgrade-notes/v44-upgrade-notes.md`](docs/upgrade-notes/v44-upgrade-notes.md) for
 detailed, step-by-step upgrade instructions with before and after code examples.
 
-* Removed the `org.jasypt:jasypt:1.9.3` dependency, unmaintained since 2014. Apps importing
-  `org.jasypt.*` (typically `BasicPasswordEncryptor` in a `User` domain class) must switch to
-  `io.xh.hoist.security.HoistPasswordEncoder`. Legacy user-password hashes continue to verify
-  transparently, so no password resets are needed.
+* Removed the unmaintained `jasypt` dependency. Apps that import `BasicPasswordEncryptor` in a
+  `User` domain class must switch to the new `HoistPasswordEncoder`. Existing password hashes
+  continue to verify.
 * Removed the unused `grails-quartz` plugin dependency. Hoist Core schedules work with its own
   `Timer`. Apps that use the Quartz plugin directly must now declare
   `org.apache.grails:grails-quartz` themselves (the version is managed by the Grails BOM).
@@ -43,16 +42,9 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 ### ⚙️ Technical
 
-* `pwd`-typed `AppConfig` values are now encrypted with pure-JDK AES-256-GCM instead of jasypt's
-  PBE-MD5-DES, under the same key as before. New ciphertexts carry a `$hoist-aes1$` marker;
-  pre-v44 values still decrypt via `LegacyJasyptDecrypter` and upgrade in place when re-saved. No
-  DB migration or configuration is required. The admin Config Diff fingerprint for `pwd` values is
-  now an unsalted SHA-256 digest.
-* Added `io.xh.hoist.security.HoistPasswordEncoder`, a thin BCrypt wrapper for app `User` domain
-  classes. Verifies both new BCrypt hashes and legacy jasypt-default hashes; `isLegacyHash()`
-  supports opportunistic re-encoding on login.
-* Added `org.springframework.security:spring-security-crypto` (crypto module only). Version
-  managed by the Spring Boot BOM.
+* `pwd`-typed `AppConfig` values are now encrypted with AES-256-GCM. Existing values still read
+  and are re-encrypted when next saved. No migration is required.
+* Added `HoistPasswordEncoder`, a BCrypt-based password encoder for app `User` domain classes.
 * Removed redundant direct declarations of `spring-boot-autoconfigure`,
   `spring-boot-starter-validation`, `commons-io`, `opentelemetry-exporter-common` and
   `opentelemetry-context`. All remain on the classpath transitively.
