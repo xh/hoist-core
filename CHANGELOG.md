@@ -23,6 +23,9 @@ detailed, step-by-step upgrade instructions with before and after code examples.
   `org.jasypt.*` (typically `BasicPasswordEncryptor` in a `User` domain class) must switch to
   `io.xh.hoist.security.HoistPasswordEncoder`. Legacy user-password hashes continue to verify
   transparently, so no password resets are needed.
+* Removed the unused `grails-quartz` plugin dependency. Hoist Core schedules work with its own
+  `Timer`. Apps that use the Quartz plugin directly must now declare
+  `org.apache.grails:grails-quartz` themselves (the version is managed by the Grails BOM).
 
 ### 🎁 New Features
 
@@ -50,6 +53,9 @@ detailed, step-by-step upgrade instructions with before and after code examples.
   supports opportunistic re-encoding on login.
 * Added `org.springframework.security:spring-security-crypto` (crypto module only). Version
   managed by the Spring Boot BOM.
+* Removed redundant direct declarations of `spring-boot-autoconfigure`,
+  `spring-boot-starter-validation`, `commons-io`, `opentelemetry-exporter-common` and
+  `opentelemetry-context`. All remain on the classpath transitively.
 
 ## 43.0.1 - 2026-10-15
 
