@@ -13,7 +13,7 @@ new JDK. Hoist-core used it for two things, both now handled by JDK or Spring Se
    historically imported `org.jasypt.util.password.BasicPasswordEncryptor` directly in their
    `User` (or `AppUser`) domain class, which worked because hoist-core re-exported jasypt via
    `api` scope. That transitive dependency is gone. Apps must switch to the new
-   `io.xh.hoist.security.HoistPasswordEncoder`, which has the same constructor and methods, so
+   `io.xh.hoist.security.HoistPasswordEncryptor`, which has the same constructor and methods, so
    only the import changes (see below). Existing hashes continue to verify, so no user needs to
    reset a password.
 2. **Internal - `pwd`-typed `AppConfig` values:** Now encrypted by hoist-core's own
@@ -39,7 +39,7 @@ find them. The next step covers the common case.
 
 If your app has a domain class that stores hashed local-user passwords, it typically holds a
 static jasypt `BasicPasswordEncryptor` and calls `encryptPassword` and `checkPassword` on it.
-`HoistPasswordEncoder` has the same constructor and the same two methods, so replace the import
+`HoistPasswordEncryptor` has the same constructor and the same two methods, so replace the import
 and leave the rest of the class as it is:
 
 ```groovy
@@ -48,8 +48,8 @@ import org.jasypt.util.password.BasicPasswordEncryptor
 private static encryptor = new BasicPasswordEncryptor()
 
 // After
-import io.xh.hoist.security.HoistPasswordEncoder
-private static encryptor = new HoistPasswordEncoder()
+import io.xh.hoist.security.HoistPasswordEncryptor
+private static encryptor = new HoistPasswordEncryptor()
 ```
 
 `checkPassword` verifies both new BCrypt hashes (written by `encryptPassword`) and legacy

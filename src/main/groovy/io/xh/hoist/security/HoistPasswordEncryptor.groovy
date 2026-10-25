@@ -24,7 +24,7 @@ import static java.nio.charset.StandardCharsets.UTF_8
  * encoded via jasypt.
  */
 @CompileStatic
-class HoistPasswordEncoder {
+class HoistPasswordEncryptor {
 
     private static final BCryptPasswordEncoder bcrypt = new BCryptPasswordEncoder()
 

@@ -20,7 +20,7 @@ See [`docs/upgrade-notes/v44-upgrade-notes.md`](docs/upgrade-notes/v44-upgrade-n
 detailed, step-by-step upgrade instructions with before and after code examples.
 
 * Removed the obsolete `jasypt` dependency. Apps that import its `BasicPasswordEncryptor` should
-  switch to the new JDK based `HoistPasswordEncoder`, a drop-in replacement.
+  switch to the new JDK based `HoistPasswordEncryptor`, a drop-in replacement.
 * Removed the unused `grails-quartz` plugin dependency.  Apps that use the Quartz plugin directly
   must now declare `org.apache.grails:grails-quartz` themselves.
 

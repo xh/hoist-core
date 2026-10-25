@@ -19,13 +19,13 @@ import spock.lang.Specification
  * Each call salts randomly, so a fresh run yields different (equally valid) hashes. Build NFC and
  * NFD inputs from codepoints, as below. IDEs silently normalize source literals.
  */
-class HoistPasswordEncoderSpec extends Specification {
+class HoistPasswordEncryptorSpec extends Specification {
 
     // 'caf' + U+00E9 (precomposed é) vs 'cafe' + U+0301 (combining acute)
     private static final String CAFE_NFC = 'caf' + new String([0x00E9] as int[], 0, 1)
     private static final String CAFE_NFD = 'caf' + new String([0x0065, 0x0301] as int[], 0, 2)
 
-    def encoder = new HoistPasswordEncoder()
+    def encoder = new HoistPasswordEncryptor()
 
     def 'encryptPassword + checkPassword round trip works for arbitrary passwords'() {
         when:

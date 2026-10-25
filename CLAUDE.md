@@ -375,7 +375,7 @@ speak for themselves.
 - **Apache POI 5** - Excel/spreadsheet generation
 - **Micrometer** - Observable metrics with Prometheus and OTLP export
 - **Kryo 5** - Fast serialization for Hazelcast distributed structures
-- **Spring Security Crypto** - BCrypt password hashing (via `HoistPasswordEncoder`) and JDK-backed
+- **Spring Security Crypto** - BCrypt password hashing (via `HoistPasswordEncryptor`) and JDK-backed
   symmetric encryption for `pwd`-type soft config values
 - **Apache Directory API** - LDAP/Active Directory integration
 
