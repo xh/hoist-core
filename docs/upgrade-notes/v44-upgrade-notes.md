@@ -52,7 +52,7 @@ import io.xh.hoist.security.HoistPasswordEncryptor
 private static encryptor = new HoistPasswordEncryptor()
 ```
 
-`checkPassword` verifies both new BCrypt hashes (written by `encryptPassword`) and legacy
+`checkPassword` verifies both new BCrypt hashes (written by `encryptPassword`) and existing
 jasypt-format hashes (written by older versions of your app), so existing user records continue to
 authenticate without intervention.
 

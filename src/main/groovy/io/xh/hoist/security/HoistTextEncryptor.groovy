@@ -24,10 +24,7 @@ import static java.nio.charset.StandardCharsets.UTF_8
  * `pwd`-typed values.
  *
  * Drop-in replacement for jasypt's {@code BasicTextEncryptor}, which hoist-core used prior to
- * v44, with the same method names and the same wire format (PBEWithMD5AndDES, 1000 iterations,
- * 8-byte random salt prepended, Base64, NFC-normalized key). Existing values are read and written
- * unchanged. A stronger cipher is tracked alongside app-supplied keys in
- * https://github.com/xh/hoist-core/issues/627.
+ * v44, with the same method names and the same wire format.
  */
 @CompileStatic
 class HoistTextEncryptor {

@@ -33,7 +33,7 @@ class HoistPasswordEncryptor {
         plain ? bcrypt.encode(plain) : null
     }
 
-    /** Verify a plaintext against a BCrypt or legacy jasypt hash. False for null or empty input. */
+    /** Verify a plaintext against a BCrypt or jasypt hash. False for null or empty input. */
     boolean checkPassword(String plain, String encrypted) {
         if (!plain || !encrypted) return false
         if (isBCrypt(encrypted)) {
@@ -43,7 +43,7 @@ class HoistPasswordEncryptor {
                 return false
             }
         }
-        return checkLegacyPassword(plain, encrypted)
+        return checkJasyptPassword(plain, encrypted)
     }
 
     //------------------------
@@ -54,26 +54,26 @@ class HoistPasswordEncryptor {
     }
 
     //------------------------------------------------------------------------------------------
-    // Legacy verification. Reproduces jasypt 1.9.3's default BasicPasswordEncryptor digest: MD5
+    // Reproduces jasypt 1.9.3's default BasicPasswordEncryptor digest for existing hashes: MD5
     // over (8-byte random salt + NFC-normalized UTF-8 plaintext), re-digested 1000 times in total
     // without re-applying the salt, stored as Base64 of (salt + digest). Never used for new hashes.
     //------------------------------------------------------------------------------------------
-    private static final int LEGACY_SALT_BYTES = 8
-    private static final int LEGACY_DIGEST_BYTES = 16
-    private static final int LEGACY_ITERATIONS = 1000
+    private static final int JASYPT_SALT_BYTES = 8
+    private static final int JASYPT_DIGEST_BYTES = 16
+    private static final int JASYPT_ITERATIONS = 1000
 
-    private static boolean checkLegacyPassword(String plain, String encrypted) {
+    private static boolean checkJasyptPassword(String plain, String encrypted) {
         byte[] packed = decodeBase64(encrypted)
-        if (packed == null || packed.length != LEGACY_SALT_BYTES + LEGACY_DIGEST_BYTES) return false
+        if (packed == null || packed.length != JASYPT_SALT_BYTES + JASYPT_DIGEST_BYTES) return false
 
-        byte[] salt = packed[0..<LEGACY_SALT_BYTES] as byte[]
-        byte[] expected = packed[LEGACY_SALT_BYTES..-1] as byte[]
+        byte[] salt = packed[0..<JASYPT_SALT_BYTES] as byte[]
+        byte[] expected = packed[JASYPT_SALT_BYTES..-1] as byte[]
         byte[] msg = Normalizer.normalize(plain, Normalizer.Form.NFC).getBytes(UTF_8)
 
         MessageDigest md = MessageDigest.getInstance('MD5')
         md.update(salt)
         byte[] digest = md.digest(msg)
-        for (int i = 1; i < LEGACY_ITERATIONS; i++) {
+        for (int i = 1; i < JASYPT_ITERATIONS; i++) {
             md.reset()
             digest = md.digest(digest)
         }
