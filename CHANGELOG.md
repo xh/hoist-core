@@ -14,6 +14,16 @@
 
 ## 44.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
+
+See [`docs/upgrade-notes/v44-upgrade-notes.md`](docs/upgrade-notes/v44-upgrade-notes.md) for
+detailed, step-by-step upgrade instructions with before and after code examples.
+
+* Removed the obsolete `jasypt` dependency. Apps that import its `BasicPasswordEncryptor` should
+  switch to the new JDK based `HoistPasswordEncryptor`, a drop-in replacement.
+* Removed the unused `grails-quartz` plugin dependency.  Apps that use the Quartz plugin directly
+  must now declare `org.apache.grails:grails-quartz` themselves.
+
 ### 🎁 New Features
 
 * Added `TestTraceService` and `TestMetricsService` to `hoist-core-test`. `HoistUnitTest` now
@@ -27,12 +37,6 @@
   `InstanceNotAvailableException` result.
 * Hardened `ViewService` against concurrent updates to a user's ViewManager state, which could
   previously be silently lost when overlapping.
-
-### 💥 Breaking Changes (upgrade difficulty: 🎉 TRIVIAL)
-
-* Removed the unused `grails-quartz` plugin dependency. Hoist Core schedules work with its own
-  `Timer`. Apps that use the Quartz plugin directly must now declare
-  `org.apache.grails:grails-quartz` themselves (the version is managed by the Grails BOM).
 
 ### ⚙️ Technical
 

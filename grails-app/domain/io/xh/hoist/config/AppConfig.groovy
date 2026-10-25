@@ -10,18 +10,17 @@ package io.xh.hoist.config
 import io.xh.hoist.json.JSONFormat
 import io.xh.hoist.json.JSONParser
 import io.xh.hoist.log.LogSupport
+import io.xh.hoist.security.HoistTextEncryptor
 import io.xh.hoist.util.InstanceConfigUtils
 import io.xh.hoist.util.Utils
-import org.jasypt.util.password.ConfigurablePasswordEncryptor
-import org.jasypt.util.text.BasicTextEncryptor
-import org.jasypt.util.text.TextEncryptor
 
 import static grails.async.Promises.task
 
 class AppConfig implements JSONFormat, LogSupport {
 
-    static private final TextEncryptor encryptor = createEncryptor()
-    static private final ConfigurablePasswordEncryptor digestEncryptor = createDigestEncryptor()
+    private static final HoistTextEncryptor encryptor = new HoistTextEncryptor(
+        'dsd899s_*)jsk9dsl2fd223hpdj32))I@333'
+    )
 
     static List TYPES = ['string', 'int', 'long', 'double', 'bool', 'json', 'pwd']
 
@@ -113,18 +112,6 @@ class AppConfig implements JSONFormat, LogSupport {
         }
     }
 
-    private static TextEncryptor createEncryptor() {
-        def ret = new BasicTextEncryptor()
-        ret.setPassword('dsd899s_*)jsk9dsl2fd223hpdj32))I@333')
-        return ret
-    }
-
-    private static ConfigurablePasswordEncryptor createDigestEncryptor() {
-        def ret = new ConfigurablePasswordEncryptor()
-        ret.setPlainDigest(true)
-        ret
-    }
-
     private Object overrideValue(Map opts = [:]) {
         String overrideValue = InstanceConfigUtils.getInstanceConfig(name)
         if (overrideValue == null) return null
@@ -151,19 +138,10 @@ class AppConfig implements JSONFormat, LogSupport {
             case 'pwd' :
                 if (opts.obscurePassword)       return '*********';
                 // Override values will not be encrypted by our local encryptor - treat as already-plaintext.
-                if (opts.digestPassword)        return digestPassword(value, !isOverride)
-                if (opts.decryptPassword)       return !isOverride ? decryptPassword(value) : value
+                if (opts.digestPassword)        return encryptor.digest(value, !isOverride)
+                if (opts.decryptPassword)       return !isOverride ? encryptor.decrypt(value) : value
             default:        return value
         }
-    }
-
-    // Allow pwd values to be compared in the admin config differ, without exposing the actual value.
-    private static String digestPassword(String value, boolean isEncrypted) {
-        digestEncryptor.encryptPassword(isEncrypted ? decryptPassword(value) : value)
-    }
-
-    private static String decryptPassword(String value) {
-        encryptor.decrypt(value)
     }
 
     Map formatForJSON() {
