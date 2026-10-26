@@ -42,15 +42,17 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 ### ⚙️ Technical
 
-* Pinned the embedded Tomcat managed by the Grails BOM to `11.0.27`, clearing CVE-2026-65905,
-  CVE-2026-65182 and CVE-2026-68525 from dev runtimes and WAR scans. Deployed apps run on the
-  Tomcat in their `xh-tomcat` base image, which must be updated separately.
-* Updated OpenTelemetry to `1.67.0` (instrumentation `2.33.0`), Kryo to `5.7.1`, Apache Directory
-  API to `2.1.9` and OWASP Encoder to `1.6.0`. The MCP subproject moved to Shadow `9.6.1` and
-  Picocli `4.7.7`.
 * Removed redundant direct declarations of `spring-boot-autoconfigure`,
   `spring-boot-starter-validation`, `commons-io`, `opentelemetry-exporter-common` and
   `opentelemetry-context`. All remain on the classpath transitively.
+
+### 📚 Libraries
+
+* Tomcat `11.0.24 → 11.0.27` (security fixes - deployed apps update via their `xh-tomcat` image)
+* OpenTelemetry `1.65.0 → 1.67.0`, instrumentation `2.31.1 → 2.33.0`
+* Kryo `5.6.2 → 5.7.1`
+* Apache Directory API `2.1.7 → 2.1.9`
+* OWASP Encoder `1.4.0 → 1.6.0`
 
 ## 43.0.1 - 2026-10-15
 
