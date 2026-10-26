@@ -78,8 +78,8 @@ dependencies {
     }
 
     api "com.esotericsoftware:kryo:5.6.2"
-    // Pinned above grails-bom for security fixes - remove version once grails-bom is >= 3.1.7.
-    api 'tools.jackson.core:jackson-databind:3.1.7'
+    // Pinned above grails-bom for security fixes - remove once grails-bom is >= jacksonVersion.
+    api "tools.jackson.core:jackson-databind:$jacksonVersion"
     api "com.jayway.jsonpath:json-path:2.9.0"
     // Supports EntraIdService - Microsoft Graph token acquisition via client credentials.
     api "com.microsoft.azure:msal4j:1.26.0"

@@ -21,9 +21,7 @@ dependencies {
     // Jackson 3 arrives transitively via mcp-json-jackson3, which pins 3.0.3 as of SDK 1.1.1.
     // Import the BOM to align the whole tools.jackson family on a patched release.
     // CVE-2026-54512, CVE-2026-54513, CVE-2026-29062 (high) + related - fixed in 3.1.5.
-    // Scoped to this subproject only. The hoist-core plugin pins its own Jackson 3 version in
-    // the root build.gradle.
-    implementation platform('tools.jackson:jackson-bom:3.1.5')
+    implementation platform("tools.jackson:jackson-bom:$jacksonVersion")
 
     implementation 'io.modelcontextprotocol.sdk:mcp:1.1.1'
     implementation 'org.apache.groovy:groovy:5.1.3'
