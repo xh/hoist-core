@@ -23,6 +23,9 @@ detailed, step-by-step upgrade instructions with before and after code examples.
   switch to the new JDK based `HoistPasswordEncryptor`, a drop-in replacement.
 * Removed the unused `grails-quartz` plugin dependency.  Apps that use the Quartz plugin directly
   must now declare `org.apache.grails:grails-quartz` themselves.
+* Replaced the Apache Directory `api-all` bundle with its client-only artifacts, dropping the
+  unused DSMLv2 engine and its `dom4j` and `xpp3` XML parsers. Apps that import those directly
+  must now declare them themselves.
 
 ### 🎁 New Features
 
