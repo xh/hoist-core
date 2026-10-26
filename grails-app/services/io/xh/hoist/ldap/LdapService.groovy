@@ -19,7 +19,9 @@ import org.apache.directory.api.ldap.model.exception.LdapAuthenticationException
 import org.apache.directory.api.ldap.model.message.SearchScope
 import org.apache.directory.ldap.client.api.LdapConnectionConfig
 import org.apache.directory.ldap.client.api.LdapNetworkConnection
-import org.apache.directory.ldap.client.api.NoVerificationTrustManager
+
+import javax.net.ssl.X509TrustManager
+import java.security.cert.X509Certificate
 
 import static grails.async.Promises.task
 import static io.xh.hoist.util.DateTimeUtils.SECONDS
@@ -340,7 +342,8 @@ class LdapService extends BaseService implements DirectoryService {
         ret.useTls = true
 
         if (config.skipTlsCertVerification) {
-            ret.setTrustManagers(new NoVerificationTrustManager())
+            ret.setTrustManagers(new TrustAllManager())
+            ret.sslEndpointIdentificationAlgorithm = null  // also skip hostname verification
         }
 
         return new LdapNetworkConnection(ret)
@@ -390,5 +393,12 @@ class LdapService extends BaseService implements DirectoryService {
     void clearCaches() {
         cache.clear()
         super.clearCaches()
+    }
+
+    /** Accepts any certificate chain - used only when `skipTlsCertVerification` is enabled. */
+    private static class TrustAllManager implements X509TrustManager {
+        void checkClientTrusted(X509Certificate[] chain, String authType) {}
+        void checkServerTrusted(X509Certificate[] chain, String authType) {}
+        X509Certificate[] getAcceptedIssuers() { new X509Certificate[0] }
     }
 }
