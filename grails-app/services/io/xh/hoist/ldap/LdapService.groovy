@@ -343,6 +343,7 @@ class LdapService extends BaseService implements DirectoryService {
 
         if (config.skipTlsCertVerification) {
             ret.setTrustManagers(new TrustAllManager())
+            ret.sslEndpointIdentificationAlgorithm = null  // also skip hostname verification
         }
 
         return new LdapNetworkConnection(ret)

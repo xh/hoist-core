@@ -48,10 +48,11 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 ### 📚 Libraries
 
-* Tomcat `11.0.24 → 11.0.27` (security fixes - deployed apps update via their `xh-tomcat` image)
+* Dev-time embedded Tomcat `11.0.24 → 11.0.27` (security fixes)
 * OpenTelemetry `1.65.0 → 1.67.0`, instrumentation `2.31.1 → 2.33.0`
 * Kryo `5.6.2 → 5.7.1`
-* Apache Directory API `2.1.7 → 2.1.9`
+* Apache Directory API `2.1.7 → 2.1.9` (security fixes - TLS hostname verification is now enforced
+  unless `skipTlsCertVerification` is set, and TLS 1.0/1.1 are no longer enabled by default)
 * OWASP Encoder `1.4.0 → 1.6.0`
 
 ## 43.0.1 - 2026-10-15
