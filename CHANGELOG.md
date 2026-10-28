@@ -34,6 +34,11 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 ### 🐞 Bug Fixes
 
+* Fixed `BaseService.createTimer()` throwing a `MissingMethodException` when called without a
+  `runFn`. Under Groovy 5 the default `this.&onTimer` pointer bound to `BaseService` itself rather
+  than the subclass's `onTimer()`. The timer now dispatches dynamically to the subclass method.
+* Fixed `BaseService.subscribe()` throwing a `NullPointerException` under Grails 8, which no longer
+  registers its event bus under the legacy `eventBus` bean name. The bus is now resolved by type.
 * Fixed `ClusterTask` failing with an `IllegalStateException` and logging an ERROR on the calling
   instance when sent to an instance still starting up. Such instances now return a routine
   `InstanceNotAvailableException` result.
