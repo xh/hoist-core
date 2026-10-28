@@ -106,6 +106,13 @@ metadata. In outline:
   with resolved dependency versions.
 - **Testing** — `gradle/test-conventions.gradle` configures Spock on the JUnit Platform, JaCoCo,
   and the `checkTestClassShadowing` guard for both the root project and `test-support`.
+- **Dependency locking** — every project locks all of its resolvable configurations. The committed
+  `gradle.lockfile` in each project, plus `buildscript-gradle.lockfile` at the root, records the
+  exact resolved dependency graph, and resolution fails if a build would select anything else.
+  After changing a dependency in any `build.gradle`, regenerate the lockfiles with
+  `./gradlew resolveAndLockAll --write-locks` and commit the result. To move a single module
+  without re-resolving everything, use `--update-locks group:module` instead. Note that the
+  stock `./gradlew dependencies --write-locks` only covers the root project.
 - **Signing** — all publications sign with in-memory PGP keys, so no keyring is written to disk.
   Signing is required for release versions and skipped for snapshots. Key material resolves from
   the `signingKey` and `signingPassword` Gradle properties, falling back to the `SIGNING_KEY` and

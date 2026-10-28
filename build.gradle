@@ -10,6 +10,7 @@ buildscript {
         classpath "org.apache.grails:grails-data-hibernate5"
         classpath "org.apache.grails:grails-gradle-plugins"
     }
+    dependencyLocking { lockAllConfigurations() }
 }
 
 plugins {
@@ -32,6 +33,28 @@ repositories {
     mavenCentral()
     maven {
         url = 'https://repo.grails.org/grails/restricted'
+    }
+}
+
+// Lock every resolvable configuration in every project, so builds use the exact dependency graph
+// recorded in the committed `gradle.lockfile` (and `buildscript-gradle.lockfile`) and fail if
+// resolution would differ. After changing a dependency, regenerate all lockfiles with:
+//   ./gradlew resolveAndLockAll --write-locks
+// Or bump a single module without touching the rest: --update-locks group:module[,group:module]
+// See docs/build-and-publish.md.
+allprojects {
+    dependencyLocking { lockAllConfigurations() }
+
+    tasks.register('resolveAndLockAll') {
+        description = 'Resolves every configuration so --write-locks / --update-locks can record them.'
+        notCompatibleWithConfigurationCache('Filters configurations at execution time')
+        doFirst {
+            assert gradle.startParameter.writeDependencyLocks || !gradle.startParameter.lockedDependenciesToUpdate.empty :
+                "Run $path with --write-locks or --update-locks"
+        }
+        doLast {
+            configurations.findAll { it.canBeResolved }.each { it.resolve() }
+        }
     }
 }
 

@@ -47,6 +47,8 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 ### ⚙️ Technical
 
+* Enabled Gradle dependency locking. Builds now fail if resolution strays from the committed
+  lockfiles - run `./gradlew resolveAndLockAll --write-locks` after changing a dependency.
 * Removed redundant direct declarations of `spring-boot-autoconfigure`,
   `spring-boot-starter-validation`, `commons-io`, `opentelemetry-exporter-common` and
   `opentelemetry-context`. All remain on the classpath transitively.
