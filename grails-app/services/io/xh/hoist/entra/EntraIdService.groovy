@@ -434,10 +434,7 @@ class EntraIdService extends BaseService implements DirectoryService {
     private ErrorOr<Set<String>> loadUsersForGroupInternal(String id, String userAttr, boolean stripDomain, boolean strictMode) {
         try {
             List<EntraUser> members = lookupGroupMembersInternal(id, true)
-            Set<String> usernames = members.collect {
-                String username = it[userAttr]?.toString()?.toLowerCase()
-                stripDomain && username ? username.split('@', 2)[0] : username
-            } as Set
+            Set<String> usernames = members.collect { it.getUsername(userAttr, stripDomain) } as Set
             // Exclude members without a value for the configured username attribute.
             usernames.remove(null)
             return ErrorOr.of(usernames)

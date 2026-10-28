@@ -87,6 +87,17 @@ class EntraUser implements JSONFormat {
             hex(10) + hex(11) + hex(12) + hex(13) + hex(14) + hex(15)
     }
 
+    /**
+     * Hoist username for this user - the given attribute's value, trimmed and lowercased.
+     * @param usernameAttribute one of {@link #getUsernameKeys}
+     * @param stripDomain true to drop any `@domain` suffix
+     * @return the username, or null if the attribute is unset
+     */
+    String getUsername(String usernameAttribute, boolean stripDomain) {
+        String ret = this[usernameAttribute]?.toString()?.trim()?.toLowerCase()
+        stripDomain && ret ? ret.split('@', 2)[0] : ret
+    }
+
     static EntraUser create(Map data) {
         def ret = new EntraUser()
         keys.each { ret[it] = data[it] }

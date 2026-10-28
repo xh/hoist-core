@@ -44,6 +44,9 @@ detailed, step-by-step upgrade instructions with before and after code examples.
   `InstanceNotAvailableException` result.
 * Hardened `ViewService` against concurrent updates to a user's ViewManager state, which could
   previously be silently lost when overlapping.
+* Fixed directory group roles not applying to users whose LDAP or Entra ID username attribute has
+  leading or trailing whitespace. Hoist now trims these values, and all `LdapObject` attribute
+  values, when it reads them from the directory.
 
 ### ⚙️ Technical
 
