@@ -28,6 +28,9 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 ### 🎁 New Features
 
+* Added `ConnectionPoolMonitoringService.purgeConnections()` and a matching `HOIST_ADMIN` endpoint
+  to close all pooled JDBC connections on one instance or across the cluster, without a restart.
+  Idle connections close immediately and in-use connections close on return. 
 * Added `TestTraceService` and `TestMetricsService` to `hoist-core-test`. `HoistUnitTest` now
   registers them as `traceService` and `metricsService`, so specs of code that calls `span()` or
   `observe()` no longer need a stub.

@@ -31,6 +31,7 @@ class ConnectionPoolMonitoringService extends BaseService {
 
     ConfigService configService
     DataSource dataSource
+    def grailsApplication
 
     private Map<Long, Map> _snapshots = new ConcurrentHashMap()
     private Date _lastInfoLogged
@@ -110,9 +111,44 @@ class ConnectionPoolMonitoringService extends BaseService {
         takeSnapshot()
     }
 
+    /**
+     * Close all pooled JDBC connections on this instance, across all datasources. Idle connections
+     * close immediately, in-use connections close on return. Use to discard connections holding
+     * stale session state, e.g. DB permissions granted after the pool was populated.
+     *
+     * @return connection counts before and after, keyed by datasource bean name.
+     */
+    Map purgeConnections() {
+        def ret = pooledDataSources.collectEntries { name, ds ->
+            def before = [size: ds.size, active: ds.active, idle: ds.idle]
+            ds.pool.purge()
+            def after = [size: ds.size, active: ds.active, idle: ds.idle]
+            logInfo('Purged connection pool', [dataSource: name, before: before, after: after])
+            [name, [before: before, after: after]]
+        }
+        if (enabled) takeSnapshot()
+        return ret
+    }
+
     //------------------------
     // Implementation
     //------------------------
+
+    /**
+     * All Tomcat pools reachable from Spring-managed DataSource beans, keyed by bean name.
+     * Multiple beans typically front the same pool (e.g. `dataSource` and `dataSourceUnproxied`) -
+     * each pool is returned once, under the first bean name in sort order.
+     */
+    private Map<String, PooledDataSource> getPooledDataSources() {
+        def ctx = grailsApplication.mainContext,
+            ret = [:] as Map<String, PooledDataSource>
+        ctx.getBeanNamesForType(DataSource).sort().each { name ->
+            def pool = findPooledDataSource(ctx.getBean(name) as DataSource)
+            if (pool && !ret.values().any { it.is(pool) }) ret[name] = pool
+        }
+        return ret
+    }
+
     private Map getSnap() {
         def ds = pooledDataSource
         return [
