@@ -1,7 +1,7 @@
 # This is a Gradle generated file for dependency locking.
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
-# To regenerate this file, run: ./gradlew :dependencies --write-locks
+# To regenerate this file, run: ./gradlew :hoist-core:dependencies --write-locks
 antlr:antlr:2.7.7=compileClasspath,grailsCliClasspath,grailsCliDetect,integrationTestCompileClasspath,integrationTestRuntimeClasspath,productionRuntimeClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 biz.aQute.bnd:biz.aQute.bnd.annotation:7.1.0=compileClasspath,integrationTestCompileClasspath,testCompileClasspath
 ch.qos.logback:logback-classic:1.6.3=compileClasspath,grailsCliDetect,integrationTestCompileClasspath,integrationTestRuntimeClasspath,productionRuntimeClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
