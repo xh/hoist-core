@@ -111,7 +111,8 @@ metadata. In outline:
   exact resolved dependency graph, and resolution fails if a build would select anything else.
   After changing a dependency in any `build.gradle`, regenerate the lockfiles with
   `./gradlew resolveAndLockAll --write-locks` and commit the result. Note that the stock
-  `./gradlew dependencies --write-locks` only covers the root project.
+  `./gradlew dependencies --write-locks` only covers the root project. Locking here does not
+  carry over to applications - see [Dependency locking in applications](#dependency-locking-in-applications).
 - **Signing** — all publications sign with in-memory PGP keys, so no keyring is written to disk.
   Signing is required for release versions and skipped for snapshots. Key material resolves from
   the `signingKey` and `signingPassword` Gradle properties, falling back to the `SIGNING_KEY` and
@@ -164,6 +165,41 @@ repositories {
 
 See [`mcp/README.md`](../mcp/README.md#app-side-distribution) for pulling `hoist-core-mcp` into an
 application.
+
+### Dependency locking in applications
+
+Hoist-core locks its own build, but Gradle resolves each application's dependency graph afresh from
+the published POM, so an app gets no locking from the plugin. To freeze the app's resolved graph,
+add the following to `build.gradle` and commit the generated `gradle.lockfile`:
+
+```groovy
+// hoist-ai-snippet: dependency-locking/v1 -- DO NOT REMOVE (drift marker, see hoist-core/docs/build-and-publish.md)
+allprojects {
+    dependencyLocking { lockAllConfigurations() }
+
+    tasks.register('resolveAndLockAll') {
+        description = 'Resolves and records every configuration into the lockfile'
+        notCompatibleWithConfigurationCache('Filters configurations at execution time')
+        doFirst {
+            assert gradle.startParameter.writeDependencyLocks : "Run $path with --write-locks"
+        }
+        doLast {
+            configurations.findAll { it.canBeResolved }.each { it.resolve() }
+        }
+    }
+}
+// end hoist-ai-snippet
+```
+
+Then, once now and again after any dependency change:
+
+```bash
+./gradlew resolveAndLockAll --write-locks
+```
+
+Builds fail if resolution would differ from the lockfile. Note that a `-SNAPSHOT` version of
+hoist-core is locked by its version string only, so a newer snapshot still resolves, and if it adds
+or bumps a transitive dependency the lockfile must be regenerated.
 
 ### Legacy releases
 
