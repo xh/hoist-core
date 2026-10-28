@@ -13,6 +13,7 @@ import com.hazelcast.replicatedmap.ReplicatedMap
 import com.hazelcast.topic.ITopic
 import com.hazelcast.topic.Message
 import grails.async.Promises
+import grails.events.bus.EventBus
 import grails.util.GrailsClassUtils
 import groovy.transform.CompileDynamic
 import groovy.transform.NamedParam
@@ -186,7 +187,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     ) {
         if (!runFn) {
             if (metaClass.respondsTo(this, 'onTimer')) {
-                runFn = this.&onTimer
+                runFn = { -> this.onTimer() }
             } else {
                 throw new IllegalArgumentException('Must specify a runFn, or provide an onTimer() method on this service.')
             }
@@ -244,7 +245,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * hot-reloading scenario where multiple instances of singleton services may be created.
      */
     protected void subscribe(String eventName, Closure c) {
-        appContext.eventBus.subscribe(eventName) { Object... args ->
+        appContext.getBean(EventBus).subscribe(eventName) { Object... args ->
             if (destroyed) return
             try {
                 logDebug("Receiving event '$eventName'")
