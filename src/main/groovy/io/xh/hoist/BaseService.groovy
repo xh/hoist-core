@@ -189,8 +189,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
             if (metaClass.respondsTo(this, 'onTimer')) {
                 // Dispatch dynamically rather than via `this.&onTimer` - as of Groovy 5 a method
                 // pointer taken here binds to BaseService, which declares no onTimer().
-                def svc = this
-                runFn = { -> svc.invokeMethod('onTimer', null) }
+                runFn = { -> this.onTimer() }
             } else {
                 throw new IllegalArgumentException('Must specify a runFn, or provide an onTimer() method on this service.')
             }
