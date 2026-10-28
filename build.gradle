@@ -45,7 +45,7 @@ allprojects {
     dependencyLocking { lockAllConfigurations() }
 
     tasks.register('resolveAndLockAll') {
-        description = 'Resolves every configuration so --write-locks can record them.'
+        description = 'Resolves and records every configuration into the lockfile'
         notCompatibleWithConfigurationCache('Filters configurations at execution time')
         doFirst {
             assert gradle.startParameter.writeDependencyLocks : "Run $path with --write-locks"
