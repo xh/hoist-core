@@ -36,11 +36,7 @@ repositories {
     }
 }
 
-// Lock every resolvable configuration in every project, so builds use the exact dependency graph
-// recorded in the committed `gradle.lockfile` (and `buildscript-gradle.lockfile`) and fail if
-// resolution would differ. After changing a dependency, regenerate all lockfiles with:
-//   ./gradlew resolveAndLockAll --write-locks
-// See docs/build-and-publish.md.
+// Dependency locking - see docs/build-and-publish.md.
 allprojects {
     dependencyLocking { lockAllConfigurations() }
 
