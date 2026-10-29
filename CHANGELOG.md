@@ -12,16 +12,16 @@
   3. Plain ASCII punctuation only. Use " - " for in-sentence breaks, never an em dash.
 -->
 
-## 44.0-SNAPSHOT - unreleased
+## 44.0.0 - 2026-10-29
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
 
 See [`docs/upgrade-notes/v44-upgrade-notes.md`](docs/upgrade-notes/v44-upgrade-notes.md) for
 detailed, step-by-step upgrade instructions with before and after code examples.
 
-* Removed the obsolete `jasypt` dependency. Apps that import its `BasicPasswordEncryptor` should
-  switch to the new JDK based `HoistPasswordEncryptor`, a drop-in replacement.
-* Removed the unused `grails-quartz` plugin dependency.  Apps that use the Quartz plugin directly
+* Removed the obsolete `jasypt` dependency. Apps that import its `BasicPasswordEncryptor` must
+  switch to the new `HoistPasswordEncryptor`, a drop-in replacement.
+* Removed the unused `grails-quartz` plugin dependency. Apps that use the Quartz plugin directly
   must now declare `org.apache.grails:grails-quartz` themselves.
 * Replaced the Apache Directory `api-all` bundle with its client-only artifacts, dropping the
   unused DSMLv2 engine and its `dom4j` and `xpp3` XML parsers.
@@ -30,7 +30,7 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 * Added `ConnectionPoolMonitoringService.purgeConnections()` and a matching `HOIST_ADMIN` endpoint
   to close all pooled JDBC connections on one instance or across the cluster, without a restart.
-  Idle connections close immediately and in-use connections close on return. 
+  Idle connections close immediately and in-use connections close on return.
 * Added `TestTraceService` and `TestMetricsService` to `hoist-core-test`. `HoistUnitTest` now
   registers them as `traceService` and `metricsService`, so specs of code that calls `span()` or
   `observe()` no longer need a stub.
@@ -53,6 +53,14 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 * Removed redundant direct declarations of `spring-boot-autoconfigure`,
   `spring-boot-starter-validation`, `commons-io`, `opentelemetry-exporter-common` and
   `opentelemetry-context`. All remain on the classpath transitively.
+
+### 🤖 AI Docs + Tooling
+
+* Updated the `hoist-core-mcp` server to Groovy `5.1`, the version of the source that it parses,
+  and to MCP SDK `1.1.5`. Removed its unused Jackson 2 dependency. Its Jackson 3 version now comes
+  from the same `jacksonVersion` property as the plugin.
+* Renamed the IntelliJ MCP server in `.mcp.json` from `jetbrains` to `idea` to match hoist-react.
+  `CLAUDE.md` now describes how to enable it.
 
 ### 📚 Libraries
 
