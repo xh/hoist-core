@@ -31,7 +31,7 @@ class LdapObject {
         Map<String, Attribute> attsById = attributes.collectEntries { [it.id , it] }
         keys.each { k ->
             Attribute att = attsById[k]
-            this[k] = k in ['memberof', 'member'] ? att?.collect { it.string } : att?.string
+            this[k] = k in ['memberof', 'member'] ? att?.collect { it.string?.trim() } : att?.string?.trim()
         }
     }
 

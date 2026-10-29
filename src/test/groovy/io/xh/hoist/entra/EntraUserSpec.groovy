@@ -58,6 +58,21 @@ class EntraUserSpec extends Specification {
         user.displayName == null
     }
 
+    def 'getUsername normalizes #attr #value (stripDomain: #stripDomain)'() {
+        expect:
+        EntraUser.create([(attr): value]).getUsername(attr, stripDomain) == expected
+
+        where:
+        attr                       | value              | stripDomain || expected
+        'userPrincipalName'        | 'JDoe@Example.com' | false       || 'jdoe@example.com'
+        'userPrincipalName'        | 'JDoe@Example.com' | true        || 'jdoe'
+        'mail'                     | ' jdoe@x.com '     | false       || 'jdoe@x.com'
+        'mail'                     | ' jdoe@x.com '     | true        || 'jdoe'
+        'onPremisesSamAccountName' | 'JDoe '            | false       || 'jdoe'
+        'onPremisesSamAccountName' | 'JDoe '            | true        || 'jdoe'
+        'mail'                     | null               | true        || null
+    }
+
     def 'formatForJSON emits exactly the declared keys and not the derived guid'() {
         when:
         def json = EntraUser.create([id: 'abc']).formatForJSON()
