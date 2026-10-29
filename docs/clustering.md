@@ -275,7 +275,7 @@ deployment environment.
 `ClusterConfig` configures Hazelcast as the GORM second-level cache provider with default
 eviction policies:
 
-- Default cache: 5000 entries, LRU eviction
+- Default cache: 10000 entries, LRU eviction
 - Update timestamps region: 1000 entries
 - Query results region: 10000 entries
 

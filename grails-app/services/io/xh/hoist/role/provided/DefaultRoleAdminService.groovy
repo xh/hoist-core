@@ -63,11 +63,12 @@ class DefaultRoleAdminService extends BaseService {
             }
         }
 
+        def index = new RoleIndex(roles)
         roles.collect {role ->
-            def inheritedRoles = getInheritedRoles(role),
-                effectiveRoles = getEffectiveRoles(role),
-                effectiveGroups = getEffectiveMembers(role, effectiveRoles) { it.directoryGroups },
-                effectiveAssignedUsers = getEffectiveMembers(role, effectiveRoles) { it.users },
+            def inheritedRoles = getInheritedRoles(role.name, index),
+                effectiveRoles = getEffectiveRoles(role.name, index),
+                effectiveGroups = getEffectiveMembers(role.name, effectiveRoles, index.directoryGroups),
+                effectiveAssignedUsers = getEffectiveMembers(role.name, effectiveRoles, index.users),
                 effectiveUsers = getEffectiveUsers(effectiveAssignedUsers, effectiveGroups, usersForGroups),
                 effectiveGroupNames = effectiveGroups*.name.toSet()
             [
@@ -98,39 +99,33 @@ class DefaultRoleAdminService extends BaseService {
     //------------------------
     // Implementation
     //------------------------
-    private List<EffectiveMember> getInheritedRoles(Role role) {
-        Set<String> visitedRoles = [role.name]
-        Queue<Role> rolesToVisit = [role] as Queue
-        List<Role> allRoles = Role.list()
-        Map<String, EffectiveMember> ret = [:].withDefault { new EffectiveMember([name: it])}
+    private List<EffectiveMember> getInheritedRoles(String roleName, RoleIndex index) {
+        Set<String> visitedRoles = [roleName]
+        Queue<String> rolesToVisit = [roleName] as Queue
+        Map<String, EffectiveMember> ret = [:].withDefault { new EffectiveMember(it) }
 
-        while (role = rolesToVisit.poll()) {
-            allRoles
-                .findAll { it.roles.contains(role.name) }
-                .each { inheritedRole ->
-                    ret[inheritedRole.name].sourceRoles << role.name
-                    if (!visitedRoles.contains(inheritedRole.name)) {
-                        visitedRoles << inheritedRole.name
-                        rolesToVisit << inheritedRole
-                    }
-                }
+        String current
+        while ((current = rolesToVisit.poll()) != null) {
+            index.rolesWithMemberRole[current]?.each { inheritedRole ->
+                ret[inheritedRole].sourceRoles << current
+                if (visitedRoles.add(inheritedRole)) rolesToVisit << inheritedRole
+            }
         }
 
         ret.values().toList()
     }
 
-    private List<EffectiveMember> getEffectiveRoles(Role role) {
-        Set<String> visitedRoles = [role.name]
-        Queue<Role> rolesToVisit = [role] as Queue
-        Map<String, EffectiveMember> ret = [:].withDefault { new EffectiveMember([name: it])}
+    private List<EffectiveMember> getEffectiveRoles(String roleName, RoleIndex index) {
+        Set<String> visitedRoles = [roleName]
+        Queue<String> rolesToVisit = [roleName] as Queue
+        Map<String, EffectiveMember> ret = [:].withDefault { new EffectiveMember(it) }
 
-        while (role = rolesToVisit.poll()) {
-            role.roles.each { memberName ->
-                ret[memberName].sourceRoles << role.name
-                if (!visitedRoles.contains(memberName)) {
-                    visitedRoles << memberName
-                    rolesToVisit << Role.get(memberName)
-                }
+        String current
+        while ((current = rolesToVisit.poll()) != null) {
+            // Skip references to roles that do not exist, as DefaultRoleService does.
+            index.roles[current].findAll { index.roles.containsKey(it) }.each { memberName ->
+                ret[memberName].sourceRoles << current
+                if (visitedRoles.add(memberName)) rolesToVisit << memberName
             }
         }
 
@@ -142,7 +137,7 @@ class DefaultRoleAdminService extends BaseService {
         List<EffectiveMember> effectiveGroups,
         Map<String, Set<String>> usersForDirectoryGroups
     ) {
-        Map<String, EffectiveUser> ret = [:].withDefault { new EffectiveUser([name: it]) }
+        Map<String, EffectiveUser> ret = [:].withDefault { new EffectiveUser(it) }
 
         // 1) Copy over the assigned users, with sources
         if (defaultRoleService.userAssignmentSupported) {
@@ -169,21 +164,21 @@ class DefaultRoleAdminService extends BaseService {
     }
 
     private List<EffectiveMember> getEffectiveMembers(
-        Role role,
+        String roleName,
         List<EffectiveMember> effectiveRoles,
-        Closure<List<String>> memberNamesFn
+        Map<String, List<String>> membersByRole
     ) {
-        Map<String, EffectiveMember> ret = [:].withDefault { new EffectiveMember([name: it]) }
+        Map<String, EffectiveMember> ret = [:].withDefault { new EffectiveMember(it) }
 
         // Get members from the input roles
-        memberNamesFn(role).each { memberName ->
-            ret[memberName].sourceRoles << role.name
+        membersByRole[roleName].each { memberName ->
+            ret[memberName].sourceRoles << roleName
         }
 
         // Get members from effective roles
         effectiveRoles.each { sourceRole ->
             String sourceRoleName = sourceRole.name
-            memberNamesFn(Role.get(sourceRoleName)).each { memberName ->
+            membersByRole[sourceRoleName].each { memberName ->
                 ret[memberName].sourceRoles << sourceRoleName
             }
         }
@@ -199,11 +194,40 @@ class DefaultRoleAdminService extends BaseService {
     }
 
     //---------------------
-    // Internal DTO classes
+    // Internal classes
     //---------------------
-    private class EffectiveMember implements JSONFormat {
+    /**
+     * Member names of each role, read from Role.members once per listing, plus a reverse lookup of
+     * the roles that list each role as a member. The graph walks above run once per role and
+     * would otherwise rescan the members of every role at each step.
+     */
+    private static class RoleIndex {
+        final Map<String, List<String>> users = [:],
+                                        directoryGroups = [:],
+                                        roles = [:],
+                                        rolesWithMemberRole = [:]
+
+        RoleIndex(List<Role> allRoles) {
+            allRoles.each { role ->
+                users[role.name] = role.users
+                directoryGroups[role.name] = role.directoryGroups
+                roles[role.name] = role.roles
+            }
+            allRoles.each { role ->
+                roles[role.name].each { memberName ->
+                    rolesWithMemberRole.computeIfAbsent(memberName) { [] } << role.name
+                }
+            }
+        }
+    }
+
+    private static class EffectiveMember implements JSONFormat {
         String name
         List<String> sourceRoles = []
+
+        EffectiveMember(String name) {
+            this.name = name
+        }
 
         Map formatForJSON() {[
             name: name,
@@ -211,9 +235,13 @@ class DefaultRoleAdminService extends BaseService {
         ]}
     }
 
-    private class EffectiveUser implements JSONFormat {
+    private static class EffectiveUser implements JSONFormat {
         String name
         List<Source> sources = []
+
+        EffectiveUser(String name) {
+            this.name = name
+        }
 
         void addSource(String role, String directoryGroup) {
             sources << new Source(role, directoryGroup)
@@ -225,7 +253,7 @@ class DefaultRoleAdminService extends BaseService {
         ]}
     }
 
-    private class Source implements JSONFormat {
+    private static class Source implements JSONFormat {
         String role
         String directoryGroup
 

@@ -14,6 +14,19 @@
 
 ## 45.0-SNAPSHOT - unreleased
 
+### 🐞 Bug Fixes
+
+* Fixed the Admin Console role list, which failed to load if a role had a member role that did not
+  exist.
+
+### ⚙️ Technical
+
+* Improved the performance of the Admin Console role list for apps with many roles and members.
+* Raised the default size of Hibernate second-level caches from 5000 to 10000 entries. A cached
+  table with more rows than this size, such as `xh_role_member` in a large app, misses the cache
+  and reloads evicted rows one query at a time. Domain classes can still set their own size via a
+  `static cache` closure.
+
 ## 44.0.0 - 2026-10-29
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
