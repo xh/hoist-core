@@ -16,13 +16,7 @@
 
 ### ⚙️ Technical
 
-* Excluded `poi-ooxml-lite` from the classpath. Hoist ships `poi-ooxml-full` for the OOXML schema
-  classes its Excel export uses, and POI requires one of the two schema jars, never both. Apps that
-  declare `poi-ooxml` directly should add the same exclusion.
-* Switched the OTLP trace exporter to the JDK `HttpClient` sender (`opentelemetry-exporter-sender-jdk`)
-  and dropped its OkHttp sender, removing `okhttp`, `okio` and `kotlin-stdlib` from the classpath.
-  Apps that use OkHttp or Kotlin directly must declare them.
-* Removed the redundant direct declaration of `poi`, which remains on the classpath via `poi-ooxml`.
+* Removed unneeded transitive dependencies from the runtime classpath (`poi-ooxml-lite`, OkHttp, Kotlin). Apps that use OkHttp or Kotlin directly must now declare them.
 
 ## 44.0.0 - 2026-10-29
 
