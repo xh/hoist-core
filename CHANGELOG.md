@@ -22,10 +22,7 @@
 ### ⚙️ Technical
 
 * Improved the performance of the Admin Console role list for apps with many roles and members.
-* Raised the default size of Hibernate second-level caches from 5000 to 10000 entries. A cached
-  table with more rows than this size, such as `xh_role_member` in a large app, misses the cache
-  and reloads evicted rows one query at a time. Domain classes can still set their own size via a
-  `static cache` closure.
+* Raised the default Hibernate second-level cache size from 5000 to 10000 entries.
 * Removed unneeded transitive dependencies from the runtime classpath (`poi-ooxml-lite`, OkHttp, Kotlin).
 
 ## 44.0.0 - 2026-10-29
