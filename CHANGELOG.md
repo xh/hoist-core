@@ -14,10 +14,16 @@
 
 ## 45.0-SNAPSHOT - unreleased
 
+### 🐞 Bug Fixes
+
+* Fixed the Admin Console role list, which failed to load if a role had a member role that did not
+  exist.
+
 ### ⚙️ Technical
 
 * Raised the default Hibernate second-level cache size from 5000 to 10000 entries.
 * Disabled second-level caching on `TrackLog` and `JsonBlob`, which are only ever read via queries.
+* Improved the performance of the Admin Console role list for apps with many roles and members.
 * Removed unneeded transitive dependencies from the runtime classpath (`poi-ooxml-lite`, OkHttp, Kotlin).
 
 ## 44.0.0 - 2026-10-29
@@ -58,6 +64,8 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 ### ⚙️ Technical
 
+* Enabled Gradle dependency locking. Builds now fail if resolution strays from the committed
+  lockfiles - run `./gradlew resolveAndLockAll --write-locks` after changing a dependency.
 * Removed redundant direct declarations of `spring-boot-autoconfigure`,
   `spring-boot-starter-validation`, `commons-io`, `opentelemetry-exporter-common` and
   `opentelemetry-context`. All remain on the classpath transitively.

@@ -10,6 +10,7 @@ buildscript {
         classpath "org.apache.grails:grails-data-hibernate5"
         classpath "org.apache.grails:grails-gradle-plugins"
     }
+    dependencyLocking { lockAllConfigurations(); lockMode = LockMode.STRICT }
 }
 
 plugins {
@@ -35,10 +36,26 @@ repositories {
     }
 }
 
+// Dependency locking - see docs/build-and-publish.md.
+allprojects {
+    dependencyLocking { lockAllConfigurations(); lockMode = LockMode.STRICT }
+
+    tasks.register('resolveAndLockAll') {
+        description = 'Resolves and records every configuration into the lockfile.  Run with --write-locks'
+        notCompatibleWithConfigurationCache('Filters configurations at execution time')
+        doFirst {
+            assert gradle.startParameter.writeDependencyLocks : "Run $path with --write-locks"
+        }
+        doLast {
+            configurations.findAll { it.canBeResolved }.each { it.resolve() }
+        }
+    }
+}
+
 dependencies {
 
     constraints {
-        api("org.apache.mina:mina-core:2.2.9") {
+        api("org.apache.mina:mina-core:2.2.10") {
             because "CVE-2024-52046 - deserialization vulnerability in < 2.2.4"
         }
         ['org.apache.tomcat.embed:tomcat-embed-core', 'org.apache.tomcat.embed:tomcat-embed-el',
@@ -98,8 +115,8 @@ dependencies {
     api "io.micrometer:micrometer-registry-otlp"
 
     // POI - Ship poi-ooxml-full and exclude lite - we never require both.
-    api "org.apache.poi:poi-ooxml-full:5.5.1"
-    api "org.apache.poi:poi-ooxml:5.5.1", { exclude group: 'org.apache.poi', module: 'poi-ooxml-lite' }
+    api "org.apache.poi:poi-ooxml-full:6.0.0"
+    api "org.apache.poi:poi-ooxml:6.0.0", { exclude group: 'org.apache.poi', module: 'poi-ooxml-lite' }
 
     // Telemetry
     api platform("io.opentelemetry:opentelemetry-bom:1.67.0")
@@ -109,10 +126,10 @@ dependencies {
     api "io.opentelemetry:opentelemetry-exporter-otlp", {
         exclude group: 'io.opentelemetry', module: 'opentelemetry-exporter-sender-okhttp'
     }
-    api "io.opentelemetry.instrumentation:opentelemetry-jdbc:2.33.0-alpha"
+    api "io.opentelemetry.instrumentation:opentelemetry-jdbc:2.33.1-alpha"
     // Two deps runtime-scoped transitively, but needed at compile time:
-    api "io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-incubator:2.33.0-alpha"
-    api "io.opentelemetry.proto:opentelemetry-proto:1.10.0-alpha"
+    api "io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-incubator:2.33.1-alpha"
+    api "io.opentelemetry.proto:opentelemetry-proto:1.11.1-alpha"
 
     //-------------------------------
     // Testing - see docs/testing.md

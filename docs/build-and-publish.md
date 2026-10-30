@@ -106,6 +106,13 @@ metadata. In outline:
   with resolved dependency versions.
 - **Testing** — `gradle/test-conventions.gradle` configures Spock on the JUnit Platform, JaCoCo,
   and the `checkTestClassShadowing` guard for both the root project and `test-support`.
+- **Dependency locking** — every project locks all of its resolvable configurations in strict mode.
+  The committed `gradle.lockfile` in each project, plus `buildscript-gradle.lockfile` at the root,
+  records the exact resolved dependency graph, and resolution fails if a build would select anything
+  else or if a lockfile is missing.
+  After changing a dependency in any `build.gradle`, regenerate the lockfiles with
+  `./gradlew resolveAndLockAll --write-locks` and commit the result. Locking here does not
+  carry over to applications - see [Dependency locking in applications](#dependency-locking-in-applications).
 - **Signing** — all publications sign with in-memory PGP keys, so no keyring is written to disk.
   Signing is required for release versions and skipped for snapshots. Key material resolves from
   the `signingKey` and `signingPassword` Gradle properties, falling back to the `SIGNING_KEY` and
@@ -158,6 +165,28 @@ repositories {
 
 See [`mcp/README.md`](../mcp/README.md#app-side-distribution) for pulling `hoist-core-mcp` into an
 application.
+
+### Dependency locking in applications
+
+Hoist-core locks its own build, but Gradle resolves each application's dependency graph afresh from
+the published POM, so an app gets no locking from the plugin. To freeze the app's resolved graph,
+add the following to `build.gradle`, once inside the `buildscript` block and once at the project
+level, then commit the generated `gradle.lockfile` and `buildscript-gradle.lockfile`:
+
+```groovy
+dependencyLocking { lockAllConfigurations(); lockMode = LockMode.STRICT }
+```
+
+Then, once now and again after any dependency change:
+
+```bash
+./gradlew dependencies --write-locks
+```
+
+Builds fail if resolution would differ from the lockfile, and strict mode also fails a build whose
+lockfile is missing rather than silently resolving unlocked. Note that a `-SNAPSHOT` version of
+hoist-core is locked by its version string only, so a newer snapshot still resolves, and if it adds
+or bumps a transitive dependency the lockfile must be regenerated.
 
 ### Legacy releases
 
