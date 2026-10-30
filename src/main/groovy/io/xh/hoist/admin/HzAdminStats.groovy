@@ -15,9 +15,15 @@ import com.hazelcast.replicatedmap.ReplicatedMap
 import com.hazelcast.ringbuffer.impl.RingbufferProxy
 import com.hazelcast.topic.ITopic
 import io.xh.hoist.AdminStats
+import io.xh.hoist.log.LogSupport
 import io.xh.hoist.util.Utils
 import org.hibernate.SessionFactory
+import org.hibernate.engine.spi.SessionFactoryImplementor
+import org.hibernate.persister.entity.AbstractEntityPersister
+import org.hibernate.stat.CacheRegionStatistics
 import org.hibernate.stat.Statistics
+
+import java.util.regex.Pattern
 
 import javax.cache.expiry.Duration
 import javax.cache.expiry.ExpiryPolicy
@@ -25,7 +31,7 @@ import javax.cache.expiry.ExpiryPolicy
 /**
  * Admin stats for Hazelcast built-in objects.
  */
-class HzAdminStats implements AdminStats {
+class HzAdminStats implements AdminStats, LogSupport {
 
     private Map _stats
     private List<String> _comparables
@@ -145,32 +151,68 @@ class HzAdminStats implements AdminStats {
      * above. Hibernate's read-write strategy reads a key before every put, so the Hazelcast hit
      * count also includes bookkeeping reads that precede writes. Hibernate only counts a hit when
      * an entity, collection, or query result is actually served from the cache.
+     *
+     * Entity regions also report the query cache activity of queries against the entity's table,
+     * since query cache results live in a single shared region and are otherwise only visible in
+     * aggregate.
      */
     private Map getHibernateStats(String regionName) {
-        Statistics hibStats = (Utils.appContext.sessionFactory as SessionFactory).statistics
+        def sessionFactory = Utils.appContext.sessionFactory as SessionFactory,
+            hibStats = sessionFactory.statistics
+
         if (!hibStats.statisticsEnabled) return null
 
-        def regionStats
-        switch (regionName) {
-            case 'default-update-timestamps-region':
-                return formatHibernateStats(
-                    hibStats.updateTimestampsCacheHitCount,
-                    hibStats.updateTimestampsCacheMissCount,
-                    hibStats.updateTimestampsCachePutCount
-                )
-            case 'default-query-results-region':
-                regionStats = hibStats.getQueryRegionStatistics(regionName)
-                break
-            default:
-                try {
-                    regionStats = hibStats.getDomainDataRegionStatistics(regionName)
-                } catch (IllegalArgumentException ignored) {
-                    // Hazelcast cache not backing a known Hibernate region.
-                }
+        try {
+            switch (regionName) {
+                case 'default-update-timestamps-region':
+                    return formatHibernateStats(
+                        hibStats.updateTimestampsCacheHitCount,
+                        hibStats.updateTimestampsCacheMissCount,
+                        hibStats.updateTimestampsCachePutCount
+                    )
+                case 'default-query-results-region':
+                    return formatHibernateStats(hibStats.getQueryRegionStatistics(regionName))
+                default:
+                    return [
+                        *: formatHibernateStats(hibStats.getDomainDataRegionStatistics(regionName)),
+                        queries: getQueryStats(sessionFactory, hibStats, regionName)
+                    ]
+            }
+        } catch (Exception e) {
+            logWarn("Failed to read Hibernate stats for cache '$regionName'", e)
+            return null
         }
-        return regionStats ?
-            formatHibernateStats(regionStats.hitCount, regionStats.missCount, regionStats.putCount) :
-            null
+    }
+
+    /**
+     * Query cache counts summed over queries against the given entity's table. Criteria queries,
+     * which back every GORM finder, are keyed in Hibernate's statistics by their SQL, and HQL
+     * queries by their HQL, so a query is matched on either the table name or the entity name.
+     * Null for collection regions and for entities with no query cache activity.
+     */
+    private Map getQueryStats(SessionFactory sessionFactory, Statistics hibStats, String entityName) {
+        String tableName
+        try {
+            def persister = (sessionFactory as SessionFactoryImplementor).metamodel.entityPersister(entityName)
+            tableName = (persister as AbstractEntityPersister).tableName
+        } catch (Exception ignored) {
+            return null
+        }
+
+        Pattern tablePattern = Pattern.compile(/\b(from|join)\s+${Pattern.quote(tableName)}\b/, Pattern.CASE_INSENSITIVE)
+        long hits = 0, misses = 0, puts = 0
+        hibStats.queries.each { String query ->
+            if (!tablePattern.matcher(query).find() && !query.contains(entityName)) return
+            def stats = hibStats.getQueryStatistics(query)
+            hits += stats.cacheHitCount
+            misses += stats.cacheMissCount
+            puts += stats.cachePutCount
+        }
+        return (hits || misses || puts) ? formatHibernateStats(hits, misses, puts) : null
+    }
+
+    private Map formatHibernateStats(CacheRegionStatistics stats) {
+        stats ? formatHibernateStats(stats.hitCount, stats.missCount, stats.putCount) : null
     }
 
     private Map formatHibernateStats(long hits, long misses, long puts) {
