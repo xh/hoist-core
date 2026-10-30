@@ -35,7 +35,6 @@ class Monitor implements JSONFormat {
 
     static mapping = {
         table 'xh_monitor'
-        cache true
     }
 
     static constraints = {

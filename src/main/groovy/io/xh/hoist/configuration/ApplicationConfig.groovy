@@ -134,11 +134,11 @@ class ApplicationConfig {
                     use_second_level_cache = true
                     queries = true
                     use_query_cache = true
-                    generate_statistics = true
                     region {
                         factory_class = 'org.hibernate.cache.jcache.JCacheRegionFactory'
                     }
                 }
+                generate_statistics = true
                 show_sql = false
             }
         }

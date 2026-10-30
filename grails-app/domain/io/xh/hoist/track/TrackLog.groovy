@@ -50,7 +50,6 @@ class TrackLog implements JSONFormat {
 
     static mapping = {
         table 'xh_track_log'
-        cache true
         data type: 'text'
 
         // Indices on commonly queried fields
@@ -62,10 +61,6 @@ class TrackLog implements JSONFormat {
 
         // TrackService sets dateCreated explicitly, to match actual time tracked on client.
         autoTimestamp false
-    }
-
-    static cache = {
-        evictionConfig.size = 20000
     }
 
     static constraints = {

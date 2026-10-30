@@ -21,6 +21,10 @@
 
 ### ⚙️ Technical
 
+* Raised the default Hibernate second-level cache size from 5000 to 10000 entries.
+* Disabled second-level caching on `TrackLog`, `JsonBlob`, `Monitor`, and `LogLevel`, which are only ever read via queries, and on the `Preference.userPreferences` collection, which is never navigated.
+* Added Hibernate's own hit, miss, and put counts to the Hibernate Cache rows in the Admin Console cluster objects view.
+* Fixed the default Hibernate config to enable statistics under the correct property key.
 * Improved the performance of the Admin Console role list for apps with many roles and members.
 * Removed unneeded transitive dependencies from the runtime classpath (`poi-ooxml-lite`, OkHttp, Kotlin).
 

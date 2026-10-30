@@ -29,7 +29,6 @@ class Preference implements JSONFormat {
         table 'xh_preference'
         cache true
         defaultValue type: 'text'
-        userPreferences cache: true
     }
 
     static constraints = {

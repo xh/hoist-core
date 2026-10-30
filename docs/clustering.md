@@ -275,7 +275,7 @@ deployment environment.
 `ClusterConfig` configures Hazelcast as the GORM second-level cache provider with default
 eviction policies:
 
-- Default cache: 5000 entries, LRU eviction
+- Default cache: 10000 entries, LRU eviction
 - Update timestamps region: 1000 entries
 - Query results region: 10000 entries
 
@@ -293,6 +293,13 @@ class MyDomain {
     }
 }
 ```
+
+Query caching is enabled globally but opts in per query via the `cache: true` finder argument.
+Only pass it for finders on a domain class that also declares `cache true` in its mapping, or for
+queries that return scalars such as counts. A cached query stores only entity IDs, which Hibernate
+then resolves through the entity cache. If the class has no entity cache, a query-cache hit loads
+each row with its own select. Also note that any write to a table marks every cached query on that
+table stale, so query caching only pays off for tables that are read far more often than written.
 
 ### Customizing Distributed Resources
 
