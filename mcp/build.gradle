@@ -24,8 +24,8 @@ dependencies {
     implementation platform("tools.jackson:jackson-bom:$jacksonVersion")
 
     implementation 'io.modelcontextprotocol.sdk:mcp:1.1.5'
-    implementation 'org.apache.groovy:groovy:5.1.3'
-    implementation 'org.apache.groovy:groovy-json:5.1.3'
+    implementation 'org.apache.groovy:groovy:6.0.0'
+    implementation 'org.apache.groovy:groovy-json:6.0.0'
     implementation 'org.apache.commons:commons-compress:1.28.0'
     implementation 'info.picocli:picocli:4.7.7'
 }
