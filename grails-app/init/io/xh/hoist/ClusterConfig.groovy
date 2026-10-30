@@ -193,7 +193,7 @@ class ClusterConfig {
             statisticsEnabled = true
             evictionConfig.maxSizePolicy = MaxSizePolicy.ENTRY_COUNT
             evictionConfig.evictionPolicy = EvictionPolicy.LRU
-            evictionConfig.size = 5000
+            evictionConfig.size = 10000
         }
 
         config.getCacheConfig('default-update-timestamps-region').with {
