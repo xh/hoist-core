@@ -85,37 +85,38 @@ dependencies {
     }
 
     api "com.esotericsoftware:kryo:5.7.1"
-    // Pinned above grails-bom for security fixes - remove once grails-bom is >= jacksonVersion.
-    api "tools.jackson.core:jackson-databind:$jacksonVersion"
+    api "tools.jackson.core:jackson-databind:$jacksonVersion"  // Security pin - drop once grails-bom catches up
     api "com.jayway.jsonpath:json-path:2.9.0"
-    // Supports EntraIdService - Microsoft Graph token acquisition via client credentials.
     api "com.microsoft.azure:msal4j:1.26.0"
     api "org.apache.directory.api:api-ldap-client-api:2.1.9"
-    runtimeOnly "org.apache.directory.api:api-ldap-codec-standalone:2.1.9"  // loaded reflectively by client
+    runtimeOnly "org.apache.directory.api:api-ldap-codec-standalone:2.1.9"  // loaded reflectively
     api "org.apache.httpcomponents.client5:httpclient5"
-    api "org.apache.poi:poi-ooxml-full:5.5.1"
-    api "org.apache.poi:poi-ooxml:5.5.1"
-    api "org.apache.poi:poi:5.5.1"
     api "org.owasp.encoder:encoder:1.6.0"
     api "org.springframework.security:spring-security-crypto"
     api "org.springframework:spring-websocket"
     api "io.micrometer:micrometer-registry-prometheus"
     api "io.micrometer:micrometer-registry-otlp"
 
+    // POI - Ship poi-ooxml-full and exclude lite - we never require both.
+    api "org.apache.poi:poi-ooxml-full:5.5.1"
+    api "org.apache.poi:poi-ooxml:5.5.1", { exclude group: 'org.apache.poi', module: 'poi-ooxml-lite' }
+
+    // Telemetry
     api platform("io.opentelemetry:opentelemetry-bom:1.67.0")
     api "io.opentelemetry:opentelemetry-sdk"
-    api "io.opentelemetry:opentelemetry-exporter-otlp"
+    // Send OTLP over the JDK HttpClient instead of OkHttp, which drags in okio + kotlin-stdlib.
+    api "io.opentelemetry:opentelemetry-exporter-sender-jdk"
+    api "io.opentelemetry:opentelemetry-exporter-otlp", {
+        exclude group: 'io.opentelemetry', module: 'opentelemetry-exporter-sender-okhttp'
+    }
     api "io.opentelemetry.instrumentation:opentelemetry-jdbc:2.33.0-alpha"
-    // opentelemetry-jdbc 2.31.x+ demotes this to runtime scope, but static Groovy compilation
-    // needs SqlCommenter on the compile classpath to resolve JdbcTelemetryBuilder signatures.
+    // Two deps runtime-scoped transitively, but needed at compile time:
     api "io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-incubator:2.33.0-alpha"
+    api "io.opentelemetry.proto:opentelemetry-proto:1.10.0-alpha"
 
-    // Workaround needed by micrometer-registry-otlp at compile time
-    api "io.opentelemetry.proto:opentelemetry-proto:1.11.1-alpha"
-
-    //--------------------
+    //-------------------------------
     // Testing - see docs/testing.md
-    //--------------------
+    //-------------------------------
     testImplementation project(':hoist-core-test')
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }

@@ -26,6 +26,7 @@
   table with more rows than this size, such as `xh_role_member` in a large app, misses the cache
   and reloads evicted rows one query at a time. Domain classes can still set their own size via a
   `static cache` closure.
+* Removed unneeded transitive dependencies from the runtime classpath (`poi-ooxml-lite`, OkHttp, Kotlin).
 
 ## 44.0.0 - 2026-10-29
 
