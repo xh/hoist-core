@@ -43,6 +43,20 @@ class LdapPersonSpec extends Specification {
         person.memberof == ['cn=a', 'cn=b', 'cn=c']
     }
 
+    def 'attribute values are trimmed'() {
+        when:
+        def person = LdapPerson.create([
+            new DefaultAttribute('sAMAccountName', 'bob '),
+            new DefaultAttribute('mail', ' bob@x.com'),
+            new DefaultAttribute('memberOf', 'cn=a ', ' cn=b')
+        ])
+
+        then:
+        person.samaccountname == 'bob'
+        person.mail == 'bob@x.com'
+        person.memberof == ['cn=a', 'cn=b']
+    }
+
     def 'missing attributes are null'() {
         when:
         def person = LdapPerson.create([new DefaultAttribute('cn', 'Bob')])

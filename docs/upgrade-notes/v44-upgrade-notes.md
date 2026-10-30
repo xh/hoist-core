@@ -1,63 +1,156 @@
 # Hoist Core v44 Upgrade Notes
 
-> **From:** v43.x → v44.0 | **Released:** TBD | **Difficulty:** 🟢 LOW - no changes for most
-> apps; a one-line import swap if your app stores local user passwords
+> **From:** v43.x → v44.0.0 | **Released:** 2026-10-29 | **Difficulty:** 🟢 LOW
 
 ## Overview
 
-Hoist Core v44 removes the `org.jasypt:jasypt:1.9.3` dependency. Jasypt's last release was in
-2014, there is no successor version, and its heavy use of reflection makes it a liability on each
-new JDK. Hoist-core used it for two things, both now handled by JDK or Spring Security code:
+Hoist Core v44 is a dependency cleanup release. It removes three dependencies that hoist-core no
+longer uses, but which apps could have used through hoist-core's `api` scope. Most apps need only
+the version bump. An app needs more changes only if it uses one of these dependencies directly.
 
-1. **App-facing - `User` domain classes (if present):** Apps that store local user passwords
-   historically imported `org.jasypt.util.password.BasicPasswordEncryptor` directly in their
-   `User` (or `AppUser`) domain class, which worked because hoist-core re-exported jasypt via
-   `api` scope. That transitive dependency is gone. Apps must switch to the new
-   `io.xh.hoist.security.HoistPasswordEncryptor`, which has the same constructor and methods, so
-   only the import changes (see below). Existing hashes continue to verify, so no user needs to
-   reset a password.
-2. **Internal - `pwd`-typed `AppConfig` values:** Now encrypted by hoist-core's own
-   `HoistTextEncryptor`, which reads and writes the same format jasypt did under the same key.
-   Existing values are unaffected, no configuration or DB migration is required, and apps that
-   don't store local user passwords need no code changes at all.
+The most significant app-level impacts are:
+
+- **`jasypt` removed** - Hoist Core now uses its own JDK and Spring Security based encryptors. Apps
+  that store local user passwords with jasypt's `BasicPasswordEncryptor` must switch to
+  `io.xh.hoist.security.HoistPasswordEncryptor`. Existing password hashes continue to verify.
+- **`grails-quartz` removed** - Apps that use the Grails Quartz plugin must declare it themselves.
+- **Apache Directory API reduced to client-only artifacts** - The `api-all` bundle is replaced by
+  `api-ldap-client-api`. Apps that use Directory API modules outside the LDAP client, for example
+  DSMLv2, must declare those modules themselves.
+
+Encrypted `pwd` soft configs need no change. Hoist Core now encrypts them with its own
+`HoistTextEncryptor`, which reads and writes the same format as jasypt with the same key.
 
 There are no database schema changes in this release.
 
+## Prerequisites
+
+Before starting, ensure:
+
+- [ ] **The app is on hoist-core v43.x** - see the [v43 upgrade notes](./v43-upgrade-notes.md).
+
 ## Upgrade Steps
 
-### 1. Bump `hoistCoreVersion` in `gradle.properties`
+### 1. Bump `hoistCoreVersion`
 
+**File:** `gradle.properties`
+
+Before:
 ```properties
-hoistCoreVersion=44.0
+hoistCoreVersion=43.0.1
 ```
 
-`org.jasypt:jasypt:1.9.3` is no longer on hoist-core's `api` classpath, so any direct imports of
-`org.jasypt.*` in your app will fail to compile. Run `grep -r org.jasypt` over your app source to
-find them. The next step covers the common case.
+After:
+```properties
+hoistCoreVersion=44.0.0
+```
 
-### 2. Swap the import in your `User` (or `AppUser`) domain class
+Then find any direct use of the three removed dependencies. The steps below cover each one. If
+these commands find nothing, the upgrade is complete after this step.
 
-If your app has a domain class that stores hashed local-user passwords, it typically holds a
-static jasypt `BasicPasswordEncryptor` and calls `encryptPassword` and `checkPassword` on it.
-`HoistPasswordEncryptor` has the same constructor and the same two methods, so replace the import
-and leave the rest of the class as it is:
+```bash
+grep -rn "org.jasypt" grails-app/ src/
+grep -rln "org.quartz\|grails.plugins.quartz" grails-app/ src/
+grep -rn "org.apache.directory.api\|org.xmlpull" grails-app/ src/
+```
+
+### 2. Replace jasypt's `BasicPasswordEncryptor` with `HoistPasswordEncryptor`
+
+An app that stores hashed local user passwords usually does this in a `User` (or `AppUser`)
+domain class. The class holds a static jasypt `BasicPasswordEncryptor` and calls
+`encryptPassword` and `checkPassword` on it. `HoistPasswordEncryptor` has the same constructor and
+the same two methods, so change only the import and the type.
+
+**File:** `grails-app/domain/{your/package}/User.groovy`
+
+Before:
+```groovy
+import org.jasypt.util.password.BasicPasswordEncryptor
+
+class User implements HoistUser {
+    private static encryptor = new BasicPasswordEncryptor()
+```
+
+After:
+```groovy
+import io.xh.hoist.security.HoistPasswordEncryptor
+
+class User implements HoistUser {
+    private static encryptor = new HoistPasswordEncryptor()
+```
+
+`checkPassword` verifies both new BCrypt hashes and existing jasypt hashes, so users do not need to
+reset their passwords. Toolbox made this change in its `User` domain class.
+
+Two points to check:
+
+- **Column width** - `encryptPassword` now writes BCrypt hashes, which are 60 characters long.
+  The old jasypt hashes were 32 characters. If the app sets `maxSize` or a column length below 60
+  on the `password` field, increase it. The Grails default (`varchar(255)`) is sufficient.
+- **Rollback** - Users who set a password after the upgrade get a BCrypt hash. A pre-v44 build of
+  the app cannot verify a BCrypt hash, so those users cannot log in if you roll the app back.
+
+If the app uses other jasypt classes, for example a text encryptor, replace them with JDK or
+Spring Security Crypto (`org.springframework.security.crypto`) code. Hoist Core now brings in
+Spring Security Crypto. `io.xh.hoist.security.HoistTextEncryptor` is also available. It reads and
+writes the jasypt `BasicTextEncryptor` format.
+
+### 3. Declare `grails-quartz` if the app uses Quartz jobs
+
+Hoist Core no longer brings in the Grails Quartz plugin. An app that has job classes in
+`grails-app/jobs/`, or that imports `org.quartz.*` or `grails.plugins.quartz.*`, must declare the
+plugin itself. The Grails BOM supplies the version.
+
+**File:** `build.gradle`
 
 ```groovy
-// Before
-import org.jasypt.util.password.BasicPasswordEncryptor
-private static encryptor = new BasicPasswordEncryptor()
-
-// After
-import io.xh.hoist.security.HoistPasswordEncryptor
-private static encryptor = new HoistPasswordEncryptor()
+dependencies {
+    implementation "org.apache.grails:grails-quartz"
+}
 ```
 
-`checkPassword` verifies both new BCrypt hashes (written by `encryptPassword`) and existing
-jasypt-format hashes (written by older versions of your app), so existing user records continue to
-authenticate without intervention.
+Hoist Core never used Quartz itself. Timers made with `BaseService.createTimer()` are not affected.
 
-### 3. Verify
+### 4. Declare any Directory API modules beyond the LDAP client
 
-Your build should compile with no remaining `import org.jasypt.*` references. Existing local-user
-logins continue to work, new user records are written as BCrypt hashes, and `pwd` configs read
-and write exactly as before.
+Hoist Core now depends on `org.apache.directory.api:api-ldap-client-api`, not on the `api-all`
+bundle. The LDAP client, the LDAP model (`org.apache.directory.api.ldap.model.*`), and the standard
+codecs and schema data are all still on the classpath. Apps that use `LdapNetworkConnection` or
+the other LDAP client classes directly need no change.
+
+The removed parts are the DSMLv2 engine (`org.apache.directory.api.dsmlv2.*`), the other modules
+outside the LDAP client, and the `xpp3` XML parser (`org.xmlpull.*`). If step 1 found imports
+from these packages, declare the matching artifact at the version that hoist-core uses.
+
+**File:** `build.gradle`
+
+```groovy
+dependencies {
+    // Example - only if the app uses the DSMLv2 engine
+    implementation "org.apache.directory.api:api-dsml-parser:2.1.9"
+}
+```
+
+`dom4j` stays on the classpath, because Hibernate depends on it.
+
+## Verification Checklist
+
+After you complete all steps:
+
+- [ ] `./gradlew compileGroovy` succeeds
+- [ ] The application starts without errors
+- [ ] The Admin Console loads and works
+- [ ] Authentication works (login and logout)
+- [ ] An existing local user can log in with their current password (if the app stores local
+  passwords)
+- [ ] A new or changed password is saved as a 60-character hash that starts with `$2`, and that
+  user can log in
+- [ ] A `pwd` soft config still decrypts correctly. For example, a feature that uses a stored
+  credential still works.
+- [ ] Quartz jobs still run on schedule (if the app uses Quartz)
+- [ ] LDAP or Entra ID directory group lookups still resolve (if the app uses them)
+- [ ] No jasypt references remain: `grep -rn "org.jasypt" grails-app/ src/`
+
+## Reference
+
+- [Toolbox on GitHub](https://github.com/xh/toolbox) - canonical example of a Hoist app
