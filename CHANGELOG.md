@@ -17,7 +17,7 @@
 ### ⚙️ Technical
 
 * Raised the default Hibernate second-level cache size from 5000 to 10000 entries.
-* Disabled second-level caching on `TrackLog`, which is only ever read via queries.
+* Disabled second-level caching on `TrackLog` and `JsonBlob`, which are only ever read via queries.
 * Removed unneeded transitive dependencies from the runtime classpath (`poi-ooxml-lite`, OkHttp, Kotlin).
 
 ## 44.0.0 - 2026-10-29

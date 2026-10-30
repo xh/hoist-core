@@ -28,7 +28,6 @@ class JsonBlob implements JSONFormat {
 
     static mapping = {
         table 'xh_json_blob'
-        cache true
         token index: 'idx_xh_json_blob_token'
         acl type: 'text'
         value type: 'text'
