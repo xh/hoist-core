@@ -10,6 +10,7 @@ buildscript {
         classpath "org.apache.grails:grails-data-hibernate5"
         classpath "org.apache.grails:grails-gradle-plugins"
     }
+    dependencyLocking { lockAllConfigurations(); lockMode = LockMode.STRICT }
 }
 
 plugins {
@@ -32,6 +33,22 @@ repositories {
     mavenCentral()
     maven {
         url = 'https://repo.grails.org/grails/restricted'
+    }
+}
+
+// Dependency locking - see docs/build-and-publish.md.
+allprojects {
+    dependencyLocking { lockAllConfigurations(); lockMode = LockMode.STRICT }
+
+    tasks.register('resolveAndLockAll') {
+        description = 'Resolves and records every configuration into the lockfile.  Run with --write-locks'
+        notCompatibleWithConfigurationCache('Filters configurations at execution time')
+        doFirst {
+            assert gradle.startParameter.writeDependencyLocks : "Run $path with --write-locks"
+        }
+        doLast {
+            configurations.findAll { it.canBeResolved }.each { it.resolve() }
+        }
     }
 }
 

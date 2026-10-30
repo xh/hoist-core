@@ -4,3 +4,15 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    # Group routine version bumps to keep the PR volume manageable. Major
+    # bumps are excluded so they always surface as their own PR for review.
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
