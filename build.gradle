@@ -55,7 +55,7 @@ allprojects {
 dependencies {
 
     constraints {
-        api("org.apache.mina:mina-core:2.2.9") {
+        api("org.apache.mina:mina-core:2.2.10") {
             because "CVE-2024-52046 - deserialization vulnerability in < 2.2.4"
         }
         ['org.apache.tomcat.embed:tomcat-embed-core', 'org.apache.tomcat.embed:tomcat-embed-el',
@@ -126,10 +126,10 @@ dependencies {
     api "io.opentelemetry:opentelemetry-exporter-otlp", {
         exclude group: 'io.opentelemetry', module: 'opentelemetry-exporter-sender-okhttp'
     }
-    api "io.opentelemetry.instrumentation:opentelemetry-jdbc:2.33.0-alpha"
+    api "io.opentelemetry.instrumentation:opentelemetry-jdbc:2.33.1-alpha"
     // Two deps runtime-scoped transitively, but needed at compile time:
-    api "io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-incubator:2.33.0-alpha"
-    api "io.opentelemetry.proto:opentelemetry-proto:1.10.0-alpha"
+    api "io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-incubator:2.33.1-alpha"
+    api "io.opentelemetry.proto:opentelemetry-proto:1.11.1-alpha"
 
     //-------------------------------
     // Testing - see docs/testing.md
