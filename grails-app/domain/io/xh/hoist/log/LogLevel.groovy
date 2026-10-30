@@ -34,7 +34,6 @@ class LogLevel implements JSONFormat {
     static mapping = {
         table 'xh_log_level'
         level column: 'log_level'
-        cache true
     }
 
     static constraints = {
