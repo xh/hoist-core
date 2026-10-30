@@ -63,10 +63,6 @@ class TrackLog implements JSONFormat {
         autoTimestamp false
     }
 
-    static cache = {
-        evictionConfig.size = 20000
-    }
-
     static constraints = {
         username(maxSize: 50)
         impersonating(nullable: true, maxSize: 50)
