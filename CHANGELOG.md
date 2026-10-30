@@ -14,6 +14,10 @@
 
 ## 45.0-SNAPSHOT - unreleased
 
+### ⚙️ Technical
+
+* Removed unneeded transitive dependencies from the runtime classpath (`poi-ooxml-lite`, OkHttp, Kotlin).
+
 ## 44.0.0 - 2026-10-29
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
