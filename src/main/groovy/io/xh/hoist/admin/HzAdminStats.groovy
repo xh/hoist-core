@@ -152,9 +152,10 @@ class HzAdminStats implements AdminStats, LogSupport {
      * count also includes bookkeeping reads that precede writes. Hibernate only counts a hit when
      * an entity, collection, or query result is actually served from the cache.
      *
-     * Entity regions also report the query cache activity of queries against the entity's table,
-     * since query cache results live in a single shared region and are otherwise only visible in
-     * aggregate.
+     * Keyed by what the region holds: `entities`, `collection`, `queries`, or `timestamps`. Entity
+     * regions also report the query cache activity of queries against the entity's table under
+     * `queries`, since query cache results live in a single shared region and are otherwise only
+     * visible in aggregate.
      */
     private Map getHibernateStats(String regionName) {
         def sessionFactory = Utils.appContext.sessionFactory as SessionFactory,
@@ -163,23 +164,46 @@ class HzAdminStats implements AdminStats, LogSupport {
         if (!hibStats.statisticsEnabled) return null
 
         try {
-            switch (regionName) {
-                case 'default-update-timestamps-region':
-                    return formatHibernateStats(
+            // Timestamps
+            if (regionName == 'default-update-timestamps-region') {
+                return [
+                    timestamps: formatHibernateStats(
                         hibStats.updateTimestampsCacheHitCount,
                         hibStats.updateTimestampsCacheMissCount,
                         hibStats.updateTimestampsCachePutCount
                     )
-                case 'default-query-results-region':
-                    return formatHibernateStats(hibStats.getQueryRegionStatistics(regionName))
-                default:
-                    return [
-                        *: formatHibernateStats(hibStats.getDomainDataRegionStatistics(regionName)),
-                        queries: getQueryStats(sessionFactory, hibStats, regionName)
-                    ]
+                ]
             }
+
+            // Query Stats
+            if (regionName == 'default-query-results-region') {
+                return [queries: formatHibernateStats(hibStats.getQueryRegionStatistics(regionName))]
+            }
+
+            // Domain Entity
+            String tableName = getEntityTableName(sessionFactory, regionName)
+            if (tableName) {
+                return [
+                    entities: formatHibernateStats(hibStats.getDomainDataRegionStatistics(regionName)),
+                    queries : getQueryStats(hibStats, regionName, tableName)
+                ]
+            }
+
+            // Domain Collection
+            return [collection: formatHibernateStats(hibStats.getDomainDataRegionStatistics(regionName))]
+
         } catch (Exception e) {
             logWarn("Failed to read Hibernate stats for cache '$regionName'", e)
+            return null
+        }
+    }
+
+    /** Table name for an entity region, or null for a collection region. */
+    private String getEntityTableName(SessionFactory sessionFactory, String regionName) {
+        try {
+            def persister = (sessionFactory as SessionFactoryImplementor).metamodel.entityPersister(regionName)
+            return (persister as AbstractEntityPersister).tableName
+        } catch (Exception ignored) {
             return null
         }
     }
@@ -188,17 +212,9 @@ class HzAdminStats implements AdminStats, LogSupport {
      * Query cache counts summed over queries against the given entity's table. Criteria queries,
      * which back every GORM finder, are keyed in Hibernate's statistics by their SQL, and HQL
      * queries by their HQL, so a query is matched on either the table name or the entity name.
-     * Null for collection regions and for entities with no query cache activity.
+     * Null for entities with no query cache activity.
      */
-    private Map getQueryStats(SessionFactory sessionFactory, Statistics hibStats, String entityName) {
-        String tableName
-        try {
-            def persister = (sessionFactory as SessionFactoryImplementor).metamodel.entityPersister(entityName)
-            tableName = (persister as AbstractEntityPersister).tableName
-        } catch (Exception ignored) {
-            return null
-        }
-
+    private Map getQueryStats(Statistics hibStats, String entityName, String tableName) {
         Pattern tablePattern = Pattern.compile(/\b(from|join)\s+${Pattern.quote(tableName)}\b/, Pattern.CASE_INSENSITIVE)
         long hits = 0, misses = 0, puts = 0
         hibStats.queries.each { String query ->
