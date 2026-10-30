@@ -22,8 +22,6 @@
 ### ⚙️ Technical
 
 * Improved the performance of the Admin Console role list for apps with many roles and members.
-* Raised the default Hibernate second-level cache size from 5000 to 10000 entries.
-* Disabled second-level caching on `TrackLog`, which is only ever read via queries.
 * Removed unneeded transitive dependencies from the runtime classpath (`poi-ooxml-lite`, OkHttp, Kotlin).
 
 ## 44.0.0 - 2026-10-29

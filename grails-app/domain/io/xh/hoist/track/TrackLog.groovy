@@ -50,6 +50,7 @@ class TrackLog implements JSONFormat {
 
     static mapping = {
         table 'xh_track_log'
+        cache true
         data type: 'text'
 
         // Indices on commonly queried fields
