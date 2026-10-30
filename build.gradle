@@ -103,7 +103,7 @@ dependencies {
 
     api "com.esotericsoftware:kryo:5.7.1"
     api "tools.jackson.core:jackson-databind:$jacksonVersion"  // Security pin - drop once grails-bom catches up
-    api "com.jayway.jsonpath:json-path:2.9.0"
+    api "com.jayway.jsonpath:json-path:3.0.0"
     api "com.microsoft.azure:msal4j:1.26.0"
     api "org.apache.directory.api:api-ldap-client-api:2.1.9"
     runtimeOnly "org.apache.directory.api:api-ldap-codec-standalone:2.1.9"  // loaded reflectively
