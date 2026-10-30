@@ -16,7 +16,7 @@
 
 ### ⚙️ Technical
 
-* Removed unneeded transitive dependencies from the runtime classpath (`poi-ooxml-lite`, OkHttp, Kotlin). Apps that use OkHttp or Kotlin directly must now declare them.
+* Removed unneeded transitive dependencies from the runtime classpath (`poi-ooxml-lite`, OkHttp, Kotlin).
 
 ## 44.0.0 - 2026-10-29
 
