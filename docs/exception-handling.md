@@ -322,7 +322,8 @@ Utils.handleException(
 
    A null `logMessage` defaults to `[_action: actionName]` when a controller action is bound to
    the current thread. A null `logTo` is deliberate and means "do not log" — for example when
-   rendering a cluster result whose exception was already logged on the originating instance.
+   rendering a cluster result whose exception was already logged on the originating instance
+   (see [Background and Cluster Work](#background-and-cluster-work)).
 
 4. **Render** — If an `HttpServletResponse` is provided:
    - Sets the HTTP status code via `getHttpStatus(t)`
@@ -331,21 +332,29 @@ Utils.handleException(
      `ThrowableSerializer`)
    - Flushes the response buffer
 
-### Timer Exception Handling
+### Background and Cluster Work
 
-`Timer` (the Hoist polling timer) also uses `Utils.handleException()`, but without a `renderTo`
-response — exceptions in timers are logged only, not rendered to HTTP:
+Work that runs outside a request routes to the same `ExceptionHandler`, through the same
+`Utils.handleException()` entry point, but with no `renderTo`. These failures are logged only.
+Nothing is rendered, and the span-recording step is skipped, since there is no response to
+render to.
 
-```groovy
-Utils.handleException(
-    exception: throwable,
-    logTo: this,
-    logMessage: "Failure in '$name'"
-)
-```
+- **`Timer`** — Catches each run's failure and logs it as `"Failure in '$name'"` under the
+  owning service. It also captures a one-line summary via
+  `ExceptionHandler.summaryTextForThrowable()` for display in admin stats.
+- **`ClusterTask`** — Runs a service method on another instance. A failure there is logged on
+  the executing instance, then returned to the caller as a `ClusterResult` carrying a
+  `ClusterTaskException`.
+- **`ClusterService`** — Logs a failure in the Hazelcast transfer itself, as distinct from one
+  inside the task, and returns the same `ClusterTaskException` shape to the caller.
 
-Timer additionally captures a one-line error summary via
-`ExceptionHandler.summaryTextForThrowable()` for display in admin stats.
+Each passes an explicit `logMessage`, so the action-name default never applies to them.
+
+The cluster round trip is the reason a null `logTo` has to keep meaning "do not log". The
+requesting controller renders the returned `ClusterTaskException` to the client with no `logTo`,
+because the failure was already logged where it happened. See
+[Cluster Exception Transfer](#cluster-exception-transfer) for how the exception crosses the
+process boundary.
 
 ## Common Patterns
 
