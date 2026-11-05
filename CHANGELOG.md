@@ -18,6 +18,9 @@
 
 * Fixed the Admin Console role list, which failed to load if a role had a member role that did not
   exist.
+* Fixed controller actions that throw a JVM `Error`, such as a failed `assert`, returning a
+  misleading "Could not resolve view" message instead of the real error. Hoist now installs its own
+  `exceptionHandler` bean to log and render these like any other exception.
 
 ### ⚙️ Technical
 

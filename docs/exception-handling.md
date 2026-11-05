@@ -49,6 +49,7 @@ tells the client this is a routine condition — all without any per-endpoint pl
 | `BaseController` | `grails-app/controllers/io/xh/hoist/` | Controller base class — catches unhandled exceptions |
 | `HoistFilter` | `src/main/groovy/io/xh/hoist/` | Servlet filter — catches exceptions from auth/cluster checks |
 | `HoistInterceptor` | `grails-app/controllers/io/xh/hoist/` | Grails interceptor — throws `NotAuthorizedException`/`NotFoundException` |
+| `HoistExceptionResolver` | `src/main/groovy/io/xh/hoist/exception/` | Spring MVC resolver - renders errors that escape controller actions, such as a JVM `Error` |
 | `Utils` | `src/main/groovy/io/xh/hoist/util/` | Static `handleException()` entry point |
 
 ## Key Classes
@@ -166,7 +167,7 @@ provides three capabilities:
 
 1. **`handleException()`** — Preprocesses, logs, and optionally renders an exception to an HTTP
    response. Called indirectly via `Utils.handleException()` by `BaseController`, `HoistFilter`,
-   `HoistInterceptor`, and `Timer`.
+   `HoistInterceptor`, `HoistExceptionResolver`, and `Timer`.
 
 2. **`getHttpStatus()`** — Determines the HTTP status code for an exception.
 
@@ -253,7 +254,7 @@ The HTTP `Content-Type` header is always set to `application/json`.
 
 ### Where Exceptions Are Caught
 
-Hoist catches exceptions at three layers, ensuring that no unhandled exception escapes without
+Hoist catches exceptions at four layers, ensuring that no unhandled exception escapes without
 a proper JSON error response:
 
 ```
@@ -261,11 +262,13 @@ HTTP Request
     │
     ├── HoistFilter.doFilter()                ← catches auth/cluster exceptions
     │       │
-    │       └── HoistInterceptor.before()    ← catches role/route check exceptions
-    │               │
-    │               └── BaseController        ← catches controller action exceptions
-    │                       │
-    │                       └── runAsync()    ← catches async action exceptions
+    │       ├── HoistInterceptor.before()    ← catches role/route check exceptions
+    │       │       │
+    │       │       └── BaseController        ← catches controller action exceptions
+    │       │               │
+    │       │               └── runAsync()    ← catches async action exceptions
+    │       │
+    │       └── HoistExceptionResolver        ← catches Errors that escape the action
 ```
 
 **`HoistFilter`** — Wraps the entire filter chain in a try/catch. If `clusterService.ensureRunning()`
@@ -281,7 +284,15 @@ exceptions and delegates to `Utils.handleException()`.
 exception thrown during a controller action. The `runAsync()` wrapper catches exceptions from
 asynchronous actions.
 
-All three layers delegate to the same pipeline:
+**`HoistExceptionResolver`** - Handles what escapes a controller action. Grails passes only
+`Exception`s to `BaseController.handleException()`, so a JVM `Error` gets past it. Examples are a
+failed `assert`, a `StackOverflowError`, or a `LinkageError`. Grails and Spring wrap the `Error`
+on the way, and this resolver unwraps it before it logs and renders the original. The
+hoist-core plugin installs it as the Grails `exceptionHandler` bean, in place of the Grails default
+that renders an `/error` view. Apps can replace it with their own `exceptionHandler` bean in
+`resources.groovy`.
+
+All of these layers delegate to the same pipeline:
 
 ```groovy
 Utils.handleException(

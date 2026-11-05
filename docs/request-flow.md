@@ -167,7 +167,7 @@ See [`authorization.md`](./authorization.md) for details on annotations and role
 
 ## Exception Handling in the Pipeline
 
-Exceptions can be thrown at multiple stages and are handled at four levels:
+Exceptions can be thrown at multiple stages and are handled at five levels:
 
 1. **`BaseAuthenticationService.allowRequest()` try/catch** — Wraps the entire authentication flow.
    If authentication throws, the exception is logged but a **deliberately opaque** HTTP status code
@@ -183,8 +183,12 @@ Exceptions can be thrown at multiple stages and are handled at four levels:
    do **not** propagate up to `HoistFilter`.
 4. **`BaseController.handleException()`** — Catches exceptions thrown within controller actions
    and renders them as JSON error responses. The Grails framework calls this automatically.
+5. **`HoistExceptionResolver`** - Handles a JVM `Error` from a controller action, such as a failed
+   `assert`. `BaseController.handleException()` receives only `Exception`s, so an `Error` passes it
+   and reaches Spring's resolver chain. The hoist-core plugin installs this resolver as the Grails
+   `exceptionHandler` bean, in place of the Grails default that renders a missing `/error` view.
 
-Handlers 2-4 delegate to `Utils.handleException()`, which:
+Handlers 2-5 delegate to `Utils.handleException()`, which:
 - Determines the appropriate HTTP status code (e.g., 401, 403, 404, 500)
 - Renders a JSON error response with `{ name, message, cause, isRoutine }` structure (falsy values
   — null, false, empty strings — are filtered out, so e.g. `isRoutine` only appears when `true`)
