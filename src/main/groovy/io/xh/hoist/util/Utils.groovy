@@ -247,22 +247,27 @@ class Utils {
 
 
     /**
-     * Sanitizes, pre-processes, and logs exception.
+     * Sanitizes, pre-processes, logs, and optionally renders an exception.
      *
-     * Used by BaseController, ClusterRequest, Timer, and HoistInterceptor to handle
-     * otherwise unhandled exception.
+     * Used by HoistFilter, HoistExceptionResolver, ClusterRequest, and Timer to handle
+     * otherwise unhandled exceptions. Applications may call this directly, typically from a
+     * controller rendering a caught exception.
      *
-     *  @see ExceptionHandler, which may be overridden to customize this behavior.
+     * @param request the request being rendered to, used to record the exception on its trace
+     *      span. Defaults to the thread-bound Grails web request, so callers within Spring MVC
+     *      dispatch, or on a Grails web promise, may omit it. Ignored without `renderTo`.
+     * @see ExceptionHandler, which may be overridden to customize this behavior.
      */
     @NamedVariant
     static void handleException(
         @NamedParam(required = true) Throwable exception,
         @NamedParam HttpServletResponse renderTo,
         @NamedParam LogSupport logTo,
-        @NamedParam Object logMessage
+        @NamedParam Object logMessage,
+        @NamedParam HttpServletRequest request = null
     ) {
         try {
-            exceptionHandler.handleException(exception, renderTo, logTo, logMessage)
+            exceptionHandler.handleException(exception, renderTo, logTo, logMessage, request)
         } catch (Throwable t) {
             // Backup -- don't muddy waters if handler fails or not available (e.g. during shutdown)
             if (logTo) {

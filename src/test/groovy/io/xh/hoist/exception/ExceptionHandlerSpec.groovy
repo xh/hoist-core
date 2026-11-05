@@ -9,13 +9,26 @@ package io.xh.hoist.exception
 
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
+import io.xh.hoist.telemetry.trace.SpanRef
+import jakarta.servlet.ServletException
 import jakarta.servlet.http.HttpServletResponse
+import org.codehaus.groovy.runtime.InvokerInvocationException
+import org.grails.web.util.GrailsApplicationAttributes
+import org.grails.web.servlet.mvc.GrailsWebRequest
+import org.grails.web.util.WebUtils
 import org.slf4j.Logger
+import org.springframework.mock.web.MockHttpServletRequest
+import org.springframework.mock.web.MockHttpServletResponse
+import org.springframework.mock.web.MockServletContext
 import org.springframework.validation.BeanPropertyBindingResult
+import org.springframework.web.context.request.RequestContextHolder
 import spock.lang.Specification
 import spock.lang.Subject
 
+import java.lang.reflect.InvocationTargetException
 import java.util.concurrent.ExecutionException
+
+import static io.xh.hoist.HoistFilter.REQUEST_SPAN_ATTR
 
 class ExceptionHandlerSpec extends Specification {
 
@@ -92,6 +105,47 @@ class ExceptionHandlerSpec extends Specification {
         0 * log.logDebug(*_)
     }
 
+    def 'preprocess unwraps #ex.class.simpleName to #expected.class.simpleName'() {
+        expect:
+        handler.preprocess(ex).is(expected)
+
+        where:
+        ex                                                                   | expected
+        new InvocationTargetException(ERROR)                                 | ERROR
+        new ServletException('x', ERROR)                                     | ERROR
+        new InvokerInvocationException(ROUTINE)                              | ROUTINE
+        new InvokerInvocationException(new InvocationTargetException(ERROR)) | ERROR
+        new InvocationTargetException(null)                                  | ex
+        new ServletException('x', ROUTINE)                                   | ex
+        new ServletException('x')                                            | ex
+        ROUTINE                                                              | ROUTINE
+    }
+
+    def 'logMessage defaults to the bound action name, and only when absent'() {
+        given:
+        def log = Mock(LogSupport)
+        def ex = new RuntimeException('e')
+        def request = new MockHttpServletRequest().tap {
+            setAttribute(GrailsApplicationAttributes.ACTION_NAME_ATTRIBUTE, 'doThing')
+        }
+        WebUtils.storeGrailsWebRequest(new GrailsWebRequest(request, new MockHttpServletResponse(), new MockServletContext()))
+
+        when:
+        handler.handleException(ex, null, log, null)
+
+        then:
+        1 * log.logError({ it == [_action: 'doThing'] }, ex)
+
+        when:
+        handler.handleException(ex, null, log, 'explicit')
+
+        then:
+        1 * log.logError('explicit', ex)
+
+        cleanup:
+        RequestContextHolder.resetRequestAttributes()
+    }
+
     def 'logMessage is passed ahead of the exception'() {
         given:
         def log = Mock(LogSupport)
@@ -121,6 +175,59 @@ class ExceptionHandlerSpec extends Specification {
         1 * response.setContentType('application/json')
         1 * response.flushBuffer()
         out.toString() == JSONSerializer.serialize(ex)
+    }
+
+    def 'records a rendered exception on the request span'() {
+        given:
+        def span = Mock(SpanRef)
+        def ex = new RuntimeException('e')
+        def request = new MockHttpServletRequest().tap { setAttribute(REQUEST_SPAN_ATTR, span) }
+
+        when:
+        handler.handleException(ex, new MockHttpServletResponse(), null, null, request)
+
+        then:
+        1 * span.recordException(ex)
+    }
+
+    def 'finds the request span via the thread-bound web request when none is passed'() {
+        given:
+        def span = Mock(SpanRef)
+        def ex = new RuntimeException('e')
+        def request = new MockHttpServletRequest().tap { setAttribute(REQUEST_SPAN_ATTR, span) }
+        WebUtils.storeGrailsWebRequest(new GrailsWebRequest(request, new MockHttpServletResponse(), new MockServletContext()))
+
+        when:
+        handler.handleException(ex, new MockHttpServletResponse(), null, null)
+
+        then:
+        1 * span.recordException(ex)
+
+        cleanup:
+        RequestContextHolder.resetRequestAttributes()
+    }
+
+    def 'does not touch the span when nothing is rendered'() {
+        given:
+        def span = Mock(SpanRef)
+        def request = new MockHttpServletRequest().tap { setAttribute(REQUEST_SPAN_ATTR, span) }
+
+        when:
+        handler.handleException(new RuntimeException('e'), null, null, null, request)
+
+        then:
+        0 * span.recordException(_)
+    }
+
+    def 'tolerates no request and no thread-bound web request'() {
+        given:
+        RequestContextHolder.resetRequestAttributes()
+
+        when:
+        handler.handleException(new RuntimeException('e'), new MockHttpServletResponse(), null, null)
+
+        then:
+        noExceptionThrown()
     }
 
     def 'committed response is left untouched'() {
@@ -170,4 +277,10 @@ class ExceptionHandlerSpec extends Specification {
         1 * log.logDebug(replacement)
         0 * log.logError(*_)
     }
+
+    //------------------------
+    // Implementation
+    //------------------------
+    private static final Error ERROR = new LinkageError('linkage')
+    private static final Exception ROUTINE = new RoutineRuntimeException('routine')
 }

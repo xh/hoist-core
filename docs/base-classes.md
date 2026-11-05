@@ -344,9 +344,11 @@ request parsing, async support, identity access, and logging (via `LogSupport` â
 
 ### Exception Handling
 
-Uncaught exceptions are handled by `handleException()`, which delegates to the framework's
-`ExceptionHandler`. This renders the exception as a JSON error response with an appropriate HTTP
-status code.
+Uncaught exceptions propagate to `HoistExceptionResolver`, which logs them under the controller's
+class and renders them as a JSON error response with an appropriate HTTP status code.
+`handleException(Exception)` is the Grails hook that lets them through; override it to customize
+handling for a controller. `runAsync()` catches on its worker thread and routes to the same
+`ExceptionHandler`. See [`exception-handling.md`](./exception-handling.md).
 
 ## RestController
 

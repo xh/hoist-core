@@ -46,8 +46,9 @@ tells the client this is a routine condition — all without any per-endpoint pl
 | `ClusterExecutionException` | `src/main/groovy/io/xh/hoist/exception/` | Serialization-safe wrapper for remote cluster task failures |
 | `ClusterTaskException` | `src/main/groovy/io/xh/hoist/cluster/` | DTO for transferring exception data across cluster nodes |
 | `ThrowableSerializer` | `src/main/groovy/io/xh/hoist/json/serializer/` | Jackson serializer — converts exceptions to JSON |
-| `BaseController` | `grails-app/controllers/io/xh/hoist/` | Controller base class — catches unhandled exceptions |
-| `HoistFilter` | `src/main/groovy/io/xh/hoist/` | Servlet filter — catches exceptions from auth/cluster checks |
+| `HoistFilter` | `src/main/groovy/io/xh/hoist/` | Servlet filter — routes exceptions thrown outside Spring MVC dispatch |
+| `HoistExceptionResolver` | `src/main/groovy/io/xh/hoist/exception/` | Spring MVC resolver — routes exceptions thrown within dispatch |
+| `BaseController` | `grails-app/controllers/io/xh/hoist/` | Controller base class — routes exceptions from `runAsync()` worker threads |
 | `HoistInterceptor` | `grails-app/controllers/io/xh/hoist/` | Grails interceptor — throws `NotAuthorizedException`/`NotFoundException` |
 | `Utils` | `src/main/groovy/io/xh/hoist/util/` | Static `handleException()` entry point |
 
@@ -165,8 +166,8 @@ The central exception processing class, installed as a Spring bean (`xhException
 provides three capabilities:
 
 1. **`handleException()`** — Preprocesses, logs, and optionally renders an exception to an HTTP
-   response. Called indirectly via `Utils.handleException()` by `BaseController`, `HoistFilter`,
-   `HoistInterceptor`, and `Timer`.
+   response. Called indirectly via `Utils.handleException()` by `HoistFilter`,
+   `HoistExceptionResolver`, `BaseController.runAsync()`, and `Timer`.
 
 2. **`getHttpStatus()`** — Determines the HTTP status code for an exception.
 
@@ -251,44 +252,52 @@ The HTTP `Content-Type` header is always set to `application/json`.
 
 ## Exception Handling Pipeline
 
-### Where Exceptions Are Caught
+### Where Exceptions Are Routed
 
-Hoist catches exceptions at three layers, ensuring that no unhandled exception escapes without
-a proper JSON error response:
+Nothing in the request path handles an exception itself. Three places catch what escapes and
+route it to `ExceptionHandler`, which does the logging and rendering. Which one catches depends
+only on where the exception was thrown:
 
 ```
 HTTP Request
     │
-    ├── HoistFilter.doFilter()                ← catches auth/cluster exceptions
-    │       │
-    │       └── HoistInterceptor.before()    ← catches role/route check exceptions
-    │               │
-    │               └── BaseController        ← catches controller action exceptions
-    │                       │
-    │                       └── runAsync()    ← catches async action exceptions
+    └── HoistFilter ───────────────────────── routes anything thrown outside Spring MVC dispatch
+            │                                 (cluster readiness, authentication)
+            └── Spring MVC dispatch
+                    ├── HoistInterceptor.before()
+                    ├── controller action
+                    │       └── runAsync { } ──── BaseController routes anything thrown on the worker thread
+                    └── HoistExceptionResolver ── routes anything thrown within dispatch
 ```
 
-**`HoistFilter`** — Wraps the entire filter chain in a try/catch. If `clusterService.ensureRunning()`
-or `authenticationService.allowRequest()` throws, the exception is caught here. This handles
-`InstanceNotAvailableException` (cluster not ready) and `NotAuthenticatedException`.
+**`HoistFilter`** — Wraps the filter chain in a try/catch. `clusterService.ensureRunning()` and
+`authenticationService.allowRequest()` run here, before Spring MVC dispatch begins, so an
+`InstanceNotAvailableException` or `NotAuthenticatedException` can only be caught here.
 
-**`HoistInterceptor`** — Checks controller access annotations (`@AccessRequiresRole`, etc.)
-before the controller action executes. Throws `NotFoundException` if no matching controller method
-is found, or `NotAuthorizedException` if the user lacks the required role(s). Catches its own
-exceptions and delegates to `Utils.handleException()`.
+**`HoistExceptionResolver`** — Catches everything thrown within Spring MVC dispatch, whether an
+`Exception` or a JVM `Error` such as a failed `assert`. That includes `HoistInterceptor.before()`,
+which throws `NotFoundException` or `NotAuthorizedException` from its access checks, and controller
+actions, which throw whatever they throw. The hoist-core plugin installs the resolver as the
+Grails `exceptionHandler` bean, replacing the Grails default that renders an `/error` view Hoist
+does not provide. It logs under the mapped controller's class, so that controller's log level and
+stacktrace settings apply.
 
-**`BaseController`** — The `handleException(Exception)` method (a Grails convention) catches any
-exception thrown during a controller action. The `runAsync()` wrapper catches exceptions from
-asynchronous actions.
+**`BaseController.runAsync()`** — Catches on the worker thread. An asynchronous action body runs
+outside the dispatch the resolver observes, so the wrapper routes its failures directly.
 
-All three layers delegate to the same pipeline:
+`BaseController.handleException(Exception)` is not a fourth place. It is the Grails
+exception-handler hook, and its default rethrows so the resolver sees action exceptions. A
+controller may override it to customize handling.
+
+All three call the same entry point:
 
 ```groovy
 Utils.handleException(
     exception: t,
     renderTo: response,      // HttpServletResponse — omitted in Timer context
     logTo: this,             // LogSupport — determines the logger name
-    logMessage: [...]        // Optional context for the log entry
+    logMessage: [...],       // Optional context for the log entry
+    request: request         // Optional — defaults to the thread-bound Grails web request
 )
 ```
 
@@ -296,35 +305,56 @@ Utils.handleException(
 
 `ExceptionHandler.handleException()` performs these steps:
 
-1. **Preprocess** — `preprocess(t)` converts Grails `ValidationException` to Hoist
-   `ValidationException`, then sanitizes the stack trace via `GrailsUtil.deepSanitize()`.
+1. **Preprocess** — `preprocess(t)` peels off the wrappers Groovy, Grails, and Spring add on the
+   way out of reflective and dispatched calls (`InvocationTargetException`,
+   `InvokerInvocationException`, `GrailsMVCException`, and a `ServletException` around an
+   `Error`), converts Grails `ValidationException` to Hoist `ValidationException`, then sanitizes
+   the stack trace via `GrailsUtil.deepSanitize()`.
 
-2. **Log** — If a `LogSupport` target is provided, logs the exception at the appropriate level:
+2. **Record** — If an `HttpServletResponse` is provided and the request carries a trace span,
+   records the exception on that span. The request defaults to the thread-bound Grails web
+   request, so only `HoistFilter`, which runs before Grails binds it, passes one explicitly.
+   Routine exceptions are skipped, since an exception event would flag the span as an error.
+
+3. **Log** — If a `LogSupport` target is provided, logs the exception at the appropriate level:
    - DEBUG if `shouldLogDebug(t)` returns `true` (i.e. `RoutineException` instances)
    - ERROR otherwise
 
-3. **Render** — If an `HttpServletResponse` is provided:
+   A null `logMessage` defaults to `[_action: actionName]` when a controller action is bound to
+   the current thread. A null `logTo` is deliberate and means "do not log" — for example when
+   rendering a cluster result whose exception was already logged on the originating instance
+   (see [Background and Cluster Work](#background-and-cluster-work)).
+
+4. **Render** — If an `HttpServletResponse` is provided:
    - Sets the HTTP status code via `getHttpStatus(t)`
    - Sets `Content-Type: application/json`
    - Writes the exception as JSON via `JSONSerializer.serialize(t)` (which uses
      `ThrowableSerializer`)
    - Flushes the response buffer
 
-### Timer Exception Handling
+### Background and Cluster Work
 
-`Timer` (the Hoist polling timer) also uses `Utils.handleException()`, but without a `renderTo`
-response — exceptions in timers are logged only, not rendered to HTTP:
+Work that runs outside a request routes to the same `ExceptionHandler`, through the same
+`Utils.handleException()` entry point, but with no `renderTo`. These failures are logged only.
+Nothing is rendered, and the span-recording step is skipped, since there is no response to
+render to.
 
-```groovy
-Utils.handleException(
-    exception: throwable,
-    logTo: this,
-    logMessage: "Failure in '$name'"
-)
-```
+- **`Timer`** — Catches each run's failure and logs it as `"Failure in '$name'"` under the
+  owning service. It also captures a one-line summary via
+  `ExceptionHandler.summaryTextForThrowable()` for display in admin stats.
+- **`ClusterTask`** — Runs a service method on another instance. A failure there is logged on
+  the executing instance, then returned to the caller as a `ClusterResult` carrying a
+  `ClusterTaskException`.
+- **`ClusterService`** — Logs a failure in the Hazelcast transfer itself, as distinct from one
+  inside the task, and returns the same `ClusterTaskException` shape to the caller.
 
-Timer additionally captures a one-line error summary via
-`ExceptionHandler.summaryTextForThrowable()` for display in admin stats.
+Each passes an explicit `logMessage`, so the action-name default never applies to them.
+
+The cluster round trip is the reason a null `logTo` has to keep meaning "do not log". The
+requesting controller renders the returned `ClusterTaskException` to the client with no `logTo`,
+because the failure was already logged where it happened. See
+[Cluster Exception Transfer](#cluster-exception-transfer) for how the exception crosses the
+process boundary.
 
 ## Common Patterns
 

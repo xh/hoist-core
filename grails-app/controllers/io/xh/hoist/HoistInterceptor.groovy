@@ -19,7 +19,6 @@ import io.xh.hoist.security.AccessRequiresRole
 import io.xh.hoist.telemetry.trace.SpanRef
 import io.xh.hoist.user.HoistUser
 import io.xh.hoist.user.IdentityService
-import io.xh.hoist.util.Utils
 import io.xh.hoist.websocket.HoistWebSocketConfigurer
 import jakarta.servlet.http.HttpServletRequest
 
@@ -46,54 +45,47 @@ class HoistInterceptor implements LogSupport {
         matchAll()
     }
 
+    /**
+     * Exceptions thrown here propagate to {@link io.xh.hoist.exception.HoistExceptionResolver},
+     * which logs and renders them as JSON.
+     */
     boolean before() {
-        try {
-            def req = getRequest()
-            if (isWebSocketHandshake(req) || isActuator(req) ) {
-                return true
-            }
-
-            // Get controller method
-            HoistUser user = identityService.user
-            Class clazz = controllerClass?.clazz
-            String actionNm = actionName ?: controllerClass?.defaultAction
-            Method method = clazz && actionNm ? findMethod(clazz, actionNm) : null
-
-            // Stamp the SERVER span (created by HoistFilter) now that route mapping is known.
-            def span = req.getAttribute(REQUEST_SPAN_ATTR) as SpanRef
-            if (span && controllerName) {
-                def route = "$controllerName/${actionNm ?: 'index'}"
-                span.updateName("${req.method} $route")
-                span.setTag('http.route', route)
-            }
-
-            // Paranoia? This should already have been mapped to xh/notFound
-            if (!method) throw new NotFoundException()
-
-            // Eval security annotations, return true if allowed, or throw 403 (Forbidden).
-            def ann = annotations.findResult {method.getAnnotation(it)} ?: annotations.findResult {clazz.getAnnotation(it)}
-            if (
-                (ann instanceof AccessAll) ||
-                (ann instanceof AccessRequiresRole     && user?.hasRole(((AccessRequiresRole) ann).value())) ||
-                (ann instanceof AccessRequiresAnyRole  && user?.hasAnyRole(((AccessRequiresAnyRole) ann).value())) ||
-                (ann instanceof AccessRequiresAllRoles && user?.hasAllRoles(((AccessRequiresAllRoles) ann).value())) ||
-                (ann instanceof Access                 && user?.hasAllRoles(((Access) ann).value()))
-            ) return true
-
-            def username = user?.username ?: 'UNKNOWN'
-            throw new NotAuthorizedException(
-                "You do not have the required role(s) for this action. Currently logged in as: $username."
-            )
-        } catch (Exception e) {
-            // Handling here logs with this class, rather than a mapped controller. Pros and cons.
-            Utils.handleException(
-                exception: e,
-                logMessage: [controller: controllerClass?.name, action: actionName],
-                logTo: this,
-                renderTo: response
-            )
-            return false
+        def req = getRequest()
+        if (isWebSocketHandshake(req) || isActuator(req) ) {
+            return true
         }
+
+        // Get controller method
+        HoistUser user = identityService.user
+        Class clazz = controllerClass?.clazz
+        String actionNm = actionName ?: controllerClass?.defaultAction
+        Method method = clazz && actionNm ? findMethod(clazz, actionNm) : null
+
+        // Stamp the SERVER span (created by HoistFilter) now that route mapping is known.
+        def span = req.getAttribute(REQUEST_SPAN_ATTR) as SpanRef
+        if (span && controllerName) {
+            def route = "$controllerName/${actionNm ?: 'index'}"
+            span.updateName("${req.method} $route")
+            span.setTag('http.route', route)
+        }
+
+        // Paranoia? This should already have been mapped to xh/notFound
+        if (!method) throw new NotFoundException()
+
+        // Eval security annotations, return true if allowed, or throw 403 (Forbidden).
+        def ann = annotations.findResult {method.getAnnotation(it)} ?: annotations.findResult {clazz.getAnnotation(it)}
+        if (
+            (ann instanceof AccessAll) ||
+            (ann instanceof AccessRequiresRole     && user?.hasRole(((AccessRequiresRole) ann).value())) ||
+            (ann instanceof AccessRequiresAnyRole  && user?.hasAnyRole(((AccessRequiresAnyRole) ann).value())) ||
+            (ann instanceof AccessRequiresAllRoles && user?.hasAllRoles(((AccessRequiresAllRoles) ann).value())) ||
+            (ann instanceof Access                 && user?.hasAllRoles(((Access) ann).value()))
+        ) return true
+
+        def username = user?.username ?: 'UNKNOWN'
+        throw new NotAuthorizedException(
+            "You do not have the required role(s) for this action. Currently logged in as: $username."
+        )
     }
 
     //------------------------

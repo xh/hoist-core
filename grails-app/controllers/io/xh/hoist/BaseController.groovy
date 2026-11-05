@@ -13,8 +13,8 @@ import groovy.transform.NamedParam
 import groovy.transform.NamedVariant
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.cluster.ClusterResult
+import io.xh.hoist.exception.HoistExceptionResolver
 import io.xh.hoist.json.JSONParser
-import io.xh.hoist.telemetry.trace.SpanRef
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
 import io.xh.hoist.user.HoistUser
@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory
 
 import static grails.async.web.WebPromises.task
 import static java.nio.charset.StandardCharsets.UTF_8
-import static io.xh.hoist.HoistFilter.REQUEST_SPAN_ATTR
 import static org.apache.hc.core5.http.HttpStatus.SC_NO_CONTENT
 import static org.apache.hc.core5.http.HttpStatus.SC_OK
 
@@ -185,12 +184,16 @@ abstract class BaseController implements LogSupport, IdentitySupport {
         render(text: null, status: SC_NO_CONTENT, contentType: 'application/json; charset=UTF-8')
     }
 
+    /**
+     * Run an action body asynchronously. A failure is logged and rendered here, on the worker
+     * thread, rather than left for the Grails async machinery to re-dispatch.
+     */
     protected Promise runAsync(Closure c) {
         task {
             try {
                 c.call()
             } catch (Throwable t) {
-                handleUncaughtInternal(t)
+                Utils.handleException(exception: t, logTo: this, renderTo: response, request: request)
             }
         }
     }
@@ -222,19 +225,15 @@ abstract class BaseController implements LogSupport, IdentitySupport {
         (JSONSerializer.serialize(row) + '\n').getBytes(UTF_8)
     }
 
+    /**
+     * Grails exception-handler hook for controller actions.
+     *
+     * The default rethrows, so the exception propagates to {@link HoistExceptionResolver}, which
+     * logs and renders it as JSON like any other Hoist error. Override to customize handling for
+     * a controller.
+     */
     void handleException(Exception ex) {
-        handleUncaughtInternal(ex)
-    }
-
-    private void handleUncaughtInternal(Throwable t) {
-        def span = request.getAttribute(REQUEST_SPAN_ATTR) as SpanRef
-        span?.recordException(t)
-        Utils.handleException(
-            exception: t,
-            logTo: this,
-            logMessage: [_action: actionName],
-            renderTo: response
-        )
+        throw ex
     }
 
     // Provide cached logger to LogSupport for possible performance benefit

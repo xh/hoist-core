@@ -12,6 +12,7 @@ import grails.plugins.Plugin
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.cluster.InstanceState
 import io.xh.hoist.exception.ExceptionHandler
+import io.xh.hoist.exception.HoistExceptionResolver
 import io.xh.hoist.util.Timer
 import io.xh.hoist.util.Utils
 import io.xh.hoist.websocket.HoistWebSocketConfigurer
@@ -57,6 +58,9 @@ class HoistCoreGrailsPlugin extends Plugin {
             }
 
             xhExceptionHandler(ExceptionHandler)
+
+            // Replaces the Grails default, which renders a missing `/error` view.
+            exceptionHandler(HoistExceptionResolver)
         }
     }
 

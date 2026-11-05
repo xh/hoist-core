@@ -175,7 +175,7 @@
             "mcpCategory": "package",
             "viewerCategory": "infrastructure",
             "description": "Exception hierarchy and error rendering.",
-            "keywords": ["HttpException", "RoutineException", "ExceptionHandler", "HTTP status"]
+            "keywords": ["HttpException", "RoutineException", "ExceptionHandler", "HoistExceptionResolver", "HTTP status"]
         },
         {
             "id": "docs/logging.md",
