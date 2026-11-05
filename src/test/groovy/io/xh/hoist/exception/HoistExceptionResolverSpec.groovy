@@ -11,7 +11,6 @@ import io.xh.hoist.json.JSONParser
 import io.xh.hoist.telemetry.trace.SpanRef
 import io.xh.hoist.test.HoistSpec
 import jakarta.servlet.ServletException
-import org.codehaus.groovy.runtime.InvokerInvocationException
 import org.springframework.core.Ordered
 import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse
@@ -53,20 +52,16 @@ class HoistExceptionResolverSpec extends HoistSpec {
         renderedJSON() == [name: 'RoutineRuntimeException', message: 'bad input', isRoutine: true]
     }
 
-    def 'unwraps #ex.class.simpleName to #expected.class.simpleName'() {
-        expect:
-        resolver.unwrap(ex).is(expected)
+    def 'renders an exception rethrown by BaseController.handleException with its Hoist status'() {
+        given: 'Grails invokes the handler reflectively, so the rethrown exception arrives wrapped'
+        def wrapped = new InvocationTargetException(new NotAuthorizedException('no role'))
 
-        where:
-        ex                                                               | expected
-        new InvocationTargetException(ERROR)                             | ERROR
-        new ServletException('x', ERROR)                                 | ERROR
-        new InvokerInvocationException(ROUTINE)                          | ROUTINE
-        new InvokerInvocationException(new InvocationTargetException(ERROR)) | ERROR
-        new InvocationTargetException(null)                              | ex
-        new ServletException('x', ROUTINE)                               | ex
-        new ServletException('x')                                        | ex
-        ROUTINE                                                          | ROUTINE
+        when:
+        resolver.resolveException(request, response, null, wrapped)
+
+        then:
+        response.status == 403
+        renderedJSON() == [name: 'NotAuthorizedException', message: 'no role', isRoutine: true]
     }
 
     def 'records the unwrapped exception on the request span'() {
@@ -90,9 +85,6 @@ class HoistExceptionResolverSpec extends HoistSpec {
     //------------------------
     // Implementation
     //------------------------
-    private static final Error ERROR = new LinkageError('linkage')
-    private static final Exception ROUTINE = new RoutineRuntimeException('routine')
-
     private Map renderedJSON() {
         JSONParser.parseObject(response.contentAsString)
     }

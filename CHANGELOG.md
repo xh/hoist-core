@@ -18,13 +18,11 @@
 
 * Fixed the Admin Console role list, which failed to load if a role had a member role that did not
   exist.
-* Fixed controller actions that throw a JVM `Error`, such as a failed `assert`, returning a
-  misleading "Could not resolve view" message instead of the real error. Hoist now installs its own
-  `exceptionHandler` bean to log and render these like any other exception.
 
 ### ⚙️ Technical
 
 * Raised the default Hibernate second-level cache size from 5000 to 10000 entries.
+* Improved exception handling to route previously missed throwables (e.g. a failed `assert` in a controller action) to the common `ExceptionHandler`, and consolidated the request-path handling for consistent logging tied to the correct controller and action.
 * Disabled second-level caching on `TrackLog`, `JsonBlob`, `Monitor`, and `LogLevel`, which are only ever read via queries, and on the `Preference.userPreferences` collection, which is never navigated.
 * Added Hibernate's own hit, miss, and put counts to the Hibernate Cache rows in the Admin Console cluster objects view.
 * Fixed the default Hibernate config to enable statistics under the correct property key.

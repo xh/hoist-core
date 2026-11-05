@@ -60,7 +60,8 @@ class HoistFilter implements Filter, LogSupport {
             }
 
         } catch (Throwable t) {
-            Utils.handleException(exception: t, renderTo: httpResponse, logTo: this)
+            // Runs before Grails binds the web request, so pass it explicitly.
+            Utils.handleException(exception: t, renderTo: httpResponse, logTo: this, request: httpRequest)
         }
     }
 
@@ -105,8 +106,7 @@ class HoistFilter implements Filter, LogSupport {
             try {
                 handleRequest(req, res, chain)
             } catch (Throwable t) {
-                Utils.handleException(exception: t, renderTo: res, logTo: this)
-                span.recordException(t)
+                Utils.handleException(exception: t, renderTo: res, logTo: this, request: req)
             } finally {
                 span.setHttpStatusAndErrorStatus(res.status)
             }

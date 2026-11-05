@@ -167,28 +167,25 @@ See [`authorization.md`](./authorization.md) for details on annotations and role
 
 ## Exception Handling in the Pipeline
 
-Exceptions can be thrown at multiple stages and are handled at five levels:
+Three places catch exceptions and route them to `ExceptionHandler`, according to where the
+exception was thrown:
 
-1. **`BaseAuthenticationService.allowRequest()` try/catch** — Wraps the entire authentication flow.
-   If authentication throws, the exception is logged but a **deliberately opaque** HTTP status code
-   is returned — no JSON error body is rendered to the unverified client. This is a security measure
-   to avoid leaking information before the user's identity is confirmed.
-2. **`HoistFilter` catch block** — Catches any `Throwable` from the rest of the pipeline. This is
-   the safety net for instance readiness failures (`ensureRunning()`), Grails internals, and any
-   other unexpected errors that escape lower-level handlers.
-3. **`HoistInterceptor.before()` try/catch** — The interceptor wraps its own logic in a try/catch
-   block. Exceptions thrown during access checks (e.g., `NotFoundException`,
-   `NotAuthorizedException`) are caught within the interceptor itself and rendered directly to the
-   response via `Utils.handleException(exception: e, ..., renderTo: response)`. These exceptions
-   do **not** propagate up to `HoistFilter`.
-4. **`BaseController.handleException()`** — Catches exceptions thrown within controller actions
-   and renders them as JSON error responses. The Grails framework calls this automatically.
-5. **`HoistExceptionResolver`** - Handles a JVM `Error` from a controller action, such as a failed
-   `assert`. `BaseController.handleException()` receives only `Exception`s, so an `Error` passes it
-   and reaches Spring's resolver chain. The hoist-core plugin installs this resolver as the Grails
-   `exceptionHandler` bean, in place of the Grails default that renders a missing `/error` view.
+1. **`HoistFilter`** — Anything thrown outside Spring MVC dispatch: instance readiness
+   (`ensureRunning()`), authentication, and Grails internals.
+2. **`HoistExceptionResolver`** — Anything thrown within dispatch, whether an `Exception` or a JVM
+   `Error`. Access-check failures from `HoistInterceptor.before()` (`NotFoundException`,
+   `NotAuthorizedException`) and exceptions from controller actions both land here.
+   `BaseController.handleException()` rethrows by default so the resolver sees action exceptions.
+3. **`BaseController.runAsync()`** — Anything thrown on an asynchronous action's worker thread,
+   which runs outside the dispatch the resolver observes.
 
-Handlers 2-5 delegate to `Utils.handleException()`, which:
+One stage is deliberately different. `BaseAuthenticationService.allowRequest()` wraps the
+authentication flow in its own try/catch. If authentication throws, the exception is logged but a
+**deliberately opaque** HTTP status is returned — no JSON error body is rendered to the unverified
+client, so nothing leaks before the user's identity is confirmed.
+
+All three delegate to `Utils.handleException()`, which:
+- Records the exception on the request's trace span, if tracing is enabled
 - Determines the appropriate HTTP status code (e.g., 401, 403, 404, 500)
 - Renders a JSON error response with `{ name, message, cause, isRoutine }` structure (falsy values
   — null, false, empty strings — are filtered out, so e.g. `isRoutine` only appears when `true`)

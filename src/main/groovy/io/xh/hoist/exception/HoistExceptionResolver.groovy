@@ -9,37 +9,31 @@ package io.xh.hoist.exception
 
 import groovy.transform.CompileStatic
 import io.xh.hoist.log.LogSupport
-import io.xh.hoist.telemetry.trace.SpanRef
+import io.xh.hoist.log.SimpleLogger
 import io.xh.hoist.util.Utils
-import jakarta.servlet.ServletException
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.codehaus.groovy.runtime.InvokerInvocationException
 import org.grails.web.servlet.mvc.GrailsWebRequest
-import org.grails.web.servlet.mvc.exceptions.GrailsMVCException
 import org.springframework.core.Ordered
 import org.springframework.web.servlet.HandlerExceptionResolver
 import org.springframework.web.servlet.ModelAndView
 
-import java.lang.reflect.InvocationTargetException
-
-import static io.xh.hoist.HoistFilter.REQUEST_SPAN_ATTR
-
 /**
- * Renders exceptions that escape Grails controller actions, in place of the default Grails
- * `exceptionHandler` bean.
+ * Logs and renders every exception thrown during Spring MVC dispatch, in place of the default
+ * Grails `exceptionHandler` bean.
  *
- * Most exceptions never get here - `BaseController.handleException()` handles them within the
- * action. That handler only sees `Exception`s, so a JVM `Error` passes it by and reaches Spring's
- * resolver chain instead. Examples are a failed Groovy `assert`, a `StackOverflowError`, or a
- * `LinkageError`.
- * The Grails default would then try to render an `/error` view, which Hoist does not provide,
+ * This covers `HoistInterceptor` access checks and controller actions alike, for `Exception`s
+ * and JVM `Error`s such as a failed Groovy `assert`, a `StackOverflowError`, or a `LinkageError`.
+ * It hands the exception to {@link Utils#handleException} for the standard unwrapping, logging,
+ * and JSON rendering, logging under the mapped controller's class.
+ *
+ * The Grails default would instead try to render an `/error` view, which Hoist does not provide,
  * and the client would get a "Could not resolve view" message rather than the real error.
+ * The hoist-core plugin installs this resolver as `exceptionHandler`, and apps may replace it
+ * with their own bean of that name.
  *
- * This resolver instead unwraps the original exception and hands it to
- * {@link Utils#handleException}, which logs and renders it as JSON like any other Hoist error.
- * The hoist-core plugin installs it as `exceptionHandler`, and apps may replace it with their
- * own bean of that name.
+ * Exceptions thrown before dispatch, from `HoistFilter` or authentication, never reach a resolver
+ * and are handled by the filter itself.
  */
 @CompileStatic
 class HoistExceptionResolver implements HandlerExceptionResolver, Ordered, LogSupport {
@@ -55,36 +49,17 @@ class HoistExceptionResolver implements HandlerExceptionResolver, Ordered, LogSu
         Object handler,
         Exception ex
     ) {
-        def t = unwrap(ex),
-            webRequest = GrailsWebRequest.lookup(request)
+        // Log under the mapped controller, if any, so its log level and stacktrace settings apply.
+        def controllerClass = GrailsWebRequest.lookup(request)?.controllerClass?.clazz
 
-        (request.getAttribute(REQUEST_SPAN_ATTR) as SpanRef)?.recordException(t)
         Utils.handleException(
-            exception: t,
-            logTo: this,
-            logMessage: [controller: webRequest?.controllerName, action: webRequest?.actionName],
-            renderTo: response
+            exception: ex,
+            logTo: controllerClass ? new SimpleLogger(controllerClass.name) : this,
+            renderTo: response,
+            request: request
         )
 
         // An empty ModelAndView tells Spring the exception is handled and nothing more to render.
         return new ModelAndView()
-    }
-
-    /**
-     * Recover the exception actually thrown. Grails invokes actions reflectively, so an action's
-     * `Error` arrives in an `InvocationTargetException`. Spring wraps an `Error` thrown outside the
-     * action, such as by an interceptor, in a `ServletException`. The Groovy and Grails wrappers are
-     * those the default Grails resolver also unwraps.
-     */
-    protected Throwable unwrap(Throwable t) {
-        while (t.cause && isWrapper(t)) t = t.cause
-        return t
-    }
-
-    private static boolean isWrapper(Throwable t) {
-        t instanceof InvocationTargetException ||
-            t instanceof InvokerInvocationException ||
-            t instanceof GrailsMVCException ||
-            (t instanceof ServletException && t.cause instanceof Error)
     }
 }

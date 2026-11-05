@@ -11,10 +11,18 @@ import grails.util.GrailsUtil
 import groovy.transform.CompileStatic
 import io.xh.hoist.json.JSONSerializer
 import io.xh.hoist.log.LogSupport
+import io.xh.hoist.telemetry.trace.SpanRef
+import org.codehaus.groovy.runtime.InvokerInvocationException
+import org.grails.web.servlet.mvc.GrailsWebRequest
+import org.grails.web.servlet.mvc.exceptions.GrailsMVCException
 
+import jakarta.servlet.ServletException
+import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import java.lang.reflect.InvocationTargetException
 import java.util.concurrent.ExecutionException
 
+import static io.xh.hoist.HoistFilter.REQUEST_SPAN_ATTR
 import static org.apache.hc.core5.http.HttpStatus.SC_BAD_REQUEST
 import static org.apache.hc.core5.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
 
@@ -32,20 +40,38 @@ import static org.apache.hc.core5.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
 class ExceptionHandler {
 
     /**
-     * Sanitizes, pre-processes, and logs exception.
+     * Sanitizes, pre-processes, logs, and optionally renders an exception.
      *
-     * Used by BaseController, ClusterRequest, Timer, and HoistInterceptor to handle
-     * otherwise unhandled exception.
+     * Used by HoistFilter, HoistExceptionResolver, ClusterRequest, and Timer to handle
+     * otherwise unhandled exceptions.
      *
+     * @param logMessage context logged ahead of the exception. Defaults to the mapped action
+     *      name when a controller action is bound to the current thread.
+     * @param request the request being rendered to, used to record the exception on its trace
+     *      span. Defaults to the thread-bound Grails web request, so callers within Spring MVC
+     *      dispatch, or on a Grails web promise, may omit it. Ignored without `renderTo`.
      * @internal -- Applications should call Utils.handleException instead
      */
     void handleException(
         Throwable exception,
         HttpServletResponse renderTo,
         LogSupport logTo,
-        Object logMessage
+        Object logMessage,
+        HttpServletRequest request = null
     ){
         exception = preprocess(exception)
+
+        def webRequest = GrailsWebRequest.lookup()
+
+        // An exception rendered to a response belongs on that request's span.
+        if (renderTo) {
+            request = request ?: webRequest?.currentRequest
+            (request?.getAttribute(REQUEST_SPAN_ATTR) as SpanRef)?.recordException(exception)
+        }
+
+        if (logTo && !logMessage && webRequest?.actionName) {
+            logMessage = [_action: webRequest.actionName]
+        }
 
         // Our rich logging can itself fail, especially around shutdown,etc. Fallback to simpler
         // logging to avoid muddying waters
@@ -109,12 +135,28 @@ class ExceptionHandler {
     //---------------------------------------------
     // Template methods.  For application override
     //---------------------------------------------
+    /**
+     * Recover the exception actually thrown and convert framework types to their Hoist equivalents.
+     *
+     * Groovy, Grails, and Spring wrap exceptions on the way out of reflective and dispatched
+     * calls: a Grails action or its exception handler throws through an `InvocationTargetException`,
+     * and Spring wraps any `Error` from handler dispatch in a `ServletException`. These wrappers
+     * carry nothing of their own and are peeled off here.
+     */
     protected Throwable preprocess(Throwable t) {
+        while (t.cause && isWrapper(t)) t = t.cause
         if (t instanceof grails.validation.ValidationException) {
             t = new ValidationException(t)
         }
         GrailsUtil.deepSanitize(t)
         return t
+    }
+
+    private static boolean isWrapper(Throwable t) {
+        t instanceof InvocationTargetException ||
+            t instanceof InvokerInvocationException ||
+            t instanceof GrailsMVCException ||
+            (t instanceof ServletException && t.cause instanceof Error)
     }
 
     protected boolean shouldLogDebug(Throwable t) {
