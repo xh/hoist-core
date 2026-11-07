@@ -54,7 +54,7 @@
             "mcpCategory": "concept",
             "viewerCategory": "core-framework",
             "description": "Role-based access control and controller security annotations.",
-            "keywords": ["BaseRoleService", "DefaultRoleService", "Role", "RoleMember", "AccessRequiresRole", "AccessAll", "directory groups"]
+            "keywords": ["BaseRoleService", "DefaultRoleService", "Role", "RoleMember", "AccessRequiresRole", "AccessAll", "directory groups", "RoleSpec", "grantedToRoles"]
         },
         {
             "id": "docs/directory-services.md",
@@ -183,7 +183,7 @@
             "mcpCategory": "package",
             "viewerCategory": "infrastructure",
             "description": "Logging infrastructure with dynamic configuration.",
-            "keywords": ["LogSupport", "logDebug", "logInfo", "logWarn", "logError", "LogLevelService", "LogReaderService"]
+            "keywords": ["LogSupport", "logDebug", "logInfo", "logWarn", "logError", "LogLevelService", "LogReaderService", "apiDeprecated"]
         },
         {
             "id": "docs/gorm-domain-objects.md",

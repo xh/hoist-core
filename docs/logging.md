@@ -95,6 +95,21 @@ Each `withXxx` method:
    exception.
 5. Returns the closure's return value, preserving type via generics.
 
+#### Deprecation warnings
+
+Call `apiDeprecated(name, v:, msg:)` when a caller uses a deprecated API. It logs a WARN naming the
+API, the major version that will remove it, and what to use instead:
+
+```groovy
+apiDeprecated('RoleSpec.roles', v: 'v47', msg: 'Use grantedToRoles instead')
+// 'RoleSpec.roles' is deprecated and will be removed in v47 | Use grantedToRoles instead
+```
+
+Each distinct warning logs only once per JVM, so the call is safe on hot paths such as per-request
+code. Always pass `v`. To find every deprecation due for removal in a release, search the codebase
+for `apiDeprecated` calls with that version. Also give the same version in the `@deprecated`
+Groovydoc tag, e.g. "Targeted for removal in v47".
+
 #### The `instanceLog` property
 
 By default, `getInstanceLog()` returns a logger named after the implementing class

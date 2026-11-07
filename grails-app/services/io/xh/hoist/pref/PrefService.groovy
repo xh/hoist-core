@@ -173,12 +173,12 @@ class PrefService extends BaseService {
 
     /**
      * @deprecated Use {@link #ensureRequiredPrefsCreated(List)} with {@link PreferenceSpec} instead.
-     *     Targeted for removal in v42.
+     *     Targeted for removal in v47.
      */
     @Deprecated
     @Transactional
     void ensureRequiredPrefsCreated(Map<String, Map> requiredPrefs) {
-        logWarn('ensureRequiredPrefsCreated(Map) is deprecated — use List<PreferenceSpec> instead')
+        apiDeprecated('PrefService.ensureRequiredPrefsCreated(Map)', v: 'v47', msg: 'Use ensureRequiredPrefsCreated(List<PreferenceSpec>) instead')
         ensureRequiredPrefsCreated(
             requiredPrefs.collect { name, defaults ->
                 // Legacy API used singular 'note' — map to 'notes' for PreferenceSpec.

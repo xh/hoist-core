@@ -66,6 +66,15 @@ class DefaultRoleUpdateService extends BaseService {
             it instanceof RoleSpec ? it : new RoleSpec(it as Map)
         }
 
+        def specsWithDeprecatedRoles = roleSpecs.findAll { it.roles }
+        if (specsWithDeprecatedRoles) {
+            apiDeprecated(
+                'RoleSpec.roles',
+                v: 'v47',
+                msg: "Use grantedToRoles instead - used by ${specsWithDeprecatedRoles*.name}"
+            )
+        }
+
         List<Role> currRoles = Role.list()
         int created = 0
 
@@ -87,7 +96,7 @@ class DefaultRoleUpdateService extends BaseService {
                     newRole.addToMembers(type: DIRECTORY_GROUP, name: it, createdBy: 'defaultRoleService')
                 }
 
-                spec.roles?.each {
+                ((spec.grantedToRoles ?: []) + (spec.roles ?: [])).unique().each {
                     newRole.addToMembers(type: ROLE, name: it, createdBy: 'defaultRoleService')
                 }
 

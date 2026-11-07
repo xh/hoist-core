@@ -58,7 +58,7 @@ class DefaultRoleUpdateServiceSpec extends Specification implements ServiceUnitT
         role.category == 'App'
         role.lastUpdatedBy == 'admin'
         role.users == ['alice', 'bob']
-        role.roles == ['ADMIN']
+        role.grantedToRoles == ['ADMIN']
         role.directoryGroups == ['devs']
         role.members.every { it.createdBy == 'admin' }
 

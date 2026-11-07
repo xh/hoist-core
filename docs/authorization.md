@@ -94,8 +94,9 @@ def healthCheck() { /* ... */ }
 
 #### `@Access` (Deprecated)
 
-Legacy annotation equivalent to `@AccessRequiresAllRoles`. Use the newer, more explicit annotations
-instead.
+Legacy annotation equivalent to `@AccessRequiresAllRoles`, targeted for removal in v47. Use the
+newer, more explicit annotations instead. Hoist logs a deprecation warning the first time each
+controller that uses `@Access` handles a request.
 
 ### Typical Controller Pattern
 
@@ -167,7 +168,7 @@ class RoleService extends DefaultRoleService {
 
         // Create app-specific roles (no-op if they already exist)
         ensureRequiredRolesCreated([
-            new RoleSpec(name: 'APP_USER', category: 'App', notes: 'Standard application access', roles: ['APP_ADMIN']),
+            new RoleSpec(name: 'APP_USER', category: 'App', notes: 'Standard application access', grantedToRoles: ['APP_ADMIN']),
             new RoleSpec(name: 'APP_ADMIN', category: 'App', notes: 'Full admin access'),
             new RoleSpec(name: 'TRADER', category: 'Trading', notes: 'Can execute trades')
         ])
@@ -186,18 +187,23 @@ beans = {
 
 #### Role Inheritance
 
-Roles can include other roles as members, creating an inheritance hierarchy. The `roles` field on a
-role definition means "members of these listed roles also get this role":
+Roles can include other roles as members, creating an inheritance hierarchy. The `grantedToRoles`
+field on a role definition means "holders of these listed roles also get this role". The grant flows
+one way only - it never gives the listed roles to holders of this role:
 
 ```groovy
 ensureRequiredRolesCreated([
-    new RoleSpec(name: 'APP_USER',  category: 'App', roles: ['APP_ADMIN']),  // admins also get APP_USER
+    new RoleSpec(name: 'APP_USER',  category: 'App', grantedToRoles: ['APP_ADMIN']),  // admins also get APP_USER
     new RoleSpec(name: 'APP_ADMIN', category: 'App'),
 ])
 ```
 
-In this example, `APP_USER` lists `APP_ADMIN` in its `roles` field, meaning all `APP_ADMIN` members
-automatically receive `APP_USER` as well.
+In this example, `APP_USER` is granted to `APP_ADMIN`, so all `APP_ADMIN` holders automatically
+receive `APP_USER` as well. `APP_USER` holders do not receive `APP_ADMIN`. Grants are transitive, so
+a role granted to `APP_USER` would also reach `APP_ADMIN` holders.
+
+`grantedToRoles` replaced the deprecated `roles` field, which had the same meaning. `roles` still
+works but logs a warning, and is targeted for removal in v47.
 
 #### Directory Group Integration
 
@@ -301,12 +307,12 @@ Hoist defines four built-in roles that `DefaultRoleService` creates automaticall
 | Role | Purpose |
 |------|---------|
 | `HOIST_ADMIN` | Full access to the Hoist Admin Console |
-| `HOIST_ADMIN_READER` | Read-only Admin Console access (lists `HOIST_ADMIN` in its `roles` field) |
-| `HOIST_IMPERSONATOR` | Can impersonate other users (lists `HOIST_ADMIN` in its `roles` field) |
+| `HOIST_ADMIN_READER` | Read-only Admin Console access (granted to `HOIST_ADMIN`) |
+| `HOIST_IMPERSONATOR` | Can impersonate other users (granted to `HOIST_ADMIN`) |
 | `HOIST_ROLE_MANAGER` | Can manage roles and memberships in the Admin Console |
 
-Note that `HOIST_ADMIN_READER` and `HOIST_IMPERSONATOR` both list `HOIST_ADMIN` in their `roles`
-field. This means all `HOIST_ADMIN` users automatically receive these less-privileged roles as well,
+Note that `HOIST_ADMIN_READER` and `HOIST_IMPERSONATOR` both list `HOIST_ADMIN` in their
+`grantedToRoles` field. This means all `HOIST_ADMIN` users automatically receive these less-privileged roles as well,
 so admins always have read-only access and impersonation capabilities. `HOIST_ROLE_MANAGER` is
 intentionally independent - `HOIST_ADMIN` does *not* automatically grant role management, so this
 capability must be explicitly assigned.
@@ -324,7 +330,7 @@ its database, and complete with an Admin Console UI for managing roles. Most app
 extend it and create app-specific roles in `ensureRequiredConfigAndRolesCreated()`.
 
 The `ensureRequiredRolesCreated()` method accepts a `List<RoleSpec>` where each `RoleSpec` specifies
-the role's `name` and optional fields (`category`, `notes`, `users`, `directoryGroups`, `roles`).
+the role's `name` and optional fields (`category`, `notes`, `users`, `directoryGroups`, `grantedToRoles`).
 It creates any missing roles with the supplied defaults - existing roles are never modified. A
 deprecated overload accepting `List<Map>` is still supported for backward compatibility but should
 be migrated to `RoleSpec`.

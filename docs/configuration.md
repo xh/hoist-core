@@ -453,7 +453,8 @@ configs, ensures that an app starting against a fresh database has a complete se
 visible and adjustable in the Admin Console, and guarantees consistency across environments.
 
 A deprecated overload accepting `Map<String, Map>` (where the outer key is the config name) is
-still supported for backward compatibility but should be migrated to `ConfigSpec`.
+still supported but logs a deprecation warning and is targeted for removal in v47. Migrate to
+`ConfigSpec`.
 
 ```groovy
 import io.xh.hoist.config.ConfigSpec

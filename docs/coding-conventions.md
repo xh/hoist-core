@@ -466,7 +466,7 @@ class RoleService extends DefaultRoleService {
         super.ensureRequiredConfigAndRolesCreated()
 
         ensureRequiredRolesCreated([
-            new RoleSpec(name: 'APP_USER',  category: 'App', notes: 'Standard access', roles: ['APP_ADMIN']),
+            new RoleSpec(name: 'APP_USER',  category: 'App', notes: 'Standard access', grantedToRoles: ['APP_ADMIN']),
             new RoleSpec(name: 'APP_ADMIN', category: 'App', notes: 'Full admin access'),
             new RoleSpec(name: 'TRADER',    category: 'Trading', notes: 'Can execute trades')
         ])

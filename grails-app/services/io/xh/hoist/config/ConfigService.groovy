@@ -275,12 +275,12 @@ class ConfigService extends BaseService {
 
     /**
      * @deprecated Use {@link #ensureRequiredConfigsCreated(List)} with {@link ConfigSpec} instead.
-     *     Targeted for removal in v42.
+     *     Targeted for removal in v47.
      */
     @Deprecated
     @Transactional
     void ensureRequiredConfigsCreated(Map<String, Map> reqConfigs) {
-        logWarn('ensureRequiredConfigsCreated(Map) is deprecated — use List<ConfigSpec> instead')
+        apiDeprecated('ConfigService.ensureRequiredConfigsCreated(Map)', v: 'v47', msg: 'Use ensureRequiredConfigsCreated(List<ConfigSpec>) instead')
         ensureRequiredConfigsCreated(
             reqConfigs.collect { name, defaults -> new ConfigSpec([name: name] + defaults) }
         )

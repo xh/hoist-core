@@ -171,7 +171,8 @@ creates any missing preferences with the supplied defaults and logs errors if an
 preference has a mismatched type.
 
 A deprecated overload accepting `Map<String, Map>` (where the outer key is the preference name)
-is still supported for backward compatibility but should be migrated to `PreferenceSpec`. Note that
+is still supported but logs a deprecation warning and is targeted for removal in v47. Migrate to
+`PreferenceSpec`. Note that
 the old Map API used `note` (singular) for consistency with the former `ensureRequiredConfigsCreated()`
 Map API; the deprecated overload maps `note` to the correct `notes` (plural) field on `Preference`
 automatically.
