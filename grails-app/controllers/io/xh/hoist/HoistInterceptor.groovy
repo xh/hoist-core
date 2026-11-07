@@ -74,6 +74,9 @@ class HoistInterceptor implements LogSupport {
 
         // Eval security annotations, return true if allowed, or throw 403 (Forbidden).
         def ann = annotations.findResult {method.getAnnotation(it)} ?: annotations.findResult {clazz.getAnnotation(it)}
+        if (ann instanceof Access) {
+            apiDeprecated('@Access', v: 'v47', msg: "Use @AccessRequiresAllRoles instead - found on ${clazz.name}")
+        }
         if (
             (ann instanceof AccessAll) ||
             (ann instanceof AccessRequiresRole     && user?.hasRole(((AccessRequiresRole) ann).value())) ||

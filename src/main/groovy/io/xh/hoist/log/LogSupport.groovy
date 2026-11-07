@@ -9,8 +9,11 @@ package io.xh.hoist.log
 
 import ch.qos.logback.classic.Level
 import groovy.transform.CompileStatic
+import groovy.transform.PackageScope
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+
+import java.util.concurrent.ConcurrentHashMap
 
 import static ch.qos.logback.classic.Level.ERROR
 import static ch.qos.logback.classic.Level.WARN
@@ -47,6 +50,30 @@ trait LogSupport {
 
     /** Log at ERROR level.*/
     void logError(Object... msgs) {logErrorInternal(instanceLog, msgs)}
+
+    /**
+     * Log a WARN that a deprecated API was used.
+     *
+     * Each distinct warning is logged only once per JVM, so this is safe to call on hot paths.
+     * Always pass `v` - searching for `apiDeprecated` calls with a given version finds every
+     * deprecation due for removal in that release.
+     *
+     * @param opts named options - `v` the major version that will remove the API (e.g. 'v47'),
+     *      and `msg` guidance on what to use instead.
+     * @param name name of the deprecated API, e.g. 'RoleSpec.roles'.
+     */
+    void apiDeprecated(Map opts, String name) {
+        String removal = opts.v ?: 'a future release',
+               warning = "'$name' is deprecated and will be removed in $removal",
+               msg = opts.msg
+        Object[] msgs = msg ? [warning, msg] as Object[] : [warning] as Object[]
+        if (DeprecationWarnings.seen.add(msgs.join(' | '))) {
+            logWarnInternal(instanceLog, msgs)
+        }
+    }
+
+    /** Log a WARN that a deprecated API was used - see {@link #apiDeprecated(Map, String)}. */
+    void apiDeprecated(String name) {apiDeprecated([:], name)}
 
     /**
      * Log closure execution at INFO level
@@ -189,4 +216,11 @@ trait LogSupport {
 
         return new LogSupportMarker(log, msgs)
     }
+}
+
+/** JVM-wide record of deprecation warnings already logged by {@link LogSupport#apiDeprecated}. */
+@PackageScope
+@CompileStatic
+class DeprecationWarnings {
+    static final Set<String> seen = ConcurrentHashMap.newKeySet()
 }

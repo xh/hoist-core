@@ -163,7 +163,7 @@ class DefaultRoleServiceSpec extends Specification implements ServiceUnitTest<De
         when:
         updateService.ensureRequiredRolesCreated([
             new RoleSpec(name: 'EXISTING', users: ['bob']),
-            new RoleSpec(name: 'NEW', category: 'App', notes: 'n', users: ['Carol'], roles: ['EXISTING'], directoryGroups: ['devs']),
+            new RoleSpec(name: 'NEW', category: 'App', notes: 'n', users: ['Carol'], grantedToRoles: ['EXISTING'], directoryGroups: ['devs']),
         ])
         service.refreshRoleAssignments()
 
@@ -174,9 +174,27 @@ class DefaultRoleServiceSpec extends Specification implements ServiceUnitTest<De
             notes == 'n'
             lastUpdatedBy == 'defaultRoleService'
             users == ['carol']
-            roles == ['EXISTING']
+            grantedToRoles == ['EXISTING']
             directoryGroups == ['devs']
         }
+    }
+
+    def 'ensureRequiredRolesCreated still honors the deprecated RoleSpec.roles alias'() {
+        given:
+        def updateService = defineService(DefaultRoleUpdateService)
+        updateService.roleService = service
+        role('ADMIN')
+        role('EDITOR')
+
+        when:
+        updateService.ensureRequiredRolesCreated([
+            new RoleSpec(name: 'OLD_STYLE', roles: ['ADMIN']),
+            [name: 'MIXED', grantedToRoles: ['ADMIN'], roles: ['ADMIN', 'EDITOR']]
+        ])
+
+        then:
+        Role.get('OLD_STYLE').grantedToRoles == ['ADMIN']
+        Role.get('MIXED').grantedToRoles.sort() == ['ADMIN', 'EDITOR']
     }
 
     //-------------------

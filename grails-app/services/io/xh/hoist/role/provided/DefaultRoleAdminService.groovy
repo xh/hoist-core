@@ -123,7 +123,7 @@ class DefaultRoleAdminService extends BaseService {
         String current
         while ((current = rolesToVisit.poll()) != null) {
             // Skip references to roles that do not exist, as DefaultRoleService does.
-            index.roles[current].findAll { index.roles.containsKey(it) }.each { memberName ->
+            index.grantedToRoles[current].findAll { index.grantedToRoles.containsKey(it) }.each { memberName ->
                 ret[memberName].sourceRoles << current
                 if (visitedRoles.add(memberName)) rolesToVisit << memberName
             }
@@ -204,17 +204,17 @@ class DefaultRoleAdminService extends BaseService {
     private static class RoleIndex {
         final Map<String, List<String>> users = [:],
                                         directoryGroups = [:],
-                                        roles = [:],
+                                        grantedToRoles = [:],
                                         rolesWithMemberRole = [:]
 
         RoleIndex(List<Role> allRoles) {
             allRoles.each { role ->
                 users[role.name] = role.users
                 directoryGroups[role.name] = role.directoryGroups
-                roles[role.name] = role.roles
+                grantedToRoles[role.name] = role.grantedToRoles
             }
             allRoles.each { role ->
-                roles[role.name].each { memberName ->
+                grantedToRoles[role.name].each { memberName ->
                     rolesWithMemberRole.computeIfAbsent(memberName) { [] } << role.name
                 }
             }

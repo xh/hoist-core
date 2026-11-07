@@ -53,7 +53,8 @@ class Role implements JSONFormat {
         members.findAll { it.type == DIRECTORY_GROUP }.collect { it.name }
     }
 
-    List<String> getRoles() {
+    /** Names of roles this role is granted to. Holders of these roles also get this role. */
+    List<String> getGrantedToRoles() {
         members.findAll { it.type == ROLE }.collect { it.name }
     }
 

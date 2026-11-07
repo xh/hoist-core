@@ -8,6 +8,8 @@
 package io.xh.hoist.log
 
 import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import io.xh.hoist.test.HoistSpec
 import org.slf4j.LoggerFactory
 
@@ -28,5 +30,38 @@ class LogSupportSpec extends HoistSpec {
 
         then:
         noExceptionThrown()
+    }
+
+    def 'apiDeprecated logs each distinct warning once, with removal version and guidance'() {
+        given:
+        def appender = attachListAppender()
+
+        when:
+        3.times { new Logging().apiDeprecated('LogSupportSpec.foo', v: 'v99', msg: 'Use bar instead') }
+        new Logging().apiDeprecated('LogSupportSpec.baz')
+
+        then:
+        appender.list*.level == [Level.WARN, Level.WARN]
+        appender.list.collect { (it.marker as LogSupportMarker).messages } == [
+            ["'LogSupportSpec.foo' is deprecated and will be removed in v99", 'Use bar instead'],
+            ["'LogSupportSpec.baz' is deprecated and will be removed in a future release"]
+        ]
+
+        cleanup:
+        detachListAppender(appender)
+    }
+
+    //-------------------
+    // Helpers
+    //-------------------
+    private ListAppender<ILoggingEvent> attachListAppender() {
+        def appender = new ListAppender<ILoggingEvent>()
+        appender.start()
+        (LoggerFactory.getLogger(Logging) as ch.qos.logback.classic.Logger).addAppender(appender)
+        appender
+    }
+
+    private void detachListAppender(ListAppender<ILoggingEvent> appender) {
+        (LoggerFactory.getLogger(Logging) as ch.qos.logback.classic.Logger).detachAppender(appender)
     }
 }

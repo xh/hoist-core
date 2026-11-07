@@ -291,13 +291,13 @@ class DefaultRoleService extends BaseRoleService {
                 name: 'HOIST_ADMIN_READER',
                 category: 'Hoist',
                 notes: 'Hoist Admin Readers have read-only access to all Hoist Admin tools and functionality.',
-                roles: ['HOIST_ADMIN']
+                grantedToRoles: ['HOIST_ADMIN']
             ),
             new RoleSpec(
                 name: 'HOIST_IMPERSONATOR',
                 category: 'Hoist',
                 notes: 'Hoist Impersonators can impersonate other users.',
-                roles: ['HOIST_ADMIN']
+                grantedToRoles: ['HOIST_ADMIN']
             ),
             new RoleSpec(
                 name: 'HOIST_ROLE_MANAGER',
@@ -407,7 +407,7 @@ class DefaultRoleService extends BaseRoleService {
         Queue<Role> rolesToVisit = [role] as Queue
 
         while (role = rolesToVisit.poll()) {
-            role.roles.each {
+            role.grantedToRoles.each {
                 if (!visitedRoles.contains(it)) {
                     visitedRoles << it
                     def effectiveRole = Role.get(it)

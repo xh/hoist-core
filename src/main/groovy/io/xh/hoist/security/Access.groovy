@@ -19,7 +19,7 @@ import java.lang.annotation.Target
  * Current user must have ALL roles listed to access.
  *
  * @deprecated Use @AccessRequiresRole or @AccessRequiresAllRoles instead.
- *     Targeted for removal in v40.
+ *     Targeted for removal in v47.
  */
 @Deprecated
 @Inherited

@@ -14,6 +14,11 @@
 
 ## 45.0-SNAPSHOT - unreleased
 
+### 🎁 New Features
+
+* Added `LogSupport.apiDeprecated()` to warn when a deprecated API is used. The warning names the
+  major version that will remove the API, and each distinct warning logs once per JVM.
+
 ### 🐞 Bug Fixes
 
 * Fixed the Admin Console role list, which failed to load if a role had a member role that did not
@@ -21,6 +26,14 @@
 
 ### ⚙️ Technical
 
+* Renamed `RoleSpec.roles` to `grantedToRoles` to make the direction of role inheritance clear. For
+  example, `new RoleSpec(name: 'APP_USER', grantedToRoles: ['APP_ADMIN'])` gives all `APP_ADMIN`
+  holders `APP_USER`. The old `roles` field still works but is deprecated, logs a warning, and is
+  targeted for removal in v47.
+* Renamed the internal `Role.getRoles()` to `Role.getGrantedToRoles()` to match.
+* Retargeted the deprecated `@Access` annotation and the `Map` overloads of
+  `ConfigService.ensureRequiredConfigsCreated()` and `PrefService.ensureRequiredPrefsCreated()` for
+  removal in v47. All three now warn via `apiDeprecated()`, and `@Access` now warns at runtime.
 * Raised the default Hibernate second-level cache size from 5000 to 10000 entries.
 * Improved exception handling to route previously missed throwables (e.g. a failed `assert` in a controller action) to the common `ExceptionHandler`, and consolidated the request-path handling for consistent unwrapping of wrapped causes and logging tied to the correct controller and action.
 * Disabled second-level caching on `TrackLog`, `JsonBlob`, `Monitor`, and `LogLevel`, which are only ever read via queries, and on the `Preference.userPreferences` collection, which is never navigated.
