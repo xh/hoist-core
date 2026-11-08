@@ -14,6 +14,17 @@
 
 ## 45.0-SNAPSHOT - unreleased
 
+### 🤖 AI Docs + Tooling
+
+* Moved MCP docs and symbol tooling to the Hoist Docs service, which serves hoist-core and
+  hoist-react over MCP Streamable HTTP, so agents can reach it through an MCP gateway. The old
+  `hoist-core-*` tool names still work there as aliases.
+* Removed the stdio MCP server, the `hoist-core-docs` and `hoist-core-symbols` CLIs, `bootstrap.sh`,
+  and the `io.xh:hoist-core-mcp` artifact, which is no longer published. Apps should remove the
+  `installHoistCoreTools` snippet from `build.gradle` and point `.mcp.json` at a Hoist Docs server.
+* Added the `docs-index` subproject, whose `buildIndex` task builds the index file the Hoist Docs
+  service loads.
+
 ### 🐞 Bug Fixes
 
 * Fixed the Admin Console role list, which failed to load if a role had a member role that did not

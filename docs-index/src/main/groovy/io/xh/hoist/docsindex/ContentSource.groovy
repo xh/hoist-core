@@ -1,4 +1,4 @@
-package io.xh.hoist.mcp
+package io.xh.hoist.docsindex
 
 /**
  * Abstraction for reading hoist-core content (docs + source files).

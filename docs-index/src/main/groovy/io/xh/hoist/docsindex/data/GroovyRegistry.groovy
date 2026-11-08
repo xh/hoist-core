@@ -1,7 +1,7 @@
-package io.xh.hoist.mcp.data
+package io.xh.hoist.docsindex.data
 
-import io.xh.hoist.mcp.ContentSource
-import io.xh.hoist.mcp.util.McpLog
+import io.xh.hoist.docsindex.ContentSource
+import io.xh.hoist.docsindex.util.IndexLog
 import org.codehaus.groovy.ast.ClassNode
 import org.codehaus.groovy.ast.ConstructorNode
 import org.codehaus.groovy.ast.FieldNode
@@ -63,7 +63,7 @@ class GroovyRegistry {
             try {
                 buildIndex()
             } catch (Exception e) {
-                McpLog.error("Groovy registry init failed: ${e.message}")
+                IndexLog.error("Groovy registry init failed: ${e.message}")
             } finally {
                 initialized = true
                 initLatch.countDown()
@@ -74,7 +74,7 @@ class GroovyRegistry {
     /** Block until initialization is complete. */
     void ensureInitialized() {
         if (!initialized) {
-            McpLog.info('Waiting for Groovy registry initialization...')
+            IndexLog.info('Waiting for Groovy registry initialization...')
             initLatch.await()
         }
     }
@@ -210,7 +210,7 @@ class GroovyRegistry {
     // Index building
     //------------------------------------------------------------------
     private void buildIndex() {
-        McpLog.info('Building Groovy symbol index...')
+        IndexLog.info('Building Groovy symbol index...')
         int fileCount = 0, symbolCount = 0, memberCount = 0
 
         for (sourceDir in SOURCE_DIRS) {
@@ -261,12 +261,12 @@ class GroovyRegistry {
                         }
                     }
                 } catch (Exception e) {
-                    McpLog.warn("Failed to parse ${relPath}: ${e.message}")
+                    IndexLog.warn("Failed to parse ${relPath}: ${e.message}")
                 }
             }
         }
 
-        McpLog.info("Groovy index complete: ${fileCount} files, ${symbolCount} symbols, ${memberCount} indexed members")
+        IndexLog.info("Groovy index complete: ${fileCount} files, ${symbolCount} symbols, ${memberCount} indexed members")
     }
 
     //------------------------------------------------------------------

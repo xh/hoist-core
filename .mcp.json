@@ -1,9 +1,8 @@
 {
   "mcpServers": {
-    "hoist-core": {
-      "type": "stdio",
-      "command": "bash",
-      "args": ["mcp/bootstrap.sh"]
+    "hoist-docs": {
+      "type": "http",
+      "url": "${HOIST_DOCS_MCP_URL:-http://localhost:8080/mcp}"
     },
     "github": {
       "command": "bash",

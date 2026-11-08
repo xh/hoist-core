@@ -8,9 +8,9 @@ similar tools — when working with code in this repository.
 Hoist-core is the server-side component of the Hoist web application development toolkit, built
 by Extremely Heavy Industries (xh.io). Its primary product is a **Grails 8 plugin** (not a
 standalone app) published as `io.xh:hoist-core` and consumed by Grails application projects. The
-repo also publishes two companion artifacts at the same version: `hoist-core-test` (the `test-support/`
-subproject, Spock test support for apps) and `hoist-core-mcp` (the `mcp/` subproject, an MCP
-server for AI agents). The client-side counterpart is
+repo also publishes a companion artifact at the same version: `hoist-core-test` (the
+`test-support/` subproject, Spock test support for apps). The `docs-index/` subproject builds the
+index the Hoist Docs service serves to AI agents; it is not published. The client-side counterpart is
 [hoist-react](https://github.com/xh/hoist-react).
 
 - **Language**: Groovy 5 / Java 21
@@ -21,29 +21,32 @@ server for AI agents). The client-side counterpart is
 ## Hoist Developer Tools and Documentation
 
 **IMPORTANT: Do not guess at hoist-core APIs, service patterns, or framework conventions.**
-Hoist-core ships a dedicated MCP server that provides structured access to all framework
-documentation and Groovy/Java symbol information. **You MUST use these tools before modifying or
-extending hoist-core code** to understand existing architecture, configuration patterns, and
-common pitfalls. The feature docs and concept docs are the authoritative reference for how Hoist
+The [Hoist Docs](https://github.com/xh/hoist-docs) MCP server provides structured access to all
+framework documentation and Groovy/Java symbol information, for hoist-core and hoist-react. **Use
+these tools before modifying or extending hoist-core code** to understand existing architecture,
+configuration patterns, and common pitfalls. The feature docs and concept docs are the authoritative reference for how Hoist
 Core works -- skipping them risks producing code that conflicts with established patterns or
 misses built-in functionality.
 
-The MCP server is configured via `.mcp.json` and is very likely already available. Use the
-following tools:
+The server is configured in `.mcp.json` as `hoist-docs`, at `HOIST_DOCS_MCP_URL` (default
+`http://localhost:8080/mcp` - see the hoist-docs README to run one locally against an index built
+with `./gradlew :docs-index:buildIndex`). Pass `library: "core"` to scope a tool to hoist-core:
 
-- `hoist-core-search-docs` -- Search all docs by keyword (e.g. `"BaseService lifecycle"`,
+- `hoist-search-docs` -- Search docs by keyword (e.g. `"BaseService lifecycle"`,
   `"authentication OAuth"`, `"clustering Hazelcast"`)
-- `hoist-core-list-docs` -- List all available documentation, grouped by category
-- `hoist-core-search-symbols` -- Search for Groovy/Java classes, interfaces, traits, enums, and
+- `hoist-list-docs` -- List all available documentation, grouped by category
+- `hoist-read-doc` -- Read a doc, one section, or its outline. hoist-core ids take a `core:` prefix
+- `hoist-search-symbols` -- Search for Groovy/Java classes, interfaces, traits, enums, and
   members of key framework classes (e.g. `"Cache"`, `"createTimer"`)
-- `hoist-core-get-symbol` -- Get detailed type info for a specific symbol (signature, Groovydoc,
+- `hoist-get-symbol` -- Get detailed type info for a specific symbol (signature, Groovydoc,
   inheritance, annotations)
-- `hoist-core-get-members` -- List all properties and methods of a class or interface
+- `hoist-get-members` -- List all properties and methods of a class or interface
 
-**Recommended workflow:** Start with `hoist-core-list-docs` or `hoist-core-search-docs` to
-discover relevant documentation. Read the applicable doc(s) to understand architectural context
-and common pitfalls. Supplement with symbol lookups (`search-symbols`, `get-symbol`,
-`get-members`) for precise API details -- exact signatures, annotations, and member listings.
+The old `hoist-core-*` tool names still work as aliases scoped to hoist-core.
+
+**Recommended workflow:** Start with `hoist-search-docs` to find relevant sections and read them
+with `hoist-read-doc`. Supplement with symbol lookups (`hoist-search-symbols`, `hoist-get-symbol`,
+`hoist-get-members`) for precise API details -- exact signatures, annotations, and member listings.
 
 The documentation index is also available directly at [`docs/README.md`](docs/README.md), with
 a "Quick Reference by Task" table mapping common goals to the right doc. See
@@ -67,7 +70,7 @@ it requires Docker and an authenticated GitHub CLI, which not every developer ke
    merge with the shared `settings.json` — enabling locally does not affect other developers):
    ```json
    {
-     "enabledMcpjsonServers": ["hoist-core", "github"]
+     "enabledMcpjsonServers": ["hoist-docs", "github"]
    }
    ```
 
@@ -90,7 +93,7 @@ for yourself (local settings merge with the shared `settings.json`):
 
 ```json
 {
-  "enabledMcpjsonServers": ["hoist-core", "idea"]
+  "enabledMcpjsonServers": ["hoist-docs", "idea"]
 }
 ```
 
@@ -149,7 +152,7 @@ src/main/groovy/io/xh/hoist/   # Core library code (non-Grails-artifact classes)
 
 src/test/groovy/io/xh/hoist/   # Spock specs for hoist-core — see docs/testing.md
 test-support/                  # Subproject publishing io.xh:hoist-core-test (HoistUnitTest trait; fakes/ holds TestConfigService etc.)
-mcp/                           # Subproject publishing io.xh:hoist-core-mcp (docs/symbol MCP server)
+docs-index/                    # Subproject building the Hoist Docs index (not published)
 ```
 
 ## Architecture

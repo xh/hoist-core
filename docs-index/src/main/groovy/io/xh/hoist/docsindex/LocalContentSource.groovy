@@ -1,6 +1,6 @@
-package io.xh.hoist.mcp
+package io.xh.hoist.docsindex
 
-import io.xh.hoist.mcp.util.McpLog
+import io.xh.hoist.docsindex.util.IndexLog
 
 /**
  * ContentSource backed by a local filesystem checkout of hoist-core.
@@ -14,7 +14,7 @@ class LocalContentSource implements ContentSource {
         if (!root.isDirectory()) {
             throw new IllegalArgumentException("Root directory does not exist: $root")
         }
-        McpLog.info("Using local content source: $root")
+        IndexLog.info("Using local content source: $root")
     }
 
     @Override

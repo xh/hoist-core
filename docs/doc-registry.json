@@ -218,12 +218,12 @@
             "keywords": ["Spock", "unit test", "hoist-core-test", "HoistUnitTest", "HoistSpec", "GrailsUnitTest", "TestConfigService", "TestUserService", "TestTrackService", "TestEmailService", "TestTraceService", "TestMetricsService", "TestUser", "HoistJson", "HoistAssertions", "PendingFeature", "JaCoCo", "ControllerUnitTest", "ServiceUnitTest"]
         },
         {
-            "id": "mcp/README.md",
-            "title": "MCP Server and CLI Tools",
+            "id": "docs-index/README.md",
+            "title": "Docs Index Builder",
             "mcpCategory": "devops",
             "viewerCategory": "devops",
-            "description": "Hoist-core MCP server and CLI tools — architecture, app-side install snippet, tools reference, and maintenance checklist.",
-            "keywords": ["MCP", "CLI", "hoist-core-mcp", "hoist-core-docs", "hoist-core-symbols", "installHoistCoreTools", "bootstrap.sh", "BundledContentSource", "ContentSource", "doc-registry.json"]
+            "description": "Builds the index of hoist-core docs and Groovy/Java symbols that the Hoist Docs service serves to AI agents over MCP and in its docs viewer.",
+            "keywords": ["MCP", "Hoist Docs", "buildIndex", "IndexBuilder", "GroovyRegistry", "index", "doc-registry.json"]
         },
         {
             "id": "docs/changelog-format.md",

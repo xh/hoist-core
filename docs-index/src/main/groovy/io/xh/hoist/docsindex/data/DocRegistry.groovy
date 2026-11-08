@@ -1,8 +1,8 @@
-package io.xh.hoist.mcp.data
+package io.xh.hoist.docsindex.data
 
 import groovy.json.JsonSlurper
-import io.xh.hoist.mcp.ContentSource
-import io.xh.hoist.mcp.util.McpLog
+import io.xh.hoist.docsindex.ContentSource
+import io.xh.hoist.docsindex.util.IndexLog
 
 /**
  * Registry of hoist-core documentation. Loads inventory from docs/doc-registry.json
@@ -104,7 +104,7 @@ class DocRegistry {
     private Map loadFromJson() {
         def jsonText = contentSource.readFile('docs/doc-registry.json')
         if (!jsonText) {
-            McpLog.warn('docs/doc-registry.json not found')
+            IndexLog.warn('docs/doc-registry.json not found')
             return [mcpCategories: [], entries: []]
         }
         return new JsonSlurper().parseText(jsonText) as Map
@@ -127,12 +127,12 @@ class DocRegistry {
             if (contentSource.fileExists(entry.id)) {
                 return true
             } else {
-                McpLog.warn("Doc file not found, skipping: ${entry.id}")
+                IndexLog.warn("Doc file not found, skipping: ${entry.id}")
                 return false
             }
         }
 
-        McpLog.info("Doc registry loaded: ${validated.size()} of ${inventory.size()} entries available")
+        IndexLog.info("Doc registry loaded: ${validated.size()} of ${inventory.size()} entries available")
         return validated
     }
 

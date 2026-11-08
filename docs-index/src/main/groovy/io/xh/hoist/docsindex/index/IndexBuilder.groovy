@@ -1,13 +1,13 @@
-package io.xh.hoist.mcp.index
+package io.xh.hoist.docsindex.index
 
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-import io.xh.hoist.mcp.ContentSource
-import io.xh.hoist.mcp.LocalContentSource
-import io.xh.hoist.mcp.data.GroovyRegistry
-import io.xh.hoist.mcp.data.GroovyRegistry.MemberIndexEntry
-import io.xh.hoist.mcp.data.GroovyRegistry.MemberInfo
-import io.xh.hoist.mcp.data.GroovyRegistry.SymbolEntry
+import io.xh.hoist.docsindex.ContentSource
+import io.xh.hoist.docsindex.LocalContentSource
+import io.xh.hoist.docsindex.data.GroovyRegistry
+import io.xh.hoist.docsindex.data.GroovyRegistry.MemberIndexEntry
+import io.xh.hoist.docsindex.data.GroovyRegistry.MemberInfo
+import io.xh.hoist.docsindex.data.GroovyRegistry.SymbolEntry
 
 import java.time.Instant
 import java.util.zip.GZIPOutputStream
