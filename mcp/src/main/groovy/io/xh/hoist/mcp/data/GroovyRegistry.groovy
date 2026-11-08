@@ -80,6 +80,21 @@ class GroovyRegistry {
     }
 
     //------------------------------------------------------------------
+    // Bulk access (index builder)
+    //------------------------------------------------------------------
+    /** Every indexed symbol, in index order. */
+    List<SymbolEntry> allSymbols() {
+        ensureInitialized()
+        return symbolIndex.values().flatten() as List<SymbolEntry>
+    }
+
+    /** Every member index entry, in index order. */
+    List<MemberIndexEntry> allMemberIndexEntries() {
+        ensureInitialized()
+        return memberIndex.values().flatten() as List<MemberIndexEntry>
+    }
+
+    //------------------------------------------------------------------
     // Search
     //------------------------------------------------------------------
     List<SymbolEntry> searchSymbols(String query, String kind = null, int limit = 20) {

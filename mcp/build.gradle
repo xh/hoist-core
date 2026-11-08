@@ -117,3 +117,16 @@ afterEvaluate {
 tasks.withType(Sign) {
     onlyIf { isReleaseVersion }
 }
+
+//------------------------
+// Hoist Docs index
+//------------------------
+tasks.register('buildIndex', JavaExec) {
+    group = 'documentation'
+    description = 'Builds the Hoist Docs index file (docs, symbols, members) for this checkout.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'io.xh.hoist.mcp.index.IndexBuilder'
+    args '--root', rootProject.projectDir.absolutePath,
+        '--out', layout.buildDirectory.dir('docs-index').get().asFile.absolutePath,
+        '--version', project.version.toString()
+}
