@@ -28,9 +28,11 @@ configuration patterns, and common pitfalls. The feature docs and concept docs a
 Core works -- skipping them risks producing code that conflicts with established patterns or
 misses built-in functionality.
 
-The server is configured in `.mcp.json` as `hoist-docs`, at `HOIST_DOCS_MCP_URL` (default
-`http://localhost:8080/mcp` - see the hoist-docs README to run one locally against an index built
-with `./gradlew :docs-index:buildIndex`). Pass `library: "core"` to scope a tool to hoist-core:
+The server is configured in `.mcp.json` as `hoist-docs`, run locally over stdio
+(`npx @xh/hoist-docs`); in this checkout it serves both libraries' `develop` indexes. To serve this
+checkout's current state instead, build indexes in a hoist-docs checkout (`pnpm build:core --root
+../hoist-core`) and set `HOIST_DOCS_INDEX_DIR` to its `indexes` directory. Pass `library: "core"`
+to scope a tool to hoist-core:
 
 - `hoist-search-docs` -- Search docs by keyword (e.g. `"BaseService lifecycle"`,
   `"authentication OAuth"`, `"clustering Hazelcast"`)
