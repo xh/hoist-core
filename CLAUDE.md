@@ -9,8 +9,9 @@ Hoist-core is the server-side component of the Hoist web application development
 by Extremely Heavy Industries (xh.io). Its primary product is a **Grails 8 plugin** (not a
 standalone app) published as `io.xh:hoist-core` and consumed by Grails application projects. The
 repo also publishes a companion artifact at the same version: `hoist-core-test` (the
-`test-support/` subproject, Spock test support for apps). The `docs-index/` subproject builds the
-index the Hoist Docs service serves to AI agents; it is not published. The client-side counterpart is
+`test-support/` subproject, Spock test support for apps). Each publication also carries a
+`docs-index` artifact: the Hoist Docs index of this build, made by `io.xh:hoist-docs-builder`
+(`buildDocsIndex` task), which the Hoist Docs service serves to AI agents. The client-side counterpart is
 [hoist-react](https://github.com/xh/hoist-react).
 
 - **Language**: Groovy 5 / Java 21
@@ -154,7 +155,6 @@ src/main/groovy/io/xh/hoist/   # Core library code (non-Grails-artifact classes)
 
 src/test/groovy/io/xh/hoist/   # Spock specs for hoist-core — see docs/testing.md
 test-support/                  # Subproject publishing io.xh:hoist-core-test (HoistUnitTest trait; fakes/ holds TestConfigService etc.)
-docs-index/                    # Subproject building the Hoist Docs index (not published)
 ```
 
 ## Architecture

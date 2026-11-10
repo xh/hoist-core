@@ -10,8 +10,9 @@ published as `io.xh:hoist-core`, designed for use with [hoist-react](https://git
 our client-side toolkit. See that repository for client-side features and conventions. It also
 publishes two companion artifacts at the same version: `hoist-core-test`, Spock test support for
 Hoist apps (see [`docs/testing.md`](docs/testing.md)). AI coding agents reach hoist-core's docs
-and API reference through the [Hoist Docs](https://github.com/xh/hoist-docs) MCP server, which
-loads an index built by [`docs-index/`](docs-index/README.md).
+and API reference through the [Hoist Docs](https://github.com/xh/hoist-docs) MCP server. Each
+build publishes a Hoist Docs index beside the jar, as the `docs-index` artifact, which the server
+fetches for an app's exact `hoistCoreVersion`.
 
 The core technologies are Java and its more dynamic cousin [Groovy](http://groovy-lang.org/) on the
 server, via the mature [Grails framework](https://grails.org/), and TypeScript on the client, via

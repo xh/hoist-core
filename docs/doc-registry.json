@@ -218,14 +218,6 @@
             "keywords": ["Spock", "unit test", "hoist-core-test", "HoistUnitTest", "HoistSpec", "GrailsUnitTest", "TestConfigService", "TestUserService", "TestTrackService", "TestEmailService", "TestTraceService", "TestMetricsService", "TestUser", "HoistJson", "HoistAssertions", "PendingFeature", "JaCoCo", "ControllerUnitTest", "ServiceUnitTest"]
         },
         {
-            "id": "docs-index/README.md",
-            "title": "Docs Index Builder",
-            "mcpCategory": "devops",
-            "viewerCategory": "devops",
-            "description": "Builds the index of hoist-core docs and Groovy/Java symbols that the Hoist Docs service serves to AI agents over MCP and in its docs viewer.",
-            "keywords": ["MCP", "Hoist Docs", "buildIndex", "IndexBuilder", "GroovyRegistry", "index", "doc-registry.json"]
-        },
-        {
             "id": "docs/changelog-format.md",
             "title": "CHANGELOG Entry Format",
             "mcpCategory": "conventions",

@@ -30,8 +30,9 @@
   and the `io.xh:hoist-core-mcp` artifact, which is no longer published. Apps should remove the
   `installHoistCoreTools` snippet from `build.gradle` and point `.mcp.json` at `@xh/hoist-docs` -
   see the Hoist Docs README.
-* Added the `docs-index` subproject, whose `buildIndex` task builds the index file the Hoist Docs
-  service loads.
+* Each build now publishes its Hoist Docs index beside the jar, as the `docs-index` artifact
+  (`hoist-core-<version>-docs-index.json.gz`), built by `io.xh:hoist-docs-builder`. Hoist Docs
+  fetches it for an app's exact `hoistCoreVersion`, snapshots included.
 
 ### 🐞 Bug Fixes
 
