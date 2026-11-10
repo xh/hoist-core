@@ -16,12 +16,20 @@
 
 ### 🤖 AI Docs + Tooling
 
-* Moved MCP docs and symbol tooling to the Hoist Docs service, which serves hoist-core and
-  hoist-react over MCP Streamable HTTP, so agents can reach it through an MCP gateway. The old
-  `hoist-core-*` tool names still work there as aliases.
+* Moved MCP docs and symbol tooling to [Hoist Docs](https://github.com/xh/hoist-docs)
+  (`@xh/hoist-docs`), one MCP server for hoist-core and hoist-react. Apps add it as a `client-app`
+  dev dependency; the agent launches it over stdio, and it answers for the app's
+  `hoistCoreVersion` from prebuilt index files fetched through npm. The same package also runs over
+  HTTP behind an MCP gateway. Tools keep their output; their names drop the `hoist-core-` prefix -
+  pass `library: "core"` to the `hoist-*` tools.
+* Hoist Docs is built on the MCP TypeScript SDK v2 (`@modelcontextprotocol/server`), which
+  implements the 2026-07-28 MCP spec - stateless serving and `server/discover` - while still
+  serving clients on the 2025 `initialize` handshake. It replaces this repo's server on the MCP
+  Java SDK, with no JVM or jar download needed to run it.
 * Removed the stdio MCP server, the `hoist-core-docs` and `hoist-core-symbols` CLIs, `bootstrap.sh`,
   and the `io.xh:hoist-core-mcp` artifact, which is no longer published. Apps should remove the
-  `installHoistCoreTools` snippet from `build.gradle` and point `.mcp.json` at a Hoist Docs server.
+  `installHoistCoreTools` snippet from `build.gradle` and point `.mcp.json` at `@xh/hoist-docs` -
+  see the Hoist Docs README.
 * Added the `docs-index` subproject, whose `buildIndex` task builds the index file the Hoist Docs
   service loads.
 
