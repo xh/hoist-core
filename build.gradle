@@ -190,9 +190,10 @@ tasks.withType(Javadoc) {
 // own code. Hoist Docs fetches it for an app's exact hoistCoreVersion.
 //------------------------
 repositories {
-    // Until io.xh:hoist-docs-builder is on Maven Central: `./gradlew publishToMavenLocal` in
-    // hoist-docs/builders/core. Limited to that one module.
-    mavenLocal {
+    // io.xh:hoist-docs-builder is published as a snapshot until its first signed release. Limited
+    // to that one module.
+    maven {
+        url = 'https://central.sonatype.com/repository/maven-snapshots/'
         content { includeModule('io.xh', 'hoist-docs-builder') }
     }
 }
