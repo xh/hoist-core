@@ -184,6 +184,49 @@ tasks.withType(Javadoc) {
 
 
 //------------------------
+// Hoist Docs index
+// Built by io.xh:hoist-docs-builder from this checkout's docs and source, and published beside the
+// jar as the `docs-index` artifact, so every build - snapshot or release - carries the index of its
+// own code. Hoist Docs fetches it for an app's exact hoistCoreVersion.
+//------------------------
+repositories {
+    // io.xh:hoist-docs-builder is published as a snapshot until its first signed release. Limited
+    // to that one module.
+    maven {
+        url = 'https://central.sonatype.com/repository/maven-snapshots/'
+        content { includeModule('io.xh', 'hoist-docs-builder') }
+    }
+}
+
+configurations {
+    docsBuilder {
+        // A build tool, never shipped - kept out of dependency locking like any other tool.
+        resolutionStrategy.deactivateDependencyLocking()
+    }
+}
+
+dependencies {
+    docsBuilder 'io.xh:hoist-docs-builder:1.0.0-SNAPSHOT'
+}
+
+def docsIndexFile = layout.buildDirectory.file('docs-index/hoist-core-docs-index.json.gz')
+
+tasks.register('buildDocsIndex', JavaExec) {
+    group = 'documentation'
+    description = 'Builds the Hoist Docs index of this checkout, published as the docs-index artifact.'
+    classpath = configurations.docsBuilder
+    mainClass = 'io.xh.hoist.docsindex.index.IndexBuilder'
+    inputs.dir('docs')
+    inputs.dir('grails-app')
+    inputs.dir('src/main')
+    outputs.file(docsIndexFile)
+    args '--root', projectDir.absolutePath,
+        '--version', xhReleaseVersion,
+        '--file', docsIndexFile.get().asFile.absolutePath
+}
+
+
+//------------------------
 // Maven Central publishing
 // This was written using the "How to Publish a Grails Plugin to the Maven Central Repository" guide
 // https://grails.apache.org/blog/2021-04-07-publish-grails-plugin-to-maven-central.html
@@ -235,6 +278,12 @@ publishing {
             artifact source: "${groovyOutputDir}/META-INF/grails-plugin.xml",
                 classifier: 'plugin',
                 extension: 'xml'
+
+            artifact(docsIndexFile) {
+                classifier = 'docs-index'
+                extension = 'json.gz'
+                builtBy tasks.named('buildDocsIndex')
+            }
         }
     }
 }
