@@ -923,6 +923,11 @@ for additional background on the underlying framework changes.
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW - exception handling syntax )
 
+* `ExceptionHandler.handleException()` no longer accepts named (map) args and is now internal.
+  Apps should call the new static `Utils.handleException(exception:, renderTo:, logTo:,
+  logMessage:)` instead. Existing named-arg calls to `ExceptionHandler` still compile but fail at
+  runtime with `MissingMethodException`.
+
 ### ⚙️ Technical
 
 * Improved app lifecycle, including cleaner shutdown support. Added
