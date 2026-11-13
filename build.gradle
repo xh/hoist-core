@@ -104,7 +104,7 @@ dependencies {
     api "com.esotericsoftware:kryo:5.7.1"
     api "tools.jackson.core:jackson-databind:$jacksonVersion"  // Security pin - drop once grails-bom catches up
     api "com.jayway.jsonpath:json-path:3.0.0"
-    api "com.microsoft.azure:msal4j:1.26.0"
+    api "com.microsoft.azure:msal4j:1.26.1"
     api "org.apache.directory.api:api-ldap-client-api:2.1.9"
     runtimeOnly "org.apache.directory.api:api-ldap-codec-standalone:2.1.9"  // loaded reflectively
     api "org.apache.httpcomponents.client5:httpclient5"
@@ -119,7 +119,7 @@ dependencies {
     api "org.apache.poi:poi-ooxml:6.0.0", { exclude group: 'org.apache.poi', module: 'poi-ooxml-lite' }
 
     // Telemetry
-    api platform("io.opentelemetry:opentelemetry-bom:1.67.0")
+    api platform("io.opentelemetry:opentelemetry-bom:1.68.0")
     api "io.opentelemetry:opentelemetry-sdk"
     // Send OTLP over the JDK HttpClient instead of OkHttp, which drags in okio + kotlin-stdlib.
     api "io.opentelemetry:opentelemetry-exporter-sender-jdk"
