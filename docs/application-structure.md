@@ -86,7 +86,7 @@ Key properties:
 | `xhAppCode` | Short identifier used in instance config env vars, log file names, and framework internals |
 | `xhAppPackage` | Root Java/Groovy package for all server-side code |
 | `hoistCoreVersion` | The published hoist-core version to use (ignored when `runHoistInline=true`) |
-| `runHoistInline` | When `true`, uses a sibling `../hoist-core` checkout via Gradle composite build |
+| `runHoistInline` | When `true`, builds hoist-core from a local checkout via Gradle composite build - see [Inline Hoist Development](#inline-hoist-development) |
 | `enableHotSwap` | Enables JVM HotSwap agent for faster server-side dev iteration |
 | `localDevXmx` | JVM max heap for local `bootRun` |
 
@@ -99,8 +99,9 @@ development:
 rootProject.name = 'my-app'
 
 if (parseBoolean(runHoistInline)) {
-    println "${xhAppName}: running with Hoist Core INLINE...."
-    includeBuild '../hoist-core'
+    def hoistCorePath = System.getenv('XH_HOIST_CORE_PATH') ?: '../hoist-core'
+    println "${xhAppName}: running with Hoist Core INLINE from ${hoistCorePath}...."
+    includeBuild hoistCorePath
 }
 ```
 
@@ -496,6 +497,15 @@ siblings and enable inline mode:
 
 - **hoist-core**: Set `runHoistInline=true` in `gradle.properties` (or `~/.gradle/gradle.properties`)
 - **hoist-react**: Run the `startWithHoist` script instead of `start`
+
+To use a checkout at another path, such as a git worktree, set these env vars to absolute paths:
+
+- `XH_HOIST_CORE_PATH` - read by `settings.gradle`. Defaults to `../hoist-core`.
+- `XH_HOIST_REACT_PATH` - read by `@xh/hoist-dev-utils` 16.3+. Defaults to `../../hoist-react`,
+  relative to `client-app`.
+
+Both apply only in inline mode. This lets an app worktree build against framework worktrees on
+matching feature branches. Gradle fails with a clear error if the hoist-core path does not exist.
 
 Note that hot reload does not apply to a Grails plugin built inline this way - changes to
 hoist-core source still require a server restart.
