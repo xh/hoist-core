@@ -219,7 +219,7 @@ Reports: `build/reports/tests/test/index.html` and `build/reports/jacoco/test/ht
 
 ### CI
 
-The CI workflow runs `./gradlew build` on the JDK 25 toolchain and publishes a test summary,
+The CI workflow runs `./gradlew build` on the toolchain JDK and publishes a test summary,
 failure annotations and a coverage summary to the job page, with test reports uploaded as an
 artifact on failure. Coverage is report-only for now - no minimum threshold is enforced. See
 [`build-and-publish.md`](./build-and-publish.md).

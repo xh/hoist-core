@@ -32,8 +32,8 @@ The `xhReleaseVersion` property in `gradle.properties` sets the version for all 
 
 Runs on pushes and pull requests to `develop`.
 
-- **build** runs `./gradlew build` on the JDK 25 toolchain used for publishing. The published JAR
-  targets Java 17 bytecode - see the `java` block in `build.gradle` and
+- **build** runs `./gradlew build` on the toolchain JDK used for publishing. The published JAR
+  targets an older bytecode level. The `java` block in `build.gradle` sets both - see
   [`application-structure.md`](./application-structure.md#jdk-choice).
   - The job writes a test summary with failure annotations and a JaCoCo coverage summary to the
     job page (`mikepenz/action-junit-report`, in `annotate_only` mode so no extra permissions are
