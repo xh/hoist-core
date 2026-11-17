@@ -1,7 +1,5 @@
 # Application Structure
 
-> **Status: DRAFT** - This document is awaiting review and may contain inaccuracies.
-
 This document describes the standard directory layout of a Hoist application repository. A Hoist
 app combines a Grails server and a React/TypeScript client in a single repository. XH-built apps
 all use this structure, so it is the map for any Hoist codebase.
