@@ -77,53 +77,53 @@ class TrackService extends BaseService {
 
     /**
      * Create a new track log entry.
+     *
+     * @param msg            a concise description of whatever action being tracked
+     * @param category       category for organizing and querying over related actions
+     * @param severity       the severity of this message. Defaults to TrackSeverity.INFO.
+     * @param data           additional data payload to store with the track log (will be
+     *                       serialized as JSON)
+     * @param logData        a list of keys from the data object to log, `true` to log all
+     *                       key/values. Default false. Nested maps are logged as dotted keys
+     *                       (e.g. `timings.authenticating`) - list either a top-level key to log
+     *                       all of its nested values, or a dotted key to log a single value.
+     * @param correlationId  optional Correlation Id
+     * @param timestamp      time associated with the start of the action. Defaults to now.
+     * @param elapsed        duration of the tracked action in milliseconds, if applicable
+     * @param username       the username of the user associated with this action. Defaults to
+     *                       currently authenticated user, but can be specified to capture user
+     *                       when called from an async process, outside the context of a request.
+     * @param impersonating  if impersonating, the username of the user being impersonated. Set
+     *                       automatically when applicable, provided here for async usage outside
+     *                       of a request (as with `username`).
+     * @param clientAppCode  client-side app. For internal use.
+     * @param tabId          client-side tabId, maintained by hoist-react for the life of a browser
+     *                       tab. For internal use.
+     * @param loadId         client-side loadId, maintained by hoist-react for each load of the
+     *                       client app. For internal use.
+     * @param url            client-side url of the app performing the activity. For internal use.
      */
     @NamedVariant
     void track(
 
         // Core parameters
-        /** A concise description of whatever action being tracked. */
         @NamedParam(required = true) String msg,
-        /** Category for organizing and querying over related actions. */
         @NamedParam String category = 'Default',
-        /** The severity of this message. Defaults to TrackSeverity.INFO.*/
         @NamedParam Object severity = TrackSeverity.INFO,
-        /** Additional data payload to store with the track log (will be serialized as JSON). */
         @NamedParam Object data = null,
-        /**
-         * A list of keys from the data object to log, `true` to log all key/values. Default false.
-         * Nested maps are logged as dotted keys (e.g. `timings.authenticating`) - list either a
-         * top-level key to log all of its nested values, or a dotted key to log a single value.
-         */
         @NamedParam Object logData = null,
-        /** Optional Correlation Id */
         @NamedParam String correlationId = null,
-        /** Time associated with the start of the action. Defaults to now. */
         @NamedParam Long timestamp = null,
-        /** Duration of the tracked action in milliseconds, if applicable. */
         @NamedParam Long elapsed = null,
 
         // For setting on async processes, not typically used.
-        /**
-         * The username of the user associated with this action. Defaults to currently authenticated
-         * user, but can be specified to capture user when called from an async process, outside the
-         * context of a request.
-         */
         @NamedParam String username = null,
-        /**
-         * If impersonating, the username of the user being impersonated. Set automatically when
-         * applicable, provided here for async usage outside of a request (as with `username`).
-         */
         @NamedParam String impersonating = null,
 
         // From client-side for internal use.
-        /** Client-side app. */
         @NamedParam String clientAppCode = null,
-        /** Client-side tabId, maintained by hoist-react for the life of a browser tab. */
         @NamedParam String tabId = null,
-        /** Client-side loadId, maintained by hoist-react for each load of the client app. */
         @NamedParam String loadId = null,
-        /** Client-side url of the app performing the activity. */
         @NamedParam String url = null
     ) {
         trackAll([

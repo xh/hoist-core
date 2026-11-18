@@ -95,8 +95,8 @@ traceService.withSpan(name: 'fetchData', kind: SpanKind.CLIENT, tags: [url: endp
 ### `createSpan(args)` — framework-internal
 
 Creates and starts a span with a manually managed lifecycle, returning a `SpanRef` the caller must
-close. **Private to `TraceService`** — not callable from application code. Its parameters are the
-source of truth for the `withSpan` arguments documented above, which passes them straight through.
+close. **Private to `TraceService`** — not callable from application code. It takes the `withSpan`
+arguments documented above, which are passed straight through.
 
 ### `addExporter(exporter)` / `removeExporter(exporter)`
 
