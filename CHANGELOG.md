@@ -71,6 +71,8 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 * Enabled Gradle dependency locking. Builds now fail if resolution strays from the committed
   lockfiles - run `./gradlew resolveAndLockAll --write-locks` after changing a dependency.
+  This covers hoist-core's own build only. To lock an application's build, see
+  [Dependency locking in applications](docs/build-and-publish.md#dependency-locking-in-applications).
 * Removed redundant direct declarations of `spring-boot-autoconfigure`,
   `spring-boot-starter-validation`, `commons-io`, `opentelemetry-exporter-common` and
   `opentelemetry-context`. All remain on the classpath transitively.

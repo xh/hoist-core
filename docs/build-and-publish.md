@@ -184,9 +184,43 @@ Then, once now and again after any dependency change:
 ```
 
 Builds fail if resolution would differ from the lockfile, and strict mode also fails a build whose
-lockfile is missing rather than silently resolving unlocked. Note that a `-SNAPSHOT` version of
-hoist-core is locked by its version string only, so a newer snapshot still resolves, and if it adds
-or bumps a transitive dependency the lockfile must be regenerated.
+lockfile is missing rather than silently resolving unlocked.
+
+Some changes build clean on a stale lockfile and silently resolve the wrong version, so regenerate
+the locks in each of these cases:
+
+- **Changing `hoistCoreVersion`, in either direction.** Gradle applies each locked version as a
+  [strict constraint](https://docs.gradle.org/current/userguide/dependency_locking.html#sec:locking-mechanism).
+  Moving up without new locks fails the build. Moving down does not: the higher locked version
+  wins and the build passes - for example, pinning a snapshot back to a release for a production
+  build still ships the snapshot. Check the result with
+  `grep '^io.xh:hoist-core:' gradle.lockfile`.
+- **Taking a new hoist-core snapshot.** A `-SNAPSHOT` version is locked by its version string only,
+  so a newer snapshot still resolves. If it adds or removes a dependency the build fails, but if
+  it bumps one the build passes and the app stays on the old locked version. Gradle advises
+  against locking changing versions for this reason, so apps tracking a snapshot should regenerate
+  their locks each time they take a new one.
+
+#### Inline hoist-core builds
+
+An app running hoist-core from a local checkout (`runHoistInline=true`, see
+[Inline Hoist Development](./application-structure.md#inline-hoist-development)) takes its
+dependency graph from that checkout, which a committed lockfile cannot track. Lock packaged builds
+only:
+
+```groovy
+// Locking applies to packaged builds only. An inline build takes its transitive graph from the
+// local hoist-core checkout, which the lock state cannot track.
+if (!parseBoolean(runHoistInline)) {
+    dependencyLocking { lockAllConfigurations(); lockMode = LockMode.STRICT }
+}
+```
+
+and regenerate the locks in packaged mode:
+
+```bash
+./gradlew dependencies --write-locks -PrunHoistInline=false
+```
 
 ### Legacy releases
 
