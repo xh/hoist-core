@@ -132,18 +132,20 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
      * The `xh.source` tag defaults to `'hoist'` for spans whose name starts with `'xh.'` and
      * `'app'` otherwise. Callers may override all tag values, including setting to null to prevent
      * any default tag from being applied.
+     *
+     * @param name       span name (e.g. 'processOrder', 'HTTP GET')
+     * @param kind       span kind — INTERNAL (default), SERVER for inbound requests, CLIENT for
+     *                   outbound calls
+     * @param tags       key-value attributes to set on the span
+     * @param caller     object making the call, used to auto-set the 'code.namespace' attribute
+     * @param startTime  optional backdated start time; defaults to now
      */
     @NamedVariant
     private SpanRef createSpan(
-        /** Span name (e.g. 'processOrder', 'HTTP GET'). */
         @NamedParam(required = true) String name,
-        /** Span kind — INTERNAL (default), SERVER for inbound requests, CLIENT for outbound calls. */
         @NamedParam SpanKind kind = SpanKind.INTERNAL,
-        /** Key-value attributes to set on the span. */
         @NamedParam Map<String, ?> tags = [:],
-        /** Object making the call, used to auto-set the 'code.namespace' attribute. */
         @NamedParam Object caller = null,
-        /** Optional backdated start time; defaults to now. */
         @NamedParam Instant startTime = null
     ) {
         def sdk = _otelSdk
