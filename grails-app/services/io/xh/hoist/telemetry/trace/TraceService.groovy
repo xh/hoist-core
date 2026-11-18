@@ -102,13 +102,23 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
      * Execute a closure within a new trace span. Main entry point.
      *
      * Creates a child span under the current context. Exceptions are recorded on the span and
-     * re-thrown. See {@link #createSpan} for parameter documentation.
+     * re-thrown.
      *
      * The closure is always passed a non-null {@link SpanRef} — when tracing is disabled, a
      * shared no-op object is provided so callers never need to null-check.
      *
      * For combined tracing + logging + metrics, use {@link io.xh.hoist.telemetry.ObservedRun} via
      * {@link BaseService#observe()}.
+     *
+     * @param args  named span options:
+     *              - `name` (required) span name (e.g. 'processOrder', 'HTTP GET')
+     *              - `kind` span kind — INTERNAL (default), SERVER for inbound requests, CLIENT
+     *                for outbound calls
+     *              - `tags` key-value attributes to set on the span
+     *              - `caller` object making the call, used to auto-set the 'code.namespace'
+     *                attribute
+     *              - `startTime` optional backdated start time; defaults to now
+     * @param c     closure to run within the span, optionally taking the {@link SpanRef}
      */
     <T> T withSpan(Map args, Closure<T> c) {
         SpanRef span = createSpan(args.subMap(['name', 'kind', 'tags', 'caller', 'startTime']))
@@ -132,18 +142,20 @@ class TraceService extends BaseService implements ApplicationListener<SpringAppl
      * The `xh.source` tag defaults to `'hoist'` for spans whose name starts with `'xh.'` and
      * `'app'` otherwise. Callers may override all tag values, including setting to null to prevent
      * any default tag from being applied.
+     *
+     * @param name       span name (e.g. 'processOrder', 'HTTP GET')
+     * @param kind       span kind — INTERNAL (default), SERVER for inbound requests, CLIENT for
+     *                   outbound calls
+     * @param tags       key-value attributes to set on the span
+     * @param caller     object making the call, used to auto-set the 'code.namespace' attribute
+     * @param startTime  optional backdated start time; defaults to now
      */
     @NamedVariant
     private SpanRef createSpan(
-        /** Span name (e.g. 'processOrder', 'HTTP GET'). */
         @NamedParam(required = true) String name,
-        /** Span kind — INTERNAL (default), SERVER for inbound requests, CLIENT for outbound calls. */
         @NamedParam SpanKind kind = SpanKind.INTERNAL,
-        /** Key-value attributes to set on the span. */
         @NamedParam Map<String, ?> tags = [:],
-        /** Object making the call, used to auto-set the 'code.namespace' attribute. */
         @NamedParam Object caller = null,
-        /** Optional backdated start time; defaults to now. */
         @NamedParam Instant startTime = null
     ) {
         def sdk = _otelSdk

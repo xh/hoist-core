@@ -171,6 +171,16 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      *
      * Note that the provided name must be unique across all Caches, Timers and distributed
      * Hazelcast objects associated with this service.
+     *
+     * @param name                    name for this timer, unique within this service
+     * @param runFn                   closure to run. Defaults to this service's `onTimer()`.
+     * @param primaryOnly             true to run on the primary instance only. Default false.
+     * @param runImmediatelyAndBlock  true to block on an immediate initial run. Default false.
+     * @param interval                run interval - number, closure or config name. <= 0 disables.
+     * @param timeout                 max run time, in the same forms. Default 3 minutes.
+     * @param delay                   initial delay in ms, or true to use `interval`. Default false.
+     * @param intervalUnits           units for `interval`. Default ms (1).
+     * @param timeoutUnits            units for `timeout`. Default ms (1).
      */
     @CompileDynamic
     @NamedVariant
@@ -269,6 +279,10 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      *
      * This subscription also avoids firing handlers on destroyed services. This is important in a
      * hot-reloading scenario where multiple instances of singleton services may be created.
+     *
+     * @param topic        name of the topic
+     * @param onMessage    closure called with the message payload and, optionally, the `Message`
+     * @param primaryOnly  true to handle messages on the primary instance only. Default false.
      */
     @NamedVariant
     protected void subscribeToTopic(
@@ -309,8 +323,13 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     }
 
     /**
-     * Create an {@link ObservedRun} builder with an initial span and this server as a caller.
-     **/
+     * Create an {@link ObservedRun} builder with an initial span and this service as a caller.
+     *
+     * @param name           span name (e.g. 'processOrder', 'HTTP GET')
+     * @param tags           key-value attributes to set on the span
+     * @param kind           span kind — INTERNAL (default), SERVER or CLIENT
+     * @param useNamePrefix  false to use `name` as given, without this service's telemetry prefix
+     */
     @NamedVariant
     ObservedRun span(
         @NamedParam(required = true) String name,

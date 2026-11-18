@@ -19,9 +19,9 @@
 * Moved MCP docs and symbol tooling to [Hoist Docs](https://github.com/xh/hoist-docs)
   (`@xh/hoist-docs`), one MCP server for hoist-core and hoist-react. Apps add it as a `client-app`
   dev dependency; the agent launches it over stdio, and it answers for the app's
-  `hoistCoreVersion` from prebuilt index files fetched through npm. The same package also runs over
-  HTTP behind an MCP gateway. Tools keep their output; their names drop the `hoist-core-` prefix -
-  pass `library: "core"` to the `hoist-*` tools.
+  `hoistCoreVersion` from the index that version publishes to Maven (below). The same package also
+  runs over HTTP behind an MCP gateway. Tools keep their output; their names drop the `hoist-core-`
+  prefix - pass `library: "core"` to the `hoist-*` tools.
 * Hoist Docs is built on the MCP TypeScript SDK v2 (`@modelcontextprotocol/server`), which
   implements the 2026-07-28 MCP spec - stateless serving and `server/discover` - while still
   serving clients on the 2025 `initialize` handshake. It replaces this repo's server on the MCP
@@ -33,6 +33,8 @@
 * Each build now publishes its Hoist Docs index beside the jar, as the `docs-index` artifact
   (`hoist-core-<version>-docs-index.json.gz`), built by `io.xh:hoist-docs-builder`. Hoist Docs
   fetches it for an app's exact `hoistCoreVersion`, snapshots included.
+
+## 44.1.0 - 2026-11-13
 
 ### 🐞 Bug Fixes
 
@@ -89,6 +91,8 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 * Enabled Gradle dependency locking. Builds now fail if resolution strays from the committed
   lockfiles - run `./gradlew resolveAndLockAll --write-locks` after changing a dependency.
+  This covers hoist-core's own build only. To lock an application's build, see
+  [Dependency locking in applications](docs/build-and-publish.md#dependency-locking-in-applications).
 * Removed redundant direct declarations of `spring-boot-autoconfigure`,
   `spring-boot-starter-validation`, `commons-io`, `opentelemetry-exporter-common` and
   `opentelemetry-context`. All remain on the classpath transitively.
