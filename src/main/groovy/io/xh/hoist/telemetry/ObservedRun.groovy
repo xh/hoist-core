@@ -107,10 +107,16 @@ class ObservedRun {
     /**
      * Configure a trace span.
      *
-     * See {@link TraceService#createSpan} for more info.
+     * See {@link TraceService#withSpan} for more info.
      *
      * When `useNamePrefix` is true (the default), and the owner is a BaseService,
      * {@link BaseService#getTelemetryPrefix} is prepended to `name`.
+     *
+     * @param name           span name (e.g. 'processOrder', 'HTTP GET')
+     * @param tags           key-value attributes to set on the span
+     * @param kind           span kind — INTERNAL (default), SERVER for inbound requests, CLIENT
+     *                       for outbound calls
+     * @param useNamePrefix  false to use `name` as given, without the owner's telemetry prefix
      */
     @NamedVariant
     ObservedRun span(
