@@ -114,8 +114,7 @@ class ObservedRun {
      *
      * @param name           span name (e.g. 'processOrder', 'HTTP GET')
      * @param tags           key-value attributes to set on the span
-     * @param kind           span kind — INTERNAL (default), SERVER for inbound requests, CLIENT
-     *                       for outbound calls
+     * @param kind           span kind — INTERNAL (default), SERVER or CLIENT
      * @param useNamePrefix  false to use `name` as given, without the owner's telemetry prefix
      */
     @NamedVariant

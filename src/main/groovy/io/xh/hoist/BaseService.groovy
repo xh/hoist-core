@@ -176,12 +176,9 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * @param runFn                   closure to run. Defaults to this service's `onTimer()`.
      * @param primaryOnly             true to run on the primary instance only. Default false.
      * @param runImmediatelyAndBlock  true to block on an immediate initial run. Default false.
-     * @param interval                interval between runs, in `intervalUnits`, as a number,
-     *                                closure, or config name. Non-positive to not run.
-     * @param timeout                 max run time before cancelling, in `timeoutUnits`, as a
-     *                                number, closure, or config name. Default 3 minutes.
-     * @param delay                   initial delay in ms, or true to use `interval`. Default
-     *                                false.
+     * @param interval                run interval - number, closure or config name. <= 0 disables.
+     * @param timeout                 max run time, in the same forms. Default 3 minutes.
+     * @param delay                   initial delay in ms, or true to use `interval`. Default false.
      * @param intervalUnits           units for `interval`. Default ms (1).
      * @param timeoutUnits            units for `timeout`. Default ms (1).
      */
@@ -284,8 +281,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      * hot-reloading scenario where multiple instances of singleton services may be created.
      *
      * @param topic        name of the topic
-     * @param onMessage    closure to call with each message's payload and, if it takes a second
-     *                     argument, the Hazelcast `Message`
+     * @param onMessage    closure called with the message payload and, optionally, the `Message`
      * @param primaryOnly  true to handle messages on the primary instance only. Default false.
      */
     @NamedVariant
@@ -331,8 +327,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
      *
      * @param name           span name (e.g. 'processOrder', 'HTTP GET')
      * @param tags           key-value attributes to set on the span
-     * @param kind           span kind — INTERNAL (default), SERVER for inbound requests, CLIENT
-     *                       for outbound calls
+     * @param kind           span kind — INTERNAL (default), SERVER or CLIENT
      * @param useNamePrefix  false to use `name` as given, without this service's telemetry prefix
      */
     @NamedVariant

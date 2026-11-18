@@ -256,8 +256,7 @@ class Utils {
      * @param exception   the exception to handle
      * @param renderTo    response to render the exception to, or null to skip rendering
      * @param logTo       object to log the exception through, or null to skip logging
-     * @param logMessage  context logged ahead of the exception. Defaults to the mapped action
-     *                    name when a controller action is bound to the current thread.
+     * @param logMessage  context logged ahead of the exception. Defaults to the action name.
      * @param request     the request being rendered to, used to record the exception on its
      *                    trace span. Defaults to the thread-bound Grails web request, so callers
      *                    within Spring MVC dispatch, or on a Grails web promise, may omit it.

@@ -165,8 +165,7 @@ class MetricsService extends BaseService {
      * @param name           metric name
      * @param description    human-readable description shown in the admin metrics view
      * @param tags           fixed tags for this meter
-     * @param owner          optional BaseService creating this metric — used for tagging and
-     *                       naming the metric
+     * @param owner          optional owning BaseService, used to tag and name the metric
      * @param useNamePrefix  when true (the default), the owner's name prefix is applied
      */
     @NamedVariant
@@ -223,8 +222,7 @@ class MetricsService extends BaseService {
      * @param name           metric name
      * @param description    human-readable description shown in the admin metrics view
      * @param tags           fixed tags for this meter
-     * @param owner          optional BaseService creating this metric — used for tagging and
-     *                       naming the metric
+     * @param owner          optional owning BaseService, used to tag and name the metric
      * @param useNamePrefix  when true (the default), the owner's name prefix is applied
      */
     @NamedVariant
