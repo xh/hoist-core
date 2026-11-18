@@ -14,6 +14,14 @@
 
 ## 45.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
+
+* Requires `hoist-react >= 91`. Agent docs for hoist-core 45 come only from Hoist Docs (below),
+  which an app gets with hoist-react 91. On an earlier hoist-react, the agent has no hoist-core
+  reference at all. Upgrade hoist-react first.
+* Remove the `installHoistCoreTools` snippet from `build.gradle`, and the `hoist-core` entry from
+  `.mcp.json`. The task fails on this release, since its artifact is no longer published.
+
 ### 🤖 AI Docs + Tooling
 
 * Moved MCP docs and symbol tooling to [Hoist Docs](https://github.com/xh/hoist-docs)
