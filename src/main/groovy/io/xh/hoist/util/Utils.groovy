@@ -253,9 +253,15 @@ class Utils {
      * otherwise unhandled exceptions. Applications may call this directly, typically from a
      * controller rendering a caught exception.
      *
-     * @param request the request being rendered to, used to record the exception on its trace
-     *      span. Defaults to the thread-bound Grails web request, so callers within Spring MVC
-     *      dispatch, or on a Grails web promise, may omit it. Ignored without `renderTo`.
+     * @param exception   the exception to handle
+     * @param renderTo    response to render the exception to, or null to skip rendering
+     * @param logTo       object to log the exception through, or null to skip logging
+     * @param logMessage  context logged ahead of the exception. Defaults to the mapped action
+     *                    name when a controller action is bound to the current thread.
+     * @param request     the request being rendered to, used to record the exception on its
+     *                    trace span. Defaults to the thread-bound Grails web request, so callers
+     *                    within Spring MVC dispatch, or on a Grails web promise, may omit it.
+     *                    Ignored without `renderTo`.
      * @see ExceptionHandler, which may be overridden to customize this behavior.
      */
     @NamedVariant

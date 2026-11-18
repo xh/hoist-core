@@ -139,6 +139,10 @@ class ObservedRun {
      *
      * When `useNamePrefix` is true (the default), and the owner is a BaseService,
      * {@link BaseService#getTelemetryPrefix} is prepended to `name`.
+     *
+     * @param name           metric name
+     * @param tags           tags identifying the variant of `name` to record against
+     * @param useNamePrefix  false to use `name` as given, without the owner's telemetry prefix
      */
     @NamedVariant
     ObservedRun timer(
@@ -158,6 +162,10 @@ class ObservedRun {
      *
      * When `useNamePrefix` is true (the default), and the owner is a BaseService,
      * {@link BaseService#getTelemetryPrefix} is prepended to `name`.
+     *
+     * @param name           metric name
+     * @param tags           tags identifying the variant of `name` to record against
+     * @param useNamePrefix  false to use `name` as given, without the owner's telemetry prefix
      */
     @NamedVariant
     ObservedRun counter(

@@ -161,6 +161,13 @@ class MetricsService extends BaseService {
      * *not* a parameter here — set those once for the metric name via {@link #configureTimer}
      * and they will be applied to this Timer (and any other variants of the same name) via the
      * meter filter pipeline.
+     *
+     * @param name           metric name
+     * @param description    human-readable description shown in the admin metrics view
+     * @param tags           fixed tags for this meter
+     * @param owner          optional BaseService creating this metric — used for tagging and
+     *                       naming the metric
+     * @param useNamePrefix  when true (the default), the owner's name prefix is applied
      */
     @NamedVariant
     Timer registerTimer(
@@ -212,6 +219,13 @@ class MetricsService extends BaseService {
 
     /**
      * Create and register a concrete Micrometer {@link Counter} with a fixed set of tags.
+     *
+     * @param name           metric name
+     * @param description    human-readable description shown in the admin metrics view
+     * @param tags           fixed tags for this meter
+     * @param owner          optional BaseService creating this metric — used for tagging and
+     *                       naming the metric
+     * @param useNamePrefix  when true (the default), the owner's name prefix is applied
      */
     @NamedVariant
     Counter registerCounter(
@@ -336,6 +350,10 @@ class MetricsService extends BaseService {
      * Tags are applied as-is; the standard default tags are added by the registry.
      *
      * The named timer should typically be configured ahead of time via {@link #configureTimer}.
+     *
+     * @param name     metric name
+     * @param valueMs  elapsed time in milliseconds, truncated to a whole number
+     * @param tags     tags identifying the variant of `name` to record against
      */
     @NamedVariant
     void recordTimer(
@@ -351,6 +369,10 @@ class MetricsService extends BaseService {
      * Tags are applied as-is; the standard default tags are added by the registry.
      *
      * The named counter should typically be configured ahead of time via {@link #configureCounter}.
+     *
+     * @param name   metric name
+     * @param value  amount to increment by
+     * @param tags   tags identifying the variant of `name` to record against
      */
     @NamedVariant
     void recordCount(
