@@ -31,6 +31,10 @@ class DefaultRoleServiceSpec extends Specification implements ServiceUnitTest<De
         boolean directoryGroups = true
         int directoryLookups = 0
 
+        // Shadows the superclass field of the same name, as an app subclass might. Must not hide
+        // the configured bootstrap admin from role resolution.
+        private String bootstrapAdminUser = null
+
         boolean getDirectoryGroupsSupported() { directoryGroups }
 
         Map<String, ErrorOr<Set<String>>> loadUsersForDirectoryGroups(Set<String> groups, boolean strictMode) {
@@ -156,7 +160,7 @@ class DefaultRoleServiceSpec extends Specification implements ServiceUnitTest<De
     //-------------------
     def 'bootstrap admin gets bootstrap roles plus every role that inherits from them'() {
         given:
-        service.bootstrapAdminUser = 'boot'
+        setBootstrapAdminUser('boot')
         role('HOIST_ADMIN', users: ['alice'])
         role('HOIST_IMPERSONATOR', roles: ['HOIST_ADMIN'])
         role('APP_USER', roles: ['HOIST_IMPERSONATOR'])
@@ -174,7 +178,7 @@ class DefaultRoleServiceSpec extends Specification implements ServiceUnitTest<De
 
     def 'bootstrap admin picks up inheriting roles created after startup on next refresh'() {
         given:
-        service.bootstrapAdminUser = 'boot'
+        setBootstrapAdminUser('boot')
         role('HOIST_ADMIN')
         refreshAndAwaitInvalidation()
 
@@ -239,6 +243,13 @@ class DefaultRoleServiceSpec extends Specification implements ServiceUnitTest<De
         service._allRoleAssignments.addChangeHandler { handled.countDown() }
         service.refreshRoleAssignments()
         assert handled.await(5, SECONDS)
+    }
+
+    // Set the private superclass field directly, as init() would from instance config.
+    private void setBootstrapAdminUser(String username) {
+        def field = DefaultRoleService.getDeclaredField('bootstrapAdminUser')
+        field.accessible = true
+        field.set(service, username)
     }
 
     private Role role(Map members = [:], String name) {

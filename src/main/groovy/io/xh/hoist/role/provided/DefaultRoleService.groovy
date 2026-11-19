@@ -104,8 +104,8 @@ class DefaultRoleService extends BaseRoleService {
     // Support granting key Hoist admin roles to an instance-configured user in local dev only,
     // for initial bootstrapping during development when databased roles not yet created.
     // The user also inherits any stored role that has one of these roles as a member.
-    protected String bootstrapAdminUser = null
-    protected final Set<String> bootstrapAdminRoles = ['HOIST_ADMIN', 'HOIST_ADMIN_READER', 'HOIST_ROLE_MANAGER']
+    private String bootstrapAdminUser = null
+    private final Set<String> bootstrapAdminRoles = ['HOIST_ADMIN', 'HOIST_ADMIN_READER', 'HOIST_ROLE_MANAGER']
 
     void init() {
         ensureRequiredConfigAndRolesCreated()
@@ -383,6 +383,9 @@ class DefaultRoleService extends BaseRoleService {
             }
         }
 
+        // Copy to locals - closures resolve names dynamically, so a subclass field could shadow these.
+        String adminUser = bootstrapAdminUser
+        Set<String> adminRoles = bootstrapAdminRoles
         roles.collectEntries { role ->
             Set<Role> effectiveRoles = getEffectiveRoles(role),
                       users = new HashSet(),
@@ -395,8 +398,8 @@ class DefaultRoleService extends BaseRoleService {
             groups.each { group ->
                 _usersForDirectoryGroups[group]?.each { users << it.toLowerCase() }
             }
-            if (bootstrapAdminUser && effectiveRoles.any { it.name in bootstrapAdminRoles }) {
-                users << bootstrapAdminUser
+            if (adminUser && effectiveRoles.any { it.name in adminRoles }) {
+                users << adminUser
             }
 
             logTrace("Generated assignments for ${role.name}", "${users.size()} effective users")
