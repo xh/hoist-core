@@ -264,7 +264,8 @@ the app starts. See [`configuration.md`](./configuration.md) for full details on
 sources.
 
 This user will always have the `HOIST_ADMIN`, `HOIST_ADMIN_READER`, and `HOIST_ROLE_MANAGER` roles,
-even if no roles are configured in the database. This feature is restricted by the framework to
+even if no roles are configured in the database. The user also gets every role that inherits from
+one of these roles, such as `HOIST_IMPERSONATOR`, the same as a stored `HOIST_ADMIN` member. This feature is restricted by the framework to
 local development environments only (`isLocalDevelopment && !isProduction`) and has no effect in
 production.
 
