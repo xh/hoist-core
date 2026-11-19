@@ -17,8 +17,7 @@
 ### 🐞 Bug Fixes
 
 * Fixed `DefaultRoleService` to grant the local development `bootstrapAdminUser` all roles that
-  inherit from its admin roles, such as `HOIST_IMPERSONATOR`. Previously it got only
-  `HOIST_ADMIN`, `HOIST_ADMIN_READER`, and `HOIST_ROLE_MANAGER`.
+  inherit from its admin roles, such as `HOIST_IMPERSONATOR`.
 
 ## 44.1.0 - 2026-11-13
 

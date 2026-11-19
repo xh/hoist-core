@@ -103,7 +103,6 @@ class DefaultRoleService extends BaseRoleService {
 
     // Support granting key Hoist admin roles to an instance-configured user in local dev only,
     // for initial bootstrapping during development when databased roles not yet created.
-    // The user also inherits any stored role that has one of these roles as a member.
     private String bootstrapAdminUser = null
     private final Set<String> bootstrapAdminRoles = ['HOIST_ADMIN', 'HOIST_ADMIN_READER', 'HOIST_ROLE_MANAGER']
 
@@ -113,7 +112,7 @@ class DefaultRoleService extends BaseRoleService {
         if (isLocalDevelopment && !isProduction) {
             bootstrapAdminUser = getInstanceConfig('bootstrapAdminUser')?.toLowerCase()
             if (bootstrapAdminUser) {
-                logInfo("$bootstrapAdminUser configured as local development bootstrapAdminUser - will be granted $bootstrapAdminRoles and all roles that inherit from them")
+                logInfo("$bootstrapAdminUser configured as local development bootstrapAdminUser - will be granted $bootstrapAdminRoles")
             }
         }
 
