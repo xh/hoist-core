@@ -14,10 +14,38 @@
 
 ## 45.0-SNAPSHOT - unreleased
 
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
+
+* Requires `hoist-react >= 91`. Agent docs for hoist-core 45 come only from Hoist Docs (below),
+  which an app gets with hoist-react 91. On an earlier hoist-react, the agent has no hoist-core
+  reference at all. Upgrade hoist-react first.
+* Remove the `installHoistCoreTools` snippet from `build.gradle`, and the `hoist-core` entry from
+  `.mcp.json`. The task fails on this release, since its artifact is no longer published.
+
 ### 🐞 Bug Fixes
 
 * Fixed `DefaultRoleService` to grant the local development `bootstrapAdminUser` all roles that
   inherit from its admin roles, such as `HOIST_IMPERSONATOR`.
+
+### 🤖 AI Docs + Tooling
+
+* Moved MCP docs and symbol tooling to [Hoist Docs](https://github.com/xh/hoist-docs)
+  (`@xh/hoist-docs`), one MCP server for hoist-core and hoist-react. Apps add it as a `client-app`
+  dev dependency; the agent launches it over stdio, and it answers for the app's
+  `hoistCoreVersion` from the index that version publishes to Maven (below). The same package also
+  runs over HTTP behind an MCP gateway. Tools keep their output; their names drop the `hoist-core-`
+  prefix - pass `library: "core"` to the `hoist-*` tools.
+* Hoist Docs is built on the MCP TypeScript SDK v2 (`@modelcontextprotocol/server`), which
+  implements the 2026-07-28 MCP spec - stateless serving and `server/discover` - while still
+  serving clients on the 2025 `initialize` handshake. It replaces this repo's server on the MCP
+  Java SDK, with no JVM or jar download needed to run it.
+* Removed the stdio MCP server, the `hoist-core-docs` and `hoist-core-symbols` CLIs, `bootstrap.sh`,
+  and the `io.xh:hoist-core-mcp` artifact, which is no longer published. Apps should remove the
+  `installHoistCoreTools` snippet from `build.gradle` and point `.mcp.json` at `@xh/hoist-docs` -
+  see the Hoist Docs README.
+* Each build now publishes its Hoist Docs index beside the jar, as the `docs-index` artifact
+  (`hoist-core-<version>-docs-index.json.gz`), built by `io.xh:hoist-docs-builder`. Hoist Docs
+  fetches it for an app's exact `hoistCoreVersion`, snapshots included.
 
 ## 44.1.0 - 2026-11-13
 

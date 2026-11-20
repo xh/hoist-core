@@ -4,8 +4,6 @@ Hoist Core is built with Gradle and published to Maven Central through the Sonat
 as three artifacts under the `io.xh` group:
 
 - `hoist-core` — the Grails plugin consumed by Hoist applications.
-- `hoist-core-mcp` — a self-contained JAR providing the MCP server and CLI developer tools. See
-  [`mcp/README.md`](../mcp/README.md).
 - `hoist-core-test` — Spock-based unit testing support for Hoist applications. See
   [`testing.md`](./testing.md).
 
@@ -100,8 +98,7 @@ For a hotfix, run the workflow from the maintenance branch with `is-hotfix` chec
 metadata. In outline:
 
 - **Publications** — the root project defines the `hoistCore` publication: compiled classes,
-  sources, POM, and the Grails plugin descriptor as a `plugin`-classified artifact. The `mcp`
-  subproject defines `mcpServer`, publishing its shadow JAR as `hoist-core-mcp`. The `test-support`
+  sources, POM, and the Grails plugin descriptor as a `plugin`-classified artifact. The `test-support`
   subproject defines `hoistCoreTest`, publishing its JAR, sources and POM as `hoist-core-test`,
   with resolved dependency versions.
 - **Testing** — `gradle/test-conventions.gradle` configures Spock on the JUnit Platform, JaCoCo,
@@ -162,9 +159,6 @@ repositories {
     maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
 }
 ```
-
-See [`mcp/README.md`](../mcp/README.md#app-side-distribution) for pulling `hoist-core-mcp` into an
-application.
 
 ### Dependency locking in applications
 
