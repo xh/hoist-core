@@ -179,7 +179,9 @@ class BlueprintService extends BaseService {
 
     /**
      * Publish a blueprint's draft as its next number, with the renames the draft holds, which it
-     * then clears. Leaves the draft and its version as they are.
+     * then clears. The draft's content is unchanged, but its version goes up, so a save based on
+     * the draft from before the publish is refused rather than re-adding the published renames.
+     * The new draft version is on the returned publish's `blueprint`.
      *
      * @param base the draft version this publish was based on
      * @throws BlueprintStaleBaseException if the draft is no longer at `base`
@@ -205,6 +207,7 @@ class BlueprintService extends BaseService {
 
         blueprint.publishedVersion = number
         blueprint.pendingRenames = '[]'
+        blueprint.draftVersion = base + 1
         blueprint.lastUpdatedBy = username
         blueprint.save(flush: true, failOnError: true)
         return ret

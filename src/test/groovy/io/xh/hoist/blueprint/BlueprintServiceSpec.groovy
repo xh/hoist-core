@@ -102,32 +102,44 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         parseArray(draft.pendingRenames) == [RENAME]
     }
 
-    def 'each publish takes the next number with the pending renames, and leaves the draft'() {
+    def 'each publish takes the next number with the pending renames, and bumps the draft version'() {
         given:
         def token = service.create('Risk', null, BP).token
         service.saveDraft(token, BP, 1, [RENAME])
 
         when:
         def first = service.publish(token, 2, 'First')
-        def second = service.publish(token, 2)
 
         then:
         first.number == 1
         first.note == 'First'
         parseArray(first.renames) == [RENAME]
+        first.blueprint.draftVersion == 3
+
+        when: 'a save based on the draft from before the publish'
+        service.saveDraft(token, BP, 2, [RENAME])
+
+        then: 'is refused, rather than re-adding the published rename'
+        thrown(BlueprintStaleBaseException)
+
+        when:
+        def second = service.publish(token, 3)
+
+        then:
         second.number == 2
         parseArray(second.renames) == []
 
         and:
         def draft = service.getDraft(token)
-        draft.draftVersion == 2
+        draft.draftVersion == 4
         draft.publishedVersion == 2
         draft.pendingRenames == '[]'
+        parseObject(draft.draft) == BP
         service.listPublishes(token)*.number == [1, 2]
         service.listPublishes(token)[0].renames == [RENAME]
 
         when:
-        service.publish(token, 1)
+        service.publish(token, 3)
 
         then:
         thrown(BlueprintStaleBaseException)
@@ -148,8 +160,8 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         when:
         loginAs(owner)
         service.publish(token, 1)
-        service.saveDraft(token, [*: BP, title: 'later'], 1, [])
-        service.publish(token, 2)
+        service.saveDraft(token, [*: BP, title: 'later'], 2, [])
+        service.publish(token, 3)
         loginAs(reader)
 
         then:
