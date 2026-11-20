@@ -140,7 +140,7 @@ breaking changes, before/after code examples, and verification checklists.
 
 | Version                                         | Key Changes |
 |-------------------------------------------------|-------------|
-| [v45.0.0](./upgrade-notes/v45-upgrade-notes.md) | Requires hoist-react 91, `installHoistCoreTools` and the `hoist-core` MCP entry removed, new `xh_blueprint*` tables for blueprint storage |
+| [v45.0.0](./upgrade-notes/v45-upgrade-notes.md) | New `xh_blueprint*` tables for blueprint storage, with DDL for apps that manage their schema |
 | [v44.0.0](./upgrade-notes/v44-upgrade-notes.md) | `jasypt` dependency removed, `HoistPasswordEncryptor` (BCrypt) replaces `BasicPasswordEncryptor` in app `User` classes, `grails-quartz` no longer supplied, Apache Directory `api-all` replaced by client-only artifacts |
 | [v43.0.0](./upgrade-notes/v43-upgrade-notes.md) | Grails 8, Spring Boot 4, Groovy 5, Jackson 3, Java 21 and Tomcat 11, Gradle 9 wrapper, `dataSource` and `constraints` fixes for Groovy 5 |
 | [v42.0.0](./upgrade-notes/v42-upgrade-notes.md) | `JsonBlobService` write access limited to owners, `xhJsonBlobConfig.globalWriteRoles` gates global views, `doLoadUsersForDirectoryGroups` replaced by `getDirectoryService`, `sendEmail` named parameters |

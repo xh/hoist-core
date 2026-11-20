@@ -247,7 +247,7 @@
             "mcpCategory": "devops",
             "viewerCategory": "upgrade",
             "description": "Upgrade guide from v44.x to v45. Low difficulty.",
-            "keywords": ["v45", "upgrade", "migration", "breaking changes", "v44", "hoist-react 91", "installHoistCoreTools", "Hoist Docs", "xh_blueprint", "blueprint tables", "DDL", "xhBlueprintConfig"]
+            "keywords": ["v45", "upgrade", "migration", "v44", "xh_blueprint", "blueprint tables", "DDL", "dbCreate", "xhBlueprintConfig"]
         },
         {
             "id": "docs/upgrade-notes/v44-upgrade-notes.md",
