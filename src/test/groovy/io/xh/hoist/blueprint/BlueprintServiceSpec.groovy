@@ -169,6 +169,8 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         service.list()*.token == [token]
         service.list()[0].access == 'read'
         service.getPublish(token).number == 2
+        service.getDraft(token) == null
+        service.getPublish(token, 1) == null
 
         when:
         call(service)
@@ -178,8 +180,6 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
         where:
         call << [
-            { BlueprintService s -> s.getDraft(s.list()[0].token as String) },
-            { BlueprintService s -> s.getPublish(s.list()[0].token as String, 1) },
             { BlueprintService s -> s.listPublishes(s.list()[0].token as String) },
             { BlueprintService s -> s.publish(s.list()[0].token as String, 2) },
             { BlueprintService s -> s.saveDraft(s.list()[0].token as String, BP, 2, []) }
@@ -298,11 +298,52 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         BlueprintPersonalization.count() == 2
         BlueprintPersonalization.list().every { it.blueprint.token == other }
 
+        expect:
+        service.getDraft(token) == null
+
         when:
-        service.getDraft(token)
+        service.listPublishes(token)
 
         then:
         thrown(NotFoundException)
+    }
+
+    def 'a blueprint the user may not read looks the same as a missing one: #action'() {
+        given:
+        def token = service.create('Risk', null, BP).token
+        service.publish(token, 1)
+        loginAs(new TestUser('stranger', ['DESIGNER']))
+
+        expect:
+        service.getDraft(token) == null
+        service.getPublish(token) == null
+        service.getPublish('missing') == null
+        service.list() == []
+
+        when:
+        call(service, token)
+
+        then:
+        def e = thrown(BlueprintNotFoundException)
+        e instanceof io.xh.hoist.exception.RoutineException
+
+        when:
+        call(service, 'missing')
+
+        then:
+        def missing = thrown(BlueprintNotFoundException)
+        missing.message == e.message.replace(token, 'missing')
+
+        where:
+        action                | call
+        'listPublishes'       | { BlueprintService s, String t -> s.listPublishes(t) }
+        'saveDraft'           | { BlueprintService s, String t -> s.saveDraft(t, BP, 2, []) }
+        'publish'             | { BlueprintService s, String t -> s.publish(t, 2) }
+        'copy'                | { BlueprintService s, String t -> s.copy(t, 'Mine') }
+        'delete'              | { BlueprintService s, String t -> s.delete(t) }
+        'updateAccess'        | { BlueprintService s, String t -> s.updateAccess(t, [], []) }
+        'listPersonalizations'| { BlueprintService s, String t -> s.listPersonalizations(t) }
+        'savePersonalization' | { BlueprintService s, String t -> s.savePersonalization(t, null, [], 1) }
     }
 
     def 'personalizations belong to the current user, one per preset'() {

@@ -26,6 +26,7 @@ class BlueprintPublish implements JSONFormat {
     static mapping = {
         table 'xh_blueprint_publish'
         version false
+        number column: 'publish_number'
         blueprint index: 'idx_xh_blueprint_publish_blueprint'
         content type: 'text'
         renames type: 'text'

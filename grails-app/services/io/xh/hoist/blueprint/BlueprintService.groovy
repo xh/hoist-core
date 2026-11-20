@@ -11,7 +11,6 @@ import grails.gorm.transactions.Transactional
 import io.xh.hoist.BaseService
 import io.xh.hoist.config.ConfigService
 import io.xh.hoist.exception.NotAuthorizedException
-import io.xh.hoist.exception.NotFoundException
 import io.xh.hoist.exception.RoutineRuntimeException
 import io.xh.hoist.user.HoistUser
 
@@ -94,30 +93,33 @@ class BlueprintService extends BaseService {
         ] + (manage ? [writers: parseArray(row.writers as String), readers: parseArray(row.readers as String)] : [:])
     }
 
-    /** A blueprint, with its draft. Requires write access. */
+    /**
+     * A blueprint, with its draft. Null if it does not exist or the current user lacks write
+     * access, so a draft the user may not see looks the same as a missing one.
+     */
     @ReadOnly
     Blueprint getDraft(String token) {
         ensureEnabled()
-        Blueprint ret = find(token)
-        ensureAccess(ret, WRITE)
-        return ret
+        Blueprint ret = Blueprint.findByToken(token)
+        return ret && getAccess(ret) == WRITE ? ret : null
     }
 
     /**
-     * A publish of a blueprint - the latest by default, which requires read access, or one by
-     * number, which requires write access unless it is the latest. Null if there is none.
+     * A publish of a blueprint - the latest by default, which needs read access, or one by number,
+     * which needs write access unless it is the latest. Null if there is none, or the current user
+     * may not see it.
      */
     @ReadOnly
     BlueprintPublish getPublish(String token, Integer number = null) {
         ensureEnabled()
-        Blueprint blueprint = find(token)
-        if (number == null || number == blueprint.publishedVersion) {
-            ensureAccess(blueprint, READ)
-            number = blueprint.publishedVersion
-        } else {
-            ensureAccess(blueprint, WRITE)
-        }
-        return number != null ? BlueprintPublish.findByBlueprintAndNumber(blueprint, number) : null
+        Blueprint blueprint = Blueprint.findByToken(token)
+        String access = blueprint ? getAccess(blueprint) : null
+        if (!access) return null
+
+        boolean latest = number == null || number == blueprint.publishedVersion
+        if (!latest && access != WRITE) return null
+        Integer target = latest ? blueprint.publishedVersion : number
+        return target != null ? BlueprintPublish.findByBlueprintAndNumber(blueprint, target) : null
     }
 
     /** Every publish of a blueprint, oldest first, without its content. Requires write access. */
@@ -147,7 +149,7 @@ class BlueprintService extends BaseService {
      * @param readers grantees with read access, in the same form
      */
     @Transactional
-    Blueprint create(String name, String description, Object blueprint, List writers = [], List readers = []) {
+    Blueprint create(String name, String description, Object blueprint, Object writers = [], Object readers = []) {
         ensureEnabled()
         ensureCanCreate()
         new Blueprint(
@@ -169,7 +171,7 @@ class BlueprintService extends BaseService {
      * @throws BlueprintStaleBaseException if the draft is no longer at `base`
      */
     @Transactional
-    long saveDraft(String token, Object blueprint, long base, List renames) {
+    long saveDraft(String token, Object blueprint, long base, Object renames) {
         ensureEnabled()
         String draft = serializeContent(blueprint),
                pendingRenames = serializeRenames(renames)
@@ -245,6 +247,7 @@ class BlueprintService extends BaseService {
             content = source.draft
             version = source.draftVersion
         } else {
+            if (number != null && number != source.publishedVersion) ensureAccess(source, WRITE)
             BlueprintPublish publish = getPublish(token, number)
             if (!publish) return null
             content = publish.content
@@ -280,7 +283,7 @@ class BlueprintService extends BaseService {
 
     /** Set a blueprint's writers and readers. Requires the owner or one of `adminRoles`. */
     @Transactional
-    Blueprint updateAccess(String token, List writers, List readers) {
+    Blueprint updateAccess(String token, Object writers, Object readers) {
         ensureEnabled()
         String writersJson = serializeGrantees(writers),
                readersJson = serializeGrantees(readers)
@@ -315,9 +318,9 @@ class BlueprintService extends BaseService {
      * @param publishVersion the publish the ops were made against
      */
     @Transactional
-    BlueprintPersonalization savePersonalization(String token, String preset, List ops, int publishVersion) {
+    BlueprintPersonalization savePersonalization(String token, Object preset, Object ops, int publishVersion) {
         ensureEnabled()
-        if (preset != null && !(preset ==~ /[^:]+:[^:]+/)) {
+        if (preset != null && !(preset instanceof String && preset ==~ /[^:]+:[^:]+/)) {
             throw new RoutineRuntimeException("A preset must be 'group:item', got '$preset'")
         }
         String opsJson = serializeOps(ops)
@@ -328,7 +331,7 @@ class BlueprintService extends BaseService {
             throw new RoutineRuntimeException("Blueprint '$token' has no publish $publishVersion")
         }
 
-        String key = preset ?: NO_PRESET
+        String key = (preset ?: NO_PRESET) as String
         BlueprintPersonalization ret = BlueprintPersonalization.findByBlueprintAndUsernameAndPreset(blueprint, username, key)
         if (!ret) {
             int max = config.maxPersonalizations
@@ -374,17 +377,19 @@ class BlueprintService extends BaseService {
         }
     }
 
+    // A blueprint the current user may read. One they may not read is reported as not found.
     private Blueprint find(String token) {
-        Blueprint ret = Blueprint.findByToken(token)
-        if (!ret) throw new NotFoundException("Blueprint '$token' not found")
-        return ret
+        readable(Blueprint.findByToken(token), token)
     }
 
-    // Row lock (SELECT ... FOR UPDATE), held until the transaction ends.
+    // As find, with a row lock (SELECT ... FOR UPDATE) held until the transaction ends.
     private Blueprint lock(String token) {
-        Blueprint ret = Blueprint.findByToken(token, [lock: true])
-        if (!ret) throw new NotFoundException("Blueprint '$token' not found")
-        return ret
+        readable(Blueprint.findByToken(token, [lock: true]), token)
+    }
+
+    private Blueprint readable(Blueprint blueprint, String token) {
+        if (!blueprint || !getAccess(blueprint)) throw new BlueprintNotFoundException(token)
+        return blueprint
     }
 
     private void ensureBase(Blueprint blueprint, long base) {
@@ -393,7 +398,8 @@ class BlueprintService extends BaseService {
 
     private void ensureAccess(Blueprint blueprint, String required) {
         String access = getAccess(blueprint)
-        if (access == WRITE || (access == READ && required == READ)) return
+        if (!access) throw new BlueprintNotFoundException(blueprint.token)
+        if (access == WRITE || required == READ) return
         throw new NotAuthorizedException(
             "User '$username' does not have $required access to blueprint '${blueprint.token}'"
         )

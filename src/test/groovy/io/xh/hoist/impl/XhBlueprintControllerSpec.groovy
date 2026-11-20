@@ -13,6 +13,9 @@ import io.xh.hoist.blueprint.BlueprintConfig
 import io.xh.hoist.blueprint.BlueprintPersonalization
 import io.xh.hoist.blueprint.BlueprintPublish
 import io.xh.hoist.blueprint.BlueprintService
+import io.xh.hoist.blueprint.BlueprintNotFoundException
+import io.xh.hoist.exception.NotAuthorizedException
+import io.xh.hoist.exception.RoutineRuntimeException
 import io.xh.hoist.test.HoistJson
 import org.grails.plugins.testing.GrailsMockHttpServletRequest
 import org.grails.plugins.testing.GrailsMockHttpServletResponse
@@ -21,6 +24,8 @@ import org.springframework.web.context.request.RequestContextHolder
 import io.xh.hoist.test.HoistUnitTest
 import io.xh.hoist.test.fakes.TestUser
 import spock.lang.Specification
+
+import java.lang.reflect.InvocationTargetException
 
 /**
  * Tests the JSON {@link XhBlueprintController} sends and accepts, which mirrors the library's
@@ -176,6 +181,84 @@ class XhBlueprintControllerSpec extends Specification implements ControllerUnitT
         copy.copiedFrom == [id: id, version: 1, as: 'publish']
     }
 
+    def 'open returns null for a missing blueprint, an unreadable one, and a version the user may not see'() {
+        given:
+        String id = call('create', [name: 'Risk', blueprint: BP]).id
+        call('updateAccess', [writers: [], readers: ['reader']], [id: id])
+        call('publish', [base: 1], [id: id])
+        call('publish', [base: 2], [id: id])
+
+        expect:
+        call('open', null, [id: 'missing']) == null
+
+        when:
+        loginAs(reader)
+
+        then:
+        call('open', null, [id: id]).version == 2
+        call('open', null, [id: id, as: 'draft']) == null
+        call('open', null, [id: id, as: 'publish', version: '1']) == null
+
+        when:
+        loginAs(new TestUser('stranger'))
+
+        then:
+        call('open', null, [id: id]) == null
+        response.status == 200
+    }
+
+    def 'other actions answer 404 alike for a missing and an unreadable blueprint, and 403 to a reader'() {
+        given:
+        String id = call('create', [name: 'Risk', blueprint: BP]).id
+        call('updateAccess', [writers: [], readers: ['reader']], [id: id])
+        call('publish', [base: 1], [id: id])
+
+        when:
+        loginAs(new TestUser('stranger'))
+        call('listPublishes', null, [id: id])
+
+        then:
+        def unreadable = thrown(BlueprintNotFoundException)
+        unreadable.statusCode == 404
+
+        when:
+        call('listPublishes', null, [id: 'missing'])
+
+        then:
+        def missing = thrown(BlueprintNotFoundException)
+        missing.message == unreadable.message.replace(id, 'missing')
+
+        when:
+        loginAs(reader)
+        call('listPublishes', null, [id: id])
+
+        then:
+        thrown(NotAuthorizedException)
+    }
+
+    def 'a malformed request is a 400: #problem'() {
+        given:
+        String id = call('create', [name: 'Risk', blueprint: BP]).id
+        call('publish', [base: 1], [id: id])
+
+        when:
+        call(action, body, params(id))
+
+        then:
+        def e = thrown(RoutineRuntimeException)
+        e.message.contains(message)
+
+        where:
+        problem                        | action                | body                                                       | params                       || message
+        'a draft save without a base'  | 'saveDraft'           | [blueprint: BP, renames: []]                               | { [id: it] }                 || "'base' must be a number"
+        'a publish base not a number'  | 'publish'             | [base: 'x']                                                | { [id: it] }                 || "'base' must be a number"
+        'a version not a number'       | 'open'                | null                                                       | { [id: it, version: 'abc'] } || "'version' must be a whole number"
+        'renames not a list'           | 'saveDraft'           | [blueprint: BP, base: 2, renames: 'x']                     | { [id: it] }                 || 'Renames must be a list'
+        'a create without a name'      | 'create'              | [blueprint: BP]                                            | { [:] }                      || "'name' must be a non-empty string"
+        'a personalization w/o version'| 'savePersonalization' | [blueprintId: 'x', preset: null, ops: []]                  | { [:] }                      || "'publishVersion' must be a number"
+        'grantees not a list'          | 'updateAccess'        | [writers: 'bob', readers: []]                              | { [id: it] }                 || 'must be lists of usernames'
+    }
+
     //------------------
     // Implementation
     //------------------
@@ -189,7 +272,11 @@ class XhBlueprintControllerSpec extends Specification implements ControllerUnitT
         RequestContextHolder.requestAttributes = webRequest
 
         def arg = params.id ?: params.blueprintId
-        arg != null ? controller."$action"(arg) : controller."$action"()
+        try {
+            arg != null ? controller."$action"(arg) : controller."$action"()
+        } catch (InvocationTargetException e) {
+            throw e.cause
+        }
         return HoistJson.parse(response.text)
     }
 }
