@@ -61,29 +61,38 @@ class BlueprintService extends BaseService {
     // Blueprints
     //------------------
     /**
-     * Summaries of the blueprints the current user may read, each with that user's `access` and
-     * `canPublish`. Leaves out the stored content.
+     * Summaries of the blueprints the current user may read, as {@link #summaryOf} gives them.
+     * Leaves out the stored content.
      */
     @ReadOnly
     List<Map> list() {
         ensureEnabled()
-        HoistUser user = getUser()
         List rows = Blueprint.createCriteria().list {
             projections { SUMMARY_FIELDS.each { property(it) } }
         } as List
         return rows
-            .collect { toMap(SUMMARY_FIELDS, it) }
-            .collect { Map row ->
-                String access = accessOf(row.owner as String, row.writers as String, row.readers as String, user)
-                [
-                    *: row,
-                    writers: parseArray(row.writers as String),
-                    readers: parseArray(row.readers as String),
-                    access: access,
-                    canPublish: access == WRITE && hasPublishRight(user)
-                ]
-            }
+            .collect { summaryOf(toMap(SUMMARY_FIELDS, it)) }
             .findAll { it.access == WRITE || (it.access == READ && it.publishedVersion != null) }
+    }
+
+    /**
+     * A blueprint's metadata, with the current user's `access`, `canPublish` and `canManage`.
+     * Writers and readers are parsed lists.
+     *
+     * @param blueprint a Blueprint, or a map of its summary fields
+     */
+    Map summaryOf(Object blueprint) {
+        Map row = SUMMARY_FIELDS.collectEntries { [it, blueprint[it]] }
+        HoistUser user = getUser()
+        String access = accessOf(row.owner as String, row.writers as String, row.readers as String, user)
+        return [
+            *: row,
+            writers: parseArray(row.writers as String),
+            readers: parseArray(row.readers as String),
+            access: access,
+            canPublish: access == WRITE && hasPublishRight(user),
+            canManage: canManage(row.owner as String, user)
+        ]
     }
 
     /** A blueprint, with its draft. Requires write access. */
@@ -346,24 +355,8 @@ class BlueprintService extends BaseService {
 
     /** True if the current user may create blueprints, including copies. */
     boolean canCreate() {
-        hasAnyRole(getUser(), config.createRoles)
-    }
-
-    /**
-     * The current user's `access` and `canPublish` for a blueprint, or, with a null token, for a
-     * new one - write access if they may create one, else read.
-     */
-    @ReadOnly
-    Map getAccessInfo(String token) {
         ensureEnabled()
-        if (token == null) {
-            boolean create = canCreate()
-            return [access: create ? WRITE : READ, canPublish: create && hasPublishRight(getUser())]
-        }
-        Blueprint blueprint = find(token)
-        String access = getAccess(blueprint)
-        if (!access) throw new NotAuthorizedException("User '$username' does not have access to blueprint '$token'")
-        return [access: access, canPublish: canPublish(blueprint)]
+        hasAnyRole(getUser(), config.createRoles)
     }
 
     //------------------
@@ -408,8 +401,12 @@ class BlueprintService extends BaseService {
         if (!canCreate()) throw new NotAuthorizedException("User '$username' may not create blueprints")
     }
 
+    private boolean canManage(String owner, HoistUser user) {
+        owner == user.username || hasAnyRole(user, config.adminRoles)
+    }
+
     private void ensureCanManage(Blueprint blueprint) {
-        if (blueprint.owner != username && !hasAnyRole(getUser(), config.adminRoles)) {
+        if (!canManage(blueprint.owner, getUser())) {
             throw new NotAuthorizedException("Only the owner or an admin may manage blueprint '${blueprint.token}'")
         }
     }

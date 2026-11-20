@@ -64,14 +64,14 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         bp.draftVersion == 1
         bp.publishedVersion == null
         parseObject(bp.draft) == BP
-        service.getAccessInfo(bp.token) == [access: 'write', canPublish: true]
-        service.getAccessInfo(null) == [access: 'write', canPublish: true]
+        info(bp.token).subMap('access', 'canPublish', 'canManage') == [access: 'write', canPublish: true, canManage: true]
+        service.canCreate()
 
         when:
         loginAs(stranger)
 
         then:
-        service.getAccessInfo(null) == [access: 'read', canPublish: false]
+        !service.canCreate()
 
         when:
         service.create('Mine', null, BP)
@@ -154,7 +154,7 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
         then:
         service.list() == []
-        service.getAccessInfo(token) == [access: 'read', canPublish: false]
+        info(token).subMap('access', 'canPublish', 'canManage') == [access: 'read', canPublish: false, canManage: false]
         service.getPublish(token) == null
 
         when:
@@ -232,7 +232,7 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
         then:
         thrown(NotAuthorizedException)
-        !service.getAccessInfo(token).canPublish
+        !info(token).canPublish
 
         when:
         loginAs(admin)
@@ -377,6 +377,10 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
     private String accessAs(TestUser user, String token) {
         loginAs(user)
-        service.getAccessInfo(token).access
+        info(token).access
+    }
+
+    private Map info(String token) {
+        service.summaryOf(Blueprint.findByToken(token))
     }
 }
