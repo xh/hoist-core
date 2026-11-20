@@ -61,6 +61,7 @@ class XhBlueprintControllerSpec extends Specification implements ControllerUnitT
         record.access == 'write'
         record.canPublish == true
         record.canShare == true
+        record.canShareGlobally == false
         record.updated instanceof Long
         record.updatedBy == 'owner'
         record.sharing == [writers: [], readers: []]
@@ -154,6 +155,7 @@ class XhBlueprintControllerSpec extends Specification implements ControllerUnitT
         list[0].access == 'read'
         list[0].canPublish == false
         list[0].canShare == false
+        list[0].canShareGlobally == false
         !list[0].containsKey('sharing')
         call('canCreate') == [canCreate: false]
 

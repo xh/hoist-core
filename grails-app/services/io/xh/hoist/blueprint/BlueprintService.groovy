@@ -90,7 +90,8 @@ class BlueprintService extends BaseService {
             *: row.findAll { !(it.key in ['writers', 'readers']) },
             access: access,
             canPublish: access == WRITE && hasPublishRight(user),
-            canManage: manage
+            canManage: manage,
+            canShareGlobally: manage && canShareGlobally(user)
         ] + (manage ? [writers: parseArray(row.writers as String), readers: parseArray(row.readers as String)] : [:])
     }
 
@@ -162,13 +163,16 @@ class BlueprintService extends BaseService {
     ) {
         ensureEnabled()
         ensureCanCreate()
+        List<String> writerList = grantees(writers),
+                     readerList = grantees(readers)
+        ensureGlobalShareAllowed([], writerList, [], readerList)
         Map source = checkedSource(copiedFrom)
         new Blueprint(
             name: name,
             description: description,
             owner: username,
-            writers: serializeGrantees(writers),
-            readers: serializeGrantees(readers),
+            writers: serialize(writerList),
+            readers: serialize(readerList),
             draft: serializeContent(blueprint),
             copiedFromToken: source?.token,
             copiedFromVersion: source?.version,
@@ -299,14 +303,15 @@ class BlueprintService extends BaseService {
     @Transactional
     Blueprint updateAccess(String token, Object writers, Object readers) {
         ensureEnabled()
-        String writersJson = serializeGrantees(writers),
-               readersJson = serializeGrantees(readers)
+        List<String> writerList = grantees(writers),
+                     readerList = grantees(readers)
 
         Blueprint ret = lock(token)
         ensureNotImpersonatedAction('share')
         ensureCanManage(ret)
-        ret.writers = writersJson
-        ret.readers = readersJson
+        ensureGlobalShareAllowed(parseArray(ret.writers), writerList, parseArray(ret.readers), readerList)
+        ret.writers = serialize(writerList)
+        ret.readers = serialize(readerList)
         ret.lastUpdatedBy = username
         ret.save(flush: true, failOnError: true)
     }
@@ -423,6 +428,20 @@ class BlueprintService extends BaseService {
         if (!canCreate()) throw new NotAuthorizedException("User '$username' may not create blueprints")
     }
 
+    private boolean canShareGlobally(HoistUser user) {
+        hasAnyRole(user, config.adminRoles) || hasAnyRole(user, config.globalShareRoles)
+    }
+
+    // Adding `*` shares with everyone, and needs globalShareRoles. Keeping or removing it does not.
+    private void ensureGlobalShareAllowed(List oldWriters, List newWriters, List oldReaders, List newReaders) {
+        boolean adding = ('*' in newWriters && !('*' in oldWriters)) || ('*' in newReaders && !('*' in oldReaders))
+        if (adding && !canShareGlobally(getUser())) {
+            throw new NotAuthorizedException(
+                "User '$username' may not share a blueprint with everyone - that needs one of the roles in xhBlueprintConfig.globalShareRoles."
+            )
+        }
+    }
+
     private boolean canManage(String owner, HoistUser user) {
         owner == user.username || hasAnyRole(user, config.adminRoles)
     }
@@ -528,12 +547,12 @@ class BlueprintService extends BaseService {
         return checkedSize(serialize(ops), 'personalization')
     }
 
-    private String serializeGrantees(Object grantees) {
-        if (grantees == null) return '[]'
+    private List<String> grantees(Object grantees) {
+        if (grantees == null) return []
         if (!(grantees instanceof List) || !grantees.every { it instanceof String && it.trim() }) {
             throw new RoutineRuntimeException('Writers and readers must be lists of usernames, `role:<ROLE>` or `*`')
         }
-        return serialize(grantees.collect { (it as String).trim() }.unique())
+        return grantees.collect { (it as String).trim() }.unique() as List<String>
     }
 
     private void checkNames(Object value) {

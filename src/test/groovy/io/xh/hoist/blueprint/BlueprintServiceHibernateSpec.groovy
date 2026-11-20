@@ -49,7 +49,7 @@ class BlueprintServiceHibernateSpec extends HibernateSpec implements ServiceUnit
 
     def setup() {
         testConfigService.registerTypedConfig('xhBlueprintConfig', BlueprintConfig)
-        testConfigService.set('xhBlueprintConfig', [enabled: true, createRoles: ['DESIGNER']])
+        testConfigService.set('xhBlueprintConfig', [enabled: true, createRoles: ['DESIGNER'], globalShareRoles: ['DESIGNER']])
         loginAs(author)
     }
 

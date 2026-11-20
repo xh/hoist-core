@@ -82,6 +82,11 @@ may not read looks the same as a missing one: `getDraft` and `getPublish` return
 other method throws `BlueprintNotFoundException`, which is a routine 404. A reader who asks for a
 writer-only action gets a 403.
 
+Sharing with everyone, by adding `*` to the readers or writers, needs one of `globalShareRoles` or
+`adminRoles`. Without one, `create` and `updateAccess` return a 403 that names the reason. Keeping
+or removing an existing `*` needs no extra role, so an owner can still change other grants on a
+blueprint an admin shared with everyone.
+
 Summaries include the access lists only for users who may manage access.
 
 ## Versions and Concurrency
@@ -108,6 +113,7 @@ publish therefore fails as stale, and cannot add the published renames again.
 | `adminRoles` | `['HOIST_ADMIN']` | Roles with write and manage access to every blueprint |
 | `createRoles` | `['HOIST_ADMIN']` | Roles that may create blueprints, including copies |
 | `publishRoles` | `[]` | Roles a writer also needs to publish. Empty means write access is enough |
+| `globalShareRoles` | `['HOIST_ADMIN']` | Roles that may share a blueprint with everyone, by adding `*` to its readers or writers |
 | `maxBytes` | `2097152` | Max size of a stored blueprint, or of one personalization's ops, as serialized JSON |
 | `maxPersonalizations` | `50` | Max personalizations per user and blueprint |
 
@@ -137,7 +143,7 @@ A `create` can name the version it was saved from as `copiedFrom: {id, version, 
 to save a stale draft as a new blueprint. The user must be able to open that version. A draft
 version can be older than the current one, but not newer.
 
-Summaries and records carry `access`, `canPublish` and `canShare`. They carry `sharing`, with the
+Summaries and records carry `access`, `canPublish`, `canShare` and `canShareGlobally`. They carry `sharing`, with the
 writers and readers, only when `canShare` is true. A stale base returns HTTP 200 with an
 `edit.staleBase` issue. A malformed request returns 400.
 

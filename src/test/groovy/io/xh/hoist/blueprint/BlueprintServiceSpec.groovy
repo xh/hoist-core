@@ -247,6 +247,52 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         'delete'  | 'deleted'   | { BlueprintService s, String t -> s.delete(t) }
     }
 
+    def 'sharing with everyone needs globalShareRoles to add it, but not to keep or remove it'() {
+        given:
+        setConfig(globalShareRoles: ['HOIST_ADMIN'])
+
+        when:
+        service.create('Mine', null, BP, [], ['*'])
+
+        then:
+        def e = thrown(NotAuthorizedException)
+        e.message.contains('globalShareRoles')
+
+        when:
+        def token = service.create('Mine', null, BP, ['editor'], ['role:EDITOR']).token
+
+        then:
+        !info(token).canShareGlobally
+
+        when:
+        service.updateAccess(token, [], ['*'])
+
+        then:
+        thrown(NotAuthorizedException)
+
+        when: 'an admin shares it with everyone'
+        loginAs(admin)
+        service.updateAccess(token, [], ['*'])
+
+        then:
+        info(token).canShareGlobally
+
+        when: 'its owner keeps everyone while changing other grants, then removes everyone'
+        loginAs(owner)
+        service.updateAccess(token, ['editor'], ['*'])
+        def removed = service.updateAccess(token, ['editor'], [])
+
+        then:
+        parseArray(removed.readers) == []
+
+        when: 'globalShareRoles includes the owner\'s role'
+        setConfig(globalShareRoles: ['DESIGNER'])
+
+        then:
+        info(token).canShareGlobally
+        parseArray(service.updateAccess(token, ['*'], []).writers) == ['*']
+    }
+
     def 'publishRoles narrow publishing for writers, but not for admins'() {
         given:
         setConfig(publishRoles: ['PUBLISHER'])
@@ -487,7 +533,7 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
     // Implementation
     //------------------
     private void setConfig(Map overrides = [:]) {
-        testConfigService.set('xhBlueprintConfig', [enabled: true, createRoles: ['DESIGNER'], *: overrides])
+        testConfigService.set('xhBlueprintConfig', [enabled: true, createRoles: ['DESIGNER'], globalShareRoles: ['DESIGNER'], *: overrides])
     }
 
     private String accessAs(TestUser user, String token) {

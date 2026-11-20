@@ -133,6 +133,7 @@ class XhBlueprintController extends BaseController {
             access: s.access,
             canPublish: s.canPublish,
             canShare: s.canManage,
+            canShareGlobally: s.canShareGlobally,
             updated: (s.lastUpdated as Date)?.time,
             updatedBy: s.lastUpdatedBy,
             copiedFrom: s.copiedFromToken ? [id: s.copiedFromToken, version: s.copiedFromVersion, as: s.copiedFromKind] : null,
