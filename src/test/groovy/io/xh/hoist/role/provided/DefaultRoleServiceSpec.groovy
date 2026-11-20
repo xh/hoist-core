@@ -152,6 +152,56 @@ class DefaultRoleServiceSpec extends Specification implements ServiceUnitTest<De
     }
 
     //-------------------
+    // Bootstrap admin
+    //-------------------
+    def 'bootstrap admin gets bootstrap roles plus every role that inherits from them'() {
+        given:
+        setBootstrapAdminUser('boot')
+        role('HOIST_ADMIN', users: ['alice'])
+        role('HOIST_IMPERSONATOR', roles: ['HOIST_ADMIN'])
+        role('APP_USER', roles: ['HOIST_IMPERSONATOR'])
+        role('UNRELATED', users: ['bob'])
+
+        when:
+        service.refreshRoleAssignments()
+
+        then:
+        service.getRolesForUser('BOOT') == ['HOIST_ADMIN', 'HOIST_ADMIN_READER', 'HOIST_ROLE_MANAGER', 'HOIST_IMPERSONATOR', 'APP_USER'] as Set
+        service.getRolesForUser('alice') == ['HOIST_ADMIN', 'HOIST_IMPERSONATOR', 'APP_USER'] as Set
+        service.getUsersForRole('APP_USER') == ['alice', 'boot'] as Set
+        service.getUsersForRole('UNRELATED') == ['bob'] as Set
+    }
+
+    def 'bootstrap admin picks up inheriting roles created after startup on next refresh'() {
+        given:
+        setBootstrapAdminUser('boot')
+        role('HOIST_ADMIN')
+        refreshAndAwaitInvalidation()
+
+        expect:
+        service.getRolesForUser('boot') == ['HOIST_ADMIN', 'HOIST_ADMIN_READER', 'HOIST_ROLE_MANAGER'] as Set
+
+        when:
+        role('APP_USER', roles: ['HOIST_ADMIN'])
+        refreshAndAwaitInvalidation()
+
+        then:
+        'APP_USER' in service.getRolesForUser('boot')
+    }
+
+    def 'no bootstrap admin is granted anything when none is configured'() {
+        given:
+        role('HOIST_ADMIN', users: ['alice'])
+        role('APP_USER', roles: ['HOIST_ADMIN'])
+
+        when:
+        service.refreshRoleAssignments()
+
+        then:
+        service.getUsersForRole('APP_USER') == ['alice'] as Set
+    }
+
+    //-------------------
     // Bootstrap and assignment
     //-------------------
     def 'ensureRequiredRolesCreated creates missing roles with members and leaves existing ones alone'() {
@@ -189,6 +239,11 @@ class DefaultRoleServiceSpec extends Specification implements ServiceUnitTest<De
         service._allRoleAssignments.addChangeHandler { handled.countDown() }
         service.refreshRoleAssignments()
         assert handled.await(5, SECONDS)
+    }
+
+    // Set directly, as init() would from instance config.
+    private void setBootstrapAdminUser(String username) {
+        service.bootstrapAdminUser = username
     }
 
     private Role role(Map members = [:], String name) {

@@ -103,8 +103,8 @@ class DefaultRoleService extends BaseRoleService {
 
     // Support granting key Hoist admin roles to an instance-configured user in local dev only,
     // for initial bootstrapping during development when databased roles not yet created.
-    private String bootstrapAdminUser = null
-    private final Set<String> bootstrapAdminRoles = ['HOIST_ADMIN', 'HOIST_ADMIN_READER', 'HOIST_ROLE_MANAGER']
+    protected String bootstrapAdminUser = null
+    protected final Set<String> bootstrapAdminRoles = ['HOIST_ADMIN', 'HOIST_ADMIN_READER', 'HOIST_ROLE_MANAGER']
 
     void init() {
         ensureRequiredConfigAndRolesCreated()
@@ -147,6 +147,7 @@ class DefaultRoleService extends BaseRoleService {
             ret = _roleAssignmentsByUser[username] = unmodifiableSet(userRoles) as Set<String>
         }
 
+        // Grant by name as well, so these roles hold even if not yet stored in the database.
         if (bootstrapAdminUser == username) {
             ret += bootstrapAdminRoles
         }
@@ -392,6 +393,9 @@ class DefaultRoleService extends BaseRoleService {
             }
             groups.each { group ->
                 _usersForDirectoryGroups[group]?.each { users << it.toLowerCase() }
+            }
+            if (bootstrapAdminUser && effectiveRoles.any { it.name in bootstrapAdminRoles }) {
+                users << bootstrapAdminUser
             }
 
             logTrace("Generated assignments for ${role.name}", "${users.size()} effective users")
