@@ -166,6 +166,20 @@ class XhBlueprintControllerSpec extends Specification implements ControllerUnitT
         call('personalizations', null, [blueprintId: id]) == [saved]
     }
 
+    def 'create records a copiedFrom source'() {
+        given:
+        String id = call('create', [name: 'Risk', blueprint: BP]).id
+        call('saveDraft', [blueprint: BP, base: 1, renames: []], [id: id])
+
+        when:
+        def saved = call('create', [name: 'Save as new', blueprint: BP, copiedFrom: [id: id, version: 1, as: 'draft']])
+
+        then:
+        saved.copiedFrom == [id: id, version: 1, as: 'draft']
+        saved.kind == 'draft'
+        saved.version == 1
+    }
+
     def 'a copy records its source'() {
         given:
         String id = call('create', [name: 'Risk', description: 'Desk', blueprint: BP]).id

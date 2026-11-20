@@ -302,6 +302,55 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         thrown(NotAuthorizedException)
     }
 
+    def 'create records a source the user may open: #source'() {
+        given: 'a blueprint at draft version 3, with publishes 1 and 2, which designer may read'
+        def token = service.create('Risk', null, BP, [], ['designer']).token
+        service.publish(token, 1)
+        service.publish(token, 2)
+        loginAs(user == 'owner' ? owner : designer)
+
+        when:
+        def copy = service.create('Saved', null, BP, [], [], [id: token, version: version, as: kind])
+
+        then:
+        [copy.copiedFromToken, copy.copiedFromVersion, copy.copiedFromKind] == [token, version as Long, kind]
+        copy.owner == user
+
+        where:
+        source                              | user       | kind      | version
+        'a writer\'s stale draft version'   | 'owner'    | 'draft'   | 2
+        'a writer\'s current draft'         | 'owner'    | 'draft'   | 3
+        'a writer\'s older publish'         | 'owner'    | 'publish' | 1
+        'a reader\'s latest publish'        | 'designer' | 'publish' | 2
+    }
+
+    def 'create refuses a source the user may not open: #problem'() {
+        given:
+        def token = service.create('Risk', null, BP, [], ['designer']).token
+        service.publish(token, 1)
+        service.publish(token, 2)
+        def hidden = service.create('Hidden', null, BP).token
+        loginAs(user == 'owner' ? owner : designer)
+
+        when:
+        service.create('Saved', null, BP, [], [], copiedFrom(token, hidden))
+
+        then:
+        def e = thrown(error)
+        e.message.contains(message)
+
+        where:
+        problem                        | user       | copiedFrom                                                    | error                      || message
+        'a reader citing the draft'    | 'designer' | { t, h -> [id: t, version: 3, as: 'draft'] }                  | NotAuthorizedException     || 'does not have write access'
+        'a reader citing an old publish'| 'designer' | { t, h -> [id: t, version: 1, as: 'publish'] }               | NotAuthorizedException     || 'does not have write access'
+        'an unreadable source'         | 'designer' | { t, h -> [id: h, version: 1, as: 'draft'] }                  | BlueprintNotFoundException || 'not found'
+        'a missing source'             | 'owner'    | { t, h -> [id: 'nope', version: 1, as: 'draft'] }             | BlueprintNotFoundException || 'not found'
+        'a draft version ahead'        | 'owner'    | { t, h -> [id: t, version: 9, as: 'draft'] }                  | RoutineRuntimeException    || 'has no draft version 9'
+        'a publish that does not exist'| 'owner'    | { t, h -> [id: t, version: 9, as: 'publish'] }                | RoutineRuntimeException    || 'has no publish 9'
+        'a malformed source'           | 'owner'    | { t, h -> [id: t, version: '1', as: 'draft'] }                | RoutineRuntimeException    || 'copiedFrom must be {id, version, as}'
+        'an unknown kind'              | 'owner'    | { t, h -> [id: t, version: 1, as: 'preset'] }                 | RoutineRuntimeException    || 'copiedFrom must be {id, version, as}'
+    }
+
     def 'deleting a blueprint deletes its publishes and every user\'s personalizations'() {
         given:
         def token = service.create('Risk', null, BP, [], ['*']).token

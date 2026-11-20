@@ -53,7 +53,12 @@ class XhBlueprintController extends BaseController {
     def create() {
         Map body = parseRequestJSON()
         renderJSON(draftRecord(blueprintService.create(
-            requiredString(body.name, 'name'), optionalString(body.description, 'description'), body.blueprint
+            requiredString(body.name, 'name'),
+            optionalString(body.description, 'description'),
+            body.blueprint,
+            [],
+            [],
+            body.copiedFrom
         )))
     }
 

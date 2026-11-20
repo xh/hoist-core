@@ -148,11 +148,21 @@ class BlueprintService extends BaseService {
      *
      * @param writers grantees with write access - usernames, `role:<ROLE>`, or `*`
      * @param readers grantees with read access, in the same form
+     * @param copiedFrom the source this blueprint was saved from, as `{id, version, as}`. The current
+     *      user must be able to open that version, as for {@link #getDraft} and {@link #getPublish}.
      */
     @Transactional
-    Blueprint create(String name, String description, Object blueprint, Object writers = [], Object readers = []) {
+    Blueprint create(
+        String name,
+        String description,
+        Object blueprint,
+        Object writers = [],
+        Object readers = [],
+        Object copiedFrom = null
+    ) {
         ensureEnabled()
         ensureCanCreate()
+        Map source = checkedSource(copiedFrom)
         new Blueprint(
             name: name,
             description: description,
@@ -160,6 +170,9 @@ class BlueprintService extends BaseService {
             writers: serializeGrantees(writers),
             readers: serializeGrantees(readers),
             draft: serializeContent(blueprint),
+            copiedFromToken: source?.token,
+            copiedFromVersion: source?.version,
+            copiedFromKind: source?.kind,
             lastUpdatedBy: username
         ).save(flush: true, failOnError: true)
     }
@@ -461,6 +474,30 @@ class BlueprintService extends BaseService {
         if (!(blueprint instanceof Map)) throw new RoutineRuntimeException('A blueprint must be a JSON object')
         checkNames(blueprint)
         return checkedSize(serialize(blueprint), 'blueprint')
+    }
+
+    // A source as {id, version, as}, checked as for opening it: the latest publish needs read
+    // access, a draft or older publish write. A draft version may be stale, but not ahead.
+    private Map checkedSource(Object source) {
+        if (source == null) return null
+        if (!(source instanceof Map) || !(source.id instanceof String) || !(source.version instanceof Number) || !(source.as in OPEN_KINDS)) {
+            throw new RoutineRuntimeException("copiedFrom must be {id, version, as}, with as 'draft' or 'publish', got ${serialize(source)}")
+        }
+        String token = source.id
+        long version = (source.version as Number).longValue()
+        Blueprint blueprint = find(token)
+        if (source.as == 'draft') {
+            ensureAccess(blueprint, WRITE)
+            if (version < 1 || version > blueprint.draftVersion) {
+                throw new RoutineRuntimeException("Blueprint '$token' has no draft version $version")
+            }
+        } else {
+            if (version != blueprint.publishedVersion) ensureAccess(blueprint, WRITE)
+            if (!BlueprintPublish.findByBlueprintAndNumber(blueprint, version as int)) {
+                throw new RoutineRuntimeException("Blueprint '$token' has no publish $version")
+            }
+        }
+        return [token: token, version: version, kind: source.as]
     }
 
     private String serializeRenames(Object renames) {

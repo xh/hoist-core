@@ -52,7 +52,7 @@ blueprint, user and preset keeps one personalization per preset.
 | `getDraft(token)` | Write | The blueprint with its draft, or null |
 | `getPublish(token, number?)` | Read for the latest, write for an older one | The publish, or null |
 | `listPublishes(token)` | Write | Every publish, oldest first, without content |
-| `create(name, description, blueprint, writers?, readers?)` | One of `createRoles` | The new blueprint, owned by the current user |
+| `create(name, description, blueprint, writers?, readers?, copiedFrom?)` | One of `createRoles`, plus access to open `copiedFrom` | The new blueprint, owned by the current user |
 | `saveDraft(token, blueprint, base, renames)` | Write | The draft's new version |
 | `publish(token, base, note?)` | Write, plus `publishRoles` if set | The new publish |
 | `copy(token, name, kind?, number?)` | Read on the source version, plus one of `createRoles` | The copy, or null if the source has no publish |
@@ -123,7 +123,7 @@ library's types, with a blueprint's token as its `id`.
 | `list` | GET | | Blueprint summaries |
 | `canCreate` | GET | | `{canCreate}` |
 | `open` | GET | `id`, `as` (`draft` or `publish`), `version` | A record, or null |
-| `create` | POST | `{name, description, blueprint}` | The draft record |
+| `create` | POST | `{name, description, blueprint, copiedFrom}` | The draft record |
 | `saveDraft` | POST | `id`, `{blueprint, base, renames}` | `{version, issues}` |
 | `publish` | POST | `id`, `{base, note}` | `{publish, draftVersion, issues}` |
 | `listPublishes` | GET | `id` | Publishes, oldest first |
@@ -132,6 +132,10 @@ library's types, with a blueprint's token as its `id`.
 | `personalizations` | GET | `blueprintId` | The user's personalizations |
 | `savePersonalization` | POST | `{blueprintId, preset, ops, publishVersion}` | The saved personalization |
 | `updateAccess` | POST | `id`, `{writers, readers}` | 204 |
+
+A `create` can name the version it was saved from as `copiedFrom: {id, version, as}`, for example
+to save a stale draft as a new blueprint. The user must be able to open that version. A draft
+version can be older than the current one, but not newer.
 
 Summaries and records carry `access`, `canPublish` and `canShare`. They carry `sharing`, with the
 writers and readers, only when `canShare` is true. A stale base returns HTTP 200 with an
