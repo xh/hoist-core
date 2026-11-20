@@ -26,8 +26,8 @@ class BlueprintConfig extends TypedConfigMap {
     List<String> createRoles = ['HOIST_ADMIN']
 
     /**
-     * Roles that may share a blueprint with everyone, by adding `*` to its readers or writers.
-     * `adminRoles` may always do so.
+     * Roles that may share a blueprint with everyone, by adding `*` to its readers. `adminRoles`
+     * may always do so.
      */
     List<String> globalShareRoles = ['HOIST_ADMIN']
 

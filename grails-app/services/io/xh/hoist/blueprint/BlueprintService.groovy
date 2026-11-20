@@ -163,9 +163,9 @@ class BlueprintService extends BaseService {
     ) {
         ensureEnabled()
         ensureCanCreate()
-        List<String> writerList = grantees(writers),
+        List<String> writerList = writerGrantees(writers),
                      readerList = grantees(readers)
-        ensureGlobalShareAllowed([], writerList, [], readerList)
+        ensureGlobalShareAllowed([], readerList)
         Map source = checkedSource(copiedFrom)
         new Blueprint(
             name: name,
@@ -303,13 +303,13 @@ class BlueprintService extends BaseService {
     @Transactional
     Blueprint updateAccess(String token, Object writers, Object readers) {
         ensureEnabled()
-        List<String> writerList = grantees(writers),
+        List<String> writerList = writerGrantees(writers),
                      readerList = grantees(readers)
 
         Blueprint ret = lock(token)
         ensureNotImpersonatedAction('share')
         ensureCanManage(ret)
-        ensureGlobalShareAllowed(parseArray(ret.writers), writerList, parseArray(ret.readers), readerList)
+        ensureGlobalShareAllowed(parseArray(ret.readers), readerList)
         ret.writers = serialize(writerList)
         ret.readers = serialize(readerList)
         ret.lastUpdatedBy = username
@@ -432,9 +432,10 @@ class BlueprintService extends BaseService {
         hasAnyRole(user, config.adminRoles) || hasAnyRole(user, config.globalShareRoles)
     }
 
-    // Adding `*` shares with everyone, and needs globalShareRoles. Keeping or removing it does not.
-    private void ensureGlobalShareAllowed(List oldWriters, List newWriters, List oldReaders, List newReaders) {
-        boolean adding = ('*' in newWriters && !('*' in oldWriters)) || ('*' in newReaders && !('*' in oldReaders))
+    // Adding `*` to readers shares with everyone, and needs globalShareRoles. Keeping or removing
+    // it does not.
+    private void ensureGlobalShareAllowed(List oldReaders, List newReaders) {
+        boolean adding = '*' in newReaders && !('*' in oldReaders)
         if (adding && !canShareGlobally(getUser())) {
             throw new NotAuthorizedException(
                 "User '$username' may not share a blueprint with everyone - that needs one of the roles in xhBlueprintConfig.globalShareRoles."
@@ -545,6 +546,12 @@ class BlueprintService extends BaseService {
             if (op.op == 'set') checkNames(op.value)
         }
         return checkedSize(serialize(ops), 'personalization')
+    }
+
+    private List<String> writerGrantees(Object writers) {
+        List<String> ret = grantees(writers)
+        if ('*' in ret) throw new RoutineRuntimeException("'*' may only be a reader - a blueprint cannot be writable by everyone")
+        return ret
     }
 
     private List<String> grantees(Object grantees) {

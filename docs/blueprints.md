@@ -64,7 +64,8 @@ blueprint, user and preset keeps one personalization per preset.
 ## Access Control
 
 Each blueprint has an `owner`, a list of `writers` and a list of `readers`. Each entry in a list is
-a username, `role:<ROLE>` for every user with that role, or `*` for all users. The service checks
+a username, `role:<ROLE>` for every user with that role, or `*` for all users. Only readers can be
+`*`: a blueprint cannot be writable by everyone, and `*` among writers is a 400. The service checks
 the apparent user, so an admin who impersonates a user has that user's access.
 
 An admin who impersonates a user can view blueprints and edit drafts as that user, but cannot
@@ -82,8 +83,8 @@ may not read looks the same as a missing one: `getDraft` and `getPublish` return
 other method throws `BlueprintNotFoundException`, which is a routine 404. A reader who asks for a
 writer-only action gets a 403.
 
-Sharing with everyone, by adding `*` to the readers or writers, needs one of `globalShareRoles` or
-`adminRoles`. Without one, `create` and `updateAccess` return a 403 that names the reason. Keeping
+Sharing with everyone, by adding `*` to the readers, needs one of `globalShareRoles` or
+`adminRoles`. A blueprint with `*` among its readers is global. Without one, `create` and `updateAccess` return a 403 that names the reason. Keeping
 or removing an existing `*` needs no extra role, so an owner can still change other grants on a
 blueprint an admin shared with everyone.
 
@@ -113,7 +114,7 @@ publish therefore fails as stale, and cannot add the published renames again.
 | `adminRoles` | `['HOIST_ADMIN']` | Roles with write and manage access to every blueprint |
 | `createRoles` | `['HOIST_ADMIN']` | Roles that may create blueprints, including copies |
 | `publishRoles` | `[]` | Roles a writer also needs to publish. Empty means write access is enough |
-| `globalShareRoles` | `['HOIST_ADMIN']` | Roles that may share a blueprint with everyone, by adding `*` to its readers or writers |
+| `globalShareRoles` | `['HOIST_ADMIN']` | Roles that may share a blueprint with everyone, by adding `*` to its readers |
 | `maxBytes` | `2097152` | Max size of a stored blueprint, or of one personalization's ops, as serialized JSON |
 | `maxPersonalizations` | `50` | Max personalizations per user and blueprint |
 

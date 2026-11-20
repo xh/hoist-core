@@ -290,7 +290,22 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
         then:
         info(token).canShareGlobally
-        parseArray(service.updateAccess(token, ['*'], []).writers) == ['*']
+        parseArray(service.updateAccess(token, [], ['*']).readers) == ['*']
+
+        when: 'everyone as a writer, even for an admin'
+        loginAs(admin)
+        service.updateAccess(token, ['*'], [])
+
+        then:
+        def writers = thrown(RoutineRuntimeException)
+        writers.message.contains("'*' may only be a reader")
+
+        when:
+        loginAs(owner)
+        service.create('Open', null, BP, ['*'], [])
+
+        then:
+        thrown(RoutineRuntimeException)
     }
 
     def 'publishRoles narrow publishing for writers, but not for admins'() {
