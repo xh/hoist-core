@@ -22,6 +22,11 @@
 * Remove the `installHoistCoreTools` snippet from `build.gradle`, and the `hoist-core` entry from
   `.mcp.json`. The task fails on this release, since its artifact is no longer published.
 
+### 🐞 Bug Fixes
+
+* Fixed `DefaultRoleService` to grant the local development `bootstrapAdminUser` all roles that
+  inherit from its admin roles, such as `HOIST_IMPERSONATOR`.
+
 ### 🤖 AI Docs + Tooling
 
 * Moved MCP docs and symbol tooling to [Hoist Docs](https://github.com/xh/hoist-docs)
