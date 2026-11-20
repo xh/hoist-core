@@ -10,6 +10,7 @@ import grails.util.Holders
 import io.xh.hoist.admin.ConnPoolMonitoringConfig
 import io.xh.hoist.admin.MemoryMonitoringConfig
 import io.xh.hoist.alertbanner.AlertBannerConfig
+import io.xh.hoist.blueprint.BlueprintConfig
 import io.xh.hoist.cluster.ClusterService
 import io.xh.hoist.config.AppConfig
 import io.xh.hoist.config.ChangelogConfig
@@ -140,6 +141,13 @@ class BootStrap implements LogSupport {
                 clientVisible: true,
                 groupName: 'xh.io',
                 note: 'Map of client app code to the interval, in seconds, on which that app\'s `AutoRefreshService` fires. Use `-1` to disable. Users must also have the `xhAutoRefreshEnabled` preference set to `true`.'
+            ),
+            new ConfigSpec(
+                name: 'xhBlueprintConfig',
+                valueType: 'json',
+                typedClass: BlueprintConfig,
+                groupName: 'xh.io',
+                note: 'Configures `BlueprintService`, the server-side store for Hoist Blueprints. Off until `enabled` is set. Roles granting rights across every blueprint, beside each blueprint\'s own owner, writers and readers, and size limits.'
             ),
             new ConfigSpec(
                 name: 'xhChangelogConfig',
