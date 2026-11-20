@@ -155,6 +155,7 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         then:
         service.list() == []
         info(token).subMap('access', 'canPublish', 'canManage') == [access: 'read', canPublish: false, canManage: false]
+        !info(token).containsKey('writers') && !info(token).containsKey('readers')
         service.getPublish(token) == null
 
         when:

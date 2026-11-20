@@ -77,7 +77,7 @@ class BlueprintService extends BaseService {
 
     /**
      * A blueprint's metadata, with the current user's `access`, `canPublish` and `canManage`.
-     * Writers and readers are parsed lists.
+     * Its `writers` and `readers`, as parsed lists, are included only when `canManage`.
      *
      * @param blueprint a Blueprint, or a map of its summary fields
      */
@@ -85,14 +85,13 @@ class BlueprintService extends BaseService {
         Map row = SUMMARY_FIELDS.collectEntries { [it, blueprint[it]] }
         HoistUser user = getUser()
         String access = accessOf(row.owner as String, row.writers as String, row.readers as String, user)
+        boolean manage = canManage(row.owner as String, user)
         return [
-            *: row,
-            writers: parseArray(row.writers as String),
-            readers: parseArray(row.readers as String),
+            *: row.findAll { !(it.key in ['writers', 'readers']) },
             access: access,
             canPublish: access == WRITE && hasPublishRight(user),
-            canManage: canManage(row.owner as String, user)
-        ]
+            canManage: manage
+        ] + (manage ? [writers: parseArray(row.writers as String), readers: parseArray(row.readers as String)] : [:])
     }
 
     /** A blueprint, with its draft. Requires write access. */
@@ -199,6 +198,7 @@ class BlueprintService extends BaseService {
     BlueprintPublish publish(String token, long base, String note = null) {
         ensureEnabled()
         Blueprint blueprint = lock(token)
+        ensureNotImpersonatedAction('publish')
         if (!canPublish(blueprint)) {
             throw new NotAuthorizedException("User '$username' may not publish blueprint '$token'")
         }
@@ -271,6 +271,7 @@ class BlueprintService extends BaseService {
     void delete(String token) {
         ensureEnabled()
         Blueprint target = lock(token)
+        ensureNotImpersonatedAction('delete')
         ensureCanManage(target)
         BlueprintPersonalization.where { blueprint == target }.deleteAll()
         BlueprintPublish.where { blueprint == target }.deleteAll()
@@ -285,6 +286,7 @@ class BlueprintService extends BaseService {
                readersJson = serializeGrantees(readers)
 
         Blueprint ret = lock(token)
+        ensureNotImpersonatedAction('share')
         ensureCanManage(ret)
         ret.writers = writersJson
         ret.readers = readersJson
@@ -403,6 +405,16 @@ class BlueprintService extends BaseService {
 
     private boolean canManage(String owner, HoistUser user) {
         owner == user.username || hasAnyRole(user, config.adminRoles)
+    }
+
+    // Whether an impersonating admin may publish, share or delete as the user they impersonate.
+    // Open pending a decision - false refuses those actions while impersonating.
+    private static final boolean ALLOW_IMPERSONATED_ACTIONS = true
+
+    private void ensureNotImpersonatedAction(String action) {
+        if (!ALLOW_IMPERSONATED_ACTIONS && authUsername != username) {
+            throw new NotAuthorizedException("Blueprints may not $action while impersonating")
+        }
     }
 
     private void ensureCanManage(Blueprint blueprint) {
