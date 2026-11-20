@@ -31,6 +31,7 @@ import static io.xh.hoist.json.JSONSerializer.serialize
  *     publish is listed only for users with write access.
  *   - Publishing needs write access, plus one of `publishRoles` if any are configured.
  *   - Deleting and managing access belong to the owner and `adminRoles`.
+ *   - Publishing, sharing and deleting are refused while an admin impersonates another user.
  *   - Personalizations always belong to the current user, and need read access.
  *
  * Every call that changes a blueprint's row takes a database row lock on it first, so a draft
@@ -413,13 +414,15 @@ class BlueprintService extends BaseService {
         owner == user.username || hasAnyRole(user, config.adminRoles)
     }
 
-    // Whether an impersonating admin may publish, share or delete as the user they impersonate.
-    // Open pending a decision - false refuses those actions while impersonating.
-    private static final boolean ALLOW_IMPERSONATED_ACTIONS = true
+    // Publishing, sharing and deleting are refused while impersonating, so the audit trail never
+    // records an admin's change as the user's own.
+    private static final Map<String, String> PAST_TENSE = [publish: 'published', share: 'shared', delete: 'deleted']
 
     private void ensureNotImpersonatedAction(String action) {
-        if (!ALLOW_IMPERSONATED_ACTIONS && authUsername != username) {
-            throw new NotAuthorizedException("Blueprints may not $action while impersonating")
+        if (authUsername != username) {
+            throw new NotAuthorizedException(
+                "Blueprints cannot be ${PAST_TENSE[action]} while impersonating another user. Stop impersonating to $action this blueprint."
+            )
         }
     }
 

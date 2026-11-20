@@ -67,6 +67,10 @@ Each blueprint has an `owner`, a list of `writers` and a list of `readers`. Each
 a username, `role:<ROLE>` for every user with that role, or `*` for all users. The service checks
 the apparent user, so an admin who impersonates a user has that user's access.
 
+An admin who impersonates a user can view blueprints and edit drafts as that user, but cannot
+publish, share or delete. Those calls return a 403 that names the reason, so the audit trail never
+records an admin's change as the user's own.
+
 | Access | Granted to | Allows |
 |--------|------------|--------|
 | Write | The owner, a writer, or one of `adminRoles` | The draft, every publish, saving and publishing |

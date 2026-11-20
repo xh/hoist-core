@@ -223,6 +223,30 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         accessAs(editor, token) == 'read'
     }
 
+    def 'an impersonating admin may view and edit the draft, but not #action'() {
+        given:
+        def token = service.create('Risk', null, BP).token
+        loginAs(admin)
+        impersonate('owner', 'admin')
+
+        expect: 'the impersonated user\'s access, for viewing and draft edits'
+        service.getDraft(token).owner == 'owner'
+        service.saveDraft(token, BP, 1, []) == 2
+
+        when:
+        call(service, token)
+
+        then:
+        def e = thrown(NotAuthorizedException)
+        e.message == "Blueprints cannot be $past while impersonating another user. Stop impersonating to $action this blueprint."
+
+        where:
+        action    | past        | call
+        'publish' | 'published' | { BlueprintService s, String t -> s.publish(t, 2) }
+        'share'   | 'shared'    | { BlueprintService s, String t -> s.updateAccess(t, ['editor'], []) }
+        'delete'  | 'deleted'   | { BlueprintService s, String t -> s.delete(t) }
+    }
+
     def 'publishRoles narrow publishing for writers, but not for admins'() {
         given:
         setConfig(publishRoles: ['PUBLISHER'])
