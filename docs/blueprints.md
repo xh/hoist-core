@@ -58,7 +58,7 @@ blueprint, user and preset keeps one personalization per preset.
 | `copy(token, name, kind?, number?)` | Read on the source version, plus one of `createRoles` | The copy, or null if the source has no publish |
 | `delete(token)` | Owner or admin | Nothing. Also deletes its publishes and every user's personalizations |
 | `updateAccess(token, writers, readers)` | Owner or admin | The blueprint |
-| `ensureGlobal(name, description, blueprint, owner)` | None. For server code only | The global blueprint with this name and owner, created and published once |
+| `ensureGlobal(name, description, blueprint, owner)` | None. For server code only | The global blueprint with this name and owner, created, or published again if its content changed |
 | `listPersonalizations(token)` | Read | The current user's personalizations |
 | `savePersonalization(token, preset, ops, publishVersion)` | Read | The saved personalization |
 
@@ -108,9 +108,15 @@ publish therefore fails as stale, and cannot add the published renames again.
 ## Seeding Global Blueprints
 
 Server code can seed blueprints that every user reads, such as an app's presets, with
-`ensureGlobal`. If a blueprint with the given name and owner exists, the method returns it
-unchanged. Otherwise it creates the blueprint with `*` as its reader, publishes it once, and
-returns it. The owner is any name the app picks, and need not be a real user.
+`ensureGlobal`. If no blueprint with the given name and owner exists, the method creates it with
+`*` as its reader, publishes it once, and returns it. If one exists and its latest publish differs
+from the given content, the method saves the content as the draft and publishes it as the next
+version. Otherwise it returns the blueprint unchanged. The owner is any name the app picks, and
+need not be a real user. It is also the publisher of each version.
+
+A new version replaces any edits made since, such as an admin's, published or not, and discards
+their pending renames. The blueprint keeps its description and sharing. To change a seeded
+blueprint for good, change the content the app seeds.
 
 `ensureGlobal` bypasses every access check: `createRoles`, `globalShareRoles` and the current user.
 Call it only from server code, and never expose it to a client. Call it on one instance, such as

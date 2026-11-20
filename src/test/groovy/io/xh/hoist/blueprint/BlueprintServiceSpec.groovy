@@ -314,7 +314,7 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
         when:
         def first = service.ensureGlobal('P1. One grid', null, BP, 'toolbox')
-        def again = service.ensureGlobal('P1. One grid', null, [*: BP, title: 'changed'], 'toolbox')
+        def again = service.ensureGlobal('P1. One grid', null, BP, 'toolbox')
 
         then:
         again.token == first.token
@@ -334,6 +334,52 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         info(first.token).subMap('access', 'canManage') == [access: 'read', canManage: false]
         service.getPublish(first.token).number == 1
         service.getDraft(first.token) == null
+    }
+
+    def 'ensureGlobal republishes a global blueprint whose latest publish differs, as its owner'() {
+        given:
+        logout()
+        def token = service.ensureGlobal('P1. One grid', null, BP, 'toolbox').token
+        Map changed = [*: BP, title: 'changed']
+
+        when:
+        def ret = service.ensureGlobal('P1. One grid', null, changed, 'toolbox')
+        service.ensureGlobal('P1. One grid', null, changed, 'toolbox')
+
+        then:
+        ret.token == token
+        BlueprintPublish.count() == 2
+        [ret.draftVersion, ret.publishedVersion] == [4L, 2]
+        parseObject(ret.draft) == changed
+        ret.lastUpdatedBy == 'toolbox'
+
+        when:
+        def latest = BlueprintPublish.findByBlueprintAndNumber(ret, 2)
+
+        then:
+        parseObject(latest.content) == changed
+        latest.publishedBy == 'toolbox'
+        parseArray(latest.renames) == []
+    }
+
+    def 'ensureGlobal replaces an admin\'s edits to a global blueprint, keeping its sharing'() {
+        given:
+        def token = service.ensureGlobal('P1. One grid', null, BP, 'toolbox').token
+        loginAs(admin)
+        service.saveDraft(token, [*: BP, title: 'edited'], 2, [RENAME])
+        service.publish(token, 3)
+        service.saveDraft(token, [*: BP, title: 'unpublished'], 4, [])
+        service.updateAccess(token, ['designer'], ['*'])
+
+        when:
+        def ret = service.ensureGlobal('P1. One grid', null, BP, 'toolbox')
+
+        then:
+        [ret.draftVersion, ret.publishedVersion] == [7L, 3]
+        parseObject(ret.draft) == BP
+        parseArray(ret.pendingRenames) == []
+        parseObject(service.getPublish(token).content) == BP
+        parseArray(ret.writers) == ['designer']
     }
 
     def 'ensureGlobal still needs storage enabled, and checks content structure'() {

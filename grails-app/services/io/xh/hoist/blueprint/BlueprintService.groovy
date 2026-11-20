@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets
 
 import static io.xh.hoist.blueprint.BlueprintPersonalization.NO_PRESET
 import static io.xh.hoist.json.JSONParser.parseArray
+import static io.xh.hoist.json.JSONParser.parseObject
 import static io.xh.hoist.json.JSONSerializer.serialize
 
 /**
@@ -317,9 +318,15 @@ class BlueprintService extends BaseService {
     }
 
     /**
-     * Make sure a global blueprint exists: readable by everyone, owned by `owner` and published
-     * once. If a blueprint with this name and owner exists, return it unchanged. Otherwise create
-     * it, publish its first version, and return it.
+     * Make sure a global blueprint with this name and owner exists and publishes the given content.
+     *
+     *   - If none exists, create it readable by everyone, publish its first version, and return it.
+     *   - If one exists and its latest publish differs from the given content, save the content as
+     *     its draft and publish it as the next version, both as `owner`, and return it.
+     *   - Otherwise return it unchanged.
+     *
+     * A republish overwrites any edits made to the blueprint since, such as an admin's, published
+     * or not, and discards its pending renames. It keeps the blueprint's description and sharing.
      *
      * For server code only, such as seeding an app's presets at startup. It bypasses every access
      * check - `createRoles`, `globalShareRoles` and the current user - so never expose it to a
@@ -331,10 +338,10 @@ class BlueprintService extends BaseService {
     @Transactional
     Blueprint ensureGlobal(String name, String description, Object blueprint, String owner) {
         ensureEnabled()
-        Blueprint existing = Blueprint.findByNameAndOwner(name, owner)
-        if (existing) return existing
-
         String draft = serializeContent(blueprint)
+        Blueprint existing = Blueprint.findByNameAndOwner(name, owner, [lock: true])
+        if (existing) return republishIfChanged(existing, draft, owner)
+
         Blueprint ret = new Blueprint(
             name: name,
             description: description,
@@ -353,6 +360,29 @@ class BlueprintService extends BaseService {
         ).save(flush: true, failOnError: true)
         logInfo('Created global blueprint', [name: name, owner: owner, token: ret.token])
         return ret
+    }
+
+    private Blueprint republishIfChanged(Blueprint blueprint, String draft, String owner) {
+        BlueprintPublish latest = blueprint.publishedVersion ?
+            BlueprintPublish.findByBlueprintAndNumber(blueprint, blueprint.publishedVersion) : null
+        if (latest && parseObject(latest.content) == parseObject(draft)) return blueprint
+
+        int number = (blueprint.publishedVersion ?: 0) + 1
+        new BlueprintPublish(
+            blueprint: blueprint,
+            number: number,
+            content: draft,
+            publishedBy: owner
+        ).save(flush: true, failOnError: true)
+
+        blueprint.draft = draft
+        blueprint.pendingRenames = '[]'
+        blueprint.draftVersion += 2
+        blueprint.publishedVersion = number
+        blueprint.lastUpdatedBy = owner
+        blueprint.save(flush: true, failOnError: true)
+        logInfo('Republished changed global blueprint', [name: blueprint.name, owner: owner, token: blueprint.token, number: number])
+        return blueprint
     }
 
     //------------------
