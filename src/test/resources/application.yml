@@ -1,0 +1,2 @@
+# Required on the test classpath by grails.test.hibernate.HibernateSpec, which always loads it.
+# Deliberately empty: each HibernateSpec sets its own database in getConfiguration().
