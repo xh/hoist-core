@@ -45,8 +45,6 @@ to scope a tool to hoist-core:
   inheritance, annotations)
 - `hoist-get-members` -- List all properties and methods of a class or interface
 
-The old `hoist-core-*` tool names still work as aliases scoped to hoist-core.
-
 **Recommended workflow:** Start with `hoist-search-docs` to find relevant sections and read them
 with `hoist-read-doc`. Supplement with symbol lookups (`hoist-search-symbols`, `hoist-get-symbol`,
 `hoist-get-members`) for precise API details -- exact signatures, annotations, and member listings.
