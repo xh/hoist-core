@@ -35,6 +35,7 @@ and conventions.
 | Work with AppConfig (soft configuration) | [`configuration.md`](./configuration.md) |
 | Work with user preferences | [`preferences.md`](./preferences.md) |
 | Store JSON state in JsonBlobs, or control who can manage global ViewManager views | [`jsonblob.md`](./jsonblob.md) |
+| Store Hoist Blueprints on the server, with drafts, publishes and per-blueprint access | [`blueprints.md`](./blueprints.md) |
 | Cache computed or fetched data in a service | [`caching.md`](./caching.md) |
 | Work out why a cache `onChange` handler fires when it does | [`caching.md`](./caching.md#change-handlers-onchange) |
 | Understand Hazelcast clustering and distributed resources | [`clustering.md`](./clustering.md) |
@@ -80,6 +81,7 @@ Bread-and-butter features used by every Hoist application.
 | [`configuration.md`](./configuration.md) | Database-backed soft configuration with typed values | AppConfig, ConfigService, `clientVisible`, `pwd` encryption, `xhConfigChanged`, required configs |
 | [`preferences.md`](./preferences.md) | User-specific settings and preference management | Preference, UserPreference, PrefService, `local` flag, required prefs |
 | [`jsonblob.md`](./jsonblob.md) | JSON document storage backing ViewManager views and other app state, with owner-based access control | JsonBlob, JsonBlobService, ViewService, `xhJsonBlobConfig`, `globalWriteRoles`, global views, `manageGlobal` |
+| [`blueprints.md`](./blueprints.md) | Server-side store for Hoist Blueprints, with drafts, numbered publishes, personalizations and per-blueprint access | Blueprint, BlueprintService, XhBlueprintController, `xhBlueprintConfig`, draftVersion, staleBase, row lock, writers, readers |
 | [`caching.md`](./caching.md) | Managed in-memory caching with optional expiry and cluster replication | Cache, CachedValue, CacheEntry, `createCache`, `createCachedValue`, `expireTime`, `expireFn`, `replicate`, `onChange` handlers, `ensureAvailable`, culling |
 | [`clustering.md`](./clustering.md) | Hazelcast-based multi-instance coordination and distributed data structures | ClusterService, Cache, CachedValue, IMap, ReplicatedMap, Topic, `primaryOnly` timers |
 | [`activity-tracking.md`](./activity-tracking.md) | Usage and performance logging with email notifications | TrackLog, TrackService, categories, elapsed timing, client error emails, feedback emails |
@@ -138,6 +140,7 @@ breaking changes, before/after code examples, and verification checklists.
 
 | Version                                         | Key Changes |
 |-------------------------------------------------|-------------|
+| [v45.0.0](./upgrade-notes/v45-upgrade-notes.md) | Requires hoist-react 91, `installHoistCoreTools` and the `hoist-core` MCP entry removed, new `xh_blueprint*` tables for blueprint storage |
 | [v44.0.0](./upgrade-notes/v44-upgrade-notes.md) | `jasypt` dependency removed, `HoistPasswordEncryptor` (BCrypt) replaces `BasicPasswordEncryptor` in app `User` classes, `grails-quartz` no longer supplied, Apache Directory `api-all` replaced by client-only artifacts |
 | [v43.0.0](./upgrade-notes/v43-upgrade-notes.md) | Grails 8, Spring Boot 4, Groovy 5, Jackson 3, Java 21 and Tomcat 11, Gradle 9 wrapper, `dataSource` and `constraints` fixes for Groovy 5 |
 | [v42.0.0](./upgrade-notes/v42-upgrade-notes.md) | `JsonBlobService` write access limited to owners, `xhJsonBlobConfig.globalWriteRoles` gates global views, `doLoadUsersForDirectoryGroups` replaced by `getDirectoryService`, `sendEmail` named parameters |

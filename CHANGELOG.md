@@ -16,11 +16,23 @@
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
 
+See [`docs/upgrade-notes/v45-upgrade-notes.md`](docs/upgrade-notes/v45-upgrade-notes.md) for
+detailed, step-by-step upgrade instructions with before and after code examples.
+
 * Requires `hoist-react >= 91`. Agent docs for hoist-core 45 come only from Hoist Docs (below),
   which an app gets with hoist-react 91. On an earlier hoist-react, the agent has no hoist-core
   reference at all. Upgrade hoist-react first.
 * Remove the `installHoistCoreTools` snippet from `build.gradle`, and the `hoist-core` entry from
   `.mcp.json`. The task fails on this release, since its artifact is no longer published.
+* Apps that manage their own schema must create the `xh_blueprint`, `xh_blueprint_publish` and
+  `xh_blueprint_personalization` tables. Apps that run `dbCreate: 'update'` get them at startup.
+
+### 🎁 New Features
+
+* Added a server-side store for Hoist Blueprints: `BlueprintService` and the `xhBlueprint/*`
+  endpoints behind a client `BlueprintRepository`. It keeps a draft and numbered publishes per
+  blueprint, with access per blueprint, a version check under a row lock, and per-user
+  personalizations. It is off until an app sets `enabled` in the new `xhBlueprintConfig`.
 
 ### 🐞 Bug Fixes
 

@@ -89,6 +89,14 @@
             "keywords": ["JsonBlob", "JsonBlobService", "ViewService", "xhJsonBlobConfig", "globalWriteRoles", "canWriteGlobal", "global views", "manageGlobal", "acl", "ViewManager"]
         },
         {
+            "id": "docs/blueprints.md",
+            "title": "Blueprints",
+            "mcpCategory": "package",
+            "viewerCategory": "core-features",
+            "description": "Server-side store for Hoist Blueprints, with drafts, numbered publishes, personalizations and per-blueprint access.",
+            "keywords": ["Blueprint", "BlueprintService", "BlueprintPublish", "BlueprintPersonalization", "XhBlueprintController", "xhBlueprintConfig", "BlueprintRepository", "draftVersion", "staleBase", "createRoles", "publishRoles"]
+        },
+        {
             "id": "docs/caching.md",
             "title": "Caching",
             "mcpCategory": "package",
@@ -232,6 +240,14 @@
             "viewerCategory": "overview",
             "description": "Authoritative coding conventions for hoist-core framework and applications — naming, logging, exceptions, services, controllers, GORM, clustering, HTTP/email, background work, code style, and commit/PR formatting.",
             "keywords": ["conventions", "coding standards", "style guide", "naming", "xh prefix", "LogSupport", "withInfo", "withDebug", "RoutineRuntimeException", "BaseService", "createCache", "createTimer", "clearCaches", "clearCachesConfigs", "ensureRequiredConfigsCreated", "configService", "AccessRequiresRole", "renderJSON", "parseRequestJSON", "ReadOnly", "Transactional", "N+1", "fetch join", "batchSize", "JSONFormat", "primaryOnly", "replicate", "JSONClient", "xhEmailOverride", "withNewSession", "pushToAllChannels", "pushToLocalChannels", "Groovy idioms", "commit messages", "no hard wrap"]
+        },
+        {
+            "id": "docs/upgrade-notes/v45-upgrade-notes.md",
+            "title": "v45 Upgrade Notes",
+            "mcpCategory": "devops",
+            "viewerCategory": "upgrade",
+            "description": "Upgrade guide from v44.x to v45. Low difficulty.",
+            "keywords": ["v45", "upgrade", "migration", "breaking changes", "v44", "hoist-react 91", "installHoistCoreTools", "Hoist Docs", "xh_blueprint", "blueprint tables", "DDL", "xhBlueprintConfig"]
         },
         {
             "id": "docs/upgrade-notes/v44-upgrade-notes.md",
