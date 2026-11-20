@@ -316,6 +316,45 @@ class BlueprintService extends BaseService {
         ret.save(flush: true, failOnError: true)
     }
 
+    /**
+     * Make sure a global blueprint exists: readable by everyone, owned by `owner` and published
+     * once. If a blueprint with this name and owner exists, return it unchanged. Otherwise create
+     * it, publish its first version, and return it.
+     *
+     * For server code only, such as seeding an app's presets at startup. It bypasses every access
+     * check - `createRoles`, `globalShareRoles` and the current user - so never expose it to a
+     * client. `owner` need not be a real user. Run it on one instance, such as the primary, as two
+     * concurrent calls for the same name can both create.
+     *
+     * @param owner the name recorded as the blueprint's owner, publisher and last updater
+     */
+    @Transactional
+    Blueprint ensureGlobal(String name, String description, Object blueprint, String owner) {
+        ensureEnabled()
+        Blueprint existing = Blueprint.findByNameAndOwner(name, owner)
+        if (existing) return existing
+
+        String draft = serializeContent(blueprint)
+        Blueprint ret = new Blueprint(
+            name: name,
+            description: description,
+            owner: owner,
+            readers: serialize(['*']),
+            draft: draft,
+            draftVersion: 2,
+            publishedVersion: 1,
+            lastUpdatedBy: owner
+        ).save(flush: true, failOnError: true)
+        new BlueprintPublish(
+            blueprint: ret,
+            number: 1,
+            content: draft,
+            publishedBy: owner
+        ).save(flush: true, failOnError: true)
+        logInfo('Created global blueprint', [name: name, owner: owner, token: ret.token])
+        return ret
+    }
+
     //------------------
     // Personalizations
     //------------------

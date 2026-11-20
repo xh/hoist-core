@@ -308,6 +308,52 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         thrown(RoutineRuntimeException)
     }
 
+    def 'ensureGlobal creates and publishes a global blueprint once, with no user checks'() {
+        given:
+        logout()
+
+        when:
+        def first = service.ensureGlobal('P1. One grid', null, BP, 'toolbox')
+        def again = service.ensureGlobal('P1. One grid', null, [*: BP, title: 'changed'], 'toolbox')
+
+        then:
+        again.token == first.token
+        Blueprint.count() == 1
+        BlueprintPublish.count() == 1
+        first.owner == 'toolbox'
+        parseArray(first.readers) == ['*']
+        parseArray(first.writers) == []
+        [first.draftVersion, first.publishedVersion] == [2L, 1]
+        parseObject(BlueprintPublish.findByBlueprint(first).content) == BP
+
+        when: 'any user reads its latest publish, but cannot edit it'
+        loginAs(stranger)
+
+        then:
+        service.list()*.token == [first.token]
+        info(first.token).subMap('access', 'canManage') == [access: 'read', canManage: false]
+        service.getPublish(first.token).number == 1
+        service.getDraft(first.token) == null
+    }
+
+    def 'ensureGlobal still needs storage enabled, and checks content structure'() {
+        when:
+        setConfig(enabled: false)
+        service.ensureGlobal('P1', null, BP, 'toolbox')
+
+        then:
+        def disabled = thrown(RoutineRuntimeException)
+        disabled.message.contains('not enabled')
+
+        when:
+        setConfig()
+        service.ensureGlobal('P1', null, [a: ['__proto__': 1]], 'toolbox')
+
+        then:
+        def forbidden = thrown(RoutineRuntimeException)
+        forbidden.message.contains("'__proto__' is forbidden")
+    }
+
     def 'publishRoles narrow publishing for writers, but not for admins'() {
         given:
         setConfig(publishRoles: ['PUBLISHER'])
