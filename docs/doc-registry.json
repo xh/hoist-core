@@ -202,12 +202,20 @@
             "keywords": ["build.gradle", "gradle.properties", "grails-app/init", "client-app", "Bootstrap.ts", "AppModel", "Docker", "Nginx", "Tomcat", "JDK", "Java version", "bytecode", "Gradle toolchain", "xh-tomcat", "runHoistInline", "inline", "XH_HOIST_CORE_PATH", "XH_HOIST_REACT_PATH", "worktree", "hot reload", "HotswapAgent", "enableHotSwap"]
         },
         {
+            "id": "docs/dependency-locking.md",
+            "title": "Dependency Locking",
+            "mcpCategory": "devops",
+            "viewerCategory": "devops",
+            "description": "Gradle dependency locking for Hoist apps - lockfile setup, when and how to regenerate, and pitfalls.",
+            "keywords": ["lockfile", "gradle.lockfile", "dependency locking", "dependencyLocking", "LockMode.STRICT", "write-locks", "update-locks", "hoistCoreVersion", "grailsVersion", "SNAPSHOT", "runHoistInline", "Dependabot"]
+        },
+        {
             "id": "docs/build-and-publish.md",
             "title": "Build & Publish",
             "mcpCategory": "devops",
             "viewerCategory": "devops",
             "description": "Gradle build, GitHub Actions CI, and Maven Central publishing.",
-            "keywords": ["GitHub Actions", "deployRelease", "deploySnapshot", "Sonatype", "maven", "GPG signing", "nexus-publish-plugin", "publishToSonatype", "hoist-core-test", "repository_dispatch", "Toolbox", "XH Build Bot", "GitHub App"]
+            "keywords": ["GitHub Actions", "deployRelease", "resolveAndLockAll", "deploySnapshot", "Sonatype", "maven", "GPG signing", "nexus-publish-plugin", "publishToSonatype", "hoist-core-test", "repository_dispatch", "Toolbox", "XH Build Bot", "GitHub App"]
         },
         {
             "id": "docs/testing.md",

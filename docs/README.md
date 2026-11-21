@@ -25,6 +25,7 @@ and conventions.
 |---|---|
 | Understand a Hoist app's directory structure and boilerplate | [`application-structure.md`](./application-structure.md) |
 | Choose a JDK for your app build | [`application-structure.md`](./application-structure.md#jdk-choice) |
+| Lock an app's Gradle dependencies, or regenerate `gradle.lockfile` after a version change | [`dependency-locking.md`](./dependency-locking.md) |
 | Understand BaseService lifecycle and resource factories | [`base-classes.md`](./base-classes.md) |
 | Understand BaseController / RestController patterns | [`base-classes.md`](./base-classes.md) |
 | Trace an HTTP request through the framework | [`request-flow.md`](./request-flow.md) |
@@ -115,6 +116,7 @@ Guides to building, structuring, and deploying Hoist applications.
 | Document | Description | Key Topics |
 |----------|-------------|------------|
 | [`application-structure.md`](./application-structure.md) | Standard Hoist application repository layout - server and client structure, build configuration, deployment, JDK choice | `build.gradle`, `gradle.properties`, `grails-app/init/`, `client-app/`, `Bootstrap.ts`, `AppModel`, Docker, Nginx, Tomcat, JDK, Gradle toolchain |
+| [`dependency-locking.md`](./dependency-locking.md) | Gradle dependency locking for apps - setup, when and how to regenerate lockfiles, pitfalls | `gradle.lockfile`, `buildscript-gradle.lockfile`, `dependencyLocking`, `LockMode.STRICT`, `--write-locks`, `--update-locks`, `dependencyInsight`, `hoistCoreVersion`, client-specific Hoist plugins, `grailsVersion`, snapshots, `runHoistInline`, merge conflicts, Dependabot |
 | [`build-and-publish.md`](./build-and-publish.md) | Gradle build, GitHub Actions CI, and Maven Central publishing | GitHub Actions, `deployRelease.yml`, `deploySnapshot.yml`, Sonatype, GPG signing, `nexus-publish-plugin`, `publishToSonatype`, `hoist-core-test`, Toolbox `repository_dispatch`, XH Build Bot GitHub App, `maven-archive.xh.io` (legacy `36.x`-and-earlier hoist-core releases) |
 | [`testing.md`](./testing.md) | Spock unit testing for hoist-core and apps - the `io.xh:hoist-core-test` harness, conventions, CI | Spock, `hoist-core-test`, `HoistUnitTest`, `HoistSpec`, `ServiceUnitTest`, `ControllerUnitTest`, `TestConfigService`, `TestTrackService`, `TestEmailService`, `TestTraceService`, `TestMetricsService`, `TestUser`, `HoistJson`, `HoistAssertions`, `@PendingFeature`, JaCoCo |
 | [`changelog-format.md`](./changelog-format.md) | Conventions for writing and reviewing hoist-core library CHANGELOG entries | Section headers, voice/tense, Simplified Technical English, difficulty ratings, breaking changes, libraries, application changelogs |

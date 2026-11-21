@@ -108,8 +108,9 @@ metadata. In outline:
   records the exact resolved dependency graph, and resolution fails if a build would select anything
   else or if a lockfile is missing.
   After changing a dependency in any `build.gradle`, regenerate the lockfiles with
-  `./gradlew resolveAndLockAll --write-locks` and commit the result. Locking here does not
-  carry over to applications - see [Dependency locking in applications](#dependency-locking-in-applications).
+  `./gradlew resolveAndLockAll --write-locks` and commit the result. `dependencies --write-locks`
+  covers the root project only, so it misses `test-support`. Locking here does not carry over to
+  applications - see [`dependency-locking.md`](./dependency-locking.md).
 - **Signing** — all publications sign with in-memory PGP keys, so no keyring is written to disk.
   Signing is required for release versions and skipped for snapshots. Key material resolves from
   the `signingKey` and `signingPassword` Gradle properties, falling back to the `SIGNING_KEY` and
@@ -163,58 +164,9 @@ repositories {
 ### Dependency locking in applications
 
 Hoist-core locks its own build, but Gradle resolves each application's dependency graph afresh from
-the published POM, so an app gets no locking from the plugin. To freeze the app's resolved graph,
-add the following to `build.gradle`, once inside the `buildscript` block and once at the project
-level, then commit the generated `gradle.lockfile` and `buildscript-gradle.lockfile`:
-
-```groovy
-dependencyLocking { lockAllConfigurations(); lockMode = LockMode.STRICT }
-```
-
-Then, once now and again after any dependency change:
-
-```bash
-./gradlew dependencies --write-locks
-```
-
-Builds fail if resolution would differ from the lockfile, and strict mode also fails a build whose
-lockfile is missing rather than silently resolving unlocked.
-
-Some changes build clean on a stale lockfile and silently resolve the wrong version, so regenerate
-the locks in each of these cases:
-
-- **Changing `hoistCoreVersion`, in either direction.** Gradle applies each locked version as a
-  [strict constraint](https://docs.gradle.org/current/userguide/dependency_locking.html#sec:locking-mechanism).
-  Moving up without new locks fails the build. Moving down does not: the higher locked version
-  wins and the build passes - for example, pinning a snapshot back to a release for a production
-  build still ships the snapshot. Check the result with
-  `grep '^io.xh:hoist-core:' gradle.lockfile`.
-- **Taking a new hoist-core snapshot.** A `-SNAPSHOT` version is locked by its version string only,
-  so a newer snapshot still resolves. If it adds or removes a dependency the build fails, but if
-  it bumps one the build passes and the app stays on the old locked version. Gradle advises
-  against locking changing versions for this reason, so apps tracking a snapshot should regenerate
-  their locks each time they take a new one.
-
-#### Inline hoist-core builds
-
-An app running hoist-core from a local checkout (`runHoistInline=true`, see
-[Inline Hoist Development](./application-structure.md#inline-hoist-development)) takes its
-dependency graph from that checkout, which a committed lockfile cannot track. Lock packaged builds
-only:
-
-```groovy
-// Locking applies to packaged builds only. An inline build takes its transitive graph from the
-// local hoist-core checkout, which the lock state cannot track.
-if (!parseBoolean(runHoistInline)) {
-    dependencyLocking { lockAllConfigurations(); lockMode = LockMode.STRICT }
-}
-```
-
-and regenerate the locks in packaged mode:
-
-```bash
-./gradlew dependencies --write-locks -PrunHoistInline=false
-```
+the published POM, so an app gets no locking from the plugin. Each app should turn on locking in
+its own build. See [`dependency-locking.md`](./dependency-locking.md) for setup, the regenerate
+commands, and the changes that need new locks.
 
 ### Legacy releases
 
