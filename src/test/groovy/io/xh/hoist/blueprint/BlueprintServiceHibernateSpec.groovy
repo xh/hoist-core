@@ -28,6 +28,8 @@ import static io.xh.hoist.json.JSONParser.parseObject
  */
 class BlueprintServiceHibernateSpec extends HibernateSpec implements ServiceUnitTest<BlueprintService>, HoistUnitTest {
 
+    static final String T = 'test.app'
+
     static final Map BP = [schema: [blueprint: 1]]
 
     TestUser author = new TestUser('owner', ['DESIGNER']),
@@ -63,18 +65,18 @@ class BlueprintServiceHibernateSpec extends HibernateSpec implements ServiceUnit
 
     def 'a stale base is refused and changes nothing'() {
         given:
-        String token = committed { service.create('Risk', null, BP) }.token
-        committed { service.saveDraft(token, [*: BP, title: 'v2'], 1, []) }
+        String token = committed { service.create(T, 'Risk', null, BP) }.token
+        committed { service.saveDraft(T, token, [*: BP, title: 'v2'], 1, []) }
 
         when:
-        committed { service.saveDraft(token, [*: BP, title: 'stale'], 1, []) }
+        committed { service.saveDraft(T, token, [*: BP, title: 'stale'], 1, []) }
 
         then:
         thrown(BlueprintStaleBaseException)
         Blueprint.withNewTransaction { parseObject(Blueprint.findByToken(token).draft).title } == 'v2'
 
         when:
-        committed { service.publish(token, 1) }
+        committed { service.publish(T, token, 1) }
 
         then:
         thrown(BlueprintStaleBaseException)
@@ -83,8 +85,8 @@ class BlueprintServiceHibernateSpec extends HibernateSpec implements ServiceUnit
 
     def 'unique indexes refuse a second publish of one number, and a second personalization of one preset'() {
         given:
-        String token = committed { service.create('Risk', null, BP) }.token
-        committed { service.publish(token, 1) }
+        String token = committed { service.create(T, 'Risk', null, BP) }.token
+        committed { service.publish(T, token, 1) }
 
         when:
         Blueprint.withNewTransaction {
@@ -96,7 +98,7 @@ class BlueprintServiceHibernateSpec extends HibernateSpec implements ServiceUnit
         isConstraintViolation(e)
 
         when:
-        committed { service.savePersonalization(token, 'view:a', [], 1) }
+        committed { service.savePersonalization(T, token, 'view:a', [], 1) }
         Blueprint.withNewTransaction {
             new BlueprintPersonalization(blueprint: Blueprint.findByToken(token), username: 'owner', preset: 'view:a').save(flush: true, validate: false)
         }
@@ -108,7 +110,7 @@ class BlueprintServiceHibernateSpec extends HibernateSpec implements ServiceUnit
 
     def 'a save waits on the row lock of a concurrent save, then finds its base stale'() {
         given:
-        String token = committed { service.create('Risk', null, BP) }.token
+        String token = committed { service.create(T, 'Risk', null, BP) }.token
         def locked = new CountDownLatch(1),
             release = new CountDownLatch(1)
         Throwable resultB = null
@@ -135,7 +137,7 @@ class BlueprintServiceHibernateSpec extends HibernateSpec implements ServiceUnit
         def threadB = Thread.start {
             try {
                 loginAs(author)
-                service.saveDraft(token, [*: BP, title: 'B'], 1, [])
+                service.saveDraft(T, token, [*: BP, title: 'B'], 1, [])
             } catch (Throwable t) {
                 resultB = t
             }
@@ -161,11 +163,11 @@ class BlueprintServiceHibernateSpec extends HibernateSpec implements ServiceUnit
 
     def 'deleting a blueprint removes its publishes and every user\'s personalizations, which its foreign keys protect'() {
         given:
-        String token = committed { service.create('Risk', null, BP, [], ['*']) }.token
-        committed { service.publish(token, 1) }
+        String token = committed { service.create(T, 'Risk', null, BP, [], ['*']) }.token
+        committed { service.publish(T, token, 1) }
         [author, reader].each { user ->
             loginAs(user)
-            committed { service.savePersonalization(token, null, [], 1) }
+            committed { service.savePersonalization(T, token, null, [], 1) }
         }
         loginAs(author)
 
@@ -177,7 +179,7 @@ class BlueprintServiceHibernateSpec extends HibernateSpec implements ServiceUnit
         isConstraintViolation(e)
 
         when:
-        committed { service.delete(token) }
+        committed { service.delete(T, token) }
 
         then:
         Blueprint.withNewTransaction {

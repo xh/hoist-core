@@ -13,12 +13,16 @@ import io.xh.hoist.json.JSONFormat
  * and its users' personalizations are {@link BlueprintPublish} and
  * {@link BlueprintPersonalization}, which reference it by foreign key.
  *
+ * Its `type` names the app or kind of blueprint, such as `myApp.portfolio`, and scopes every
+ * lookup. Names are unique per owner and type.
+ *
  * JSON content is stored as given, as serialized text. `writers` and `readers` hold lists of
  * grantees: a username, `role:<ROLE>`, or `*` for all users.
  */
 class Blueprint implements JSONFormat {
 
     String token = UUID.randomUUID().toString().substring(0, 8)
+    String type
     String name
     String description
     String owner
@@ -40,6 +44,7 @@ class Blueprint implements JSONFormat {
         // draftVersion is the one version, and every mutation takes a row lock in BlueprintService.
         version false
         token index: 'idx_xh_blueprint_token'
+        type index: 'idx_xh_blueprint_type'
         description type: 'text'
         writers type: 'text'
         readers type: 'text'
@@ -49,7 +54,8 @@ class Blueprint implements JSONFormat {
 
     static constraints = {
         token unique: true, blank: false
-        name maxSize: 255, blank: false
+        type maxSize: 50, blank: false
+        name maxSize: 255, blank: false, unique: ['owner', 'type']
         description nullable: true
         owner maxSize: 50, blank: false
         publishedVersion nullable: true
@@ -62,6 +68,7 @@ class Blueprint implements JSONFormat {
     Map formatForJSON() {[
         id: id,
         token: token,
+        type: type,
         name: name,
         description: description,
         owner: owner,

@@ -32,7 +32,8 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 * Added a server-side store for Hoist Blueprints: `BlueprintService` and the `xhBlueprint/*`
   endpoints behind a client `BlueprintRepository`. It keeps a draft and numbered publishes per
   blueprint, with access per blueprint, a version check under a row lock, and per-user
-  personalizations. It is off until an app sets `enabled` in the new `xhBlueprintConfig`.
+  personalizations. Each blueprint has a `type` that scopes every call. It is off until an app
+  sets `enabled` in the new `xhBlueprintConfig`.
 
 ### 🐞 Bug Fixes
 

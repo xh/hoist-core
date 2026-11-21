@@ -20,6 +20,7 @@ written for MySQL with InnoDB.
 CREATE TABLE xh_blueprint (
     id BIGINT NOT NULL AUTO_INCREMENT,
     token VARCHAR(255) NOT NULL,
+    type VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
     description LONGTEXT NULL,
     owner VARCHAR(50) NOT NULL,
@@ -36,10 +37,12 @@ CREATE TABLE xh_blueprint (
     last_updated DATETIME NOT NULL,
     last_updated_by VARCHAR(255) NULL,
     PRIMARY KEY (id),
-    CONSTRAINT uk_xh_blueprint_token UNIQUE (token)
+    CONSTRAINT uk_xh_blueprint_token UNIQUE (token),
+    CONSTRAINT uk_xh_blueprint_name UNIQUE (owner, type, name)
 ) ENGINE=InnoDB;
 
 CREATE INDEX idx_xh_blueprint_token ON xh_blueprint (token);
+CREATE INDEX idx_xh_blueprint_type ON xh_blueprint (type);
 
 CREATE TABLE xh_blueprint_publish (
     id BIGINT NOT NULL AUTO_INCREMENT,

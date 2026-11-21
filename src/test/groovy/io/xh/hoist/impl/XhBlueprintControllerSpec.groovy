@@ -54,6 +54,7 @@ class XhBlueprintControllerSpec extends Specification implements ControllerUnitT
         then:
         record.id ==~ /[0-9a-f-]{8}/
         record.name == 'Risk'
+        record.type == 'test.app'
         !record.containsKey('description')
         record.draftVersion == 1
         record.publishedVersion == null
@@ -155,6 +156,7 @@ class XhBlueprintControllerSpec extends Specification implements ControllerUnitT
         list[0].id == id
         list[0].access == 'read'
         list[0].owner == 'owner'
+        list[0].type == 'test.app'
         list[0].canPublish == false
         list[0].canShare == false
         list[0].canShareGlobally == false
@@ -280,8 +282,26 @@ class XhBlueprintControllerSpec extends Specification implements ControllerUnitT
     //------------------
     // Implementation
     //------------------
+    def 'every action needs a type, and sees only blueprints of that type'() {
+        given:
+        def id = call('create', [name: 'Risk', blueprint: BP]).id
+
+        expect:
+        call('list', null, [type: 'other.app']) == []
+        call('open', null, [id: id, as: 'draft', type: 'other.app']) == null
+        call('open', null, [id: id, as: 'draft'])?.id == id
+
+        when:
+        call('list', null, [type: null])
+
+        then:
+        def e = thrown(RoutineRuntimeException)
+        e.message == "'type' must be a non-empty string"
+    }
+
     // Run an action on a fresh request, with a JSON body and params, and return its parsed JSON.
     private Object call(String action, Map body = null, Map params = [:]) {
+        params = [type: 'test.app'] + params
         def req = new GrailsMockHttpServletRequest()
         req.method = body != null ? 'POST' : 'GET'
         if (body != null) req.content = HoistJson.serialize(body).bytes

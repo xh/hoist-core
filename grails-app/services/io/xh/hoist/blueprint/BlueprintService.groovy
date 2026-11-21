@@ -25,6 +25,10 @@ import static io.xh.hoist.json.JSONSerializer.serialize
  * Stores blueprints: a draft per blueprint, numbered publishes that never change, and each user's
  * personalizations. Off until `xhBlueprintConfig.enabled` is set - see {@link BlueprintConfig}.
  *
+ * Every call names a blueprint `type`, such as `myApp.portfolio`, which scopes it: a blueprint of
+ * another type is reported as not found. Publishes and personalizations follow their blueprint.
+ * Names are unique per owner and type.
+ *
  * Access is checked here for every call, for the current (apparent) user:
  *   - Write access belongs to a blueprint's owner, its writers and `adminRoles`. It is needed for
  *     the draft, for any publish but the latest, and to list publishes.
@@ -53,7 +57,7 @@ class BlueprintService extends BaseService {
     private static final Set<String> RENAME_KINDS = ['element', 'variable', 'source'] as Set
     private static final Set<String> OPEN_KINDS = ['draft', 'publish'] as Set
     private static final List<String> SUMMARY_FIELDS = [
-        'token', 'name', 'description', 'owner', 'writers', 'readers', 'draftVersion',
+        'token', 'type', 'name', 'description', 'owner', 'writers', 'readers', 'draftVersion',
         'publishedVersion', 'lastUpdated', 'lastUpdatedBy', 'copiedFromToken', 'copiedFromVersion',
         'copiedFromKind'
     ]
@@ -62,13 +66,15 @@ class BlueprintService extends BaseService {
     // Blueprints
     //------------------
     /**
-     * Summaries of the blueprints the current user may read, as {@link #summaryOf} gives them.
-     * Leaves out the stored content.
+     * Summaries of the blueprints of a type the current user may read, as {@link #summaryOf} gives
+     * them. Leaves out the stored content.
      */
     @ReadOnly
-    List<Map> list() {
+    List<Map> list(String type) {
         ensureEnabled()
+        checkType(type)
         List rows = Blueprint.createCriteria().list {
+            eq('type', type)
             projections { SUMMARY_FIELDS.each { property(it) } }
         } as List
         return rows
@@ -101,9 +107,9 @@ class BlueprintService extends BaseService {
      * access, so a draft the user may not see looks the same as a missing one.
      */
     @ReadOnly
-    Blueprint getDraft(String token) {
+    Blueprint getDraft(String type, String token) {
         ensureEnabled()
-        Blueprint ret = Blueprint.findByToken(token)
+        Blueprint ret = Blueprint.findByTokenAndType(token, checkType(type))
         return ret && getAccess(ret) == WRITE ? ret : null
     }
 
@@ -113,9 +119,9 @@ class BlueprintService extends BaseService {
      * may not see it.
      */
     @ReadOnly
-    BlueprintPublish getPublish(String token, Integer number = null) {
+    BlueprintPublish getPublish(String type, String token, Integer number = null) {
         ensureEnabled()
-        Blueprint blueprint = Blueprint.findByToken(token)
+        Blueprint blueprint = Blueprint.findByTokenAndType(token, checkType(type))
         String access = blueprint ? getAccess(blueprint) : null
         if (!access) return null
 
@@ -127,9 +133,9 @@ class BlueprintService extends BaseService {
 
     /** Every publish of a blueprint, oldest first, without its content. Requires write access. */
     @ReadOnly
-    List<Map> listPublishes(String token) {
+    List<Map> listPublishes(String type, String token) {
         ensureEnabled()
-        Blueprint blueprint = find(token)
+        Blueprint blueprint = find(type, token)
         ensureAccess(blueprint, WRITE)
         List fields = ['number', 'dateCreated', 'publishedBy', 'note', 'renames']
         List rows = BlueprintPublish.createCriteria().list {
@@ -145,16 +151,19 @@ class BlueprintService extends BaseService {
     }
 
     /**
-     * Create a blueprint, owned by the current user, with the blueprint given as its first draft
-     * and no publish. Requires one of `createRoles`.
+     * Create a blueprint of a type, owned by the current user, with the blueprint given as its first
+     * draft and no publish. Requires one of `createRoles`, and a name the user has not used for
+     * that type.
      *
      * @param writers grantees with write access - usernames, `role:<ROLE>`, or `*`
      * @param readers grantees with read access, in the same form
-     * @param copiedFrom the source this blueprint was saved from, as `{id, version, as}`. The current
-     *      user must be able to open that version, as for {@link #getDraft} and {@link #getPublish}.
+     * @param copiedFrom the source this blueprint was saved from, as `{id, version, as}`, of the
+     *      same type. The current user must be able to open that version, as for {@link #getDraft}
+     *      and {@link #getPublish}.
      */
     @Transactional
     Blueprint create(
+        String type,
         String name,
         String description,
         Object blueprint,
@@ -167,8 +176,10 @@ class BlueprintService extends BaseService {
         List<String> writerList = writerGrantees(writers),
                      readerList = grantees(readers)
         ensureGlobalShareAllowed([], readerList)
-        Map source = checkedSource(copiedFrom)
+        Map source = checkedSource(type, copiedFrom)
+        ensureNameFree(type, name)
         new Blueprint(
+            type: type,
             name: name,
             description: description,
             owner: username,
@@ -190,12 +201,12 @@ class BlueprintService extends BaseService {
      * @throws BlueprintStaleBaseException if the draft is no longer at `base`
      */
     @Transactional
-    long saveDraft(String token, Object blueprint, long base, Object renames) {
+    long saveDraft(String type, String token, Object blueprint, long base, Object renames) {
         ensureEnabled()
         String draft = serializeContent(blueprint),
                pendingRenames = serializeRenames(renames)
 
-        Blueprint ret = lock(token)
+        Blueprint ret = lock(type, token)
         ensureAccess(ret, WRITE)
         ensureBase(ret, base)
         ret.draft = draft
@@ -216,9 +227,9 @@ class BlueprintService extends BaseService {
      * @throws BlueprintStaleBaseException if the draft is no longer at `base`
      */
     @Transactional
-    BlueprintPublish publish(String token, long base, String note = null) {
+    BlueprintPublish publish(String type, String token, long base, String note = null) {
         ensureEnabled()
-        Blueprint blueprint = lock(token)
+        Blueprint blueprint = lock(type, token)
         ensureNotImpersonatedAction('publish')
         if (!canPublish(blueprint)) {
             throw new NotAuthorizedException("User '$username' may not publish blueprint '$token'")
@@ -244,21 +255,22 @@ class BlueprintService extends BaseService {
     }
 
     /**
-     * Copy a blueprint into a new one, owned by the current user, whose draft is the source's
-     * latest publish, or the version given. The copy records its source, and has no publish.
-     * Requires one of `createRoles`, plus access to the source version, as for opening it.
+     * Copy a blueprint into a new one of the same type, owned by the current user, whose draft is
+     * the source's latest publish, or the version given. The copy records its source, and has no
+     * publish. Requires one of `createRoles`, access to the source version, as for opening it, and
+     * a name the user has not used for that type.
      *
      * @param kind 'publish' (default) or 'draft'
      * @param number a publish number - the latest if null. Ignored for a draft.
      * @return the copy, or null if the source has no such publish
      */
     @Transactional
-    Blueprint copy(String token, String name, String kind = 'publish', Integer number = null) {
+    Blueprint copy(String type, String token, String name, String kind = 'publish', Integer number = null) {
         ensureEnabled()
         ensureCanCreate()
         if (!(kind in OPEN_KINDS)) throw new RoutineRuntimeException("Unknown kind '$kind' - use 'draft' or 'publish'")
 
-        Blueprint source = find(token)
+        Blueprint source = find(type, token)
         String content
         long version
         if (kind == 'draft') {
@@ -267,13 +279,15 @@ class BlueprintService extends BaseService {
             version = source.draftVersion
         } else {
             if (number != null && number != source.publishedVersion) ensureAccess(source, WRITE)
-            BlueprintPublish publish = getPublish(token, number)
+            BlueprintPublish publish = getPublish(type, token, number)
             if (!publish) return null
             content = publish.content
             version = publish.number
         }
 
+        ensureNameFree(type, name)
         new Blueprint(
+            type: type,
             name: name,
             description: source.description,
             owner: username,
@@ -290,9 +304,9 @@ class BlueprintService extends BaseService {
      * transaction. Requires the owner or one of `adminRoles`.
      */
     @Transactional
-    void delete(String token) {
+    void delete(String type, String token) {
         ensureEnabled()
-        Blueprint target = lock(token)
+        Blueprint target = lock(type, token)
         ensureNotImpersonatedAction('delete')
         ensureCanManage(target)
         BlueprintPersonalization.where { blueprint == target }.deleteAll()
@@ -302,12 +316,12 @@ class BlueprintService extends BaseService {
 
     /** Set a blueprint's writers and readers. Requires the owner or one of `adminRoles`. */
     @Transactional
-    Blueprint updateAccess(String token, Object writers, Object readers) {
+    Blueprint updateAccess(String type, String token, Object writers, Object readers) {
         ensureEnabled()
         List<String> writerList = writerGrantees(writers),
                      readerList = grantees(readers)
 
-        Blueprint ret = lock(token)
+        Blueprint ret = lock(type, token)
         ensureNotImpersonatedAction('share')
         ensureCanManage(ret)
         ensureGlobalShareAllowed(parseArray(ret.readers), readerList)
@@ -318,12 +332,14 @@ class BlueprintService extends BaseService {
     }
 
     /**
-     * Make sure a global blueprint with this name and owner exists and publishes the given content.
+     * Make sure a global blueprint with this token exists, of this type and owner, and publishes
+     * the given content. The token is the app's own, so a seeded blueprint keeps one token, and
+     * one link, in every environment.
      *
      *   - If none exists, create it readable by everyone, publish its first version, and return it.
      *   - If one exists and its latest publish differs from the given content, save the content as
      *     its draft and publish it as the next version, both as `owner`, and return it.
-     *   - Otherwise return it unchanged.
+     *   - Otherwise return it unchanged, apart from taking the given name.
      *
      * A republish overwrites any edits made to the blueprint since, such as an admin's, published
      * or not, and discards its pending renames. It keeps the blueprint's description and sharing.
@@ -331,18 +347,32 @@ class BlueprintService extends BaseService {
      * For server code only, such as seeding an app's presets at startup. It bypasses every access
      * check - `createRoles`, `globalShareRoles` and the current user - so never expose it to a
      * client. `owner` need not be a real user. Run it on one instance, such as the primary, as two
-     * concurrent calls for the same name can both create.
+     * concurrent calls for the same token can both create.
      *
+     * @param token letters, digits, `.`, `_` and `-`, at most 64 characters, such as
+     *      `portfolio-overview`. Refused if a blueprint of another type or owner has it.
      * @param owner the name recorded as the blueprint's owner, publisher and last updater
      */
     @Transactional
-    Blueprint ensureGlobal(String name, String description, Object blueprint, String owner) {
+    Blueprint ensureGlobal(String type, String token, String name, String description, Object blueprint, String owner) {
         ensureEnabled()
+        checkType(type)
+        if (!(token ==~ /[A-Za-z0-9._-]{1,64}/)) {
+            throw new RoutineRuntimeException("A global blueprint token must be 1-64 letters, digits, '.', '_' or '-', got '$token'")
+        }
         String draft = serializeContent(blueprint)
-        Blueprint existing = Blueprint.findByNameAndOwner(name, owner, [lock: true])
-        if (existing) return republishIfChanged(existing, draft, owner)
+        Blueprint existing = Blueprint.findByToken(token, [lock: true])
+        if (existing) {
+            if (existing.type != type || existing.owner != owner) {
+                throw new RoutineRuntimeException("Blueprint token '$token' is taken by a blueprint of another type or owner")
+            }
+            existing.name = name
+            return republishIfChanged(existing, draft, owner)
+        }
 
         Blueprint ret = new Blueprint(
+            token: token,
+            type: type,
             name: name,
             description: description,
             owner: owner,
@@ -358,14 +388,17 @@ class BlueprintService extends BaseService {
             content: draft,
             publishedBy: owner
         ).save(flush: true, failOnError: true)
-        logInfo('Created global blueprint', [name: name, owner: owner, token: ret.token])
+        logInfo('Created global blueprint', [type: type, token: token, name: name, owner: owner])
         return ret
     }
 
     private Blueprint republishIfChanged(Blueprint blueprint, String draft, String owner) {
         BlueprintPublish latest = blueprint.publishedVersion ?
             BlueprintPublish.findByBlueprintAndNumber(blueprint, blueprint.publishedVersion) : null
-        if (latest && parseObject(latest.content) == parseObject(draft)) return blueprint
+        if (latest && parseObject(latest.content) == parseObject(draft)) {
+            if (blueprint.dirty) blueprint.save(flush: true, failOnError: true)
+            return blueprint
+        }
 
         int number = (blueprint.publishedVersion ?: 0) + 1
         new BlueprintPublish(
@@ -381,7 +414,7 @@ class BlueprintService extends BaseService {
         blueprint.publishedVersion = number
         blueprint.lastUpdatedBy = owner
         blueprint.save(flush: true, failOnError: true)
-        logInfo('Republished changed global blueprint', [name: blueprint.name, owner: owner, token: blueprint.token, number: number])
+        logInfo('Republished changed global blueprint', [type: blueprint.type, name: blueprint.name, owner: owner, token: blueprint.token, number: number])
         return blueprint
     }
 
@@ -390,9 +423,9 @@ class BlueprintService extends BaseService {
     //------------------
     /** The current user's personalizations of a blueprint. Requires read access. */
     @ReadOnly
-    List<BlueprintPersonalization> listPersonalizations(String token) {
+    List<BlueprintPersonalization> listPersonalizations(String type, String token) {
         ensureEnabled()
-        Blueprint blueprint = find(token)
+        Blueprint blueprint = find(type, token)
         ensureAccess(blueprint, READ)
         BlueprintPersonalization.findAllByBlueprintAndUsername(blueprint, username)
     }
@@ -406,14 +439,14 @@ class BlueprintService extends BaseService {
      * @param publishVersion the publish the ops were made against
      */
     @Transactional
-    BlueprintPersonalization savePersonalization(String token, Object preset, Object ops, int publishVersion) {
+    BlueprintPersonalization savePersonalization(String type, String token, Object preset, Object ops, int publishVersion) {
         ensureEnabled()
         if (preset != null && !(preset instanceof String && preset ==~ /[^:]+:[^:]+/)) {
             throw new RoutineRuntimeException("A preset must be 'group:item', got '$preset'")
         }
         String opsJson = serializeOps(ops)
 
-        Blueprint blueprint = find(token)
+        Blueprint blueprint = find(type, token)
         ensureAccess(blueprint, READ)
         if (publishVersion < 1 || publishVersion > (blueprint.publishedVersion ?: 0)) {
             throw new RoutineRuntimeException("Blueprint '$token' has no publish $publishVersion")
@@ -465,14 +498,27 @@ class BlueprintService extends BaseService {
         }
     }
 
-    // A blueprint the current user may read. One they may not read is reported as not found.
-    private Blueprint find(String token) {
-        readable(Blueprint.findByToken(token), token)
+    // A blueprint of the type the current user may read. Any other is reported as not found.
+    private Blueprint find(String type, String token) {
+        readable(Blueprint.findByTokenAndType(token, checkType(type)), token)
     }
 
     // As find, with a row lock (SELECT ... FOR UPDATE) held until the transaction ends.
-    private Blueprint lock(String token) {
-        readable(Blueprint.findByToken(token, [lock: true]), token)
+    private Blueprint lock(String type, String token) {
+        readable(Blueprint.findByTokenAndType(token, checkType(type), [lock: true]), token)
+    }
+
+    private static String checkType(String type) {
+        if (!type?.trim() || type.length() > 50) {
+            throw new RoutineRuntimeException("A blueprint type must be a non-blank string of at most 50 characters, got '$type'")
+        }
+        return type
+    }
+
+    private void ensureNameFree(String type, String name) {
+        if (Blueprint.countByOwnerAndTypeAndName(username, type, name)) {
+            throw new RoutineRuntimeException("You already have a blueprint named '$name'")
+        }
     }
 
     private Blueprint readable(Blueprint blueprint, String token) {
@@ -567,14 +613,14 @@ class BlueprintService extends BaseService {
 
     // A source as {id, version, as}, checked as for opening it: the latest publish needs read
     // access, a draft or older publish write. A draft version may be stale, but not ahead.
-    private Map checkedSource(Object source) {
+    private Map checkedSource(String type, Object source) {
         if (source == null) return null
         if (!(source instanceof Map) || !(source.id instanceof String) || !(source.version instanceof Number) || !(source.as in OPEN_KINDS)) {
             throw new RoutineRuntimeException("copiedFrom must be {id, version, as}, with as 'draft' or 'publish', got ${serialize(source)}")
         }
         String token = source.id
         long version = (source.version as Number).longValue()
-        Blueprint blueprint = find(token)
+        Blueprint blueprint = find(type, token)
         if (source.as == 'draft') {
             ensureAccess(blueprint, WRITE)
             if (version < 1 || version > blueprint.draftVersion) {

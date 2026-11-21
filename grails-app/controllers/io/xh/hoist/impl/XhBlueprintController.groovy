@@ -20,8 +20,9 @@ import static io.xh.hoist.json.JSONParser.parseObject
 
 /**
  * Endpoints for a client `BlueprintRepository`, one per repository method, at `xhBlueprint/*`.
- * JSON matches the library's types, with a blueprint's token as its `id`. Access is checked by
- * {@link BlueprintService} for every call.
+ * JSON matches the library's types, with a blueprint's token as its `id` - no database id is sent
+ * or read. Every action needs a `type` param, in the query string for POSTs too, which scopes it
+ * as described on {@link BlueprintService}. Access is checked by that service for every call.
  */
 @AccessAll
 class XhBlueprintController extends BaseController {
@@ -29,7 +30,7 @@ class XhBlueprintController extends BaseController {
     BlueprintService blueprintService
 
     def list() {
-        renderJSON(blueprintService.list().collect { summaryJSON(it) })
+        renderJSON(blueprintService.list(blueprintType).collect { summaryJSON(it) })
     }
 
     def canCreate() {
@@ -42,10 +43,10 @@ class XhBlueprintController extends BaseController {
      */
     def open(String id) {
         if (params.as == 'draft') {
-            Blueprint draft = blueprintService.getDraft(id)
+            Blueprint draft = blueprintService.getDraft(blueprintType, id)
             renderJSON(draft ? draftRecord(draft) : null)
         } else {
-            BlueprintPublish publish = blueprintService.getPublish(id, optionalInt(params.version, 'version'))
+            BlueprintPublish publish = blueprintService.getPublish(blueprintType, id, optionalInt(params.version, 'version'))
             renderJSON(publish ? publishRecord(publish) : null)
         }
     }
@@ -53,6 +54,7 @@ class XhBlueprintController extends BaseController {
     def create() {
         Map body = parseRequestJSON()
         renderJSON(draftRecord(blueprintService.create(
+            blueprintType,
             requiredString(body.name, 'name'),
             optionalString(body.description, 'description'),
             body.blueprint,
@@ -65,7 +67,7 @@ class XhBlueprintController extends BaseController {
     def saveDraft(String id) {
         Map body = parseRequestJSON()
         try {
-            long version = blueprintService.saveDraft(id, body.blueprint, requiredLong(body.base, 'base'), body.renames)
+            long version = blueprintService.saveDraft(blueprintType, id, body.blueprint, requiredLong(body.base, 'base'), body.renames)
             renderJSON(version: version, issues: [])
         } catch (BlueprintStaleBaseException e) {
             renderJSON(issues: [staleBaseIssue(e)])
@@ -75,7 +77,7 @@ class XhBlueprintController extends BaseController {
     def publish(String id) {
         Map body = parseRequestJSON()
         try {
-            BlueprintPublish publish = blueprintService.publish(id, requiredLong(body.base, 'base'), optionalString(body.note, 'note'))
+            BlueprintPublish publish = blueprintService.publish(blueprintType, id, requiredLong(body.base, 'base'), optionalString(body.note, 'note'))
             renderJSON(publish: publishJSON(publish), draftVersion: publish.blueprint.draftVersion, issues: [])
         } catch (BlueprintStaleBaseException e) {
             renderJSON(issues: [staleBaseIssue(e)])
@@ -83,7 +85,7 @@ class XhBlueprintController extends BaseController {
     }
 
     def listPublishes(String id) {
-        renderJSON(blueprintService.listPublishes(id).collect {
+        renderJSON(blueprintService.listPublishes(blueprintType, id).collect {
             compact(version: it.number, published: (it.dateCreated as Date).time, publishedBy: it.publishedBy, note: it.note, renames: it.renames)
         })
     }
@@ -93,39 +95,44 @@ class XhBlueprintController extends BaseController {
         if (body.from != null && !(body.from instanceof Map)) throw new RoutineRuntimeException("'from' must be {as, version}")
         Map from = (body.from ?: [:]) as Map
         Blueprint copy = blueprintService.copy(
-            id, requiredString(body.name, 'name'), (optionalString(from.as, 'from.as') ?: 'publish'), optionalInt(from.version, 'from.version')
+            blueprintType, id, requiredString(body.name, 'name'), (optionalString(from.as, 'from.as') ?: 'publish'), optionalInt(from.version, 'from.version')
         )
         renderJSON(copy ? draftRecord(copy) : null)
     }
 
     def delete(String id) {
-        blueprintService.delete(id)
+        blueprintService.delete(blueprintType, id)
         renderSuccess()
     }
 
     def personalizations(String blueprintId) {
-        renderJSON(blueprintService.listPersonalizations(blueprintId).collect { personalizationJSON(it, blueprintId) })
+        renderJSON(blueprintService.listPersonalizations(blueprintType, blueprintId).collect { personalizationJSON(it, blueprintId) })
     }
 
     def savePersonalization() {
         Map body = parseRequestJSON()
         String blueprintId = requiredString(body.blueprintId, 'blueprintId')
-        def saved = blueprintService.savePersonalization(blueprintId, body.preset, body.ops, requiredLong(body.publishVersion, 'publishVersion') as int)
+        def saved = blueprintService.savePersonalization(blueprintType, blueprintId, body.preset, body.ops, requiredLong(body.publishVersion, 'publishVersion') as int)
         renderJSON(personalizationJSON(saved, blueprintId))
     }
 
     def updateAccess(String id) {
         Map body = parseRequestJSON()
-        blueprintService.updateAccess(id, body.writers, body.readers)
+        blueprintService.updateAccess(blueprintType, id, body.writers, body.readers)
         renderSuccess()
     }
 
     //------------------
     // Implementation
     //------------------
+    private String getBlueprintType() {
+        requiredString(params.type, 'type')
+    }
+
     private Map summaryJSON(Map s) {
         compact(
             id: s.token,
+            type: s.type,
             name: s.name,
             description: s.description,
             owner: s.owner,

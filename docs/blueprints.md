@@ -11,6 +11,14 @@ Each blueprint has one draft, which designers edit, and a series of numbered pub
 change. Users run the latest publish. Each user can also keep personalizations of a blueprint,
 one per preset.
 
+Each blueprint has a `type`, such as `myApp.portfolio`, which the app picks. Every call names a
+type and sees only blueprints of that type, so two apps, or two kinds of blueprint in one app,
+never reach each other's. A blueprint of another type looks the same as a missing one. Names are
+unique per owner and type.
+
+A blueprint's `token` is its identity, in every environment. It is the only id that reaches a
+client or a URL. Database ids never leave the server.
+
 Blueprint storage is off by default. An app turns it on with `enabled` in the `xhBlueprintConfig`
 soft config. While it is off, every call to `BlueprintService` fails, and the endpoints return a
 400 response.
@@ -36,7 +44,7 @@ blueprint format.
 
 | Domain | Table | Holds |
 |--------|-------|-------|
-| `Blueprint` | `xh_blueprint` | `token` (the client's `id`), name, description, `owner`, `writers`, `readers`, the `draft` JSON, `draftVersion`, `pendingRenames`, `publishedVersion`, and the source of a copy |
+| `Blueprint` | `xh_blueprint` | `token` (the client's `id`), `type`, name, description, `owner`, `writers`, `readers`, the `draft` JSON, `draftVersion`, `pendingRenames`, `publishedVersion`, and the source of a copy |
 | `BlueprintPublish` | `xh_blueprint_publish` | The publish `number`, its content, the renames it carries, a note and `publishedBy` |
 | `BlueprintPersonalization` | `xh_blueprint_personalization` | `username`, `preset`, `set` and `remove` ops, and the `publishVersion` they were made against |
 
@@ -48,19 +56,21 @@ blueprint, user and preset keeps one personalization per preset.
 
 | Method | Access needed | Returns |
 |--------|---------------|---------|
-| `list()` | Read | Summaries of the blueprints the user may read |
-| `getDraft(token)` | Write | The blueprint with its draft, or null |
-| `getPublish(token, number?)` | Read for the latest, write for an older one | The publish, or null |
-| `listPublishes(token)` | Write | Every publish, oldest first, without content |
-| `create(name, description, blueprint, writers?, readers?, copiedFrom?)` | One of `createRoles`, plus access to open `copiedFrom` | The new blueprint, owned by the current user |
-| `saveDraft(token, blueprint, base, renames)` | Write | The draft's new version |
-| `publish(token, base, note?)` | Write, plus `publishRoles` if set | The new publish |
-| `copy(token, name, kind?, number?)` | Read on the source version, plus one of `createRoles` | The copy, or null if the source has no publish |
-| `delete(token)` | Owner or admin | Nothing. Also deletes its publishes and every user's personalizations |
-| `updateAccess(token, writers, readers)` | Owner or admin | The blueprint |
-| `ensureGlobal(name, description, blueprint, owner)` | None. For server code only | The global blueprint with this name and owner, created, or published again if its content changed |
-| `listPersonalizations(token)` | Read | The current user's personalizations |
-| `savePersonalization(token, preset, ops, publishVersion)` | Read | The saved personalization |
+| `list(type)` | Read | Summaries of the blueprints of the type the user may read |
+| `getDraft(type, token)` | Write | The blueprint with its draft, or null |
+| `getPublish(type, token, number?)` | Read for the latest, write for an older one | The publish, or null |
+| `listPublishes(type, token)` | Write | Every publish, oldest first, without content |
+| `create(type, name, description, blueprint, writers?, readers?, copiedFrom?)` | One of `createRoles`, plus access to open `copiedFrom`, of the same type | The new blueprint, owned by the current user |
+| `saveDraft(type, token, blueprint, base, renames)` | Write | The draft's new version |
+| `publish(type, token, base, note?)` | Write, plus `publishRoles` if set | The new publish |
+| `copy(type, token, name, kind?, number?)` | Read on the source version, plus one of `createRoles` | The copy, of the same type, or null if the source has no publish |
+| `delete(type, token)` | Owner or admin | Nothing. Also deletes its publishes and every user's personalizations |
+| `updateAccess(type, token, writers, readers)` | Owner or admin | The blueprint |
+| `ensureGlobal(type, token, name, description, blueprint, owner)` | None. For server code only | The global blueprint with this token, created, or published again if its content changed |
+| `listPersonalizations(type, token)` | Read | The current user's personalizations |
+| `savePersonalization(type, token, preset, ops, publishVersion)` | Read | The saved personalization |
+
+A `create` or `copy` with a name the user already has for the type fails with a 400 response.
 
 ## Access Control
 
@@ -108,11 +118,14 @@ publish therefore fails as stale, and cannot add the published renames again.
 ## Seeding Global Blueprints
 
 Server code can seed blueprints that every user reads, such as an app's presets, with
-`ensureGlobal`. If no blueprint with the given name and owner exists, the method creates it with
-`*` as its reader, publishes it once, and returns it. If one exists and its latest publish differs
-from the given content, the method saves the content as the draft and publishes it as the next
-version. Otherwise it returns the blueprint unchanged. The owner is any name the app picks, and
-need not be a real user. It is also the publisher of each version.
+`ensureGlobal`. The app gives each one a token, such as `portfolio-overview`, so it keeps one token,
+and one link, in every environment. A token is 1-64 letters, digits, `.`, `_` or `-`.
+
+If no blueprint has the token, the method creates it with `*` as its reader, publishes it once,
+and returns it. If one exists and its latest publish differs from the given content, the method
+saves the content as the draft and publishes it as the next version. It also takes the given name.
+A token held by a blueprint of another type or owner is refused. The owner is any name the app
+picks, and need not be a real user. It is also the publisher of each version.
 
 A new version replaces any edits made since, such as an admin's, published or not, and discards
 their pending renames. The blueprint keeps its description and sharing. To change a seeded
@@ -120,12 +133,12 @@ blueprint for good, change the content the app seeds.
 
 `ensureGlobal` bypasses every access check: `createRoles`, `globalShareRoles` and the current user.
 Call it only from server code, and never expose it to a client. Call it on one instance, such as
-the primary, because two concurrent calls for the same name can both create. It still needs
+the primary, because two concurrent calls for the same token can both create. It still needs
 `enabled`, and it still checks the content's structure.
 
 ```groovy
 if (isPrimary) {
-    blueprintService.ensureGlobal('Morning report', null, morningReport, 'my-app')
+    blueprintService.ensureGlobal('myApp.portfolio', 'morning-report', 'Morning report', null, morningReport, 'my-app')
 }
 ```
 
@@ -148,7 +161,9 @@ In any list, the role `*` grants that right to all users.
 ## Endpoints
 
 `XhBlueprintController` serves one action per `BlueprintRepository` method. The JSON matches the
-library's types, with a blueprint's token as its `id`.
+library's types, with a blueprint's token as its `id`. Every action needs a `type` param, in the
+query string for a POST too, such as `xhBlueprint/list?type=myApp.portfolio`. A missing type
+returns 400.
 
 | Action | Method | Body or params | Response |
 |--------|--------|----------------|----------|
@@ -169,7 +184,7 @@ A `create` can name the version it was saved from as `copiedFrom: {id, version, 
 to save a stale draft as a new blueprint. The user must be able to open that version. A draft
 version can be older than the current one, but not newer.
 
-Summaries and records carry the `owner`'s username, and `access`, `canPublish`, `canShare` and `canShareGlobally`. They carry `sharing`, with the
+Summaries and records carry the `type`, the `owner`'s username, and `access`, `canPublish`, `canShare` and `canShareGlobally`. They carry `sharing`, with the
 writers and readers, only when `canShare` is true. A stale base returns HTTP 200 with an
 `edit.staleBase` issue. A malformed request returns 400.
 

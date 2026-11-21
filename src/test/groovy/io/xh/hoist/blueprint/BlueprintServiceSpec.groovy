@@ -25,6 +25,8 @@ import static io.xh.hoist.json.JSONParser.parseObject
  */
 class BlueprintServiceSpec extends Specification implements ServiceUnitTest<BlueprintService>, DataTest, HoistUnitTest {
 
+    static final String T = 'test.app'
+
     static final Map BP = [schema: [blueprint: 1], elements: [root: [component: 'dashCanvas']]]
     static final Map RENAME = [kind: 'element', from: 'grid', to: 'posGrid']
 
@@ -48,7 +50,7 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         setConfig(enabled: false)
 
         when:
-        service.list()
+        service.list(T)
 
         then:
         def e = thrown(RoutineRuntimeException)
@@ -57,7 +59,7 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
     def 'creating needs a create role, and the creator owns the blueprint'() {
         when:
-        def bp = service.create('Risk', 'Desk risk', BP)
+        def bp = service.create(T, 'Risk', 'Desk risk', BP)
 
         then:
         bp.owner == 'owner'
@@ -74,7 +76,7 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         !service.canCreate()
 
         when:
-        service.create('Mine', null, BP)
+        service.create(T, 'Mine', null, BP)
 
         then:
         thrown(NotAuthorizedException)
@@ -82,13 +84,13 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
     def 'a draft save needs the current base, and a stale one changes nothing'() {
         given:
-        def token = service.create('Risk', null, BP).token
+        def token = service.create(T, 'Risk', null, BP).token
 
         expect:
-        service.saveDraft(token, [*: BP, title: 'v2'], 1, [RENAME]) == 2
+        service.saveDraft(T, token, [*: BP, title: 'v2'], 1, [RENAME]) == 2
 
         when:
-        service.saveDraft(token, [*: BP, title: 'stale'], 1, [])
+        service.saveDraft(T, token, [*: BP, title: 'stale'], 1, [])
 
         then:
         def e = thrown(BlueprintStaleBaseException)
@@ -96,7 +98,7 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         e.current == 2
 
         and:
-        def draft = service.getDraft(token)
+        def draft = service.getDraft(T, token)
         draft.draftVersion == 2
         parseObject(draft.draft).title == 'v2'
         parseArray(draft.pendingRenames) == [RENAME]
@@ -104,11 +106,11 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
     def 'each publish takes the next number with the pending renames, and bumps the draft version'() {
         given:
-        def token = service.create('Risk', null, BP).token
-        service.saveDraft(token, BP, 1, [RENAME])
+        def token = service.create(T, 'Risk', null, BP).token
+        service.saveDraft(T, token, BP, 1, [RENAME])
 
         when:
-        def first = service.publish(token, 2, 'First')
+        def first = service.publish(T, token, 2, 'First')
 
         then:
         first.number == 1
@@ -117,29 +119,29 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         first.blueprint.draftVersion == 3
 
         when: 'a save based on the draft from before the publish'
-        service.saveDraft(token, BP, 2, [RENAME])
+        service.saveDraft(T, token, BP, 2, [RENAME])
 
         then: 'is refused, rather than re-adding the published rename'
         thrown(BlueprintStaleBaseException)
 
         when:
-        def second = service.publish(token, 3)
+        def second = service.publish(T, token, 3)
 
         then:
         second.number == 2
         parseArray(second.renames) == []
 
         and:
-        def draft = service.getDraft(token)
+        def draft = service.getDraft(T, token)
         draft.draftVersion == 4
         draft.publishedVersion == 2
         draft.pendingRenames == '[]'
         parseObject(draft.draft) == BP
-        service.listPublishes(token)*.number == [1, 2]
-        service.listPublishes(token)[0].renames == [RENAME]
+        service.listPublishes(T, token)*.number == [1, 2]
+        service.listPublishes(T, token)[0].renames == [RENAME]
 
         when:
-        service.publish(token, 3)
+        service.publish(T, token, 3)
 
         then:
         thrown(BlueprintStaleBaseException)
@@ -147,30 +149,30 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
     def 'readers see only the latest publish, and only once there is one'() {
         given:
-        def token = service.create('Risk', null, BP, [], ['reader']).token
+        def token = service.create(T, 'Risk', null, BP, [], ['reader']).token
 
         when:
         loginAs(reader)
 
         then:
-        service.list() == []
+        service.list(T) == []
         info(token).subMap('access', 'canPublish', 'canManage') == [access: 'read', canPublish: false, canManage: false]
         !info(token).containsKey('writers') && !info(token).containsKey('readers')
-        service.getPublish(token) == null
+        service.getPublish(T, token) == null
 
         when:
         loginAs(owner)
-        service.publish(token, 1)
-        service.saveDraft(token, [*: BP, title: 'later'], 2, [])
-        service.publish(token, 3)
+        service.publish(T, token, 1)
+        service.saveDraft(T, token, [*: BP, title: 'later'], 2, [])
+        service.publish(T, token, 3)
         loginAs(reader)
 
         then:
-        service.list()*.token == [token]
-        service.list()[0].access == 'read'
-        service.getPublish(token).number == 2
-        service.getDraft(token) == null
-        service.getPublish(token, 1) == null
+        service.list(T)*.token == [token]
+        service.list(T)[0].access == 'read'
+        service.getPublish(T, token).number == 2
+        service.getDraft(T, token) == null
+        service.getPublish(T, token, 1) == null
 
         when:
         call(service)
@@ -180,15 +182,15 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
         where:
         call << [
-            { BlueprintService s -> s.listPublishes(s.list()[0].token as String) },
-            { BlueprintService s -> s.publish(s.list()[0].token as String, 2) },
-            { BlueprintService s -> s.saveDraft(s.list()[0].token as String, BP, 2, []) }
+            { BlueprintService s -> s.listPublishes(T, s.list(T)[0].token as String) },
+            { BlueprintService s -> s.publish(T, s.list(T)[0].token as String, 2) },
+            { BlueprintService s -> s.saveDraft(T, s.list(T)[0].token as String, BP, 2, []) }
         ]
     }
 
     def 'grantees can be usernames, roles or everyone, and admins have write everywhere'() {
         given:
-        def token = service.create('Risk', null, BP, ['role:EDITOR'], ['*']).token
+        def token = service.create(T, 'Risk', null, BP, ['role:EDITOR'], ['*']).token
 
         expect:
         accessAs(editor, token) == 'write'
@@ -199,24 +201,24 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
     def 'only the owner or an admin may manage access or delete'() {
         given:
-        def token = service.create('Risk', null, BP, ['editor'], []).token
+        def token = service.create(T, 'Risk', null, BP, ['editor'], []).token
 
         when:
         loginAs(editor)
-        service.updateAccess(token, [], [])
+        service.updateAccess(T, token, [], [])
 
         then:
         thrown(NotAuthorizedException)
 
         when:
-        service.delete(token)
+        service.delete(T, token)
 
         then:
         thrown(NotAuthorizedException)
 
         when:
         loginAs(admin)
-        def bp = service.updateAccess(token, ['designer'], ['role:EDITOR'])
+        def bp = service.updateAccess(T, token, ['designer'], ['role:EDITOR'])
 
         then:
         parseArray(bp.writers) == ['designer']
@@ -225,13 +227,13 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
     def 'an impersonating admin may view and edit the draft, but not #action'() {
         given:
-        def token = service.create('Risk', null, BP).token
+        def token = service.create(T, 'Risk', null, BP).token
         loginAs(admin)
         impersonate('owner', 'admin')
 
         expect: 'the impersonated user\'s access, for viewing and draft edits'
-        service.getDraft(token).owner == 'owner'
-        service.saveDraft(token, BP, 1, []) == 2
+        service.getDraft(T, token).owner == 'owner'
+        service.saveDraft(T, token, BP, 1, []) == 2
 
         when:
         call(service, token)
@@ -242,9 +244,9 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
         where:
         action    | past        | call
-        'publish' | 'published' | { BlueprintService s, String t -> s.publish(t, 2) }
-        'share'   | 'shared'    | { BlueprintService s, String t -> s.updateAccess(t, ['editor'], []) }
-        'delete'  | 'deleted'   | { BlueprintService s, String t -> s.delete(t) }
+        'publish' | 'published' | { BlueprintService s, String t -> s.publish(T, t, 2) }
+        'share'   | 'shared'    | { BlueprintService s, String t -> s.updateAccess(T, t, ['editor'], []) }
+        'delete'  | 'deleted'   | { BlueprintService s, String t -> s.delete(T, t) }
     }
 
     def 'sharing with everyone needs globalShareRoles to add it, but not to keep or remove it'() {
@@ -252,35 +254,35 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         setConfig(globalShareRoles: ['HOIST_ADMIN'])
 
         when:
-        service.create('Mine', null, BP, [], ['*'])
+        service.create(T, 'Mine', null, BP, [], ['*'])
 
         then:
         def e = thrown(NotAuthorizedException)
         e.message.contains('globalShareRoles')
 
         when:
-        def token = service.create('Mine', null, BP, ['editor'], ['role:EDITOR']).token
+        def token = service.create(T, 'Mine', null, BP, ['editor'], ['role:EDITOR']).token
 
         then:
         !info(token).canShareGlobally
 
         when:
-        service.updateAccess(token, [], ['*'])
+        service.updateAccess(T, token, [], ['*'])
 
         then:
         thrown(NotAuthorizedException)
 
         when: 'an admin shares it with everyone'
         loginAs(admin)
-        service.updateAccess(token, [], ['*'])
+        service.updateAccess(T, token, [], ['*'])
 
         then:
         info(token).canShareGlobally
 
         when: 'its owner keeps everyone while changing other grants, then removes everyone'
         loginAs(owner)
-        service.updateAccess(token, ['editor'], ['*'])
-        def removed = service.updateAccess(token, ['editor'], [])
+        service.updateAccess(T, token, ['editor'], ['*'])
+        def removed = service.updateAccess(T, token, ['editor'], [])
 
         then:
         parseArray(removed.readers) == []
@@ -290,11 +292,11 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
         then:
         info(token).canShareGlobally
-        parseArray(service.updateAccess(token, [], ['*']).readers) == ['*']
+        parseArray(service.updateAccess(T, token, [], ['*']).readers) == ['*']
 
         when: 'everyone as a writer, even for an admin'
         loginAs(admin)
-        service.updateAccess(token, ['*'], [])
+        service.updateAccess(T, token, ['*'], [])
 
         then:
         def writers = thrown(RoutineRuntimeException)
@@ -302,7 +304,7 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
         when:
         loginAs(owner)
-        service.create('Open', null, BP, ['*'], [])
+        service.create(T, 'Open', null, BP, ['*'], [])
 
         then:
         thrown(RoutineRuntimeException)
@@ -313,8 +315,8 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         logout()
 
         when:
-        def first = service.ensureGlobal('P1. One grid', null, BP, 'toolbox')
-        def again = service.ensureGlobal('P1. One grid', null, BP, 'toolbox')
+        def first = service.ensureGlobal(T, 'p1', 'P1. One grid', null, BP, 'toolbox')
+        def again = service.ensureGlobal(T, 'p1', 'P1. One grid', null, BP, 'toolbox')
 
         then:
         again.token == first.token
@@ -330,21 +332,21 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         loginAs(stranger)
 
         then:
-        service.list()*.token == [first.token]
+        service.list(T)*.token == [first.token]
         info(first.token).subMap('access', 'canManage') == [access: 'read', canManage: false]
-        service.getPublish(first.token).number == 1
-        service.getDraft(first.token) == null
+        service.getPublish(T, first.token).number == 1
+        service.getDraft(T, first.token) == null
     }
 
     def 'ensureGlobal republishes a global blueprint whose latest publish differs, as its owner'() {
         given:
         logout()
-        def token = service.ensureGlobal('P1. One grid', null, BP, 'toolbox').token
+        def token = service.ensureGlobal(T, 'p1', 'P1. One grid', null, BP, 'toolbox').token
         Map changed = [*: BP, title: 'changed']
 
         when:
-        def ret = service.ensureGlobal('P1. One grid', null, changed, 'toolbox')
-        service.ensureGlobal('P1. One grid', null, changed, 'toolbox')
+        def ret = service.ensureGlobal(T, 'p1', 'P1. One grid', null, changed, 'toolbox')
+        service.ensureGlobal(T, 'p1', 'P1. One grid', null, changed, 'toolbox')
 
         then:
         ret.token == token
@@ -364,28 +366,68 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
     def 'ensureGlobal replaces an admin\'s edits to a global blueprint, keeping its sharing'() {
         given:
-        def token = service.ensureGlobal('P1. One grid', null, BP, 'toolbox').token
+        def token = service.ensureGlobal(T, 'p1', 'P1. One grid', null, BP, 'toolbox').token
         loginAs(admin)
-        service.saveDraft(token, [*: BP, title: 'edited'], 2, [RENAME])
-        service.publish(token, 3)
-        service.saveDraft(token, [*: BP, title: 'unpublished'], 4, [])
-        service.updateAccess(token, ['designer'], ['*'])
+        service.saveDraft(T, token, [*: BP, title: 'edited'], 2, [RENAME])
+        service.publish(T, token, 3)
+        service.saveDraft(T, token, [*: BP, title: 'unpublished'], 4, [])
+        service.updateAccess(T, token, ['designer'], ['*'])
 
         when:
-        def ret = service.ensureGlobal('P1. One grid', null, BP, 'toolbox')
+        def ret = service.ensureGlobal(T, 'p1', 'P1. One grid', null, BP, 'toolbox')
 
         then:
         [ret.draftVersion, ret.publishedVersion] == [7L, 3]
         parseObject(ret.draft) == BP
         parseArray(ret.pendingRenames) == []
-        parseObject(service.getPublish(token).content) == BP
+        parseObject(service.getPublish(T, token).content) == BP
         parseArray(ret.writers) == ['designer']
+    }
+
+    def 'ensureGlobal keeps its token across names, and refuses a token of another type or owner'() {
+        given:
+        logout()
+        def first = service.ensureGlobal(T, 'portfolio-overview', 'S1. Overview', null, BP, 'toolbox')
+
+        when:
+        def renamed = service.ensureGlobal(T, 'portfolio-overview', 'S1. Portfolio overview', null, BP, 'toolbox')
+
+        then:
+        first.token == 'portfolio-overview'
+        renamed.id == first.id
+        Blueprint.count() == 1
+        BlueprintPublish.count() == 1
+        Blueprint.findByToken('portfolio-overview').name == 'S1. Portfolio overview'
+
+        when:
+        service.ensureGlobal(type, 'portfolio-overview', 'S1', null, BP, seeder)
+
+        then:
+        def e = thrown(RoutineRuntimeException)
+        e.message == "Blueprint token 'portfolio-overview' is taken by a blueprint of another type or owner"
+
+        where:
+        type        | seeder
+        'other.app' | 'toolbox'
+        T           | 'someone'
+    }
+
+    def 'ensureGlobal takes only a URL-safe token'() {
+        when:
+        service.ensureGlobal(T, token, 'S1', null, BP, 'toolbox')
+
+        then:
+        def e = thrown(RoutineRuntimeException)
+        e.message.startsWith('A global blueprint token must be')
+
+        where:
+        token << ['', 'has space', 'a/b', 'x' * 65, null]
     }
 
     def 'ensureGlobal still needs storage enabled, and checks content structure'() {
         when:
         setConfig(enabled: false)
-        service.ensureGlobal('P1', null, BP, 'toolbox')
+        service.ensureGlobal(T, 'p1', 'P1', null, BP, 'toolbox')
 
         then:
         def disabled = thrown(RoutineRuntimeException)
@@ -393,20 +435,96 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
         when:
         setConfig()
-        service.ensureGlobal('P1', null, [a: ['__proto__': 1]], 'toolbox')
+        service.ensureGlobal(T, 'p1', 'P1', null, [a: ['__proto__': 1]], 'toolbox')
 
         then:
         def forbidden = thrown(RoutineRuntimeException)
         forbidden.message.contains("'__proto__' is forbidden")
     }
 
+    def 'a type scopes every call, so a blueprint of another type looks missing'() {
+        given:
+        def token = service.create(T, 'Risk', null, BP, [], ['*']).token
+        service.publish(T, token, 1)
+        String other = 'other.app'
+
+        expect:
+        service.list(other) == []
+        service.getDraft(other, token) == null
+        service.getPublish(other, token) == null
+        service.list(T)*.type == [T]
+
+        when:
+        service."$method"(other, token, *args)
+
+        then:
+        thrown(BlueprintNotFoundException)
+
+        when: 'a copiedFrom of another type'
+        service.create(other, 'Copy', null, BP, [], [], [id: token, version: 1, as: 'publish'])
+
+        then:
+        thrown(BlueprintNotFoundException)
+
+        where:
+        method                 | args
+        'saveDraft'            | [BP, 2L, []]
+        'publish'              | [2L]
+        'listPublishes'        | []
+        'copy'                 | ['Copy']
+        'updateAccess'         | [[], []]
+        'delete'               | []
+        'listPersonalizations' | []
+        'savePersonalization'  | [null, [], 1]
+    }
+
+    def 'names are unique per owner and type'() {
+        given:
+        def token = service.create(T, 'Risk', null, BP).token
+        service.publish(T, token, 1)
+
+        when:
+        service.create(T, 'Risk', null, BP)
+
+        then:
+        def e = thrown(RoutineRuntimeException)
+        e.message == "You already have a blueprint named 'Risk'"
+
+        when:
+        service.copy(T, token, 'Risk')
+
+        then:
+        thrown(RoutineRuntimeException)
+
+        when: 'another type, or another owner'
+        service.create('other.app', 'Risk', null, BP)
+        service.updateAccess(T, token, [], ['designer'])
+        loginAs(designer)
+        service.copy(T, token, 'Risk')
+
+        then:
+        Blueprint.countByName('Risk') == 3
+    }
+
+    def 'a type must be a non-blank string of at most 50 characters'() {
+        when:
+        service.list(type)
+
+        then:
+        def e = thrown(RoutineRuntimeException)
+        e.message.startsWith('A blueprint type must be')
+
+        where:
+        type << [null, '', '  ', 'x' * 51]
+    }
+
     def 'publishRoles narrow publishing for writers, but not for admins'() {
         given:
         setConfig(publishRoles: ['PUBLISHER'])
-        def token = service.create('Risk', null, BP).token
+        def token = service.create(T, 'Risk', null, BP).token
 
         when:
-        service.publish(token, 1)
+        service.publish(T, token, 1)
 
         then:
         thrown(NotAuthorizedException)
@@ -416,21 +534,21 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         loginAs(admin)
 
         then:
-        service.publish(token, 1).number == 1
+        service.publish(T, token, 1).number == 1
     }
 
     def 'a copy takes the latest publish by default, records its source, and needs a create role'() {
         given:
-        def token = service.create('Risk', 'Desk risk', BP, [], ['designer']).token
+        def token = service.create(T, 'Risk', 'Desk risk', BP, [], ['designer']).token
 
         expect: 'nothing to copy before a publish'
-        service.copy(token, 'Copy') == null
+        service.copy(T, token, 'Copy') == null
 
         when:
-        service.saveDraft(token, [*: BP, title: 'published'], 1, [])
-        service.publish(token, 2)
+        service.saveDraft(T, token, [*: BP, title: 'published'], 1, [])
+        service.publish(T, token, 2)
         loginAs(designer)
-        def copy = service.copy(token, 'My copy')
+        def copy = service.copy(T, token, 'My copy')
 
         then:
         copy.owner == 'designer'
@@ -442,14 +560,14 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         [copy.copiedFromToken, copy.copiedFromVersion, copy.copiedFromKind] == [token, 1L, 'publish']
 
         when: 'a reader copying the draft'
-        service.copy(token, 'Draft copy', 'draft')
+        service.copy(T, token, 'Draft copy', 'draft')
 
         then:
         thrown(NotAuthorizedException)
 
         when: 'a reader without a create role'
         loginAs(reader)
-        service.copy(token, 'No')
+        service.copy(T, token, 'No')
 
         then:
         thrown(NotAuthorizedException)
@@ -457,13 +575,13 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
     def 'create records a source the user may open: #source'() {
         given: 'a blueprint at draft version 3, with publishes 1 and 2, which designer may read'
-        def token = service.create('Risk', null, BP, [], ['designer']).token
-        service.publish(token, 1)
-        service.publish(token, 2)
+        def token = service.create(T, 'Risk', null, BP, [], ['designer']).token
+        service.publish(T, token, 1)
+        service.publish(T, token, 2)
         loginAs(user == 'owner' ? owner : designer)
 
         when:
-        def copy = service.create('Saved', null, BP, [], [], [id: token, version: version, as: kind])
+        def copy = service.create(T, 'Saved', null, BP, [], [], [id: token, version: version, as: kind])
 
         then:
         [copy.copiedFromToken, copy.copiedFromVersion, copy.copiedFromKind] == [token, version as Long, kind]
@@ -479,14 +597,14 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
     def 'create refuses a source the user may not open: #problem'() {
         given:
-        def token = service.create('Risk', null, BP, [], ['designer']).token
-        service.publish(token, 1)
-        service.publish(token, 2)
-        def hidden = service.create('Hidden', null, BP).token
+        def token = service.create(T, 'Risk', null, BP, [], ['designer']).token
+        service.publish(T, token, 1)
+        service.publish(T, token, 2)
+        def hidden = service.create(T, 'Hidden', null, BP).token
         loginAs(user == 'owner' ? owner : designer)
 
         when:
-        service.create('Saved', null, BP, [], [], copiedFrom(token, hidden))
+        service.create(T, 'Saved', null, BP, [], [], copiedFrom(token, hidden))
 
         then:
         def e = thrown(error)
@@ -506,17 +624,17 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
     def 'deleting a blueprint deletes its publishes and every user\'s personalizations'() {
         given:
-        def token = service.create('Risk', null, BP, [], ['*']).token
-        def other = service.create('Other', null, BP, [], ['*']).token
-        [token, other].each { service.publish(it, 1) }
+        def token = service.create(T, 'Risk', null, BP, [], ['*']).token
+        def other = service.create(T, 'Other', null, BP, [], ['*']).token
+        [token, other].each { service.publish(T, it, 1) }
         [owner, reader].each { user ->
             loginAs(user)
-            [token, other].each { service.savePersonalization(it, null, [], 1) }
+            [token, other].each { service.savePersonalization(T, it, null, [], 1) }
         }
         loginAs(owner)
 
         when:
-        service.delete(token)
+        service.delete(T, token)
 
         then:
         !Blueprint.findByToken(token)
@@ -525,10 +643,10 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         BlueprintPersonalization.list().every { it.blueprint.token == other }
 
         expect:
-        service.getDraft(token) == null
+        service.getDraft(T, token) == null
 
         when:
-        service.listPublishes(token)
+        service.listPublishes(T, token)
 
         then:
         thrown(NotFoundException)
@@ -536,15 +654,15 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
     def 'a blueprint the user may not read looks the same as a missing one: #action'() {
         given:
-        def token = service.create('Risk', null, BP).token
-        service.publish(token, 1)
+        def token = service.create(T, 'Risk', null, BP).token
+        service.publish(T, token, 1)
         loginAs(new TestUser('stranger', ['DESIGNER']))
 
         expect:
-        service.getDraft(token) == null
-        service.getPublish(token) == null
-        service.getPublish('missing') == null
-        service.list() == []
+        service.getDraft(T, token) == null
+        service.getPublish(T, token) == null
+        service.getPublish(T, 'missing') == null
+        service.list(T) == []
 
         when:
         call(service, token)
@@ -562,30 +680,30 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
         where:
         action                | call
-        'listPublishes'       | { BlueprintService s, String t -> s.listPublishes(t) }
-        'saveDraft'           | { BlueprintService s, String t -> s.saveDraft(t, BP, 2, []) }
-        'publish'             | { BlueprintService s, String t -> s.publish(t, 2) }
-        'copy'                | { BlueprintService s, String t -> s.copy(t, 'Mine') }
-        'delete'              | { BlueprintService s, String t -> s.delete(t) }
-        'updateAccess'        | { BlueprintService s, String t -> s.updateAccess(t, [], []) }
-        'listPersonalizations'| { BlueprintService s, String t -> s.listPersonalizations(t) }
-        'savePersonalization' | { BlueprintService s, String t -> s.savePersonalization(t, null, [], 1) }
+        'listPublishes'       | { BlueprintService s, String t -> s.listPublishes(T, t) }
+        'saveDraft'           | { BlueprintService s, String t -> s.saveDraft(T, t, BP, 2, []) }
+        'publish'             | { BlueprintService s, String t -> s.publish(T, t, 2) }
+        'copy'                | { BlueprintService s, String t -> s.copy(T, t, 'Mine') }
+        'delete'              | { BlueprintService s, String t -> s.delete(T, t) }
+        'updateAccess'        | { BlueprintService s, String t -> s.updateAccess(T, t, [], []) }
+        'listPersonalizations'| { BlueprintService s, String t -> s.listPersonalizations(T, t) }
+        'savePersonalization' | { BlueprintService s, String t -> s.savePersonalization(T, t, null, [], 1) }
     }
 
     def 'personalizations belong to the current user, one per preset'() {
         given:
-        def token = service.create('Risk', null, BP, [], ['reader']).token
-        service.publish(token, 1)
+        def token = service.create(T, 'Risk', null, BP, [], ['reader']).token
+        service.publish(T, token, 1)
         def setTheme = [op: 'set', path: '/variables/theme/default', value: 'dark']
 
         when:
         loginAs(reader)
-        service.savePersonalization(token, null, [setTheme], 1)
-        service.savePersonalization(token, null, [[op: 'remove', path: '/a']], 1)
-        service.savePersonalization(token, 'view:compact', [setTheme], 1)
+        service.savePersonalization(T, token, null, [setTheme], 1)
+        service.savePersonalization(T, token, null, [[op: 'remove', path: '/a']], 1)
+        service.savePersonalization(T, token, 'view:compact', [setTheme], 1)
 
         then:
-        def mine = service.listPersonalizations(token)
+        def mine = service.listPersonalizations(T, token)
         mine.size() == 2
         mine.find { it.preset == BlueprintPersonalization.NO_PRESET }.formatForJSON().preset == null
         parseArray(mine.find { it.preset == BlueprintPersonalization.NO_PRESET }.ops) == [[op: 'remove', path: '/a']]
@@ -594,12 +712,12 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         loginAs(owner)
 
         then:
-        service.listPersonalizations(token) == []
+        service.listPersonalizations(T, token) == []
 
         when:
         setConfig(maxPersonalizations: 2)
         loginAs(reader)
-        service.savePersonalization(token, 'view:wide', [], 1)
+        service.savePersonalization(T, token, 'view:wide', [], 1)
 
         then:
         def e = thrown(RoutineRuntimeException)
@@ -609,8 +727,8 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
     def 'content is checked for structure only: #problem'() {
         given:
         setConfig(maxBytes: 200)
-        def token = service.create('Risk', null, BP, [], ['*']).token
-        service.publish(token, 1)
+        def token = service.create(T, 'Risk', null, BP, [], ['*']).token
+        service.publish(T, token, 1)
 
         when:
         call(service, token)
@@ -621,19 +739,19 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
 
         where:
         problem                     | call                                                                                           || message
-        'a blueprint not an object' | { s, t -> s.saveDraft(t, [1, 2], 1, []) }                                                      || 'must be a JSON object'
-        'a forbidden key, nested'   | { s, t -> s.saveDraft(t, [a: [b: ['__proto__': 1]]], 1, []) }                                 || "'__proto__' is forbidden"
-        'an oversized blueprint'    | { s, t -> s.saveDraft(t, [text: 'x' * 300], 1, []) }                                          || 'over the limit of 200'
-        'a rename of unknown kind'  | { s, t -> s.saveDraft(t, BP, 1, [[kind: 'preset', from: 'a', to: 'b']]) }                     || 'A rename must be'
-        'a rename to a forbidden id'| { s, t -> s.saveDraft(t, BP, 1, [[kind: 'element', from: 'a', to: 'constructor']]) }           || "'constructor' is forbidden"
-        'an op other than set'      | { s, t -> s.savePersonalization(t, null, [[op: 'addElement', path: '/a']], 1) }               || 'must be {op'
-        'a path not a pointer'      | { s, t -> s.savePersonalization(t, null, [[op: 'remove', path: 'a']], 1) }                     || 'must be {op'
-        'a set without a value'     | { s, t -> s.savePersonalization(t, null, [[op: 'set', path: '/a']], 1) }                       || 'must be {op'
-        'an op with extra keys'     | { s, t -> s.savePersonalization(t, null, [[op: 'remove', path: '/a', x: 1]], 1) }              || 'must be {op'
-        'a forbidden path segment'  | { s, t -> s.savePersonalization(t, null, [[op: 'remove', path: '/a/prototype']], 1) }          || "'prototype' is forbidden"
-        'a preset not group:item'   | { s, t -> s.savePersonalization(t, 'compact', [], 1) }                                         || "'group:item'"
-        'an unknown publish'        | { s, t -> s.savePersonalization(t, null, [], 2) }                                              || 'has no publish 2'
-        'grantees not strings'      | { s, t -> s.updateAccess(t, [1], []) }                                                         || 'must be lists of usernames'
+        'a blueprint not an object' | { s, t -> s.saveDraft(T, t, [1, 2], 1, []) }                                                      || 'must be a JSON object'
+        'a forbidden key, nested'   | { s, t -> s.saveDraft(T, t, [a: [b: ['__proto__': 1]]], 1, []) }                                 || "'__proto__' is forbidden"
+        'an oversized blueprint'    | { s, t -> s.saveDraft(T, t, [text: 'x' * 300], 1, []) }                                          || 'over the limit of 200'
+        'a rename of unknown kind'  | { s, t -> s.saveDraft(T, t, BP, 1, [[kind: 'preset', from: 'a', to: 'b']]) }                     || 'A rename must be'
+        'a rename to a forbidden id'| { s, t -> s.saveDraft(T, t, BP, 1, [[kind: 'element', from: 'a', to: 'constructor']]) }           || "'constructor' is forbidden"
+        'an op other than set'      | { s, t -> s.savePersonalization(T, t, null, [[op: 'addElement', path: '/a']], 1) }               || 'must be {op'
+        'a path not a pointer'      | { s, t -> s.savePersonalization(T, t, null, [[op: 'remove', path: 'a']], 1) }                     || 'must be {op'
+        'a set without a value'     | { s, t -> s.savePersonalization(T, t, null, [[op: 'set', path: '/a']], 1) }                       || 'must be {op'
+        'an op with extra keys'     | { s, t -> s.savePersonalization(T, t, null, [[op: 'remove', path: '/a', x: 1]], 1) }              || 'must be {op'
+        'a forbidden path segment'  | { s, t -> s.savePersonalization(T, t, null, [[op: 'remove', path: '/a/prototype']], 1) }          || "'prototype' is forbidden"
+        'a preset not group:item'   | { s, t -> s.savePersonalization(T, t, 'compact', [], 1) }                                         || "'group:item'"
+        'an unknown publish'        | { s, t -> s.savePersonalization(T, t, null, [], 2) }                                              || 'has no publish 2'
+        'grantees not strings'      | { s, t -> s.updateAccess(T, t, [1], []) }                                                         || 'must be lists of usernames'
     }
 
     //------------------
