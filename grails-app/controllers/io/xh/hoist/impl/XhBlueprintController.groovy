@@ -128,6 +128,7 @@ class XhBlueprintController extends BaseController {
             id: s.token,
             name: s.name,
             description: s.description,
+            owner: s.owner,
             draftVersion: s.draftVersion,
             publishedVersion: s.publishedVersion,
             access: s.access,

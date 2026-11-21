@@ -169,7 +169,7 @@ A `create` can name the version it was saved from as `copiedFrom: {id, version, 
 to save a stale draft as a new blueprint. The user must be able to open that version. A draft
 version can be older than the current one, but not newer.
 
-Summaries and records carry `access`, `canPublish`, `canShare` and `canShareGlobally`. They carry `sharing`, with the
+Summaries and records carry the `owner`'s username, and `access`, `canPublish`, `canShare` and `canShareGlobally`. They carry `sharing`, with the
 writers and readers, only when `canShare` is true. A stale base returns HTTP 200 with an
 `edit.staleBase` issue. A malformed request returns 400.
 

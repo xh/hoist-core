@@ -64,6 +64,7 @@ class XhBlueprintControllerSpec extends Specification implements ControllerUnitT
         record.canShareGlobally == false
         record.updated instanceof Long
         record.updatedBy == 'owner'
+        record.owner == 'owner'
         record.sharing == [writers: [], readers: []]
         record.blueprint == BP
         record.kind == 'draft'
@@ -153,6 +154,7 @@ class XhBlueprintControllerSpec extends Specification implements ControllerUnitT
         list.size() == 1
         list[0].id == id
         list[0].access == 'read'
+        list[0].owner == 'owner'
         list[0].canPublish == false
         list[0].canShare == false
         list[0].canShareGlobally == false
