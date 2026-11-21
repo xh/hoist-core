@@ -40,6 +40,8 @@ my-app/
 ├── build.gradle             # Gradle build configuration
 ├── settings.gradle          # Project name + optional composite build for inline hoist-core
 ├── gradle.properties        # App metadata, framework versions, dev flags
+├── gradle.lockfile          # Gradle dependency lock file
+├── buildscript-gradle.lockfile  # Gradle plugin lock file
 ├── .env.template            # Required/optional environment variables (template)
 ├── .env                     # Local environment values (git-ignored)
 ├── gradlew / gradlew.bat    # Gradle wrapper scripts
@@ -58,8 +60,9 @@ Some apps also include:
 
 ### `gradle.properties`
 
-Defines app identity and framework versions. Every app declares the same set of core properties.
-Read the app's own copy for the versions it uses:
+Defines app identity and framework versions. Most apps declare a set of core properties like the
+one below. An app that gets hoist-core through a client-specific plugin has no `hoistCoreVersion`.
+Read the app's own copy for the properties and versions it uses:
 
 ```properties
 xhAppCode=myApp
@@ -88,10 +91,15 @@ Key properties:
 | `xhAppCode` | Short identifier used in instance config env vars, log file names, and framework internals |
 | `xhAppPackage` | Root Java/Groovy package for all server-side code |
 | `majorJavaVersion` | JDK version for the compile toolchain in `build.gradle` - see [JDK Choice](#jdk-choice) |
-| `hoistCoreVersion` | The published hoist-core version to use (ignored when `runHoistInline=true`) |
+| `hoistCoreVersion` | The published hoist-core version to use (ignored when `runHoistInline=true`). Absent in an app that gets hoist-core through a client-specific plugin |
 | `runHoistInline` | When `true`, builds hoist-core from a local checkout via Gradle composite build - see [Inline Hoist Development](#inline-hoist-development) |
 | `enableHotSwap` | Enables the JVM HotSwap agent for faster server-side dev iteration |
 | `localDevXmx` | JVM max heap for local `bootRun` |
+
+In an app with dependency locking, a change to `hoistCoreVersion`, `grailsVersion` or any other
+version property needs new lockfiles. So does a version change to a plugin that brings in
+hoist-core. Gradle does not update them for you, and a lowered version
+builds clean on the old locks. See [When to Regenerate](./dependency-locking.md#when-to-regenerate).
 
 ### `settings.gradle`
 
@@ -121,6 +129,11 @@ variable that `.env.template` lists.
 
 This file is much the same across apps. The main differences are the database drivers and
 app-specific dependencies, for example JWT libraries or cloud SDKs.
+
+Apps should also turn on Gradle dependency locking here, with a `dependencyLocking` block in both
+`buildscript` and project scope. The committed `gradle.lockfile` and `buildscript-gradle.lockfile`
+then fix the resolved graph, as `pnpm-lock.yaml` does for the client. See
+[`dependency-locking.md`](./dependency-locking.md) for the setup and the regenerate workflow.
 
 ### JDK Choice
 
@@ -518,6 +531,10 @@ matching feature branches. If the hoist-core path does not exist, Gradle fails w
 
 Hot reload does not apply to a Grails plugin built inline. Changes to hoist-core source still need
 a server restart.
+
+An app with dependency locking should lock packaged builds only, because the committed lockfile
+cannot track an inline graph. Pass `-PrunHoistInline=false` when you regenerate the locks. See
+[Enabling Locking in an App](./dependency-locking.md#enabling-locking-in-an-app).
 
 ## Conventions Summary
 

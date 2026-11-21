@@ -204,7 +204,7 @@ validation. Readers then see its issues rather than run it.
 ## Schema
 
 The three tables ship with Hoist Core. Apps that run `dbCreate: 'update'` get them at startup. For
-apps that manage their schema, the [v45 upgrade notes](./upgrade-notes/v45-upgrade-notes.md) give
+apps that manage their schema, the [v46 upgrade notes](./upgrade-notes/v46-upgrade-notes.md) give
 the DDL.
 
 ## Common Pitfalls

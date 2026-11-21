@@ -45,8 +45,6 @@ to scope a tool to hoist-core:
   inheritance, annotations)
 - `hoist-get-members` -- List all properties and methods of a class or interface
 
-The old `hoist-core-*` tool names still work as aliases scoped to hoist-core.
-
 **Recommended workflow:** Start with `hoist-search-docs` to find relevant sections and read them
 with `hoist-read-doc`. Supplement with symbol lookups (`hoist-search-symbols`, `hoist-get-symbol`,
 `hoist-get-members`) for precise API details -- exact signatures, annotations, and member listings.
@@ -116,7 +114,11 @@ instance on another port needs a local override.
 ./gradlew clean assemble         # Clean rebuild
 ./gradlew test                   # Run Spock unit tests under src/test/groovy
 ./gradlew clean build            # Full build incl. test
+./gradlew resolveAndLockAll --write-locks  # Regenerate all lockfiles after a dependency change
 ```
+
+Dependency locking is on in `STRICT` mode. Commit the regenerated lockfiles with the dependency
+change. See [`docs/dependency-locking.md`](docs/dependency-locking.md) for the pitfalls.
 
 This is a plugin — `bootRun` is not supported. To run locally, use a wrapper app project that
 includes hoist-core as a dependency.

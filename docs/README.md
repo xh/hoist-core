@@ -25,6 +25,7 @@ and conventions.
 |---|---|
 | Understand a Hoist app's directory structure and boilerplate | [`application-structure.md`](./application-structure.md) |
 | Choose a JDK for your app build | [`application-structure.md`](./application-structure.md#jdk-choice) |
+| Lock an app's Gradle dependencies, or regenerate `gradle.lockfile` after a version change | [`dependency-locking.md`](./dependency-locking.md) |
 | Understand BaseService lifecycle and resource factories | [`base-classes.md`](./base-classes.md) |
 | Understand BaseController / RestController patterns | [`base-classes.md`](./base-classes.md) |
 | Trace an HTTP request through the framework | [`request-flow.md`](./request-flow.md) |
@@ -35,6 +36,7 @@ and conventions.
 | Work with AppConfig (soft configuration) | [`configuration.md`](./configuration.md) |
 | Work with user preferences | [`preferences.md`](./preferences.md) |
 | Store JSON state in JsonBlobs, or control who can manage global ViewManager views | [`jsonblob.md`](./jsonblob.md) |
+| [`blueprints.md`](./blueprints.md) | Server-side store for Hoist Blueprints, with drafts, numbered publishes, personalizations and per-blueprint access | Blueprint, BlueprintService, XhBlueprintController, `xhBlueprintConfig`, draftVersion, staleBase, row lock, writers, readers |
 | Store Hoist Blueprints on the server, with drafts, publishes and per-blueprint access | [`blueprints.md`](./blueprints.md) |
 | Cache computed or fetched data in a service | [`caching.md`](./caching.md) |
 | Work out why a cache `onChange` handler fires when it does | [`caching.md`](./caching.md#change-handlers-onchange) |
@@ -81,7 +83,6 @@ Bread-and-butter features used by every Hoist application.
 | [`configuration.md`](./configuration.md) | Database-backed soft configuration with typed values | AppConfig, ConfigService, `clientVisible`, `pwd` encryption, `xhConfigChanged`, required configs |
 | [`preferences.md`](./preferences.md) | User-specific settings and preference management | Preference, UserPreference, PrefService, `local` flag, required prefs |
 | [`jsonblob.md`](./jsonblob.md) | JSON document storage backing ViewManager views and other app state, with owner-based access control | JsonBlob, JsonBlobService, ViewService, `xhJsonBlobConfig`, `globalWriteRoles`, global views, `manageGlobal` |
-| [`blueprints.md`](./blueprints.md) | Server-side store for Hoist Blueprints, with drafts, numbered publishes, personalizations and per-blueprint access | Blueprint, BlueprintService, XhBlueprintController, `xhBlueprintConfig`, draftVersion, staleBase, row lock, writers, readers |
 | [`caching.md`](./caching.md) | Managed in-memory caching with optional expiry and cluster replication | Cache, CachedValue, CacheEntry, `createCache`, `createCachedValue`, `expireTime`, `expireFn`, `replicate`, `onChange` handlers, `ensureAvailable`, culling |
 | [`clustering.md`](./clustering.md) | Hazelcast-based multi-instance coordination and distributed data structures | ClusterService, Cache, CachedValue, IMap, ReplicatedMap, Topic, `primaryOnly` timers |
 | [`activity-tracking.md`](./activity-tracking.md) | Usage and performance logging with email notifications | TrackLog, TrackService, categories, elapsed timing, client error emails, feedback emails |
@@ -117,6 +118,7 @@ Guides to building, structuring, and deploying Hoist applications.
 | Document | Description | Key Topics |
 |----------|-------------|------------|
 | [`application-structure.md`](./application-structure.md) | Standard Hoist application repository layout - server and client structure, build configuration, deployment, JDK choice | `build.gradle`, `gradle.properties`, `grails-app/init/`, `client-app/`, `Bootstrap.ts`, `AppModel`, Docker, Nginx, Tomcat, JDK, Gradle toolchain |
+| [`dependency-locking.md`](./dependency-locking.md) | Gradle dependency locking for apps - setup, when and how to regenerate lockfiles, pitfalls | `gradle.lockfile`, `buildscript-gradle.lockfile`, `dependencyLocking`, `LockMode.STRICT`, `--write-locks`, `--update-locks`, `dependencyInsight`, `hoistCoreVersion`, client-specific Hoist plugins, `grailsVersion`, snapshots, `runHoistInline`, merge conflicts, Dependabot |
 | [`build-and-publish.md`](./build-and-publish.md) | Gradle build, GitHub Actions CI, and Maven Central publishing | GitHub Actions, `deployRelease.yml`, `deploySnapshot.yml`, Sonatype, GPG signing, `nexus-publish-plugin`, `publishToSonatype`, `hoist-core-test`, Toolbox `repository_dispatch`, XH Build Bot GitHub App, `maven-archive.xh.io` (legacy `36.x`-and-earlier hoist-core releases) |
 | [`testing.md`](./testing.md) | Spock unit testing for hoist-core and apps - the `io.xh:hoist-core-test` harness, conventions, CI | Spock, `hoist-core-test`, `HoistUnitTest`, `HoistSpec`, `ServiceUnitTest`, `ControllerUnitTest`, `TestConfigService`, `TestTrackService`, `TestEmailService`, `TestTraceService`, `TestMetricsService`, `TestUser`, `HoistJson`, `HoistAssertions`, `@PendingFeature`, JaCoCo |
 | [`changelog-format.md`](./changelog-format.md) | Conventions for writing and reviewing hoist-core library CHANGELOG entries | Section headers, voice/tense, Simplified Technical English, difficulty ratings, breaking changes, libraries, application changelogs |
@@ -140,7 +142,8 @@ breaking changes, before/after code examples, and verification checklists.
 
 | Version                                         | Key Changes |
 |-------------------------------------------------|-------------|
-| [v45.0.0](./upgrade-notes/v45-upgrade-notes.md) | New `xh_blueprint*` tables for blueprint storage, with DDL for apps that manage their schema |
+| [v46.0.0](./upgrade-notes/v46-upgrade-notes.md) | New `xh_blueprint*` tables for blueprint storage, with DDL for apps that manage their schema |
+| [v45.0.0](./upgrade-notes/v45-upgrade-notes.md) | MCP tooling moved to Hoist Docs (`@xh/hoist-docs`), requires hoist-react v91, `installHoistCoreTools` and the `hoist-core` MCP server removed |
 | [v44.0.0](./upgrade-notes/v44-upgrade-notes.md) | `jasypt` dependency removed, `HoistPasswordEncryptor` (BCrypt) replaces `BasicPasswordEncryptor` in app `User` classes, `grails-quartz` no longer supplied, Apache Directory `api-all` replaced by client-only artifacts |
 | [v43.0.0](./upgrade-notes/v43-upgrade-notes.md) | Grails 8, Spring Boot 4, Groovy 5, Jackson 3, Java 21 and Tomcat 11, Gradle 9 wrapper, `dataSource` and `constraints` fixes for Groovy 5 |
 | [v42.0.0](./upgrade-notes/v42-upgrade-notes.md) | `JsonBlobService` write access limited to owners, `xhJsonBlobConfig.globalWriteRoles` gates global views, `doLoadUsersForDirectoryGroups` replaced by `getDirectoryService`, `sendEmail` named parameters |

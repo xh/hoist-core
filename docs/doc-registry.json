@@ -210,12 +210,20 @@
             "keywords": ["build.gradle", "gradle.properties", "grails-app/init", "client-app", "Bootstrap.ts", "AppModel", "Docker", "Nginx", "Tomcat", "JDK", "Java version", "bytecode", "Gradle toolchain", "xh-tomcat", "runHoistInline", "inline", "XH_HOIST_CORE_PATH", "XH_HOIST_REACT_PATH", "worktree", "hot reload", "HotswapAgent", "enableHotSwap"]
         },
         {
+            "id": "docs/dependency-locking.md",
+            "title": "Dependency Locking",
+            "mcpCategory": "devops",
+            "viewerCategory": "devops",
+            "description": "Gradle dependency locking for Hoist apps - lockfile setup, when and how to regenerate, and pitfalls.",
+            "keywords": ["lockfile", "gradle.lockfile", "dependency locking", "dependencyLocking", "LockMode.STRICT", "write-locks", "update-locks", "hoistCoreVersion", "grailsVersion", "SNAPSHOT", "runHoistInline", "Dependabot"]
+        },
+        {
             "id": "docs/build-and-publish.md",
             "title": "Build & Publish",
             "mcpCategory": "devops",
             "viewerCategory": "devops",
             "description": "Gradle build, GitHub Actions CI, and Maven Central publishing.",
-            "keywords": ["GitHub Actions", "deployRelease", "deploySnapshot", "Sonatype", "maven", "GPG signing", "nexus-publish-plugin", "publishToSonatype", "hoist-core-test", "repository_dispatch", "Toolbox", "XH Build Bot", "GitHub App"]
+            "keywords": ["GitHub Actions", "deployRelease", "resolveAndLockAll", "deploySnapshot", "Sonatype", "maven", "GPG signing", "nexus-publish-plugin", "publishToSonatype", "hoist-core-test", "repository_dispatch", "Toolbox", "XH Build Bot", "GitHub App"]
         },
         {
             "id": "docs/testing.md",
@@ -242,12 +250,20 @@
             "keywords": ["conventions", "coding standards", "style guide", "naming", "xh prefix", "LogSupport", "withInfo", "withDebug", "RoutineRuntimeException", "BaseService", "createCache", "createTimer", "clearCaches", "clearCachesConfigs", "ensureRequiredConfigsCreated", "configService", "AccessRequiresRole", "renderJSON", "parseRequestJSON", "ReadOnly", "Transactional", "N+1", "fetch join", "batchSize", "JSONFormat", "primaryOnly", "replicate", "JSONClient", "xhEmailOverride", "withNewSession", "pushToAllChannels", "pushToLocalChannels", "Groovy idioms", "commit messages", "no hard wrap"]
         },
         {
+            "id": "docs/upgrade-notes/v46-upgrade-notes.md",
+            "title": "v46 Upgrade Notes",
+            "mcpCategory": "devops",
+            "viewerCategory": "upgrade",
+            "description": "Upgrade guide from v45.x to v46. Low difficulty.",
+            "keywords": ["v46", "upgrade", "migration", "v45", "xh_blueprint", "blueprint tables", "DDL", "dbCreate", "xhBlueprintConfig"]
+        },
+        {
             "id": "docs/upgrade-notes/v45-upgrade-notes.md",
             "title": "v45 Upgrade Notes",
             "mcpCategory": "devops",
             "viewerCategory": "upgrade",
             "description": "Upgrade guide from v44.x to v45. Low difficulty.",
-            "keywords": ["v45", "upgrade", "migration", "v44", "xh_blueprint", "blueprint tables", "DDL", "dbCreate", "xhBlueprintConfig"]
+            "keywords": ["v45", "upgrade", "migration", "breaking changes", "v44", "installHoistCoreTools", "hoist-core-mcp", "hoistCoreCli", "hoist-core-docs", "hoist-core-symbols"]
         },
         {
             "id": "docs/upgrade-notes/v44-upgrade-notes.md",

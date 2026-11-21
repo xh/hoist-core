@@ -12,18 +12,13 @@
   3. Plain ASCII punctuation only. Use " - " for in-sentence breaks, never an em dash.
 -->
 
-## 45.0-SNAPSHOT - unreleased
+## 46.0-SNAPSHOT - unreleased
 
 ### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
 
-See [`docs/upgrade-notes/v45-upgrade-notes.md`](docs/upgrade-notes/v45-upgrade-notes.md) for
+See [`docs/upgrade-notes/v46-upgrade-notes.md`](docs/upgrade-notes/v46-upgrade-notes.md) for
 detailed, step-by-step upgrade instructions with before and after code examples.
 
-* Requires `hoist-react >= 91`. Agent docs for hoist-core 45 come only from Hoist Docs (below),
-  which an app gets with hoist-react 91. On an earlier hoist-react, the agent has no hoist-core
-  reference at all. Upgrade hoist-react first.
-* Remove the `installHoistCoreTools` snippet from `build.gradle`, and the `hoist-core` entry from
-  `.mcp.json`. The task fails on this release, since its artifact is no longer published.
 * Apps that manage their own schema must create the `xh_blueprint`, `xh_blueprint_publish` and
   `xh_blueprint_personalization` tables. Apps that run `dbCreate: 'update'` get them at startup.
 
@@ -34,6 +29,23 @@ detailed, step-by-step upgrade instructions with before and after code examples.
   blueprint, with access per blueprint, a version check under a row lock, and per-user
   personalizations. Each blueprint has a `type` that scopes every call. It is off until an app
   sets `enabled` in the new `xhBlueprintConfig`.
+
+### 🤖 AI Docs + Tooling
+
+* Added [`dependency-locking.md`](docs/dependency-locking.md), a guide to Gradle dependency locking
+  for apps. It covers setup and the changes that need new lockfiles, including the ones that build
+  clean on stale locks.
+
+## 45.0.0 - 2026-11-20
+
+### 💥 Breaking Changes (upgrade difficulty: 🟢 LOW)
+
+See [`docs/upgrade-notes/v45-upgrade-notes.md`](docs/upgrade-notes/v45-upgrade-notes.md) for
+detailed, step-by-step upgrade instructions with before and after code examples.
+
+* Requires `hoist-react >= 91`, which supplies the Hoist Docs MCP server. Upgrade hoist-react first.
+* Remove the `installHoistCoreTools` snippet from `build.gradle`, and the `hoist-core` entry from
+  `.mcp.json`. The task fails on this release, since its artifact is no longer published.
 
 ### 🐞 Bug Fixes
 
@@ -53,12 +65,15 @@ detailed, step-by-step upgrade instructions with before and after code examples.
   serving clients on the 2025 `initialize` handshake. It replaces this repo's server on the MCP
   Java SDK, with no JVM or jar download needed to run it.
 * Removed the stdio MCP server, the `hoist-core-docs` and `hoist-core-symbols` CLIs, `bootstrap.sh`,
-  and the `io.xh:hoist-core-mcp` artifact, which is no longer published. Apps should remove the
-  `installHoistCoreTools` snippet from `build.gradle` and point `.mcp.json` at `@xh/hoist-docs` -
-  see the Hoist Docs README.
+  and the `io.xh:hoist-core-mcp` artifact, which is no longer published.
 * Each build now publishes its Hoist Docs index beside the jar, as the `docs-index` artifact
   (`hoist-core-<version>-docs-index.json.gz`), built by `io.xh:hoist-docs-builder`. Hoist Docs
   fetches it for an app's exact `hoistCoreVersion`, snapshots included.
+
+### 📚 Libraries
+
+* OpenTelemetry `1.67.0 → 1.68.0`
+* MSAL4J `1.26.0 → 1.26.1`
 
 ## 44.1.0 - 2026-11-13
 
