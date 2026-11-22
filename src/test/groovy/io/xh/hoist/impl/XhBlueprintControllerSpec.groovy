@@ -284,9 +284,10 @@ class XhBlueprintControllerSpec extends Specification implements ControllerUnitT
     //------------------
     def 'every action needs a type, and sees only blueprints of that type'() {
         given:
-        def id = call('create', [name: 'Risk', blueprint: BP]).id
+        def id = call('create', [name: 'Risk', description: 'Desk risk by book.', blueprint: BP]).id
 
         expect:
+        call('list')*.description == ['Desk risk by book.']
         call('list', null, [type: 'other.app']) == []
         call('open', null, [id: id, as: 'draft', type: 'other.app']) == null
         call('open', null, [id: id, as: 'draft'])?.id == id

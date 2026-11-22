@@ -399,6 +399,13 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         BlueprintPublish.count() == 1
         Blueprint.findByToken('portfolio-overview').name == 'S1. Portfolio overview'
 
+        when: 'a new description, with the content unchanged'
+        service.ensureGlobal(T, 'portfolio-overview', 'S1. Portfolio overview', 'Positions, P&L and risk for a fund.', BP, 'toolbox')
+
+        then:
+        Blueprint.findByToken('portfolio-overview').description == 'Positions, P&L and risk for a fund.'
+        BlueprintPublish.count() == 1
+
         when:
         service.ensureGlobal(type, 'portfolio-overview', 'S1', null, BP, seeder)
 

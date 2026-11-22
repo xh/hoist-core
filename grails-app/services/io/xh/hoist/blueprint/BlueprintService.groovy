@@ -339,10 +339,10 @@ class BlueprintService extends BaseService {
      *   - If none exists, create it readable by everyone, publish its first version, and return it.
      *   - If one exists and its latest publish differs from the given content, save the content as
      *     its draft and publish it as the next version, both as `owner`, and return it.
-     *   - Otherwise return it unchanged, apart from taking the given name.
+     *   - Otherwise return it unchanged, apart from taking the given name and description.
      *
      * A republish overwrites any edits made to the blueprint since, such as an admin's, published
-     * or not, and discards its pending renames. It keeps the blueprint's description and sharing.
+     * or not, and discards its pending renames. It keeps the blueprint's sharing.
      *
      * For server code only, such as seeding an app's presets at startup. It bypasses every access
      * check - `createRoles`, `globalShareRoles` and the current user - so never expose it to a
@@ -367,6 +367,7 @@ class BlueprintService extends BaseService {
                 throw new RoutineRuntimeException("Blueprint token '$token' is taken by a blueprint of another type or owner")
             }
             existing.name = name
+            existing.description = description
             return republishIfChanged(existing, draft, owner)
         }
 

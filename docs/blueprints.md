@@ -123,13 +123,14 @@ and one link, in every environment. A token is 1-64 letters, digits, `.`, `_` or
 
 If no blueprint has the token, the method creates it with `*` as its reader, publishes it once,
 and returns it. If one exists and its latest publish differs from the given content, the method
-saves the content as the draft and publishes it as the next version. It also takes the given name.
-A token held by a blueprint of another type or owner is refused. The owner is any name the app
+saves the content as the draft and publishes it as the next version. An existing blueprint always
+takes the given name and description. A token held by a blueprint of another type or owner is
+refused. The owner is any name the app
 picks, and need not be a real user. It is also the publisher of each version.
 
 A new version replaces any edits made since, such as an admin's, published or not, and discards
-their pending renames. The blueprint keeps its description and sharing. To change a seeded
-blueprint for good, change the content the app seeds.
+their pending renames. The blueprint keeps its sharing. To change a seeded blueprint for good,
+change the content the app seeds.
 
 `ensureGlobal` bypasses every access check: `createRoles`, `globalShareRoles` and the current user.
 Call it only from server code, and never expose it to a client. Call it on one instance, such as
