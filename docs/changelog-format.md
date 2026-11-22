@@ -7,10 +7,43 @@ library** `CHANGELOG.md`.
 > Hoist library packages. Hoist *application* changelogs have different formatting requirements. See
 > the [Application Changelogs](#application-changelogs) section at the end of this document.
 
+## Where Entries Go
+
+Write new entries in a **changelog fragment**, not in `CHANGELOG.md`. Each pull request adds a
+markdown file in [`changelog.d/`](../changelog.d/README.md), named for its branch. The fragment holds
+the release body without its `##` heading: the same `###` section headers and bullets described
+below. A release assembles every fragment into `CHANGELOG.md` under the real version number, so pull
+requests never conflict over `CHANGELOG.md` and a late merge cannot land under a shipped version.
+
+```markdown
+### 🐞 Bug Fixes
+
+* Fixed the Admin Console role list, which failed to load if a role had a member role that did not
+  exist.
+```
+
+- `bin/changelog add fix "<text>"` adds a one-line entry to `changelog.d/<branch>.md`. It finds the
+  section from a short name, such as `fix`, `feature`, `tech` or `breaking`, and wraps the line.
+- `bin/changelog new` creates an empty `changelog.d/<branch>.md` for a longer entry. Or create the
+  file yourself.
+- `bin/changelog check` validates the fragments. CI runs the same check on each pull request, and
+  shows the entries that the pull request adds in the job summary.
+- A fragment uses only the section headers listed in `changelog.d/config.json`. You can leave the
+  emoji off a header. The release adds it.
+- Leave release-level content out of fragments: the `(upgrade difficulty: ...)` suffix, the
+  upgrade-notes sentence, and `####` topic groups. The release curator adds them.
+- To change an unreleased entry, edit its fragment, even one that another pull request added. To
+  correct a released entry, edit `CHANGELOG.md`.
+- `bin/changelog preview` prints the next release as it will be assembled.
+
+`bin/changelog` runs the `xh-changelog` command from `@xh/hoist-dev-utils`, from a sibling
+`../hoist-dev-utils` checkout if there is one, else via `npx`. See the dev-utils README section
+"Changelog fragments".
+
 ## Entry Structure
 
-Every major version entry uses this structure. A minor or patch release uses only the sections that
-apply.
+Every major version entry in `CHANGELOG.md` uses this structure once the release is curated. A minor
+or patch release uses only the sections that apply.
 
 ```markdown
 ## {VERSION} - {YYYY-MM-DD}
@@ -45,6 +78,10 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 * {Library} `{old} → {new}`
 ```
+
+On `develop`, the top heading is the next major version as a snapshot:
+`## {N}.0-SNAPSHOT - unreleased`. It stays empty. Entries wait in `changelog.d/` until a release
+assembles them below it. See [Versioning](./build-and-publish.md#versioning) for the release steps.
 
 ## Section Headers
 
@@ -288,9 +325,13 @@ Hoist *application* changelogs, for example those in app repos that depend on `i
 follow different formatting rules than the library changelog rules above. A Hoist release notes
 feature parses application changelogs at runtime and displays them in the app UI.
 
-**Do NOT hard-wrap list items in application changelogs.** Each bullet point must be a single
-unwrapped line. The release notes parser treats a line break inside a list item as a separate entry.
-Let the display tool wrap the text.
+An app on `@xh/hoist-dev-utils` 17 or later parses its changelog with the same parser as
+`xh-changelog`. Its bullets can wrap and hold sub-bullets, as in a library changelog. Such an app can
+also use changelog fragments: run `xh-changelog init` from its `client-app/` folder.
+
+**On an older `@xh/hoist-dev-utils`, do NOT hard-wrap list items in application changelogs.** Each
+bullet point must be a single unwrapped line. That parser treats a line break inside a list item as
+a separate entry. Let the display tool wrap the text.
 
 All other conventions apply to both library and application changelogs: section headers, voice and
 tense, and backtick-wrapped specificity.

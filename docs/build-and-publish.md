@@ -24,6 +24,21 @@ The `xhReleaseVersion` property in `gradle.properties` sets the version for all 
 - After a release, bump `xhReleaseVersion` on `develop` to the next `-SNAPSHOT` so subsequent
   snapshots publish under the new line.
 
+`CHANGELOG.md` follows the same line. Its top heading is a bare `## N.0-SNAPSHOT - unreleased`, and
+unreleased entries wait as fragments in `changelog.d/`. See
+[Changelog Entry Format](./changelog-format.md#where-entries-go).
+
+- Before any release, run `bin/changelog release <version>`. It assembles the fragments into a new
+  `## <version> - <date>` block in `CHANGELOG.md` and deletes them. Review and curate the block,
+  then commit it.
+- A minor or patch release puts its block below the snapshot heading, which stays on top.
+  `release` refuses a minor or patch while a fragment has a `💥 Breaking Changes` section.
+- A major release rolls the snapshot heading forward to the next major. Then bump
+  `xhReleaseVersion` on `develop` to match.
+- A hotfix to an older line adds its fragment on the maintenance branch and runs `release` there,
+  which places the block in version order. When the hotfix merges back to `develop`, delete the
+  matching fragment on `develop` if the same fix landed there, or the next release lists it twice.
+
 ## Workflows
 
 ### CI (`ci.yml`)
@@ -82,13 +97,15 @@ Release runs are serialized and never cancelled by one another.
 
 ## Performing a Release
 
-1. Confirm CI is green on `develop` and the changelog is finalized.
-2. Merge `develop` into `master`.
-3. In GitHub, open **Actions → Deploy Release → Run workflow**. Select `master`, enter the
+1. Confirm CI is green on `develop`.
+2. Run `bin/changelog release <version>` on `develop`. Curate the new block in `CHANGELOG.md` and
+   commit it.
+3. Merge `develop` into `master`.
+4. In GitHub, open **Actions → Deploy Release → Run workflow**. Select `master`, enter the
    version, and leave `is-hotfix` unchecked.
-4. Confirm the artifacts appear on [Maven Central](https://central.sonatype.com/namespace/io.xh)
+5. Confirm the artifacts appear on [Maven Central](https://central.sonatype.com/namespace/io.xh)
    and the release on the repository's [Releases](https://github.com/xh/hoist-core/releases) page.
-5. Bump `xhReleaseVersion` on `develop` to the next `-SNAPSHOT`.
+6. Bump `xhReleaseVersion` on `develop` to the next `-SNAPSHOT`.
 
 For a hotfix, run the workflow from the maintenance branch with `is-hotfix` checked.
 
