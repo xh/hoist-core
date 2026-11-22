@@ -30,7 +30,8 @@ unreleased entries wait as fragments in `changelog.d/`. See
 
 - Before any release, run `bin/changelog release <version>`. It assembles the fragments into a new
   `## <version> - <date>` block in `CHANGELOG.md` and deletes them. Review and curate the block,
-  then commit it.
+  then commit it. Deploy Release fails if `CHANGELOG.md` lacks the version or fragments are left
+  over.
 - A minor or patch release puts its block below the snapshot heading, which stays on top.
   `release` refuses a minor or patch while a fragment has a `💥 Breaking Changes` section.
 - A major release rolls the snapshot heading forward to the next major. Then bump
