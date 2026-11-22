@@ -105,9 +105,10 @@ A `-SNAPSHOT` version is locked by its version string only. New snapshot content
 string passes the version rule. It fails the module rule only if it adds or removes a dependency.
 
 The `--write-locks` flag tells Gradle to resolve without the existing lock state and record the
-result. It overwrites the lockfile with a fresh resolution, much like deleting `pnpm-lock.yaml`
-and running `pnpm install`. For declared fixed versions and BOMs, the result is the same graph you
-would get with no locking at all.
+result. It rewrites the lock state of each configuration it resolves, much like deleting
+`pnpm-lock.yaml` and running `pnpm install`. For declared fixed versions and BOMs, the result is
+the same graph you would get with no locking at all. It does not remove the lines of a
+configuration that no longer exists. See [Removing a Configuration](#removing-a-configuration).
 
 A lockfile pins versions only. It does not record checksums or the repository that served each
 artifact, so it works unchanged behind a corporate mirror. To verify artifact checksums, use
@@ -256,6 +257,12 @@ build then fails with "is locked but does not have lock state". Always pass `-Pr
 when you regenerate, even if the project's `gradle.properties` sets it to `false`. A developer can
 turn inline mode on in `~/.gradle/gradle.properties`, which takes priority over the project file.
 Only the command-line flag overrides both.
+
+### Removing a Configuration
+
+A `--write-locks` run keeps the lines of a configuration that `build.gradle` no longer declares.
+Delete `gradle.lockfile` first when you remove a configuration, for example the `hoistCoreCli`
+configuration of the hoist-core tools install snippet. Then regenerate as usual.
 
 ### Editing or Hand-Merging a Lockfile
 

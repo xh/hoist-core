@@ -34,6 +34,9 @@
             "branch": "develop"
         },
         {
+            "tag": "v45.0.0"
+        },
+        {
             "tag": "v44.1.0"
         },
         {
@@ -47,9 +50,6 @@
         },
         {
             "tag": "v40.5.0"
-        },
-        {
-            "tag": "v39.1.0"
         }
     ],
     "url": "https://context7.com/xh/hoist-core",
