@@ -5,6 +5,7 @@
     "branch": "master",
     "excludeFolders": [
         "docs/planning",
+        "changelog.d",
         ".github",
         ".claude",
         "build",
