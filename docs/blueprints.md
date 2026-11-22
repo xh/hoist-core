@@ -125,8 +125,8 @@ If no blueprint has the token, the method creates it with `*` as its reader, pub
 and returns it. If one exists and its latest publish differs from the given content, the method
 saves the content as the draft and publishes it as the next version. An existing blueprint always
 takes the given name and description. A token held by a blueprint of another type or owner is
-refused. The owner is any name the app
-picks, and need not be a real user. It is also the publisher of each version.
+refused. The owner is any name the app picks, and need not be a real user. It is also the
+publisher of each version.
 
 A new version replaces any edits made since, such as an admin's, published or not, and discards
 their pending renames. The blueprint keeps its sharing. To change a seeded blueprint for good,
