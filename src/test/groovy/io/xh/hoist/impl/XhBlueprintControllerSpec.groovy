@@ -293,6 +293,13 @@ class XhBlueprintControllerSpec extends Specification implements ControllerUnitT
         call('open', null, [id: id, as: 'draft'])?.id == id
 
         when:
+        def renamed = call('rename', [name: 'Book risk'], [id: id])
+
+        then:
+        renamed.subMap('id', 'type', 'name', 'description') == [id: id, type: 'test.app', name: 'Book risk', description: 'Desk risk by book.']
+        call('list')*.name == ['Book risk']
+
+        when:
         call('list', null, [type: null])
 
         then:

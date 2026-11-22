@@ -116,6 +116,12 @@ class XhBlueprintController extends BaseController {
         renderJSON(personalizationJSON(saved, blueprintId))
     }
 
+    /** Body: `{name, description?}`. A description key set to null clears it. Returns the summary. */
+    def rename(String id) {
+        Map body = parseRequestJSON()
+        renderJSON(summaryJSON(blueprintService.summaryOf(blueprintService.rename(blueprintType, id, body))))
+    }
+
     def updateAccess(String id) {
         Map body = parseRequestJSON()
         blueprintService.updateAccess(blueprintType, id, body.writers, body.readers)

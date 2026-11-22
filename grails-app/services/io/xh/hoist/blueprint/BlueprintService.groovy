@@ -36,7 +36,8 @@ import static io.xh.hoist.json.JSONSerializer.serialize
  *     publish is listed only for users with write access.
  *   - Publishing needs write access, plus one of `publishRoles` if any are configured.
  *   - Deleting and managing access belong to the owner and `adminRoles`.
- *   - Publishing, sharing and deleting are refused while an admin impersonates another user.
+ *   - Publishing, sharing, renaming and deleting are refused while an admin impersonates
+ *     another user.
  *   - Personalizations always belong to the current user, and need read access.
  *
  * Every call that changes a blueprint's row takes a database row lock on it first, so a draft
@@ -314,6 +315,34 @@ class BlueprintService extends BaseService {
         target.delete(flush: true)
     }
 
+    /**
+     * Rename a blueprint, and set its description if `changes` has that key: null clears it.
+     * Requires write access, and a name its owner does not use for another blueprint of the type.
+     * Leaves the draft and its version alone.
+     *
+     * @param changes `{name, description?}`
+     */
+    @Transactional
+    Blueprint rename(String type, String token, Map changes) {
+        ensureEnabled()
+        String name = changes.name
+        if (!name?.trim() || name.length() > 255) {
+            throw new RoutineRuntimeException('A blueprint name is a non-blank string of at most 255 characters')
+        }
+        if (changes.description != null && !(changes.description instanceof String)) {
+            throw new RoutineRuntimeException('A blueprint description is a string, or null')
+        }
+
+        Blueprint ret = lock(type, token)
+        ensureNotImpersonatedAction('rename')
+        ensureAccess(ret, WRITE)
+        if (name != ret.name) ensureNameFree(type, name, ret.owner)
+        ret.name = name
+        if (changes.containsKey('description')) ret.description = changes.description
+        ret.lastUpdatedBy = username
+        ret.save(flush: true, failOnError: true)
+    }
+
     /** Set a blueprint's writers and readers. Requires the owner or one of `adminRoles`. */
     @Transactional
     Blueprint updateAccess(String type, String token, Object writers, Object readers) {
@@ -516,9 +545,10 @@ class BlueprintService extends BaseService {
         return type
     }
 
-    private void ensureNameFree(String type, String name) {
-        if (Blueprint.countByOwnerAndTypeAndName(username, type, name)) {
-            throw new RoutineRuntimeException("You already have a blueprint named '$name'")
+    private void ensureNameFree(String type, String name, String owner = username) {
+        if (Blueprint.countByOwnerAndTypeAndName(owner, type, name)) {
+            String who = owner == username ? 'You already have' : 'Its owner already has'
+            throw new RoutineRuntimeException("$who a blueprint named '$name'")
         }
     }
 
@@ -563,9 +593,9 @@ class BlueprintService extends BaseService {
         owner == user.username || hasAnyRole(user, config.adminRoles)
     }
 
-    // Publishing, sharing and deleting are refused while impersonating, so the audit trail never
-    // records an admin's change as the user's own.
-    private static final Map<String, String> PAST_TENSE = [publish: 'published', share: 'shared', delete: 'deleted']
+    // Publishing, sharing, renaming and deleting are refused while impersonating, so the audit
+    // trail never records an admin's change as the user's own.
+    private static final Map<String, String> PAST_TENSE = [publish: 'published', share: 'shared', delete: 'deleted', rename: 'renamed']
 
     private void ensureNotImpersonatedAction(String action) {
         if (authUsername != username) {

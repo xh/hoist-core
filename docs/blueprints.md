@@ -65,12 +65,14 @@ blueprint, user and preset keeps one personalization per preset.
 | `publish(type, token, base, note?)` | Write, plus `publishRoles` if set | The new publish |
 | `copy(type, token, name, kind?, number?)` | Read on the source version, plus one of `createRoles` | The copy, of the same type, or null if the source has no publish |
 | `delete(type, token)` | Owner or admin | Nothing. Also deletes its publishes and every user's personalizations |
+| `rename(type, token, {name, description?})` | Write | The blueprint, renamed. Its description changes only when given |
 | `updateAccess(type, token, writers, readers)` | Owner or admin | The blueprint |
 | `ensureGlobal(type, token, name, description, blueprint, owner)` | None. For server code only | The global blueprint with this token, created, or published again if its content changed |
 | `listPersonalizations(type, token)` | Read | The current user's personalizations |
 | `savePersonalization(type, token, preset, ops, publishVersion)` | Read | The saved personalization |
 
-A `create` or `copy` with a name the user already has for the type fails with a 400 response.
+A `create` or `copy` with a name the user already has for the type fails with a 400 response, as
+does a `rename` to a name the blueprint's owner already has for the type.
 
 ## Access Control
 
@@ -80,7 +82,7 @@ a username, `role:<ROLE>` for every user with that role, or `*` for all users. O
 the apparent user, so an admin who impersonates a user has that user's access.
 
 An admin who impersonates a user can view blueprints and edit drafts as that user, but cannot
-publish, share or delete. Those calls return a 403 that names the reason, so the audit trail never
+publish, share, rename or delete. Those calls return a 403 that names the reason, so the audit trail never
 records an admin's change as the user's own.
 
 | Access | Granted to | Allows |
@@ -179,6 +181,7 @@ returns 400.
 | `delete` | POST | `id` | 204 |
 | `personalizations` | GET | `blueprintId` | The user's personalizations |
 | `savePersonalization` | POST | `{blueprintId, preset, ops, publishVersion}` | The saved personalization |
+| `rename` | POST | `id`, `{name, description}` | The summary |
 | `updateAccess` | POST | `id`, `{writers, readers}` | 204 |
 
 A `create` can name the version it was saved from as `copiedFrom: {id, version, as}`, for example

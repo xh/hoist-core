@@ -247,6 +247,73 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         'publish' | 'published' | { BlueprintService s, String t -> s.publish(T, t, 2) }
         'share'   | 'shared'    | { BlueprintService s, String t -> s.updateAccess(T, t, ['editor'], []) }
         'delete'  | 'deleted'   | { BlueprintService s, String t -> s.delete(T, t) }
+        'rename'  | 'renamed'   | { BlueprintService s, String t -> s.rename(T, t, [name: 'Renamed']) }
+    }
+
+    def 'a writer may rename a blueprint, and its description changes only when given'() {
+        given:
+        def token = service.create(T, 'Risk', 'Desk risk', BP, ['editor'], ['reader']).token
+
+        when:
+        def renamed = service.rename(T, token, [name: 'Desk risk'])
+
+        then:
+        [renamed.name, renamed.description, renamed.draftVersion, renamed.lastUpdatedBy] == ['Desk risk', 'Desk risk', 1L, 'owner']
+
+        when:
+        loginAs(editor)
+        renamed = service.rename(T, token, [name: 'Book risk', description: null])
+
+        then:
+        [renamed.name, renamed.description, renamed.lastUpdatedBy] == ['Book risk', null, 'editor']
+
+        when:
+        loginAs(reader)
+        service.rename(T, token, [name: 'Mine now'])
+
+        then:
+        thrown(NotAuthorizedException)
+
+        when:
+        service.rename('other.app', token, [name: 'Elsewhere'])
+
+        then:
+        thrown(BlueprintNotFoundException)
+    }
+
+    def 'a rename keeps names unique for the blueprint\'s owner and type'() {
+        given:
+        def risk = service.create(T, 'Risk', null, BP, ['editor'], []).token
+        service.create(T, 'Book risk', null, BP)
+        service.create('other.app', 'Other', null, BP)
+
+        expect: 'its own name, or a name the owner uses only in another type'
+        service.rename(T, risk, [name: 'Risk']).name == 'Risk'
+        service.rename(T, risk, [name: 'Other']).name == 'Other'
+
+        when:
+        service.rename(T, risk, [name: 'Book risk'])
+
+        then:
+        def own = thrown(RoutineRuntimeException)
+        own.message == "You already have a blueprint named 'Book risk'"
+
+        when: 'a writer renames to a name its owner already uses'
+        loginAs(editor)
+        service.rename(T, risk, [name: 'Book risk'])
+
+        then:
+        def other = thrown(RoutineRuntimeException)
+        other.message == "Its owner already has a blueprint named 'Book risk'"
+
+        when:
+        service.rename(T, risk, [name: name])
+
+        then:
+        thrown(RoutineRuntimeException)
+
+        where:
+        name << [null, '', '  ', 'x' * 256]
     }
 
     def 'sharing with everyone needs globalShareRoles to add it, but not to keep or remove it'() {
