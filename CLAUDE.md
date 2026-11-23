@@ -59,6 +59,14 @@ tracking and writing conventions.
 Use the GitHub CLI (`gh`) for GitHub operations: `gh pr view`, `gh issue list`, `gh pr create`,
 and `gh api` for anything else. Prefer it over raw `curl` calls to the GitHub API.
 
+### XH plugin (`xh@hoist-ai`)
+
+The shared `.claude/settings.json` enables XH's `xh@hoist-ai` plugin, but enabling does not
+install it. Each developer should install it once per machine at user scope, which covers every
+repo and worktree and auto-updates. If no `xh:` skills appear in your available skills, tell the
+developer the plugin is missing and give them the command
+`claude plugin install xh@hoist-ai --scope user`. Offer to run it for them.
+
 ## Build Commands
 
 ```bash
