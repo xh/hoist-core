@@ -138,7 +138,7 @@ class BlueprintService extends BaseService {
         ensureEnabled()
         Blueprint blueprint = find(type, token)
         ensureAccess(blueprint, WRITE)
-        List fields = ['number', 'dateCreated', 'publishedBy', 'note', 'renames']
+        List fields = ['number', 'dateCreated', 'publishedBy', 'note', 'label', 'pinned', 'renames']
         List rows = BlueprintPublish.createCriteria().list {
             eq('blueprint', blueprint)
             projections { fields.each { property(it) } }
@@ -149,6 +149,37 @@ class BlueprintService extends BaseService {
             ret.renames = parseArray(ret.renames as String)
             return ret
         }
+    }
+
+    /**
+     * Change a publish's `note`, `label` or `pinned`, as its writers manage the history. Only the keys
+     * given change, and null or a blank string clears a note or label. Its content and number never
+     * change. Requires write access, and is refused while an admin impersonates.
+     *
+     * @param changes any of `note` and `label`, strings, and `pinned`, a boolean
+     */
+    @Transactional
+    BlueprintPublish updatePublish(String type, String token, int number, Map changes) {
+        ensureEnabled()
+        Blueprint blueprint = find(type, token)
+        ensureNotImpersonatedAction('update')
+        ensureAccess(blueprint, WRITE)
+        def unknown = changes.keySet().find { !(it in BlueprintPublish.MUTABLE) }
+        if (unknown) throw new RoutineRuntimeException("Unknown publish setting '$unknown' - use ${BlueprintPublish.MUTABLE.join(', ')}")
+        BlueprintPublish ret = BlueprintPublish.findByBlueprintAndNumber(blueprint, number)
+        if (!ret) throw new RoutineRuntimeException("Blueprint '$token' has no publish $number")
+
+        if (changes.containsKey('note')) ret.note = textSetting(changes.note, 'note')
+        if (changes.containsKey('label')) {
+            String label = textSetting(changes.label, 'label')
+            if (label?.length() > 50) throw new RoutineRuntimeException("'label' must be at most 50 characters")
+            ret.label = label
+        }
+        if (changes.containsKey('pinned')) {
+            if (!(changes.pinned instanceof Boolean)) throw new RoutineRuntimeException("'pinned' must be true or false")
+            ret.pinned = changes.pinned
+        }
+        return ret.save(flush: true, failOnError: true)
     }
 
     /**
@@ -593,9 +624,15 @@ class BlueprintService extends BaseService {
         owner == user.username || hasAnyRole(user, config.adminRoles)
     }
 
-    // Publishing, sharing, renaming and deleting are refused while impersonating, so the audit
+    // Publishing, sharing, renaming, deleting and updating a publish are refused while impersonating, so the audit
     // trail never records an admin's change as the user's own.
-    private static final Map<String, String> PAST_TENSE = [publish: 'published', share: 'shared', delete: 'deleted', rename: 'renamed']
+    private static final Map<String, String> PAST_TENSE = [publish: 'published', share: 'shared', delete: 'deleted', rename: 'renamed', update: 'updated']
+
+    // A note or label as given, trimmed, with null or a blank string clearing it.
+    private static String textSetting(Object value, String name) {
+        if (value != null && !(value instanceof String)) throw new RoutineRuntimeException("'$name' must be a string")
+        return (value as String)?.trim() ?: null
+    }
 
     private void ensureNotImpersonatedAction(String action) {
         if (authUsername != username) {

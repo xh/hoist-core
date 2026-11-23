@@ -86,8 +86,14 @@ class XhBlueprintController extends BaseController {
 
     def listPublishes(String id) {
         renderJSON(blueprintService.listPublishes(blueprintType, id).collect {
-            compact(version: it.number, published: (it.dateCreated as Date).time, publishedBy: it.publishedBy, note: it.note, renames: it.renames)
+            compact(version: it.number, published: (it.dateCreated as Date).time, publishedBy: it.publishedBy, note: it.note, label: it.label, pinned: it.pinned, renames: it.renames)
         })
+    }
+
+    def updatePublish(String id) {
+        Map body = parseRequestJSON()
+        int version = requiredLong(body.version, 'version') as int
+        renderJSON(publishJSON(blueprintService.updatePublish(blueprintType, id, version, body.findAll { it.key != 'version' })))
     }
 
     def copy(String id) {
@@ -179,6 +185,8 @@ class XhBlueprintController extends BaseController {
             published: publish.dateCreated.time,
             publishedBy: publish.publishedBy,
             note: publish.note,
+            label: publish.label,
+            pinned: publish.pinned,
             renames: parseArray(publish.renames)
         )
     }

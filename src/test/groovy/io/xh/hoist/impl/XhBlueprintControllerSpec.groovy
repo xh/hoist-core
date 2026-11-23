@@ -227,6 +227,29 @@ class XhBlueprintControllerSpec extends Specification implements ControllerUnitT
         response.status == 200
     }
 
+    def 'updatePublish changes only the settings given, and returns the publish as listPublishes does'() {
+        given:
+        String id = call('create', [name: 'Risk', blueprint: BP]).id
+        call('publish', [base: 1, note: 'First'], [id: id])
+
+        when:
+        def publish = call('updatePublish', [version: 1, label: 'Q3 close', pinned: true], [id: id])
+
+        then:
+        publish.subMap('version', 'publishedBy', 'note', 'label', 'pinned') ==
+            [version: 1, publishedBy: 'owner', note: 'First', label: 'Q3 close', pinned: true]
+        publish.published instanceof Long
+        call('listPublishes', null, [id: id])[0] == publish
+
+        when:
+        publish = call('updatePublish', [version: 1, note: null, label: null, pinned: false], [id: id])
+
+        then: 'cleared settings leave the record, and pinned always shows'
+        !publish.containsKey('note')
+        !publish.containsKey('label')
+        publish.pinned == false
+    }
+
     def 'other actions answer 404 alike for a missing and an unreadable blueprint, and 403 to a reader'() {
         given:
         String id = call('create', [name: 'Risk', blueprint: BP]).id
@@ -277,6 +300,7 @@ class XhBlueprintControllerSpec extends Specification implements ControllerUnitT
         'a create without a name'      | 'create'              | [blueprint: BP]                                            | { [:] }                      || "'name' must be a non-empty string"
         'a personalization w/o version'| 'savePersonalization' | [blueprintId: 'x', preset: null, ops: []]                  | { [:] }                      || "'publishVersion' must be a number"
         'grantees not a list'          | 'updateAccess'        | [writers: 'bob', readers: []]                              | { [id: it] }                 || 'must be lists of usernames'
+        'a publish update w/o version' | 'updatePublish'       | [pinned: true]                                             | { [id: it] }                 || "'version' must be a number"
     }
 
     //------------------

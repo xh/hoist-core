@@ -9,15 +9,21 @@ package io.xh.hoist.blueprint
 import io.xh.hoist.json.JSONFormat
 
 /**
- * One numbered publish of a {@link Blueprint}, which never changes once created. The unique index
- * on blueprint and number keeps any number from being created twice.
+ * One numbered publish of a {@link Blueprint}. Its content and number never change once created:
+ * only its `note`, `label` and `pinned` may, as its writers manage the history. The unique index on
+ * blueprint and number keeps any number from being created twice.
  */
 class BlueprintPublish implements JSONFormat {
+
+    /** The settings a writer may change after publishing. */
+    static final List<String> MUTABLE = ['note', 'label', 'pinned']
 
     int number
     String content
     String renames = '[]'
     String note
+    String label
+    boolean pinned = false
     String publishedBy
     Date dateCreated
 
@@ -36,17 +42,23 @@ class BlueprintPublish implements JSONFormat {
     static constraints = {
         number unique: 'blueprint'
         note nullable: true
+        label nullable: true, maxSize: 50
         publishedBy nullable: true, maxSize: 50
     }
 
     def beforeUpdate() {
-        throw new IllegalStateException('A BlueprintPublish never changes once created.')
+        List changed = dirtyPropertyNames - MUTABLE
+        if (changed) {
+            throw new IllegalStateException("A BlueprintPublish keeps its $changed once created.")
+        }
     }
 
     Map formatForJSON() {[
         id: id,
         number: number,
         note: note,
+        label: label,
+        pinned: pinned,
         publishedBy: publishedBy,
         dateCreated: dateCreated
     ]}

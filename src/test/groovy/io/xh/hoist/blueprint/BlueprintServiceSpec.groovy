@@ -147,6 +147,67 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         thrown(BlueprintStaleBaseException)
     }
 
+    def 'a writer may change a publish\'s note, label and pin, but never its content or number'() {
+        given:
+        def token = service.create(T, 'Risk', null, BP).token
+        service.publish(T, token, 1, 'First')
+
+        when: 'only the keys given change'
+        def updated = service.updatePublish(T, token, 1, [label: '  Q3 close ', pinned: true])
+
+        then:
+        updated.number == 1
+        updated.note == 'First'
+        updated.label == 'Q3 close'
+        updated.pinned
+        parseObject(updated.content) == BP
+        service.listPublishes(T, token)[0].subMap('number', 'note', 'label', 'pinned') ==
+            [number: 1, note: 'First', label: 'Q3 close', pinned: true]
+
+        when: 'null or a blank string clears a note or label'
+        updated = service.updatePublish(T, token, 1, [note: null, label: ' '])
+
+        then:
+        updated.note == null
+        updated.label == null
+        updated.pinned
+    }
+
+    def 'a publish update is refused for #problem'() {
+        given:
+        def token = service.create(T, 'Risk', null, BP).token
+        service.publish(T, token, 1)
+
+        when:
+        service.updatePublish(T, token, number, changes)
+
+        then:
+        def e = thrown(RoutineRuntimeException)
+        e.message.contains(message)
+
+        where:
+        problem             | number | changes             || message
+        'an unknown key'    | 1      | [content: '{}']     || "Unknown publish setting 'content'"
+        'a pin not boolean' | 1      | [pinned: 'yes']     || "'pinned' must be true or false"
+        'a label too long'  | 1      | [label: 'x' * 51]   || 'at most 50 characters'
+        'a note not text'   | 1      | [note: 5]           || "'note' must be a string"
+        'no such publish'   | 9      | [pinned: true]      || 'has no publish 9'
+    }
+
+    def 'only a writer may change a publish'() {
+        given:
+        def token = service.create(T, 'Risk', null, BP).token
+        service.updateAccess(T, token, [], ['reader'])
+        service.publish(T, token, 1)
+        loginAs(reader)
+
+        when:
+        service.updatePublish(T, token, 1, [pinned: true])
+
+        then:
+        thrown(NotAuthorizedException)
+    }
+
     def 'readers see only the latest publish, and only once there is one'() {
         given:
         def token = service.create(T, 'Risk', null, BP, [], ['reader']).token
@@ -248,6 +309,7 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         'share'   | 'shared'    | { BlueprintService s, String t -> s.updateAccess(T, t, ['editor'], []) }
         'delete'  | 'deleted'   | { BlueprintService s, String t -> s.delete(T, t) }
         'rename'  | 'renamed'   | { BlueprintService s, String t -> s.rename(T, t, [name: 'Renamed']) }
+        'update'  | 'updated'   | { BlueprintService s, String t -> s.updatePublish(T, t, 1, [pinned: true]) }
     }
 
     def 'a writer may rename a blueprint, and its description changes only when given'() {
@@ -755,6 +817,7 @@ class BlueprintServiceSpec extends Specification implements ServiceUnitTest<Blue
         where:
         action                | call
         'listPublishes'       | { BlueprintService s, String t -> s.listPublishes(T, t) }
+        'updatePublish'       | { BlueprintService s, String t -> s.updatePublish(T, t, 1, [pinned: true]) }
         'saveDraft'           | { BlueprintService s, String t -> s.saveDraft(T, t, BP, 2, []) }
         'publish'             | { BlueprintService s, String t -> s.publish(T, t, 2) }
         'copy'                | { BlueprintService s, String t -> s.copy(T, t, 'Mine') }

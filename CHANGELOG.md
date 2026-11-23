@@ -29,6 +29,9 @@ detailed, step-by-step upgrade instructions with before and after code examples.
   blueprint, with access per blueprint, a version check under a row lock, and per-user
   personalizations. Each blueprint has a `type` that scopes every call. It is off until an app
   sets `enabled` in the new `xhBlueprintConfig`.
+* Added `BlueprintService.updatePublish()` and `xhBlueprint/updatePublish`, for writers to change a
+  publish's note, label or pin. Its content never changes. The `xh_blueprint_publish` table gains
+  `label` and `pinned` columns, which the v46 upgrade notes add for apps that manage their schema.
 
 ### 🤖 AI Docs + Tooling
 

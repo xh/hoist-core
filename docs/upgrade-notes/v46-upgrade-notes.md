@@ -51,6 +51,8 @@ CREATE TABLE xh_blueprint_publish (
     content LONGTEXT NOT NULL,
     renames LONGTEXT NOT NULL,
     note LONGTEXT NULL,
+    label VARCHAR(50) NULL,
+    pinned BIT NOT NULL DEFAULT 0,
     published_by VARCHAR(50) NULL,
     date_created DATETIME NOT NULL,
     PRIMARY KEY (id),
@@ -75,6 +77,14 @@ CREATE TABLE xh_blueprint_personalization (
 ) ENGINE=InnoDB;
 
 CREATE INDEX idx_xh_blueprint_pers_blueprint ON xh_blueprint_personalization (blueprint_id);
+```
+
+An app that created `xh_blueprint_publish` from an earlier v46 snapshot adds the two columns that
+let writers label and pin a publish:
+
+```sql
+ALTER TABLE xh_blueprint_publish ADD COLUMN label VARCHAR(50) NULL;
+ALTER TABLE xh_blueprint_publish ADD COLUMN pinned BIT NOT NULL DEFAULT 0;
 ```
 
 > **Note:** Column types vary by database. For SQL Server, use `NVARCHAR(MAX)` for `LONGTEXT`,

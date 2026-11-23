@@ -7,8 +7,9 @@ widgets and its layout. The client library defines a `BlueprintRepository` contr
 them, and an app chooses how to implement it. Hoist Core provides a server-side implementation
 with real integrity and access control: `BlueprintService` and the `xhBlueprint/*` endpoints.
 
-Each blueprint has one draft, which designers edit, and a series of numbered publishes, which never
-change. Users run the latest publish. Each user can also keep personalizations of a blueprint,
+Each blueprint has one draft, which designers edit, and a series of numbered publishes, whose
+content never changes. Writers can give a publish a note, a short label and a pin. Users run the
+latest publish. Each user can also keep personalizations of a blueprint,
 one per preset.
 
 Each blueprint has a `type`, such as `myApp.portfolio`, which the app picks. Every call names a
@@ -32,7 +33,7 @@ blueprint format.
 | File | Location | Role |
 |------|----------|------|
 | `Blueprint` | `grails-app/domain/io/xh/hoist/blueprint/` | GORM domain - a blueprint's draft, metadata and access lists |
-| `BlueprintPublish` | `grails-app/domain/io/xh/hoist/blueprint/` | GORM domain - one numbered publish, insert-only |
+| `BlueprintPublish` | `grails-app/domain/io/xh/hoist/blueprint/` | GORM domain - one numbered publish. Only its note, label and pin change |
 | `BlueprintPersonalization` | `grails-app/domain/io/xh/hoist/blueprint/` | GORM domain - one user's personalization for one preset |
 | `BlueprintService` | `grails-app/services/io/xh/hoist/blueprint/` | Primary service - storage, versions and access control |
 | `BlueprintConfig` | `src/main/groovy/io/xh/hoist/blueprint/` | Typed `xhBlueprintConfig` soft config |
@@ -45,7 +46,7 @@ blueprint format.
 | Domain | Table | Holds |
 |--------|-------|-------|
 | `Blueprint` | `xh_blueprint` | `token` (the client's `id`), `type`, name, description, `owner`, `writers`, `readers`, the `draft` JSON, `draftVersion`, `pendingRenames`, `publishedVersion`, and the source of a copy |
-| `BlueprintPublish` | `xh_blueprint_publish` | The publish `number`, its content, the renames it carries, a note and `publishedBy` |
+| `BlueprintPublish` | `xh_blueprint_publish` | The publish `number`, its content, the renames it carries, a `note`, a `label`, `pinned` and `publishedBy` |
 | `BlueprintPersonalization` | `xh_blueprint_personalization` | `username`, `preset`, `set` and `remove` ops, and the `publishVersion` they were made against |
 
 A publish and a personalization reference their blueprint by foreign key. A unique index on the
@@ -63,6 +64,7 @@ blueprint, user and preset keeps one personalization per preset.
 | `create(type, name, description, blueprint, writers?, readers?, copiedFrom?)` | One of `createRoles`, plus access to open `copiedFrom`, of the same type | The new blueprint, owned by the current user |
 | `saveDraft(type, token, blueprint, base, renames)` | Write | The draft's new version |
 | `publish(type, token, base, note?)` | Write, plus `publishRoles` if set | The new publish |
+| `updatePublish(type, token, number, {note?, label?, pinned?})` | Write | The publish. Only the keys given change, and null clears a note or label |
 | `copy(type, token, name, kind?, number?)` | Read on the source version, plus one of `createRoles` | The copy, of the same type, or null if the source has no publish |
 | `delete(type, token)` | Owner or admin | Nothing. Also deletes its publishes and every user's personalizations |
 | `rename(type, token, {name, description?})` | Write | The blueprint, renamed. Its description changes only when given |
@@ -82,7 +84,7 @@ a username, `role:<ROLE>` for every user with that role, or `*` for all users. O
 the apparent user, so an admin who impersonates a user has that user's access.
 
 An admin who impersonates a user can view blueprints and edit drafts as that user, but cannot
-publish, share, rename or delete. Those calls return a 403 that names the reason, so the audit trail never
+publish, update a publish, share, rename or delete. Those calls return a 403 that names the reason, so the audit trail never
 records an admin's change as the user's own.
 
 | Access | Granted to | Allows |

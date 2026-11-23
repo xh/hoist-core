@@ -108,6 +108,30 @@ class BlueprintServiceHibernateSpec extends HibernateSpec implements ServiceUnit
         isConstraintViolation(e2)
     }
 
+    def 'a publish takes a new note, label or pin, but its content never changes'() {
+        given:
+        String token = Blueprint.withNewTransaction { service.create(T, 'Risk', null, BP).token }
+        Blueprint.withNewTransaction { service.publish(T, token, 1, 'First') }
+
+        when:
+        Blueprint.withNewTransaction { service.updatePublish(T, token, 1, [label: 'Q3', pinned: true]) }
+
+        then:
+        def saved = Blueprint.withNewTransaction { service.getPublish(T, token, 1) }
+        [saved.note, saved.label, saved.pinned] == ['First', 'Q3', true]
+
+        when:
+        Blueprint.withNewTransaction {
+            def publish = BlueprintPublish.findByNumber(1)
+            publish.content = '{}'
+            publish.save(flush: true)
+        }
+
+        then:
+        def e = thrown(Exception)
+        rootCause(e) instanceof IllegalStateException
+    }
+
     def 'a save waits on the row lock of a concurrent save, then finds its base stale'() {
         given:
         String token = committed { service.create(T, 'Risk', null, BP) }.token
@@ -201,5 +225,11 @@ class BlueprintServiceHibernateSpec extends HibernateSpec implements ServiceUnit
             if (t.class.simpleName.contains('ConstraintViolation') || t.message?.toLowerCase()?.contains('constraint')) return true
         }
         return false
+    }
+
+    private static Throwable rootCause(Throwable e) {
+        Throwable ret = e
+        while (ret.cause && ret.cause != ret) ret = ret.cause
+        return ret
     }
 }
