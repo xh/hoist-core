@@ -47,6 +47,13 @@ jobs:
               version: ${{ inputs.version }}
               is-hotfix: ${{ inputs.is-hotfix }}
 
+        # Fails unless CHANGELOG.md holds this version and no changelog fragments are left, so a
+        # release cannot start before `bin/changelog release` has run.
+        - name: Check changelog
+          uses: xh/hoist-dev-utils/.github/actions/check-changelog@master
+          with:
+              release: ${{ inputs.version }}
+
         - name: Setup JDK 25
           uses: actions/setup-java@v6.3.0
           with:

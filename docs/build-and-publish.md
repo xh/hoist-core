@@ -24,6 +24,19 @@ The `xhReleaseVersion` property in `gradle.properties` sets the version for all 
 - After a release, bump `xhReleaseVersion` on `develop` to the next `-SNAPSHOT` so subsequent
   snapshots publish under the new line.
 
+- Before any release, run `bin/changelog release <version>`. It assembles the fragments in
+  `changelog.d/` into a new `## <version> - <date>` block in `CHANGELOG.md` and deletes them.
+  Review and curate the block, then commit it. See
+  [Changelog Entry Format](./changelog-format.md#where-entries-go). Deploy Release fails if
+  `CHANGELOG.md` lacks the version or fragments are left over.
+- A hotfix branch cut from v45.0.0 or an earlier tag has no `changelog.d/`. Edit `CHANGELOG.md`
+  there directly, as before.
+
+The hoist-dev-utils README section
+[Release](https://github.com/xh/hoist-dev-utils/blob/master/README.md#release) describes how
+`release` orders entries, rolls the snapshot heading forward, blocks breaking changes in a minor,
+and handles hotfixes.
+
 ## Workflows
 
 ### CI (`ci.yml`)
@@ -82,13 +95,15 @@ Release runs are serialized and never cancelled by one another.
 
 ## Performing a Release
 
-1. Confirm CI is green on `develop` and the changelog is finalized.
-2. Merge `develop` into `master`.
-3. In GitHub, open **Actions → Deploy Release → Run workflow**. Select `master`, enter the
+1. Confirm CI is green on `develop`.
+2. Run `bin/changelog release <version>` on `develop`. Curate the new block in `CHANGELOG.md` and
+   commit it.
+3. Merge `develop` into `master`.
+4. In GitHub, open **Actions → Deploy Release → Run workflow**. Select `master`, enter the
    version, and leave `is-hotfix` unchecked.
-4. Confirm the artifacts appear on [Maven Central](https://central.sonatype.com/namespace/io.xh)
+5. Confirm the artifacts appear on [Maven Central](https://central.sonatype.com/namespace/io.xh)
    and the release on the repository's [Releases](https://github.com/xh/hoist-core/releases) page.
-5. Bump `xhReleaseVersion` on `develop` to the next `-SNAPSHOT`.
+6. Bump `xhReleaseVersion` on `develop` to the next `-SNAPSHOT`.
 
 For a hotfix, run the workflow from the maintenance branch with `is-hotfix` checked.
 

@@ -14,8 +14,8 @@ produces two artifacts: a CHANGELOG entry and a detailed upgrade-notes document.
 ## Phase 0: Setup
 
 1. **Determine the target version.** If `$ARGUMENTS` provides a version, normalize to `vNN` short
-   form and `NN.x.x` full form. If no argument is provided, read the topmost entry in
-   `CHANGELOG.md` — if it's a `-SNAPSHOT` entry, use that version as the target.
+   form and `NN.x.x` full form. If no argument is provided, read the topmost heading in
+   `CHANGELOG.md`. If it is a `-SNAPSHOT` heading, use that version as the target.
 2. Identify the **prior major version** by reading `CHANGELOG.md` to find the entry immediately
    before the target version (e.g. if target is v38, prior is v37.x).
 3. Determine the **git range** for diffing. If the prior version has been tagged, use the tag
@@ -34,7 +34,8 @@ Gather all information needed to write accurate documentation.
 
 - Run `git log --oneline {range}` to see all commits in the release.
 - Run `git diff --stat {range}` to understand scope of changes.
-- Read the existing CHANGELOG SNAPSHOT entry to understand what's already documented.
+- Run `bin/changelog preview` to read the unreleased entries, assembled from the fragments in
+  `changelog.d/`, and see what is already documented. Note which fragment holds each entry.
 
 ### 1b. Targeted Source Analysis
 
@@ -75,9 +76,15 @@ for reference (e.g. `https://docs.grails.org/{version}/guide/upgrading.html`).
 
 ## Phase 2: Verify and Finalize the CHANGELOG Entry
 
-The CHANGELOG entry for the target version typically already exists as a `-SNAPSHOT` entry that
-has been built up incrementally during development. The primary task is to **audit and finalize**
-it, not write it from scratch.
+The entries for the target version already exist as fragments in `changelog.d/`, added by each
+pull request during development. The primary task is to **audit and finalize** them, not write them
+from scratch. The work has two stages:
+
+1. **Before the release**, fix the entries in their fragments. `bin/changelog preview` shows the
+   assembled result.
+2. **At release** (Phase 5), `bin/changelog release` assembles the fragments into `CHANGELOG.md`.
+   Then add the release-level content that fragments never hold: the difficulty rating, the
+   upgrade-notes sentence, any `####` topic groups, and the final bullet order.
 
 ### Audit the Existing Entry
 
@@ -116,8 +123,10 @@ placement, entry length, or what to include/exclude.
 
 ### Apply Changes
 
-After the user confirms, update the CHANGELOG following the format in
-[`docs/changelog-format.md`](../../../docs/changelog-format.md). Key principles:
+After the user confirms, edit the fragments in `changelog.d/` following the format in
+[`docs/changelog-format.md`](../../../docs/changelog-format.md). Add a new fragment for any missing
+entry. Run `bin/changelog check` when done. Record the agreed difficulty rating for Phase 5. Key
+principles for the finished release:
 
 - Breaking Changes section should have a difficulty rating and list every required app change
 - Include a link to the upgrade notes file: `docs/upgrade-notes/v{NN}-upgrade-notes.md`
@@ -226,16 +235,18 @@ Launch a subagent (subagent_type: "general-purpose") with these instructions:
 ### Handling the Report
 
 Review the agent's findings. Address all HIGH and MEDIUM priority items by updating the upgrade
-notes and/or CHANGELOG entry. LOW priority items are at your discretion.
+notes and/or the changelog fragments. LOW priority items are at your discretion.
 
 ## Phase 5: Finalize
 
-1. **Set the release date** if the user has provided one. Update the date in:
-   - `CHANGELOG.md` version header (e.g. `## 38.0.0 - 2026-04-15`)
+1. **Assemble the release** once the user confirms the release date. Run
+   `bin/changelog release {NN}.0.0 --date YYYY-MM-DD`. It writes the `## {NN}.0.0 - YYYY-MM-DD`
+   block into `CHANGELOG.md`, deletes the fragments, and rolls the snapshot heading forward to the
+   next major. Then curate the block: add the difficulty rating and the upgrade-notes sentence to
+   the Breaking Changes section, and order the bullets. Set the same date in:
    - Upgrade notes banner (`**Released:** YYYY-MM-DD`)
    - `docs/README.md` upgrade notes table (if date is shown there)
-   If the CHANGELOG still shows `-SNAPSHOT`, leave the date as-is unless the user confirms
-   the release date.
+   Until the date is confirmed, leave the fragments in place.
 2. Re-read both artifacts one final time to check for consistency between the CHANGELOG entry
    and the upgrade notes (same version numbers, same list of changes, matching links).
 3. Verify all doc indexes are updated (docs/README.md, doc-registry.json).
