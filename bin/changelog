@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#
+# Runs xh-changelog from @xh/hoist-dev-utils, which manages the changelog fragments in changelog.d/.
+# Uses a sibling ../hoist-dev-utils checkout if it has the command, else the published package via
+# npx. Run `bin/changelog --help` to list the commands. See changelog.d/README.md.
+
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+sibling_cli="$repo_root/../hoist-dev-utils/bin/xh-changelog.js"
+
+if [[ -f "$sibling_cli" ]]; then
+    exec node "$sibling_cli" "$@"
+fi
+exec npx -y -p @xh/hoist-dev-utils xh-changelog "$@"

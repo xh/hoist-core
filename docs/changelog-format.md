@@ -7,10 +7,34 @@ library** `CHANGELOG.md`.
 > Hoist library packages. Hoist *application* changelogs have different formatting requirements. See
 > the [Application Changelogs](#application-changelogs) section at the end of this document.
 
+## Where Entries Go
+
+Write new entries in a **changelog fragment**, not in `CHANGELOG.md`. Each pull request adds a
+markdown file in [`changelog.d/`](../changelog.d/README.md), named for its branch. The fragment holds
+the release body without its `##` heading: the same `###` section headers and bullets described
+below. A release assembles every fragment into `CHANGELOG.md` under the real version number, so pull
+requests never conflict over `CHANGELOG.md` and a late merge cannot land under a shipped version.
+
+```markdown
+### 🐞 Bug Fixes
+
+* Fixed the Admin Console role list, which failed to load if a role had a member role that did not
+  exist.
+```
+
+Add a one-line entry with `bin/changelog add fix "<text>"`.
+
+Leave release-level content out of fragments: the `(upgrade difficulty: ...)` suffix, the
+upgrade-notes sentence, and `####` topic groups. The release curator adds them.
+
+The `bin/changelog` script runs `xh-changelog` from `@xh/hoist-dev-utils`. Its README section
+[Changelog fragments](https://github.com/xh/hoist-dev-utils/blob/master/README.md#changelog-fragments)
+covers the fragment format, the commands, what `check` enforces, and how a release behaves.
+
 ## Entry Structure
 
-Every major version entry uses this structure. A minor or patch release uses only the sections that
-apply.
+Every major version entry in `CHANGELOG.md` uses this structure once the release is curated. A minor
+or patch release uses only the sections that apply.
 
 ```markdown
 ## {VERSION} - {YYYY-MM-DD}
@@ -45,6 +69,10 @@ detailed, step-by-step upgrade instructions with before and after code examples.
 
 * {Library} `{old} → {new}`
 ```
+
+On `develop`, the top heading is the next major version as a snapshot:
+`## {N}.0-SNAPSHOT - unreleased`. It stays empty. Entries wait in `changelog.d/` until a release
+assembles them below it. See [Versioning](./build-and-publish.md#versioning) for the release steps.
 
 ## Section Headers
 
@@ -288,9 +316,13 @@ Hoist *application* changelogs, for example those in app repos that depend on `i
 follow different formatting rules than the library changelog rules above. A Hoist release notes
 feature parses application changelogs at runtime and displays them in the app UI.
 
-**Do NOT hard-wrap list items in application changelogs.** Each bullet point must be a single
-unwrapped line. The release notes parser treats a line break inside a list item as a separate entry.
-Let the display tool wrap the text.
+An app on `@xh/hoist-dev-utils` 16.6 or later parses its changelog with the same parser as
+`xh-changelog`. Its bullets can wrap and hold sub-bullets, as in a library changelog. Such an app can
+also use changelog fragments: run `xh-changelog init` from its `client-app/` folder.
+
+**On an older `@xh/hoist-dev-utils`, do NOT hard-wrap list items in application changelogs.** Each
+bullet point must be a single unwrapped line. That parser treats a line break inside a list item as
+a separate entry. Let the display tool wrap the text.
 
 All other conventions apply to both library and application changelogs: section headers, voice and
 tense, and backtick-wrapped specificity.

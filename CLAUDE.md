@@ -350,6 +350,15 @@ after the subject line. Keep PR descriptions concise — XH developers review th
 brief summaries over exhaustive detail. Bullet the key changes and let the diff and any upgrade notes
 speak for themselves.
 
+## Changelog Maintenance
+
+**Before adding or editing any changelog entry, you MUST read and follow
+[`docs/changelog-format.md`](docs/changelog-format.md)** - the reference for where entries go,
+section headers, voice, and breaking-change requirements.
+
+The essentials: new entries go in a fragment file in `changelog.d/`, never in `CHANGELOG.md`. Add
+one with `bin/changelog add <section> "<text>"`. Run `bin/changelog check` before you commit.
+
 ## Key Dependencies
 
 - **Grails 8** - Application framework (Spring Boot 4.1, GORM/Hibernate 5)

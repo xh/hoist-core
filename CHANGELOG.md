@@ -1,7 +1,8 @@
 # Changelog
 
 <!--
-  Entry conventions: docs/changelog-format.md - read it before adding entries here.
+  New entries go in a fragment in changelog.d/, not in this file. A release assembles them here.
+  Entry conventions: docs/changelog-format.md - read it before adding or editing entries.
 
   The three rules that account for most review feedback:
 
@@ -13,12 +14,6 @@
 -->
 
 ## 46.0-SNAPSHOT - unreleased
-
-### 🤖 AI Docs + Tooling
-
-* Added [`dependency-locking.md`](docs/dependency-locking.md), a guide to Gradle dependency locking
-  for apps. It covers setup and the changes that need new lockfiles, including the ones that build
-  clean on stale locks.
 
 ## 45.0.0 - 2026-11-20
 
