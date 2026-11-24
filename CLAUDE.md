@@ -54,58 +54,18 @@ a "Quick Reference by Task" table mapping common goals to the right doc. See
 [`docs/planning/docs-roadmap.md`](docs/planning/docs-roadmap.md) for documentation coverage
 tracking and writing conventions.
 
-### GitHub MCP Server (opt-in)
+### GitHub
 
-A Docker-based server providing GitHub API tools (issues, PRs, code search, etc.) via the
-official `github-mcp-server` image. Configured in `.mcp.json` but **not enabled by default** —
-it requires Docker and an authenticated GitHub CLI, which not every developer keeps running.
+Use the GitHub CLI (`gh`) for GitHub operations: `gh pr view`, `gh issue list`, `gh pr create`,
+and `gh api` for anything else. Prefer it over raw `curl` calls to the GitHub API.
 
-**To enable:**
+### XH plugin (`xh@hoist-ai`)
 
-1. Install and start **Docker**.
-2. Install the **GitHub CLI** (`brew install gh`) and authenticate with `gh auth login`. The
-   server invokes `gh auth token` at startup to fetch a token from the macOS Keychain (or
-   `gh`'s credential store on other platforms), so no plaintext token needs to live in your
-   shell environment.
-3. Add `"github"` to `enabledMcpjsonServers` in `.claude/settings.local.json` (local settings
-   merge with the shared `settings.json` — enabling locally does not affect other developers):
-   ```json
-   {
-     "enabledMcpjsonServers": ["hoist-docs", "github"]
-   }
-   ```
-
-If Docker is not running or `gh` is not authenticated when the server is enabled, Claude Code
-may show errors on startup — remove `"github"` from your local settings to resolve.
-
-**Fallback when not enabled:** The `gh` CLI provides functionally equivalent access to the same
-operations (`gh pr view`, `gh issue list`, `gh api`, `gh pr create`, etc.). Prefer `gh` over
-crafting raw `curl` calls to the GitHub API.
-
-### JetBrains IntelliJ MCP Server (`idea`)
-
-IntelliJ registers its own MCP server in `.mcp.json` under the name `idea`, providing tools for
-interacting with the IDE (file navigation, code inspections, refactoring, terminal commands, etc.).
-It requires a running IDE instance with the MCP server enabled in IntelliJ's settings.
-
-**Not enabled by default** - the server fails to connect when no IDE is running, which shows as a
-startup error. Add `"idea"` to `enabledMcpjsonServers` in `.claude/settings.local.json` to enable it
-for yourself (local settings merge with the shared `settings.json`):
-
-```json
-{
-  "enabledMcpjsonServers": ["hoist-docs", "idea"]
-}
-```
-
-A read-only subset of its tools (search, read, symbol lookup, inspections) is pre-approved in the
-shared permissions allowlist, so no extra local config is needed once the server is on. Write and
-execute tools - `apply_patch`, `execute_terminal_command`, `execute_sql_query`, the `xdebug_*`
-family - are deliberately left out and still prompt.
-
-IntelliJ rewrites its own entry in `.mcp.json` on startup. Take its changes rather than reverting
-them, or it will keep prompting. Note that it hardcodes the default port `64342`, so a second IDE
-instance on another port needs a local override.
+The shared `.claude/settings.json` enables XH's `xh@hoist-ai` plugin, but enabling does not
+install it. Each developer should install it once per machine at user scope, which covers every
+repo and worktree and auto-updates. If no `xh:` skills appear in your available skills, tell the
+developer the plugin is missing and give them the command
+`claude plugin install xh@hoist-ai --scope user`. Offer to run it for them.
 
 ## Build Commands
 
@@ -389,6 +349,15 @@ structure: separate logical points into bullet lists, use blank lines between pa
 after the subject line. Keep PR descriptions concise — XH developers review these regularly, so favor
 brief summaries over exhaustive detail. Bullet the key changes and let the diff and any upgrade notes
 speak for themselves.
+
+## Changelog Maintenance
+
+**Before adding or editing any changelog entry, you MUST read and follow
+[`docs/changelog-format.md`](docs/changelog-format.md)** - the reference for where entries go,
+section headers, voice, and breaking-change requirements.
+
+The essentials: new entries go in a fragment file in `changelog.d/`, never in `CHANGELOG.md`. Add
+one with `bin/changelog add <section> "<text>"`. Run `bin/changelog check` before you commit.
 
 ## Key Dependencies
 

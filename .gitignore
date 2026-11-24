@@ -14,6 +14,10 @@ build/
 mcp/build/
 out/
 bin/
+# ...except the root bin/changelog script
+!/bin/
+/bin/*
+!/bin/changelog
 
 # Local Claude Code instructions
 CLAUDE.local.md
