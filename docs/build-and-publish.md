@@ -24,21 +24,18 @@ The `xhReleaseVersion` property in `gradle.properties` sets the version for all 
 - After a release, bump `xhReleaseVersion` on `develop` to the next `-SNAPSHOT` so subsequent
   snapshots publish under the new line.
 
-`CHANGELOG.md` follows the same line. Its top heading is a bare `## N.0-SNAPSHOT - unreleased`, and
-unreleased entries wait as fragments in `changelog.d/`. See
-[Changelog Entry Format](./changelog-format.md#where-entries-go).
+- Before any release, run `bin/changelog release <version>`. It assembles the fragments in
+  `changelog.d/` into a new `## <version> - <date>` block in `CHANGELOG.md` and deletes them.
+  Review and curate the block, then commit it. See
+  [Changelog Entry Format](./changelog-format.md#where-entries-go). Deploy Release fails if
+  `CHANGELOG.md` lacks the version or fragments are left over.
+- A hotfix branch cut from v45.0.0 or an earlier tag has no `changelog.d/`. Edit `CHANGELOG.md`
+  there directly, as before.
 
-- Before any release, run `bin/changelog release <version>`. It assembles the fragments into a new
-  `## <version> - <date>` block in `CHANGELOG.md` and deletes them. Review and curate the block,
-  then commit it. Deploy Release fails if `CHANGELOG.md` lacks the version or fragments are left
-  over.
-- A minor or patch release puts its block below the snapshot heading, which stays on top.
-  `release` refuses a minor or patch while a fragment has a `💥 Breaking Changes` section.
-- A major release rolls the snapshot heading forward to the next major. Then bump
-  `xhReleaseVersion` on `develop` to match.
-- A hotfix to an older line adds its fragment on the maintenance branch and runs `release` there,
-  which places the block in version order. When the hotfix merges back to `develop`, delete the
-  matching fragment on `develop` if the same fix landed there, or the next release lists it twice.
+The hoist-dev-utils README section
+[Release](https://github.com/xh/hoist-dev-utils/blob/master/README.md#release) describes how
+`release` orders entries, rolls the snapshot heading forward, blocks breaking changes in a minor,
+and handles hotfixes.
 
 ## Workflows
 

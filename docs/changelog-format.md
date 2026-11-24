@@ -22,23 +22,14 @@ requests never conflict over `CHANGELOG.md` and a late merge cannot land under a
   exist.
 ```
 
-- `bin/changelog add fix "<text>"` adds a one-line entry to `changelog.d/<branch>.md`. It finds the
-  section from a short name, such as `fix`, `feature`, `tech` or `breaking`, and wraps the line.
-- `bin/changelog new` creates an empty `changelog.d/<branch>.md` for a longer entry. Or create the
-  file yourself.
-- `bin/changelog check` validates the fragments. CI runs the same check on each pull request, and
-  shows the entries that the pull request adds in the job summary.
-- A fragment uses only the section headers listed in `changelog.d/config.json`. You can leave the
-  emoji off a header. The release adds it.
-- Leave release-level content out of fragments: the `(upgrade difficulty: ...)` suffix, the
-  upgrade-notes sentence, and `####` topic groups. The release curator adds them.
-- To change an unreleased entry, edit its fragment, even one that another pull request added. To
-  correct a released entry, edit `CHANGELOG.md`.
-- `bin/changelog preview` prints the next release as it will be assembled.
+Add a one-line entry with `bin/changelog add fix "<text>"`.
 
-`bin/changelog` runs the `xh-changelog` command from `@xh/hoist-dev-utils`, from a sibling
-`../hoist-dev-utils` checkout if there is one, else via `npx`. See the dev-utils README section
-"Changelog fragments".
+Leave release-level content out of fragments: the `(upgrade difficulty: ...)` suffix, the
+upgrade-notes sentence, and `####` topic groups. The release curator adds them.
+
+The `bin/changelog` script runs `xh-changelog` from `@xh/hoist-dev-utils`. Its README section
+[Changelog fragments](https://github.com/xh/hoist-dev-utils/blob/master/README.md#changelog-fragments)
+covers the fragment format, the commands, what `check` enforces, and how a release behaves.
 
 ## Entry Structure
 

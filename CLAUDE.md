@@ -396,14 +396,8 @@ speak for themselves.
 [`docs/changelog-format.md`](docs/changelog-format.md)** - the reference for where entries go,
 section headers, voice, and breaking-change requirements.
 
-The essentials: new entries go in a fragment file in `changelog.d/`, never in `CHANGELOG.md`.
-`bin/changelog add fix "<text>"` adds a one-line entry, and `bin/changelog new` creates an empty
-fragment for a longer one. A release assembles the fragments into `CHANGELOG.md`. Fragments use the
-emoji-prefixed section headers listed in `changelog.d/config.json` and no version heading. Run
-`bin/changelog check` before you commit one. Hard-wrap entries at 100 characters.
-
-`bin/changelog` runs `xh-changelog` from a sibling `../hoist-dev-utils` checkout if there is one,
-else from the published `@xh/hoist-dev-utils` package via `npx`.
+The essentials: new entries go in a fragment file in `changelog.d/`, never in `CHANGELOG.md`. Add
+one with `bin/changelog add <section> "<text>"`. Run `bin/changelog check` before you commit.
 
 ## Key Dependencies
 
