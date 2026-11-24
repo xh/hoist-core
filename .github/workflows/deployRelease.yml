@@ -50,7 +50,7 @@ jobs:
         # Fails unless CHANGELOG.md holds this version and no changelog fragments are left, so a
         # release cannot start before `bin/changelog release` has run.
         - name: Check changelog
-          uses: xh/hoist-dev-utils/.github/actions/check-changelog@master
+          uses: xh/hoist-dev-utils/.github/actions/check-changelog@3e286bdc09b126ef9b51a34415a73cc44ed5374d # master
           with:
               release: ${{ inputs.version }}
 
