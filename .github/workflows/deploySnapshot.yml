@@ -48,7 +48,7 @@ jobs:
               build-scan-terms-of-use-agree: 'yes'
 
         - name: Prepare snapshot version
-          uses: xh/hoist-dev-utils/.github/actions/prepare-gradle-snapshot-version@master
+          uses: xh/hoist-dev-utils/.github/actions/prepare-gradle-snapshot-version@3e286bdc09b126ef9b51a34415a73cc44ed5374d # master
           with:
               version: ${{ inputs.version }}
               version-prop: xhReleaseVersion
