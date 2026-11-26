@@ -257,9 +257,7 @@ class ObservedRun {
     }
 
     private String applyPrefix(boolean useNamePrefix, String name) {
-        if (!useNamePrefix || !(owner instanceof BaseService)) return name
-        def prefix = ((BaseService) owner).telemetryPrefix
-        prefix ? "${prefix}.${name}" : name
+        useNamePrefix && owner instanceof BaseService ? owner.applyTelemetryPrefix(name) : name
     }
 
     private static TraceService getTraceService() {

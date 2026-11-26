@@ -69,8 +69,8 @@ distribution config, and name-prefixing from an optional `owner` BaseService's `
 | `registerCounter(name, description?, tags?, owner?, useNamePrefix?)` | Registers a concrete Counter for the name. |
 | `registerGauge(name, valueFn, description?, tags?, baseUnit?, owner?, useNamePrefix?)` | Registers a Gauge whose value is read from `valueFn` on demand. |
 | `registerFunctionCounter(name, countFn, description?, tags?, baseUnit?, owner?, useNamePrefix?)` | Registers a monotonically-increasing FunctionCounter from `countFn`. |
-| `recordTimer(name, valueMs, tags?, owner?, useNamePrefix?)` | Records a single timing against the named Timer, registering it on first use. |
-| `recordCount(name, value?, tags?, owner?, useNamePrefix?)` | Increments the named Counter, registering it on first use. |
+| `recordTimer(name, valueMs, tags?)` | Records a single timing against the named Timer, registering it on first use. |
+| `recordCount(name, value, tags?)` | Increments the named Counter, registering it on first use. |
 
 `recordTimer` and `recordCount` are the fire-and-forget forms — no need to hold a meter reference.
 These are what [`ObservedRun`](./tracing.md#observedrun) calls for its `.timer()` / `.counter()`
@@ -89,8 +89,8 @@ Additional methods support export and administration rather than instrumentation
 | `readOnlyRegistry` | In-memory registry for *reading* current values on this instance. Not for registering meters. |
 
 Pass `owner: this` from your service to have its `telemetryPrefix` prepended to the metric name
-and an `xh.owner` tag added automatically. Set `useNamePrefix: false` to opt out of prefixing
-when supplying a fully-qualified name.
+and an `xh.owner` tag added automatically. A name that already starts with the prefix is used as
+given. Set `useNamePrefix: false` to record a name outside the service's namespace.
 
 ```groovy
 class MyService extends BaseService {

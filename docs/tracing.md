@@ -225,7 +225,8 @@ class PortfolioService extends BaseService {
 
 Both `.timer()` and `.counter()` add an `xh.outcome` tag of `success` or `failure` on completion,
 based on whether the closure threw. Metric names are prefixed with `BaseService.telemetryPrefix`
-when set on the owning service — pass `useNamePrefix: false` to opt out.
+when set on the owning service. A name that already starts with the prefix is used as given. Pass
+`useNamePrefix: false` to opt out.
 
 **Span + log only:**
 
