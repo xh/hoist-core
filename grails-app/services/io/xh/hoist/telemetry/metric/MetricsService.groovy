@@ -569,8 +569,7 @@ class MetricsService extends BaseService {
     }
 
     private static String applyOwnerPrefix(String name, BaseService owner, boolean useNamePrefix) {
-        def prefix = useNamePrefix ? owner?.telemetryPrefix : null
-        prefix ? "${prefix}.${name}" : name
+        useNamePrefix && owner ? owner.applyTelemetryPrefix(name) : name
     }
 
     private static Map<String, String> applyOwnerTag(Map<String, String> tags, BaseService owner) {

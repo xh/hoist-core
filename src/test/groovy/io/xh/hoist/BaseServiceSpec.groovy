@@ -25,6 +25,10 @@ class BaseServiceSpec extends HoistSpec {
 
     static class NoOnTimerService extends BaseService {}
 
+    static class PrefixedService extends BaseService {
+        String telemetryPrefix = 'myApp.portfolio'
+    }
+
     static class SubscribingService extends BaseService {
         List received = []
         void init() {
@@ -122,5 +126,27 @@ class BaseServiceSpec extends HoistSpec {
 
         then:
         svc.received.empty
+    }
+
+    //-------------------
+    // applyTelemetryPrefix
+    //-------------------
+    def 'applyTelemetryPrefix prepends the prefix only where the name lacks it'() {
+        given:
+        def svc = defineService(PrefixedService)
+
+        expect:
+        svc.applyTelemetryPrefix(name) == expected
+
+        where:
+        name                      | expected
+        'loadTime'                | 'myApp.portfolio.loadTime'
+        'myApp.portfolio.loadTime' | 'myApp.portfolio.loadTime'
+        'myApp.portfolioCount'    | 'myApp.portfolio.myApp.portfolioCount'
+    }
+
+    def 'applyTelemetryPrefix returns the name as given when no prefix is set'() {
+        expect:
+        defineService(NoOnTimerService).applyTelemetryPrefix('loadTime') == 'loadTime'
     }
 }

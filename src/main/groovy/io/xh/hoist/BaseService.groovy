@@ -76,7 +76,7 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
     /**
      * Prefix prepended (with a `.` separator) to meter and span names configured through
      * this service or accessed via {@link ObservedRun}. Set on subclasses to namespace telemetry
-     * emitted by this service.
+     * emitted by this service. A name that already starts with the prefix is used as given.
      */
     String telemetryPrefix = null
 
@@ -338,6 +338,15 @@ abstract class BaseService implements LogSupport, IdentitySupport, DisposableBea
         @NamedParam boolean useNamePrefix = true
     ) {
         observe().span(name: name, tags: tags, kind: kind, useNamePrefix: useNamePrefix)
+    }
+
+    /**
+     * Prepend {@link #telemetryPrefix} to a span or metric name. A name that already starts with
+     * the prefix is returned as given, so callers may pass either a short or a full name.
+     */
+    String applyTelemetryPrefix(String name) {
+        def prefix = getTelemetryPrefix()
+        !prefix || name?.startsWith("${prefix}.") ? name : "${prefix}.${name}"
     }
 
 
