@@ -1,4 +1,3 @@
-### 🐞 Bug Fixes
+### 🎁 New Features
 
-* A `telemetryPrefix` is no longer applied twice. A span or metric name that already starts with
-  `<prefix>.` is used as given. This matches hoist-react.
+* `telemetryPrefix` is no longer added to a name that already starts with it.
