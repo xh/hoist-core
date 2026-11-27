@@ -126,9 +126,9 @@ dependencies {
     api "io.opentelemetry:opentelemetry-exporter-otlp", {
         exclude group: 'io.opentelemetry', module: 'opentelemetry-exporter-sender-okhttp'
     }
-    api "io.opentelemetry.instrumentation:opentelemetry-jdbc:2.33.1-alpha"
+    api "io.opentelemetry.instrumentation:opentelemetry-jdbc:2.34.0-alpha"
     // Two deps runtime-scoped transitively, but needed at compile time:
-    api "io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-incubator:2.33.1-alpha"
+    api "io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-incubator:2.34.0-alpha"
     api "io.opentelemetry.proto:opentelemetry-proto:1.11.1-alpha"
 
     //-------------------------------
@@ -197,7 +197,7 @@ configurations {
 }
 
 dependencies {
-    docsBuilder 'io.xh:hoist-docs-builder:1.0.0'
+    docsBuilder 'io.xh:hoist-docs-builder:1.1.0'
 }
 
 def docsIndexFile = layout.buildDirectory.file('docs-index/hoist-core-docs-index.json.gz')
